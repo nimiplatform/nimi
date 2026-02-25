@@ -1,0 +1,157 @@
+name: release-runtime
+
+on:
+  push:
+    tags:
+      - runtime/v*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-tag:
+    if: startsWith(github.ref, 'refs/tags/runtime/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: false
+
+      - name: Resolve runtime semver tag
+        id: runtime_tag
+        run: |
+          if [[ "${GITHUB_REF_NAME}" != runtime/v* ]]; then
+            echo "unexpected runtime tag: ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+          echo "tag=${GITHUB_REF_NAME#runtime/}" >> "${GITHUB_OUTPUT}"
+
+      - name: Goreleaser release
+        uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean --config .goreleaser.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.runtime_tag.outputs.tag }}
+
+      - name: Install supply chain tooling (cosign + syft)
+        run: |
+          set -euo pipefail
+          GOBIN="$(go env GOPATH)/bin"
+          echo "${GOBIN}" >> "${GITHUB_PATH}"
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.4.3
+          go install github.com/anchore/syft/cmd/syft@v1.24.0
+
+      - name: Resolve runtime archives for signing
+        id: runtime_archives
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const output = process.env.GITHUB_OUTPUT;
+          if (!output) {
+            throw new Error('GITHUB_OUTPUT is required');
+          }
+
+          const distRoot = path.resolve('dist/runtime');
+          const files = fs
+            .readdirSync(distRoot, { withFileTypes: true })
+            .filter((entry) => entry.isFile())
+            .map((entry) => path.join(distRoot, entry.name))
+            .filter((filePath) => filePath.endsWith('.tar.gz') || filePath.endsWith('.zip'));
+
+          if (files.length === 0) {
+            throw new Error(`no runtime archives found in ${distRoot}`);
+          }
+
+          fs.appendFileSync(output, `archives_json=${JSON.stringify(files)}\n`);
+          NODE
+
+      - name: Generate SBOM + sign runtime archives
+        env:
+          NIMI_ARTIFACT_PATHS_JSON: ${{ steps.runtime_archives.outputs.archives_json }}
+          NIMI_SIGN_IDENTITY_REGEX: https://github.com/${{ github.repository }}/.github/workflows/release-runtime.yml@.*
+          NIMI_SIGN_OUTPUT_MANIFEST: dist/runtime/signing-manifest.json
+        run: node scripts/release/sign-and-sbom-artifacts.mjs
+
+      - name: Sign and verify checksums.txt
+        run: |
+          set -euo pipefail
+          cosign sign-blob \
+            --yes \
+            --output-signature dist/runtime/checksums.txt.sig \
+            --output-certificate dist/runtime/checksums.txt.pem \
+            dist/runtime/checksums.txt
+
+          cosign verify-blob \
+            --certificate dist/runtime/checksums.txt.pem \
+            --signature dist/runtime/checksums.txt.sig \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-runtime.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            dist/runtime/checksums.txt
+
+      - name: Upload supply chain assets to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.runtime_tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mapfile -t generated_files < <(node <<'NODE'
+          const fs = require('node:fs');
+          const payload = JSON.parse(fs.readFileSync('dist/runtime/signing-manifest.json', 'utf8'));
+          for (const filePath of payload) {
+            process.stdout.write(`${filePath}\n`);
+          }
+          NODE
+          )
+          generated_files+=(
+            "dist/runtime/signing-manifest.json"
+            "dist/runtime/checksums.txt.sig"
+            "dist/runtime/checksums.txt.pem"
+          )
+          gh release upload "${RELEASE_TAG}" "${generated_files[@]}" --clobber
+
+  release-snapshot:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Goreleaser snapshot (dry-run)
+        uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml

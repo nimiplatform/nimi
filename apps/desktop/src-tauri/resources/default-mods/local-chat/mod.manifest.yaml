@@ -1,0 +1,81 @@
+id: world.nimi.local-chat
+name: Local Chat
+version: 1.0.0
+kind: capability-mod
+icon: local-chat
+entry: ./dist/mods/local-chat/index.js
+description: >
+  Adds hook-based local chat execution with chat-routing and read-only
+  agent friend target loading for desktop local chat.
+  This mod is optional and does not change desktop core cloud routing.
+capabilities:
+  - llm.text.generate
+  - llm.text.stream
+  - llm.speech.providers.list
+  - llm.speech.voices.list
+  - llm.speech.synthesize
+  - llm.speech.stream.open
+  - llm.speech.stream.control
+  - llm.speech.stream.close
+  - llm.speech.transcribe
+  - data.register.data-api.local-chat.chat-targets.list
+  - data.query.data-api.local-chat.chat-targets.list
+  - data.register.data-api.local-chat.chat-target.detail
+  - data.query.data-api.local-chat.chat-target.detail
+  - data.register.data-api.local-chat.sessions.list
+  - data.query.data-api.local-chat.sessions.list
+  - data.register.data-api.local-chat.sessions.get
+  - data.query.data-api.local-chat.sessions.get
+  - data.register.data-api.local-chat.sessions.upsert
+  - data.query.data-api.local-chat.sessions.upsert
+  - data.register.data-api.local-chat.sessions.delete
+  - data.query.data-api.local-chat.sessions.delete
+  - data.query.data-api.runtime.route.options
+  - ui.register.ui-extension.app.sidebar.mods
+  - ui.register.ui-extension.app.content.routes
+  - ui.register.ui-extension.runtime.devtools.panel
+ai:
+  consume:
+    - chat
+    - tts
+    - stt
+  dependencies:
+    required:
+      - dependencyId: local-chat/chat-qwen2.5-7b
+        kind: model
+        capability: chat
+        modelId: qwen2.5-7b-instruct
+        repo: Qwen/Qwen2.5-7B-Instruct-GGUF
+        engine: openai-compatible
+        title: Qwen2.5 7B Instruct (default)
+    optional:
+      - dependencyId: local-chat/stt-local-node
+        kind: node
+        capability: stt
+        nodeId: speech.stt.openai-compatible
+        title: Optional local STT node
+    alternatives:
+      - alternativeId: local-chat-tts-qwen3
+        preferredDependencyId: local-chat/tts-qwen3-1.7b
+        options:
+          - dependencyId: local-chat/tts-qwen3-1.7b
+            kind: service
+            capability: tts
+            serviceId: qwen-tts-python
+            modelId: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+            repo: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+            engine: qwen-tts-python
+            title: Qwen3 TTS 1.7B (recommended)
+          - dependencyId: local-chat/tts-qwen3-0.6b
+            kind: service
+            capability: tts
+            serviceId: qwen-tts-python
+            modelId: Qwen/Qwen3-TTS-12Hz-0.6B-VoiceDesign
+            repo: Qwen/Qwen3-TTS-12Hz-0.6B-VoiceDesign
+            engine: qwen-tts-python
+            title: Qwen3 TTS 0.6B
+    preferred:
+      chat: local-chat/chat-qwen2.5-7b
+      tts: local-chat/tts-qwen3-1.7b
+requires:
+  - desktop-core-cloud-chat

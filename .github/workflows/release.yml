@@ -1,0 +1,417 @@
+name: release
+
+on:
+  push:
+    tags:
+      - sdk/v*
+      - proto/v*
+      - desktop/v*
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Release target
+        required: true
+        type: choice
+        options:
+          - sdk
+          - proto
+          - desktop
+      version:
+        description: Semver version (for example 0.1.0 or v0.1.0)
+        required: true
+        type: string
+      publish:
+        description: Publish to external registry/release (false = dry-run)
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+env:
+  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.resolve.outputs.target }}
+      version: ${{ steps.resolve.outputs.version }}
+      version_plain: ${{ steps.resolve.outputs.version_plain }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - name: Resolve release target/version
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+
+          semver_regex='^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
+
+          if [[ "${EVENT_NAME}" == "push" ]]; then
+            tag="${REF_NAME}"
+            case "${tag}" in
+              sdk/v*|proto/v*|desktop/v*)
+                target="${tag%%/*}"
+                version="${tag#*/}"
+                publish="true"
+                ;;
+              *)
+                echo "unsupported tag format: ${tag}" >&2
+                exit 1
+                ;;
+            esac
+          else
+            target="${INPUT_TARGET}"
+            version="${INPUT_VERSION}"
+            if [[ "${version}" != v* ]]; then
+              version="v${version}"
+            fi
+            tag="${target}/${version}"
+            publish="${INPUT_PUBLISH}"
+          fi
+
+          if ! [[ "${version}" =~ ${semver_regex} ]]; then
+            echo "invalid semver version: ${version}" >&2
+            exit 1
+          fi
+
+          version_plain="${version#v}"
+
+          echo "target=${target}" >> "${GITHUB_OUTPUT}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "version_plain=${version_plain}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "publish=${publish}" >> "${GITHUB_OUTPUT}"
+
+  release-sdk:
+    needs: resolve
+    if: needs.resolve.outputs.target == 'sdk'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: false
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Package license matrix check
+        run: pnpm check:package-license-matrix
+
+      - name: Validate sdk package versions and publish flags
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const version = process.env.RELEASE_VERSION;
+          const packages = [
+            ['@nimiplatform/sdk-types', 'sdk/packages/types/package.json'],
+            ['@nimiplatform/sdk-realm', 'sdk/packages/realm/package.json'],
+            ['@nimiplatform/sdk-runtime', 'sdk/packages/runtime/package.json'],
+            ['@nimiplatform/sdk', 'sdk/packages/sdk/package.json'],
+            ['@nimiplatform/ai-provider', 'sdk/packages/ai-provider/package.json'],
+            ['@nimiplatform/mod-sdk', 'sdk/packages/mod-sdk/package.json'],
+          ];
+
+          const violations = [];
+          for (const [name, file] of packages) {
+            const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
+            if (payload.name !== name) {
+              violations.push(`${file}: expected name ${name}, got ${payload.name}`);
+            }
+            if (payload.version !== version) {
+              violations.push(`${file}: expected version ${version}, got ${payload.version}`);
+            }
+            if (payload.private !== false) {
+              violations.push(`${file}: private must be false for npm release`);
+            }
+          }
+
+          if (violations.length > 0) {
+            process.stderr.write(`release-sdk validation failed:\\n${violations.map((line) => `- ${line}`).join('\\n')}\\n`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Build SDK surfaces
+        run: pnpm build:sdk
+
+      - name: Verify sdk version matrix
+        run: pnpm check:sdk-version-matrix
+
+      - name: SDK consumer smoke (npm pack + node import)
+        run: pnpm check:sdk-consumer-smoke
+
+      - name: Publish SDK packages (or dry-run)
+        run: |
+          set -euo pipefail
+
+          packages=(
+            "@nimiplatform/sdk-types"
+            "@nimiplatform/sdk-realm"
+            "@nimiplatform/sdk-runtime"
+            "@nimiplatform/sdk"
+            "@nimiplatform/ai-provider"
+            "@nimiplatform/mod-sdk"
+          )
+
+          if [[ "${PUBLISH}" == "true" ]]; then
+            if [[ -z "${NPM_TOKEN:-}" ]]; then
+              echo "NPM_TOKEN is required for SDK publish" >&2
+              exit 1
+            fi
+            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${HOME}/.npmrc"
+          fi
+
+          for pkg in "${packages[@]}"; do
+            echo "publishing ${pkg} (publish=${PUBLISH})"
+            if [[ "${PUBLISH}" == "true" ]]; then
+              pnpm --filter "${pkg}" publish --access public --no-git-checks --provenance
+            else
+              pnpm --filter "${pkg}" publish --access public --no-git-checks --dry-run
+            fi
+          done
+
+  release-proto:
+    needs: resolve
+    if: needs.resolve.outputs.target == 'proto'
+    runs-on: ubuntu-latest
+    env:
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Install Buf CLI
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.58.0
+
+      - name: Validate proto contracts
+        run: |
+          set -euo pipefail
+          BUF_BIN="$(go env GOPATH)/bin/buf"
+          "${BUF_BIN}" lint proto
+          "${BUF_BIN}" breaking proto --against runtime/proto/runtime-v1.baseline.binpb
+
+      - name: Push proto module (or dry-run)
+        run: |
+          set -euo pipefail
+          BUF_BIN="$(go env GOPATH)/bin/buf"
+          if [[ "${PUBLISH}" == "true" ]]; then
+            if [[ -z "${BUF_TOKEN:-}" ]]; then
+              echo "BUF_TOKEN is required for proto push" >&2
+              exit 1
+            fi
+            "${BUF_BIN}" push proto
+          else
+            "${BUF_BIN}" build proto -o /tmp/runtime-v1.binpb
+          fi
+
+  release-desktop:
+    needs: resolve
+    if: needs.resolve.outputs.target == 'desktop'
+    permissions:
+      contents: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            extra_args: ""
+          - platform: macos-latest
+            extra_args: ""
+          - platform: windows-latest
+            extra_args: ""
+    runs-on: ${{ matrix.platform }}
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
+      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Checkout nimi-mods (pinned external repo)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: nimiplatform/nimi-mods
+          ref: ${{ env.NIMI_MODS_REF }}
+          path: nimi-mods
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: false
+          package-manager-cache: false
+
+      - name: Setup Go (for supply chain tooling)
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build SDK surfaces (desktop runtime dependency)
+        run: pnpm build:sdk
+
+      - name: Install supply chain tooling (cosign + syft)
+        run: |
+          set -euo pipefail
+          GOBIN="$(go env GOPATH)/bin"
+          echo "${GOBIN}" >> "${GITHUB_PATH}"
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.4.3
+          go install github.com/anchore/syft/cmd/syft@v1.24.0
+
+      - name: Validate desktop package and tauri versions
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const expected = process.env.RELEASE_VERSION;
+
+          const desktopPkg = JSON.parse(fs.readFileSync('apps/desktop/package.json', 'utf8'));
+          const tauriCfg = JSON.parse(fs.readFileSync('apps/desktop/src-tauri/tauri.conf.json', 'utf8'));
+          const violations = [];
+
+          if (desktopPkg.version !== expected) {
+            violations.push(`apps/desktop/package.json version mismatch: expected ${expected}, got ${desktopPkg.version}`);
+          }
+          if (tauriCfg.version !== expected) {
+            violations.push(`apps/desktop/src-tauri/tauri.conf.json version mismatch: expected ${expected}, got ${tauriCfg.version}`);
+          }
+
+          if (violations.length > 0) {
+            process.stderr.write(`${violations.map((line) => `- ${line}`).join('\\n')}\\n`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Validate desktop mods env contract
+        run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
+
+      - name: Build desktop artifacts
+        id: tauri_build
+        uses: tauri-apps/tauri-action@7a7e7e08c0179083619ead83e4669b4718a9f191 # v0.5.22
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ needs.resolve.outputs.publish == 'true' && needs.resolve.outputs.tag || '' }}
+          releaseName: ${{ needs.resolve.outputs.publish == 'true' && format('Desktop {0}', needs.resolve.outputs.version) || '' }}
+          releaseBody: ${{ needs.resolve.outputs.publish == 'true' && 'Automated desktop bundle built by release workflow.' || '' }}
+          releaseDraft: false
+          prerelease: ${{ contains(needs.resolve.outputs.version, '-') }}
+          includeUpdaterJson: false
+          args: --config src-tauri/tauri.conf.json --bundles app --ci --no-sign ${{ matrix.extra_args }}
+
+      - name: Generate SBOM + sign desktop artifacts
+        id: desktop_supply_chain
+        env:
+          NIMI_ARTIFACT_PATHS_JSON: ${{ steps.tauri_build.outputs.artifactPaths }}
+          NIMI_SIGN_IDENTITY_REGEX: https://github.com/${{ github.repository }}/.github/workflows/release.yml@.*
+          NIMI_SIGN_OUTPUT_MANIFEST: apps/desktop/signing-manifest-${{ matrix.platform }}.json
+        run: |
+          set -euo pipefail
+          node scripts/release/sign-and-sbom-artifacts.mjs
+          node <<'NODE'
+          const fs = require('node:fs');
+          const outputPath = process.env.GITHUB_OUTPUT;
+          if (!outputPath) {
+            throw new Error('GITHUB_OUTPUT is required');
+          }
+          const artifacts = JSON.parse(process.env.NIMI_ARTIFACT_PATHS_JSON || '[]');
+          const generated = JSON.parse(fs.readFileSync(process.env.NIMI_SIGN_OUTPUT_MANIFEST, 'utf8'));
+          const generatedBundle = [...generated, process.env.NIMI_SIGN_OUTPUT_MANIFEST];
+          const combined = [...artifacts, ...generatedBundle];
+          fs.appendFileSync(outputPath, `generated_files_json=${JSON.stringify(generatedBundle)}\n`);
+          fs.appendFileSync(outputPath, `all_files_json=${JSON.stringify(combined)}\n`);
+          NODE
+
+      - name: Upload signed desktop assets to GitHub release
+        if: needs.resolve.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve.outputs.tag }}
+          FILES_JSON: ${{ steps.desktop_supply_chain.outputs.generated_files_json }}
+        run: |
+          set -euo pipefail
+          mapfile -t release_files < <(node <<'NODE'
+          const files = JSON.parse(process.env.FILES_JSON || '[]');
+          for (const filePath of files) {
+            process.stdout.write(`${filePath}\n`);
+          }
+          NODE
+          )
+          gh release upload "${RELEASE_TAG}" "${release_files[@]}" --clobber
+
+      - name: Upload desktop artifacts (workflow_dispatch dry-run)
+        if: needs.resolve.outputs.publish != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-${{ matrix.platform }}-${{ needs.resolve.outputs.version }}
+          path: ${{ join(fromJSON(steps.desktop_supply_chain.outputs.all_files_json), '\n') }}
+          if-no-files-found: error

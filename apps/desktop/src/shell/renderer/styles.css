@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "./mod-source.generated.css";
+
+/* ================================================================
+   Nimi Desktop — Design System Tokens
+   Extracted from Figma (2026-02-15)
+   ================================================================ */
+
+@theme {
+  /* ---- Mint Green (Primary) ---- */
+  --color-mint-50:  #e6f7f2;
+  --color-mint-100: #ccefe5;
+  --color-mint-200: #99dfc8;
+  --color-mint-300: #66cfab;
+  --color-mint-400: #33bf8e;
+  --color-mint-500: #4ECCA3;
+  --color-mint-600: #3DBB96;
+  --color-mint-700: #2AA880;
+  --color-mint-800: #1F8C6B;
+  --color-mint-900: #166B52;
+
+  /* ---- Brand (Cyan / Teal) ---- */
+  --color-brand-50:  #ecfeff;
+  --color-brand-100: #cefafe;
+  --color-brand-200: #a2f4fd;
+  --color-brand-300: #67e1f5;
+  --color-brand-400: #22cce7;
+  --color-brand-500: #00b8db;
+  --color-brand-600: #0092b8;
+  --color-brand-700: #007595;
+  --color-brand-800: #065f7c;
+  --color-brand-900: #0a4e68;
+
+  /* ---- Accent (Blue — gradient end / human badge) ---- */
+  --color-accent-50:  #dbeafe;
+  --color-accent-100: #bedbff;
+  --color-accent-500: #155dfc;
+  --color-accent-600: #1447e6;
+  --color-accent-700: #1240cc;
+}
+
+/* ---- Custom utilities ---- */
+
+@utility brand-gradient {
+  background: linear-gradient(145deg, var(--color-brand-500) 0%, var(--color-accent-500) 100%);
+}

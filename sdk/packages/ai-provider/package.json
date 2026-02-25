@@ -1,0 +1,34 @@
+{
+  "name": "@nimiplatform/ai-provider",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node ../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^3.0.8",
+    "@nimiplatform/sdk-runtime": "workspace:*",
+    "@nimiplatform/sdk-types": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "name": "@nimiplatform/mod-sdk",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "types": "./dist/types/index.d.ts",
+  "dependencies": {
+    "i18next": "^25.8.11",
+    "react-i18next": "^16.5.4"
+  },
+  "exports": {
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./hook": {
+      "types": "./dist/hook/index.d.ts",
+      "default": "./dist/hook/index.js"
+    },
+    "./host": {
+      "types": "./dist/host.d.ts",
+      "default": "./dist/host.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "default": "./dist/ai/index.js"
+    },
+    "./model-options": {
+      "types": "./dist/model-options/index.d.ts",
+      "default": "./dist/model-options/index.js"
+    },
+    "./runtime-route": {
+      "types": "./dist/runtime-route.d.ts",
+      "default": "./dist/runtime-route.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "default": "./dist/ui.js"
+    },
+    "./settings": {
+      "types": "./dist/settings.d.ts",
+      "default": "./dist/settings.js"
+    },
+    "./logging": {
+      "types": "./dist/logging.d.ts",
+      "default": "./dist/logging.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "default": "./dist/i18n.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "react": "*"
+  },
+  "scripts": {
+    "build": "node ../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "tsc --noEmit",
+    "test": "echo \"No tests for @nimiplatform/mod-sdk\""
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "typescript": "^5.9.3"
+  }
+}

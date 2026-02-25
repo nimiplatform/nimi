@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum PolicyMode {
+  POLICY_MODE_UNSPECIFIED = 0;
+  POLICY_MODE_PRESET = 1;
+  POLICY_MODE_CUSTOM = 2;
+}
+
+enum AuthorizationPreset {
+  AUTHORIZATION_PRESET_UNSPECIFIED = 0;
+  AUTHORIZATION_PRESET_READ_ONLY = 1;
+  AUTHORIZATION_PRESET_FULL = 2;
+  AUTHORIZATION_PRESET_DELEGATE = 3;
+}
+
+message AuthorizeExternalPrincipalRequest {
+  string domain = 1;
+  string app_id = 2;
+  string external_principal_id = 3;
+  ExternalPrincipalType external_principal_type = 4;
+  string subject_user_id = 5;
+  string consent_id = 6;
+  string consent_version = 7;
+  google.protobuf.Timestamp decision_at = 8;
+  string policy_version = 9;
+  PolicyMode policy_mode = 10;
+  AuthorizationPreset preset = 11;
+  repeated string scopes = 12;
+  ResourceSelectors resource_selectors = 13;
+  bool can_delegate = 14;
+  int32 max_delegation_depth = 15;
+  int32 ttl_seconds = 16;
+  string scope_catalog_version = 17;
+  bool policy_override = 18;
+}
+
+message AuthorizeExternalPrincipalResponse {
+  string token_id = 1;
+  string app_id = 2;
+  string subject_user_id = 3;
+  string external_principal_id = 4;
+  repeated string effective_scopes = 5;
+  ResourceSelectors resource_selectors = 6;
+  ConsentRef consent_ref = 7;
+  string policy_version = 8;
+  string issued_scope_catalog_version = 9;
+  bool can_delegate = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  string secret = 12;
+}
+
+message ValidateAppAccessTokenRequest {
+  string app_id = 1;
+  string token_id = 2;
+  string subject_user_id = 3;
+  string operation = 4;
+  repeated string requested_scopes = 5;
+  ResourceSelectors resource_selectors = 6;
+}
+
+message ValidateAppAccessTokenResponse {
+  bool valid = 1;
+  ReasonCode reason_code = 2;
+  repeated string effective_scopes = 3;
+  string policy_version = 4;
+  string issued_scope_catalog_version = 5;
+  string action_hint = 6;
+}
+
+message RevokeAppAccessTokenRequest {
+  string app_id = 1;
+  string token_id = 2;
+}
+
+message IssueDelegatedAccessTokenRequest {
+  string app_id = 1;
+  string parent_token_id = 2;
+  repeated string scopes = 3;
+  ResourceSelectors resource_selectors = 4;
+  int32 ttl_seconds = 5;
+}
+
+message IssueDelegatedAccessTokenResponse {
+  string token_id = 1;
+  string parent_token_id = 2;
+  repeated string effective_scopes = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  string secret = 5;
+}
+
+message ListTokenChainRequest {
+  string app_id = 1;
+  string root_token_id = 2;
+}
+
+message TokenChainNode {
+  string token_id = 1;
+  string parent_token_id = 2;
+  string external_principal_id = 3;
+  string policy_version = 4;
+  string issued_scope_catalog_version = 5;
+  google.protobuf.Timestamp issued_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message ListTokenChainResponse {
+  repeated TokenChainNode nodes = 1;
+}
+
+service RuntimeGrantService {
+  rpc AuthorizeExternalPrincipal(AuthorizeExternalPrincipalRequest) returns (AuthorizeExternalPrincipalResponse);
+  rpc ValidateAppAccessToken(ValidateAppAccessTokenRequest) returns (ValidateAppAccessTokenResponse);
+  rpc RevokeAppAccessToken(RevokeAppAccessTokenRequest) returns (Ack);
+  rpc IssueDelegatedAccessToken(IssueDelegatedAccessTokenRequest) returns (IssueDelegatedAccessTokenResponse);
+  rpc ListTokenChain(ListTokenChainRequest) returns (ListTokenChainResponse);
+}

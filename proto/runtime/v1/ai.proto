@@ -1,0 +1,236 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum Modal {
+  MODAL_UNSPECIFIED = 0;
+  MODAL_TEXT = 1;
+  MODAL_IMAGE = 2;
+  MODAL_VIDEO = 3;
+  MODAL_TTS = 4;
+  MODAL_STT = 5;
+  MODAL_EMBEDDING = 6;
+}
+
+enum RoutePolicy {
+  ROUTE_POLICY_UNSPECIFIED = 0;
+  ROUTE_POLICY_LOCAL_RUNTIME = 1;
+  ROUTE_POLICY_TOKEN_API = 2;
+}
+
+enum FallbackPolicy {
+  FALLBACK_POLICY_UNSPECIFIED = 0;
+  FALLBACK_POLICY_DENY = 1;
+  FALLBACK_POLICY_ALLOW = 2;
+}
+
+enum FinishReason {
+  FINISH_REASON_UNSPECIFIED = 0;
+  FINISH_REASON_STOP = 1;
+  FINISH_REASON_LENGTH = 2;
+  FINISH_REASON_TOOL_CALL = 3;
+  FINISH_REASON_CONTENT_FILTER = 4;
+  FINISH_REASON_ERROR = 5;
+}
+
+enum StreamEventType {
+  STREAM_EVENT_TYPE_UNSPECIFIED = 0;
+  STREAM_EVENT_STARTED = 1;
+  STREAM_EVENT_DELTA = 2;
+  STREAM_EVENT_TOOL_CALL = 3;
+  STREAM_EVENT_TOOL_RESULT = 4;
+  STREAM_EVENT_USAGE = 5;
+  STREAM_EVENT_COMPLETED = 6;
+  STREAM_EVENT_FAILED = 7;
+}
+
+message ChatMessage {
+  string role = 1;
+  string content = 2;
+  string name = 3;
+}
+
+message ToolSpec {
+  string name = 1;
+  google.protobuf.Struct input_schema = 2;
+}
+
+message GenerateRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  Modal modal = 4;
+  repeated ChatMessage input = 5;
+  string system_prompt = 6;
+  repeated ToolSpec tools = 7;
+  float temperature = 8;
+  float top_p = 9;
+  int32 max_tokens = 10;
+  RoutePolicy route_policy = 11;
+  FallbackPolicy fallback = 12;
+  int32 timeout_ms = 13;
+}
+
+message GenerateResponse {
+  google.protobuf.Struct output = 1;
+  FinishReason finish_reason = 2;
+  UsageStats usage = 3;
+  RoutePolicy route_decision = 4;
+  string model_resolved = 5;
+  string trace_id = 6;
+}
+
+message StreamGenerateRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  Modal modal = 4;
+  repeated ChatMessage input = 5;
+  string system_prompt = 6;
+  repeated ToolSpec tools = 7;
+  float temperature = 8;
+  float top_p = 9;
+  int32 max_tokens = 10;
+  RoutePolicy route_policy = 11;
+  FallbackPolicy fallback = 12;
+  int32 timeout_ms = 13;
+}
+
+message StreamStarted {
+  string model_resolved = 1;
+  RoutePolicy route_decision = 2;
+}
+
+message StreamDelta {
+  string text = 1;
+}
+
+message ToolCallEvent {
+  string tool_name = 1;
+  google.protobuf.Struct tool_input = 2;
+}
+
+message ToolResultEvent {
+  string tool_name = 1;
+  google.protobuf.Struct tool_output = 2;
+}
+
+message StreamCompleted {
+  FinishReason finish_reason = 1;
+}
+
+message StreamFailed {
+  ReasonCode reason_code = 1;
+  string action_hint = 2;
+}
+
+message StreamGenerateEvent {
+  StreamEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  oneof payload {
+    StreamStarted started = 10;
+    StreamDelta delta = 11;
+    ToolCallEvent tool_call = 12;
+    ToolResultEvent tool_result = 13;
+    UsageStats usage = 14;
+    StreamCompleted completed = 15;
+    StreamFailed failed = 16;
+  }
+}
+
+message EmbedRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  repeated string inputs = 4;
+  RoutePolicy route_policy = 5;
+  FallbackPolicy fallback = 6;
+  int32 timeout_ms = 7;
+}
+
+message EmbedResponse {
+  repeated google.protobuf.ListValue vectors = 1;
+  UsageStats usage = 2;
+  RoutePolicy route_decision = 3;
+  string model_resolved = 4;
+  string trace_id = 5;
+}
+
+message GenerateImageRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string prompt = 4;
+  RoutePolicy route_policy = 5;
+  FallbackPolicy fallback = 6;
+  int32 timeout_ms = 7;
+}
+
+message GenerateVideoRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string prompt = 4;
+  RoutePolicy route_policy = 5;
+  FallbackPolicy fallback = 6;
+  int32 timeout_ms = 7;
+}
+
+message SynthesizeSpeechRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string text = 4;
+  RoutePolicy route_policy = 5;
+  FallbackPolicy fallback = 6;
+  int32 timeout_ms = 7;
+}
+
+message ArtifactChunk {
+  string artifact_id = 1;
+  string mime_type = 2;
+  uint64 sequence = 3;
+  bytes chunk = 4;
+  bool eof = 5;
+  UsageStats usage = 6;
+  RoutePolicy route_decision = 7;
+  string model_resolved = 8;
+  string trace_id = 9;
+}
+
+message TranscribeAudioRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  bytes audio_bytes = 4;
+  string mime_type = 5;
+  RoutePolicy route_policy = 6;
+  FallbackPolicy fallback = 7;
+  int32 timeout_ms = 8;
+}
+
+message TranscribeAudioResponse {
+  string text = 1;
+  UsageStats usage = 2;
+  RoutePolicy route_decision = 3;
+  string model_resolved = 4;
+  string trace_id = 5;
+}
+
+service RuntimeAiService {
+  rpc Generate(GenerateRequest) returns (GenerateResponse);
+  rpc StreamGenerate(StreamGenerateRequest) returns (stream StreamGenerateEvent);
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc GenerateImage(GenerateImageRequest) returns (stream ArtifactChunk);
+  rpc GenerateVideo(GenerateVideoRequest) returns (stream ArtifactChunk);
+  rpc SynthesizeSpeech(SynthesizeSpeechRequest) returns (stream ArtifactChunk);
+  rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse);
+}

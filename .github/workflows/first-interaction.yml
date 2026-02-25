@@ -1,0 +1,27 @@
+name: first-interaction
+
+on:
+  pull_request_target:
+    types: [opened]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  first-interaction:
+    runs-on: ubuntu-latest
+    steps:
+      - name: First interaction welcome
+        uses: actions/first-interaction@4fc1f02c8627d4ca3fec15b5c7d2eca775aaff7d # v3.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: |
+            Thanks for opening your first issue in Nimi.
+            Please include reproducible steps, expected behavior, and environment details.
+          pr-message: |
+            Thanks for your first pull request to Nimi.
+            Please ensure CI passes and include verification commands in the PR template.

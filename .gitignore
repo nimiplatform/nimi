@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.log
+.DS_Store
+pnpm-lock.yaml
+
+# tauri/rust
+**/target/
+
+# local caches
+.vscode/
+.idea/

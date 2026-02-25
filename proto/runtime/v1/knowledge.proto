@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
+
+message BuildIndexRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string index_id = 3;
+  string source_kind = 4;
+  repeated string source_uris = 5;
+  string embedding_model_id = 6;
+  bool overwrite = 7;
+  google.protobuf.Struct options = 8;
+}
+
+message BuildIndexResponse {
+  string task_id = 1;
+  bool accepted = 2;
+  ReasonCode reason_code = 3;
+}
+
+message SearchIndexRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string index_id = 3;
+  string query = 4;
+  int32 top_k = 5;
+  google.protobuf.Struct filters = 6;
+}
+
+message SearchHit {
+  string document_id = 1;
+  float score = 2;
+  string snippet = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message SearchIndexResponse {
+  repeated SearchHit hits = 1;
+  ReasonCode reason_code = 2;
+}
+
+message DeleteIndexRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string index_id = 3;
+}
+
+service RuntimeKnowledgeService {
+  rpc BuildIndex(BuildIndexRequest) returns (BuildIndexResponse);
+  rpc SearchIndex(SearchIndexRequest) returns (SearchIndexResponse);
+  rpc DeleteIndex(DeleteIndexRequest) returns (Ack);
+}

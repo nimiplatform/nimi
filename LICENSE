@@ -1,0 +1,9 @@
+# @nimiplatform/nimi Licensing Map
+
+This repository is multi-licensed by component.
+
+- `runtime/**`, `sdk/**`, `proto/**`: Apache-2.0
+- `apps/desktop/**`, `apps/web/**`, `apps/_libs/**`, `nimi-mods/**`: MIT
+- `docs/**`: CC-BY-4.0
+
+Canonical texts are in `licenses/`.

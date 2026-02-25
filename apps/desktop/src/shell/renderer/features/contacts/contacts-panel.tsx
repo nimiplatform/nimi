@@ -1,0 +1,437 @@
+import { useMemo, useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import type {
+  ContactRecord,
+  ContactRequestRecord,
+  ContactSearchCandidate,
+  TabFilter,
+} from './contacts-model';
+import {
+  loadStoredContactsFilter,
+  persistStoredContactsFilter,
+  toContactSearchCandidate,
+  toDeveloperAgentContact,
+  toFriendContact,
+  toPendingRequestContact,
+} from './contacts-model';
+import { ContactsView } from './contacts-view';
+import { AddContactModal } from './add-contact-modal';
+import { resolveAgentFriendLimit } from './agent-friend-limit';
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    const next = error.message.trim();
+    if (next) {
+      return next;
+    }
+  }
+  return fallback;
+}
+
+function extractAgentWorldId(profile: unknown): string {
+  if (!profile || typeof profile !== 'object') {
+    return '';
+  }
+  const payload = profile as Record<string, unknown>;
+  const direct = String(payload.worldId || '').trim();
+  if (direct) {
+    return direct;
+  }
+
+  const agent = payload.agent && typeof payload.agent === 'object'
+    ? (payload.agent as Record<string, unknown>)
+    : null;
+  const fromAgent = String(agent?.worldId || '').trim();
+  if (fromAgent) {
+    return fromAgent;
+  }
+
+  const agentProfile = payload.agentProfile && typeof payload.agentProfile === 'object'
+    ? (payload.agentProfile as Record<string, unknown>)
+    : null;
+  return String(agentProfile?.worldId || '').trim();
+}
+
+export function ContactsPanel() {
+  const authStatus = useAppStore((state) => state.auth.status);
+  const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim() || null;
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const queryClient = useQueryClient();
+  const [searchText, setSearchText] = useState('');
+  const [activeFilter, setActiveFilter] = useState<TabFilter>(() => loadStoredContactsFilter('humans'));
+  const [addContactOpen, setAddContactOpen] = useState(false);
+
+  const contactsQuery = useQuery({
+    queryKey: ['contacts', authStatus],
+    queryFn: async () => {
+      const snapshot = await dataSync.loadSocialSnapshot();
+      return snapshot as {
+        friends?: Array<Record<string, unknown>>;
+        agents?: Array<Record<string, unknown>>;
+        pendingReceived?: Array<Record<string, unknown>>;
+        pendingSent?: Array<Record<string, unknown>>;
+        blocked?: Array<Record<string, unknown>>;
+      };
+    },
+    enabled: authStatus === 'authenticated',
+  });
+  const refetchContacts = contactsQuery.refetch;
+
+  const agentLimitQuery = useQuery({
+    queryKey: ['agent-friend-limit', authStatus],
+    queryFn: async () => resolveAgentFriendLimit(),
+    enabled: authStatus === 'authenticated',
+  });
+
+  // 从 snapshot 获取拉黑列表（由后端 /me/blocks 提供）
+  const blockedContacts: ContactRecord[] = useMemo(() => {
+    const blocked = contactsQuery.data?.blocked || [];
+    return blocked.map((item) => toFriendContact(item));
+  }, [contactsQuery.data?.blocked]);
+
+  const blockedIds = useMemo(() => new Set(blockedContacts.map((c) => c.id)), [blockedContacts]);
+
+  const allFriends: ContactRecord[] = useMemo(() => {
+    return (contactsQuery.data?.friends || [])
+      .map((item) => toFriendContact(item))
+      .filter((contact) => !blockedIds.has(contact.id));
+  }, [contactsQuery.data?.friends, blockedIds]);
+
+  const devAgents: ContactRecord[] = useMemo(
+    () => (contactsQuery.data?.agents || []).map((item) => toDeveloperAgentContact(item)),
+    [contactsQuery.data?.agents],
+  );
+
+  const humans = useMemo(() => allFriends.filter((contact) => !contact.isAgent), [allFriends]);
+  const agents = useMemo(() => allFriends.filter((contact) => contact.isAgent), [allFriends]);
+  const myAgents = useMemo(
+    () => devAgents.filter((agent) => agent.agentOwnershipType !== 'WORLD_OWNED'),
+    [devAgents],
+  );
+
+  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const pendingReceived = useMemo(
+    () => (contactsQuery.data?.pendingReceived || []).map((item) => toPendingRequestContact(item)),
+    [contactsQuery.data?.pendingReceived],
+  );
+  const pendingSent = useMemo(
+    () => (contactsQuery.data?.pendingSent || []).map((item) => toPendingRequestContact(item)),
+    [contactsQuery.data?.pendingSent],
+  );
+  const pendingRequests = useMemo(
+    () => [...pendingReceived, ...pendingSent],
+    [pendingReceived, pendingSent],
+  );
+
+  const activeList = useMemo(() => {
+    switch (activeFilter) {
+      case 'humans':
+        return humans;
+      case 'agents':
+        return agents;
+      case 'myAgents':
+        return myAgents;
+      case 'blocks':
+        return blockedContacts;
+      default:
+        return humans;
+    }
+  }, [activeFilter, humans, agents, myAgents, blockedContacts]);
+
+  const filteredContacts = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) return activeList;
+    return activeList.filter(
+      (contact) =>
+        contact.displayName.toLowerCase().includes(query) ||
+        contact.handle.toLowerCase().includes(query) ||
+        (contact.bio && contact.bio.toLowerCase().includes(query)),
+    );
+  }, [activeList, searchText]);
+
+  const filteredRequests = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) {
+      return pendingRequests;
+    }
+    return pendingRequests.filter((request) => (
+      request.displayName.toLowerCase().includes(query)
+      || request.handle.toLowerCase().includes(query)
+      || (request.bio && request.bio.toLowerCase().includes(query))
+    ));
+  }, [pendingRequests, searchText]);
+
+  const onViewProfile = useCallback(
+    (contact: ContactRecord) => {
+      const targetTab = activeFilter === 'agents' || contact.isAgent ? 'agent-detail' : 'profile';
+      navigateToProfile(contact.id, targetTab);
+    },
+    [activeFilter, navigateToProfile],
+  );
+
+  const onFilterChange = useCallback((filter: TabFilter) => {
+    setActiveFilter(filter);
+    persistStoredContactsFilter(filter);
+  }, []);
+
+  const onSearchAddContact = useCallback(async (identifier: string): Promise<ContactSearchCandidate> => {
+    const result = await dataSync.searchUser(identifier);
+    const candidate = toContactSearchCandidate(result);
+    if (!candidate) {
+      throw new Error('User search returned invalid data');
+    }
+    return candidate;
+  }, []);
+
+  const onAddContact = useCallback(async (candidate: ContactSearchCandidate, _message?: string) => {
+    try {
+      if (candidate.isAgent && agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
+        throw new Error(agentLimitQuery.data.reason || 'Agent friend limit reached');
+      }
+      await dataSync.requestOrAcceptFriend(candidate.id);
+      await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
+      setStatusBanner({
+        kind: 'success',
+        message: `Friend request sent or accepted for ${candidate.displayName}.`,
+      });
+    } catch (error) {
+      const message = toErrorMessage(error, 'Failed to add contact');
+      setStatusBanner({
+        kind: 'error',
+        message,
+      });
+      throw error instanceof Error ? error : new Error(message);
+    }
+  }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, setStatusBanner]);
+
+  const onViewRequestProfile = useCallback((request: ContactRequestRecord) => {
+    navigateToProfile(request.id, request.isAgent ? 'agent-detail' : 'profile');
+  }, [navigateToProfile]);
+
+  const onAcceptRequest = useCallback(async (request: ContactRequestRecord) => {
+    try {
+      if (request.isAgent && agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
+        throw new Error(agentLimitQuery.data.reason || 'Agent friend limit reached');
+      }
+      await dataSync.requestOrAcceptFriend(request.userId);
+      await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
+      setStatusBanner({
+        kind: 'success',
+        message: `Accepted request from ${request.displayName}.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to accept friend request'),
+      });
+    }
+  }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, setStatusBanner]);
+
+  const onRejectRequest = useCallback(async (request: ContactRequestRecord) => {
+    try {
+      await dataSync.rejectOrRemoveFriend(request.userId);
+      await refetchContacts();
+      setStatusBanner({
+        kind: 'success',
+        message: `Rejected request from ${request.displayName}.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to reject friend request'),
+      });
+    }
+  }, [refetchContacts, setStatusBanner]);
+
+  const onCancelRequest = useCallback(async (request: ContactRequestRecord) => {
+    try {
+      await dataSync.rejectOrRemoveFriend(request.userId);
+      await refetchContacts();
+      setStatusBanner({
+        kind: 'success',
+        message: `Cancelled request to ${request.displayName}.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to cancel friend request'),
+      });
+    }
+  }, [refetchContacts, setStatusBanner]);
+
+  const onRemoveFriend = useCallback(async (contact: ContactRecord) => {
+    try {
+      await dataSync.rejectOrRemoveFriend(contact.id);
+      await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
+      setStatusBanner({
+        kind: 'success',
+        message: `Removed ${contact.displayName} from your friends.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to remove friend'),
+      });
+    }
+  }, [refetchContacts, agentLimitQuery.refetch, setStatusBanner]);
+
+  const onBlockFriend = useCallback(async (contact: ContactRecord) => {
+    try {
+      await dataSync.blockUser({
+        id: contact.id,
+        displayName: contact.displayName,
+        handle: contact.handle,
+        avatarUrl: contact.avatarUrl,
+        bio: contact.bio,
+        isAgent: contact.isAgent,
+        friendsSince: contact.friendsSince,
+        age: contact.age,
+        gender: contact.gender,
+        location: contact.location,
+        tags: contact.tags,
+      });
+      await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
+      setStatusBanner({
+        kind: 'success',
+        message: `Blocked ${contact.displayName}.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to block user'),
+      });
+    }
+  }, [refetchContacts, agentLimitQuery.refetch, setStatusBanner]);
+
+  const onUnblockUser = useCallback(async (contact: ContactRecord) => {
+    try {
+      await dataSync.unblockUser({
+        id: contact.id,
+        displayName: contact.displayName,
+        handle: contact.handle,
+        avatarUrl: contact.avatarUrl,
+        bio: contact.bio,
+        isAgent: contact.isAgent,
+        friendsSince: contact.friendsSince,
+        age: contact.age,
+        gender: contact.gender,
+        location: contact.location,
+        tags: contact.tags,
+      });
+      await refetchContacts();
+      setStatusBanner({
+        kind: 'success',
+        message: `Unblocked ${contact.displayName}.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to unblock user'),
+      });
+    }
+  }, [refetchContacts, setStatusBanner]);
+
+  const onMessage = useCallback(async (contact: ContactRecord) => {
+    if (contact.isAgent) {
+      let worldId = '';
+      try {
+        const profile = await dataSync.loadUserProfile(contact.id);
+        worldId = extractAgentWorldId(profile);
+      } catch {
+        // keep fallback empty worldId
+      }
+
+      setRuntimeFields({
+        targetType: 'AGENT',
+        targetAccountId: '',
+        agentId: contact.id,
+        worldId,
+      });
+      setActiveTab('mod:local-chat');
+      return;
+    }
+
+    try {
+      const result = await dataSync.startChat(contact.id);
+      if (result?.chatId) {
+        setSelectedChatId(String(result.chatId));
+      }
+      const chatsSnapshot = await dataSync.loadChats();
+      queryClient.setQueriesData({ queryKey: ['chats'] }, () => chatsSnapshot);
+      setRuntimeFields({
+        targetType: 'FRIEND',
+        targetAccountId: contact.id,
+        agentId: '',
+        worldId: '',
+      });
+      setActiveTab('chat');
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to open chat'),
+      });
+    }
+  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, setStatusBanner]);
+
+  return (
+    <>
+      <ContactsView
+        searchText={searchText}
+        activeFilter={activeFilter}
+        humansCount={humans.length}
+        agentsCount={agents.length}
+        myAgentsCount={myAgents.length}
+        requestsCount={pendingRequests.length}
+        blocksCount={blockedContacts.length}
+        agentLimit={agentLimitQuery.data || null}
+        filteredContacts={filteredContacts}
+        filteredRequests={filteredRequests}
+        loading={contactsQuery.isPending}
+        error={contactsQuery.isError}
+        onSearchTextChange={setSearchText}
+        onFilterChange={onFilterChange}
+        onMessage={(contact) => {
+          void onMessage(contact);
+        }}
+        onViewProfile={onViewProfile}
+        onViewRequestProfile={onViewRequestProfile}
+        onAcceptRequest={(request) => {
+          void onAcceptRequest(request);
+        }}
+        onRejectRequest={(request) => {
+          void onRejectRequest(request);
+        }}
+        onCancelRequest={(request) => {
+          void onCancelRequest(request);
+        }}
+        onRemoveFriend={(contact) => {
+          void onRemoveFriend(contact);
+        }}
+        onBlockFriend={(contact) => {
+          void onBlockFriend(contact);
+        }}
+        onUnblockUser={(contact) => {
+          void onUnblockUser(contact);
+        }}
+        onOpenAddContact={() => {
+          setAddContactOpen(true);
+        }}
+      />
+      <AddContactModal
+        open={addContactOpen}
+        selfUserId={currentUserId}
+        agentLimit={agentLimitQuery.data || null}
+        onClose={() => {
+          setAddContactOpen(false);
+        }}
+        onSearch={onSearchAddContact}
+        onAdd={onAddContact}
+      />
+    </>
+  );
+}

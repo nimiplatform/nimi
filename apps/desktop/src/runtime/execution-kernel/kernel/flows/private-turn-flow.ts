@@ -1,0 +1,147 @@
+import type { ExecuteLocalKernelTurnResult } from '../../../llm-adapter/execution/types';
+import { emitRuntimeLog } from '../../../telemetry/logger';
+import type { ExecutePrivateTurnInput, KernelStage } from '../../contracts/types';
+
+type PrivateTurnFlowInput = {
+  input: ExecutePrivateTurnInput;
+  invokeTurnHooks: (input: {
+    point: 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
+    context: Record<string, unknown>;
+  }) => Promise<{ context: Record<string, unknown> }>;
+  executeLocalKernelTurn: (input: ExecutePrivateTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
+  appendAudit: (entry: {
+    id: string;
+    stage: KernelStage;
+    eventType: string;
+    decision: 'ALLOW' | 'DENY' | 'ALLOW_WITH_WARNING';
+    reasonCodes: string[];
+    payload?: Record<string, unknown>;
+    occurredAt: string;
+  }) => Promise<void>;
+  reportCrash: (key: string) => number;
+  shouldDisable: (key: string) => boolean;
+};
+
+export async function runPrivateTurnFlow({
+  input,
+  invokeTurnHooks,
+  executeLocalKernelTurn,
+  appendAudit,
+  reportCrash,
+  shouldDisable,
+}: PrivateTurnFlowInput): Promise<ExecuteLocalKernelTurnResult> {
+  const prePolicy = await invokeTurnHooks({
+    point: 'pre-policy',
+    context: {
+      requestId: input.requestId,
+      sessionId: input.sessionId,
+      turnIndex: input.turnIndex,
+      userInput: input.userInputText,
+    },
+  });
+  const effectiveInput = String(prePolicy.context.userInput || input.userInputText);
+
+  const preModel = await invokeTurnHooks({
+    point: 'pre-model',
+    context: {
+      requestId: input.requestId,
+      sessionId: input.sessionId,
+      turnIndex: input.turnIndex,
+      runtimeInput: effectiveInput,
+    },
+  });
+  const runtimeInput = String(preModel.context.runtimeInput || effectiveInput);
+
+  try {
+    const result = await executeLocalKernelTurn({
+      ...input,
+      userInputText: runtimeInput,
+    });
+
+    await invokeTurnHooks({
+      point: 'post-state',
+      context: {
+        requestId: input.requestId,
+        sessionId: input.sessionId,
+        turnIndex: input.turnIndex,
+        stateDelta: (result.stateDelta as Record<string, unknown>) || {},
+      },
+    });
+
+    await invokeTurnHooks({
+      point: 'pre-commit',
+      context: {
+        requestId: input.requestId,
+        sessionId: input.sessionId,
+        turnIndex: input.turnIndex,
+        promptTraceId: String(result.promptTraceId || ''),
+        auditEventIds: Array.isArray(result.auditEventIds) ? result.auditEventIds : [],
+      },
+    });
+
+    try {
+      await appendAudit({
+        id: `audit:execute:${Date.now().toString(36)}`,
+        stage: 'audit',
+        eventType: 'LOCAL_PRIVATE_TURN_EXECUTED',
+        decision: 'ALLOW',
+        reasonCodes: ['LOCAL_EXECUTION_OK'],
+        payload: {
+          requestId: input.requestId,
+          sessionId: input.sessionId,
+          provider: input.provider,
+        },
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (auditError) {
+      emitRuntimeLog({
+        level: 'error',
+        area: 'execution-kernel',
+        message: 'action:audit-persistence:failed',
+        details: {
+          eventType: 'LOCAL_PRIVATE_TURN_EXECUTED',
+          provider: input.provider,
+          requestId: input.requestId,
+          sessionId: input.sessionId,
+          error: auditError instanceof Error ? auditError.message : String(auditError || ''),
+        },
+      });
+    }
+
+    return result;
+  } catch (error) {
+    const crashCount = reportCrash(`private:${input.provider}`);
+    try {
+      await appendAudit({
+        id: `audit:execute:${Date.now().toString(36)}`,
+        stage: 'audit',
+        eventType: 'LOCAL_PRIVATE_TURN_FAILED',
+        decision: 'DENY',
+        reasonCodes: ['CRASH_ISOLATED'],
+        payload: {
+          provider: input.provider,
+          crashCount,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (auditError) {
+      emitRuntimeLog({
+        level: 'error',
+        area: 'execution-kernel',
+        message: 'action:audit-persistence:failed',
+        details: {
+          eventType: 'LOCAL_PRIVATE_TURN_FAILED',
+          provider: input.provider,
+          requestId: input.requestId,
+          sessionId: input.sessionId,
+          error: auditError instanceof Error ? auditError.message : String(auditError || ''),
+        },
+      });
+    }
+    if (shouldDisable(`private:${input.provider}`)) {
+      throw new Error('CRASH_ISOLATED: provider disabled by crash-isolator');
+    }
+    throw error;
+  }
+}

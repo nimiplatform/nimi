@@ -1,0 +1,68 @@
+import type {
+  CapabilityV11,
+  ProviderStatusV11,
+  RuntimeConfigStateV11,
+} from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
+import type {
+  LocalAiCatalogItemDescriptor,
+  LocalAiDependencyResolutionPlan,
+  LocalAiInstallPayload,
+} from '@runtime/local-ai-runtime';
+
+export type RuntimeDependencyTargetDescriptor = {
+  modId: string;
+  modName: string;
+  consumeCapabilities: CapabilityV11[];
+};
+
+export type RuntimeConfigPanelControllerModel = {
+  state: RuntimeConfigStateV11 | null;
+  runtimeStatus: ProviderStatusV11 | null;
+  activeSetupPage: RuntimeConfigStateV11['activeSetupPage'];
+  showTokenApiKey: boolean;
+  localRuntimeModelQuery: string;
+  connectorModelQuery: string;
+  vaultEntryCount: number;
+  discovering: boolean;
+  testingConnector: boolean;
+  checkingHealth: boolean;
+  selectedConnector: RuntimeConfigStateV11['connectors'][number] | null;
+  orderedConnectors: RuntimeConfigStateV11['connectors'];
+  filteredLocalRuntimeModels: string[];
+  filteredConnectorModels: string[];
+  runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
+  registeredRuntimeModIds: string[];
+  runtimeDaemonStatus: RuntimeBridgeDaemonStatus | null;
+  runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
+  runtimeDaemonError: string;
+  runtimeDaemonUpdatedAt: string | null;
+  setShowTokenApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setLocalRuntimeModelQuery: (value: string) => void;
+  setConnectorModelQuery: (value: string) => void;
+  onChangeSetupPage: (pageId: RuntimeConfigStateV11['activeSetupPage']) => void;
+  updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
+  discoverLocalRuntimeModels: () => Promise<void>;
+  runLocalRuntimeHealthCheck: () => Promise<void>;
+  testSelectedConnector: () => Promise<void>;
+  resolveRuntimeDependencies: (
+    modId: string,
+    capability?: CapabilityV11 | string,
+  ) => Promise<LocalAiDependencyResolutionPlan>;
+  applyRuntimeDependencies: (
+    modId: string,
+    capability?: CapabilityV11 | string,
+  ) => Promise<void>;
+  installCatalogLocalRuntimeModel: (item: LocalAiCatalogItemDescriptor) => Promise<void>;
+  installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
+  installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
+  importLocalRuntimeModel: () => Promise<void>;
+  startLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  refreshRuntimeDaemonStatus: () => Promise<void>;
+  startRuntimeDaemon: () => Promise<void>;
+  restartRuntimeDaemon: () => Promise<void>;
+  stopRuntimeDaemon: () => Promise<void>;
+};

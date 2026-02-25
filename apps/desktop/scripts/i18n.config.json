@@ -1,0 +1,57 @@
+{
+  "supportedLocales": [
+    "en",
+    "zh"
+  ],
+  "modPolicies": {
+    "kismet": {
+      "enforced": false,
+      "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
+    },
+    "local-chat": {
+      "enforced": true,
+      "reason": "Mod uses @nimiplatform/mod-sdk i18n namespace and must keep en/zh parity."
+    },
+    "re-life": {
+      "enforced": false,
+      "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
+    },
+    "world-studio": {
+      "enforced": true,
+      "reason": "Mod has en/zh JSON locales and is mounted by desktop runtime surfaces."
+    }
+  },
+  "audit": {
+    "scopeDirs": [
+      "src/shell/renderer/App.tsx",
+      "src/shell/renderer/app-shell/routes",
+      "src/shell/renderer/infra/error-boundary",
+      "src/shell/renderer/ui/feedback",
+      "src/shell/renderer/features/settings",
+      "src/shell/renderer/features/turns",
+      "src/shell/renderer/mod-ui",
+      "src/shell/renderer/infra/bootstrap/runtime-bootstrap-runtime-mods.ts"
+    ],
+    "extensions": [
+      ".ts",
+      ".tsx"
+    ],
+    "excludePathPatterns": [
+      "/test/",
+      ".test.",
+      ".spec.",
+      "settings-assets.tsx"
+    ],
+    "allowTextPatterns": [
+      "^MOD$",
+      "^CRASH$",
+      "^You$",
+      "^Agent$",
+      "^Human$",
+      "^Error$",
+      "^unknown$",
+      "^-$",
+      "^--$"
+    ]
+  }
+}

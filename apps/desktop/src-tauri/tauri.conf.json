@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Nimi Desktop Runtime",
+  "version": "0.1.0",
+  "identifier": "app.nimi.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @nimiplatform/desktop run dev:renderer",
+    "beforeBuildCommand": "pnpm --filter @nimiplatform/desktop run build:renderer:with-mods",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "",
+        "url": "/",
+        "width": 1320,
+        "height": 860,
+        "minWidth": 1060,
+        "minHeight": 720,
+        "decorations": true,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 14,
+          "y": 24
+        }
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws: wss: ws://127.0.0.1:* ws://localhost:*;"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": [],
+    "resources": ["resources/default-mods"]
+  }
+}

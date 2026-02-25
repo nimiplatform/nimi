@@ -1,0 +1,28 @@
+{
+  "name": "@nimiplatform/sdk-types",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node ../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "tsc --noEmit",
+    "test": "echo \"No tests for @nimiplatform/sdk-types yet\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

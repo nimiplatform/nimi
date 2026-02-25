@@ -1,0 +1,79 @@
+import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
+import { logRendererEvent, toRendererLogMessage } from '@renderer/bridge/runtime-bridge/logging';
+import { proxyHttp } from '@renderer/bridge/runtime-bridge/http';
+import {
+  getRuntimeBridgeStatus as getDesktopRuntimeBridgeStatus,
+  restartRuntimeBridge as restartDesktopRuntimeBridge,
+  startRuntimeBridge as startDesktopRuntimeBridge,
+  stopRuntimeBridge as stopDesktopRuntimeBridge,
+} from '@renderer/bridge/runtime-bridge/runtime-daemon';
+import { getRuntimeDefaults } from '@renderer/bridge/runtime-bridge/runtime-defaults';
+import { oauthListenForCode, oauthTokenExchange } from '@renderer/bridge/runtime-bridge/oauth';
+import { confirmPrivateSync, openExternalUrl, startWindowDrag } from '@renderer/bridge/runtime-bridge/ui';
+import type {
+  OpenExternalUrlResult,
+  OauthListenForCodePayload,
+  OauthListenForCodeResult,
+  OauthTokenExchangePayload,
+  OauthTokenExchangeResult,
+  RendererLogMessage,
+  RuntimeBridgeDaemonStatus,
+  RuntimeDefaults,
+  RuntimeLocalManifestSummary,
+} from '@renderer/bridge/runtime-bridge/types';
+
+export type {
+  OpenExternalUrlResult,
+  OauthListenForCodePayload,
+  OauthListenForCodeResult,
+  OauthTokenExchangePayload,
+  OauthTokenExchangeResult,
+  RendererLogMessage,
+  RuntimeBridgeDaemonStatus,
+  RuntimeDefaults,
+  RuntimeLocalManifestSummary,
+};
+
+export { logRendererEvent, toRendererLogMessage };
+
+export async function listRuntimeLocalModManifests(): Promise<RuntimeLocalManifestSummary[]> {
+  return [];
+}
+
+export async function readRuntimeLocalModEntry(_path: string): Promise<string> {
+  throw new Error('Local mod entry is only available in desktop runtime');
+}
+
+export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatus> {
+  return getDesktopRuntimeBridgeStatus();
+}
+
+export async function startRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
+  return startDesktopRuntimeBridge();
+}
+
+export async function stopRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
+  return stopDesktopRuntimeBridge();
+}
+
+export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
+  return restartDesktopRuntimeBridge();
+}
+
+export const desktopBridge = {
+  hasTauriInvoke,
+  getRuntimeBridgeStatus,
+  startRuntimeBridge,
+  stopRuntimeBridge,
+  restartRuntimeBridge,
+  getRuntimeDefaults,
+  proxyHttp,
+  openExternalUrl,
+  oauthTokenExchange,
+  oauthListenForCode,
+  confirmPrivateSync,
+  listRuntimeLocalModManifests,
+  readRuntimeLocalModEntry,
+  startWindowDrag,
+  logRendererEvent,
+};

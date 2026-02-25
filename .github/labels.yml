@@ -1,0 +1,81 @@
+# Component labels
+- name: runtime
+  color: "0075ca"
+  description: "Go runtime daemon"
+- name: sdk
+  color: "7057ff"
+  description: "TypeScript SDK packages"
+- name: desktop
+  color: "e4e669"
+  description: "Tauri desktop app"
+- name: mods
+  color: "d876e3"
+  description: "Mod ecosystem"
+- name: docs
+  color: "0e8a16"
+  description: "Documentation"
+- name: proto
+  color: "006b75"
+  description: "Protobuf definitions"
+- name: web
+  color: "1d76db"
+  description: "Web adapter"
+- name: ci
+  color: "bfd4f2"
+  description: "CI/CD pipeline"
+
+# Type labels
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working"
+- name: feature
+  color: "a2eeef"
+  description: "New feature request"
+- name: enhancement
+  color: "84b6eb"
+  description: "Improvement to existing feature"
+- name: breaking
+  color: "b60205"
+  description: "Breaking change"
+
+# Status labels
+- name: needs-triage
+  color: "ededed"
+  description: "Needs team triage"
+- name: good-first-issue
+  color: "7057ff"
+  description: "Good for newcomers"
+- name: help-wanted
+  color: "008672"
+  description: "Looking for contributors"
+- name: stale
+  color: "cfd3d7"
+  description: "No recent activity"
+
+# Priority labels
+- name: P0
+  color: "b60205"
+  description: "Critical priority"
+- name: P1
+  color: "d93f0b"
+  description: "High priority"
+- name: P2
+  color: "fbca04"
+  description: "Medium priority"
+
+# Size labels
+- name: "size/XS"
+  color: "009900"
+  description: "Extra small change"
+- name: "size/S"
+  color: "77bb00"
+  description: "Small change"
+- name: "size/M"
+  color: "eebb00"
+  description: "Medium change"
+- name: "size/L"
+  color: "ee9900"
+  description: "Large change"
+- name: "size/XL"
+  color: "ee5500"
+  description: "Extra large change"

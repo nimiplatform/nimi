@@ -1,0 +1,21 @@
+{
+  "name": "@nimiplatform/docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "check:examples": "tsc -p examples/tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nimiplatform/ai-provider": "workspace:*",
+    "@nimiplatform/mod-sdk": "workspace:*",
+    "@nimiplatform/sdk": "workspace:*",
+    "ai": "6.0.85"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.3"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "name": "@nimiplatform/sdk-runtime",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "default": "./dist/errors.js"
+    },
+    "./method-ids": {
+      "types": "./dist/method-ids.d.ts",
+      "default": "./dist/method-ids.js"
+    },
+    "./workflow-builder": {
+      "types": "./dist/workflow-builder.d.ts",
+      "default": "./dist/workflow-builder.js"
+    },
+    "./transports/node-grpc": {
+      "types": "./dist/transports/node-grpc/index.d.ts",
+      "default": "./dist/transports/node-grpc/index.js"
+    },
+    "./transports/tauri-ipc": {
+      "types": "./dist/transports/tauri-ipc/index.d.ts",
+      "default": "./dist/transports/tauri-ipc/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:contract": "NIMI_RUNTIME_CONTRACT=1 tsx --test test/contract/**/*.test.ts"
+  },
+  "dependencies": {
+    "@nimiplatform/sdk-types": "workspace:*",
+    "@grpc/grpc-js": "^1.14.1",
+    "@protobuf-ts/runtime": "2.11.1",
+    "@protobuf-ts/runtime-rpc": "2.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

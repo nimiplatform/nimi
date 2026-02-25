@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a new capability or improvement
+labels:
+  - feature
+  - needs-triage
+body:
+  - type: input
+    id: component
+    attributes:
+      label: Component
+      description: runtime / sdk / desktop / mods / docs / proto / web
+      placeholder: sdk
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user/developer problem are you solving?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe expected behavior and API/UX shape
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What alternatives did you consider and why not?
+  - type: textarea
+    id: impact
+    attributes:
+      label: Breaking changes / migration impact
+      description: Mention protocol/API/data impact if any

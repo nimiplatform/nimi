@@ -1,0 +1,1 @@
+export { VolcengineCompatibleAdapter } from './adapter';

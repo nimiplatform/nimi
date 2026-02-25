@@ -1,0 +1,42 @@
+name: Mod submission
+description: Submit a mod to Mod Circle
+labels:
+  - mods
+  - needs-triage
+body:
+  - type: input
+    id: mod_id
+    attributes:
+      label: Mod ID
+      description: Unique mod identifier
+      placeholder: local-chat
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: Source repository
+      placeholder: https://github.com/your-org/your-mod
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What does this mod do?
+    validations:
+      required: true
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Runtime permissions / scopes
+      description: List required scopes and why they are needed
+    validations:
+      required: true

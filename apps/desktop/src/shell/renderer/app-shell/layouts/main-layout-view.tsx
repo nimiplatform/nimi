@@ -1,0 +1,843 @@
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import logoImage from '../../assets/logo.png';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import type { UiExtensionEntry } from '@runtime/hook/contracts/types';
+import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
+import { StatusBanner } from '@renderer/ui/feedback/status-banner';
+import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
+import { persistStoredContactsFilter } from '@renderer/features/contacts/contacts-model';
+import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { MainLayoutTopBar } from './main-layout-topbar';
+import {
+  getCoreNavItems,
+  getQuickNavItems,
+  NavLink,
+  type NavItem,
+  renderShellNavIcon,
+} from './navigation-config';
+
+const MOD_NAV_SLOT = 'ui-extension.app.sidebar.mods';
+const MOD_RECENT_STORAGE_KEY = 'nimi.shell.mod-nav-recent';
+const ChatList = lazy(async () => {
+  const mod = await import('@renderer/features/chats/chat-list');
+  return { default: mod.ChatList };
+});
+const MessageTimeline = lazy(async () => {
+  const mod = await import('@renderer/features/turns/message-timeline');
+  return { default: mod.MessageTimeline };
+});
+const TurnInput = lazy(async () => {
+  const mod = await import('@renderer/features/turns/turn-input');
+  return { default: mod.TurnInput };
+});
+const ContactsPanel = lazy(async () => {
+  const mod = await import('@renderer/features/contacts/contacts-panel');
+  return { default: mod.ContactsPanel };
+});
+const ExplorePanel = lazy(async () => {
+  const mod = await import('@renderer/features/explore/explore-panel');
+  return { default: mod.ExplorePanel };
+});
+const SettingsPanelBody = lazy(async () => {
+  const mod = await import('@renderer/features/settings/settings-panel-body');
+  return { default: mod.SettingsPanelBody };
+});
+const RuntimeConfigPanelBody = lazy(async () => {
+  const mod = await import('@renderer/features/runtime-config/runtime-config-panel-view');
+  return { default: mod.RuntimeConfigPanelBody };
+});
+const NotificationPanel = lazy(async () => {
+  const mod = await import('@renderer/features/notification/notification-panel');
+  return { default: mod.NotificationPanel };
+});
+const ProfilePanel = lazy(async () => {
+  const mod = await import('@renderer/features/profile/profile-panel');
+  return { default: mod.ProfilePanel };
+});
+const AgentDetailPanel = lazy(async () => {
+  const mod = await import('@renderer/features/agent-detail/agent-detail-panel');
+  return { default: mod.AgentDetailPanel };
+});
+const WorldDetailPanel = lazy(async () => {
+  const mod = await import('@renderer/features/world-detail/world-detail-panel');
+  return { default: mod.WorldDetailPanel };
+});
+const HomePanel = lazy(async () => {
+  const mod = await import('@renderer/features/home/home-panel');
+  return { default: mod.HomePanel };
+});
+const MarketplacePage = lazy(async () => {
+  const mod = await import('@renderer/features/marketplace/marketplace-page');
+  return { default: mod.MarketplacePage };
+});
+const PrivacyPolicyView = lazy(async () => {
+  const mod = await import('@renderer/features/legal/privacy-policy-view');
+  return { default: mod.PrivacyPolicyView };
+});
+const TermsOfServiceView = lazy(async () => {
+  const mod = await import('@renderer/features/legal/terms-of-service-view');
+  return { default: mod.TermsOfServiceView };
+});
+const SlotHost = lazy(async () => {
+  const mod = await import('@renderer/mod-ui/host/slot-host');
+  return { default: mod.SlotHost };
+});
+type ModRecentClickMap = Record<string, number>;
+type SettingsSubmenuItemId =
+  | 'profile'
+  | 'wallet'
+  | 'settings'
+  | 'my-agents'
+  | 'terms-of-service'
+  | 'privacy-policy'
+  | 'logout';
+type SettingsSubmenuItem = {
+  id: SettingsSubmenuItemId;
+  label: string;
+  icon: string;
+};
+const SETTINGS_SUBMENU_ITEMS: SettingsSubmenuItem[] = [
+  { id: 'profile', label: 'Profile', icon: 'profile' },
+  { id: 'wallet', label: 'Wallet', icon: 'wallet' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'my-agents', label: 'My Agents', icon: 'my-agents' },
+  { id: 'terms-of-service', label: 'Terms of Service', icon: 'terms-of-service' },
+  { id: 'privacy-policy', label: 'Privacy Policy', icon: 'privacy-policy' },
+  { id: 'logout', label: 'Logout', icon: 'logout' },
+];
+const SETTINGS_SUBMENU_I18N_KEYS: Record<SettingsSubmenuItemId, string> = {
+  profile: 'Menu.profile',
+  wallet: 'Menu.wallet',
+  settings: 'Menu.settings',
+  'my-agents': 'Menu.myAgents',
+  'terms-of-service': 'Menu.termsOfService',
+  'privacy-policy': 'Menu.privacyPolicy',
+  logout: 'Menu.logout',
+};
+
+function parseBalanceValue(input: unknown): number {
+  const raw = typeof input === 'string' ? Number(input) : (typeof input === 'number' ? input : 0);
+  if (!Number.isFinite(raw) || raw < 0) {
+    return 0;
+  }
+  return raw;
+}
+
+function parseUnreadCount(input: unknown): number {
+  if (typeof input === 'number' && Number.isFinite(input)) {
+    return Math.max(0, Math.floor(input));
+  }
+  if (input && typeof input === 'object') {
+    const payload = input as Record<string, unknown>;
+    const candidates = [
+      payload.unreadCount,
+      payload.count,
+      payload.total,
+    ];
+    for (const candidate of candidates) {
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return Math.max(0, Math.floor(candidate));
+      }
+      if (typeof candidate === 'string' && candidate.trim()) {
+        const parsed = Number(candidate);
+        if (Number.isFinite(parsed)) {
+          return Math.max(0, Math.floor(parsed));
+        }
+      }
+    }
+  }
+  return 0;
+}
+
+type SidebarModNavItem = {
+  modId: string;
+  tabId: string;
+  label: string;
+  badge: string;
+  icon: string;
+  priority: number;
+  isFused: boolean;
+  isModTab: boolean;
+};
+
+function readModRecentClickMap(): ModRecentClickMap {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(MOD_RECENT_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const normalized: ModRecentClickMap = {};
+    Object.entries(parsed).forEach(([key, value]) => {
+      const normalizedKey = String(key || '').trim();
+      if (!normalizedKey) {
+        return;
+      }
+      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+        return;
+      }
+      normalized[normalizedKey] = value;
+    });
+    return normalized;
+  } catch {
+    return {};
+  }
+}
+
+function normalizeSidebarModNavItems(input: {
+  entries: UiExtensionEntry[];
+  recentClickMap: ModRecentClickMap;
+  fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
+}): SidebarModNavItem[] {
+  const navItems: SidebarModNavItem[] = [];
+  for (const entry of input.entries) {
+    const extension = entry.extension || {};
+    if (String(extension.type || '').trim() !== 'nav-item') {
+      continue;
+    }
+    const tabId = String(extension.tabId || `mod:${entry.modId}`).trim();
+    if (!tabId) {
+      continue;
+    }
+    const label = String(extension.label || entry.modId || tabId).trim();
+    if (!label) {
+      continue;
+    }
+    const badge = String(extension.badge || 'MOD').trim();
+    const icon = String(extension.icon || 'puzzle').trim().toLowerCase();
+    navItems.push({
+      modId: entry.modId,
+      tabId,
+      label,
+      badge,
+      icon,
+      priority: Number(entry.priority || 0),
+      isFused: Boolean(input.fusedRuntimeMods[entry.modId]),
+      isModTab: tabId.startsWith('mod:'),
+    });
+  }
+  navItems.sort((a, b) => {
+    const recentA = input.recentClickMap[a.tabId] || 0;
+    const recentB = input.recentClickMap[b.tabId] || 0;
+    if (recentB !== recentA) {
+      return recentB - recentA;
+    }
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority;
+    }
+    return a.label.localeCompare(b.label);
+  });
+  return navItems;
+}
+
+type MainLayoutViewProps = {
+  activeTab: AppTab;
+  displayName: string;
+  userAvatarUrl: string | null;
+  context: UiExtensionContext;
+  onNav: (tabId: string) => void;
+  onLogout: () => void;
+  onTitlebarMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
+};
+
+export function MainLayoutView(props: MainLayoutViewProps) {
+  const { t } = useTranslation();
+  const flags = getShellFeatureFlags();
+  const authStatus = useAppStore((state) => state.auth.status);
+  const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
+  const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
+  const coreNavItems = getCoreNavItems();
+  const quickNavItems = getQuickNavItems();
+  const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
+  const [modsMenuOpen, setModsMenuOpen] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [createPostRequestKey, setCreatePostRequestKey] = useState(0);
+  const [recentModClicks, setRecentModClicks] = useState<ModRecentClickMap>(() => readModRecentClickMap());
+  const [collapsedModsMenuPosition, setCollapsedModsMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [modNavItems, setModNavItems] = useState<SidebarModNavItem[]>([]);
+  const modsTriggerRef = useRef<HTMLDivElement>(null);
+  const modsMenuRef = useRef<HTMLDivElement>(null);
+  const settingsTriggerRef = useRef<HTMLDivElement>(null);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const modsEntryItem: NavItem = useMemo(() => ({
+    id: 'mods',
+    label: t('Navigation.mods'),
+    icon: renderShellNavIcon('puzzle'),
+  }), [t]);
+  const sidebarWidthClass = 'w-[60px]';
+  const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
+  const activeModTab = props.activeTab.startsWith('mod:');
+  const balancesQuery = useQuery({
+    queryKey: ['topbar-currency-balances'],
+    queryFn: async () => {
+      const { dataSync } = await import('@runtime/data-sync');
+      return dataSync.loadCurrencyBalances() as Promise<Record<string, unknown>>;
+    },
+    enabled: authStatus === 'authenticated',
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const unreadCountQuery = useQuery({
+    queryKey: ['topbar-notification-unread-count'],
+    queryFn: async () => {
+      const { dataSync } = await import('@runtime/data-sync');
+      return dataSync.loadNotificationUnreadCount();
+    },
+    enabled: authStatus === 'authenticated',
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+
+  const sparkBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.sparkBalance);
+  const gemBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.gemBalance);
+  const unreadCount = parseUnreadCount(unreadCountQuery.data);
+
+  useEffect(() => {
+    if (!flags.enableModUi) {
+      setModsMenuOpen(false);
+    }
+  }, [flags.enableModUi]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!flags.enableModUi) {
+      setModNavItems([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void import('@runtime/mod')
+      .then(({ getRuntimeHookRuntime }) => {
+        if (cancelled) {
+          return;
+        }
+        const entries = getRuntimeHookRuntime().resolveUIExtensions(MOD_NAV_SLOT);
+        setModNavItems(normalizeSidebarModNavItems({
+          entries,
+          recentClickMap: recentModClicks,
+          fusedRuntimeMods,
+        }));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setModNavItems([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [flags.enableModUi, fusedRuntimeMods, recentModClicks, registeredRuntimeModIds]);
+
+  useEffect(() => {
+    if (!modsMenuOpen) {
+      return;
+    }
+    const onMouseDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (modsTriggerRef.current?.contains(target)) {
+        return;
+      }
+      if (modsMenuRef.current?.contains(target)) {
+        return;
+      }
+      setModsMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setModsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [modsMenuOpen]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) {
+      return;
+    }
+    const onMouseDown = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (settingsTriggerRef.current?.contains(target)) {
+        return;
+      }
+      if (settingsMenuRef.current?.contains(target)) {
+        return;
+      }
+      setSettingsMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSettingsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [settingsMenuOpen]);
+
+  useEffect(() => {
+    setModsMenuOpen(false);
+    setSettingsMenuOpen(false);
+  }, [props.activeTab]);
+
+  useEffect(() => {
+    if (!modsMenuOpen) {
+      return;
+    }
+    const updatePosition = () => {
+      const rect = modsTriggerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+      setCollapsedModsMenuPosition({
+        top: Math.max(12, rect.top),
+        left: rect.right + 4,
+      });
+    };
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [modsMenuOpen]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) {
+      return;
+    }
+    const updatePosition = () => {
+      const rect = settingsTriggerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+      const menuWidth = 224;
+      const viewportWidth = window.innerWidth;
+      const clampedLeft = Math.min(
+        Math.max(12, rect.right - menuWidth),
+        Math.max(12, viewportWidth - menuWidth - 12),
+      );
+      setCollapsedSettingsMenuPosition({
+        top: Math.max(12, rect.bottom + 6),
+        left: clampedLeft,
+      });
+    };
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [settingsMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    try {
+      window.localStorage.setItem(MOD_RECENT_STORAGE_KEY, JSON.stringify(recentModClicks));
+    } catch {
+      // no-op
+    }
+  }, [recentModClicks]);
+
+  const avatarNode = props.userAvatarUrl ? (
+    <img
+      src={props.userAvatarUrl}
+      alt={props.displayName}
+      className="h-8 w-8 shrink-0 rounded-full object-cover"
+    />
+  ) : (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+      {props.displayName.charAt(0).toUpperCase()}
+    </div>
+  );
+  const nimiHomeNode = (
+    <img
+      src={logoImage}
+      alt="Nimi"
+      className="h-9 w-9 shrink-0 rounded-xl object-cover"
+    />
+  );
+
+  const openModNavItem = (item: SidebarModNavItem) => {
+    setRecentModClicks((previous) => ({
+      ...previous,
+      [item.tabId]: Date.now(),
+    }));
+    setModsMenuOpen(false);
+    if (item.isModTab) {
+      props.context.openModTab(item.tabId as `mod:${string}`, item.modId, item.label);
+      return;
+    }
+    props.onNav(item.tabId);
+  };
+
+  const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
+    if (itemId === 'profile') {
+      return props.activeTab === 'profile';
+    }
+    if (itemId === 'wallet' || itemId === 'settings') {
+      return props.activeTab === 'settings';
+    }
+    if (itemId === 'my-agents') {
+      return props.activeTab === 'contacts';
+    }
+    return false;
+  };
+
+  const openSettingsSubmenuItem = (itemId: SettingsSubmenuItemId) => {
+    if (itemId === 'profile') {
+      props.onNav('profile');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'wallet') {
+      persistStoredSettingsSelected('wallet');
+      props.onNav('settings');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'settings') {
+      persistStoredSettingsSelected('profile');
+      props.onNav('settings');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'my-agents') {
+      persistStoredContactsFilter('agents');
+      props.onNav('contacts');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'terms-of-service') {
+      props.onNav('terms-of-service');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'privacy-policy') {
+      props.onNav('privacy-policy');
+      setSettingsMenuOpen(false);
+      return;
+    }
+    if (itemId === 'logout') {
+      props.onLogout();
+      setSettingsMenuOpen(false);
+    }
+  };
+
+  const openWalletFromTitlebar = () => {
+    persistStoredSettingsSelected('wallet');
+    props.onNav('settings');
+  };
+
+  const openNotificationsFromTitlebar = () => {
+    props.onNav('notification');
+  };
+  const openCreatePostFromTitlebar = () => {
+    setModsMenuOpen(false);
+    setSettingsMenuOpen(false);
+    props.onNav('home');
+    setCreatePostRequestKey((value) => value + 1);
+  };
+  const toggleSettingsMenuFromTitlebar = () => {
+    setModsMenuOpen(false);
+    setSettingsMenuOpen((value) => !value);
+  };
+
+  return (
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-gray-50">
+      <MainLayoutTopBar
+        enableModWorkspaceTabs={flags.enableModWorkspaceTabs}
+        titlebarLeftInsetClass={titlebarLeftInsetClass}
+        sparkBalance={sparkBalance}
+        gemBalance={gemBalance}
+        balancesPending={balancesQuery.isPending}
+        unreadCount={unreadCount}
+        avatarNode={avatarNode}
+        settingsMenuOpen={settingsMenuOpen}
+        settingsTriggerRef={settingsTriggerRef}
+        onOpenWallet={openWalletFromTitlebar}
+        onOpenNotifications={openNotificationsFromTitlebar}
+        onToggleSettingsMenu={toggleSettingsMenuFromTitlebar}
+        onMouseDown={props.onTitlebarMouseDown}
+      />
+
+      <div className="flex min-h-0 flex-1">
+        <aside className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
+          <div className="flex h-14 shrink-0 items-center justify-center border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setModsMenuOpen(false);
+                setSettingsMenuOpen(false);
+                props.onNav('home');
+              }}
+              className="rounded-xl p-0.5 transition hover:bg-gray-100"
+              aria-label="Nimi Home"
+              title="Home"
+            >
+              {nimiHomeNode}
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto pt-2">
+            <div className="flex flex-col gap-1">
+              {primaryCoreNavItems.map((item) => (
+                <NavLink
+                  key={item.id}
+                  item={item}
+                  active={props.activeTab === item.id}
+                  collapsed
+                  onClick={() => props.onNav(item.id)}
+                />
+              ))}
+              {/* Create Post Button - After explore */}
+              <button
+                type="button"
+                onClick={openCreatePostFromTitlebar}
+                className="group relative flex h-11 w-full items-center justify-center text-gray-400 transition-colors hover:bg-mint-100 hover:text-gray-600"
+                style={{ borderRadius: '10px' }}
+                title={t('Common.createPost')}
+                aria-label={t('Common.createPost')}
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#4ECCA3] text-white shadow-sm transition group-hover:bg-[#3DBA92]">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </span>
+              </button>
+              {quickNavItems.map((item) => (
+                <NavLink
+                  key={item.id}
+                  item={item}
+                  active={props.activeTab === item.id}
+                  collapsed
+                  onClick={() => props.onNav(item.id)}
+                />
+              ))}
+              {flags.enableModUi ? (
+                <div className="relative" ref={modsTriggerRef}>
+                  <NavLink
+                    item={modsEntryItem}
+                    active={modsMenuOpen || activeModTab}
+                    collapsed
+                    onClick={() => {
+                      setSettingsMenuOpen(false);
+                      setModsMenuOpen((value) => !value);
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </nav>
+
+          {flags.enableModUi && modsMenuOpen ? (
+            <div
+              ref={modsMenuRef}
+              className="fixed z-50 w-56 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl shadow-black/8"
+              style={{
+                top: `${collapsedModsMenuPosition?.top ?? 76}px`,
+                left: `${collapsedModsMenuPosition?.left ?? 81}px`,
+              }}
+            >
+              {modNavItems.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-gray-500">{t('Navigation.noMods')}</p>
+              ) : (
+                modNavItems.map((item) => {
+                  const badgeValue = item.isFused ? 'CRASH' : item.badge;
+                  const active = props.activeTab === item.tabId;
+                  return (
+                    <button
+                      key={`${item.modId}:${item.tabId}`}
+                      type="button"
+                      onClick={() => {
+                        openModNavItem(item);
+                      }}
+                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-[13px] ${
+                        active ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`w-4 shrink-0 ${active ? 'text-brand-700' : 'text-gray-400'}`}>
+                        {renderShellNavIcon(item.icon)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                      {badgeValue ? (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            item.isFused ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
+                          }`}
+                        >
+                          {badgeValue}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+
+          {settingsMenuOpen ? (
+            <div
+              ref={settingsMenuRef}
+              className="fixed z-50 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl shadow-black/8"
+              style={{
+                top: `${collapsedSettingsMenuPosition?.top ?? 76}px`,
+                left: `${collapsedSettingsMenuPosition?.left ?? 81}px`,
+              }}
+            >
+              {SETTINGS_SUBMENU_ITEMS.map((item) => {
+                const active = isSettingsMenuItemActive(item.id);
+                const isLogout = item.id === 'logout';
+                return (
+                  <div key={item.id}>
+                    {isLogout ? <div className="my-1 border-t border-gray-100" /> : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openSettingsSubmenuItem(item.id);
+                      }}
+                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-[13px] ${
+                        isLogout
+                          ? 'text-red-600 hover:bg-red-50'
+                          : active
+                            ? 'bg-brand-50 text-brand-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`w-4 shrink-0 ${isLogout ? 'text-red-500' : active ? 'text-brand-700' : 'text-gray-400'}`}>
+                        {renderShellNavIcon(item.icon)}
+                      </span>
+                      <span className="min-w-0 flex-1 text-left">{t(SETTINGS_SUBMENU_I18N_KEYS[item.id] ?? '', item.label)}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+        </aside>
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <StatusBanner />
+
+          <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
+            {props.activeTab === 'home' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <HomePanel createPostRequestKey={createPostRequestKey} />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'chat' ? (
+              <div className="flex min-h-0 flex-1">
+                <div className="w-[280px] shrink-0 border-r border-gray-200 bg-white">
+                  <ChatList />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col bg-gray-50">
+                  <div className="min-h-0 flex-1">
+                    <MessageTimeline />
+                  </div>
+                  <TurnInput />
+                </div>
+              </div>
+            ) : null}
+
+            {props.activeTab === 'contacts' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ContactsPanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'explore' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ExplorePanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'runtime' && flags.enableRuntimeTab ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <RuntimeConfigPanelBody />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'notification' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <NotificationPanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'settings' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <SettingsPanelBody />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'profile' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ProfilePanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'agent-detail' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <AgentDetailPanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'world-detail' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <WorldDetailPanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'marketplace' && flags.enableMarketplaceTab ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <MarketplacePage />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'privacy-policy' ? (
+              <PrivacyPolicyView />
+            ) : null}
+
+            {props.activeTab === 'terms-of-service' ? (
+              <TermsOfServiceView />
+            ) : null}
+          </Suspense>
+
+          {flags.enableModUi ? (
+            <Suspense fallback={null}>
+              <SlotHost slot="ui-extension.app.content.routes" base={null} context={props.context} />
+            </Suspense>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}

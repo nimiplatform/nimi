@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/ai.proto";
+import "runtime/v1/common.proto";
+
+enum WorkflowStatus {
+  WORKFLOW_STATUS_UNSPECIFIED = 0;
+  WORKFLOW_STATUS_ACCEPTED = 1;
+  WORKFLOW_STATUS_QUEUED = 2;
+  WORKFLOW_STATUS_RUNNING = 3;
+  WORKFLOW_STATUS_COMPLETED = 4;
+  WORKFLOW_STATUS_FAILED = 5;
+  WORKFLOW_STATUS_CANCELED = 6;
+  WORKFLOW_STATUS_SKIPPED = 7;
+}
+
+enum WorkflowEventType {
+  WORKFLOW_EVENT_TYPE_UNSPECIFIED = 0;
+  WORKFLOW_EVENT_STARTED = 1;
+  WORKFLOW_EVENT_NODE_STARTED = 2;
+  WORKFLOW_EVENT_NODE_PROGRESS = 3;
+  WORKFLOW_EVENT_NODE_COMPLETED = 4;
+  WORKFLOW_EVENT_NODE_SKIPPED = 5;
+  WORKFLOW_EVENT_COMPLETED = 6;
+  WORKFLOW_EVENT_FAILED = 7;
+  WORKFLOW_EVENT_CANCELED = 8;
+}
+
+enum WorkflowNodeType {
+  WORKFLOW_NODE_TYPE_UNSPECIFIED = 0;
+
+  WORKFLOW_NODE_AI_GENERATE = 1;
+  WORKFLOW_NODE_AI_STREAM = 2;
+  WORKFLOW_NODE_AI_EMBED = 3;
+  WORKFLOW_NODE_AI_IMAGE = 4;
+  WORKFLOW_NODE_AI_VIDEO = 5;
+  WORKFLOW_NODE_AI_TTS = 6;
+  WORKFLOW_NODE_AI_STT = 7;
+
+  WORKFLOW_NODE_TRANSFORM_EXTRACT = 20;
+  WORKFLOW_NODE_TRANSFORM_TEMPLATE = 21;
+  WORKFLOW_NODE_TRANSFORM_SCRIPT = 22;
+
+  WORKFLOW_NODE_CONTROL_BRANCH = 40;
+  WORKFLOW_NODE_CONTROL_MERGE = 41;
+  WORKFLOW_NODE_CONTROL_NOOP = 42;
+}
+
+enum MergeStrategy {
+  MERGE_STRATEGY_UNSPECIFIED = 0;
+  MERGE_STRATEGY_ALL = 1;
+  MERGE_STRATEGY_ANY = 2;
+  MERGE_STRATEGY_N_OF_M = 3;
+}
+
+message WorkflowEdge {
+  string from_node_id = 1;
+  string from_output = 2;
+  string to_node_id = 3;
+  string to_input = 4;
+}
+
+message AiGenerateNodeConfig {
+  string model_id = 1;
+  Modal modal = 2;
+  string system_prompt = 3;
+  repeated ToolSpec tools = 4;
+  float temperature = 5;
+  float top_p = 6;
+  int32 max_tokens = 7;
+  RoutePolicy route_policy = 8;
+  FallbackPolicy fallback = 9;
+  int32 timeout_ms = 10;
+  string prompt = 11;
+}
+
+message AiStreamNodeConfig {
+  string model_id = 1;
+  Modal modal = 2;
+  string system_prompt = 3;
+  repeated ToolSpec tools = 4;
+  float temperature = 5;
+  float top_p = 6;
+  int32 max_tokens = 7;
+  RoutePolicy route_policy = 8;
+  FallbackPolicy fallback = 9;
+  int32 timeout_ms = 10;
+  string prompt = 11;
+}
+
+message AiEmbedNodeConfig {
+  string model_id = 1;
+  RoutePolicy route_policy = 2;
+  FallbackPolicy fallback = 3;
+  int32 timeout_ms = 4;
+  repeated string inputs = 5;
+}
+
+message AiImageNodeConfig {
+  string model_id = 1;
+  RoutePolicy route_policy = 2;
+  FallbackPolicy fallback = 3;
+  int32 timeout_ms = 4;
+  string prompt = 5;
+}
+
+message AiVideoNodeConfig {
+  string model_id = 1;
+  RoutePolicy route_policy = 2;
+  FallbackPolicy fallback = 3;
+  int32 timeout_ms = 4;
+  string prompt = 5;
+}
+
+message AiTtsNodeConfig {
+  string model_id = 1;
+  RoutePolicy route_policy = 2;
+  FallbackPolicy fallback = 3;
+  int32 timeout_ms = 4;
+  string text = 5;
+}
+
+message AiSttNodeConfig {
+  string model_id = 1;
+  string mime_type = 2;
+  RoutePolicy route_policy = 3;
+  FallbackPolicy fallback = 4;
+  int32 timeout_ms = 5;
+  bytes audio_bytes = 6;
+}
+
+message ExtractNodeConfig {
+  string json_path = 1;
+  string source_input = 2;
+}
+
+message TemplateNodeConfig {
+  string template = 1;
+  string output_mime_type = 2;
+}
+
+message ScriptNodeConfig {
+  string runtime = 1;
+  string code = 2;
+  int32 timeout_ms = 3;
+  int64 memory_limit_bytes = 4;
+}
+
+message BranchNodeConfig {
+  string condition = 1;
+  string true_target = 2;
+  string false_target = 3;
+}
+
+message MergeNodeConfig {
+  MergeStrategy strategy = 1;
+  int32 min_completed = 2;
+}
+
+message NoopNodeConfig {}
+
+message WorkflowNode {
+  string node_id = 1;
+  WorkflowNodeType node_type = 2;
+  repeated string depends_on = 3;
+  oneof type_config {
+    AiGenerateNodeConfig ai_generate_config = 10;
+    AiStreamNodeConfig ai_stream_config = 11;
+    AiEmbedNodeConfig ai_embed_config = 12;
+    AiImageNodeConfig ai_image_config = 13;
+    AiVideoNodeConfig ai_video_config = 14;
+    AiTtsNodeConfig ai_tts_config = 15;
+    AiSttNodeConfig ai_stt_config = 16;
+
+    ExtractNodeConfig extract_config = 20;
+    TemplateNodeConfig template_config = 21;
+    ScriptNodeConfig script_config = 22;
+
+    BranchNodeConfig branch_config = 30;
+    MergeNodeConfig merge_config = 31;
+    NoopNodeConfig noop_config = 32;
+  }
+  int32 retry_max_attempts = 5;
+  string retry_backoff = 6;
+}
+
+message WorkflowDefinition {
+  string workflow_type = 1;
+  repeated WorkflowNode nodes = 2;
+  repeated WorkflowEdge edges = 3;
+}
+
+message SubmitWorkflowRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  WorkflowDefinition definition = 3;
+  int32 timeout_ms = 4;
+}
+
+message SubmitWorkflowResponse {
+  string task_id = 1;
+  bool accepted = 2;
+  ReasonCode reason_code = 3;
+}
+
+message GetWorkflowRequest {
+  string task_id = 1;
+}
+
+message WorkflowNodeStatus {
+  string node_id = 1;
+  WorkflowStatus status = 2;
+  int32 attempt = 3;
+  string reason = 4;
+}
+
+message GetWorkflowResponse {
+  string task_id = 1;
+  WorkflowStatus status = 2;
+  repeated WorkflowNodeStatus nodes = 3;
+  google.protobuf.Struct output = 4;
+  ReasonCode reason_code = 5;
+}
+
+message CancelWorkflowRequest {
+  string task_id = 1;
+}
+
+message WorkflowEvent {
+  WorkflowEventType event_type = 1;
+  uint64 sequence = 2;
+  string task_id = 3;
+  string trace_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  string node_id = 6;
+  int32 progress_percent = 7;
+  ReasonCode reason_code = 8;
+  google.protobuf.Struct payload = 9;
+}
+
+message SubscribeWorkflowEventsRequest {
+  string task_id = 1;
+}
+
+service RuntimeWorkflowService {
+  rpc SubmitWorkflow(SubmitWorkflowRequest) returns (SubmitWorkflowResponse);
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse);
+  rpc CancelWorkflow(CancelWorkflowRequest) returns (Ack);
+  rpc SubscribeWorkflowEvents(SubscribeWorkflowEventsRequest) returns (stream WorkflowEvent);
+}

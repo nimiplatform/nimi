@@ -1,0 +1,4 @@
+@import "./dapp-globals.css";
+@import "@renderer/styles.css";
+@source "../../desktop/src/shell/renderer/**/*.{ts,tsx}";
+@source "./**/*.{ts,tsx}";

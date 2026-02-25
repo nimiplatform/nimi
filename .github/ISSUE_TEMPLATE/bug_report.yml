@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible defect
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please include reproducible details.
+  - type: input
+    id: component
+    attributes:
+      label: Component
+      description: runtime / sdk / desktop / mods / docs / proto / web
+      placeholder: runtime
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened and what should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide minimal steps to reproduce
+      placeholder: |
+        1. Run ...
+        2. Call ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / errors
+      description: Paste key logs or stack traces (remove secrets)
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS / versions / commit SHA
+    validations:
+      required: true

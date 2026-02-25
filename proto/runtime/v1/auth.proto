@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum ExternalProofType {
+  EXTERNAL_PROOF_TYPE_UNSPECIFIED = 0;
+  EXTERNAL_PROOF_TYPE_ED25519 = 1;
+  EXTERNAL_PROOF_TYPE_HMAC_SHA256 = 2;
+}
+
+enum AppMode {
+  APP_MODE_UNSPECIFIED = 0;
+  APP_MODE_LITE = 1;
+  APP_MODE_CORE_ONLY = 2;
+  APP_MODE_FULL = 3;
+}
+
+enum WorldRelation {
+  WORLD_RELATION_UNSPECIFIED = 0;
+  WORLD_RELATION_NONE = 1;
+  WORLD_RELATION_RENDER = 2;
+  WORLD_RELATION_EXTENSION = 3;
+}
+
+message AppModeManifest {
+  AppMode app_mode = 1;
+  bool runtime_required = 2;
+  bool realm_required = 3;
+  WorldRelation world_relation = 4;
+}
+
+message RegisterAppRequest {
+  string app_id = 1;
+  string app_instance_id = 2;
+  string device_id = 3;
+  string app_version = 4;
+  repeated string capabilities = 5;
+  AppModeManifest mode_manifest = 6;
+}
+
+message RegisterAppResponse {
+  string app_instance_id = 1;
+  bool accepted = 2;
+  ReasonCode reason_code = 3;
+}
+
+message OpenSessionRequest {
+  string app_id = 1;
+  string app_instance_id = 2;
+  string device_id = 3;
+  string subject_user_id = 4;
+  int32 ttl_seconds = 5;
+}
+
+message OpenSessionResponse {
+  string session_id = 1;
+  google.protobuf.Timestamp issued_at = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string session_token = 4;
+  ReasonCode reason_code = 5;
+}
+
+message RefreshSessionRequest {
+  string session_id = 1;
+  int32 ttl_seconds = 2;
+}
+
+message RefreshSessionResponse {
+  string session_id = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  string session_token = 3;
+  ReasonCode reason_code = 4;
+}
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+message RegisterExternalPrincipalRequest {
+  string app_id = 1;
+  string external_principal_id = 2;
+  ExternalPrincipalType external_principal_type = 3;
+  string issuer = 4;
+  string client_id = 5;
+  string signature_key_id = 6;
+  ExternalProofType proof_type = 7;
+}
+
+message RegisterExternalPrincipalResponse {
+  bool accepted = 1;
+  ReasonCode reason_code = 2;
+}
+
+message OpenExternalPrincipalSessionRequest {
+  string app_id = 1;
+  string external_principal_id = 2;
+  string proof = 3;
+  int32 ttl_seconds = 4;
+}
+
+message OpenExternalPrincipalSessionResponse {
+  string external_session_id = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  string session_token = 3;
+  ReasonCode reason_code = 4;
+}
+
+message RevokeExternalPrincipalSessionRequest {
+  string external_session_id = 1;
+}
+
+service RuntimeAuthService {
+  rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse);
+  rpc OpenSession(OpenSessionRequest) returns (OpenSessionResponse);
+  rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
+  rpc RevokeSession(RevokeSessionRequest) returns (Ack);
+  rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);
+  rpc OpenExternalPrincipalSession(OpenExternalPrincipalSessionRequest) returns (OpenExternalPrincipalSessionResponse);
+  rpc RevokeExternalPrincipalSession(RevokeExternalPrincipalSessionRequest) returns (Ack);
+}

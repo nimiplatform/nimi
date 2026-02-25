@@ -1,0 +1,1014 @@
+/* DESIGN-RULE-ID: DESIGN-PLATFORM-001 */
+@import 'tailwindcss';
+
+/* World UI Design System - 凡人修仙传主题设计系统 */
+/* 注意：这些样式文件必须在 [data-world-isolated] 定义之后导入，否则会被 all: initial 重置 */
+/* @import '../styles/world-design-system.css'; */
+/* @import '../components/world-ui/styles/world-ui-visualizations.css'; */
+
+/* -------------------------------------------------------------------------- */
+/* Tailwind v4 Configuration                                                   */
+/* -------------------------------------------------------------------------- */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Smart Radius: Adapts based on theme variable */
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+  --radius-3xl: calc(var(--radius) + 18px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* THREE-LAYER CSS SYSTEM (ARCH-009/010)                                       */
+/* Layer 1: --platform-*  (Navigation, fixed chrome — never overridden)        */
+/* Layer 2: --world-*     ([data-world] World theme override)                  */
+/* Layer 3: --user-*      ([data-user] User preference override)               */
+/* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+/* THEME 1: ORGANIC RESONANCE (Default)                                        */
+/* Keywords: Clay, Sage, Rice Paper, Warmth, Noise                             */
+/* -------------------------------------------------------------------------- */
+:root {
+  --radius: 1.25rem;
+  /* Bold, friendly roundness */
+
+  /* Base: Rice Paper */
+  --background: oklch(0.97 0.01 85);
+  --foreground: oklch(0.2 0.03 85);
+
+  /* Surfaces */
+  --card: oklch(0.99 0.005 85);
+  --card-foreground: oklch(0.2 0.03 85);
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.2 0.03 85);
+
+  /* Brand: Nimi Clay */
+  --primary: oklch(0.6 0.18 35);
+  --primary-foreground: oklch(0.98 0.01 85);
+
+  /* Secondary: Washed Sand */
+  --secondary: oklch(0.93 0.03 85);
+  --secondary-foreground: oklch(0.35 0.05 35);
+
+  /* Muted: Mist */
+  --muted: oklch(0.92 0.02 85);
+  --muted-foreground: oklch(0.55 0.04 85);
+
+  /* Accent: Soft Moss */
+  --accent: oklch(0.9 0.06 140);
+  --accent-foreground: oklch(0.25 0.05 140);
+
+  --destructive: oklch(0.65 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Borders: Pencil thin */
+  --border: oklch(0.2 0.03 85 / 0.08);
+  --input: oklch(0.2 0.03 85 / 0.08);
+  --ring: oklch(0.6 0.18 35 / 0.2);
+
+  /* Sidebar */
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Nature Charts */
+  --chart-1: oklch(0.65 0.2 30);
+  /* Persimmon */
+  --chart-2: oklch(0.7 0.15 140);
+  /* Moss */
+  --chart-3: oklch(0.8 0.12 85);
+  /* Turmeric */
+  --chart-4: oklch(0.6 0.18 300);
+  /* Berry */
+  --chart-5: oklch(0.75 0.1 200);
+  /* Lake */
+
+  /* Platform Layer: Locked variables for Navigation (ARCH-010) */
+  --platform-background: var(--background);
+  --platform-foreground: var(--foreground);
+  --platform-primary: var(--primary);
+  --platform-primary-foreground: var(--primary-foreground);
+  --platform-border: var(--border);
+  --platform-muted: var(--muted);
+  --platform-muted-foreground: var(--muted-foreground);
+  --platform-accent: var(--accent);
+  --platform-accent-foreground: var(--accent-foreground);
+  --platform-card: var(--card);
+  --platform-card-foreground: var(--card-foreground);
+}
+
+/* World Theme Layer: Applied when inside a World context */
+[data-world] {
+  --background: var(--world-background, var(--background));
+  --foreground: var(--world-foreground, var(--foreground));
+  --primary: var(--world-primary, var(--primary));
+  --primary-foreground: var(--world-primary-foreground, var(--primary-foreground));
+  --accent: var(--world-accent, var(--accent));
+  --accent-foreground: var(--world-accent-foreground, var(--accent-foreground));
+  --card: var(--world-card, var(--card));
+  --card-foreground: var(--world-card-foreground, var(--card-foreground));
+}
+
+/* User Preference Layer */
+[data-user] {
+  --background: var(--user-background, var(--background));
+  --primary: var(--user-primary, var(--primary));
+  --accent: var(--user-accent, var(--accent));
+}
+
+/* Organic Dark Mode */
+.dark {
+  --background: oklch(0.14 0.03 80);
+  /* Deep Space Coffee */
+  --foreground: oklch(0.92 0.01 85);
+  --card: oklch(0.18 0.03 80);
+  --card-foreground: oklch(0.92 0.01 85);
+  --popover: oklch(0.18 0.03 80);
+  --popover-foreground: oklch(0.92 0.01 85);
+  --primary: oklch(0.7 0.18 35);
+  /* Magma */
+  --primary-foreground: oklch(0.14 0.03 80);
+  --secondary: oklch(0.25 0.04 80);
+  --secondary-foreground: oklch(0.9 0.02 85);
+  --muted: oklch(0.25 0.04 80);
+  --muted-foreground: oklch(0.7 0.04 80);
+  --accent: oklch(0.28 0.06 140);
+  --accent-foreground: oklch(0.9 0.05 140);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.92 0.01 85 / 0.1);
+  --input: oklch(0.92 0.01 85 / 0.1);
+  --ring: oklch(0.7 0.18 35 / 0.3);
+  --sidebar: oklch(0.16 0.03 80);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* -------------------------------------------------------------------------- */
+/* THEME 2: NIMI AIRPAPER (Override)                                           */
+/* Keywords: Porcelain, Indigo, Fiber, Clean, Precision                        */
+/* -------------------------------------------------------------------------- */
+[data-theme='airpaper'] {
+  --radius: 0.95rem;
+  /* Slightly tighter, technical radius */
+
+  /* Base: Porcelain */
+  --background: oklch(0.988 0.006 255);
+  --foreground: oklch(0.17 0.02 265);
+  --card: oklch(0.997 0.004 255);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.997 0.004 255);
+  --popover-foreground: var(--foreground);
+
+  /* Brand: Calm Indigo */
+  --primary: oklch(0.5 0.15 282);
+  --primary-foreground: oklch(0.985 0.008 255);
+
+  --secondary: oklch(0.965 0.01 255);
+  --secondary-foreground: oklch(0.23 0.02 265);
+  --muted: oklch(0.965 0.01 255);
+  --muted-foreground: oklch(0.55 0.02 265);
+  --accent: oklch(0.952 0.02 282);
+  --accent-foreground: oklch(0.23 0.04 282);
+
+  --destructive: oklch(0.63 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.9 0.01 255);
+  --input: oklch(0.89 0.012 255);
+  --ring: oklch(0.62 0.13 282);
+
+  --sidebar: oklch(0.986 0.006 255);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.96 0.012 282);
+  --sidebar-accent-foreground: oklch(0.23 0.04 282);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Soft Product Charts */
+  --chart-1: oklch(0.58 0.13 282);
+  --chart-2: oklch(0.7 0.1 210);
+  --chart-3: oklch(0.66 0.08 155);
+  --chart-4: oklch(0.76 0.1 55);
+  --chart-5: oklch(0.64 0.1 330);
+}
+
+/* Airpaper Dark Mode */
+.dark[data-theme='airpaper'],
+[data-theme='airpaper'] .dark {
+  --background: oklch(0.145 0.02 265);
+  --foreground: oklch(0.975 0.008 255);
+  --card: oklch(0.185 0.02 265);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.185 0.02 265);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.78 0.08 282);
+  --primary-foreground: oklch(0.19 0.02 265);
+  --secondary: oklch(0.225 0.02 265);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.225 0.02 265);
+  --muted-foreground: oklch(0.74 0.015 265);
+  --accent: oklch(0.26 0.03 282);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.72 0.14 25);
+  --border: oklch(1 0 0 / 0.14);
+  --input: oklch(1 0 0 / 0.18);
+  --ring: oklch(0.72 0.08 282);
+  --sidebar: oklch(0.165 0.02 265);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.215 0.02 282);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Base Layers & Texture Management                                            */
+/* -------------------------------------------------------------------------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    text-rendering: geometricPrecision;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    position: relative;
+    font-feature-settings:
+      'ss01' 1,
+      'ss02' 1,
+      'cv11' 1;
+  }
+
+  /* * TEXTURE 1: ORGANIC NOISE
+   * Only applied when theme is NOT airpaper
+   */
+  :root:not([data-theme='airpaper']) body {
+    line-height: 1.6;
+    letter-spacing: -0.015em;
+  }
+
+  :root:not([data-theme='airpaper']) body:not(:has([data-world-isolated]))::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  /* * TEXTURE 2: AIRPAPER GRADIENTS
+   * Only applied when theme IS airpaper
+   */
+  [data-theme='airpaper'] body {
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+    background-attachment: fixed;
+    background-image:
+      radial-gradient(1200px 650px at 10% -10%, oklch(0.96 0.02 282 / 0.55), transparent 60%),
+      radial-gradient(900px 650px at 100% 0%, oklch(0.96 0.02 210 / 0.4), transparent 62%),
+      repeating-linear-gradient(0deg, oklch(0 0 0 / 0.02) 0px, transparent 1px, transparent 6px),
+      repeating-linear-gradient(90deg, oklch(0 0 0 / 0.015) 0px, transparent 1px, transparent 10px);
+  }
+
+  .dark[data-theme='airpaper'] body,
+  [data-theme='airpaper'] .dark body {
+    background-image:
+      radial-gradient(1200px 650px at 10% -10%, oklch(0.55 0.08 282 / 0.18), transparent 60%),
+      radial-gradient(900px 650px at 100% 0%, oklch(0.55 0.07 210 / 0.14), transparent 62%),
+      repeating-linear-gradient(0deg, oklch(1 0 0 / 0.04) 0px, transparent 1px, transparent 7px),
+      repeating-linear-gradient(90deg, oklch(1 0 0 / 0.03) 0px, transparent 1px, transparent 12px);
+  }
+
+  /* Shared Element Styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-medium tracking-tight text-foreground;
+  }
+
+  a {
+    color: color-mix(in oklch, var(--primary) 90%, var(--foreground));
+    text-underline-offset: 0.18em;
+    transition: color 0.2s;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* Organic Physical Feel for Buttons */
+  button,
+  [role='button'] {
+    cursor: pointer;
+    transition:
+      transform 0.1s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  button:active,
+  [role='button']:active {
+    transform: scale(0.96);
+  }
+
+  button:disabled {
+    cursor: default;
+    transform: none;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 30%, transparent);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* WORLD & AGENT IMMERSIVE MODE - Complete Isolation Layer                    */
+/*                                                                             */
+/* 此样式层完全隔离 World 和 Agent 页面与 Nimi 主站的样式影响                   */
+/* 原理：使用 CSS 容器查询隔离 + 全新命名空间 + 强制重置                        */
+/* -------------------------------------------------------------------------- */
+
+/* 
+ * ISOLATION STRATEGY:
+ * 1. 使用 :where() 降低特异性，避免覆盖冲突
+ * 2. 使用 [data-world-isolated] 属性选择器创建隔离容器
+ * 3. 所有 world/agent 样式使用 wi- 前缀命名空间
+ * 4. 强制继承重置，但保留有用的浏览器默认样式
+ */
+
+/* 世界容器 - 重置并隔离 */
+[data-world-isolated],
+[data-world-isolated] .world-immersive {
+  /* 重置背景，避免继承 Nimi 的 noise texture */
+  background: var(--wi-bg-primary, #0a0a0f);
+  
+  /* 使用独立的字体栈 */
+  font-family: var(--wi-font-body, system-ui, -apple-system, sans-serif);
+  line-height: 1.6;
+  color: var(--wi-text-primary, #f5f0e6);
+  
+  /* 强制盒模型 */
+  box-sizing: border-box;
+  
+  /* 禁用 Nimi 的 noise texture */
+  &::before,
+  &::after {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+/* 确保子元素继承正确的盒模型 */
+[data-world-isolated] *,
+[data-world-isolated] *::before,
+[data-world-isolated] *::after {
+  box-sizing: border-box;
+}
+
+/* 世界隔离层 - CSS 变量系统 (wi- = World Immersive) */
+[data-world-isolated] {
+  /* Core Colors */
+  --wi-bg: var(--world-background, #0f172a);
+  --wi-surface: var(--world-surface, #1e293b);
+  --wi-surface-elevated: var(--world-surface-elevated, #252f47);
+  --wi-primary: var(--world-primary, #3b82f6);
+  --wi-secondary: var(--world-secondary, #64748b);
+  --wi-accent: var(--world-accent, #f59e0b);
+  --wi-text: var(--world-text, #f8fafc);
+  --wi-text-secondary: var(--world-text-secondary, #cbd5e1);
+  --wi-muted: var(--world-muted, #94a3b8);
+  --wi-border: var(--world-border, #334155);
+  --wi-border-subtle: var(--world-border-subtle, rgba(255,255,255,0.1));
+  
+  /* Semantic Colors */
+  --wi-success: var(--world-success, #22c55e);
+  --wi-warning: var(--world-warning, #f59e0b);
+  --wi-error: var(--world-error, #ef4444);
+  --wi-info: var(--world-info, #3b82f6);
+
+  /* Typography Scale */
+  --wi-font-heading: var(--world-font-heading, system-ui);
+  --wi-font-body: var(--world-font-body, system-ui);
+  --wi-font-mono: var(--world-font-mono, ui-monospace, SFMono-Regular, monospace);
+  --wi-font-display: var(--world-font-display, system-ui);
+  
+  /* Type Scale - Fluid */
+  --wi-text-xs: 0.75rem;
+  --wi-text-sm: 0.875rem;
+  --wi-text-base: 1rem;
+  --wi-text-lg: 1.125rem;
+  --wi-text-xl: 1.25rem;
+  --wi-text-2xl: 1.5rem;
+  --wi-text-3xl: 1.875rem;
+  --wi-text-4xl: 2.25rem;
+  --wi-text-5xl: 3rem;
+  --wi-text-6xl: 3.75rem;
+
+  /* Spacing Scale */
+  --wi-space-0: 0;
+  --wi-space-1: 0.25rem;
+  --wi-space-2: 0.5rem;
+  --wi-space-3: 0.75rem;
+  --wi-space-4: 1rem;
+  --wi-space-5: 1.25rem;
+  --wi-space-6: 1.5rem;
+  --wi-space-8: 2rem;
+  --wi-space-10: 2.5rem;
+  --wi-space-12: 3rem;
+  --wi-space-16: 4rem;
+  --wi-space-20: 5rem;
+  --wi-space-24: 6rem;
+
+  /* Radius Scale */
+  --wi-radius-none: 0;
+  --wi-radius-sm: 0.25rem;
+  --wi-radius-md: 0.375rem;
+  --wi-radius-lg: 0.5rem;
+  --wi-radius-xl: 0.75rem;
+  --wi-radius-2xl: 1rem;
+  --wi-radius-3xl: 1.5rem;
+  --wi-radius-full: 9999px;
+
+  /* Shadow Scale */
+  --wi-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --wi-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --wi-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --wi-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+  --wi-shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.3);
+  --wi-shadow-glow: 0 0 20px var(--wi-accent);
+  --wi-shadow-glow-sm: 0 0 10px var(--wi-accent);
+  --wi-shadow-glow-lg: 0 0 40px var(--wi-accent);
+
+  /* Animation Timing */
+  --wi-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --wi-transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --wi-transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --wi-transition-bounce: 500ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Z-Index Scale */
+  --wi-z-base: 0;
+  --wi-z-dropdown: 100;
+  --wi-z-sticky: 200;
+  --wi-z-fixed: 300;
+  --wi-z-modal-backdrop: 400;
+  --wi-z-modal: 500;
+  --wi-z-popover: 600;
+  --wi-z-tooltip: 700;
+  --wi-z-toast: 800;
+  --wi-z-devtools: 9999;
+
+  /* Apply base styles */
+  display: block;
+  background: var(--wi-bg);
+  color: var(--wi-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ============================================================================
+   WORLD IMMERSIVE - TYPOGRAPHY VARIANTS
+   ============================================================================ */
+
+[data-world-isolated][data-typography='serif'],
+[data-world-isolated] [data-typography='serif'] {
+  --wi-font-heading: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+  --wi-font-body: 'Noto Serif SC', Georgia, serif;
+}
+
+[data-world-isolated][data-typography='brush'],
+[data-world-isolated] [data-typography='brush'] {
+  --wi-font-heading: 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'STKaiti', cursive;
+  --wi-font-body: 'Noto Serif SC', Georgia, serif;
+}
+
+[data-world-isolated][data-typography='mono'],
+[data-world-isolated] [data-typography='mono'] {
+  --wi-font-heading: 'JetBrains Mono', 'Fira Code', monospace;
+  --wi-font-body: 'JetBrains Mono', monospace;
+}
+
+[data-world-isolated][data-typography='decorative'],
+[data-world-isolated] [data-typography='decorative'] {
+  --wi-font-heading: 'Cinzel', 'Playfair Display', serif;
+  --wi-font-body: 'Lora', Georgia, serif;
+}
+
+[data-world-isolated][data-typography='sans'],
+[data-world-isolated] [data-typography='sans'] {
+  --wi-font-heading: system-ui, -apple-system, sans-serif;
+  --wi-font-body: system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================================================
+   WORLD IMMERSIVE - COMPONENT STYLES
+   所有组件使用 wi- 前缀，完全隔离于 Nimi 主站
+   ============================================================================ */
+
+/* Base Container */
+[data-world-isolated] .wi-container {
+  width: 100%;
+  max-width: var(--wi-container-max, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--wi-space-4);
+  padding-right: var(--wi-space-4);
+}
+
+/* Card Component */
+[data-world-isolated] .wi-card {
+  background: var(--wi-surface);
+  border: 1px solid var(--wi-border);
+  border-radius: var(--wi-radius-lg);
+  box-shadow: var(--wi-shadow-md);
+  transition: all var(--wi-transition-normal);
+  overflow: hidden;
+}
+
+[data-world-isolated] .wi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--wi-shadow-lg);
+  border-color: color-mix(in srgb, var(--wi-accent) 30%, var(--wi-border));
+}
+
+[data-world-isolated] .wi-card-elevated {
+  background: var(--wi-surface-elevated);
+  box-shadow: var(--wi-shadow-xl);
+}
+
+[data-world-isolated] .wi-card-glass {
+  background: color-mix(in srgb, var(--wi-surface) 80%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Button Component */
+[data-world-isolated] .wi-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wi-space-2);
+  background: var(--wi-primary);
+  color: white;
+  padding: var(--wi-space-2) var(--wi-space-4);
+  border-radius: var(--wi-radius-md);
+  border: none;
+  cursor: pointer;
+  font-family: var(--wi-font-body);
+  font-weight: 500;
+  font-size: var(--wi-text-sm);
+  transition: all var(--wi-transition-fast);
+  user-select: none;
+}
+
+[data-world-isolated] .wi-button:hover {
+  filter: brightness(1.1);
+  box-shadow: var(--wi-shadow-glow-sm);
+  transform: translateY(-1px);
+}
+
+[data-world-isolated] .wi-button:active {
+  transform: scale(0.98);
+}
+
+[data-world-isolated] .wi-button-secondary {
+  background: var(--wi-surface);
+  color: var(--wi-text);
+  border: 1px solid var(--wi-border);
+}
+
+[data-world-isolated] .wi-button-secondary:hover {
+  background: var(--wi-surface-elevated);
+  border-color: var(--wi-primary);
+}
+
+[data-world-isolated] .wi-button-ghost {
+  background: transparent;
+  color: var(--wi-text);
+}
+
+[data-world-isolated] .wi-button-ghost:hover {
+  background: color-mix(in srgb, var(--wi-primary) 10%, transparent);
+}
+
+[data-world-isolated] .wi-button-accent {
+  background: var(--wi-accent);
+  color: var(--wi-bg);
+}
+
+/* Typography Utilities */
+[data-world-isolated] .wi-heading {
+  font-family: var(--wi-font-heading);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--wi-text);
+}
+
+[data-world-isolated] .wi-heading-xl { font-size: var(--wi-text-5xl); }
+[data-world-isolated] .wi-heading-lg { font-size: var(--wi-text-4xl); }
+[data-world-isolated] .wi-heading-md { font-size: var(--wi-text-3xl); }
+[data-world-isolated] .wi-heading-sm { font-size: var(--wi-text-2xl); }
+[data-world-isolated] .wi-heading-xs { font-size: var(--wi-text-xl); }
+
+[data-world-isolated] .wi-body {
+  font-family: var(--wi-font-body);
+  color: var(--wi-text);
+}
+
+[data-world-isolated] .wi-text-muted {
+  color: var(--wi-muted);
+}
+
+[data-world-isolated] .wi-text-primary {
+  color: var(--wi-primary);
+}
+
+[data-world-isolated] .wi-text-accent {
+  color: var(--wi-accent);
+}
+
+/* Glow Effects */
+[data-world-isolated] .wi-glow {
+  text-shadow: 0 0 10px var(--wi-accent), 0 0 20px var(--wi-accent), 0 0 40px var(--wi-accent);
+}
+
+[data-world-isolated] .wi-glow-sm {
+  text-shadow: 0 0 5px var(--wi-accent);
+}
+
+[data-world-isolated] .wi-glow-box {
+  box-shadow: 0 0 10px var(--wi-accent), 0 0 20px color-mix(in srgb, var(--wi-accent) 50%, transparent);
+}
+
+[data-world-isolated] .wi-glow-box-sm {
+  box-shadow: var(--wi-shadow-glow-sm);
+}
+
+[data-world-isolated] .wi-glow-box-lg {
+  box-shadow: var(--wi-shadow-glow-lg);
+}
+
+/* Border Utilities */
+[data-world-isolated] .wi-border {
+  border: 1px solid var(--wi-border);
+}
+
+[data-world-isolated] .wi-border-accent {
+  border-color: var(--wi-accent);
+}
+
+[data-world-isolated] .wi-border-primary {
+  border-color: var(--wi-primary);
+}
+
+/* Gradient Overlays */
+[data-world-isolated] .wi-gradient-overlay {
+  background: linear-gradient(
+    to top,
+    var(--wi-bg) 0%,
+    color-mix(in srgb, var(--wi-bg) 80%, transparent) 50%,
+    transparent 100%
+  );
+}
+
+[data-world-isolated] .wi-gradient-overlay-dark {
+  background: linear-gradient(
+    to top,
+    var(--wi-bg) 0%,
+    color-mix(in srgb, var(--wi-bg) 60%, transparent) 100%
+  );
+}
+
+/* Vignette Effect */
+[data-world-isolated] .wi-vignette {
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.5);
+}
+
+/* Scrollbar Styling */
+[data-world-isolated] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-world-isolated] ::-webkit-scrollbar-track {
+  background: var(--wi-surface);
+}
+
+[data-world-isolated] ::-webkit-scrollbar-thumb {
+  background: var(--wi-border);
+  border-radius: var(--wi-radius-full);
+}
+
+[data-world-isolated] ::-webkit-scrollbar-thumb:hover {
+  background: var(--wi-muted);
+}
+
+/* Animation Utilities */
+[data-world-isolated] .wi-animate-fade-in {
+  animation: wi-fade-in 0.5s ease-out;
+}
+
+[data-world-isolated] .wi-animate-slide-up {
+  animation: wi-slide-up 0.5s ease-out;
+}
+
+[data-world-isolated] .wi-animate-scale-in {
+  animation: wi-scale-in 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+[data-world-isolated] .wi-animate-pulse {
+  animation: wi-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+[data-world-isolated] .wi-animate-float {
+  animation: wi-float 3s ease-in-out infinite;
+}
+
+/* Keyframes */
+@keyframes wi-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wi-slide-up {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wi-scale-in {
+  from { 
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wi-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes wi-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Theme Preview Badge */
+[data-world-isolated] .wi-theme-badge {
+  position: fixed;
+  top: var(--wi-space-4);
+  right: var(--wi-space-4);
+  z-index: var(--wi-z-fixed);
+  padding: var(--wi-space-2) var(--wi-space-3);
+  background: var(--wi-surface);
+  border: 1px solid var(--wi-border);
+  border-radius: var(--wi-radius-full);
+  font-size: var(--wi-text-xs);
+  color: var(--wi-muted);
+  backdrop-filter: blur(8px);
+}
+
+/* Selection Color */
+[data-world-isolated] ::selection {
+  background: color-mix(in srgb, var(--wi-primary) 30%, transparent);
+  color: var(--wi-text);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Utilities: Combined Kit                                                     */
+/* -------------------------------------------------------------------------- */
+@layer utilities {
+  /* Style 1: Organic Card (Levitating, Warm) */
+  .nimi-card {
+    @apply bg-card border border-border;
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .nimi-card:hover {
+    @apply -translate-y-1 border-primary/20;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px var(--color-primary);
+  }
+
+  /* Style 2: Airpaper Panel (Clean, Structured) */
+  .nimi-panel {
+    @apply bg-card/90 border border-border rounded-[var(--radius)];
+    box-shadow: 0 6px 18px oklch(0 0 0 / 0.05);
+  }
+
+  /* Style 2: Prismatic Edge (The "Crafted" look) */
+  .nimi-edge {
+    position: relative;
+  }
+
+  .nimi-edge::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      oklch(0.78 0.1 282 / 0.7),
+      oklch(0.8 0.08 210 / 0.55),
+      oklch(0.82 0.09 145 / 0.55)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.75;
+  }
+
+  .nimi-glass {
+    @apply bg-card/40 backdrop-blur-xl border border-white/20;
+    box-shadow:
+      0 10px 28px oklch(0 0 0 / 0.1),
+      inset 0 0 0 1px oklch(1 0 0 / 0.1);
+  }
+
+  /* Vibrant Background Component */
+  .vibrant-blur {
+    @apply fixed -z-10 pointer-events-none;
+    filter: blur(100px) saturate(1.8);
+    opacity: 0.15;
+    animation: vibrant-float 20s ease-in-out infinite alternate;
+  }
+
+  @keyframes vibrant-float {
+    0% {
+      transform: translate(-10%, -10%) rotate(0deg) scale(1);
+    }
+    100% {
+      transform: translate(10%, 10%) rotate(15deg) scale(1.1);
+    }
+  }
+
+  /* ARCH-010: Navigation locks to platform layer, immune to World theme */
+  .platform-chrome {
+    --background: var(--platform-background);
+    --foreground: var(--platform-foreground);
+    --primary: var(--platform-primary);
+    --primary-foreground: var(--platform-primary-foreground);
+    --border: var(--platform-border);
+    --muted: var(--platform-muted);
+    --muted-foreground: var(--platform-muted-foreground);
+    --accent: var(--platform-accent);
+    --accent-foreground: var(--platform-accent-foreground);
+    --card: var(--platform-card);
+    --card-foreground: var(--platform-card-foreground);
+    --sidebar: var(--platform-background);
+    --sidebar-foreground: var(--platform-foreground);
+    --sidebar-primary: var(--platform-primary);
+    --sidebar-primary-foreground: var(--platform-primary-foreground);
+    --sidebar-border: var(--platform-border);
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes spin-reverse-slow {
+    from {
+      transform: rotate(360deg);
+    }
+
+    to {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes ripple-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+
+  .animate-spin-reverse-slow {
+    animation: spin-reverse-slow 12s linear infinite;
+  }
+
+  .animate-ripple {
+    animation: ripple-breathe 4s ease-in-out infinite;
+  }
+}
+

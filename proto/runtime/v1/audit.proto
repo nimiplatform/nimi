@@ -1,0 +1,189 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+message ListAuditEventsRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string domain = 3;
+  ReasonCode reason_code = 4;
+  google.protobuf.Timestamp from_time = 5;
+  google.protobuf.Timestamp to_time = 6;
+  int32 page_size = 7;
+  string page_token = 8;
+  CallerKind caller_kind = 9;
+  string caller_id = 10;
+}
+
+message AuditEventRecord {
+  string audit_id = 1;
+  string app_id = 2;
+  string subject_user_id = 3;
+  string domain = 4;
+  string operation = 5;
+  ReasonCode reason_code = 6;
+  string trace_id = 7;
+  google.protobuf.Timestamp timestamp = 8;
+  google.protobuf.Struct payload = 9;
+  CallerKind caller_kind = 10;
+  string caller_id = 11;
+  string surface_id = 12;
+  string principal_id = 13;
+  string principal_type = 14;
+  string external_principal_type = 15;
+  string capability = 16;
+  string token_id = 17;
+  string parent_token_id = 18;
+  string consent_id = 19;
+  string consent_version = 20;
+  string policy_version = 21;
+  string resource_selector_hash = 22;
+  string scope_catalog_version = 23;
+}
+
+message ListAuditEventsResponse {
+  repeated AuditEventRecord events = 1;
+  string next_page_token = 2;
+}
+
+message ExportAuditEventsRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string format = 3;
+  google.protobuf.Timestamp from_time = 4;
+  google.protobuf.Timestamp to_time = 5;
+  bool compress = 6;
+}
+
+enum UsageWindow {
+  USAGE_WINDOW_UNSPECIFIED = 0;
+  USAGE_WINDOW_MINUTE = 1;
+  USAGE_WINDOW_HOUR = 2;
+  USAGE_WINDOW_DAY = 3;
+}
+
+enum RuntimeHealthStatus {
+  RUNTIME_HEALTH_STATUS_UNSPECIFIED = 0;
+  RUNTIME_HEALTH_STATUS_STOPPED = 1;
+  RUNTIME_HEALTH_STATUS_STARTING = 2;
+  RUNTIME_HEALTH_STATUS_READY = 3;
+  RUNTIME_HEALTH_STATUS_DEGRADED = 4;
+  RUNTIME_HEALTH_STATUS_STOPPING = 5;
+}
+
+message ListUsageStatsRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  CallerKind caller_kind = 3;
+  string caller_id = 4;
+  string capability = 5;
+  string model_id = 6;
+  UsageWindow window = 7;
+  google.protobuf.Timestamp from_time = 8;
+  google.protobuf.Timestamp to_time = 9;
+  int32 page_size = 10;
+  string page_token = 11;
+}
+
+message UsageStatRecord {
+  string app_id = 1;
+  string subject_user_id = 2;
+  CallerKind caller_kind = 3;
+  string caller_id = 4;
+  string capability = 5;
+  string model_id = 6;
+  UsageWindow window = 7;
+  google.protobuf.Timestamp bucket_start = 8;
+  int64 request_count = 9;
+  int64 success_count = 10;
+  int64 error_count = 11;
+  int64 input_tokens = 12;
+  int64 output_tokens = 13;
+  int64 compute_ms = 14;
+  int64 queue_wait_ms = 15;
+}
+
+message ListUsageStatsResponse {
+  repeated UsageStatRecord records = 1;
+  string next_page_token = 2;
+}
+
+message GetRuntimeHealthRequest {}
+
+message GetRuntimeHealthResponse {
+  RuntimeHealthStatus status = 1;
+  string reason = 2;
+  int32 queue_depth = 3;
+  int32 active_workflows = 4;
+  int32 active_inference_jobs = 5;
+  int64 cpu_milli = 6;
+  int64 memory_bytes = 7;
+  int64 vram_bytes = 8;
+  google.protobuf.Timestamp sampled_at = 9;
+}
+
+message SubscribeRuntimeHealthEventsRequest {}
+
+message RuntimeHealthEvent {
+  uint64 sequence = 1;
+  RuntimeHealthStatus status = 2;
+  string reason = 3;
+  int32 queue_depth = 4;
+  int32 active_workflows = 5;
+  int32 active_inference_jobs = 6;
+  int64 cpu_milli = 7;
+  int64 memory_bytes = 8;
+  int64 vram_bytes = 9;
+  google.protobuf.Timestamp sampled_at = 10;
+}
+
+message ListAIProviderHealthRequest {}
+
+message AIProviderHealthSnapshot {
+  string provider_name = 1;
+  string state = 2;
+  string reason = 3;
+  int32 consecutive_failures = 4;
+  google.protobuf.Timestamp last_changed_at = 5;
+  google.protobuf.Timestamp last_checked_at = 6;
+}
+
+message ListAIProviderHealthResponse {
+  repeated AIProviderHealthSnapshot providers = 1;
+}
+
+message SubscribeAIProviderHealthEventsRequest {}
+
+message AIProviderHealthEvent {
+  uint64 sequence = 1;
+  string provider_name = 2;
+  string state = 3;
+  string reason = 4;
+  int32 consecutive_failures = 5;
+  google.protobuf.Timestamp last_changed_at = 6;
+  google.protobuf.Timestamp last_checked_at = 7;
+}
+
+message AuditExportChunk {
+  string export_id = 1;
+  uint64 sequence = 2;
+  bytes chunk = 3;
+  bool eof = 4;
+  string mime_type = 5;
+}
+
+service RuntimeAuditService {
+  rpc ListAuditEvents(ListAuditEventsRequest) returns (ListAuditEventsResponse);
+  rpc ExportAuditEvents(ExportAuditEventsRequest) returns (stream AuditExportChunk);
+  rpc ListUsageStats(ListUsageStatsRequest) returns (ListUsageStatsResponse);
+  rpc GetRuntimeHealth(GetRuntimeHealthRequest) returns (GetRuntimeHealthResponse);
+  rpc ListAIProviderHealth(ListAIProviderHealthRequest) returns (ListAIProviderHealthResponse);
+  rpc SubscribeAIProviderHealthEvents(SubscribeAIProviderHealthEventsRequest) returns (stream AIProviderHealthEvent);
+  rpc SubscribeRuntimeHealthEvents(SubscribeRuntimeHealthEventsRequest) returns (stream RuntimeHealthEvent);
+}

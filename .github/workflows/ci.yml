@@ -1,0 +1,469 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docs_changed: ${{ steps.detect.outputs.docs_changed }}
+      core_changed: ${{ steps.detect.outputs.core_changed }}
+      shared_changed: ${{ steps.detect.outputs.shared_changed }}
+      sdk_changed: ${{ steps.detect.outputs.sdk_changed }}
+      runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
+      desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "docs_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "core_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "shared_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "sdk_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "runtime_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "desktop_web_changed=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          base_sha=""
+          head_sha=""
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            base_sha="${PR_BASE_SHA}"
+            head_sha="${PR_HEAD_SHA}"
+          else
+            base_sha="${PUSH_BEFORE_SHA}"
+            head_sha="${PUSH_HEAD_SHA}"
+            if [[ -z "${base_sha}" || "${base_sha}" == "0000000000000000000000000000000000000000" ]]; then
+              base_sha="$(git rev-parse "${head_sha}^" 2>/dev/null || echo "${head_sha}")"
+            fi
+          fi
+
+          git diff --name-only "${base_sha}" "${head_sha}" > /tmp/nimi_changed_files.txt || true
+
+          docs_changed=false
+          core_changed=false
+          shared_changed=false
+          sdk_changed=false
+          runtime_changed=false
+          desktop_web_changed=false
+
+          docs_regex='^(docs/|ssot/|README\.md$|CHANGELOG\.md$)'
+          shared_regex='^(scripts/|package\.json$|pnpm-workspace\.yaml$|pnpm-lock\.yaml$|\.github/workflows/|\.gitignore$|\.editorconfig$)'
+
+          while IFS= read -r file; do
+            [[ -z "${file}" ]] && continue
+
+            if [[ "${file}" =~ ${docs_regex} ]]; then
+              docs_changed=true
+            else
+              core_changed=true
+            fi
+
+            if [[ "${file}" =~ ${shared_regex} ]]; then
+              shared_changed=true
+            fi
+            if [[ "${file}" =~ ^sdk/ ]]; then
+              sdk_changed=true
+            fi
+            if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
+              runtime_changed=true
+            fi
+            if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ || "${file}" =~ ^nimi-mods/ ]]; then
+              desktop_web_changed=true
+            fi
+          done < /tmp/nimi_changed_files.txt
+
+          if [[ "${shared_changed}" == "true" ]]; then
+            core_changed=true
+          fi
+
+          echo "docs_changed=${docs_changed}" >> "${GITHUB_OUTPUT}"
+          echo "core_changed=${core_changed}" >> "${GITHUB_OUTPUT}"
+          echo "shared_changed=${shared_changed}" >> "${GITHUB_OUTPUT}"
+          echo "sdk_changed=${sdk_changed}" >> "${GITHUB_OUTPUT}"
+          echo "runtime_changed=${runtime_changed}" >> "${GITHUB_OUTPUT}"
+          echo "desktop_web_changed=${desktop_web_changed}" >> "${GITHUB_OUTPUT}"
+
+  docs-contract:
+    needs: changes
+    if: needs.changes.outputs.docs_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Compile docs examples
+        run: pnpm check:examples
+
+      - name: Markdown lint baseline
+        run: pnpm check:markdown
+
+      - name: Enforce no legacy nimid invocation in docs
+        run: pnpm check:no-nimid-doc-invocation
+
+      - name: Enforce no absolute user-home paths in docs/ssot
+        run: pnpm check:no-absolute-user-paths
+
+      - name: Enforce no legacy docs contract aliases
+        run: pnpm check:no-legacy-doc-contracts
+
+      - name: SSOT frontmatter check
+        run: pnpm check:ssot-frontmatter
+
+      - name: SSOT traceability check
+        run: pnpm check:ssot-traceability
+
+      - name: SSOT links check
+        run: pnpm check:ssot-links
+
+  core-static:
+    needs: changes
+    if: needs.changes.outputs.core_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Enforce mod runtime sdk boundary
+        run: pnpm check:mods-no-runtime-sdk
+
+      - name: Enforce no-legacy imports
+        run: pnpm check:no-legacy-imports
+
+      - name: Enforce no-legacy app-auth CLI naming
+        run: pnpm check:no-legacy-app-auth-cli
+
+      - name: Enforce no private local_ai tauri calls in desktop TS
+        run: pnpm check:no-local-ai-private-calls
+
+      - name: Enforce no local_ai tauri command exposure
+        run: pnpm check:no-local-ai-tauri-commands
+
+      - name: Enforce no legacy nimid symbols
+        run: pnpm check:no-nimid-source
+
+      - name: Enforce no legacy mod permissions field
+        run: pnpm check:no-legacy-mod-permissions-field
+
+      - name: Enforce desktop no private @client alias
+        run: pnpm check:desktop-no-client-alias
+
+      - name: Scope catalog drift check
+        run: pnpm check:scope-catalog-drift
+
+      - name: SDK import boundary check
+        run: pnpm check:sdk-import-boundary
+
+      - name: Runtime bridge method drift check
+        run: pnpm check:runtime-bridge-method-drift
+
+  sdk-quality:
+    needs: changes
+    if: needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build SDK surfaces
+        run: pnpm build:sdk
+
+      - name: Test sdk-runtime
+        run: pnpm --filter @nimiplatform/sdk-runtime test
+
+      - name: Cross-package gRPC contract test (sdk-runtime <-> runtime)
+        run: pnpm --filter @nimiplatform/sdk-runtime test:contract
+
+      - name: Test sdk facade
+        run: pnpm --filter @nimiplatform/sdk test
+
+      - name: Test ai-provider
+        run: pnpm --filter @nimiplatform/ai-provider test
+
+      - name: SDK coverage gate
+        run: pnpm check:sdk-coverage
+
+      - name: SDK version matrix check
+        run: pnpm check:sdk-version-matrix
+
+      - name: SDK consumer smoke (npm pack + node import)
+        run: pnpm check:sdk-consumer-smoke
+
+  runtime-quality:
+    needs: changes
+    if: needs.changes.outputs.runtime_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: runtime/go.mod
+          cache-dependency-path: runtime/go.sum
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Proto lint
+        run: pnpm proto:lint
+
+      - name: Proto baseline exists (hard gate)
+        run: test -s runtime/proto/runtime-v1.baseline.binpb
+
+      - name: Proto breaking (hard gate)
+        run: pnpm proto:breaking
+
+      - name: Proto drift check
+        run: pnpm proto:drift-check
+
+      - name: Runtime go build
+        working-directory: runtime
+        run: go build ./...
+
+      - name: Runtime go vet
+        working-directory: runtime
+        run: go vet ./...
+
+      - name: Runtime go coverage gate
+        run: pnpm check:runtime-go-coverage
+
+      - name: Runtime golangci-lint
+        uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
+        with:
+          version: latest
+          working-directory: runtime
+
+      - name: Runtime govulncheck
+        working-directory: runtime
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
+
+      - name: Runtime compliance gate
+        working-directory: runtime
+        run: go run ./cmd/runtime-compliance --gate
+
+  desktop-web-quality:
+    needs: changes
+    if: needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Checkout nimi-mods (pinned external repo)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: nimiplatform/nimi-mods
+          ref: ${{ env.NIMI_MODS_REF }}
+          path: nimi-mods
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          components: clippy
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Desktop x nimi-mods smoke check (local-chat)
+        env:
+          NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
+          NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods
+        run: pnpm check:desktop-mods-smoke:local-chat
+
+      - name: Rust cargo check
+        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Rust runtime bridge tests
+        run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Rust cargo test
+        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Rust clippy
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+
+      - name: Rust cargo audit
+        run: cargo install cargo-audit --locked && cargo audit --file apps/desktop/src-tauri/Cargo.lock
+
+      - name: Typecheck desktop
+        run: pnpm --filter @nimiplatform/desktop typecheck
+
+      - name: Typecheck web
+        run: pnpm --filter @nimiplatform/web typecheck
+
+      - name: Build web
+        run: pnpm --filter @nimiplatform/web build
+
+  governance-security:
+    needs: changes
+    if: needs.changes.outputs.core_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: npm dependency audit
+        run: pnpm audit --prod --audit-level=high
+
+      - name: License file map check
+        run: pnpm check:license-file-map
+
+      - name: Package license matrix check
+        run: pnpm check:package-license-matrix
+
+      - name: Experimental API lifecycle check
+        run: pnpm check:experimental-api-lifecycle
+
+  js-contract:
+    needs:
+      - changes
+      - docs-contract
+      - core-static
+      - sdk-quality
+      - runtime-quality
+      - desktop-web-quality
+      - governance-security
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate CI status
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          DOCS_CONTRACT_RESULT: ${{ needs.docs-contract.result }}
+          CORE_STATIC_RESULT: ${{ needs.core-static.result }}
+          SDK_QUALITY_RESULT: ${{ needs.sdk-quality.result }}
+          RUNTIME_QUALITY_RESULT: ${{ needs.runtime-quality.result }}
+          DESKTOP_WEB_QUALITY_RESULT: ${{ needs.desktop-web-quality.result }}
+          GOVERNANCE_SECURITY_RESULT: ${{ needs.governance-security.result }}
+        run: |
+          set -euo pipefail
+          failed=0
+
+          for item in \
+            "changes:${CHANGES_RESULT}" \
+            "docs-contract:${DOCS_CONTRACT_RESULT}" \
+            "core-static:${CORE_STATIC_RESULT}" \
+            "sdk-quality:${SDK_QUALITY_RESULT}" \
+            "runtime-quality:${RUNTIME_QUALITY_RESULT}" \
+            "desktop-web-quality:${DESKTOP_WEB_QUALITY_RESULT}" \
+            "governance-security:${GOVERNANCE_SECURITY_RESULT}"; do
+            name="${item%%:*}"
+            result="${item#*:}"
+            if [[ "${result}" != "success" && "${result}" != "skipped" ]]; then
+              echo "${name} failed with result=${result}" >&2
+              failed=1
+            fi
+          done
+
+          if [[ "${failed}" -ne 0 ]]; then
+            exit 1
+          fi
+
+          echo "CI aggregate passed (all required jobs succeeded or were skipped by path filters)."

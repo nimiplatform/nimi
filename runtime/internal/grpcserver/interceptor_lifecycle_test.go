@@ -1,0 +1,61 @@
+package grpcserver
+
+import (
+	"context"
+	"testing"
+
+	"github.com/nimiplatform/nimi/runtime/internal/health"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+func TestUnaryLifecycleInterceptorAllowsLocalRuntimeReadWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	handlerCalled := false
+	_, err := interceptor(
+		context.Background(),
+		struct{}{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalRuntimeService/ListLocalModels"},
+		func(_ context.Context, _ any) (any, error) {
+			handlerCalled = true
+			return struct{}{}, nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("read method should be allowed while stopping: %v", err)
+	}
+	if !handlerCalled {
+		t.Fatalf("handler must be called for read method")
+	}
+}
+
+func TestUnaryLifecycleInterceptorRejectsLocalRuntimeWriteWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	handlerCalled := false
+	_, err := interceptor(
+		context.Background(),
+		struct{}{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalRuntimeService/InstallLocalModel"},
+		func(_ context.Context, _ any) (any, error) {
+			handlerCalled = true
+			return struct{}{}, nil
+		},
+	)
+	if err == nil {
+		t.Fatalf("write method must be rejected while stopping")
+	}
+	if handlerCalled {
+		t.Fatalf("handler must not be called for rejected write method")
+	}
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("status code mismatch: got=%s want=%s", status.Code(err), codes.Unavailable)
+	}
+}
+

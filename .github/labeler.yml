@@ -1,0 +1,33 @@
+runtime:
+  - changed-files:
+      - any-glob-to-any-file: 'runtime/**'
+
+sdk:
+  - changed-files:
+      - any-glob-to-any-file: 'sdk/**'
+
+desktop:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/desktop/**'
+
+mods:
+  - changed-files:
+      - any-glob-to-any-file: 'nimi-mods/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+
+proto:
+  - changed-files:
+      - any-glob-to-any-file: 'proto/**'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'scripts/**'
+
+web:
+  - changed-files:
+      - any-glob-to-any-file: 'apps/web/**'

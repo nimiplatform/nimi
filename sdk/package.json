@@ -1,0 +1,10 @@
+{
+  "name": "nimi-sdk-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --filter ./packages/* build",
+    "lint": "pnpm -r --filter ./packages/* lint",
+    "test": "pnpm -r --filter ./packages/* test"
+  }
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/nimiplatform/nimi/security/advisories/new
+    about: Report security vulnerabilities privately.
+  - name: Discussions
+    url: https://github.com/nimiplatform/nimi/discussions
+    about: Ask questions and discuss ideas with maintainers and community.

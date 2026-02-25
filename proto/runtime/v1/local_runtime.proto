@@ -1,0 +1,607 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
+
+enum LocalModelStatus {
+  LOCAL_MODEL_STATUS_UNSPECIFIED = 0;
+  LOCAL_MODEL_STATUS_INSTALLED = 1;
+  LOCAL_MODEL_STATUS_ACTIVE = 2;
+  LOCAL_MODEL_STATUS_UNHEALTHY = 3;
+  LOCAL_MODEL_STATUS_REMOVED = 4;
+}
+
+enum LocalServiceStatus {
+  LOCAL_SERVICE_STATUS_UNSPECIFIED = 0;
+  LOCAL_SERVICE_STATUS_INSTALLED = 1;
+  LOCAL_SERVICE_STATUS_ACTIVE = 2;
+  LOCAL_SERVICE_STATUS_UNHEALTHY = 3;
+  LOCAL_SERVICE_STATUS_REMOVED = 4;
+}
+
+enum LocalEngineRuntimeMode {
+  LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED = 0;
+  LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED = 1;
+  LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
+}
+
+enum LocalDependencyKind {
+  LOCAL_DEPENDENCY_KIND_UNSPECIFIED = 0;
+  LOCAL_DEPENDENCY_KIND_MODEL = 1;
+  LOCAL_DEPENDENCY_KIND_SERVICE = 2;
+  LOCAL_DEPENDENCY_KIND_NODE = 3;
+  reserved 4;
+  reserved "LOCAL_DEPENDENCY_KIND_WORKFLOW";
+}
+
+message LocalModelSource {
+  string repo = 1;
+  string revision = 2;
+}
+
+message LocalModelRecord {
+  string local_model_id = 1;
+  string model_id = 2;
+  repeated string capabilities = 3;
+  string engine = 4;
+  string entry = 5;
+  string license = 6;
+  LocalModelSource source = 7;
+  map<string, string> hashes = 8;
+  string endpoint = 9;
+  LocalModelStatus status = 10;
+  string installed_at = 11;
+  string updated_at = 12;
+  string health_detail = 13;
+}
+
+message LocalModelHealth {
+  string local_model_id = 1;
+  LocalModelStatus status = 2;
+  string detail = 3;
+  string endpoint = 4;
+}
+
+message LocalVerifiedModelDescriptor {
+  string template_id = 1;
+  string title = 2;
+  string description = 3;
+  string install_kind = 4;
+  string model_id = 5;
+  string repo = 6;
+  string revision = 7;
+  repeated string capabilities = 8;
+  string engine = 9;
+  string entry = 10;
+  repeated string files = 11;
+  string license = 12;
+  map<string, string> hashes = 13;
+  string endpoint = 14;
+  int32 file_count = 15;
+  int64 total_size_bytes = 16;
+  repeated string tags = 17;
+}
+
+message LocalProviderHintsLocalAi {
+  string backend = 1;
+  string preferred_adapter = 2;
+  string whisper_variant = 3;
+  string stablediffusion_pipeline = 4;
+  string video_backend = 5;
+}
+
+message LocalProviderHintsNexa {
+  string backend = 1;
+  string preferred_adapter = 2;
+  string plugin_id = 3;
+  string device_id = 4;
+  string model_type = 5;
+  string npu_mode = 6;
+  string policy_gate = 7;
+  bool host_npu_ready = 8;
+  bool model_probe_has_npu_candidate = 9;
+  bool policy_gate_allows_npu = 10;
+  bool npu_usable = 11;
+  string gate_reason = 12;
+  string gate_detail = 13;
+}
+
+message LocalProviderHints {
+  LocalProviderHintsLocalAi localai = 1;
+  LocalProviderHintsNexa nexa = 2;
+  map<string, string> extra = 10;
+}
+
+message LocalCatalogModelDescriptor {
+  string item_id = 1;
+  string source = 2;
+  string title = 3;
+  string description = 4;
+  string model_id = 5;
+  string repo = 6;
+  string revision = 7;
+  string template_id = 8;
+  repeated string capabilities = 9;
+  string engine = 10;
+  LocalEngineRuntimeMode engine_runtime_mode = 11;
+  string install_kind = 12;
+  bool install_available = 13;
+  string endpoint = 14;
+  LocalProviderHints provider_hints = 15;
+  string entry = 16;
+  repeated string files = 17;
+  string license = 18;
+  map<string, string> hashes = 19;
+  repeated string tags = 20;
+  int64 downloads = 21;
+  int64 likes = 22;
+  string last_modified = 23;
+  bool verified = 24;
+}
+
+message LocalInstallPlanDescriptor {
+  string plan_id = 1;
+  string item_id = 2;
+  string source = 3;
+  string template_id = 4;
+  string model_id = 5;
+  string repo = 6;
+  string revision = 7;
+  repeated string capabilities = 8;
+  string engine = 9;
+  LocalEngineRuntimeMode engine_runtime_mode = 10;
+  string install_kind = 11;
+  bool install_available = 12;
+  string endpoint = 13;
+  LocalProviderHints provider_hints = 14;
+  string entry = 15;
+  repeated string files = 16;
+  string license = 17;
+  map<string, string> hashes = 18;
+  repeated string warnings = 19;
+  string reason_code = 20;
+}
+
+message LocalGpuProfile {
+  bool available = 1;
+  string vendor = 2;
+  string model = 3;
+}
+
+message LocalPythonProfile {
+  bool available = 1;
+  string version = 2;
+}
+
+message LocalNpuProfile {
+  bool available = 1;
+  bool ready = 2;
+  string vendor = 3;
+  string runtime = 4;
+  string detail = 5;
+}
+
+message LocalPortAvailability {
+  int32 port = 1;
+  bool available = 2;
+}
+
+message LocalDeviceProfile {
+  string os = 1;
+  string arch = 2;
+  LocalGpuProfile gpu = 3;
+  LocalPythonProfile python = 4;
+  LocalNpuProfile npu = 5;
+  int64 disk_free_bytes = 6;
+  repeated LocalPortAvailability ports = 7;
+}
+
+message LocalDependencyOptionDescriptor {
+  string dependency_id = 1;
+  LocalDependencyKind kind = 2;
+  string capability = 3;
+  string title = 4;
+  string model_id = 5;
+  string repo = 6;
+  string service_id = 7;
+  string node_id = 8;
+  reserved 9;
+  reserved "workflow_id";
+  string engine = 10;
+}
+
+message LocalDependencyAlternativeDescriptor {
+  string alternative_id = 1;
+  string preferred_dependency_id = 2;
+  repeated LocalDependencyOptionDescriptor options = 3;
+}
+
+message LocalDependenciesDeclarationDescriptor {
+  repeated LocalDependencyOptionDescriptor required = 1;
+  repeated LocalDependencyOptionDescriptor optional = 2;
+  repeated LocalDependencyAlternativeDescriptor alternatives = 3;
+  map<string, string> preferred = 4;
+}
+
+message LocalDependencyDescriptor {
+  string dependency_id = 1;
+  LocalDependencyKind kind = 2;
+  string capability = 3;
+  bool required = 4;
+  bool selected = 5;
+  bool preferred = 6;
+  string model_id = 7;
+  string repo = 8;
+  string engine = 9;
+  string service_id = 10;
+  string node_id = 11;
+  reserved 12;
+  reserved "workflow_id";
+  string reason_code = 13;
+  repeated string warnings = 14;
+}
+
+message LocalPreflightDecision {
+  string dependency_id = 1;
+  string target = 2;
+  string check = 3;
+  bool ok = 4;
+  string reason_code = 5;
+  string detail = 6;
+}
+
+message LocalDependencySelectionRationale {
+  string dependency_id = 1;
+  bool selected = 2;
+  string reason_code = 3;
+  string detail = 4;
+}
+
+message LocalDependencyResolutionPlan {
+  string plan_id = 1;
+  string mod_id = 2;
+  string capability = 3;
+  LocalDeviceProfile device_profile = 4;
+  repeated LocalDependencyDescriptor dependencies = 5;
+  repeated LocalDependencySelectionRationale selection_rationale = 6;
+  repeated LocalPreflightDecision preflight_decisions = 7;
+  repeated string warnings = 8;
+  string reason_code = 9;
+}
+
+message LocalDependencyApplyStageResult {
+  string stage = 1;
+  bool ok = 2;
+  string reason_code = 3;
+  string detail = 4;
+}
+
+message LocalServiceDescriptor {
+  string service_id = 1;
+  string title = 2;
+  string engine = 3;
+  string artifact_type = 4;
+  string endpoint = 5;
+  repeated string capabilities = 6;
+  string local_model_id = 7;
+  LocalServiceStatus status = 8;
+  string detail = 9;
+  string installed_at = 10;
+  string updated_at = 11;
+}
+
+message LocalDependencyApplyResult {
+  string plan_id = 1;
+  string mod_id = 2;
+  repeated LocalDependencyDescriptor dependencies = 3;
+  repeated LocalModelRecord installed_models = 4;
+  repeated LocalServiceDescriptor services = 5;
+  repeated string capabilities = 6;
+  repeated LocalDependencyApplyStageResult stage_results = 7;
+  repeated LocalPreflightDecision preflight_decisions = 8;
+  bool rollback_applied = 9;
+  repeated string warnings = 10;
+  string reason_code = 11;
+}
+
+message LocalNodeDescriptor {
+  string node_id = 1;
+  string title = 2;
+  string service_id = 3;
+  repeated string capabilities = 4;
+  string provider = 5;
+  string adapter = 6;
+  string backend = 7;
+  string backend_source = 8;
+  bool available = 9;
+  string reason_code = 10;
+  LocalProviderHints provider_hints = 11;
+  string policy_gate = 12;
+  string api_path = 13;
+  google.protobuf.Struct input_schema = 14;
+  google.protobuf.Struct output_schema = 15;
+  bool read_only = 16;
+}
+
+message LocalAuditEvent {
+  string id = 1;
+  string event_type = 2;
+  string occurred_at = 3;
+  string source = 4;
+  string modality = 5;
+  string reason_code = 6;
+  string detail = 7;
+  string model_id = 8;
+  string local_model_id = 9;
+  google.protobuf.Struct payload = 10;
+}
+
+message LocalAuditTimeRange {
+  string from = 1;
+  string to = 2;
+}
+
+message ListLocalModelsRequest {}
+
+message ListLocalModelsResponse {
+  repeated LocalModelRecord models = 1;
+}
+
+message ListVerifiedModelsRequest {}
+
+message ListVerifiedModelsResponse {
+  repeated LocalVerifiedModelDescriptor models = 1;
+}
+
+message SearchCatalogModelsRequest {
+  string query = 1;
+  string capability = 2;
+  int32 limit = 3;
+}
+
+message SearchCatalogModelsResponse {
+  repeated LocalCatalogModelDescriptor items = 1;
+}
+
+message ResolveModelInstallPlanRequest {
+  string item_id = 1;
+  string source = 2;
+  string template_id = 3;
+  string model_id = 4;
+  string repo = 5;
+  string revision = 6;
+  repeated string capabilities = 7;
+  string engine = 8;
+  string entry = 9;
+  repeated string files = 10;
+  string license = 11;
+  map<string, string> hashes = 12;
+  string endpoint = 13;
+}
+
+message ResolveModelInstallPlanResponse {
+  LocalInstallPlanDescriptor plan = 1;
+}
+
+message InstallLocalModelRequest {
+  string model_id = 1;
+  string repo = 2;
+  string revision = 3;
+  repeated string capabilities = 4;
+  string engine = 5;
+  string entry = 6;
+  repeated string files = 7;
+  string license = 8;
+  map<string, string> hashes = 9;
+  string endpoint = 10;
+}
+
+message InstallLocalModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message InstallVerifiedModelRequest {
+  string template_id = 1;
+  string endpoint = 2;
+}
+
+message InstallVerifiedModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message ImportLocalModelRequest {
+  string manifest_path = 1;
+  string endpoint = 2;
+}
+
+message ImportLocalModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message RemoveLocalModelRequest {
+  string local_model_id = 1;
+}
+
+message RemoveLocalModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message StartLocalModelRequest {
+  string local_model_id = 1;
+}
+
+message StartLocalModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message StopLocalModelRequest {
+  string local_model_id = 1;
+}
+
+message StopLocalModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message CheckLocalModelHealthRequest {
+  string local_model_id = 1;
+}
+
+message CheckLocalModelHealthResponse {
+  repeated LocalModelHealth models = 1;
+}
+
+message CollectDeviceProfileRequest {}
+
+message CollectDeviceProfileResponse {
+  LocalDeviceProfile profile = 1;
+}
+
+message ResolveDependenciesRequest {
+  string mod_id = 1;
+  string capability = 2;
+  LocalDependenciesDeclarationDescriptor dependencies = 3;
+  LocalDeviceProfile device_profile = 4;
+}
+
+message ResolveDependenciesResponse {
+  LocalDependencyResolutionPlan plan = 1;
+}
+
+message ApplyDependenciesRequest {
+  LocalDependencyResolutionPlan plan = 1;
+}
+
+message ApplyDependenciesResponse {
+  LocalDependencyApplyResult result = 1;
+}
+
+message ListLocalServicesRequest {}
+
+message ListLocalServicesResponse {
+  repeated LocalServiceDescriptor services = 1;
+}
+
+message InstallLocalServiceRequest {
+  string service_id = 1;
+  string title = 2;
+  string engine = 3;
+  string endpoint = 4;
+  repeated string capabilities = 5;
+  string local_model_id = 6;
+}
+
+message InstallLocalServiceResponse {
+  LocalServiceDescriptor service = 1;
+}
+
+message StartLocalServiceRequest {
+  string service_id = 1;
+}
+
+message StartLocalServiceResponse {
+  LocalServiceDescriptor service = 1;
+}
+
+message StopLocalServiceRequest {
+  string service_id = 1;
+}
+
+message StopLocalServiceResponse {
+  LocalServiceDescriptor service = 1;
+}
+
+message CheckLocalServiceHealthRequest {
+  string service_id = 1;
+}
+
+message CheckLocalServiceHealthResponse {
+  repeated LocalServiceDescriptor services = 1;
+}
+
+message RemoveLocalServiceRequest {
+  string service_id = 1;
+}
+
+message RemoveLocalServiceResponse {
+  LocalServiceDescriptor service = 1;
+}
+
+message ListNodeCatalogRequest {
+  string capability = 1;
+  string service_id = 2;
+  string provider = 3;
+}
+
+message ListNodeCatalogResponse {
+  repeated LocalNodeDescriptor nodes = 1;
+}
+
+message ListLocalAuditsRequest {
+  int32 limit = 1;
+  string event_type = 2;
+  repeated string event_types = 3;
+  string source = 4;
+  string modality = 5;
+  string local_model_id = 6;
+  string mod_id = 7;
+  string reason_code = 8;
+  LocalAuditTimeRange time_range = 9;
+}
+
+message ListLocalAuditsResponse {
+  repeated LocalAuditEvent events = 1;
+}
+
+message AppendInferenceAuditRequest {
+  string event_type = 1;
+  string mod_id = 2;
+  string source = 3;
+  string provider = 4;
+  string modality = 5;
+  string adapter = 6;
+  string model = 7;
+  string local_model_id = 8;
+  string endpoint = 9;
+  string reason_code = 10;
+  string detail = 11;
+  google.protobuf.Struct policy_gate = 12;
+  google.protobuf.Struct extra = 13;
+}
+
+message AppendRuntimeAuditRequest {
+  string event_type = 1;
+  string model_id = 2;
+  string local_model_id = 3;
+  google.protobuf.Struct payload = 4;
+}
+
+service RuntimeLocalRuntimeService {
+  rpc ListLocalModels(ListLocalModelsRequest) returns (ListLocalModelsResponse);
+  rpc ListVerifiedModels(ListVerifiedModelsRequest) returns (ListVerifiedModelsResponse);
+  rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
+  rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
+  rpc InstallLocalModel(InstallLocalModelRequest) returns (InstallLocalModelResponse);
+  rpc InstallVerifiedModel(InstallVerifiedModelRequest) returns (InstallVerifiedModelResponse);
+  rpc ImportLocalModel(ImportLocalModelRequest) returns (ImportLocalModelResponse);
+  rpc RemoveLocalModel(RemoveLocalModelRequest) returns (RemoveLocalModelResponse);
+  rpc StartLocalModel(StartLocalModelRequest) returns (StartLocalModelResponse);
+  rpc StopLocalModel(StopLocalModelRequest) returns (StopLocalModelResponse);
+  rpc CheckLocalModelHealth(CheckLocalModelHealthRequest) returns (CheckLocalModelHealthResponse);
+  rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);
+  rpc ResolveDependencies(ResolveDependenciesRequest) returns (ResolveDependenciesResponse);
+  rpc ApplyDependencies(ApplyDependenciesRequest) returns (ApplyDependenciesResponse);
+  rpc ListLocalServices(ListLocalServicesRequest) returns (ListLocalServicesResponse);
+  rpc InstallLocalService(InstallLocalServiceRequest) returns (InstallLocalServiceResponse);
+  rpc StartLocalService(StartLocalServiceRequest) returns (StartLocalServiceResponse);
+  rpc StopLocalService(StopLocalServiceRequest) returns (StopLocalServiceResponse);
+  rpc CheckLocalServiceHealth(CheckLocalServiceHealthRequest) returns (CheckLocalServiceHealthResponse);
+  rpc RemoveLocalService(RemoveLocalServiceRequest) returns (RemoveLocalServiceResponse);
+  rpc ListNodeCatalog(ListNodeCatalogRequest) returns (ListNodeCatalogResponse);
+  rpc ListLocalAudits(ListLocalAuditsRequest) returns (ListLocalAuditsResponse);
+  rpc AppendInferenceAudit(AppendInferenceAuditRequest) returns (Ack);
+  rpc AppendRuntimeAudit(AppendRuntimeAuditRequest) returns (Ack);
+}

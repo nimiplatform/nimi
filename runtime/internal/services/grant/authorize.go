@@ -1,0 +1,134 @@
+package grant
+
+import (
+	"context"
+	"fmt"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"strings"
+	"time"
+)
+
+func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.AuthorizeExternalPrincipalRequest) (*runtimev1.AuthorizeExternalPrincipalResponse, error) {
+	appID := strings.TrimSpace(req.GetAppId())
+	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
+	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
+	if appID == "" || externalID == "" || subjectUserID == "" {
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+	}
+
+	if strings.TrimSpace(req.GetConsentId()) == "" || strings.TrimSpace(req.GetConsentVersion()) == "" {
+		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_MISSING.String())
+	}
+	if req.GetDecisionAt() == nil || req.GetDecisionAt().AsTime().IsZero() {
+		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_INVALID.String())
+	}
+
+	record, exists := s.registry.Get(appID)
+	if !exists {
+		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_NOT_REGISTERED.String())
+	}
+
+	effectiveScopes := resolveScopes(req)
+	if len(effectiveScopes) == 0 {
+		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String())
+	}
+	if hasRealmScope(effectiveScopes) {
+		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String())
+	}
+
+	if reasonCode, actionHint, ok := appregistry.ValidateDomainAndScopes(record.Manifest, req.GetDomain(), effectiveScopes); !ok {
+		errBody := fmt.Sprintf(`{"reasonCode":"%s","actionHint":"%s"}`, reasonCode.String(), actionHint)
+		return nil, status.Error(codes.PermissionDenied, errBody)
+	}
+
+	scopeCatalogVersion := strings.TrimSpace(req.GetScopeCatalogVersion())
+	if scopeCatalogVersion == "" {
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED.String())
+	}
+	scopeValidation := s.catalog.ValidateScopes(scopeCatalogVersion, effectiveScopes)
+	if scopeValidation != runtimev1.ReasonCode_ACTION_EXECUTED {
+		return nil, status.Error(codes.PermissionDenied, scopeValidation.String())
+	}
+
+	issuedAt := time.Now().UTC()
+	expiresAt := issuedAt.Add(resolveTTL(req.GetTtlSeconds(), 3600))
+	tokenID := ulid.Make().String()
+	secret := ulid.Make().String()
+
+	policyVersion := strings.TrimSpace(req.GetPolicyVersion())
+	if policyVersion == "" {
+		policyVersion = "v1"
+	}
+
+	canDelegate := req.GetCanDelegate()
+	maxDepth := req.GetMaxDelegationDepth()
+	if req.GetPolicyMode() == runtimev1.PolicyMode_POLICY_MODE_PRESET && req.GetPreset() == runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE {
+		canDelegate = true
+		if maxDepth <= 0 {
+			maxDepth = 1
+		}
+	}
+	if !canDelegate {
+		maxDepth = 0
+	}
+
+	policyKey := policyKey(appID, subjectUserID, externalID)
+
+	s.mu.Lock()
+	if currentPolicyVersion, ok := s.policyIndex[policyKey]; ok && currentPolicyVersion != policyVersion {
+		s.revokePolicyChainLocked(policyKey)
+	}
+	s.policyIndex[policyKey] = policyVersion
+
+	recordToken := tokenRecord{
+		TokenID:             tokenID,
+		AppID:               appID,
+		SubjectUserID:       subjectUserID,
+		ExternalPrincipalID: externalID,
+		PolicyVersion:       policyVersion,
+		IssuedScopeCatalog:  scopeCatalogVersion,
+		Scopes:              append([]string(nil), effectiveScopes...),
+		ResourceSelectors:   cloneSelectors(req.GetResourceSelectors()),
+		CanDelegate:         canDelegate,
+		MaxDelegationDepth:  maxDepth,
+		DelegationDepth:     0,
+		ParentTokenID:       "",
+		ConsentRef: &runtimev1.ConsentRef{
+			SubjectUserId:  subjectUserID,
+			ConsentId:      strings.TrimSpace(req.GetConsentId()),
+			ConsentVersion: strings.TrimSpace(req.GetConsentVersion()),
+		},
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		Secret:    secret,
+		Revoked:   false,
+	}
+	s.tokens[tokenID] = recordToken
+	if s.policyTokens[policyKey] == nil {
+		s.policyTokens[policyKey] = make(map[string]bool)
+	}
+	s.policyTokens[policyKey][tokenID] = true
+	s.mu.Unlock()
+
+	s.logger.Info("token authorized", "token_id", tokenID, "app_id", appID, "external_principal_id", externalID)
+
+	return &runtimev1.AuthorizeExternalPrincipalResponse{
+		TokenId:                   tokenID,
+		AppId:                     appID,
+		SubjectUserId:             subjectUserID,
+		ExternalPrincipalId:       externalID,
+		EffectiveScopes:           append([]string(nil), recordToken.Scopes...),
+		ResourceSelectors:         cloneSelectors(recordToken.ResourceSelectors),
+		ConsentRef:                cloneConsent(recordToken.ConsentRef),
+		PolicyVersion:             recordToken.PolicyVersion,
+		IssuedScopeCatalogVersion: recordToken.IssuedScopeCatalog,
+		CanDelegate:               recordToken.CanDelegate,
+		ExpiresAt:                 timestamppb.New(recordToken.ExpiresAt),
+		Secret:                    recordToken.Secret,
+	}, nil
+}

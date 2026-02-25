@@ -1,0 +1,44 @@
+# Nimi — Cursor AI Rules
+
+## Project
+
+Nimi is an AI-native open world platform. Monorepo with Go runtime, TypeScript SDK, Tauri desktop, and mods.
+
+## Structure
+
+- `runtime/` — Go 1.24 gRPC daemon
+- `sdk/` — TypeScript SDK (`@nimiplatform/sdk`)
+- `desktop/` — Tauri + React 19
+- `web/` — Web adapter
+- `mods/` — Desktop mini-programs
+- `proto/` — gRPC proto definitions
+
+## Rules
+
+- ESM imports with `.js` extension for `.ts` files
+- ULID for new IDs (not UUID)
+- Zod `safeParse` for runtime validation
+- No `console.log` — use structured error types
+- Maximum 3-hop debug trace from UI to business logic
+- No cross-boundary imports:
+  - SDK realm ↔ runtime must not cross-import
+  - Desktop must use SDK, never call runtime/realm directly
+  - Mods must use nimi-hook, never SDK directly
+- Generated code (proto stubs) is committed, CI-verified
+- Go: constructor injection, no global state, `fmt.Errorf("op: %w", err)`
+- TypeScript: explicit type signatures on public API, no implicit `any`
+
+## Key Files
+
+- `AGENTS.md` — Full conventions
+- `runtime/AGENTS.md` — Go conventions
+- `sdk/AGENTS.md` — TypeScript conventions
+- `desktop/AGENTS.md` — Tauri + React conventions
+- `*/context.md` — Per-package context
+
+## Sensitive Paths
+
+- `**/auth/**`, `**/grant/**` — Security
+- `**/economy/**`, `**/gift/**` — Financial accuracy
+- `**/ai/**` — AI behavior correctness
+- `**/audit/**` — Compliance

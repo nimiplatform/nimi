@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum ModelStatus {
+  MODEL_STATUS_UNSPECIFIED = 0;
+  MODEL_STATUS_INSTALLED = 1;
+  MODEL_STATUS_PULLING = 2;
+  MODEL_STATUS_FAILED = 3;
+  MODEL_STATUS_REMOVED = 4;
+}
+
+message ModelDescriptor {
+  string model_id = 1;
+  string version = 2;
+  ModelStatus status = 3;
+  repeated string capabilities = 4;
+  google.protobuf.Timestamp last_health_at = 5;
+}
+
+message ListModelsRequest {}
+
+message ListModelsResponse {
+  repeated ModelDescriptor models = 1;
+}
+
+message PullModelRequest {
+  string app_id = 1;
+  string model_ref = 2;
+  string source = 3;
+  string digest = 4;
+}
+
+message PullModelResponse {
+  string task_id = 1;
+  bool accepted = 2;
+  ReasonCode reason_code = 3;
+}
+
+message RemoveModelRequest {
+  string app_id = 1;
+  string model_id = 2;
+}
+
+message CheckModelHealthRequest {
+  string model_id = 1;
+}
+
+message CheckModelHealthResponse {
+  bool healthy = 1;
+  ReasonCode reason_code = 2;
+  string action_hint = 3;
+}
+
+service RuntimeModelService {
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  rpc PullModel(PullModelRequest) returns (PullModelResponse);
+  rpc RemoveModel(RemoveModelRequest) returns (Ack);
+  rpc CheckModelHealth(CheckModelHealthRequest) returns (CheckModelHealthResponse);
+}

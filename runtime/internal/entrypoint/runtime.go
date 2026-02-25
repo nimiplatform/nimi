@@ -1,0 +1,160 @@
+package entrypoint
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/daemon"
+	"io"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+)
+
+func RunDaemonFromArgs(program string, args []string) error {
+	baseCfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	fs := flag.NewFlagSet(program, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	grpcAddr := fs.String("grpc-addr", baseCfg.GRPCAddr, "gRPC listen address")
+	httpAddr := fs.String("http-addr", baseCfg.HTTPAddr, "HTTP listen address")
+	shutdownTimeoutRaw := fs.String("shutdown-timeout", baseCfg.ShutdownTimeout.String(), "graceful shutdown timeout")
+	localRuntimeStatePath := fs.String("local-runtime-state-path", baseCfg.LocalRuntimeStatePath, "local runtime state persistence path")
+
+	if err := fs.Parse(args); err != nil {
+		return fmt.Errorf("parse flags: %w", err)
+	}
+
+	shutdownTimeout, err := time.ParseDuration(*shutdownTimeoutRaw)
+	if err != nil {
+		return fmt.Errorf("parse shutdown-timeout: %w", err)
+	}
+
+	cfg := config.Config{
+		GRPCAddr:              *grpcAddr,
+		HTTPAddr:              *httpAddr,
+		ShutdownTimeout:       shutdownTimeout,
+		LocalRuntimeStatePath: *localRuntimeStatePath,
+	}
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	d := daemon.New(cfg, logger)
+	return d.Run(ctx)
+}
+
+// FetchHealth requests runtime health JSON from daemon HTTP endpoint.
+func FetchHealth(httpAddr string, timeout time.Duration) (map[string]any, error) {
+	if httpAddr == "" {
+		return nil, errors.New("http address is required")
+	}
+
+	client := &http.Client{Timeout: timeout}
+	url := fmt.Sprintf("http://%s/v1/runtime/health", httpAddr)
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("request %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	var payload map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("decode health response: %w", err)
+	}
+
+	payload["http_status"] = resp.StatusCode
+	return payload, nil
+}
+
+// ProviderHealthSnapshot is a transport-neutral view for runtime provider health.
+type ProviderHealthSnapshot struct {
+	Name                string
+	State               string
+	Reason              string
+	ConsecutiveFailures int32
+	LastChangedAt       string
+	LastCheckedAt       string
+}
+
+// ProviderHealthEvent is a streamed provider health record.
+type ProviderHealthEvent struct {
+	Sequence uint64
+	Snapshot ProviderHealthSnapshot
+}
+
+// RuntimeHealthSnapshot is a transport-neutral runtime health record.
+type RuntimeHealthSnapshot struct {
+	Status              string
+	StatusCode          int32
+	Reason              string
+	QueueDepth          int32
+	ActiveWorkflows     int32
+	ActiveInferenceJobs int32
+	CPUMilli            int64
+	MemoryBytes         int64
+	VRAMBytes           int64
+	SampledAt           string
+}
+
+// RuntimeHealthEvent is a streamed runtime health record.
+type RuntimeHealthEvent struct {
+	Sequence uint64
+	Snapshot RuntimeHealthSnapshot
+}
+
+// ArtifactResult is a collected view from ArtifactChunk streaming RPCs.
+type ArtifactResult struct {
+	ArtifactID    string
+	MimeType      string
+	RouteDecision runtimev1.RoutePolicy
+	ModelResolved string
+	TraceID       string
+	Usage         *runtimev1.UsageStats
+	Payload       []byte
+}
+
+// AuditExportResult is a collected view from AuditExportChunk streaming RPC.
+type AuditExportResult struct {
+	ExportID string
+	MimeType string
+	Payload  []byte
+}
+
+// ClientMetadata carries optional call attribution metadata for runtime gRPC.
+type ClientMetadata struct {
+	ProtocolVersion            string
+	ParticipantProtocolVersion string
+	ParticipantID              string
+	Domain                     string
+	IdempotencyKey             string
+	CallerKind                 string
+	CallerID                   string
+	SurfaceID                  string
+	TraceID                    string
+	AccessTokenID              string
+	AccessTokenSecret          string
+}
+
+const (
+	cliCallerKind = "third-party-service"
+	cliCallerID   = "nimi-cli"
+	cliSurfaceID  = "runtime-cli"
+)
+
+// FetchAIProviderHealthGRPC requests provider health snapshots from RuntimeAuditService.
