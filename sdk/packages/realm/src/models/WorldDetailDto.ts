@@ -50,3 +50,4 @@ export namespace WorldDetailDto {
         SUB = 'SUB',
     }
 }
+

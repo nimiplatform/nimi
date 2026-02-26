@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { AgentVisibilitySettingsDto } from '../models/AgentVisibilitySettingsDto';
 import type { CreateAgentResponseDto } from '../models/CreateAgentResponseDto';
-import type { CreateAgentTokenDto } from '../models/CreateAgentTokenDto';
 import type { CreateKeyEventDto } from '../models/CreateKeyEventDto';
 import type { MemoryStatsResponseDto } from '../models/MemoryStatsResponseDto';
 import type { RemoveAgentRelationshipDto } from '../models/RemoveAgentRelationshipDto';
@@ -31,13 +30,19 @@ export class AgentsService {
     }
     /**
      * Delete Agent (private only)
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerDelete(): CancelablePromise<any> {
+    public static agentControllerDelete(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/agent/accounts/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
@@ -59,101 +64,167 @@ export class AgentsService {
     }
     /**
      * Activate Agent (Wake up)
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerActivate(): CancelablePromise<any> {
+    public static agentControllerActivate(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/activate',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
      * Get Agent Approvals
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerGetApprovals(): CancelablePromise<any> {
+    public static agentControllerGetApprovals(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/agent/accounts/{id}/approvals',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
      * Approve an approval item
+     * @param approvalId Approval ID
+     * @param id Agent ID
      * @returns any Approval approved (immediate or scheduled)
      * @throws ApiError
      */
-    public static agentControllerApprove(): CancelablePromise<any> {
+    public static agentControllerApprove(
+        approvalId: string,
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/approvals/{approvalId}/approve',
+            path: {
+                'approvalId': approvalId,
+                'id': id,
+            },
         });
     }
     /**
      * Cancel a pending or scheduled approval
-     * @returns any Approval cancelled with Energy refund
+     * @param approvalId Approval ID
+     * @param id Agent ID
+     * @returns any Approval cancelled
      * @throws ApiError
      */
-    public static agentControllerCancel(): CancelablePromise<any> {
+    public static agentControllerCancel(
+        approvalId: string,
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/approvals/{approvalId}/cancel',
+            path: {
+                'approvalId': approvalId,
+                'id': id,
+            },
         });
     }
     /**
      * Reject an approval item
-     * @returns any Approval rejected with partial Energy refund
+     * @param approvalId Approval ID
+     * @param id Agent ID
+     * @returns any Approval rejected
      * @throws ApiError
      */
-    public static agentControllerReject(): CancelablePromise<any> {
+    public static agentControllerReject(
+        approvalId: string,
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/approvals/{approvalId}/reject',
+            path: {
+                'approvalId': approvalId,
+                'id': id,
+            },
         });
     }
     /**
      * Retry a failed approval (re-publish)
+     * @param approvalId Approval ID
+     * @param id Agent ID
      * @returns any Approval status reset for retry
      * @throws ApiError
      */
-    public static agentControllerRetry(): CancelablePromise<any> {
+    public static agentControllerRetry(
+        approvalId: string,
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/approvals/{approvalId}/retry',
+            path: {
+                'approvalId': approvalId,
+                'id': id,
+            },
         });
     }
     /**
      * Select avatar for Agent
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerSelectAvatar(): CancelablePromise<any> {
+    public static agentControllerSelectAvatar(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/avatar',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
      * Update Agent DNA
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerUpdateDna(): CancelablePromise<any> {
+    public static agentControllerUpdateDna(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/api/agent/accounts/{id}/dna',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
      * Trigger Agent to think and generate content
+     * @param id Agent ID
      * @returns any Force action triggered successfully
      * @throws ApiError
      */
-    public static agentControllerForceAction(): CancelablePromise<any> {
+    public static agentControllerForceAction(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/force-action',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
@@ -397,13 +468,19 @@ export class AgentsService {
     }
     /**
      * Make Agent public (irreversible)
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerMakePublic(): CancelablePromise<any> {
+    public static agentControllerMakePublic(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/public',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
@@ -505,120 +582,34 @@ export class AgentsService {
     }
     /**
      * Suspend Agent (Sleep)
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerSuspend(): CancelablePromise<any> {
+    public static agentControllerSuspend(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/accounts/{id}/suspend',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
      * Get Agent Tasks
+     * @param id Agent ID
      * @returns any
      * @throws ApiError
      */
-    public static agentControllerGetTasks(): CancelablePromise<any> {
+    public static agentControllerGetTasks(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/agent/accounts/{id}/tasks',
-        });
-    }
-    /**
-     * List all tokens for an Agent (creator only)
-     * @param id Agent ID
-     * @returns any List of tokens (without actual token values)
-     * @throws ApiError
-     */
-    public static agentControllerListTokens(
-        id: any,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/agent/accounts/{id}/tokens',
             path: {
-                'id': id,
-            },
-        });
-    }
-    /**
-     * Create a new AgentToken for external runtime connection
-     * @param id Agent ID
-     * @param requestBody
-     * @returns any Token created. The token value is only shown once!
-     * @throws ApiError
-     */
-    public static agentControllerCreateToken(
-        id: any,
-        requestBody: CreateAgentTokenDto,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/accounts/{id}/tokens',
-            path: {
-                'id': id,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * Delete a token permanently
-     * @param tokenId Token ID
-     * @param id Agent ID
-     * @returns any Token deleted
-     * @throws ApiError
-     */
-    public static agentControllerDeleteToken(
-        tokenId: any,
-        id: any,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/agent/accounts/{id}/tokens/{tokenId}',
-            path: {
-                'tokenId': tokenId,
-                'id': id,
-            },
-        });
-    }
-    /**
-     * Regenerate a token (invalidates old token)
-     * @param tokenId Token ID
-     * @param id Agent ID
-     * @returns any Token regenerated. The new token value is only shown once!
-     * @throws ApiError
-     */
-    public static agentControllerRegenerateToken(
-        tokenId: any,
-        id: any,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/accounts/{id}/tokens/{tokenId}/regenerate',
-            path: {
-                'tokenId': tokenId,
-                'id': id,
-            },
-        });
-    }
-    /**
-     * Revoke (deactivate) a token
-     * @param tokenId Token ID
-     * @param id Agent ID
-     * @returns any Token revoked
-     * @throws ApiError
-     */
-    public static agentControllerRevokeToken(
-        tokenId: any,
-        id: any,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/accounts/{id}/tokens/{tokenId}/revoke',
-            path: {
-                'tokenId': tokenId,
                 'id': id,
             },
         });

@@ -24,7 +24,6 @@ export type UserPrivateDto = {
     createdAt: string;
     displayName: string;
     email?: string;
-    energyBalance?: string;
     gender?: Gender | null;
     giftStats?: Record<string, any>;
     handle: string;

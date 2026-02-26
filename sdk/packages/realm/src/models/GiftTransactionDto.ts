@@ -10,17 +10,17 @@ export type GiftTransactionDto = {
     claimedAt?: string | null;
     createdAt: string;
     /**
-     * Energy share for agent creator (if receiver is agent)
-     */
-    creatorShare: string;
-    /**
-     * Total energy cost paid by sender
-     */
-    energyCost: string;
-    /**
      * Expiration time for unclaimed gifts
      */
     expiresAt: string;
+    /**
+     * Gem share for agent creator (if receiver is agent)
+     */
+    gemToCreator: string;
+    /**
+     * Gem share for receiver to claim
+     */
+    gemToReceiver: string;
     giftId: string;
     id: string;
     /**
@@ -32,10 +32,6 @@ export type GiftTransactionDto = {
      */
     platformFee: string;
     receiverId: string;
-    /**
-     * Energy share for receiver to claim
-     */
-    receiverShare: string;
     /**
      * Reason for rejection
      */
@@ -49,6 +45,10 @@ export type GiftTransactionDto = {
      */
     relatedPostId?: string | null;
     senderId: string;
+    /**
+     * Total Spark cost paid by sender
+     */
+    sparkCost: string;
     /**
      * Gift status
      */

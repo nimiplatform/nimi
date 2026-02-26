@@ -7,15 +7,12 @@ import type { CanWithdrawDto } from '../models/CanWithdrawDto';
 import type { ConnectDashboardLinkDto } from '../models/ConnectDashboardLinkDto';
 import type { ConnectOnboardingResponseDto } from '../models/ConnectOnboardingResponseDto';
 import type { CreateConnectOnboardingDto } from '../models/CreateConnectOnboardingDto';
-import type { CreateDepositOrderDto } from '../models/CreateDepositOrderDto';
 import type { CreatePortalSessionDto } from '../models/CreatePortalSessionDto';
 import type { CreateSparkCheckoutDto } from '../models/CreateSparkCheckoutDto';
 import type { CreateSubscriptionCheckoutDto } from '../models/CreateSubscriptionCheckoutDto';
 import type { CreateWithdrawalDto } from '../models/CreateWithdrawalDto';
 import type { CurrencyBalancesDto } from '../models/CurrencyBalancesDto';
 import type { CurrencyTransactionHistoryDto } from '../models/CurrencyTransactionHistoryDto';
-import type { DepositOrderDto } from '../models/DepositOrderDto';
-import type { EnergyQuotaStatusDto } from '../models/EnergyQuotaStatusDto';
 import type { GiftCatalogItemDto } from '../models/GiftCatalogItemDto';
 import type { GiftTransactionDto } from '../models/GiftTransactionDto';
 import type { PortalSessionDto } from '../models/PortalSessionDto';
@@ -85,22 +82,6 @@ export class EconomyCurrencyGiftsService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/economy/connect/status',
-        });
-    }
-    /**
-     * Create a deposit order (Fiat/Crypto)
-     * @param requestBody
-     * @returns DepositOrderDto
-     * @throws ApiError
-     */
-    public static economyControllerCreateDeposit(
-        requestBody: CreateDepositOrderDto,
-    ): CancelablePromise<DepositOrderDto> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/economy/deposit',
-            body: requestBody,
-            mediaType: 'application/json',
         });
     }
     /**
@@ -226,17 +207,6 @@ export class EconomyCurrencyGiftsService {
             path: {
                 'id': id,
             },
-        });
-    }
-    /**
-     * Get user energy quota status
-     * @returns EnergyQuotaStatusDto
-     * @throws ApiError
-     */
-    public static economyControllerGetQuotaStatus(): CancelablePromise<EnergyQuotaStatusDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/economy/quota',
         });
     }
     /**

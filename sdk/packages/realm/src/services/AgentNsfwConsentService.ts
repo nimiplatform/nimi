@@ -7,13 +7,20 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AgentNsfwConsentService {
     /**
-     * @returns any
+     * Update Agent NSFW consent (creator only)
+     * @param id Agent account ID
+     * @returns any Updated NSFW consent state
      * @throws ApiError
      */
-    public static agentNsfwConsentControllerUpdateAgentConsent(): CancelablePromise<any> {
+    public static agentNsfwConsentControllerUpdateAgentConsent(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/agent/accounts/{id}/visibility/nsfw-consent',
+            path: {
+                'id': id,
+            },
         });
     }
 }

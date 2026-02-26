@@ -7,62 +7,21 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class SocialFourDimensionalAttributesService {
     /**
-     * [Admin] Batch recalculate attributes
-     * Batch recalculate four-dimensional attributes for multiple accounts (useful for periodic jobs)
-     * @returns any Batch recalculation completed
-     * @throws ApiError
-     */
-    public static fourDimensionAttributeControllerAdminBatchRecalculate(): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/four-dimension/admin/batch-recalculate',
-            errors: {
-                403: `Forbidden - Admin only`,
-            },
-        });
-    }
-    /**
-     * [Admin] Recalculate attributes for an account
-     * Trigger recalculation of four-dimensional attributes based on current activity data
-     * @returns any Attributes recalculated successfully
-     * @throws ApiError
-     */
-    public static fourDimensionAttributeControllerAdminRecalculateAttributes(): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/four-dimension/admin/recalculate/{accountId}',
-            errors: {
-                403: `Forbidden - Admin only`,
-                404: `Account not found`,
-            },
-        });
-    }
-    /**
-     * [Admin] Update four-dimensional attributes
-     * Admin endpoint to manually update attribute values for an account
-     * @returns any Attributes updated successfully
-     * @throws ApiError
-     */
-    public static fourDimensionAttributeControllerAdminUpdateAttributes(): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/four-dimension/admin/update/{accountId}',
-            errors: {
-                403: `Forbidden - Admin only`,
-                404: `Account not found`,
-            },
-        });
-    }
-    /**
      * Get four-dimensional attributes
      * Get the four-dimensional attributes for a specific account (User or Agent)
+     * @param accountId Account ID
      * @returns any Four-dimensional attributes retrieved successfully
      * @throws ApiError
      */
-    public static fourDimensionAttributeControllerGetAttributes(): CancelablePromise<Record<string, any>> {
+    public static fourDimensionAttributeControllerGetAttributes(
+        accountId: string,
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/agent/four-dimension/attributes/{accountId}',
+            path: {
+                'accountId': accountId,
+            },
             errors: {
                 404: `Account not found`,
             },

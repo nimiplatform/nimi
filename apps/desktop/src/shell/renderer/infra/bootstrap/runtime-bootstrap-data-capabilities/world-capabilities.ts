@@ -154,7 +154,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     return requestObject({
       method: 'POST',
-      url: '/api/worlds/{worldId}/lorebooks:batchUpsert',
+      url: '/api/worlds/{worldId}/lorebooks/batch-upsert',
       path: { worldId },
       body: toRecord(record.payload),
       mediaType: 'application/json',
@@ -167,7 +167,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     return requestObject({
       method: 'POST',
-      url: '/api/worlds/{worldId}/events:batchUpsert',
+      url: '/api/worlds/{worldId}/events/batch-upsert',
       path: { worldId },
       body: toRecord(record.payload),
       mediaType: 'application/json',
@@ -209,4 +209,3 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return toObjectOr(payload, { worldId, items: [] });
   });
 }
-

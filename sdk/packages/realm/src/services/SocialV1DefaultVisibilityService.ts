@@ -88,24 +88,6 @@ export class SocialV1DefaultVisibilityService {
         });
     }
     /**
-     * Enforce V1 defaults on Agent (Admin)
-     * Reset agent visibility to V1 defaults (all PUBLIC)
-     * @param agentId Agent profile ID
-     * @returns any V1 defaults enforced
-     * @throws ApiError
-     */
-    public static v1DefaultVisibilityControllerEnforceAgentDefaults(
-        agentId: any,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/agent/visibility/defaults/enforce/agent/{agentId}',
-            path: {
-                'agentId': agentId,
-            },
-        });
-    }
-    /**
      * Validate Agent visibility settings
      * Validate that agent visibility conforms to V1 spec (all PUBLIC)
      * @param agentId Agent profile ID

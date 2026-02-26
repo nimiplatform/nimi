@@ -4,10 +4,6 @@
 import type { ScopeName } from '@nimiplatform/sdk-types';
 
 export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
-  'realm.admin_agent_governance.read' as ScopeName,
-  'realm.admin_moderation.read' as ScopeName,
-  'realm.admin_system_audit.read' as ScopeName,
-  'realm.admin_user_management.read' as ScopeName,
   'realm.agent_nsfw_consent.read' as ScopeName,
   'realm.agents.read' as ScopeName,
   'realm.auth.read' as ScopeName,
@@ -23,16 +19,22 @@ export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
   'realm.me.read' as ScopeName,
   'realm.me2_fa.read' as ScopeName,
   'realm.media.read' as ScopeName,
+  'realm.narrative_spine.read' as ScopeName,
   'realm.notification.read' as ScopeName,
   'realm.post.read' as ScopeName,
-  'realm.referral.read' as ScopeName,
   'realm.relationships_meta_graph.read' as ScopeName,
   'realm.reviews_economy_trust.read' as ScopeName,
+  'realm.satellite_narrative.read' as ScopeName,
   'realm.search.read' as ScopeName,
   'realm.social.read' as ScopeName,
   'realm.social_four_dimensional_attributes.read' as ScopeName,
+  'realm.soul_evolution.read' as ScopeName,
+  'realm.time_gap_narrative.read' as ScopeName,
+  'realm.transits.read' as ScopeName,
   'realm.translation.read' as ScopeName,
   'realm.user.read' as ScopeName,
+  'realm.world_control.read' as ScopeName,
+  'realm.world_rules.read' as ScopeName,
   'realm.worlds.read' as ScopeName,
 ]);
 

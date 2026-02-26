@@ -37,24 +37,36 @@ export class RelationshipsMetaGraphService {
     }
     /**
      * Remove a relationship
+     * @param id Relationship ID
      * @returns any
      * @throws ApiError
      */
-    public static relationshipControllerDeleteRelationship(): CancelablePromise<any> {
+    public static relationshipControllerDeleteRelationship(
+        id: string,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/human/relationships/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
     /**
      * Update relationship (strength/context)
+     * @param id Relationship ID
      * @returns RelationshipResponseDto
      * @throws ApiError
      */
-    public static relationshipControllerUpdateRelationship(): CancelablePromise<RelationshipResponseDto> {
+    public static relationshipControllerUpdateRelationship(
+        id: string,
+    ): CancelablePromise<RelationshipResponseDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/api/human/relationships/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
 }

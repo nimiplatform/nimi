@@ -144,7 +144,7 @@ export class MeService {
     }
     /**
      * Get user capabilities
-     * Returns aggregated user capabilities including agent creation limits, energy balance, quota status, and feature access.
+     * Returns aggregated user capabilities including agent creation limits and feature access.
      * @returns UserCapabilitiesDto User capabilities
      * @throws ApiError
      */

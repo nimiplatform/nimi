@@ -57,7 +57,7 @@ export class CreatorService {
     }> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/creator/agents{batchCreate}',
+            url: '/api/creator/agents/batch-create',
             body: requestBody,
             mediaType: 'application/json',
         });

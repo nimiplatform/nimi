@@ -5,10 +5,6 @@
 import type { SubscriptionTier } from './SubscriptionTier';
 export type SubscriptionTierConfigDto = {
     /**
-     * Daily energy quota (-1 for unlimited)
-     */
-    dailyEnergyQuota: number;
-    /**
      * Features included in this tier
      */
     features: Array<string>;
