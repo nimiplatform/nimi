@@ -18,6 +18,7 @@ rules:
 2. 访问：`WorldAccessControl`（是否可创建/维护/发布）
 3. 生命周期：`draft -> published -> maintained`（高层状态）
 4. 变更入口：`world/worldview/events/lorebooks/mutations`（事务域名）
+5. 知识资产生命周期：`events/lorebooks` 删除语义为逻辑归档（archive），不承诺物理硬删
 
 ## 2. Public Vocabulary
 

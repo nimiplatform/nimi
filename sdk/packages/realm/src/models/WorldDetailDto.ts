@@ -13,7 +13,6 @@ export type WorldDetailDto = {
     id: string;
     level: number;
     levelUpdatedAt?: string;
-    lore?: string;
     lorebookEntryLimit: number;
     name: string;
     nativeAgentLimit: number;
@@ -51,4 +50,3 @@ export namespace WorldDetailDto {
         SUB = 'SUB',
     }
 }
-

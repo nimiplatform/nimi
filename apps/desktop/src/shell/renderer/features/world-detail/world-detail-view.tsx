@@ -491,16 +491,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
             )}
           </div>
 
-          {/* Lore */}
-          {world.lore ? (
-            <div className="mt-4 mb-8 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-              <h3 className="text-sm font-semibold text-gray-700">Lore</h3>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">{world.lore}</p>
-            </div>
-          ) : null}
-
-          {/* Bottom spacer */}
-          {!world.lore ? <div className="h-8" /> : null}
+          <div className="h-8" />
         </div>
       </div>
     </div>

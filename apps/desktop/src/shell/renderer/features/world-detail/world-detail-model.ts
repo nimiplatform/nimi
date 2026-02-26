@@ -25,7 +25,6 @@ export type WorldData = {
     e: number;
     ewma: number;
   };
-  lore: string | null;
   hasWorldview: boolean;
   worldviewLifecycle: string | null;
   worldviewVersion: number | null;
@@ -102,7 +101,6 @@ export function toWorldData(raw: Record<string, unknown>, semantic?: WorldSemant
       e: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
       ewma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
     },
-    lore: typeof raw.lore === 'string' ? raw.lore : null,
     hasWorldview: worldview !== null,
     worldviewLifecycle: worldview && typeof worldview.lifecycle === 'string' ? worldview.lifecycle : null,
     worldviewVersion: worldview && typeof worldview.version === 'number'

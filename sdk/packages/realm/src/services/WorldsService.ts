@@ -185,7 +185,7 @@ export class WorldsService {
         });
     }
     /**
-     * Get NimiWorld (main world)
+     * Get OASIS (main world)
      * @returns WorldDetailDto
      * @throws ApiError
      */
