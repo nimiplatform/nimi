@@ -21,6 +21,8 @@ const (
 	ProviderHintBytedance ProviderHint = "bytedance"
 	ProviderHintGemini    ProviderHint = "gemini"
 	ProviderHintMiniMax   ProviderHint = "minimax"
+	ProviderHintKimi      ProviderHint = "kimi"
+	ProviderHintGLM       ProviderHint = "glm"
 )
 
 // Entry is a model registry record used by runtime services.
@@ -154,6 +156,10 @@ func inferProviderHint(modelID string, source string) ProviderHint {
 		return ProviderHintGemini
 	case strings.HasPrefix(id, "minimax/"), src == "minimax":
 		return ProviderHintMiniMax
+	case strings.HasPrefix(id, "kimi/"), strings.HasPrefix(id, "moonshot/"), src == "kimi", src == "moonshot":
+		return ProviderHintKimi
+	case strings.HasPrefix(id, "glm/"), strings.HasPrefix(id, "zhipu/"), strings.HasPrefix(id, "bigmodel/"), src == "glm", src == "zhipu", src == "bigmodel":
+		return ProviderHintGLM
 	default:
 		return ProviderHintUnknown
 	}

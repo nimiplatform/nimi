@@ -33,6 +33,7 @@ const (
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 	adapterGeminiOperation     = "gemini_operation_adapter"
 	adapterMiniMaxTask         = "minimax_task_adapter"
+	adapterGLMTask             = "glm_task_adapter"
 )
 
 func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
@@ -213,6 +214,8 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 		artifacts, usage, providerJobID, err = s.executeGeminiOperation(ctx, jobID, req, modelResolved)
 	case adapterMiniMaxTask:
 		artifacts, usage, providerJobID, err = s.executeMiniMaxTask(ctx, jobID, req, modelResolved)
+	case adapterGLMTask:
+		artifacts, usage, providerJobID, err = s.executeGLMTask(ctx, jobID, req, modelResolved)
 	default:
 		artifacts, usage, providerJobID, err = executeProviderSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName)
 	}
@@ -370,6 +373,10 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		return adapterGeminiOperation
 	case strings.Contains(joined, "minimax/"):
 		return adapterMiniMaxTask
+	case strings.Contains(joined, "glm/"), strings.Contains(joined, "zhipu/"), strings.Contains(joined, "bigmodel/"):
+		if modal == runtimev1.Modal_MODAL_VIDEO {
+			return adapterGLMTask
+		}
 	case strings.Contains(joined, "bytedance/"), strings.Contains(joined, "byte/"):
 		if modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
 			return adapterBytedanceOpenSpeech
@@ -1565,6 +1572,112 @@ func (s *Service) executeMiniMaxTask(
 		s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, "")
 		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
 	}
+}
+
+func (s *Service) executeGLMTask(
+	ctx context.Context,
+	jobID string,
+	req *runtimev1.SubmitMediaJobRequest,
+	modelResolved string,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(s.config.CloudGLMBaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	apiKey := strings.TrimSpace(s.config.CloudGLMAPIKey)
+	if req.GetModal() != runtimev1.Modal_MODAL_VIDEO {
+		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+	spec := req.GetVideoSpec()
+	if spec == nil {
+		return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+	}
+
+	submitPath, queryPrefix := resolveGLMTaskPaths(baseURL)
+	submitPayload := map[string]any{
+		"model":           modelResolved,
+		"prompt":          spec.GetPrompt(),
+		"negative_prompt": spec.GetNegativePrompt(),
+		"duration_sec":    spec.GetDurationSec(),
+		"fps":             spec.GetFps(),
+		"resolution":      spec.GetResolution(),
+		"aspect_ratio":    spec.GetAspectRatio(),
+		"first_frame_uri": spec.GetFirstFrameUri(),
+		"last_frame_uri":  spec.GetLastFrameUri(),
+		"camera_motion":   spec.GetCameraMotion(),
+	}
+	if opts := structToMap(extractProviderOptions(req)); len(opts) > 0 {
+		submitPayload["provider_options"] = opts
+	}
+	submitResp := map[string]any{}
+	if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+		return nil, nil, "", err
+	}
+	providerJobID := firstNonEmptyString(
+		valueAsString(submitResp["task_id"]),
+		valueAsString(submitResp["taskId"]),
+		valueAsString(submitResp["id"]),
+		valueAsString(mapField(submitResp["data"], "id")),
+	)
+	if providerJobID == "" {
+		return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	s.updateMediaJobPollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+	retryCount := int32(0)
+
+	for {
+		if ctx.Err() != nil {
+			return nil, nil, providerJobID, mapProviderRequestError(ctx.Err())
+		}
+		retryCount++
+		pollResp := map[string]any{}
+		pollPath := joinURL(baseURL, queryPrefix+url.PathEscape(providerJobID))
+		if err := doJSONRequest(ctx, http.MethodGet, pollPath, apiKey, nil, &pollResp); err != nil {
+			return nil, nil, providerJobID, err
+		}
+		statusText := strings.ToLower(strings.TrimSpace(firstNonEmptyString(
+			valueAsString(pollResp["status"]),
+			valueAsString(pollResp["task_status"]),
+			valueAsString(mapField(pollResp["result"], "status")),
+		)))
+		switch statusText {
+		case "", "queued", "pending", "running", "processing", "in_progress":
+			s.updateMediaJobPollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+			time.Sleep(500 * time.Millisecond)
+			continue
+		case "failed", "error", "canceled", "cancelled":
+			s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, statusText)
+			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		}
+
+		artifactBytes, mimeType, artifactURI := extractArtifactBytesAndMIME(pollResp)
+		if len(artifactBytes) == 0 {
+			s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, providerJobID, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		if mimeType == "" {
+			mimeType = "video/mp4"
+		}
+		providerRaw := map[string]any{
+			"adapter":  adapterGLMTask,
+			"response": pollResp,
+		}
+		if artifactURI != "" {
+			providerRaw["uri"] = artifactURI
+		}
+		artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+		applyVideoSpecMetadata(artifact, spec)
+		s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, "")
+		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 420), providerJobID, nil
+	}
+}
+
+func resolveGLMTaskPaths(baseURL string) (string, string) {
+	normalized := strings.ToLower(strings.TrimSpace(baseURL))
+	if strings.Contains(normalized, "/api/paas/v4") {
+		return "/videos/generations", "/async-result/"
+	}
+	return "/api/paas/v4/videos/generations", "/api/paas/v4/async-result/"
 }
 
 func (s *Service) updateMediaJobPollState(

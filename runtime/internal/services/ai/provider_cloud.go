@@ -19,6 +19,8 @@ type cloudProvider struct {
 	bytedance *openAIBackend
 	gemini    *openAIBackend
 	minimax   *openAIBackend
+	kimi      *openAIBackend
+	glm       *openAIBackend
 	registry  *modelregistry.Registry
 	health    *providerhealth.Tracker
 	lastMu    sync.RWMutex
@@ -191,6 +193,16 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 				return nil, rest, true, false
 			}
 			return p.minimax, rest, true, true
+		case "kimi", "moonshot":
+			if p.kimi == nil || !p.isBackendHealthy("cloud-kimi") {
+				return nil, rest, true, false
+			}
+			return p.kimi, rest, true, true
+		case "glm", "zhipu", "bigmodel":
+			if p.glm == nil || !p.isBackendHealthy("cloud-glm") {
+				return nil, rest, true, false
+			}
+			return p.glm, rest, true, true
 		}
 	}
 
@@ -222,6 +234,16 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 				if p.minimax != nil && p.isBackendHealthy("cloud-minimax") {
 					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintMiniMax), false)
 					return p.minimax, id, false, true
+				}
+			case modelregistry.ProviderHintKimi:
+				if p.kimi != nil && p.isBackendHealthy("cloud-kimi") {
+					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintKimi), false)
+					return p.kimi, id, false, true
+				}
+			case modelregistry.ProviderHintGLM:
+				if p.glm != nil && p.isBackendHealthy("cloud-glm") {
+					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintGLM), false)
+					return p.glm, id, false, true
 				}
 			case modelregistry.ProviderHintLocal, modelregistry.ProviderHintUnknown:
 			}
@@ -274,6 +296,18 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 			return p.minimax, id, false, true
 		}
 	}
+	if p.kimi != nil {
+		if p.isBackendHealthy("cloud-kimi") {
+			p.rememberHintDecision(id, "", string(modelregistry.ProviderHintKimi), false)
+			return p.kimi, id, false, true
+		}
+	}
+	if p.glm != nil {
+		if p.isBackendHealthy("cloud-glm") {
+			p.rememberHintDecision(id, "", string(modelregistry.ProviderHintGLM), false)
+			return p.glm, id, false, true
+		}
+	}
 
 	// No healthy backend, return first configured backend so caller gets concrete provider error path.
 	if p.litellm != nil {
@@ -295,6 +329,14 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 	if p.minimax != nil {
 		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintMiniMax), false)
 		return p.minimax, id, false, true
+	}
+	if p.kimi != nil {
+		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintKimi), false)
+		return p.kimi, id, false, true
+	}
+	if p.glm != nil {
+		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintGLM), false)
+		return p.glm, id, false, true
 	}
 	return nil, id, false, false
 }
@@ -321,6 +363,12 @@ func (p *cloudProvider) firstHealthyHint() modelregistry.ProviderHint {
 	}
 	if p.minimax != nil && p.isBackendHealthy("cloud-minimax") {
 		return modelregistry.ProviderHintMiniMax
+	}
+	if p.kimi != nil && p.isBackendHealthy("cloud-kimi") {
+		return modelregistry.ProviderHintKimi
+	}
+	if p.glm != nil && p.isBackendHealthy("cloud-glm") {
+		return modelregistry.ProviderHintGLM
 	}
 	return modelregistry.ProviderHintUnknown
 }
@@ -389,6 +437,14 @@ func (p *cloudProvider) backendForHint(hint modelregistry.ProviderHint) (*openAI
 	case modelregistry.ProviderHintMiniMax:
 		if p.minimax != nil && p.isBackendHealthy("cloud-minimax") {
 			return p.minimax, true
+		}
+	case modelregistry.ProviderHintKimi:
+		if p.kimi != nil && p.isBackendHealthy("cloud-kimi") {
+			return p.kimi, true
+		}
+	case modelregistry.ProviderHintGLM:
+		if p.glm != nil && p.isBackendHealthy("cloud-glm") {
+			return p.glm, true
 		}
 	}
 	return nil, false

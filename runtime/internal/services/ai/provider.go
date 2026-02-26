@@ -35,6 +35,10 @@ type Config struct {
 	CloudGeminiAPIKey           string
 	CloudMiniMaxBaseURL         string
 	CloudMiniMaxAPIKey          string
+	CloudKimiBaseURL            string
+	CloudKimiAPIKey             string
+	CloudGLMBaseURL             string
+	CloudGLMAPIKey              string
 	AIHTTPTimeout               time.Duration
 }
 
@@ -58,6 +62,10 @@ func loadConfigFromEnv() Config {
 		CloudGeminiAPIKey:           strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")),
 		CloudMiniMaxBaseURL:         strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL")),
 		CloudMiniMaxAPIKey:          strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY")),
+		CloudKimiBaseURL:            strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL")),
+		CloudKimiAPIKey:             strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY")),
+		CloudGLMBaseURL:             strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL")),
+		CloudGLMAPIKey:              strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY")),
 		AIHTTPTimeout:               defaultAIHTTPTimeout,
 	}
 
@@ -92,6 +100,10 @@ func (c Config) normalized() Config {
 	c.CloudGeminiAPIKey = strings.TrimSpace(c.CloudGeminiAPIKey)
 	c.CloudMiniMaxBaseURL = strings.TrimSpace(c.CloudMiniMaxBaseURL)
 	c.CloudMiniMaxAPIKey = strings.TrimSpace(c.CloudMiniMaxAPIKey)
+	c.CloudKimiBaseURL = strings.TrimSpace(c.CloudKimiBaseURL)
+	c.CloudKimiAPIKey = strings.TrimSpace(c.CloudKimiAPIKey)
+	c.CloudGLMBaseURL = strings.TrimSpace(c.CloudGLMBaseURL)
+	c.CloudGLMAPIKey = strings.TrimSpace(c.CloudGLMAPIKey)
 
 	// Alias for old single cloud env.
 	if c.CloudLiteLLMBaseURL == "" {
@@ -148,6 +160,8 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 			bytedance: newOpenAIBackend("cloud-bytedance", normalized.CloudBytedanceBaseURL, normalized.CloudBytedanceAPIKey, normalized.AIHTTPTimeout),
 			gemini:    newOpenAIBackend("cloud-gemini", normalized.CloudGeminiBaseURL, normalized.CloudGeminiAPIKey, normalized.AIHTTPTimeout),
 			minimax:   newOpenAIBackend("cloud-minimax", normalized.CloudMiniMaxBaseURL, normalized.CloudMiniMaxAPIKey, normalized.AIHTTPTimeout),
+			kimi:      newOpenAIBackend("cloud-kimi", normalized.CloudKimiBaseURL, normalized.CloudKimiAPIKey, normalized.AIHTTPTimeout),
+			glm:       newOpenAIBackend("cloud-glm", normalized.CloudGLMBaseURL, normalized.CloudGLMAPIKey, normalized.AIHTTPTimeout),
 			registry:  registry,
 			health:    aiHealth,
 		},

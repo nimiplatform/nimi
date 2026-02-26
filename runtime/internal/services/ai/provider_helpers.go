@@ -18,7 +18,12 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 		strings.HasPrefix(lower, "bytedance/") ||
 		strings.HasPrefix(lower, "byte/") ||
 		strings.HasPrefix(lower, "gemini/") ||
-		strings.HasPrefix(lower, "minimax/") {
+		strings.HasPrefix(lower, "minimax/") ||
+		strings.HasPrefix(lower, "kimi/") ||
+		strings.HasPrefix(lower, "moonshot/") ||
+		strings.HasPrefix(lower, "glm/") ||
+		strings.HasPrefix(lower, "zhipu/") ||
+		strings.HasPrefix(lower, "bigmodel/") {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
 	}
 	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME

@@ -24,6 +24,8 @@ func TestCloudProviderPickBackend(t *testing.T) {
 		bytedance: &openAIBackend{name: "bytedance"},
 		gemini:    &openAIBackend{name: "gemini"},
 		minimax:   &openAIBackend{name: "minimax"},
+		kimi:      &openAIBackend{name: "kimi"},
+		glm:       &openAIBackend{name: "glm"},
 	}
 
 	type tc struct {
@@ -40,6 +42,10 @@ func TestCloudProviderPickBackend(t *testing.T) {
 		{modelID: "bytedance/deepseek-v3", wantBackend: "bytedance", wantModelID: "deepseek-v3", wantExplicit: true, wantAvailable: true},
 		{modelID: "gemini/veo-3", wantBackend: "gemini", wantModelID: "veo-3", wantExplicit: true, wantAvailable: true},
 		{modelID: "minimax/video-1", wantBackend: "minimax", wantModelID: "video-1", wantExplicit: true, wantAvailable: true},
+		{modelID: "kimi/kimi-k2", wantBackend: "kimi", wantModelID: "kimi-k2", wantExplicit: true, wantAvailable: true},
+		{modelID: "moonshot/kimi-k2", wantBackend: "kimi", wantModelID: "kimi-k2", wantExplicit: true, wantAvailable: true},
+		{modelID: "glm/glm-4.5v", wantBackend: "glm", wantModelID: "glm-4.5v", wantExplicit: true, wantAvailable: true},
+		{modelID: "bigmodel/glm-4.5v", wantBackend: "glm", wantModelID: "glm-4.5v", wantExplicit: true, wantAvailable: true},
 		{modelID: "gpt-4o-mini", wantBackend: "litellm", wantModelID: "gpt-4o-mini", wantExplicit: false, wantAvailable: true},
 	}
 

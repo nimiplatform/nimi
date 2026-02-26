@@ -730,6 +730,90 @@ func TestSubmitMediaJobMiniMaxVideoTask(t *testing.T) {
 	}
 }
 
+func TestSubmitMediaJobGLMVideoTask(t *testing.T) {
+	videoPayload := []byte("glm-video-bytes")
+	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	pollCount := int32(0)
+	var submitPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/paas/v4/videos/generations":
+			submitPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"id": "glm-task-001",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/paas/v4/async-result/glm-task-001":
+			current := atomic.AddInt32(&pollCount, 1)
+			if current < 2 {
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"status": "running",
+				})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "succeeded",
+				"artifact": map[string]any{
+					"b64_mp4":   videoB64,
+					"mime_type": "video/mp4",
+				},
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGLMBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "glm/cogvideox-3",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt:      "city flyover",
+				DurationSec: 6,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit glm task job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 5*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetProviderJobId() != "glm-task-001" {
+		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
+	}
+	if job.GetRetryCount() == 0 {
+		t.Fatalf("glm job retry count must be tracked")
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
+		t.Fatalf("video payload mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+	if submitPath != "/api/paas/v4/videos/generations" {
+		t.Fatalf("glm submit path mismatch: got=%s", submitPath)
+	}
+}
+
+func TestResolveGLMTaskPaths(t *testing.T) {
+	submitPath, queryPrefix := resolveGLMTaskPaths("https://open.bigmodel.cn")
+	if submitPath != "/api/paas/v4/videos/generations" || queryPrefix != "/api/paas/v4/async-result/" {
+		t.Fatalf("glm default path mismatch: submit=%s query=%s", submitPath, queryPrefix)
+	}
+	submitPath, queryPrefix = resolveGLMTaskPaths("https://open.bigmodel.cn/api/paas/v4")
+	if submitPath != "/videos/generations" || queryPrefix != "/async-result/" {
+		t.Fatalf("glm normalized path mismatch: submit=%s query=%s", submitPath, queryPrefix)
+	}
+}
+
 func TestMediaJobMethodsValidateAndNotFound(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
