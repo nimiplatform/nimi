@@ -8,7 +8,6 @@ export type WorldviewDetailDto = {
     createdAt: string;
     existences?: Record<string, any>;
     id: string;
-    knowledge?: Record<string, any>;
     lifecycle: WorldviewDetailDto.lifecycle;
     narrativeHooks?: Record<string, any>;
     resources?: Record<string, any>;
