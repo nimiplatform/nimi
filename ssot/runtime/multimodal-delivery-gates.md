@@ -261,6 +261,7 @@ rules:
 | I5 | R6-S1（ByteDance OpenSpeech STT WS transport） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S2 provider 扩展与可靠性增强 |
 | I6 | R6-S2（G6+G7 门禁收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S3 provider 扩展 |
 | I7 | R6-S3（Kimi/GLM provider 扩展首批） | 2026-02-26 | 2026-02-26 | Kimi 图像 chat-multimodal 专用 adapter 待后续 | 范围控制 | R6-S4 Kimi 专项多模态 adapter |
+| I8 | R6-S4（Kimi image chat-multimodal adapter） | 2026-02-26 | 2026-02-26 | GLM 非视频模态专用 adapter 待后续 | 范围控制 | R6-S5 GLM 非视频模态适配 |
 
 ## 6. 当前 Gate 状态快照（2026-02-26）
 

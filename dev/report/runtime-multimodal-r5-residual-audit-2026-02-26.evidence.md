@@ -27,7 +27,12 @@
    - `runtime/internal/services/ai/media_job_methods.go`（`adapterGLMTask` + `executeGLMTask`）
    - `runtime/internal/services/ai/provider_cloud_test.go`（`TestCloudProviderPickBackend`）
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobGLMVideoTask`, `TestResolveGLMTaskPaths`）
-4. 合同要求与范围说明
+4. Kimi 图像 chat-multimodal 专用 adapter 与断言
+   - `runtime/internal/services/ai/media_job_methods.go`（`adapterKimiChatMultimodal`, `executeKimiImageChatMultimodal`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobKimiImageChatMultimodal`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobKimiImageChatMultimodalInvalidOutput`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestResolveMediaAdapterNameKimiImage`）
+5. 合同要求与范围说明
    - `ssot/runtime/multimodal-provider-contract.md:236`
    - `ssot/runtime/multimodal-provider-contract.md:220`
 
