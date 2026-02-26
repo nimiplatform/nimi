@@ -7,6 +7,11 @@ It exposes:
 - gRPC APIs (`RuntimeAiService`, `RuntimeAuthService`, `RuntimeGrantService`, `RuntimeWorkflowService`, `RuntimeModelService`, `RuntimeKnowledgeService`, `RuntimeAppService`, `RuntimeAuditService`, `RuntimeLocalRuntimeService`)
 - HTTP diagnostics endpoints (`/livez`, `/readyz`, `/healthz`, `/v1/runtime/health`)
 
+## AI Provider Inventory
+
+- Current runtime AI support matrix (providers, compatibility, transport, runnable demos): [AI Provider Support Matrix](./ai-provider-support-matrix.md)
+- End-user provider tutorials (`localai/litellm/bytedance/gemini/minimax/glm/kimi`): [Provider Tutorials](../examples/providers/README.md)
+
 ## Run the Daemon
 
 ```bash

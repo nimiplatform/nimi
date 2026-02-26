@@ -67,6 +67,7 @@ export default defineConfig({
           text: 'Runtime',
           items: [
             { text: 'CLI & Configuration', link: '/runtime/' },
+            { text: 'AI Provider Matrix', link: '/runtime/ai-provider-support-matrix' },
           ],
         },
         {
