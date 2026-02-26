@@ -11,10 +11,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const runtimeDir = path.join(repoRoot, 'runtime');
-const minStatementsCoverage = Number(process.env.NIMI_RUNTIME_MIN_STATEMENTS_COVERAGE || '30');
+const minStatementsCoverage = Number(process.env.NIMI_RUNTIME_MIN_STATEMENTS_COVERAGE || '60');
+const coveragePackages = (process.env.NIMI_RUNTIME_COVERAGE_PACKAGES || './internal/services/...')
+  .split(',')
+  .map((value) => value.trim())
+  .filter((value) => value.length > 0);
 
 if (!Number.isFinite(minStatementsCoverage)) {
   process.stderr.write('[check-runtime-go-coverage] invalid threshold NIMI_RUNTIME_MIN_STATEMENTS_COVERAGE\n');
+  process.exit(1);
+}
+if (coveragePackages.length === 0) {
+  process.stderr.write('[check-runtime-go-coverage] invalid coverage package scope NIMI_RUNTIME_COVERAGE_PACKAGES\n');
   process.exit(1);
 }
 
@@ -63,9 +71,9 @@ function main() {
 
   try {
     process.stdout.write(
-      `[check-runtime-go-coverage] running go test with statements threshold >= ${minStatementsCoverage}%\n`,
+      `[check-runtime-go-coverage] running go test for ${coveragePackages.join(' ')} with statements threshold >= ${minStatementsCoverage}%\n`,
     );
-    run('go', ['test', './...', '-covermode=atomic', `-coverprofile=${coverProfilePath}`], {
+    run('go', ['test', ...coveragePackages, '-covermode=atomic', `-coverprofile=${coverProfilePath}`], {
       cwd: runtimeDir,
     });
 

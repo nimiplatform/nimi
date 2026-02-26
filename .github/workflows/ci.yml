@@ -156,6 +156,9 @@ jobs:
       - name: SSOT links check
         run: pnpm check:ssot-links
 
+      - name: SSOT proto-first check
+        run: pnpm check:ssot-proto-first
+
   core-static:
     needs: changes
     if: needs.changes.outputs.core_changed == 'true'
@@ -306,7 +309,12 @@ jobs:
         run: go vet ./...
 
       - name: Runtime go coverage gate
+        env:
+          NIMI_RUNTIME_MIN_STATEMENTS_COVERAGE: 60
         run: pnpm check:runtime-go-coverage
+
+      - name: Runtime ai/media coverage gate
+        run: pnpm check:runtime-ai-media-coverage
 
       - name: Runtime golangci-lint
         uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
