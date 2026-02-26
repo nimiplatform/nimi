@@ -98,7 +98,9 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa embed mismatch")
 	}
 
-	imagePayload, _, err := p.generateImage(context.Background(), "nexa/image", "draw mountain")
+	imagePayload, _, err := p.generateImage(context.Background(), "nexa/image", &runtimev1.ImageGenerationSpec{
+		Prompt: "draw mountain",
+	})
 	if err != nil {
 		t.Fatalf("nexa generateImage: %v", err)
 	}
@@ -106,7 +108,9 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa image payload mismatch")
 	}
 
-	speechPayload, _, err := p.synthesizeSpeech(context.Background(), "nexa/tts", "hello")
+	speechPayload, _, err := p.synthesizeSpeech(context.Background(), "nexa/tts", &runtimev1.SpeechSynthesisSpec{
+		Text: "hello",
+	})
 	if err != nil {
 		t.Fatalf("nexa synthesizeSpeech: %v", err)
 	}
@@ -114,7 +118,9 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa speech payload mismatch")
 	}
 
-	transcribedText, _, err := p.transcribe(context.Background(), "nexa/stt", []byte("audio"), "audio/wav")
+	transcribedText, _, err := p.transcribe(context.Background(), "nexa/stt", &runtimev1.SpeechTranscriptionSpec{
+		MimeType: "audio/wav",
+	}, []byte("audio"), "audio/wav")
 	if err != nil {
 		t.Fatalf("nexa transcribe: %v", err)
 	}
@@ -122,7 +128,9 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa transcribe mismatch: %s", transcribedText)
 	}
 
-	_, _, err = p.generateVideo(context.Background(), "nexa/video", "unsupported")
+	_, _, err = p.generateVideo(context.Background(), "nexa/video", &runtimev1.VideoGenerationSpec{
+		Prompt: "unsupported",
+	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("nexa video should fail-close with failed-precondition, got=%v", status.Code(err))
 	}

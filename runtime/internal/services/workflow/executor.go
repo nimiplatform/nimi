@@ -270,7 +270,21 @@ func (s *Service) executeNodeExternalAsync(
 	}
 	taskID := record.TaskID
 	nodeID := node.GetNodeId()
-	s.setNodeExternalStatus(taskID, nodeID, job.GetProviderJobId(), job.GetNextPollAt(), 0, "")
+	jobID := strings.TrimSpace(job.GetJobId())
+	cancelForwarded := false
+	forwardCancel := func(reason string) {
+		if cancelForwarded || jobID == "" {
+			return
+		}
+		cancelForwarded = true
+		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_, _ = client.CancelMediaJob(cancelCtx, &runtimev1.CancelMediaJobRequest{
+			JobId:  jobID,
+			Reason: strings.TrimSpace(reason),
+		})
+	}
+	s.setNodeExternalStatus(taskID, nodeID, job.GetProviderJobId(), job.GetNextPollAt(), job.GetRetryCount(), "")
 	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED,
 		NodeId:     nodeID,
@@ -279,6 +293,9 @@ func (s *Service) executeNodeExternalAsync(
 			"job_id":          job.GetJobId(),
 			"provider_job_id": job.GetProviderJobId(),
 			"status":          job.GetStatus().String(),
+			"retry_count":     job.GetRetryCount(),
+			"reason_code":     job.GetReasonCode().String(),
+			"reason_detail":   job.GetReasonDetail(),
 		}),
 	})
 
@@ -286,12 +303,16 @@ func (s *Service) executeNodeExternalAsync(
 	runningEventSent := false
 	for {
 		if ctx.Err() != nil {
+			forwardCancel(ctx.Err().Error())
 			return nil, ctx.Err()
 		}
 		pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
-			JobId: job.GetJobId(),
+			JobId: jobID,
 		})
 		if pollErr != nil {
+			if ctx.Err() != nil {
+				forwardCancel(ctx.Err().Error())
+			}
 			return nil, pollErr
 		}
 		current := pollResp.GetJob()
@@ -299,7 +320,11 @@ func (s *Service) executeNodeExternalAsync(
 			return nil, fmt.Errorf("external async poll returned empty job")
 		}
 		retryCount++
-		s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), retryCount, "")
+		effectiveRetryCount := current.GetRetryCount()
+		if effectiveRetryCount < retryCount {
+			effectiveRetryCount = retryCount
+		}
+		s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), effectiveRetryCount, "")
 		switch current.GetStatus() {
 		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
 			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
@@ -314,7 +339,9 @@ func (s *Service) executeNodeExternalAsync(
 						"job_id":          current.GetJobId(),
 						"provider_job_id": current.GetProviderJobId(),
 						"status":          current.GetStatus().String(),
-						"retry_count":     retryCount,
+						"retry_count":     effectiveRetryCount,
+						"reason_code":     current.GetReasonCode().String(),
+						"reason_detail":   current.GetReasonDetail(),
 					}),
 				})
 			}
@@ -328,7 +355,10 @@ func (s *Service) executeNodeExternalAsync(
 				Payload: structFromMap(map[string]any{
 					"job_id":          current.GetJobId(),
 					"provider_job_id": current.GetProviderJobId(),
-					"artifacts":       len(current.GetArtifacts()),
+					"status":          current.GetStatus().String(),
+					"retry_count":     effectiveRetryCount,
+					"reason_code":     current.GetReasonCode().String(),
+					"reason_detail":   current.GetReasonDetail(),
 				}),
 			})
 			return outputsFromMediaJob(s, record, node, current)
@@ -338,7 +368,7 @@ func (s *Service) executeNodeExternalAsync(
 			if lastError == "" {
 				lastError = current.GetReasonCode().String()
 			}
-			s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), retryCount, lastError)
+			s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), effectiveRetryCount, lastError)
 			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 				EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_FAILED,
 				NodeId:     nodeID,
@@ -347,6 +377,7 @@ func (s *Service) executeNodeExternalAsync(
 					"job_id":          current.GetJobId(),
 					"provider_job_id": current.GetProviderJobId(),
 					"status":          current.GetStatus().String(),
+					"retry_count":     effectiveRetryCount,
 					"reason_code":     current.GetReasonCode().String(),
 					"reason_detail":   current.GetReasonDetail(),
 				}),
@@ -365,10 +396,16 @@ func buildSubmitMediaJobRequest(
 		return nil, fmt.Errorf("workflow record/node is nil")
 	}
 	req := &runtimev1.SubmitMediaJobRequest{
-		AppId:         record.AppID,
-		SubjectUserId: record.SubjectUserID,
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		AppId:          record.AppID,
+		SubjectUserId:  record.SubjectUserID,
+		RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:       runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		RequestId:      fmt.Sprintf("%s:%s", record.TaskID, node.GetNodeId()),
+		IdempotencyKey: fmt.Sprintf("%s:%s:external-async", record.TaskID, node.GetNodeId()),
+		Labels: map[string]string{
+			"workflow_task_id": record.TaskID,
+			"workflow_node_id": node.GetNodeId(),
+		},
 	}
 
 	switch node.GetNodeType() {

@@ -181,10 +181,10 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 					},
 				},
 				{
-					NodeId:          "image",
-					NodeType:        runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE,
-					ExecutionMode:   runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC,
-					DependsOn:       []string{"source"},
+					NodeId:        "image",
+					NodeType:      runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE,
+					ExecutionMode: runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC,
+					DependsOn:     []string{"source"},
 					TypeConfig: &runtimev1.WorkflowNode_AiImageConfig{
 						AiImageConfig: &runtimev1.AiImageNodeConfig{
 							ModelId: "m-image",
@@ -211,6 +211,12 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 	if client.mediaReq.GetModal() != runtimev1.Modal_MODAL_IMAGE {
 		t.Fatalf("external async modal mismatch: %v", client.mediaReq.GetModal())
 	}
+	if client.mediaReq.GetRequestId() == "" || client.mediaReq.GetIdempotencyKey() == "" {
+		t.Fatalf("external async request_id/idempotency_key must be populated")
+	}
+	if client.mediaReq.GetLabels()["workflow_task_id"] == "" || client.mediaReq.GetLabels()["workflow_node_id"] == "" {
+		t.Fatalf("external async labels must include workflow_task_id/workflow_node_id")
+	}
 
 	stream := &workflowEventCollector{ctx: context.Background()}
 	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{
@@ -220,12 +226,25 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 	}
 	foundSubmitted := false
 	foundCompleted := false
+	assertPayloadFields := func(payload *structpb.Struct, fieldName string) {
+		if payload == nil {
+			t.Fatalf("%s payload must not be nil", fieldName)
+		}
+		values := payload.AsMap()
+		for _, key := range []string{"job_id", "provider_job_id", "status", "retry_count", "reason_code", "reason_detail"} {
+			if _, exists := values[key]; !exists {
+				t.Fatalf("%s payload missing key %q: %#v", fieldName, key, values)
+			}
+		}
+	}
 	for _, event := range stream.events {
 		if event.GetEventType() == runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED {
 			foundSubmitted = true
+			assertPayloadFields(event.GetPayload(), "NODE_EXTERNAL_SUBMITTED")
 		}
 		if event.GetEventType() == runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED {
 			foundCompleted = true
+			assertPayloadFields(event.GetPayload(), "NODE_EXTERNAL_COMPLETED")
 		}
 	}
 	if !foundSubmitted {
@@ -236,16 +255,89 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 	}
 }
 
+func TestWorkflowExternalAsyncCancelPropagatesToMediaJob(t *testing.T) {
+	client := &recordingRuntimeAIClient{
+		mediaPollStatuses: []runtimev1.MediaJobStatus{
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING,
+		},
+	}
+	svc := New(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		WithAIClient(client),
+		WithArtifactRoot(t.TempDir()),
+	)
+	ctx := context.Background()
+
+	submitResp, err := svc.SubmitWorkflow(ctx, &runtimev1.SubmitWorkflowRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		Definition: &runtimev1.WorkflowDefinition{
+			WorkflowType: "external.async.cancel",
+			Nodes: []*runtimev1.WorkflowNode{
+				{
+					NodeId:   "source",
+					NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE,
+					TypeConfig: &runtimev1.WorkflowNode_TemplateConfig{
+						TemplateConfig: &runtimev1.TemplateNodeConfig{Template: "city skyline"},
+					},
+				},
+				{
+					NodeId:        "image",
+					NodeType:      runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE,
+					ExecutionMode: runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC,
+					DependsOn:     []string{"source"},
+					TypeConfig: &runtimev1.WorkflowNode_AiImageConfig{
+						AiImageConfig: &runtimev1.AiImageNodeConfig{
+							ModelId: "m-image",
+						},
+					},
+				},
+			},
+			Edges: []*runtimev1.WorkflowEdge{
+				{FromNodeId: "source", FromOutput: "text", ToNodeId: "image", ToInput: "prompt"},
+			},
+		},
+		TimeoutMs: 5_000,
+	})
+	if err != nil {
+		t.Fatalf("submit workflow: %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for client.mediaReq == nil && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if client.mediaReq == nil {
+		t.Fatalf("media submit request was not issued")
+	}
+	if _, cancelErr := svc.CancelWorkflow(ctx, &runtimev1.CancelWorkflowRequest{
+		TaskId: submitResp.GetTaskId(),
+	}); cancelErr != nil {
+		t.Fatalf("cancel workflow: %v", cancelErr)
+	}
+	statusResp := waitWorkflowStatus(t, svc, submitResp.GetTaskId(), runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED, 3*time.Second)
+	if statusResp.GetStatus() != runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED {
+		t.Fatalf("workflow status mismatch: %v", statusResp.GetStatus())
+	}
+	if client.cancelReq == nil || client.cancelReq.GetJobId() == "" {
+		t.Fatalf("cancel media job request must be forwarded")
+	}
+}
+
 type recordingRuntimeAIClient struct {
-	generateReq *runtimev1.GenerateRequest
-	streamReq   *runtimev1.StreamGenerateRequest
-	embedReq    *runtimev1.EmbedRequest
-	imageReq    *runtimev1.GenerateImageRequest
-	videoReq    *runtimev1.GenerateVideoRequest
-	ttsReq      *runtimev1.SynthesizeSpeechRequest
-	sttReq      *runtimev1.TranscribeAudioRequest
-	mediaReq    *runtimev1.SubmitMediaJobRequest
-	mediaJobs   map[string]*runtimev1.MediaJob
+	generateReq       *runtimev1.GenerateRequest
+	streamReq         *runtimev1.StreamGenerateRequest
+	embedReq          *runtimev1.EmbedRequest
+	imageReq          *runtimev1.GenerateImageRequest
+	videoReq          *runtimev1.GenerateVideoRequest
+	ttsReq            *runtimev1.SynthesizeSpeechRequest
+	sttReq            *runtimev1.TranscribeAudioRequest
+	mediaReq          *runtimev1.SubmitMediaJobRequest
+	mediaJobs         map[string]*runtimev1.MediaJob
+	mediaPollStatuses []runtimev1.MediaJobStatus
+	mediaPollIndex    int
+	cancelReq         *runtimev1.CancelMediaJobRequest
 }
 
 func (c *recordingRuntimeAIClient) Generate(_ context.Context, req *runtimev1.GenerateRequest, _ ...grpc.CallOption) (*runtimev1.GenerateResponse, error) {
@@ -379,11 +471,26 @@ func (c *recordingRuntimeAIClient) GetMediaJob(_ context.Context, req *runtimev1
 			Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED,
 			ReasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 		}
+	} else if len(c.mediaPollStatuses) > 0 {
+		statusIndex := c.mediaPollIndex
+		if statusIndex >= len(c.mediaPollStatuses) {
+			statusIndex = len(c.mediaPollStatuses) - 1
+		}
+		c.mediaPollIndex++
+		job.Status = c.mediaPollStatuses[statusIndex]
+		if job.Status == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+			job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+			job.ReasonDetail = "poll failed"
+		}
+		if job.Status == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING || job.Status == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED {
+			job.RetryCount = int32(c.mediaPollIndex)
+		}
 	}
 	return &runtimev1.GetMediaJobResponse{Job: job}, nil
 }
 
 func (c *recordingRuntimeAIClient) CancelMediaJob(_ context.Context, req *runtimev1.CancelMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.CancelMediaJobResponse, error) {
+	c.cancelReq = cloneCancelMediaJobRequest(req)
 	if c.mediaJobs == nil {
 		c.mediaJobs = map[string]*runtimev1.MediaJob{}
 	}
@@ -560,6 +667,15 @@ func cloneSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) *runtimev1
 	copied, ok := cloned.(*runtimev1.SubmitMediaJobRequest)
 	if !ok {
 		return &runtimev1.SubmitMediaJobRequest{}
+	}
+	return copied
+}
+
+func cloneCancelMediaJobRequest(req *runtimev1.CancelMediaJobRequest) *runtimev1.CancelMediaJobRequest {
+	cloned := proto.Clone(req)
+	copied, ok := cloned.(*runtimev1.CancelMediaJobRequest)
+	if !ok {
+		return &runtimev1.CancelMediaJobRequest{}
 	}
 	return copied
 }

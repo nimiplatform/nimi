@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log/slog"
@@ -380,7 +381,21 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 }
 
 func TestGenerateImageChunked(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	imagePayload := []byte("image-chunked")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"b64_json":"` + imageB64 + `","mime_type":"image/png"}]}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL: server.URL,
+	})
 	stream := &artifactCollector{ctx: context.Background()}
 
 	err := svc.GenerateImage(&runtimev1.GenerateImageRequest{

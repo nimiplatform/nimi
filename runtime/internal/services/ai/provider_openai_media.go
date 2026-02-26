@@ -3,12 +3,14 @@ package ai
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -78,7 +80,13 @@ func (b *openAIBackend) embed(ctx context.Context, modelID string, inputs []stri
 	return vectors, usage, nil
 }
 
-func (b *openAIBackend) transcribe(ctx context.Context, modelID string, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
+func (b *openAIBackend) transcribe(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.SpeechTranscriptionSpec,
+	audio []byte,
+	mimeType string,
+) (string, *runtimev1.UsageStats, error) {
 	if len(audio) == 0 {
 		return "", nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 	}
@@ -87,6 +95,52 @@ func (b *openAIBackend) transcribe(ctx context.Context, modelID string, audio []
 	writer := multipart.NewWriter(body)
 	if err := writer.WriteField("model", modelID); err != nil {
 		return "", nil, mapProviderRequestError(err)
+	}
+	if strings.TrimSpace(mimeType) != "" {
+		if err := writer.WriteField("mime_type", strings.TrimSpace(mimeType)); err != nil {
+			return "", nil, mapProviderRequestError(err)
+		}
+	}
+	if spec != nil {
+		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
+			if err := writer.WriteField("language", language); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
+		if prompt := strings.TrimSpace(spec.GetPrompt()); prompt != "" {
+			if err := writer.WriteField("prompt", prompt); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
+		if format := strings.TrimSpace(spec.GetResponseFormat()); format != "" {
+			if err := writer.WriteField("response_format", format); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
+		if spec.GetTimestamps() {
+			if err := writer.WriteField("timestamps", "true"); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
+		if spec.GetDiarization() {
+			if err := writer.WriteField("diarization", "true"); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
+		if spec.GetSpeakerCount() > 0 {
+			if err := writer.WriteField("speaker_count", strconv.FormatInt(int64(spec.GetSpeakerCount()), 10)); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
+		if options := structToMap(spec.GetProviderOptions()); len(options) > 0 {
+			raw, marshalErr := json.Marshal(options)
+			if marshalErr != nil {
+				return "", nil, mapProviderRequestError(marshalErr)
+			}
+			if err := writer.WriteField("provider_options", string(raw)); err != nil {
+				return "", nil, mapProviderRequestError(err)
+			}
+		}
 	}
 	fileWriter, err := writer.CreateFormFile("file", "audio.bin")
 	if err != nil {
@@ -135,11 +189,21 @@ func (b *openAIBackend) transcribe(ctx context.Context, modelID string, audio []
 	return text, usage, nil
 }
 
-func (b *openAIBackend) generateImage(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error) {
+func (b *openAIBackend) generateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type imageRequest struct {
-		Model          string `json:"model"`
-		Prompt         string `json:"prompt"`
-		ResponseFormat string `json:"response_format,omitempty"`
+		Model           string         `json:"model"`
+		Prompt          string         `json:"prompt"`
+		NegativePrompt  string         `json:"negative_prompt,omitempty"`
+		N               int32          `json:"n,omitempty"`
+		Size            string         `json:"size,omitempty"`
+		AspectRatio     string         `json:"aspect_ratio,omitempty"`
+		Quality         string         `json:"quality,omitempty"`
+		Style           string         `json:"style,omitempty"`
+		Seed            int64          `json:"seed,omitempty"`
+		ReferenceImages []string       `json:"reference_images,omitempty"`
+		Mask            string         `json:"mask,omitempty"`
+		ResponseFormat  string         `json:"response_format,omitempty"`
+		ProviderOptions map[string]any `json:"provider_options,omitempty"`
 	}
 	type imageResponse struct {
 		Data []struct {
@@ -148,11 +212,30 @@ func (b *openAIBackend) generateImage(ctx context.Context, modelID string, promp
 		} `json:"data"`
 	}
 
+	prompt := ""
+	if spec != nil {
+		prompt = strings.TrimSpace(spec.GetPrompt())
+	}
+	responseFormat := "b64_json"
+	if spec != nil && strings.TrimSpace(spec.GetResponseFormat()) != "" {
+		responseFormat = strings.TrimSpace(spec.GetResponseFormat())
+	}
+
 	var respBody imageResponse
 	err := b.postJSON(ctx, "/v1/images/generations", imageRequest{
-		Model:          modelID,
-		Prompt:         prompt,
-		ResponseFormat: "b64_json",
+		Model:           modelID,
+		Prompt:          prompt,
+		NegativePrompt:  strings.TrimSpace(spec.GetNegativePrompt()),
+		N:               spec.GetN(),
+		Size:            strings.TrimSpace(spec.GetSize()),
+		AspectRatio:     strings.TrimSpace(spec.GetAspectRatio()),
+		Quality:         strings.TrimSpace(spec.GetQuality()),
+		Style:           strings.TrimSpace(spec.GetStyle()),
+		Seed:            spec.GetSeed(),
+		ReferenceImages: append([]string(nil), spec.GetReferenceImages()...),
+		Mask:            strings.TrimSpace(spec.GetMask()),
+		ResponseFormat:  responseFormat,
+		ProviderOptions: structToMap(spec.GetProviderOptions()),
 	}, &respBody)
 	if err != nil {
 		return nil, nil, err
@@ -169,10 +252,20 @@ func (b *openAIBackend) generateImage(ctx context.Context, modelID string, promp
 	return payload, usage, nil
 }
 
-func (b *openAIBackend) generateVideo(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error) {
+func (b *openAIBackend) generateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type videoRequest struct {
-		Model  string `json:"model"`
-		Prompt string `json:"prompt"`
+		Model           string         `json:"model"`
+		Prompt          string         `json:"prompt"`
+		NegativePrompt  string         `json:"negative_prompt,omitempty"`
+		DurationSec     int32          `json:"duration_sec,omitempty"`
+		Fps             int32          `json:"fps,omitempty"`
+		Resolution      string         `json:"resolution,omitempty"`
+		AspectRatio     string         `json:"aspect_ratio,omitempty"`
+		Seed            int64          `json:"seed,omitempty"`
+		FirstFrameURI   string         `json:"first_frame_uri,omitempty"`
+		LastFrameURI    string         `json:"last_frame_uri,omitempty"`
+		CameraMotion    string         `json:"camera_motion,omitempty"`
+		ProviderOptions map[string]any `json:"provider_options,omitempty"`
 	}
 	type videoResponse struct {
 		Data []struct {
@@ -186,13 +279,28 @@ func (b *openAIBackend) generateVideo(ctx context.Context, modelID string, promp
 		} `json:"output"`
 	}
 
+	prompt := ""
+	if spec != nil {
+		prompt = strings.TrimSpace(spec.GetPrompt())
+	}
+
 	paths := []string{"/v1/video/generations", "/v1/videos/generations"}
 	var respBody videoResponse
 	var err error
 	for _, path := range paths {
 		err = b.postJSON(ctx, path, videoRequest{
-			Model:  modelID,
-			Prompt: prompt,
+			Model:           modelID,
+			Prompt:          prompt,
+			NegativePrompt:  strings.TrimSpace(spec.GetNegativePrompt()),
+			DurationSec:     spec.GetDurationSec(),
+			Fps:             spec.GetFps(),
+			Resolution:      strings.TrimSpace(spec.GetResolution()),
+			AspectRatio:     strings.TrimSpace(spec.GetAspectRatio()),
+			Seed:            spec.GetSeed(),
+			FirstFrameURI:   strings.TrimSpace(spec.GetFirstFrameUri()),
+			LastFrameURI:    strings.TrimSpace(spec.GetLastFrameUri()),
+			CameraMotion:    strings.TrimSpace(spec.GetCameraMotion()),
+			ProviderOptions: structToMap(spec.GetProviderOptions()),
 		}, &respBody)
 		if err == nil {
 			break
@@ -224,16 +332,40 @@ func (b *openAIBackend) generateVideo(ctx context.Context, modelID string, promp
 	return payload, usage, nil
 }
 
-func (b *openAIBackend) synthesizeSpeech(ctx context.Context, modelID string, text string) ([]byte, *runtimev1.UsageStats, error) {
+func (b *openAIBackend) synthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type speechRequest struct {
-		Model string `json:"model"`
-		Input string `json:"input"`
-		Voice string `json:"voice,omitempty"`
+		Model           string         `json:"model"`
+		Input           string         `json:"input"`
+		Voice           string         `json:"voice,omitempty"`
+		Language        string         `json:"language,omitempty"`
+		AudioFormat     string         `json:"audio_format,omitempty"`
+		SampleRateHz    int32          `json:"sample_rate_hz,omitempty"`
+		Speed           float32        `json:"speed,omitempty"`
+		Pitch           float32        `json:"pitch,omitempty"`
+		Volume          float32        `json:"volume,omitempty"`
+		Emotion         string         `json:"emotion,omitempty"`
+		ProviderOptions map[string]any `json:"provider_options,omitempty"`
+	}
+	text := ""
+	if spec != nil {
+		text = strings.TrimSpace(spec.GetText())
+	}
+	voice := "alloy"
+	if spec != nil && strings.TrimSpace(spec.GetVoice()) != "" {
+		voice = strings.TrimSpace(spec.GetVoice())
 	}
 	payload, err := b.postRaw(ctx, "/v1/audio/speech", speechRequest{
-		Model: modelID,
-		Input: text,
-		Voice: "alloy",
+		Model:           modelID,
+		Input:           text,
+		Voice:           voice,
+		Language:        strings.TrimSpace(spec.GetLanguage()),
+		AudioFormat:     strings.TrimSpace(spec.GetAudioFormat()),
+		SampleRateHz:    spec.GetSampleRateHz(),
+		Speed:           spec.GetSpeed(),
+		Pitch:           spec.GetPitch(),
+		Volume:          spec.GetVolume(),
+		Emotion:         strings.TrimSpace(spec.GetEmotion()),
+		ProviderOptions: structToMap(spec.GetProviderOptions()),
 	})
 	if err != nil {
 		return nil, nil, err

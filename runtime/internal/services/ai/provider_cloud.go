@@ -78,60 +78,52 @@ func (p *cloudProvider) embed(ctx context.Context, modelID string, inputs []stri
 	return fallbackEmbed(inputs), nil, nil
 }
 
-func (p *cloudProvider) generateImage(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error) {
+func (p *cloudProvider) generateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
-		return backend.generateImage(ctx, resolvedModelID, prompt)
+		return backend.generateImage(ctx, resolvedModelID, spec)
 	}
-	payload := []byte(fmt.Sprintf("cloud:image:%s:%s", modelID, prompt))
-	return payload, artifactUsage(prompt, payload, 180), nil
+	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) generateVideo(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error) {
+func (p *cloudProvider) generateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
-		return backend.generateVideo(ctx, resolvedModelID, prompt)
+		return backend.generateVideo(ctx, resolvedModelID, spec)
 	}
-	payload := []byte(fmt.Sprintf("cloud:video:%s:%s", modelID, prompt))
-	return payload, artifactUsage(prompt, payload, 420), nil
+	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) synthesizeSpeech(ctx context.Context, modelID string, text string) ([]byte, *runtimev1.UsageStats, error) {
+func (p *cloudProvider) synthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
-		return backend.synthesizeSpeech(ctx, resolvedModelID, text)
+		return backend.synthesizeSpeech(ctx, resolvedModelID, spec)
 	}
-	payload := []byte(fmt.Sprintf("cloud:audio:%s:%s", modelID, text))
-	return payload, artifactUsage(text, payload, 120), nil
+	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) transcribe(ctx context.Context, modelID string, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
+func (p *cloudProvider) transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
 	if explicit && !ok {
 		return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
-		return backend.transcribe(ctx, resolvedModelID, audio, mimeType)
+		return backend.transcribe(ctx, resolvedModelID, spec, audio, mimeType)
 	}
-	text := fmt.Sprintf("cloud transcription %d bytes (%s)", len(audio), mimeType)
-	return text, &runtimev1.UsageStats{
-		InputTokens:  maxInt64(1, int64(len(audio)/256)),
-		OutputTokens: estimateTokens(text),
-		ComputeMs:    maxInt64(10, int64(len(audio)/64)),
-	}, nil
+	return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
 func (p *cloudProvider) streamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {

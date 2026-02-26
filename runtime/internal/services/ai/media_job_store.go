@@ -22,13 +22,15 @@ type mediaJobRecord struct {
 }
 
 type mediaJobStore struct {
-	mu   sync.RWMutex
-	jobs map[string]*mediaJobRecord
+	mu          sync.RWMutex
+	jobs        map[string]*mediaJobRecord
+	idempotency map[string]string
 }
 
 func newMediaJobStore() *mediaJobStore {
 	return &mediaJobStore{
-		jobs: make(map[string]*mediaJobRecord),
+		jobs:        make(map[string]*mediaJobRecord),
+		idempotency: make(map[string]string),
 	}
 }
 
@@ -80,6 +82,36 @@ func (s *mediaJobStore) get(jobID string) (*runtimev1.MediaJob, bool) {
 	job := cloneMediaJob(record.job)
 	s.mu.RUnlock()
 	return job, true
+}
+
+func (s *mediaJobStore) getByIdempotency(scopeKey string) (*runtimev1.MediaJob, bool) {
+	key := strings.TrimSpace(scopeKey)
+	if key == "" {
+		return nil, false
+	}
+	s.mu.RLock()
+	jobID, ok := s.idempotency[key]
+	record := s.jobs[jobID]
+	if !ok || record == nil {
+		s.mu.RUnlock()
+		return nil, false
+	}
+	job := cloneMediaJob(record.job)
+	s.mu.RUnlock()
+	return job, true
+}
+
+func (s *mediaJobStore) bindIdempotency(scopeKey string, jobID string) {
+	key := strings.TrimSpace(scopeKey)
+	id := strings.TrimSpace(jobID)
+	if key == "" || id == "" {
+		return
+	}
+	s.mu.Lock()
+	if _, exists := s.jobs[id]; exists {
+		s.idempotency[key] = id
+	}
+	s.mu.Unlock()
 }
 
 func (s *mediaJobStore) transition(
@@ -226,11 +258,11 @@ func (s *mediaJobStore) publishLocked(record *mediaJobRecord, eventType runtimev
 	}
 	record.nextSeq++
 	event := &runtimev1.MediaJobEvent{
-		EventType:  eventType,
-		Sequence:   record.nextSeq,
-		TraceId:    record.job.GetTraceId(),
-		Timestamp:  timestamppb.New(time.Now().UTC()),
-		Job:        cloneMediaJob(record.job),
+		EventType: eventType,
+		Sequence:  record.nextSeq,
+		TraceId:   record.job.GetTraceId(),
+		Timestamp: timestamppb.New(time.Now().UTC()),
+		Job:       cloneMediaJob(record.job),
 	}
 	record.events = append(record.events, event)
 	for _, ch := range record.subscribers {

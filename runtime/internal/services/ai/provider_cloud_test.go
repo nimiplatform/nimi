@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -90,16 +89,24 @@ func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 	if _, _, err := p.embed(context.Background(), "aliyun/text-embedding-1", []string{"hello"}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("embed explicit backend missing code mismatch: %v", status.Code(err))
 	}
-	if _, _, err := p.generateImage(context.Background(), "aliyun/image-1", "sunrise"); status.Code(err) != codes.Unavailable {
+	if _, _, err := p.generateImage(context.Background(), "aliyun/image-1", &runtimev1.ImageGenerationSpec{
+		Prompt: "sunrise",
+	}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("generateImage explicit backend missing code mismatch: %v", status.Code(err))
 	}
-	if _, _, err := p.generateVideo(context.Background(), "aliyun/video-1", "sunrise"); status.Code(err) != codes.Unavailable {
+	if _, _, err := p.generateVideo(context.Background(), "aliyun/video-1", &runtimev1.VideoGenerationSpec{
+		Prompt: "sunrise",
+	}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("generateVideo explicit backend missing code mismatch: %v", status.Code(err))
 	}
-	if _, _, err := p.synthesizeSpeech(context.Background(), "aliyun/tts-1", "hello"); status.Code(err) != codes.Unavailable {
+	if _, _, err := p.synthesizeSpeech(context.Background(), "aliyun/tts-1", &runtimev1.SpeechSynthesisSpec{
+		Text: "hello",
+	}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("synthesizeSpeech explicit backend missing code mismatch: %v", status.Code(err))
 	}
-	if _, _, err := p.transcribe(context.Background(), "aliyun/stt-1", []byte("audio"), "audio/wav"); status.Code(err) != codes.Unavailable {
+	if _, _, err := p.transcribe(context.Background(), "aliyun/stt-1", &runtimev1.SpeechTranscriptionSpec{
+		MimeType: "audio/wav",
+	}, []byte("audio"), "audio/wav"); status.Code(err) != codes.Unavailable {
 		t.Fatalf("transcribe explicit backend missing code mismatch: %v", status.Code(err))
 	}
 	_, _, err = p.streamGenerateText(context.Background(), "aliyun/gpt-4o", &runtimev1.StreamGenerateRequest{
@@ -112,7 +119,7 @@ func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 	}
 }
 
-func TestCloudProviderFallbackMediaAndStream(t *testing.T) {
+func TestCloudProviderFailCloseMediaAndFallbackStream(t *testing.T) {
 	p := &cloudProvider{}
 
 	vectors, usage, err := p.embed(context.Background(), "fallback-embed", []string{"hello", "world"})
@@ -126,48 +133,28 @@ func TestCloudProviderFallbackMediaAndStream(t *testing.T) {
 		t.Fatalf("embed fallback usage should be nil")
 	}
 
-	imagePayload, imageUsage, err := p.generateImage(context.Background(), "fallback-image", "image prompt")
-	if err != nil {
-		t.Fatalf("generateImage fallback: %v", err)
-	}
-	if !strings.Contains(string(imagePayload), "cloud:image:fallback-image:image prompt") {
-		t.Fatalf("image fallback payload mismatch: %s", string(imagePayload))
-	}
-	if imageUsage == nil || imageUsage.GetInputTokens() == 0 {
-		t.Fatalf("image fallback usage missing")
+	if _, _, err := p.generateImage(context.Background(), "fallback-image", &runtimev1.ImageGenerationSpec{
+		Prompt: "image prompt",
+	}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("generateImage should fail-close: %v", status.Code(err))
 	}
 
-	videoPayload, videoUsage, err := p.generateVideo(context.Background(), "fallback-video", "video prompt")
-	if err != nil {
-		t.Fatalf("generateVideo fallback: %v", err)
-	}
-	if !strings.Contains(string(videoPayload), "cloud:video:fallback-video:video prompt") {
-		t.Fatalf("video fallback payload mismatch: %s", string(videoPayload))
-	}
-	if videoUsage == nil || videoUsage.GetComputeMs() == 0 {
-		t.Fatalf("video fallback usage missing")
+	if _, _, err := p.generateVideo(context.Background(), "fallback-video", &runtimev1.VideoGenerationSpec{
+		Prompt: "video prompt",
+	}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("generateVideo should fail-close: %v", status.Code(err))
 	}
 
-	speechPayload, speechUsage, err := p.synthesizeSpeech(context.Background(), "fallback-tts", "speak this")
-	if err != nil {
-		t.Fatalf("synthesizeSpeech fallback: %v", err)
-	}
-	if !strings.Contains(string(speechPayload), "cloud:audio:fallback-tts:speak this") {
-		t.Fatalf("speech fallback payload mismatch: %s", string(speechPayload))
-	}
-	if speechUsage == nil || speechUsage.GetInputTokens() == 0 {
-		t.Fatalf("speech fallback usage missing")
+	if _, _, err := p.synthesizeSpeech(context.Background(), "fallback-tts", &runtimev1.SpeechSynthesisSpec{
+		Text: "speak this",
+	}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("synthesizeSpeech should fail-close: %v", status.Code(err))
 	}
 
-	transcribedText, sttUsage, err := p.transcribe(context.Background(), "fallback-stt", []byte("abcdefg"), "audio/wav")
-	if err != nil {
-		t.Fatalf("transcribe fallback: %v", err)
-	}
-	if !strings.Contains(transcribedText, "cloud transcription") {
-		t.Fatalf("transcribe fallback text mismatch: %s", transcribedText)
-	}
-	if sttUsage == nil || sttUsage.GetOutputTokens() == 0 {
-		t.Fatalf("transcribe fallback usage missing")
+	if _, _, err := p.transcribe(context.Background(), "fallback-stt", &runtimev1.SpeechTranscriptionSpec{
+		MimeType: "audio/wav",
+	}, []byte("abcdefg"), "audio/wav"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("transcribe should fail-close: %v", status.Code(err))
 	}
 
 	deltas := make([]string, 0, 4)
@@ -290,7 +277,9 @@ func TestCloudProviderLiteLLMAllModalities(t *testing.T) {
 		t.Fatalf("litellm embed vector mismatch")
 	}
 
-	imagePayload, _, err := p.generateImage(context.Background(), "litellm/image-1", "skyline")
+	imagePayload, _, err := p.generateImage(context.Background(), "litellm/image-1", &runtimev1.ImageGenerationSpec{
+		Prompt: "skyline",
+	})
 	if err != nil {
 		t.Fatalf("litellm generateImage: %v", err)
 	}
@@ -298,7 +287,9 @@ func TestCloudProviderLiteLLMAllModalities(t *testing.T) {
 		t.Fatalf("litellm image payload mismatch: got=%q", string(imagePayload))
 	}
 
-	videoPayload, _, err := p.generateVideo(context.Background(), "litellm/video-1", "ocean")
+	videoPayload, _, err := p.generateVideo(context.Background(), "litellm/video-1", &runtimev1.VideoGenerationSpec{
+		Prompt: "ocean",
+	})
 	if err != nil {
 		t.Fatalf("litellm generateVideo: %v", err)
 	}
@@ -306,7 +297,9 @@ func TestCloudProviderLiteLLMAllModalities(t *testing.T) {
 		t.Fatalf("litellm video payload mismatch: got=%q", string(videoPayload))
 	}
 
-	speechPayload, _, err := p.synthesizeSpeech(context.Background(), "litellm/tts-1", "speak")
+	speechPayload, _, err := p.synthesizeSpeech(context.Background(), "litellm/tts-1", &runtimev1.SpeechSynthesisSpec{
+		Text: "speak",
+	})
 	if err != nil {
 		t.Fatalf("litellm synthesizeSpeech: %v", err)
 	}
@@ -314,7 +307,9 @@ func TestCloudProviderLiteLLMAllModalities(t *testing.T) {
 		t.Fatalf("litellm speech payload mismatch: got=%q", string(speechPayload))
 	}
 
-	transcribedText, _, err := p.transcribe(context.Background(), "litellm/stt-1", []byte("audio-bytes"), "audio/wav")
+	transcribedText, _, err := p.transcribe(context.Background(), "litellm/stt-1", &runtimev1.SpeechTranscriptionSpec{
+		MimeType: "audio/wav",
+	}, []byte("audio-bytes"), "audio/wav")
 	if err != nil {
 		t.Fatalf("litellm transcribe: %v", err)
 	}

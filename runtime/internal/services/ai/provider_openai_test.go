@@ -46,7 +46,9 @@ func TestOpenAIBackendImageAndSpeech(t *testing.T) {
 		t.Fatalf("backend must not be nil")
 	}
 
-	gotImage, usage, err := backend.generateImage(context.Background(), "img-model", "draw a cat")
+	gotImage, usage, err := backend.generateImage(context.Background(), "img-model", &runtimev1.ImageGenerationSpec{
+		Prompt: "draw a cat",
+	})
 	if err != nil {
 		t.Fatalf("generate image: %v", err)
 	}
@@ -57,7 +59,9 @@ func TestOpenAIBackendImageAndSpeech(t *testing.T) {
 		t.Fatalf("image usage must be set")
 	}
 
-	gotSpeech, speechUsage, err := backend.synthesizeSpeech(context.Background(), "tts-model", "hello world")
+	gotSpeech, speechUsage, err := backend.synthesizeSpeech(context.Background(), "tts-model", &runtimev1.SpeechSynthesisSpec{
+		Text: "hello world",
+	})
 	if err != nil {
 		t.Fatalf("synthesize speech: %v", err)
 	}
@@ -96,7 +100,9 @@ func TestOpenAIBackendVideoFallbackPath(t *testing.T) {
 		t.Fatalf("backend must not be nil")
 	}
 
-	gotVideo, usage, err := backend.generateVideo(context.Background(), "vid-model", "drive on mars")
+	gotVideo, usage, err := backend.generateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
+		Prompt: "drive on mars",
+	})
 	if err != nil {
 		t.Fatalf("generate video: %v", err)
 	}
@@ -119,7 +125,9 @@ func TestOpenAIBackendVideoUnsupported(t *testing.T) {
 		t.Fatalf("backend must not be nil")
 	}
 
-	_, _, err := backend.generateVideo(context.Background(), "vid-model", "prompt")
+	_, _, err := backend.generateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
+		Prompt: "prompt",
+	})
 	if err == nil {
 		t.Fatalf("expected error for unsupported video endpoint")
 	}

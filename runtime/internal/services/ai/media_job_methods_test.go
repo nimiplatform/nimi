@@ -19,10 +19,24 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestSubmitMediaJobImageCompletes(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	imagePayload := []byte("image-payload")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"b64_json":"` + imageB64 + `","mime_type":"image/png"}]}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL: server.URL,
+	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
@@ -32,7 +46,9 @@ func TestSubmitMediaJobImageCompletes(t *testing.T) {
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
 			ImageSpec: &runtimev1.ImageGenerationSpec{
-				Prompt: "blue car on mars",
+				Prompt:         "blue car on mars",
+				Size:           "1024x1024",
+				ResponseFormat: "png",
 			},
 		},
 	})
@@ -46,6 +62,13 @@ func TestSubmitMediaJobImageCompletes(t *testing.T) {
 	if len(job.GetArtifacts()) == 0 {
 		t.Fatalf("expected at least one artifact")
 	}
+	artifact := job.GetArtifacts()[0]
+	if artifact.GetMimeType() == "" || artifact.GetSha256() == "" || artifact.GetSizeBytes() == 0 {
+		t.Fatalf("artifact metadata must be populated: %#v", artifact)
+	}
+	if artifact.GetWidth() != 1024 || artifact.GetHeight() != 1024 {
+		t.Fatalf("artifact image dimensions mismatch: %dx%d", artifact.GetWidth(), artifact.GetHeight())
+	}
 	artifactsResp, err := svc.GetMediaArtifacts(context.Background(), &runtimev1.GetMediaArtifactsRequest{
 		JobId: job.GetJobId(),
 	})
@@ -54,6 +77,51 @@ func TestSubmitMediaJobImageCompletes(t *testing.T) {
 	}
 	if len(artifactsResp.GetArtifacts()) == 0 {
 		t.Fatalf("expected artifacts in response")
+	}
+}
+
+func TestSubmitMediaJobIdempotencyReturnsSameJob(t *testing.T) {
+	imagePayload := []byte("idempotent-image")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"b64_json":"` + imageB64 + `","mime_type":"image/png"}]}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL: server.URL,
+	})
+	req := &runtimev1.SubmitMediaJobRequest{
+		AppId:          "nimi.desktop",
+		SubjectUserId:  "user-001",
+		ModelId:        "local/sd3",
+		Modal:          runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:       runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		IdempotencyKey: "idempotent-key-1",
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "idempotent prompt",
+			},
+		},
+	}
+	firstResp, err := svc.SubmitMediaJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("first submit media job: %v", err)
+	}
+	secondResp, err := svc.SubmitMediaJob(context.Background(), req)
+	if err != nil {
+		t.Fatalf("second submit media job: %v", err)
+	}
+	if firstResp.GetJob().GetJobId() == "" || secondResp.GetJob().GetJobId() == "" {
+		t.Fatalf("job id must not be empty")
+	}
+	if firstResp.GetJob().GetJobId() != secondResp.GetJob().GetJobId() {
+		t.Fatalf("idempotency must return same job id: first=%s second=%s", firstResp.GetJob().GetJobId(), secondResp.GetJob().GetJobId())
 	}
 }
 
@@ -194,9 +262,11 @@ func TestSubmitMediaJobGeminiOperation(t *testing.T) {
 	videoPayload := []byte("gemini-video-bytes")
 	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
 	pollCount := int32(0)
+	var capturedSubmitPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/operations":
+			_ = json.NewDecoder(r.Body).Decode(&capturedSubmitPayload)
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"name": "op-123",
 			})
@@ -237,7 +307,13 @@ func TestSubmitMediaJobGeminiOperation(t *testing.T) {
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
 			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "city at dawn",
+				Prompt:         "city at dawn",
+				NegativePrompt: "rain",
+				DurationSec:    8,
+				Fps:            24,
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"stabilization": true,
+				}),
 			},
 		},
 	})
@@ -251,8 +327,20 @@ func TestSubmitMediaJobGeminiOperation(t *testing.T) {
 	if job.GetProviderJobId() != "op-123" {
 		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
 	}
+	if job.GetRetryCount() == 0 {
+		t.Fatalf("gemini job retry count must be tracked")
+	}
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
 		t.Fatalf("video payload mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+	if capturedSubmitPayload["negative_prompt"] != "rain" {
+		t.Fatalf("gemini canonical negative_prompt not forwarded: %#v", capturedSubmitPayload)
+	}
+	if intValue, ok := capturedSubmitPayload["duration_sec"].(float64); !ok || int(intValue) != 8 {
+		t.Fatalf("gemini canonical duration_sec not forwarded: %#v", capturedSubmitPayload)
+	}
+	if _, ok := capturedSubmitPayload["provider_options"]; !ok {
+		t.Fatalf("gemini provider_options not forwarded: %#v", capturedSubmitPayload)
 	}
 }
 
@@ -372,6 +460,9 @@ func TestSubmitMediaJobMiniMaxTask(t *testing.T) {
 	if job.GetProviderJobId() != "task-001" {
 		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
 	}
+	if job.GetRetryCount() == 0 {
+		t.Fatalf("minimax job retry count must be tracked")
+	}
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
 		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
 	}
@@ -488,6 +579,93 @@ func TestMediaJobMethodsValidateAndNotFound(t *testing.T) {
 	}
 	if err := svc.SubscribeMediaJobEvents(&runtimev1.SubscribeMediaJobEventsRequest{JobId: "missing"}, stream); status.Code(err) != codes.NotFound {
 		t.Fatalf("subscribe missing code mismatch: %v", status.Code(err))
+	}
+}
+
+func TestSubmitMediaJobRangeValidation(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+	cases := []struct {
+		name string
+		req  *runtimev1.SubmitMediaJobRequest
+	}{
+		{
+			name: "image negative n",
+			req: &runtimev1.SubmitMediaJobRequest{
+				AppId:         "nimi.desktop",
+				SubjectUserId: "user-001",
+				ModelId:       "local/sd3",
+				Modal:         runtimev1.Modal_MODAL_IMAGE,
+				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+				Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+					ImageSpec: &runtimev1.ImageGenerationSpec{
+						Prompt: "test",
+						N:      -1,
+					},
+				},
+			},
+		},
+		{
+			name: "video fps overflow",
+			req: &runtimev1.SubmitMediaJobRequest{
+				AppId:         "nimi.desktop",
+				SubjectUserId: "user-001",
+				ModelId:       "local/video",
+				Modal:         runtimev1.Modal_MODAL_VIDEO,
+				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+				Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+					VideoSpec: &runtimev1.VideoGenerationSpec{
+						Prompt: "test",
+						Fps:    121,
+					},
+				},
+			},
+		},
+		{
+			name: "tts invalid sample rate",
+			req: &runtimev1.SubmitMediaJobRequest{
+				AppId:         "nimi.desktop",
+				SubjectUserId: "user-001",
+				ModelId:       "local/tts",
+				Modal:         runtimev1.Modal_MODAL_TTS,
+				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+				Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+					SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+						Text:         "hello",
+						SampleRateHz: 500000,
+					},
+				},
+			},
+		},
+		{
+			name: "stt speaker count overflow",
+			req: &runtimev1.SubmitMediaJobRequest{
+				AppId:         "nimi.desktop",
+				SubjectUserId: "user-001",
+				ModelId:       "local/stt",
+				Modal:         runtimev1.Modal_MODAL_STT,
+				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+				Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+					TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+						AudioBytes:   []byte("audio"),
+						SpeakerCount: 33,
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := svc.SubmitMediaJob(ctx, tc.req)
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("invalid request must return invalid argument, got=%v", status.Code(err))
+			}
+		})
 	}
 }
 
@@ -662,6 +840,15 @@ func waitMediaJobTerminal(t *testing.T, svc *Service, jobID string, timeout time
 	}
 	t.Fatalf("media job timeout: id=%s status=%s", jobID, resp.GetJob().GetStatus().String())
 	return nil
+}
+
+func structToMapPB(t *testing.T, input map[string]any) *structpb.Struct {
+	t.Helper()
+	value, err := structpb.NewStruct(input)
+	if err != nil {
+		t.Fatalf("create structpb: %v", err)
+	}
+	return value
 }
 
 type mediaJobEventCollector struct {

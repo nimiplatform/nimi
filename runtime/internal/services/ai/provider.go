@@ -17,48 +17,48 @@ const (
 
 // Config controls local/cloud provider connectivity.
 type Config struct {
-	LocalAIBaseURL        string
-	LocalAIAPIKey         string
-	LocalNexaBaseURL      string
-	LocalNexaAPIKey       string
-	CloudAIBaseURL        string
-	CloudAIAPIKey         string
-	CloudLiteLLMBaseURL   string
-	CloudLiteLLMAPIKey    string
-	CloudAlibabaBaseURL   string
-	CloudAlibabaAPIKey    string
-	CloudBytedanceBaseURL string
-	CloudBytedanceAPIKey  string
+	LocalAIBaseURL              string
+	LocalAIAPIKey               string
+	LocalNexaBaseURL            string
+	LocalNexaAPIKey             string
+	CloudAIBaseURL              string
+	CloudAIAPIKey               string
+	CloudLiteLLMBaseURL         string
+	CloudLiteLLMAPIKey          string
+	CloudAlibabaBaseURL         string
+	CloudAlibabaAPIKey          string
+	CloudBytedanceBaseURL       string
+	CloudBytedanceAPIKey        string
 	CloudBytedanceSpeechBaseURL string
 	CloudBytedanceSpeechAPIKey  string
 	CloudGeminiBaseURL          string
 	CloudGeminiAPIKey           string
 	CloudMiniMaxBaseURL         string
 	CloudMiniMaxAPIKey          string
-	AIHTTPTimeout         time.Duration
+	AIHTTPTimeout               time.Duration
 }
 
 func loadConfigFromEnv() Config {
 	cfg := Config{
-		LocalAIBaseURL:        strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL")),
-		LocalAIAPIKey:         strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY")),
-		LocalNexaBaseURL:      strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL")),
-		LocalNexaAPIKey:       strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY")),
-		CloudAIBaseURL:        strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_AI_BASE_URL")),
-		CloudAIAPIKey:         strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_AI_API_KEY")),
-		CloudLiteLLMBaseURL:   strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL")),
-		CloudLiteLLMAPIKey:    strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_LITELLM_API_KEY")),
-		CloudAlibabaBaseURL:   strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL")),
-		CloudAlibabaAPIKey:    strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY")),
-		CloudBytedanceBaseURL: strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL")),
-		CloudBytedanceAPIKey:  strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY")),
+		LocalAIBaseURL:              strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL")),
+		LocalAIAPIKey:               strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY")),
+		LocalNexaBaseURL:            strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL")),
+		LocalNexaAPIKey:             strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY")),
+		CloudAIBaseURL:              strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_AI_BASE_URL")),
+		CloudAIAPIKey:               strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_AI_API_KEY")),
+		CloudLiteLLMBaseURL:         strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL")),
+		CloudLiteLLMAPIKey:          strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_LITELLM_API_KEY")),
+		CloudAlibabaBaseURL:         strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL")),
+		CloudAlibabaAPIKey:          strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY")),
+		CloudBytedanceBaseURL:       strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL")),
+		CloudBytedanceAPIKey:        strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY")),
 		CloudBytedanceSpeechBaseURL: strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL")),
 		CloudBytedanceSpeechAPIKey:  strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY")),
 		CloudGeminiBaseURL:          strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL")),
 		CloudGeminiAPIKey:           strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")),
 		CloudMiniMaxBaseURL:         strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL")),
 		CloudMiniMaxAPIKey:          strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY")),
-		AIHTTPTimeout:         defaultAIHTTPTimeout,
+		AIHTTPTimeout:               defaultAIHTTPTimeout,
 	}
 
 	if raw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT")); raw != "" {
@@ -109,10 +109,10 @@ type provider interface {
 	checkModelAvailability(modelID string) error
 	generateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error)
 	embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error)
-	generateImage(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error)
-	generateVideo(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error)
-	synthesizeSpeech(ctx context.Context, modelID string, text string) ([]byte, *runtimev1.UsageStats, error)
-	transcribe(ctx context.Context, modelID string, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error)
+	generateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error)
+	generateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error)
+	synthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error)
+	transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error)
 }
 
 type streamingTextProvider interface {
