@@ -147,7 +147,7 @@ buf breaking proto/ --against .git#branch=main
 buf generate
 
 # Verify no drift (CI does this)
-git diff --exit-code runtime/gen/ sdk/packages/runtime/generated/
+git diff --exit-code runtime/gen/ sdk/src/runtime/generated/
 ```
 
 ## IDE Setup

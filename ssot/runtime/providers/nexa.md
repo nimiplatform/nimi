@@ -6,7 +6,7 @@ updated_at: 2026-02-22
 rules:
   - Nexa 在 Nimi 中固定为受管 binary service（`nexa-openai-gateway`）；attached endpoint 仅用于开发诊断，不作为产品主路径。
   - 控制面主权固定归属 Nimi（依赖求解、生命周期、权限、审计、fallback）；Nexa 仅承担推理执行面。
-  - Mod 不得直连 provider endpoint；所有 AI 调用必须经 `@nimiplatform/mod-sdk/ai` + runtime route + llm-adapter。
+  - Mod 不得直连 provider endpoint；所有 AI 调用必须经 `@nimiplatform/sdk/mod/ai` + runtime route + llm-adapter。
   - Runtime adapter 标识在当前主线固定为 `openai_compat_adapter` + `localai_native_adapter`；Nexa 原生路径通过 `providerHints.nexa` 区分。
   - Nexa artifact 在 runtime 默认开启并纳入 managed lifecycle；当硬化或门控不满足时必须 fail-close。
   - capability matrix 必须由 `catalog + provider probe(/v1/models) + 已安装模型元数据 + 宿主探针 + 许可策略门` 合成。

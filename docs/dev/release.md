@@ -68,12 +68,7 @@ Runtime 版本不通过仓库内 `version.go` 固化，直接由 Git tag `runtim
 
 SDK 发布前必须更新并对齐以下版本号（`sdk/vX.Y.Z` 与包版本严格一致）：
 
-- `sdk/packages/types/package.json`
-- `sdk/packages/realm/package.json`
-- `sdk/packages/runtime/package.json`
-- `sdk/packages/sdk/package.json`
-- `sdk/packages/ai-provider/package.json`
-- `sdk/packages/mod-sdk/package.json`
+- `sdk/package.json`
 
 Desktop 发布前必须更新并对齐以下版本号（`desktop/vX.Y.Z` 与配置严格一致）：
 
@@ -157,7 +152,7 @@ pnpm -C apps/desktop run build:renderer:with-mods
 ### 5. Post-release
 
 - Verify npm packages: `npm view @nimiplatform/sdk version`
-- Verify npm packages: `npm view @nimiplatform/mod-sdk version`
+- Verify npm packages: `npm view @nimiplatform/sdk/mod version`
 - Verify proto module on buf.build
 - Verify runtime binaries on GitHub Releases
 - Verify desktop bundles on GitHub Releases

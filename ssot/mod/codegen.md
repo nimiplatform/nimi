@@ -155,29 +155,29 @@ Mod Codegen 的核心价值仍是三大支柱：
 
 并满足：
 - `capabilities` 必须是 `manifest.capabilities` 子集
-- `setup` 只通过 `@nimiplatform/mod-sdk/*` 暴露的稳定导入面调用 host 能力
+- `setup` 只通过 `@nimiplatform/sdk/mod/*` 暴露的稳定导入面调用 host 能力
 
 ## 6. API 约束（对齐当前 SDK）
 
 ### 6.1 允许导入（V1）
 
-- `@nimiplatform/mod-sdk/ai`
-- `@nimiplatform/mod-sdk/hook`
-- `@nimiplatform/mod-sdk/types`
-- `@nimiplatform/mod-sdk/ui`
-- `@nimiplatform/mod-sdk/logging`
-- `@nimiplatform/mod-sdk/i18n`
-- `@nimiplatform/mod-sdk/settings`
-- `@nimiplatform/mod-sdk/utils`
+- `@nimiplatform/sdk/mod/ai`
+- `@nimiplatform/sdk/mod/hook`
+- `@nimiplatform/sdk/mod/types`
+- `@nimiplatform/sdk/mod/ui`
+- `@nimiplatform/sdk/mod/logging`
+- `@nimiplatform/sdk/mod/i18n`
+- `@nimiplatform/sdk/mod/settings`
+- `@nimiplatform/sdk/mod/utils`
 - `react` / `react/jsx-runtime`
 
 ### 6.2 禁止导入（V1）
 
-- `@nimiplatform/mod-sdk` root import
-- `@nimiplatform/mod-sdk/host`（虽有导出，但仅 runtime 装配层可用）
-- `@nimiplatform/mod-sdk/internal/*`
-- `@nimiplatform/mod-sdk/model-options`
-- `@nimiplatform/mod-sdk/runtime-route`
+- `@nimiplatform/sdk/mod` root import
+- `@nimiplatform/sdk/mod/host`（虽有导出，但仅 runtime 装配层可用）
+- `@nimiplatform/sdk/mod/internal/*`
+- `@nimiplatform/sdk/mod/model-options`
+- `@nimiplatform/sdk/mod/runtime-route`
 - `@nimiplatform/*`（旧命名）
 - 任意第三方 npm 新依赖
 
@@ -218,7 +218,7 @@ await ai.synthesizeSpeech({ routeHint, text, voiceId });
 await ai.transcribeAudio({ routeHint, audioUri });
 ```
 
-说明：完整签名以 `sdk/packages/mod-sdk/src/types/runtime-hook/llm.ts` 与 `sdk/packages/mod-sdk/src/ai/types.ts` 为准；本节仅给出 codegen 常用集合。
+说明：完整签名以 `sdk/src/mod/types/runtime-hook/llm.ts` 与 `sdk/src/mod/ai/types.ts` 为准；本节仅给出 codegen 常用集合。
 
 ### 6.4 V1 不开放（硬约束）
 
@@ -271,7 +271,7 @@ await esbuild.build({
   platform: 'browser',
   target: 'es2022',
   jsx: 'automatic',
-  external: ['react', 'react-dom', 'react/jsx-runtime', '@nimiplatform/mod-sdk', '@nimiplatform/mod-sdk/*'],
+  external: ['react', 'react-dom', 'react/jsx-runtime', '@nimiplatform/sdk/mod', '@nimiplatform/sdk/mod/*'],
   splitting: false,
 });
 ```
@@ -295,7 +295,7 @@ await esbuild.build({
 - `process.env`
 - `require(`
 - 直接 `localStorage` 读写（应走受控数据能力）
-- `import ... from '@nimiplatform/mod-sdk/host'`
+- `import ... from '@nimiplatform/sdk/mod/host'`
 
 ## 9. 治理链对齐要求
 

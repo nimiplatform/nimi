@@ -70,7 +70,7 @@ CI runs `buf generate` and fails if the output differs from committed stubs:
 
 ```bash
 buf generate
-git diff --exit-code sdk/packages/runtime/generated/
+git diff --exit-code sdk/src/runtime/generated/
 ```
 
 ## Desktop (Tauri + React)

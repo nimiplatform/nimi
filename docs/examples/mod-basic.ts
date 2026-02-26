@@ -1,12 +1,12 @@
 /**
  * Mod SDK V2 Basics
  *
- * This file shows the current public APIs from @nimiplatform/mod-sdk.
+ * This file shows the current public APIs from @nimiplatform/sdk/mod.
  * A real mod runs inside desktop after host injection (`setModSdkHost`).
  */
 
-import { createAiClient } from '@nimiplatform/mod-sdk/ai';
-import { createHookClient } from '@nimiplatform/mod-sdk/hook';
+import { createAiClient } from '@nimiplatform/sdk/mod/ai';
+import { createHookClient } from '@nimiplatform/sdk/mod/hook';
 
 const MOD_ID = 'world.nimi.my-mod';
 

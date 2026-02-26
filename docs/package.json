@@ -9,8 +9,6 @@
     "check:examples": "tsc -p examples/tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@nimiplatform/ai-provider": "workspace:*",
-    "@nimiplatform/mod-sdk": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "ai": "6.0.85"
   },

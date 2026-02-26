@@ -9,15 +9,17 @@ TypeScript SDK — unified developer interface to Nimi runtime (gRPC) and realm 
 ## File Map
 
 ```
-sdk/packages/
-├── sdk/              @nimiplatform/sdk (facade entry)
-├── realm/            @nimiplatform/sdk/realm (HTTP/WS client)
-│   └── generated/    OpenAPI codegen output
-├── runtime/          @nimiplatform/sdk-runtime (runtime transport client)
-│   └── generated/    Proto codegen output
-├── mod-sdk/          @nimiplatform/mod-sdk (mod/hook SDK)
-├── types/            @nimiplatform/sdk/types (shared types)
-└── ai-provider/      @nimiplatform/ai-provider (Vercel AI SDK v6)
+sdk/
+├── src/              @nimiplatform/sdk source root
+│   ├── realm/        @nimiplatform/sdk/realm (HTTP/WS client)
+│   │   └── generated/ OpenAPI codegen output
+│   ├── runtime/      @nimiplatform/sdk/runtime (runtime transport client)
+│   │   └── generated/ Proto codegen output
+│   ├── mod/          @nimiplatform/sdk/mod/*
+│   ├── types/        @nimiplatform/sdk/types (shared types)
+│   └── ai-provider/  @nimiplatform/sdk/ai-provider (Vercel AI SDK v6)
+├── test/
+└── package.json      publish root (@nimiplatform/sdk)
 ```
 
 ## Dependency Graph (Strict)

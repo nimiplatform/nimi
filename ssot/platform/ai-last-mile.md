@@ -217,7 +217,7 @@ V1 最小 reasonCode 集合：
 ### 4.8 协议字段与代码入口映射（V1）
 
 1. `HookActionDescriptor.executionMode/riskLevel/operation/socialPrecondition`  
-代码入口：`apps/desktop/src/runtime/hook/contracts/action.ts`、`apps/desktop/src/runtime/hook/services/action-service.ts`、`sdk/packages/mod-sdk/src/types/runtime-hook/action.ts`
+代码入口：`apps/desktop/src/runtime/hook/contracts/action.ts`、`apps/desktop/src/runtime/hook/services/action-service.ts`、`sdk/src/mod/types/runtime-hook/action.ts`
 2. `HookActionRequestContext.principalId/principalType/subjectAccountId/mode/issuer/authTokenId`  
 代码入口：`apps/desktop/src-tauri/src/external_agent_gateway/server.rs`（网关注入）与 `apps/desktop/src/runtime/hook/services/action-service.ts`（校验）；`external_agent_verify_execution_context` 负责网关侧 token+execution ownership（principal+token）绑定校验。
 3. `HookActionResult.reasonCode/actionHint/executionId/traceId/auditId`  

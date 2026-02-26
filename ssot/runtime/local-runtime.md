@@ -237,7 +237,7 @@ Local AI Runtime 域目标：
 权限边界：
 
 1. `models.*` 与 `services.*` 写操作只允许 Core 调用。
-2. Mod 仅可通过 `@nimiplatform/mod-sdk/ai` 消费能力，不得直连 provider 私有 endpoint。
+2. Mod 仅可通过 `@nimiplatform/sdk/mod/ai` 消费能力，不得直连 provider 私有 endpoint。
 
 ## 9. 审计与诊断
 

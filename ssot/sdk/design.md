@@ -2,7 +2,7 @@
 title: Nimi SDK Design Skeleton
 status: FROZEN
 created_at: 2026-02-24
-updated_at: 2026-02-24
+updated_at: 2026-02-26
 parent: INDEX.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
@@ -32,18 +32,22 @@ rules:
 
 ## 2. 包结构与职责（必填）
 
-| 包 | 角色 | 允许依赖 | 禁止依赖 |
-|----|------|---------|---------|
-| `@nimiplatform/sdk` | 聚合入口（facade） | `@nimiplatform/sdk/realm`, `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/types` | 传输层私有实现路径 |
-| `@nimiplatform/sdk/realm` | 访问 realm HTTP/WS | `@nimiplatform/sdk/types` | `@nimiplatform/sdk/runtime` |
-| `@nimiplatform/sdk/runtime` | 访问 runtime gRPC | `@nimiplatform/sdk/types` | `@nimiplatform/sdk/realm` |
-| `@nimiplatform/ai-provider` | AI SDK provider 适配层 | `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/types` | realm 私有实现 |
-| `@nimiplatform/sdk/types` | 跨包共享语义类型 | 无业务包依赖 | 任意 I/O 客户端 |
+SDK 采用**单包模型**：仅 `@nimiplatform/sdk` 一个发布包，通过稳定子路径分域暴露能力。
 
-每个包必须提供：
-- 稳定导入面（public exports）
-- 实验导入面（如有，必须显式标记）
-- 版本追踪与变更日志入口
+| 子路径 | 角色 | 约束 |
+|----|------|---------|
+| `@nimiplatform/sdk` | 聚合入口（facade） | 仅转发稳定子路径，不暴露私有实现路径 |
+| `@nimiplatform/sdk/realm` | realm HTTP/WS 客户端 | 禁止暴露 `core/models/services/generated` 深层导入 |
+| `@nimiplatform/sdk/runtime` | runtime gRPC/IPC 客户端 | 禁止跨域引用 realm 私有实现 |
+| `@nimiplatform/sdk/types` | 全域共享语义类型 + `ReasonCode` | 不依赖 IO 客户端 |
+| `@nimiplatform/sdk/scope` | scope catalog 能力 | 仅暴露稳定 schema/发布接口 |
+| `@nimiplatform/sdk/mod/*` | mod/hook 公开接口 | host 装配仅 `mod/host` 可见 |
+| `@nimiplatform/sdk/ai-provider` | AI SDK provider 适配层 | 依赖 runtime/types 稳定面 |
+
+稳定规则：
+- `MUST`：所有对外能力仅经 `@nimiplatform/sdk/*` 发布。
+- `MUST NOT`：出现 legacy 包名或兼容壳。
+- `MUST NOT`：公开 `internal/generated` 私有路径。
 
 ## 3. 稳定导入面（必填）
 
@@ -54,7 +58,7 @@ rules:
   - `@nimiplatform/sdk/realm`
   - `@nimiplatform/sdk/runtime`
   - `@nimiplatform/sdk/types`
-  - `@nimiplatform/ai-provider`
+  - `@nimiplatform/sdk/ai-provider`
 - 约束：
   - `@nimiplatform/sdk` 与子路径导出语义必须一致，不允许同名能力出现行为差异
   - 生产环境 `SHOULD` 使用子路径导入以保持依赖边界清晰
@@ -285,7 +289,7 @@ const published = await sdk.scope.publishCatalog({
 ## 6. AI Provider 合同（必填）
 
 冻结定位：
-- `@nimiplatform/ai-provider` 是 Vercel AI SDK v6 custom provider 适配层。
+- `@nimiplatform/sdk/ai-provider` 是 Vercel AI SDK v6 custom provider 适配层。
 - 适配对象是单模型调用（unary/stream）。
 - Workflow DAG 不走 provider，走 `sdk.runtime.workflow.*` 独立接口。
 
@@ -390,7 +394,7 @@ const stream = sdk.runtime.workflow.subscribeEvents({ taskId: task.taskId });
 
 约束：
 1. `MUST`：DAG 编排仅通过 `sdk.runtime.workflow.*`。
-2. `MUST`：`@nimiplatform/ai-provider` 不暴露 DAG 提交/取消/订阅接口。
+2. `MUST`：`@nimiplatform/sdk/ai-provider` 不暴露 DAG 提交/取消/订阅接口。
 3. `MUST`：需要跨模型依赖、重试、进度、取消、审计回放的场景必须使用 workflow 接口。
 4. `MUST`：禁止在 SDK 层用多次 `ai.generate/streamGenerate` 手工拼接替代 runtime DAG 编排。
 

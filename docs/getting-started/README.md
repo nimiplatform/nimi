@@ -108,12 +108,12 @@ console.log(JSON.stringify(result.output, null, 2));
 Install:
 
 ```bash
-pnpm add @nimiplatform/sdk @nimiplatform/ai-provider ai
+pnpm add @nimiplatform/sdk @nimiplatform/sdk/ai-provider ai
 ```
 
 ```ts
 import { createNimiClient } from '@nimiplatform/sdk';
-import { createNimiAiProvider } from '@nimiplatform/ai-provider';
+import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { generateText } from 'ai';
 
 const client = createNimiClient({

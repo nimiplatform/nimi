@@ -273,7 +273,7 @@ runtime/cmd/
 │   │
 │   │  REST 部分：OpenAPI codegen 直出（延续当前管线）
 │   │  NestJS @nestjs/swagger → api-nimi.yaml → openapi-typescript-codegen
-│   │  即当前 sdk/packages/realm 的 OpenAPI codegen 管线延续，零手写 API 代码
+│   │  即当前 sdk/src/realm 的 OpenAPI codegen 管线延续，零手写 API 代码
 │   │  注：原始 api-nimi.yaml 留在 nimi-realm 闭源 repo，@nimiplatform/sdk/realm 以编译后 npm 包发布
 │   │
 │   ├── auth.*                 身份认证
@@ -290,7 +290,7 @@ runtime/cmd/
 │   ├── ai                     基于 Vercel AI SDK v6 + Custom Provider
 │   │   │
 │   │   │  采用 AI SDK v6 类型系统和调用范式（LanguageModelV3 / EmbeddingModelV3 / ImageModelV3）
-│   │   │  @nimiplatform/ai-provider 作为 custom provider，doGenerate/doStream 转为 gRPC 调用
+│   │   │  @nimiplatform/sdk/ai-provider 作为 custom provider，doGenerate/doStream 转为 gRPC 调用
 │   │   │  开发者直接用 generateText / streamText / generateObject / embed 等 AI SDK 原语
 │   │   │  当前 ModAiClient 是此方案的手写前身，按单次切换直接替换
 │   │   │  边界：ai.* 只承载单次/流式模型调用，不承载 DAG 编排
@@ -329,8 +329,8 @@ runtime/cmd/
 ```
 
 **与当前代码的关系**：
-- 当前 `@nimiplatform/mod-sdk/ai` → `@nimiplatform/sdk/runtime` 的 `ai.*`
-- 当前 `@nimiplatform/mod-sdk/types` → `@nimiplatform/sdk/types`
+- 当前 `@nimiplatform/sdk/mod/ai` → `@nimiplatform/sdk/runtime` 的 `ai.*`
+- 当前 `@nimiplatform/sdk/mod/types` → `@nimiplatform/sdk/types`
 - 新增 `@nimiplatform/sdk/realm`（当前 desktop 直接调 nimi-realm REST，需要标准化为 SDK 层）
 - 新增 `@nimiplatform/sdk/runtime` 的 gRPC 传输层（当前是进程内调用）
 - 新增 `@nimiplatform/sdk/runtime` 的 `app-auth.*`（ExternalPrincipal 授权策略提交与 token 生命周期）
@@ -437,7 +437,7 @@ nimi-realm ←→ 数据库/缓存         : PostgreSQL / Redis / OpenSearch
 | `apps/desktop/src/runtime/hook/` | **nimi-hook**（desktop 内部） | 保留在 desktop，不进 SDK |
 | `apps/desktop/src/runtime/execution-kernel/` | **nimi-hook**（desktop 内部） | 保留在 desktop，继续管 mod 治理 |
 | `nimi-mods/`（external repo root） | **nimi-mods** | desktop 通过 `NIMI_MODS_ROOT` / `NIMI_RUNTIME_MODS_DIR` 联调加载 |
-| `sdk/packages/mod-sdk/` | **nimi-sdk** | 扩展为完整 SDK（含 `@nimiplatform/sdk/realm` + `@nimiplatform/sdk/runtime`） |
+| `sdk/src/mod/` | **nimi-sdk** | 扩展为完整 SDK（含 `@nimiplatform/sdk/realm` + `@nimiplatform/sdk/runtime`） |
 
 ## 5. 审计的双层模型
 

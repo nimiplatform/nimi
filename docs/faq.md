@@ -70,7 +70,7 @@ const client = createNimiClient({
 
 ## SDK
 
-### What's `@nimiplatform/ai-provider`?
+### What's `@nimiplatform/sdk/ai-provider`?
 
 A Vercel AI SDK v6 custom provider that routes AI calls through nimi-runtime. It lets you use standard AI SDK functions (`generateText`, `streamText`, `embed`) with Nimi's runtime as the backend.
 

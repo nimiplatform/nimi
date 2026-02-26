@@ -5,7 +5,7 @@
  */
 
 import { createNimiClient } from '@nimiplatform/sdk';
-import { createNimiAiProvider } from '@nimiplatform/ai-provider';
+import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { embed, generateText, streamText } from 'ai';
 import { FallbackPolicy, RoutePolicy } from '@nimiplatform/sdk/runtime';
 

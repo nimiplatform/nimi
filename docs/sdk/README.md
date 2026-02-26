@@ -16,7 +16,7 @@ pnpm add @nimiplatform/sdk
 | `@nimiplatform/sdk/realm` | Realm HTTP/WS client | types |
 | `@nimiplatform/sdk/runtime` | Runtime gRPC client | types |
 | `@nimiplatform/sdk/types` | Shared type definitions | — |
-| `@nimiplatform/ai-provider` | Vercel AI SDK v6 provider | runtime, types |
+| `@nimiplatform/sdk/ai-provider` | Vercel AI SDK v6 provider | runtime, types |
 
 ## Quick Start
 
@@ -99,7 +99,7 @@ Runtime transport profiles:
 ### Vercel AI SDK Integration
 
 ```ts
-import { createNimiAiProvider } from '@nimiplatform/ai-provider';
+import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { generateText, streamText, embed } from 'ai';
 
 const nimi = createNimiAiProvider({

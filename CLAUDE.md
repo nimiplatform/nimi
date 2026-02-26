@@ -68,7 +68,7 @@ After modifying `.proto` files:
 ```bash
 buf lint proto/
 buf generate
-# Verify: git diff runtime/gen/ sdk/packages/runtime/generated/
+# Verify: git diff runtime/gen/ sdk/src/runtime/generated/
 ```
 
 Generated code is committed. CI fails on drift.

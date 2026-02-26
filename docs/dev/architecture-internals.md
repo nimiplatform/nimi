@@ -131,7 +131,7 @@ Layers are independent. Local audit optionally reports to realm for cross-device
 - Source of truth: `proto/runtime/v1/*.proto`
 - Schema toolchain: Buf CLI (lint, breaking change detection, codegen)
 - Generated Go stubs: `runtime/gen/`
-- Generated TS stubs: `sdk/packages/runtime/src/generated/`
+- Generated TS stubs: `sdk/src/runtime/generated/`
 - Both generated outputs are committed. CI runs `buf generate` and fails on any diff.
 
 This ensures:

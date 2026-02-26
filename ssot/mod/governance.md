@@ -29,7 +29,7 @@ rules:
   - 本地 AI Runtime 的模型来源、路由来源、能力维度与审计策略以 `ssot/runtime/local-runtime.md` 为唯一来源；本文件仅定义 Mod 接入边界。
   - Speech 类能力必须通过 `llm.speech.*`（llm-adapter 语义）承载；调用方 Mod 不得绕过 capability 直连 provider。
   - `providerId` 在 Speech 请求中只表达 provider 标识，不承载 route source；路由来源必须通过 `routeSource`（可选）显式表达。
-  - Mod AI 调用稳定入口统一为 `@nimiplatform/mod-sdk/ai`（`generateText|streamText|generateObject|generateImage|generateVideo|transcribeAudio|generateEmbedding|synthesizeSpeech`）；不保留 `llm.invokeScenario` 兼容 shim。
+  - Mod AI 调用稳定入口统一为 `@nimiplatform/sdk/mod/ai`（`generateText|streamText|generateObject|generateImage|generateVideo|transcribeAudio|generateEmbedding|synthesizeSpeech`）；不保留 `llm.invokeScenario` 兼容 shim。
   - Mod Manifest 的 AI 扩展字段主规范固定为 `ai.consume + ai.dependencies(v2)`；禁止 legacy model packs 字段。
   - `ai.dependencies(v2)` 的 `kind` 只允许 `model|service|node`；依赖求解由 runtime 执行，Mod 不得绕过。
   - runtime 依赖解析以 `mod.manifest.yaml` 为运行时真源；源码 manifest 必须与其保持语义一致。
@@ -38,7 +38,7 @@ rules:
   - Hook SDK 客户端创建入口固定为 `createHookClient(modId)`；禁止恢复 `createModHookClient` 别名入口。
   - `mod-sdk` 内部类型别名不得保留 `CreateModHookClient`；统一使用 `createHookClient` 概念与命名，避免 Hook DX 语义分叉。
   - Hook/AI 健康检查类型口径固定：`hook.llm.checkHealth(RuntimeLlmHealthInput) -> RuntimeLlmHealthResult`，`ai.checkRouteHealth(...) -> RuntimeRouteHealthResult`，禁止回退 `Record<string, unknown>`。
-  - `@nimiplatform/mod-sdk` 对 Mod 的稳定导入面固定为 `ai/hook/types/ui/logging/utils/model-options/runtime-route`；禁止 root import，禁止依赖 `runtime/internal` 装配接口，`host` 仅允许运行时装配层使用。
+  - `@nimiplatform/sdk/mod` 对 Mod 的稳定导入面固定为 `ai/hook/types/ui/logging/utils/model-options/runtime-route`；禁止 root import，禁止依赖 `runtime/internal` 装配接口，`host` 仅允许运行时装配层使用。
   - `runtime-hook` 类型组织固定为按域文件（`event/data/turn/ui/inter-mod/llm/meta/shared/index`），禁止恢复 `runtime-hook/client/*` 与 `runtime-hook/facade/*` 目录。
   - `hook-runtime` 对外门面签名必须在独立 contract 文件显式声明（如 `runtime/hook/contracts/facade.ts`）；禁止只依赖 `Parameters<T>[0]` 推断作为唯一可读入口。
   - 非 `index.ts/tsx` 文件禁止“一行 re-export 壳”；调用点必须直连真实实现模块，避免调试跳转层。
@@ -138,7 +138,7 @@ Mod 通过 Hook 获取 Core 能力，不得直连 Core 数据平面。
 
 Core 数据读桥接规则（冻结）：
 
-1. `nimi-mods/*` 不允许依赖 `@nimiplatform/mod-sdk/host`。
+1. `nimi-mods/*` 不允许依赖 `@nimiplatform/sdk/mod/host`。
 2. Mod 读取 Core 数据必须通过 capability 查询（如 `data-api.core.*`）。
 3. runtime 负责注册 `data-api.core.*` provider；Mod 只消费能力键，不感知宿主实现细节。
 
@@ -168,7 +168,7 @@ Local-first：优先本地 Provider/模型，cloud 为可选。
 
 Mod AI 调用规范（冻结）：
 
-1. 业务 Mod 的文本能力调用统一通过 `@nimiplatform/mod-sdk/ai`。
+1. 业务 Mod 的文本能力调用统一通过 `@nimiplatform/sdk/mod/ai`。
 2. 稳定接口集合：
    - `generateText`
    - `streamText`
@@ -183,8 +183,8 @@ Mod AI 调用规范（冻结）：
 
 `mod-sdk` 公共面约束（冻结）：
 
-1. Mod 层只允许从 `@nimiplatform/mod-sdk/ai`、`@nimiplatform/mod-sdk/hook`、`@nimiplatform/mod-sdk/types`、`@nimiplatform/mod-sdk/ui`、`@nimiplatform/mod-sdk/logging`、`@nimiplatform/mod-sdk/utils` 导入。
-2. `@nimiplatform/mod-sdk` root import 视为违规；`@nimiplatform/mod-sdk/runtime`、`@nimiplatform/mod-sdk/host`、`@nimiplatform/mod-sdk/internal/*` 属于运行时装配细节，不作为 Mod 稳定接口。
+1. Mod 层只允许从 `@nimiplatform/sdk/mod/ai`、`@nimiplatform/sdk/mod/hook`、`@nimiplatform/sdk/mod/types`、`@nimiplatform/sdk/mod/ui`、`@nimiplatform/sdk/mod/logging`、`@nimiplatform/sdk/mod/utils` 导入。
+2. `@nimiplatform/sdk/mod` root import 视为违规；`@nimiplatform/sdk/mod/runtime`、`@nimiplatform/sdk/mod/host`、`@nimiplatform/sdk/mod/internal/*` 属于运行时装配细节，不作为 Mod 稳定接口。
 
 ### 2.6 AI 能力标准接入（唯一口径）
 
@@ -538,5 +538,5 @@ Action 级权限映射（固定）：
 ## 14. 运行时命名与结构收敛（2026-02）
 
 1. runtime-config 命名已收敛为 `Capability*`，禁止回流 `Scenario*` 类型符号。
-2. `@nimiplatform/mod-sdk` 业务导入面保持子路径导入，不允许 root/import internal。
+2. `@nimiplatform/sdk/mod` 业务导入面保持子路径导入，不允许 root/import internal。
 3. Mod 页面文件保持薄容器化，重逻辑下沉到 hooks/services/feature 模块。

@@ -6,7 +6,7 @@ updated_at: 2026-02-22
 rules:
   - LocalAI 在 Nimi 中固定为受管 binary service（`localai-openai-gateway`），不再保留 `llama-cpp-server/qwen-tts-python` 独立 service 语义。
   - 控制面主权固定归属 Nimi（依赖求解、生命周期、权限、审计、fallback）；LocalAI 仅承担推理执行面。
-  - Mod 不得直连 provider endpoint；所有 AI 调用必须经 `@nimiplatform/mod-sdk/ai` + runtime route + llm-adapter。
+  - Mod 不得直连 provider endpoint；所有 AI 调用必须经 `@nimiplatform/sdk/mod/ai` + runtime route + llm-adapter。
   - Runtime 必须实现 adapter 路由：`openai_compat_adapter` + `localai_native_adapter`，并按 capability matrix fail-close 选择。
   - Runtime 共享主干必须 provider-aware；LocalAI 特有 backend 规则必须封装在 provider-specific 分发层，不得污染共享入口。
   - capability matrix 必须由 `catalog + provider probe(/v1/models) + 已安装模型元数据` 合成。
