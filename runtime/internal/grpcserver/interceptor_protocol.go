@@ -109,6 +109,8 @@ func isWriteMethod(fullMethod string) bool {
 	case "/nimi.runtime.v1.RuntimeAiService/Generate",
 		"/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
 		"/nimi.runtime.v1.RuntimeAiService/Embed",
+		"/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob",
+		"/nimi.runtime.v1.RuntimeAiService/CancelMediaJob",
 		"/nimi.runtime.v1.RuntimeAiService/GenerateImage",
 		"/nimi.runtime.v1.RuntimeAiService/GenerateVideo",
 		"/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech",

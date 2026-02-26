@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *Service) addSubscriber(taskID string) (subscriber, []*runtimev1.WorkflowEvent, bool, error) {
@@ -98,6 +99,32 @@ func (s *Service) setNodeStatus(taskID string, nodeID string, statusValue runtim
 	node.Status = statusValue
 	node.Attempt = attempt
 	node.Reason = reason
+	if statusValue == runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED ||
+		statusValue == runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED ||
+		statusValue == runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED ||
+		statusValue == runtimev1.WorkflowStatus_WORKFLOW_STATUS_SKIPPED {
+		node.NextPollAt = nil
+	}
+	record.UpdatedAt = time.Now().UTC()
+	return true
+}
+
+func (s *Service) setNodeExternalStatus(taskID string, nodeID string, providerJobID string, nextPollAt *timestamppb.Timestamp, retryCount int32, lastError string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	record, exists := s.tasks[taskID]
+	if !exists {
+		return false
+	}
+	node, exists := record.Nodes[nodeID]
+	if !exists {
+		return false
+	}
+	node.ProviderJobId = providerJobID
+	node.NextPollAt = nextPollAt
+	node.RetryCount = retryCount
+	node.LastError = lastError
 	record.UpdatedAt = time.Now().UTC()
 	return true
 }

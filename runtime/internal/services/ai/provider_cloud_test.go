@@ -2,9 +2,11 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -21,6 +23,8 @@ func TestCloudProviderPickBackend(t *testing.T) {
 		litellm:   &openAIBackend{name: "litellm"},
 		alibaba:   &openAIBackend{name: "alibaba"},
 		bytedance: &openAIBackend{name: "bytedance"},
+		gemini:    &openAIBackend{name: "gemini"},
+		minimax:   &openAIBackend{name: "minimax"},
 	}
 
 	type tc struct {
@@ -35,6 +39,8 @@ func TestCloudProviderPickBackend(t *testing.T) {
 		{modelID: "aliyun/qwen-max", wantBackend: "alibaba", wantModelID: "qwen-max", wantExplicit: true, wantAvailable: true},
 		{modelID: "alibaba/qwen-plus", wantBackend: "alibaba", wantModelID: "qwen-plus", wantExplicit: true, wantAvailable: true},
 		{modelID: "bytedance/deepseek-v3", wantBackend: "bytedance", wantModelID: "deepseek-v3", wantExplicit: true, wantAvailable: true},
+		{modelID: "gemini/veo-3", wantBackend: "gemini", wantModelID: "veo-3", wantExplicit: true, wantAvailable: true},
+		{modelID: "minimax/video-1", wantBackend: "minimax", wantModelID: "video-1", wantExplicit: true, wantAvailable: true},
 		{modelID: "gpt-4o-mini", wantBackend: "litellm", wantModelID: "gpt-4o-mini", wantExplicit: false, wantAvailable: true},
 	}
 
@@ -79,6 +85,241 @@ func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 	}
 	if st.Code() != codes.Unavailable || st.Message() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String() {
 		t.Fatalf("unexpected error: code=%v message=%s", st.Code(), st.Message())
+	}
+
+	if _, _, err := p.embed(context.Background(), "aliyun/text-embedding-1", []string{"hello"}); status.Code(err) != codes.Unavailable {
+		t.Fatalf("embed explicit backend missing code mismatch: %v", status.Code(err))
+	}
+	if _, _, err := p.generateImage(context.Background(), "aliyun/image-1", "sunrise"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("generateImage explicit backend missing code mismatch: %v", status.Code(err))
+	}
+	if _, _, err := p.generateVideo(context.Background(), "aliyun/video-1", "sunrise"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("generateVideo explicit backend missing code mismatch: %v", status.Code(err))
+	}
+	if _, _, err := p.synthesizeSpeech(context.Background(), "aliyun/tts-1", "hello"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("synthesizeSpeech explicit backend missing code mismatch: %v", status.Code(err))
+	}
+	if _, _, err := p.transcribe(context.Background(), "aliyun/stt-1", []byte("audio"), "audio/wav"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("transcribe explicit backend missing code mismatch: %v", status.Code(err))
+	}
+	_, _, err = p.streamGenerateText(context.Background(), "aliyun/gpt-4o", &runtimev1.StreamGenerateRequest{
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}, nil)
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("streamGenerateText explicit backend missing code mismatch: %v", status.Code(err))
+	}
+}
+
+func TestCloudProviderFallbackMediaAndStream(t *testing.T) {
+	p := &cloudProvider{}
+
+	vectors, usage, err := p.embed(context.Background(), "fallback-embed", []string{"hello", "world"})
+	if err != nil {
+		t.Fatalf("embed fallback: %v", err)
+	}
+	if len(vectors) != 2 {
+		t.Fatalf("embed fallback vectors mismatch: %d", len(vectors))
+	}
+	if usage != nil {
+		t.Fatalf("embed fallback usage should be nil")
+	}
+
+	imagePayload, imageUsage, err := p.generateImage(context.Background(), "fallback-image", "image prompt")
+	if err != nil {
+		t.Fatalf("generateImage fallback: %v", err)
+	}
+	if !strings.Contains(string(imagePayload), "cloud:image:fallback-image:image prompt") {
+		t.Fatalf("image fallback payload mismatch: %s", string(imagePayload))
+	}
+	if imageUsage == nil || imageUsage.GetInputTokens() == 0 {
+		t.Fatalf("image fallback usage missing")
+	}
+
+	videoPayload, videoUsage, err := p.generateVideo(context.Background(), "fallback-video", "video prompt")
+	if err != nil {
+		t.Fatalf("generateVideo fallback: %v", err)
+	}
+	if !strings.Contains(string(videoPayload), "cloud:video:fallback-video:video prompt") {
+		t.Fatalf("video fallback payload mismatch: %s", string(videoPayload))
+	}
+	if videoUsage == nil || videoUsage.GetComputeMs() == 0 {
+		t.Fatalf("video fallback usage missing")
+	}
+
+	speechPayload, speechUsage, err := p.synthesizeSpeech(context.Background(), "fallback-tts", "speak this")
+	if err != nil {
+		t.Fatalf("synthesizeSpeech fallback: %v", err)
+	}
+	if !strings.Contains(string(speechPayload), "cloud:audio:fallback-tts:speak this") {
+		t.Fatalf("speech fallback payload mismatch: %s", string(speechPayload))
+	}
+	if speechUsage == nil || speechUsage.GetInputTokens() == 0 {
+		t.Fatalf("speech fallback usage missing")
+	}
+
+	transcribedText, sttUsage, err := p.transcribe(context.Background(), "fallback-stt", []byte("abcdefg"), "audio/wav")
+	if err != nil {
+		t.Fatalf("transcribe fallback: %v", err)
+	}
+	if !strings.Contains(transcribedText, "cloud transcription") {
+		t.Fatalf("transcribe fallback text mismatch: %s", transcribedText)
+	}
+	if sttUsage == nil || sttUsage.GetOutputTokens() == 0 {
+		t.Fatalf("transcribe fallback usage missing")
+	}
+
+	deltas := make([]string, 0, 4)
+	streamUsage, finishReason, err := p.streamGenerateText(context.Background(), "fallback-text", &runtimev1.StreamGenerateRequest{
+		SystemPrompt: "system",
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}, func(delta string) error {
+		deltas = append(deltas, delta)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("streamGenerateText fallback: %v", err)
+	}
+	if finishReason != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("stream finish reason mismatch: %v", finishReason)
+	}
+	if len(deltas) == 0 {
+		t.Fatalf("stream fallback expected deltas")
+	}
+	if streamUsage == nil || streamUsage.GetInputTokens() == 0 {
+		t.Fatalf("stream fallback usage missing")
+	}
+}
+
+func TestCloudProviderLiteLLMAllModalities(t *testing.T) {
+	imageBytes := []byte("litellm-image-bytes")
+	imageBase64 := jsonBase64(imageBytes)
+	videoBytes := []byte("litellm-video-bytes")
+	videoBase64 := jsonBase64(videoBytes)
+	audioBytes := []byte("litellm-audio-bytes")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/chat/completions":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"choices": []map[string]any{
+					{
+						"finish_reason": "stop",
+						"message": map[string]any{
+							"content": "litellm text",
+						},
+					},
+				},
+				"usage": map[string]any{
+					"prompt_tokens":     8,
+					"completion_tokens": 4,
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/embeddings":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"embedding": []float64{0.1, 0.2}},
+				},
+				"usage": map[string]any{
+					"prompt_tokens": 4,
+					"total_tokens":  6,
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_json": imageBase64},
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/video/generations":
+			http.NotFound(w, r)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/videos/generations":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_mp4": videoBase64},
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioBytes)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "litellm stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	p := &cloudProvider{
+		litellm: newOpenAIBackend("litellm", server.URL, "", 3*time.Second),
+	}
+
+	text, _, finishReason, err := p.generateText(context.Background(), "litellm/gpt-4o-mini", &runtimev1.GenerateRequest{
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}, "hello")
+	if err != nil {
+		t.Fatalf("litellm text generate: %v", err)
+	}
+	if text != "litellm text" || finishReason != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("litellm text output mismatch: text=%s finish=%v", text, finishReason)
+	}
+
+	vectors, _, err := p.embed(context.Background(), "litellm/text-embedding-3", []string{"hello"})
+	if err != nil {
+		t.Fatalf("litellm embed: %v", err)
+	}
+	if len(vectors) != 1 || len(vectors[0].GetValues()) != 2 {
+		t.Fatalf("litellm embed vector mismatch")
+	}
+
+	imagePayload, _, err := p.generateImage(context.Background(), "litellm/image-1", "skyline")
+	if err != nil {
+		t.Fatalf("litellm generateImage: %v", err)
+	}
+	if string(imagePayload) != string(imageBytes) {
+		t.Fatalf("litellm image payload mismatch: got=%q", string(imagePayload))
+	}
+
+	videoPayload, _, err := p.generateVideo(context.Background(), "litellm/video-1", "ocean")
+	if err != nil {
+		t.Fatalf("litellm generateVideo: %v", err)
+	}
+	if string(videoPayload) != string(videoBytes) {
+		t.Fatalf("litellm video payload mismatch: got=%q", string(videoPayload))
+	}
+
+	speechPayload, _, err := p.synthesizeSpeech(context.Background(), "litellm/tts-1", "speak")
+	if err != nil {
+		t.Fatalf("litellm synthesizeSpeech: %v", err)
+	}
+	if string(speechPayload) != string(audioBytes) {
+		t.Fatalf("litellm speech payload mismatch: got=%q", string(speechPayload))
+	}
+
+	transcribedText, _, err := p.transcribe(context.Background(), "litellm/stt-1", []byte("audio-bytes"), "audio/wav")
+	if err != nil {
+		t.Fatalf("litellm transcribe: %v", err)
+	}
+	if transcribedText != "litellm stt text" {
+		t.Fatalf("litellm transcribe mismatch: %s", transcribedText)
 	}
 }
 
@@ -252,4 +493,8 @@ func newChatServer(t *testing.T, text string, counter *int32) *httptest.Server {
 			t.Fatalf("encode payload: %v", err)
 		}
 	}))
+}
+
+func jsonBase64(input []byte) string {
+	return base64.StdEncoding.EncodeToString(input)
 }

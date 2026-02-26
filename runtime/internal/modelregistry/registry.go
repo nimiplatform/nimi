@@ -19,6 +19,8 @@ const (
 	ProviderHintLiteLLM   ProviderHint = "litellm"
 	ProviderHintAlibaba   ProviderHint = "alibaba"
 	ProviderHintBytedance ProviderHint = "bytedance"
+	ProviderHintGemini    ProviderHint = "gemini"
+	ProviderHintMiniMax   ProviderHint = "minimax"
 )
 
 // Entry is a model registry record used by runtime services.
@@ -148,6 +150,10 @@ func inferProviderHint(modelID string, source string) ProviderHint {
 		return ProviderHintAlibaba
 	case strings.HasPrefix(id, "bytedance/"), strings.HasPrefix(id, "byte/"), src == "bytedance", src == "byte":
 		return ProviderHintBytedance
+	case strings.HasPrefix(id, "gemini/"), src == "gemini":
+		return ProviderHintGemini
+	case strings.HasPrefix(id, "minimax/"), src == "minimax":
+		return ProviderHintMiniMax
 	default:
 		return ProviderHintUnknown
 	}

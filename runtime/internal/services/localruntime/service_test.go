@@ -233,6 +233,61 @@ func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	}
 }
 
+func TestLocalRuntimeNodeCatalogNexaVideoFailClose(t *testing.T) {
+	svc := newTestService(t)
+
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-nexa",
+		Title:        "Nexa Service",
+		Engine:       "nexa",
+		Capabilities: []string{"video", "chat"},
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+
+	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
+		Provider: "nexa",
+	})
+	if err != nil {
+		t.Fatalf("list node catalog: %v", err)
+	}
+	if len(nodesResp.GetNodes()) != 2 {
+		t.Fatalf("node count mismatch: got=%d want=2", len(nodesResp.GetNodes()))
+	}
+
+	var videoNode *runtimev1.LocalNodeDescriptor
+	var chatNode *runtimev1.LocalNodeDescriptor
+	for _, item := range nodesResp.GetNodes() {
+		if len(item.GetCapabilities()) == 0 {
+			continue
+		}
+		switch item.GetCapabilities()[0] {
+		case "video":
+			videoNode = item
+		case "chat":
+			chatNode = item
+		}
+	}
+	if videoNode == nil || chatNode == nil {
+		t.Fatalf("expected both video/chat nodes in catalog")
+	}
+	if videoNode.GetAdapter() != "nexa_native_adapter" {
+		t.Fatalf("video adapter mismatch: %s", videoNode.GetAdapter())
+	}
+	if videoNode.GetAvailable() {
+		t.Fatalf("nexa video node must be fail-close unavailable")
+	}
+	if videoNode.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
+		t.Fatalf("nexa video reason code mismatch: %s", videoNode.GetReasonCode())
+	}
+	if videoNode.GetPolicyGate() == "" {
+		t.Fatalf("nexa video policy gate should be set")
+	}
+	if !chatNode.GetAvailable() {
+		t.Fatalf("nexa chat node should remain available")
+	}
+}
+
 func TestLocalRuntimeCollectDeviceProfileUsesRealProbe(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{})

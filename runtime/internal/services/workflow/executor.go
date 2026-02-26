@@ -9,6 +9,8 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -114,7 +116,15 @@ func (s *Service) executeTask(taskID string) {
 			return
 		}
 
-		nodeOutputs, executeErr := s.executeNode(execCtx, record, node, inputs)
+		var (
+			nodeOutputs map[string]*structpb.Struct
+			executeErr  error
+		)
+		if shouldExecuteExternalAsync(node) {
+			nodeOutputs, executeErr = s.executeNodeExternalAsync(execCtx, record, node, inputs)
+		} else {
+			nodeOutputs, executeErr = s.executeNode(execCtx, record, node, inputs)
+		}
 		if executeErr != nil {
 			if s.isCancelRequested(taskID) || execCtx.Err() == context.Canceled {
 				s.finishCanceled(taskID)
@@ -124,15 +134,16 @@ func (s *Service) executeTask(taskID string) {
 				s.finishFailed(taskID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "workflow timeout reached")
 				return
 			}
+			reasonCode := workflowReasonCodeFromError(executeErr)
 			s.setNodeStatus(taskID, nodeID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED, 1, executeErr.Error())
 			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 				EventType:       runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_COMPLETED,
 				NodeId:          nodeID,
 				ProgressPercent: 100,
-				ReasonCode:      runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+				ReasonCode:      reasonCode,
 				Payload:         structFromMap(map[string]any{"error": executeErr.Error()}),
 			})
-			s.finishFailed(taskID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, executeErr.Error())
+			s.finishFailed(taskID, reasonCode, executeErr.Error())
 			return
 		}
 
@@ -214,6 +225,313 @@ func (s *Service) executeNode(ctx context.Context, record *taskRecord, node *run
 		return s.executeNoopNode(inputs), nil
 	default:
 		return nil, fmt.Errorf("unsupported workflow node type: %s", node.GetNodeType().String())
+	}
+}
+
+func shouldExecuteExternalAsync(node *runtimev1.WorkflowNode) bool {
+	if node == nil {
+		return false
+	}
+	if node.GetExecutionMode() != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+		return false
+	}
+	switch node.GetNodeType() {
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE,
+		runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO,
+		runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS,
+		runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *Service) executeNodeExternalAsync(
+	ctx context.Context,
+	record *taskRecord,
+	node *runtimev1.WorkflowNode,
+	inputs map[string]*structpb.Struct,
+) (map[string]*structpb.Struct, error) {
+	client := s.runtimeAIClient()
+	if client == nil {
+		return nil, fmt.Errorf("runtime ai client unavailable for external async node")
+	}
+	submitReq, err := buildSubmitMediaJobRequest(record, node, inputs)
+	if err != nil {
+		return nil, err
+	}
+	submitResp, err := client.SubmitMediaJob(ctx, submitReq)
+	if err != nil {
+		return nil, err
+	}
+	job := submitResp.GetJob()
+	if job == nil || strings.TrimSpace(job.GetJobId()) == "" {
+		return nil, fmt.Errorf("external async submit returned empty job id")
+	}
+	taskID := record.TaskID
+	nodeID := node.GetNodeId()
+	s.setNodeExternalStatus(taskID, nodeID, job.GetProviderJobId(), job.GetNextPollAt(), 0, "")
+	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED,
+		NodeId:     nodeID,
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		Payload: structFromMap(map[string]any{
+			"job_id":          job.GetJobId(),
+			"provider_job_id": job.GetProviderJobId(),
+			"status":          job.GetStatus().String(),
+		}),
+	})
+
+	retryCount := int32(0)
+	runningEventSent := false
+	for {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
+			JobId: job.GetJobId(),
+		})
+		if pollErr != nil {
+			return nil, pollErr
+		}
+		current := pollResp.GetJob()
+		if current == nil {
+			return nil, fmt.Errorf("external async poll returned empty job")
+		}
+		retryCount++
+		s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), retryCount, "")
+		switch current.GetStatus() {
+		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
+			if !runningEventSent || current.GetStatus() == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING {
+				runningEventSent = true
+				_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+					EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING,
+					NodeId:     nodeID,
+					ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+					Payload: structFromMap(map[string]any{
+						"job_id":          current.GetJobId(),
+						"provider_job_id": current.GetProviderJobId(),
+						"status":          current.GetStatus().String(),
+						"retry_count":     retryCount,
+					}),
+				})
+			}
+			time.Sleep(400 * time.Millisecond)
+			continue
+		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
+			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+				EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED,
+				NodeId:     nodeID,
+				ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+				Payload: structFromMap(map[string]any{
+					"job_id":          current.GetJobId(),
+					"provider_job_id": current.GetProviderJobId(),
+					"artifacts":       len(current.GetArtifacts()),
+				}),
+			})
+			return outputsFromMediaJob(s, record, node, current)
+		default:
+			reasonCode := workflowReasonCodeFromMediaJob(current)
+			lastError := strings.TrimSpace(current.GetReasonDetail())
+			if lastError == "" {
+				lastError = current.GetReasonCode().String()
+			}
+			s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), retryCount, lastError)
+			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+				EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_FAILED,
+				NodeId:     nodeID,
+				ReasonCode: reasonCode,
+				Payload: structFromMap(map[string]any{
+					"job_id":          current.GetJobId(),
+					"provider_job_id": current.GetProviderJobId(),
+					"status":          current.GetStatus().String(),
+					"reason_code":     current.GetReasonCode().String(),
+					"reason_detail":   current.GetReasonDetail(),
+				}),
+			})
+			return nil, fmt.Errorf("external async media job failed: %s", current.GetReasonCode().String())
+		}
+	}
+}
+
+func buildSubmitMediaJobRequest(
+	record *taskRecord,
+	node *runtimev1.WorkflowNode,
+	inputs map[string]*structpb.Struct,
+) (*runtimev1.SubmitMediaJobRequest, error) {
+	if record == nil || node == nil {
+		return nil, fmt.Errorf("workflow record/node is nil")
+	}
+	req := &runtimev1.SubmitMediaJobRequest{
+		AppId:         record.AppID,
+		SubjectUserId: record.SubjectUserID,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	}
+
+	switch node.GetNodeType() {
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE:
+		cfg := node.GetAiImageConfig()
+		prompt := strings.TrimSpace(cfg.GetPrompt())
+		if prompt == "" {
+			prompt = firstInputString(inputs, "prompt", "text")
+		}
+		if prompt == "" {
+			return nil, fmt.Errorf("image prompt is empty")
+		}
+		req.ModelId = cfg.GetModelId()
+		req.Modal = runtimev1.Modal_MODAL_IMAGE
+		req.RoutePolicy = cfg.GetRoutePolicy()
+		req.Fallback = cfg.GetFallback()
+		req.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: prompt,
+			},
+		}
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO:
+		cfg := node.GetAiVideoConfig()
+		prompt := strings.TrimSpace(cfg.GetPrompt())
+		if prompt == "" {
+			prompt = firstInputString(inputs, "prompt", "text")
+		}
+		if prompt == "" {
+			return nil, fmt.Errorf("video prompt is empty")
+		}
+		req.ModelId = cfg.GetModelId()
+		req.Modal = runtimev1.Modal_MODAL_VIDEO
+		req.RoutePolicy = cfg.GetRoutePolicy()
+		req.Fallback = cfg.GetFallback()
+		req.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: prompt,
+			},
+		}
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS:
+		cfg := node.GetAiTtsConfig()
+		text := strings.TrimSpace(cfg.GetText())
+		if text == "" {
+			text = firstInputString(inputs, "text", "prompt")
+		}
+		if text == "" {
+			return nil, fmt.Errorf("tts text is empty")
+		}
+		req.ModelId = cfg.GetModelId()
+		req.Modal = runtimev1.Modal_MODAL_TTS
+		req.RoutePolicy = cfg.GetRoutePolicy()
+		req.Fallback = cfg.GetFallback()
+		req.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: text,
+			},
+		}
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
+		cfg := node.GetAiSttConfig()
+		audio := append([]byte(nil), cfg.GetAudioBytes()...)
+		if len(audio) == 0 {
+			audio = []byte(firstInputString(inputs, "audio", "input"))
+		}
+		if len(audio) == 0 {
+			return nil, fmt.Errorf("stt audio is empty")
+		}
+		req.ModelId = cfg.GetModelId()
+		req.Modal = runtimev1.Modal_MODAL_STT
+		req.RoutePolicy = cfg.GetRoutePolicy()
+		req.Fallback = cfg.GetFallback()
+		req.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: audio,
+				MimeType:   cfg.GetMimeType(),
+			},
+		}
+	default:
+		return nil, fmt.Errorf("node type does not support external async media execution: %s", node.GetNodeType().String())
+	}
+	if strings.TrimSpace(req.GetModelId()) == "" {
+		return nil, fmt.Errorf("model id is empty for external async node")
+	}
+	if req.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		req.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+	}
+	if req.GetFallback() == runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED {
+		req.Fallback = runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
+	}
+	return req, nil
+}
+
+func outputsFromMediaJob(
+	svc *Service,
+	record *taskRecord,
+	node *runtimev1.WorkflowNode,
+	job *runtimev1.MediaJob,
+) (map[string]*structpb.Struct, error) {
+	if job == nil {
+		return nil, fmt.Errorf("media job is nil")
+	}
+	artifacts := job.GetArtifacts()
+	if len(artifacts) == 0 {
+		return nil, fmt.Errorf("media job artifacts are empty")
+	}
+	first := artifacts[0]
+	switch node.GetNodeType() {
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE,
+		runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO,
+		runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS:
+		return svc.writeArtifact(record, node, "artifact", first.GetMimeType(), first.GetBytes())
+	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
+		text := strings.TrimSpace(string(first.GetBytes()))
+		if text == "" && first.GetProviderRaw() != nil {
+			if value, ok := first.GetProviderRaw().AsMap()["text"].(string); ok {
+				text = strings.TrimSpace(value)
+			}
+		}
+		return map[string]*structpb.Struct{
+			"output": structFromMap(map[string]any{"text": text}),
+			"text":   structFromMap(map[string]any{"value": text}),
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported external async node output mapping: %s", node.GetNodeType().String())
+	}
+}
+
+func workflowReasonCodeFromMediaJob(job *runtimev1.MediaJob) runtimev1.ReasonCode {
+	if job == nil {
+		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+	}
+	code := job.GetReasonCode()
+	if code == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+	}
+	return code
+}
+
+func workflowReasonCodeFromError(err error) runtimev1.ReasonCode {
+	if err == nil {
+		return runtimev1.ReasonCode_ACTION_EXECUTED
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+	}
+	switch st.Code() {
+	case codes.InvalidArgument:
+		return runtimev1.ReasonCode_AI_INPUT_INVALID
+	case codes.NotFound:
+		return runtimev1.ReasonCode_AI_MODEL_NOT_FOUND
+	case codes.DeadlineExceeded:
+		return runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+	case codes.FailedPrecondition:
+		return runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED
+	default:
+		if value, exists := runtimev1.ReasonCode_value[strings.TrimSpace(st.Message())]; exists {
+			return runtimev1.ReasonCode(value)
+		}
+		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 	}
 }
 

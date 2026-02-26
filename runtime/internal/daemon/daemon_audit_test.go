@@ -64,3 +64,31 @@ func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
 		t.Fatalf("expected no events, got=%d", len(resp.GetEvents()))
 	}
 }
+
+func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL", "http://127.0.0.1:1234/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL", "http://127.0.0.1:2234/v1")
+	t.Setenv("NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL", "http://127.0.0.1:3234/v1")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", "http://127.0.0.1:5234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL", "http://127.0.0.1:6234")
+
+	targets := configuredAIProviderTargets()
+	seen := make(map[string]bool, len(targets))
+	for _, item := range targets {
+		seen[item.Name] = true
+	}
+	required := []string{
+		"local",
+		"local-nexa",
+		"cloud-litellm",
+		"cloud-bytedance-openspeech",
+		"cloud-gemini",
+		"cloud-minimax",
+	}
+	for _, name := range required {
+		if !seen[name] {
+			t.Fatalf("expected provider target %q to be configured", name)
+		}
+	}
+}

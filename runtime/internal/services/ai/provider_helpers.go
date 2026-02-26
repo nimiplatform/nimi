@@ -10,7 +10,15 @@ import (
 
 func preferredRoute(modelID string) runtimev1.RoutePolicy {
 	lower := strings.ToLower(strings.TrimSpace(modelID))
-	if strings.HasPrefix(lower, "cloud/") || strings.HasPrefix(lower, "token/") {
+	if strings.HasPrefix(lower, "cloud/") ||
+		strings.HasPrefix(lower, "token/") ||
+		strings.HasPrefix(lower, "litellm/") ||
+		strings.HasPrefix(lower, "aliyun/") ||
+		strings.HasPrefix(lower, "alibaba/") ||
+		strings.HasPrefix(lower, "bytedance/") ||
+		strings.HasPrefix(lower, "byte/") ||
+		strings.HasPrefix(lower, "gemini/") ||
+		strings.HasPrefix(lower, "minimax/") {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
 	}
 	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME

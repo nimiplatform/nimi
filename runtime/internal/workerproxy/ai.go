@@ -68,6 +68,72 @@ func (s *AIProxy) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 	return resp, nil
 }
 
+func (s *AIProxy) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	var trailer metadata.MD
+	resp, err := client.SubmitMediaJob(ctx, req, grpc.Trailer(&trailer))
+	s.applyQueueWaitFromTrailer(ctx, trailer)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) GetMediaJob(ctx context.Context, req *runtimev1.GetMediaJobRequest) (*runtimev1.GetMediaJobResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	resp, err := client.GetMediaJob(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) CancelMediaJob(ctx context.Context, req *runtimev1.CancelMediaJobRequest) (*runtimev1.CancelMediaJobResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	resp, err := client.CancelMediaJob(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) SubscribeMediaJobEvents(req *runtimev1.SubscribeMediaJobEventsRequest, stream grpc.ServerStreamingServer[runtimev1.MediaJobEvent]) error {
+	client, err := s.client()
+	if err != nil {
+		return unavailableAI(err)
+	}
+	remote, err := client.SubscribeMediaJobEvents(stream.Context(), req)
+	if err != nil {
+		return mapAIError(err)
+	}
+	forwardErr := forwardServerStream(remote.Recv, stream.Send)
+	if forwardErr != nil {
+		return mapAIError(forwardErr)
+	}
+	return nil
+}
+
+func (s *AIProxy) GetMediaArtifacts(ctx context.Context, req *runtimev1.GetMediaArtifactsRequest) (*runtimev1.GetMediaArtifactsResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	resp, err := client.GetMediaArtifacts(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
 func (s *AIProxy) GenerateImage(req *runtimev1.GenerateImageRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
 	client, err := s.client()
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
@@ -157,6 +158,84 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	}
 }
 
+func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
+	client := &recordingRuntimeAIClient{}
+	svc := New(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		WithAIClient(client),
+		WithArtifactRoot(t.TempDir()),
+	)
+	ctx := context.Background()
+
+	submitResp, err := svc.SubmitWorkflow(ctx, &runtimev1.SubmitWorkflowRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		Definition: &runtimev1.WorkflowDefinition{
+			WorkflowType: "external.async.image",
+			Nodes: []*runtimev1.WorkflowNode{
+				{
+					NodeId:   "source",
+					NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE,
+					TypeConfig: &runtimev1.WorkflowNode_TemplateConfig{
+						TemplateConfig: &runtimev1.TemplateNodeConfig{Template: "city skyline"},
+					},
+				},
+				{
+					NodeId:          "image",
+					NodeType:        runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE,
+					ExecutionMode:   runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC,
+					DependsOn:       []string{"source"},
+					TypeConfig: &runtimev1.WorkflowNode_AiImageConfig{
+						AiImageConfig: &runtimev1.AiImageNodeConfig{
+							ModelId: "m-image",
+						},
+					},
+				},
+			},
+			Edges: []*runtimev1.WorkflowEdge{
+				{FromNodeId: "source", FromOutput: "text", ToNodeId: "image", ToInput: "prompt"},
+			},
+		},
+		TimeoutMs: 30_000,
+	})
+	if err != nil {
+		t.Fatalf("submit workflow: %v", err)
+	}
+	statusResp := waitWorkflowStatus(t, svc, submitResp.GetTaskId(), runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED, 3*time.Second)
+	if statusResp.GetStatus() != runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED {
+		t.Fatalf("workflow status mismatch: %v", statusResp.GetStatus())
+	}
+	if client.mediaReq == nil {
+		t.Fatalf("submitMediaJob request not captured")
+	}
+	if client.mediaReq.GetModal() != runtimev1.Modal_MODAL_IMAGE {
+		t.Fatalf("external async modal mismatch: %v", client.mediaReq.GetModal())
+	}
+
+	stream := &workflowEventCollector{ctx: context.Background()}
+	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{
+		TaskId: submitResp.GetTaskId(),
+	}, stream); err != nil {
+		t.Fatalf("subscribe workflow events: %v", err)
+	}
+	foundSubmitted := false
+	foundCompleted := false
+	for _, event := range stream.events {
+		if event.GetEventType() == runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED {
+			foundSubmitted = true
+		}
+		if event.GetEventType() == runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED {
+			foundCompleted = true
+		}
+	}
+	if !foundSubmitted {
+		t.Fatalf("expected NODE_EXTERNAL_SUBMITTED event")
+	}
+	if !foundCompleted {
+		t.Fatalf("expected NODE_EXTERNAL_COMPLETED event")
+	}
+}
+
 type recordingRuntimeAIClient struct {
 	generateReq *runtimev1.GenerateRequest
 	streamReq   *runtimev1.StreamGenerateRequest
@@ -165,6 +244,8 @@ type recordingRuntimeAIClient struct {
 	videoReq    *runtimev1.GenerateVideoRequest
 	ttsReq      *runtimev1.SynthesizeSpeechRequest
 	sttReq      *runtimev1.TranscribeAudioRequest
+	mediaReq    *runtimev1.SubmitMediaJobRequest
+	mediaJobs   map[string]*runtimev1.MediaJob
 }
 
 func (c *recordingRuntimeAIClient) Generate(_ context.Context, req *runtimev1.GenerateRequest, _ ...grpc.CallOption) (*runtimev1.GenerateResponse, error) {
@@ -254,6 +335,97 @@ func (c *recordingRuntimeAIClient) TranscribeAudio(_ context.Context, req *runti
 	return &runtimev1.TranscribeAudioResponse{Text: "transcribed-audio"}, nil
 }
 
+func (c *recordingRuntimeAIClient) SubmitMediaJob(_ context.Context, req *runtimev1.SubmitMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.SubmitMediaJobResponse, error) {
+	c.mediaReq = cloneSubmitMediaJobRequest(req)
+	if c.mediaJobs == nil {
+		c.mediaJobs = make(map[string]*runtimev1.MediaJob)
+	}
+	jobID := "job-1"
+	artifact := &runtimev1.MediaArtifact{
+		ArtifactId: "artifact-1",
+		MimeType:   "image/png",
+		Bytes:      []byte("artifact-content"),
+	}
+	if req.GetModal() == runtimev1.Modal_MODAL_VIDEO {
+		artifact.MimeType = "video/mp4"
+	}
+	if req.GetModal() == runtimev1.Modal_MODAL_TTS {
+		artifact.MimeType = "audio/wav"
+	}
+	if req.GetModal() == runtimev1.Modal_MODAL_STT {
+		artifact.MimeType = "text/plain"
+		artifact.Bytes = []byte("transcribed-audio")
+	}
+	job := &runtimev1.MediaJob{
+		JobId:         jobID,
+		Status:        runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
+		Artifacts:     []*runtimev1.MediaArtifact{artifact},
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+		RouteDecision: req.GetRoutePolicy(),
+		ModelResolved: req.GetModelId(),
+	}
+	c.mediaJobs[jobID] = job
+	return &runtimev1.SubmitMediaJobResponse{Job: job}, nil
+}
+
+func (c *recordingRuntimeAIClient) GetMediaJob(_ context.Context, req *runtimev1.GetMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.GetMediaJobResponse, error) {
+	if c.mediaJobs == nil {
+		c.mediaJobs = map[string]*runtimev1.MediaJob{}
+	}
+	job := c.mediaJobs[req.GetJobId()]
+	if job == nil {
+		job = &runtimev1.MediaJob{
+			JobId:      req.GetJobId(),
+			Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED,
+			ReasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+		}
+	}
+	return &runtimev1.GetMediaJobResponse{Job: job}, nil
+}
+
+func (c *recordingRuntimeAIClient) CancelMediaJob(_ context.Context, req *runtimev1.CancelMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.CancelMediaJobResponse, error) {
+	if c.mediaJobs == nil {
+		c.mediaJobs = map[string]*runtimev1.MediaJob{}
+	}
+	job := c.mediaJobs[req.GetJobId()]
+	if job == nil {
+		job = &runtimev1.MediaJob{JobId: req.GetJobId()}
+	}
+	job.Status = runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_CANCELED
+	c.mediaJobs[req.GetJobId()] = job
+	return &runtimev1.CancelMediaJobResponse{Job: job}, nil
+}
+
+func (c *recordingRuntimeAIClient) SubscribeMediaJobEvents(ctx context.Context, req *runtimev1.SubscribeMediaJobEventsRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.MediaJobEvent], error) {
+	event := &runtimev1.MediaJobEvent{
+		EventType: runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_COMPLETED,
+		Job: &runtimev1.MediaJob{
+			JobId:      req.GetJobId(),
+			Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
+			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		},
+	}
+	return &fakeMediaJobEventClient{
+		ctx:    ctx,
+		events: []*runtimev1.MediaJobEvent{event},
+	}, nil
+}
+
+func (c *recordingRuntimeAIClient) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaArtifactsRequest, _ ...grpc.CallOption) (*runtimev1.GetMediaArtifactsResponse, error) {
+	if c.mediaJobs == nil {
+		c.mediaJobs = map[string]*runtimev1.MediaJob{}
+	}
+	job := c.mediaJobs[req.GetJobId()]
+	if job == nil {
+		return &runtimev1.GetMediaArtifactsResponse{JobId: req.GetJobId()}, nil
+	}
+	return &runtimev1.GetMediaArtifactsResponse{
+		JobId:     req.GetJobId(),
+		Artifacts: job.GetArtifacts(),
+		TraceId:   job.GetTraceId(),
+	}, nil
+}
+
 type fakeStreamGenerateClient struct {
 	ctx    context.Context
 	events []*runtimev1.StreamGenerateEvent
@@ -297,6 +469,28 @@ func (f *fakeArtifactChunkClient) CloseSend() error             { return nil }
 func (f *fakeArtifactChunkClient) Context() context.Context     { return f.ctx }
 func (f *fakeArtifactChunkClient) SendMsg(any) error            { return nil }
 func (f *fakeArtifactChunkClient) RecvMsg(any) error            { return nil }
+
+type fakeMediaJobEventClient struct {
+	ctx    context.Context
+	events []*runtimev1.MediaJobEvent
+	index  int
+}
+
+func (f *fakeMediaJobEventClient) Recv() (*runtimev1.MediaJobEvent, error) {
+	if f.index >= len(f.events) {
+		return nil, io.EOF
+	}
+	item := f.events[f.index]
+	f.index++
+	return item, nil
+}
+
+func (f *fakeMediaJobEventClient) Header() (metadata.MD, error) { return metadata.MD{}, nil }
+func (f *fakeMediaJobEventClient) Trailer() metadata.MD         { return metadata.MD{} }
+func (f *fakeMediaJobEventClient) CloseSend() error             { return nil }
+func (f *fakeMediaJobEventClient) Context() context.Context     { return f.ctx }
+func (f *fakeMediaJobEventClient) SendMsg(any) error            { return nil }
+func (f *fakeMediaJobEventClient) RecvMsg(any) error            { return nil }
 
 func cloneGenerateRequest(req *runtimev1.GenerateRequest) *runtimev1.GenerateRequest {
 	cloned := proto.Clone(req)
@@ -357,6 +551,15 @@ func cloneTranscribeAudioRequest(req *runtimev1.TranscribeAudioRequest) *runtime
 	copied, ok := cloned.(*runtimev1.TranscribeAudioRequest)
 	if !ok {
 		return &runtimev1.TranscribeAudioRequest{}
+	}
+	return copied
+}
+
+func cloneSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) *runtimev1.SubmitMediaJobRequest {
+	cloned := proto.Clone(req)
+	copied, ok := cloned.(*runtimev1.SubmitMediaJobRequest)
+	if !ok {
+		return &runtimev1.SubmitMediaJobRequest{}
 	}
 	return copied
 }

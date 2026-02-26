@@ -170,6 +170,12 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 	for _, nodeID := range graph.Order {
 		node := graph.NodeByID[nodeID]
 		bindings := graph.InputBinding[nodeID]
+		mode := node.GetExecutionMode()
+		if mode != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_UNSPECIFIED &&
+			mode != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_INLINE &&
+			mode != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+		}
 		switch node.GetNodeType() {
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_GENERATE:
 			if node.GetAiGenerateConfig() == nil {
@@ -192,6 +198,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			if cfg == nil {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				// valid: image node supports external async orchestration
+			}
 			if strings.TrimSpace(cfg.GetPrompt()) == "" && !hasAnySlot(bindings, "prompt", "text") {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
@@ -199,6 +208,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			cfg := node.GetAiVideoConfig()
 			if cfg == nil {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				// valid: video node supports external async orchestration
 			}
 			if strings.TrimSpace(cfg.GetPrompt()) == "" && !hasAnySlot(bindings, "prompt", "text") {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
@@ -208,6 +220,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			if cfg == nil {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				// valid: tts node supports external async orchestration
+			}
 			if strings.TrimSpace(cfg.GetText()) == "" && !hasAnySlot(bindings, "text", "prompt") {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
@@ -216,7 +231,13 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			if cfg == nil || strings.TrimSpace(cfg.GetMimeType()) == "" {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				// valid: stt node supports external async orchestration
+			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_EXTRACT:
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
 			cfg := node.GetExtractConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetJsonPath()) == "" || strings.TrimSpace(cfg.GetSourceInput()) == "" {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
@@ -225,16 +246,25 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE:
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
 			cfg := node.GetTemplateConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetTemplate()) == "" {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_SCRIPT:
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
 			cfg := node.GetScriptConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetRuntime()) == "" || strings.TrimSpace(cfg.GetCode()) == "" {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_BRANCH:
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
 			cfg := node.GetBranchConfig()
 			if cfg == nil {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
@@ -254,6 +284,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_MERGE:
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
 			cfg := node.GetMergeConfig()
 			if cfg == nil {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
@@ -274,6 +307,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_NOOP:
+			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
+				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			}
 			if node.GetNoopConfig() == nil {
 				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
 			}

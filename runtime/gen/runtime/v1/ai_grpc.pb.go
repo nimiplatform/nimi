@@ -19,13 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAiService_Generate_FullMethodName         = "/nimi.runtime.v1.RuntimeAiService/Generate"
-	RuntimeAiService_StreamGenerate_FullMethodName   = "/nimi.runtime.v1.RuntimeAiService/StreamGenerate"
-	RuntimeAiService_Embed_FullMethodName            = "/nimi.runtime.v1.RuntimeAiService/Embed"
-	RuntimeAiService_GenerateImage_FullMethodName    = "/nimi.runtime.v1.RuntimeAiService/GenerateImage"
-	RuntimeAiService_GenerateVideo_FullMethodName    = "/nimi.runtime.v1.RuntimeAiService/GenerateVideo"
-	RuntimeAiService_SynthesizeSpeech_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech"
-	RuntimeAiService_TranscribeAudio_FullMethodName  = "/nimi.runtime.v1.RuntimeAiService/TranscribeAudio"
+	RuntimeAiService_Generate_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/Generate"
+	RuntimeAiService_StreamGenerate_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/StreamGenerate"
+	RuntimeAiService_Embed_FullMethodName                   = "/nimi.runtime.v1.RuntimeAiService/Embed"
+	RuntimeAiService_SubmitMediaJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob"
+	RuntimeAiService_GetMediaJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/GetMediaJob"
+	RuntimeAiService_CancelMediaJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob"
+	RuntimeAiService_SubscribeMediaJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents"
+	RuntimeAiService_GetMediaArtifacts_FullMethodName       = "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts"
+	RuntimeAiService_GenerateImage_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/GenerateImage"
+	RuntimeAiService_GenerateVideo_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/GenerateVideo"
+	RuntimeAiService_SynthesizeSpeech_FullMethodName        = "/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech"
+	RuntimeAiService_TranscribeAudio_FullMethodName         = "/nimi.runtime.v1.RuntimeAiService/TranscribeAudio"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
@@ -35,6 +40,11 @@ type RuntimeAiServiceClient interface {
 	Generate(ctx context.Context, in *GenerateRequest, opts ...grpc.CallOption) (*GenerateResponse, error)
 	StreamGenerate(ctx context.Context, in *StreamGenerateRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamGenerateEvent], error)
 	Embed(ctx context.Context, in *EmbedRequest, opts ...grpc.CallOption) (*EmbedResponse, error)
+	SubmitMediaJob(ctx context.Context, in *SubmitMediaJobRequest, opts ...grpc.CallOption) (*SubmitMediaJobResponse, error)
+	GetMediaJob(ctx context.Context, in *GetMediaJobRequest, opts ...grpc.CallOption) (*GetMediaJobResponse, error)
+	CancelMediaJob(ctx context.Context, in *CancelMediaJobRequest, opts ...grpc.CallOption) (*CancelMediaJobResponse, error)
+	SubscribeMediaJobEvents(ctx context.Context, in *SubscribeMediaJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MediaJobEvent], error)
+	GetMediaArtifacts(ctx context.Context, in *GetMediaArtifactsRequest, opts ...grpc.CallOption) (*GetMediaArtifactsResponse, error)
 	GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
 	GenerateVideo(ctx context.Context, in *GenerateVideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
 	SynthesizeSpeech(ctx context.Context, in *SynthesizeSpeechRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
@@ -88,9 +98,68 @@ func (c *runtimeAiServiceClient) Embed(ctx context.Context, in *EmbedRequest, op
 	return out, nil
 }
 
+func (c *runtimeAiServiceClient) SubmitMediaJob(ctx context.Context, in *SubmitMediaJobRequest, opts ...grpc.CallOption) (*SubmitMediaJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitMediaJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_SubmitMediaJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) GetMediaJob(ctx context.Context, in *GetMediaJobRequest, opts ...grpc.CallOption) (*GetMediaJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMediaJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_GetMediaJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) CancelMediaJob(ctx context.Context, in *CancelMediaJobRequest, opts ...grpc.CallOption) (*CancelMediaJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelMediaJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_CancelMediaJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiServiceClient) SubscribeMediaJobEvents(ctx context.Context, in *SubscribeMediaJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MediaJobEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[1], RuntimeAiService_SubscribeMediaJobEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeMediaJobEventsRequest, MediaJobEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_SubscribeMediaJobEventsClient = grpc.ServerStreamingClient[MediaJobEvent]
+
+func (c *runtimeAiServiceClient) GetMediaArtifacts(ctx context.Context, in *GetMediaArtifactsRequest, opts ...grpc.CallOption) (*GetMediaArtifactsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMediaArtifactsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_GetMediaArtifacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAiServiceClient) GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[1], RuntimeAiService_GenerateImage_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_GenerateImage_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +178,7 @@ type RuntimeAiService_GenerateImageClient = grpc.ServerStreamingClient[ArtifactC
 
 func (c *runtimeAiServiceClient) GenerateVideo(ctx context.Context, in *GenerateVideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_GenerateVideo_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[3], RuntimeAiService_GenerateVideo_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +197,7 @@ type RuntimeAiService_GenerateVideoClient = grpc.ServerStreamingClient[ArtifactC
 
 func (c *runtimeAiServiceClient) SynthesizeSpeech(ctx context.Context, in *SynthesizeSpeechRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[3], RuntimeAiService_SynthesizeSpeech_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[4], RuntimeAiService_SynthesizeSpeech_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +231,11 @@ type RuntimeAiServiceServer interface {
 	Generate(context.Context, *GenerateRequest) (*GenerateResponse, error)
 	StreamGenerate(*StreamGenerateRequest, grpc.ServerStreamingServer[StreamGenerateEvent]) error
 	Embed(context.Context, *EmbedRequest) (*EmbedResponse, error)
+	SubmitMediaJob(context.Context, *SubmitMediaJobRequest) (*SubmitMediaJobResponse, error)
+	GetMediaJob(context.Context, *GetMediaJobRequest) (*GetMediaJobResponse, error)
+	CancelMediaJob(context.Context, *CancelMediaJobRequest) (*CancelMediaJobResponse, error)
+	SubscribeMediaJobEvents(*SubscribeMediaJobEventsRequest, grpc.ServerStreamingServer[MediaJobEvent]) error
+	GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error)
 	GenerateImage(*GenerateImageRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
 	GenerateVideo(*GenerateVideoRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
 	SynthesizeSpeech(*SynthesizeSpeechRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
@@ -183,6 +257,21 @@ func (UnimplementedRuntimeAiServiceServer) StreamGenerate(*StreamGenerateRequest
 }
 func (UnimplementedRuntimeAiServiceServer) Embed(context.Context, *EmbedRequest) (*EmbedResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Embed not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) SubmitMediaJob(context.Context, *SubmitMediaJobRequest) (*SubmitMediaJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitMediaJob not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) GetMediaJob(context.Context, *GetMediaJobRequest) (*GetMediaJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMediaJob not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) CancelMediaJob(context.Context, *CancelMediaJobRequest) (*CancelMediaJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelMediaJob not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) SubscribeMediaJobEvents(*SubscribeMediaJobEventsRequest, grpc.ServerStreamingServer[MediaJobEvent]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeMediaJobEvents not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMediaArtifacts not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) GenerateImage(*GenerateImageRequest, grpc.ServerStreamingServer[ArtifactChunk]) error {
 	return status.Error(codes.Unimplemented, "method GenerateImage not implemented")
@@ -263,6 +352,89 @@ func _RuntimeAiService_Embed_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAiService_SubmitMediaJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitMediaJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).SubmitMediaJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_SubmitMediaJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).SubmitMediaJob(ctx, req.(*SubmitMediaJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_GetMediaJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMediaJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).GetMediaJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_GetMediaJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).GetMediaJob(ctx, req.(*GetMediaJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_CancelMediaJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelMediaJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).CancelMediaJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_CancelMediaJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).CancelMediaJob(ctx, req.(*CancelMediaJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiService_SubscribeMediaJobEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeMediaJobEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAiServiceServer).SubscribeMediaJobEvents(m, &grpc.GenericServerStream[SubscribeMediaJobEventsRequest, MediaJobEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAiService_SubscribeMediaJobEventsServer = grpc.ServerStreamingServer[MediaJobEvent]
+
+func _RuntimeAiService_GetMediaArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMediaArtifactsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).GetMediaArtifacts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_GetMediaArtifacts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).GetMediaArtifacts(ctx, req.(*GetMediaArtifactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAiService_GenerateImage_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GenerateImageRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -330,6 +502,22 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAiService_Embed_Handler,
 		},
 		{
+			MethodName: "SubmitMediaJob",
+			Handler:    _RuntimeAiService_SubmitMediaJob_Handler,
+		},
+		{
+			MethodName: "GetMediaJob",
+			Handler:    _RuntimeAiService_GetMediaJob_Handler,
+		},
+		{
+			MethodName: "CancelMediaJob",
+			Handler:    _RuntimeAiService_CancelMediaJob_Handler,
+		},
+		{
+			MethodName: "GetMediaArtifacts",
+			Handler:    _RuntimeAiService_GetMediaArtifacts_Handler,
+		},
+		{
 			MethodName: "TranscribeAudio",
 			Handler:    _RuntimeAiService_TranscribeAudio_Handler,
 		},
@@ -338,6 +526,11 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StreamGenerate",
 			Handler:       _RuntimeAiService_StreamGenerate_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeMediaJobEvents",
+			Handler:       _RuntimeAiService_SubscribeMediaJobEvents_Handler,
 			ServerStreams: true,
 		},
 		{

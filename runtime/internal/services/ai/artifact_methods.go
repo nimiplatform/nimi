@@ -4,7 +4,6 @@ import (
 	"context"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -61,113 +60,192 @@ func (s *Service) GenerateImage(req *runtimev1.GenerateImageRequest, stream grpc
 	if err := validatePromptRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetPrompt(), req.GetRoutePolicy()); err != nil {
 		return err
 	}
-	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
-	if acquireErr != nil {
-		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	submitResp, err := s.SubmitMediaJob(stream.Context(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         req.GetAppId(),
+		SubjectUserId: req.GetSubjectUserId(),
+		ModelId:       req.GetModelId(),
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   req.GetRoutePolicy(),
+		Fallback:      req.GetFallback(),
+		TimeoutMs:     req.GetTimeoutMs(),
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: req.GetPrompt(),
+			},
+		},
+	})
+	if err != nil {
+		return err
 	}
-	defer release()
-	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
-	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
-	s.logQueueWait("generate_image", req.GetAppId(), acquireResult)
-	requestCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultGenerateImageTimeout)
+	waitCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultGenerateImageTimeout)
 	defer cancel()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
-	if err != nil {
-		return err
+	job, ok := s.mediaJobs.waitTerminal(waitCtx, submitResp.GetJob().GetJobId())
+	if !ok {
+		return status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
 	}
-	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
-	payload, usage, err := selectedProvider.generateImage(requestCtx, modelResolved, req.GetPrompt())
-	if err != nil {
-		return err
+	if job == nil {
+		return status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 	}
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		return mediaJobStatusToError(job)
+	}
+	artifacts := job.GetArtifacts()
+	if len(artifacts) == 0 {
+		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	payload := artifacts[0].GetBytes()
+	mimeType := artifacts[0].GetMimeType()
+	if mimeType == "" {
+		mimeType = "image/png"
+	}
+	usage := job.GetUsage()
 	if usage == nil {
 		usage = artifactUsage(req.GetPrompt(), payload, 180)
 	}
-	return streamArtifact(stream, "image/png", routeDecision, modelResolved, payload, usage)
+	return streamArtifact(stream, mimeType, job.GetRouteDecision(), job.GetModelResolved(), payload, usage)
 }
 
 func (s *Service) GenerateVideo(req *runtimev1.GenerateVideoRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
 	if err := validatePromptRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetPrompt(), req.GetRoutePolicy()); err != nil {
 		return err
 	}
-	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
-	if acquireErr != nil {
-		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	submitResp, err := s.SubmitMediaJob(stream.Context(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         req.GetAppId(),
+		SubjectUserId: req.GetSubjectUserId(),
+		ModelId:       req.GetModelId(),
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   req.GetRoutePolicy(),
+		Fallback:      req.GetFallback(),
+		TimeoutMs:     req.GetTimeoutMs(),
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: req.GetPrompt(),
+			},
+		},
+	})
+	if err != nil {
+		return err
 	}
-	defer release()
-	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
-	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
-	s.logQueueWait("generate_video", req.GetAppId(), acquireResult)
-	requestCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultGenerateVideoTimeout)
+	waitCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultGenerateVideoTimeout)
 	defer cancel()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
-	if err != nil {
-		return err
+	job, ok := s.mediaJobs.waitTerminal(waitCtx, submitResp.GetJob().GetJobId())
+	if !ok {
+		return status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
 	}
-	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
-	payload, usage, err := selectedProvider.generateVideo(requestCtx, modelResolved, req.GetPrompt())
-	if err != nil {
-		return err
+	if job == nil {
+		return status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 	}
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		return mediaJobStatusToError(job)
+	}
+	artifacts := job.GetArtifacts()
+	if len(artifacts) == 0 {
+		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	payload := artifacts[0].GetBytes()
+	mimeType := artifacts[0].GetMimeType()
+	if mimeType == "" {
+		mimeType = "video/mp4"
+	}
+	usage := job.GetUsage()
 	if usage == nil {
 		usage = artifactUsage(req.GetPrompt(), payload, 420)
 	}
-	return streamArtifact(stream, "video/mp4", routeDecision, modelResolved, payload, usage)
+	return streamArtifact(stream, mimeType, job.GetRouteDecision(), job.GetModelResolved(), payload, usage)
 }
 
 func (s *Service) SynthesizeSpeech(req *runtimev1.SynthesizeSpeechRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
 	if err := validatePromptRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetText(), req.GetRoutePolicy()); err != nil {
 		return err
 	}
-	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
-	if acquireErr != nil {
-		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	submitResp, err := s.SubmitMediaJob(stream.Context(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         req.GetAppId(),
+		SubjectUserId: req.GetSubjectUserId(),
+		ModelId:       req.GetModelId(),
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   req.GetRoutePolicy(),
+		Fallback:      req.GetFallback(),
+		TimeoutMs:     req.GetTimeoutMs(),
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: req.GetText(),
+			},
+		},
+	})
+	if err != nil {
+		return err
 	}
-	defer release()
-	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
-	stream.SetTrailer(usagemetrics.QueueWaitTrailer(waitMs))
-	s.logQueueWait("synthesize_speech", req.GetAppId(), acquireResult)
-	requestCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultSynthesizeTimeout)
+	waitCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultSynthesizeTimeout)
 	defer cancel()
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
-	if err != nil {
-		return err
+	job, ok := s.mediaJobs.waitTerminal(waitCtx, submitResp.GetJob().GetJobId())
+	if !ok {
+		return status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
 	}
-	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
-	payload, usage, err := selectedProvider.synthesizeSpeech(requestCtx, modelResolved, req.GetText())
-	if err != nil {
-		return err
+	if job == nil {
+		return status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 	}
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		return mediaJobStatusToError(job)
+	}
+	artifacts := job.GetArtifacts()
+	if len(artifacts) == 0 {
+		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	payload := artifacts[0].GetBytes()
+	mimeType := artifacts[0].GetMimeType()
+	if mimeType == "" {
+		mimeType = "audio/mpeg"
+	}
+	usage := job.GetUsage()
 	if usage == nil {
 		usage = artifactUsage(req.GetText(), payload, 120)
 	}
-	return streamArtifact(stream, "audio/mpeg", routeDecision, modelResolved, payload, usage)
+	return streamArtifact(stream, mimeType, job.GetRouteDecision(), job.GetModelResolved(), payload, usage)
 }
 
 func (s *Service) TranscribeAudio(ctx context.Context, req *runtimev1.TranscribeAudioRequest) (*runtimev1.TranscribeAudioResponse, error) {
 	if err := validateTranscribeRequest(req); err != nil {
 		return nil, err
 	}
-	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
-	if acquireErr != nil {
-		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	submitResp, err := s.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+		AppId:         req.GetAppId(),
+		SubjectUserId: req.GetSubjectUserId(),
+		ModelId:       req.GetModelId(),
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   req.GetRoutePolicy(),
+		Fallback:      req.GetFallback(),
+		TimeoutMs:     req.GetTimeoutMs(),
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: req.GetAudioBytes(),
+				MimeType:   req.GetMimeType(),
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
-	defer release()
-	s.attachQueueWaitUnary(ctx, acquireResult)
-	s.logQueueWait("transcribe_audio", req.GetAppId(), acquireResult)
-	requestCtx, cancel := withTimeout(ctx, req.GetTimeoutMs(), defaultTranscribeTimeout)
+	waitCtx, cancel := withTimeout(ctx, req.GetTimeoutMs(), defaultTranscribeTimeout)
 	defer cancel()
-
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
-	if err != nil {
-		return nil, err
+	job, ok := s.mediaJobs.waitTerminal(waitCtx, submitResp.GetJob().GetJobId())
+	if !ok {
+		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
 	}
-	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
-
-	text, usage, err := selectedProvider.transcribe(requestCtx, modelResolved, req.GetAudioBytes(), req.GetMimeType())
-	if err != nil {
-		return nil, err
+	if job == nil {
+		return nil, status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 	}
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		return nil, mediaJobStatusToError(job)
+	}
+	artifacts := job.GetArtifacts()
+	if len(artifacts) == 0 {
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	text := strings.TrimSpace(string(artifacts[0].GetBytes()))
+	if text == "" {
+		text = strings.TrimSpace(artifacts[0].GetProviderRaw().GetFields()["text"].GetStringValue())
+	}
+	usage := job.GetUsage()
 	if usage == nil {
 		usage = &runtimev1.UsageStats{
 			InputTokens:  maxInt64(1, int64(len(req.GetAudioBytes())/256)),
@@ -178,8 +256,32 @@ func (s *Service) TranscribeAudio(ctx context.Context, req *runtimev1.Transcribe
 	return &runtimev1.TranscribeAudioResponse{
 		Text:          text,
 		Usage:         usage,
-		RouteDecision: routeDecision,
-		ModelResolved: modelResolved,
-		TraceId:       ulid.Make().String(),
+		RouteDecision: job.GetRouteDecision(),
+		ModelResolved: job.GetModelResolved(),
+		TraceId:       job.GetTraceId(),
 	}, nil
+}
+
+func mediaJobStatusToError(job *runtimev1.MediaJob) error {
+	if job == nil {
+		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	reasonCode := job.GetReasonCode()
+	if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+	}
+	switch reasonCode {
+	case runtimev1.ReasonCode_AI_INPUT_INVALID:
+		return status.Error(codes.InvalidArgument, reasonCode.String())
+	case runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
+		return status.Error(codes.NotFound, reasonCode.String())
+	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		return status.Error(codes.DeadlineExceeded, reasonCode.String())
+	case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, runtimev1.ReasonCode_AI_MODEL_NOT_READY:
+		return status.Error(codes.FailedPrecondition, reasonCode.String())
+	case runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED:
+		return status.Error(codes.PermissionDenied, reasonCode.String())
+	default:
+		return status.Error(codes.Unavailable, reasonCode.String())
+	}
 }

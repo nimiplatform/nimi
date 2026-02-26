@@ -38,11 +38,13 @@ var streamFirstPacketTimeout = defaultStreamFirstTimeout
 type Service struct {
 	runtimev1.UnimplementedRuntimeAiServiceServer
 	logger       *slog.Logger
+	config       Config
 	selector     *routeSelector
 	audit        *auditlog.Store
 	registry     *modelregistry.Registry
 	registryPath string
 	scheduler    *scheduler.Scheduler
+	mediaJobs    *mediaJobStore
 }
 
 func New(logger *slog.Logger, cfg ...Config) *Service {
@@ -60,10 +62,12 @@ func NewWithDependencies(logger *slog.Logger, registry *modelregistry.Registry, 
 	}
 	return &Service{
 		logger:    logger,
+		config:    effectiveCfg,
 		selector:  newRouteSelectorWithRegistry(effectiveCfg, registry, aiHealth),
 		audit:     auditStore,
 		registry:  registry,
 		scheduler: scheduler.New(scheduler.Config{GlobalConcurrency: 8, PerAppConcurrency: 2, StarvationThreshold: 30 * time.Second}),
+		mediaJobs: newMediaJobStore(),
 	}
 }
 

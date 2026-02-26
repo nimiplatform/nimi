@@ -487,6 +487,15 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 				continue
 			}
 			available := service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
+			adapter := adapterForProvider(provider)
+			apiPath := apiPathForProviderCapability(provider, capability)
+			reasonCode := ""
+			policyGate := ""
+			if provider == "nexa" && strings.EqualFold(strings.TrimSpace(capability), "video") {
+				available = false
+				reasonCode = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
+				policyGate = "nexa.video.unsupported"
+			}
 			nodeID := fmt.Sprintf("node_%s_%s", slug(service.GetServiceId()), slug(capability))
 			nodes = append(nodes, &runtimev1.LocalNodeDescriptor{
 				NodeId:        nodeID,
@@ -494,13 +503,13 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 				ServiceId:     service.GetServiceId(),
 				Capabilities:  []string{capability},
 				Provider:      provider,
-				Adapter:       "openai_compat_adapter",
+				Adapter:       adapter,
 				Backend:       provider,
 				BackendSource: "runtime",
 				Available:     available,
-				ReasonCode:    "",
-				PolicyGate:    "",
-				ApiPath:       "/v1/chat/completions",
+				ReasonCode:    reasonCode,
+				PolicyGate:    policyGate,
+				ApiPath:       apiPath,
 				ReadOnly:      false,
 			})
 		}
@@ -820,6 +829,36 @@ func matchesCatalogSearch(item *runtimev1.LocalCatalogModelDescriptor, query str
 		}
 	}
 	return false
+}
+
+func adapterForProvider(provider string) string {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "nexa":
+		return "nexa_native_adapter"
+	default:
+		return "openai_compat_adapter"
+	}
+}
+
+func apiPathForProviderCapability(provider string, capability string) string {
+	cap := strings.ToLower(strings.TrimSpace(capability))
+	switch cap {
+	case "embedding", "embed":
+		return "/v1/embeddings"
+	case "image":
+		return "/v1/images/generations"
+	case "video":
+		if strings.EqualFold(strings.TrimSpace(provider), "nexa") {
+			return "/v1/video/generations"
+		}
+		return "/v1/videos/generations"
+	case "tts", "speech":
+		return "/v1/audio/speech"
+	case "stt", "transcription":
+		return "/v1/audio/transcriptions"
+	default:
+		return "/v1/chat/completions"
+	}
 }
 
 func matchesLocalAuditFilter(event *runtimev1.LocalAuditEvent, req *runtimev1.ListLocalAuditsRequest, eventTypes map[string]bool) bool {

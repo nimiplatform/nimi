@@ -17,6 +17,8 @@ type cloudProvider struct {
 	litellm   *openAIBackend
 	alibaba   *openAIBackend
 	bytedance *openAIBackend
+	gemini    *openAIBackend
+	minimax   *openAIBackend
 	registry  *modelregistry.Registry
 	health    *providerhealth.Tracker
 	lastMu    sync.RWMutex
@@ -187,6 +189,16 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 				return nil, rest, true, false
 			}
 			return p.bytedance, rest, true, true
+		case "gemini":
+			if p.gemini == nil || !p.isBackendHealthy("cloud-gemini") {
+				return nil, rest, true, false
+			}
+			return p.gemini, rest, true, true
+		case "minimax":
+			if p.minimax == nil || !p.isBackendHealthy("cloud-minimax") {
+				return nil, rest, true, false
+			}
+			return p.minimax, rest, true, true
 		}
 	}
 
@@ -208,6 +220,16 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 				if p.bytedance != nil && p.isBackendHealthy("cloud-bytedance") {
 					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintBytedance), false)
 					return p.bytedance, id, false, true
+				}
+			case modelregistry.ProviderHintGemini:
+				if p.gemini != nil && p.isBackendHealthy("cloud-gemini") {
+					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintGemini), false)
+					return p.gemini, id, false, true
+				}
+			case modelregistry.ProviderHintMiniMax:
+				if p.minimax != nil && p.isBackendHealthy("cloud-minimax") {
+					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintMiniMax), false)
+					return p.minimax, id, false, true
 				}
 			case modelregistry.ProviderHintLocal, modelregistry.ProviderHintUnknown:
 			}
@@ -248,6 +270,18 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 			return p.bytedance, id, false, true
 		}
 	}
+	if p.gemini != nil {
+		if p.isBackendHealthy("cloud-gemini") {
+			p.rememberHintDecision(id, "", string(modelregistry.ProviderHintGemini), false)
+			return p.gemini, id, false, true
+		}
+	}
+	if p.minimax != nil {
+		if p.isBackendHealthy("cloud-minimax") {
+			p.rememberHintDecision(id, "", string(modelregistry.ProviderHintMiniMax), false)
+			return p.minimax, id, false, true
+		}
+	}
 
 	// No healthy backend, return first configured backend so caller gets concrete provider error path.
 	if p.litellm != nil {
@@ -261,6 +295,14 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 	if p.bytedance != nil {
 		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintBytedance), false)
 		return p.bytedance, id, false, true
+	}
+	if p.gemini != nil {
+		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintGemini), false)
+		return p.gemini, id, false, true
+	}
+	if p.minimax != nil {
+		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintMiniMax), false)
+		return p.minimax, id, false, true
 	}
 	return nil, id, false, false
 }
@@ -281,6 +323,12 @@ func (p *cloudProvider) firstHealthyHint() modelregistry.ProviderHint {
 	}
 	if p.bytedance != nil && p.isBackendHealthy("cloud-bytedance") {
 		return modelregistry.ProviderHintBytedance
+	}
+	if p.gemini != nil && p.isBackendHealthy("cloud-gemini") {
+		return modelregistry.ProviderHintGemini
+	}
+	if p.minimax != nil && p.isBackendHealthy("cloud-minimax") {
+		return modelregistry.ProviderHintMiniMax
 	}
 	return modelregistry.ProviderHintUnknown
 }
@@ -341,6 +389,14 @@ func (p *cloudProvider) backendForHint(hint modelregistry.ProviderHint) (*openAI
 	case modelregistry.ProviderHintBytedance:
 		if p.bytedance != nil && p.isBackendHealthy("cloud-bytedance") {
 			return p.bytedance, true
+		}
+	case modelregistry.ProviderHintGemini:
+		if p.gemini != nil && p.isBackendHealthy("cloud-gemini") {
+			return p.gemini, true
+		}
+	case modelregistry.ProviderHintMiniMax:
+		if p.minimax != nil && p.isBackendHealthy("cloud-minimax") {
+			return p.minimax, true
 		}
 	}
 	return nil, false

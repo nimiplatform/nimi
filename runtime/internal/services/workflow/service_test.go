@@ -644,3 +644,23 @@ func (f *fakeRuntimeAIClient) SynthesizeSpeech(context.Context, *runtimev1.Synth
 func (f *fakeRuntimeAIClient) TranscribeAudio(context.Context, *runtimev1.TranscribeAudioRequest, ...grpc.CallOption) (*runtimev1.TranscribeAudioResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
+
+func (f *fakeRuntimeAIClient) SubmitMediaJob(context.Context, *runtimev1.SubmitMediaJobRequest, ...grpc.CallOption) (*runtimev1.SubmitMediaJobResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) GetMediaJob(context.Context, *runtimev1.GetMediaJobRequest, ...grpc.CallOption) (*runtimev1.GetMediaJobResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) CancelMediaJob(context.Context, *runtimev1.CancelMediaJobRequest, ...grpc.CallOption) (*runtimev1.CancelMediaJobResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) SubscribeMediaJobEvents(context.Context, *runtimev1.SubscribeMediaJobEventsRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.MediaJobEvent], error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) GetMediaArtifacts(context.Context, *runtimev1.GetMediaArtifactsRequest, ...grpc.CallOption) (*runtimev1.GetMediaArtifactsResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}

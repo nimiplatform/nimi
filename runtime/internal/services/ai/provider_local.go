@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"strings"
 )
 
 type localProvider struct {
-	backend *openAIBackend
+	localai *openAIBackend
+	nexa    *openAIBackend
 }
 
 func (p *localProvider) route() runtimev1.RoutePolicy {
@@ -17,7 +20,16 @@ func (p *localProvider) route() runtimev1.RoutePolicy {
 }
 
 func (p *localProvider) resolveModelID(raw string) string {
-	modelID := strings.TrimSpace(strings.TrimPrefix(raw, "local/"))
+	modelID := strings.TrimSpace(raw)
+	if strings.HasPrefix(modelID, "local/") {
+		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "local/"))
+	}
+	if strings.HasPrefix(modelID, "localai/") {
+		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "localai/"))
+	}
+	if strings.HasPrefix(modelID, "nexa/") {
+		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "nexa/"))
+	}
 	if modelID == "" {
 		return "local-model"
 	}
@@ -25,12 +37,23 @@ func (p *localProvider) resolveModelID(raw string) string {
 }
 
 func (p *localProvider) checkModelAvailability(modelID string) error {
-	return checkModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME)
+	if err := checkModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME); err != nil {
+		return err
+	}
+	_, _, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	return nil
 }
 
 func (p *localProvider) generateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if p.backend != nil {
-		text, usage, finish, err := p.backend.generateText(ctx, modelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
+	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backend != nil {
+		text, usage, finish, err := backend.generateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
 		if err != nil {
 			return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 		}
@@ -41,39 +64,62 @@ func (p *localProvider) generateText(ctx context.Context, modelID string, req *r
 }
 
 func (p *localProvider) embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	if p.backend != nil {
-		return p.backend.embed(ctx, modelID, inputs)
+	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backend != nil {
+		return backend.embed(ctx, resolvedModelID, inputs)
 	}
 	return fallbackEmbed(inputs), nil, nil
 }
 
 func (p *localProvider) generateImage(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error) {
-	if p.backend != nil {
-		return p.backend.generateImage(ctx, modelID, prompt)
+	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backend != nil {
+		return backend.generateImage(ctx, resolvedModelID, prompt)
 	}
 	payload := []byte(fmt.Sprintf("local:image:%s:%s", modelID, prompt))
 	return payload, artifactUsage(prompt, payload, 180), nil
 }
 
 func (p *localProvider) generateVideo(ctx context.Context, modelID string, prompt string) ([]byte, *runtimev1.UsageStats, error) {
-	if p.backend != nil {
-		return p.backend.generateVideo(ctx, modelID, prompt)
+	backend, resolvedModelID, explicit, ok, usingNexa := p.pickBackend(modelID)
+	if explicit && !ok {
+		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if usingNexa {
+		return nil, nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+	if backend != nil {
+		return backend.generateVideo(ctx, resolvedModelID, prompt)
 	}
 	payload := []byte(fmt.Sprintf("local:video:%s:%s", modelID, prompt))
 	return payload, artifactUsage(prompt, payload, 420), nil
 }
 
 func (p *localProvider) synthesizeSpeech(ctx context.Context, modelID string, text string) ([]byte, *runtimev1.UsageStats, error) {
-	if p.backend != nil {
-		return p.backend.synthesizeSpeech(ctx, modelID, text)
+	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backend != nil {
+		return backend.synthesizeSpeech(ctx, resolvedModelID, text)
 	}
 	payload := []byte(fmt.Sprintf("local:audio:%s:%s", modelID, text))
 	return payload, artifactUsage(text, payload, 120), nil
 }
 
 func (p *localProvider) transcribe(ctx context.Context, modelID string, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
-	if p.backend != nil {
-		return p.backend.transcribe(ctx, modelID, audio, mimeType)
+	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backend != nil {
+		return backend.transcribe(ctx, resolvedModelID, audio, mimeType)
 	}
 	text := fmt.Sprintf("local transcription %d bytes (%s)", len(audio), mimeType)
 	return text, &runtimev1.UsageStats{
@@ -84,8 +130,12 @@ func (p *localProvider) transcribe(ctx context.Context, modelID string, audio []
 }
 
 func (p *localProvider) streamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if p.backend != nil {
-		return p.backend.streamGenerateText(ctx, modelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
+	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
+	if explicit && !ok {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backend != nil {
+		return backend.streamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
 	}
 	inputText := composeInputText(req.GetSystemPrompt(), req.GetInput())
 	outputText := fmt.Sprintf("[local:%s] %s", modelID, normalizeFallbackText(inputText))
@@ -97,4 +147,48 @@ func (p *localProvider) streamGenerateText(ctx context.Context, modelID string, 
 		}
 	}
 	return estimateUsage(inputText, outputText), runtimev1.FinishReason_FINISH_REASON_STOP, nil
+}
+
+func (p *localProvider) pickBackend(modelID string) (*openAIBackend, string, bool, bool, bool) {
+	id := strings.TrimSpace(modelID)
+	if id == "" {
+		if p.localai != nil {
+			return p.localai, "local-model", false, true, false
+		}
+		if p.nexa != nil {
+			return p.nexa, "local-model", false, true, true
+		}
+		return nil, "local-model", false, false, false
+	}
+
+	segments := strings.SplitN(id, "/", 2)
+	if len(segments) == 2 {
+		prefix := strings.ToLower(strings.TrimSpace(segments[0]))
+		rest := strings.TrimSpace(segments[1])
+		if rest == "" {
+			rest = "local-model"
+		}
+		switch prefix {
+		case "localai":
+			return p.localai, rest, true, p.localai != nil, false
+		case "nexa":
+			return p.nexa, rest, true, p.nexa != nil, true
+		case "local":
+			if p.localai != nil {
+				return p.localai, rest, true, true, false
+			}
+			if p.nexa != nil {
+				return p.nexa, rest, true, true, true
+			}
+			return nil, rest, true, false, false
+		}
+	}
+
+	if p.localai != nil {
+		return p.localai, id, false, true, false
+	}
+	if p.nexa != nil {
+		return p.nexa, id, false, true, true
+	}
+	return nil, id, false, false, false
 }

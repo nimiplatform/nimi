@@ -250,7 +250,7 @@ type aiProviderTarget struct {
 }
 
 func configuredAIProviderTargets() []aiProviderTarget {
-	targets := make([]aiProviderTarget, 0, 4)
+	targets := make([]aiProviderTarget, 0, 8)
 	seen := map[string]bool{}
 
 	add := func(name string, base string, apiKey string) {
@@ -271,9 +271,13 @@ func configuredAIProviderTargets() []aiProviderTarget {
 	}
 
 	add("local", os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_AI_API_KEY"))
+	add("local-nexa", os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_NEXA_API_KEY"))
 	add("cloud-litellm", firstNonEmptyEnv("NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL", "NIMI_RUNTIME_CLOUD_AI_BASE_URL"), firstNonEmptyEnv("NIMI_RUNTIME_CLOUD_LITELLM_API_KEY", "NIMI_RUNTIME_CLOUD_AI_API_KEY"))
 	add("cloud-alibaba", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY"))
 	add("cloud-bytedance", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY"))
+	add("cloud-bytedance-openspeech", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY"))
+	add("cloud-gemini", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY"))
+	add("cloud-minimax", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY"))
 	return targets
 }
 
