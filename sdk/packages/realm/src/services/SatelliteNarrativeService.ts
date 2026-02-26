@@ -2,20 +2,28 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CreateSatelliteDto } from '../models/CreateSatelliteDto';
+import type { CreateSyntheticMemoryDto } from '../models/CreateSyntheticMemoryDto';
 import type { SatelliteDetailDto } from '../models/SatelliteDetailDto';
+import type { VerifySyntheticMemoryDto } from '../models/VerifySyntheticMemoryDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class SatelliteNarrativeService {
     /**
      * Create a satellite (contextual memory fragment)
+     * @param requestBody
      * @returns SatelliteDetailDto
      * @throws ApiError
      */
-    public static satelliteControllerCreate(): CancelablePromise<SatelliteDetailDto> {
+    public static satelliteControllerCreate(
+        requestBody: CreateSatelliteDto,
+    ): CancelablePromise<SatelliteDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/world/satellites',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -25,7 +33,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerFindBySpineEvent(
-        eventId: any,
+        eventId: string,
     ): CancelablePromise<Array<SatelliteDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -43,8 +51,8 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerFindByScene(
-        sceneId: any,
-        worldId: any,
+        sceneId: string,
+        worldId: string,
     ): CancelablePromise<Array<SatelliteDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -62,7 +70,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerFindBySpine(
-        spineId: any,
+        spineId: string,
     ): CancelablePromise<Array<SatelliteDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -79,7 +87,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerSearchSimilar(
-        worldId: any,
+        worldId: string,
     ): CancelablePromise<Array<SatelliteDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -91,13 +99,18 @@ export class SatelliteNarrativeService {
     }
     /**
      * Create a synthetic memory (from time gap fill)
+     * @param requestBody
      * @returns SatelliteDetailDto
      * @throws ApiError
      */
-    public static satelliteControllerCreateSyntheticMemory(): CancelablePromise<SatelliteDetailDto> {
+    public static satelliteControllerCreateSyntheticMemory(
+        requestBody: CreateSyntheticMemoryDto,
+    ): CancelablePromise<SatelliteDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/world/satellites/synthetic',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -107,7 +120,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerGetPendingSyntheticMemories(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<Array<SatelliteDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -120,11 +133,13 @@ export class SatelliteNarrativeService {
     /**
      * Verify (canonize or reject) a synthetic memory
      * @param satelliteId Satellite ID
+     * @param requestBody
      * @returns SatelliteDetailDto
      * @throws ApiError
      */
     public static satelliteControllerVerifySyntheticMemory(
-        satelliteId: any,
+        satelliteId: string,
+        requestBody: VerifySyntheticMemoryDto,
     ): CancelablePromise<SatelliteDetailDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -132,6 +147,8 @@ export class SatelliteNarrativeService {
             path: {
                 'satelliteId': satelliteId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -141,7 +158,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerDelete(
-        satelliteId: any,
+        satelliteId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -158,7 +175,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerFindById(
-        satelliteId: any,
+        satelliteId: string,
     ): CancelablePromise<SatelliteDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -175,7 +192,7 @@ export class SatelliteNarrativeService {
      * @throws ApiError
      */
     public static satelliteControllerTouchReference(
-        satelliteId: any,
+        satelliteId: string,
     ): CancelablePromise<SatelliteDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',

@@ -3,9 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AgentVisibilitySettingsDto } from '../models/AgentVisibilitySettingsDto';
+import type { ApproveRequestDto } from '../models/ApproveRequestDto';
 import type { CreateAgentResponseDto } from '../models/CreateAgentResponseDto';
 import type { CreateKeyEventDto } from '../models/CreateKeyEventDto';
 import type { MemoryStatsResponseDto } from '../models/MemoryStatsResponseDto';
+import type { RejectRequestDto } from '../models/RejectRequestDto';
 import type { RemoveAgentRelationshipDto } from '../models/RemoveAgentRelationshipDto';
 import type { SetAgentRelationshipDto } from '../models/SetAgentRelationshipDto';
 import type { SoulPrimeDto } from '../models/SoulPrimeDto';
@@ -19,13 +21,24 @@ import { request as __request } from '../core/request';
 export class AgentsService {
     /**
      * Incubate a new Agent
+     * @param requestBody
      * @returns CreateAgentResponseDto Agent incubation started
      * @throws ApiError
      */
-    public static agentControllerCreate(): CancelablePromise<CreateAgentResponseDto> {
+    public static agentControllerCreate(
+        requestBody: {
+            avatarUrl?: string | null;
+            bio?: string;
+            displayName: string;
+            dna?: Record<string, any>;
+            handle: string;
+        },
+    ): CancelablePromise<CreateAgentResponseDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -65,11 +78,13 @@ export class AgentsService {
     /**
      * Activate Agent (Wake up)
      * @param id Agent ID
+     * @param requestBody
      * @returns any
      * @throws ApiError
      */
     public static agentControllerActivate(
         id: string,
+        requestBody: Record<string, any>,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -77,6 +92,8 @@ export class AgentsService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -100,12 +117,14 @@ export class AgentsService {
      * Approve an approval item
      * @param approvalId Approval ID
      * @param id Agent ID
+     * @param requestBody
      * @returns any Approval approved (immediate or scheduled)
      * @throws ApiError
      */
     public static agentControllerApprove(
         approvalId: string,
         id: string,
+        requestBody: ApproveRequestDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -114,6 +133,8 @@ export class AgentsService {
                 'approvalId': approvalId,
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -140,12 +161,14 @@ export class AgentsService {
      * Reject an approval item
      * @param approvalId Approval ID
      * @param id Agent ID
+     * @param requestBody
      * @returns any Approval rejected
      * @throws ApiError
      */
     public static agentControllerReject(
         approvalId: string,
         id: string,
+        requestBody: RejectRequestDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -154,6 +177,8 @@ export class AgentsService {
                 'approvalId': approvalId,
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -179,11 +204,15 @@ export class AgentsService {
     /**
      * Select avatar for Agent
      * @param id Agent ID
+     * @param requestBody
      * @returns any
      * @throws ApiError
      */
     public static agentControllerSelectAvatar(
         id: string,
+        requestBody: {
+            avatarUrl: string;
+        },
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -191,16 +220,20 @@ export class AgentsService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
      * Update Agent DNA
      * @param id Agent ID
+     * @param requestBody
      * @returns any
      * @throws ApiError
      */
     public static agentControllerUpdateDna(
         id: string,
+        requestBody: Record<string, any>,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -208,16 +241,20 @@ export class AgentsService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
      * Trigger Agent to think and generate content
      * @param id Agent ID
+     * @param requestBody
      * @returns any Force action triggered successfully
      * @throws ApiError
      */
     public static agentControllerForceAction(
         id: string,
+        requestBody: Record<string, any>,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -225,6 +262,8 @@ export class AgentsService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -234,7 +273,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerListCoreMemories(
-        id: any,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -253,8 +292,8 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerDeleteAllE2EMemories(
-        entityId: any,
-        id: any,
+        entityId: string,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -273,8 +312,8 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerListE2EMemories(
-        entityId: any,
-        id: any,
+        entityId: string,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -295,9 +334,9 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerDeleteE2EMemory(
-        memoryId: any,
-        entityId: any,
-        id: any,
+        memoryId: string,
+        entityId: string,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -316,7 +355,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerListKeyEvents(
-        id: any,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -334,7 +373,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerCreateKeyEvent(
-        id: any,
+        id: string,
         requestBody: CreateKeyEventDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -355,8 +394,8 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerDeleteKeyEvent(
-        eventId: any,
-        id: any,
+        eventId: string,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -374,7 +413,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerListUserProfiles(
-        id: any,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -392,8 +431,8 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerGetUserProfile(
-        userId: any,
-        id: any,
+        userId: string,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -413,8 +452,8 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerUpdateUserProfile(
-        userId: any,
-        id: any,
+        userId: string,
+        id: string,
         requestBody: UpdateUserProfileDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -437,8 +476,8 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerRecallForEntity(
-        entityId: any,
-        id: any,
+        entityId: string,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -456,7 +495,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerGetMemoryStats(
-        id: any,
+        id: string,
     ): CancelablePromise<MemoryStatsResponseDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -491,7 +530,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerRemoveRelationship(
-        id: any,
+        id: string,
         requestBody: RemoveAgentRelationshipDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -511,7 +550,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerGetRelationships(
-        id: any,
+        id: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -529,7 +568,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerSetRelationship(
-        id: any,
+        id: string,
         requestBody: SetAgentRelationshipDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -549,7 +588,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerGetSoulPrime(
-        id: any,
+        id: string,
     ): CancelablePromise<SoulPrimeDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -567,7 +606,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerUpdateSoulPrime(
-        id: any,
+        id: string,
         requestBody: UpdateSoulPrimeDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -621,7 +660,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerGetVisibility(
-        id: any,
+        id: string,
     ): CancelablePromise<AgentVisibilitySettingsDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -639,7 +678,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerUpdateVisibility(
-        id: any,
+        id: string,
         requestBody: UpdateAgentVisibilityDto,
     ): CancelablePromise<AgentVisibilitySettingsDto> {
         return __request(OpenAPI, {

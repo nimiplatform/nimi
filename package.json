@@ -10,6 +10,7 @@
     "build": "pnpm build:sdk && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm check:bundle-size",
     "build:all": "pnpm -r build",
     "build:sdk": "pnpm --filter @nimiplatform/sdk-types build && pnpm --filter @nimiplatform/sdk-realm build && pnpm --filter @nimiplatform/sdk-runtime build && pnpm --filter @nimiplatform/mod-sdk build && pnpm --filter @nimiplatform/sdk build && pnpm --filter @nimiplatform/ai-provider build",
+    "generate:realm-sdk": "node scripts/generate-realm-sdk.mjs",
     "generate:runtime-bridge-methods": "node scripts/generate-runtime-bridge-methods.mjs",
     "generate:scope-catalog": "node scripts/generate-scope-catalog.mjs",
     "check:runtime-bridge-method-drift": "node scripts/generate-runtime-bridge-methods.mjs --check",

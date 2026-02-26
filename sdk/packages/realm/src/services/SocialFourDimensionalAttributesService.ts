@@ -30,13 +30,21 @@ export class SocialFourDimensionalAttributesService {
     /**
      * Compare attributes between two accounts
      * Compare four-dimensional attributes between two accounts and get differences
+     * @param requestBody
      * @returns any Comparison result
      * @throws ApiError
      */
-    public static fourDimensionAttributeControllerCompareAttributes(): CancelablePromise<Record<string, any>> {
+    public static fourDimensionAttributeControllerCompareAttributes(
+        requestBody: {
+            accountIdA: string;
+            accountIdB: string;
+        },
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/agent/four-dimension/compare',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 404: `One or both accounts not found`,
             },

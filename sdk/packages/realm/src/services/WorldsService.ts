@@ -2,6 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CreateSnapshotDto } from '../models/CreateSnapshotDto';
+import type { CreateWorldDto } from '../models/CreateWorldDto';
 import type { WorldDetailDto } from '../models/WorldDetailDto';
 import type { WorldLevelAuditEventDto } from '../models/WorldLevelAuditEventDto';
 import type { WorldviewDetailDto } from '../models/WorldviewDetailDto';
@@ -30,13 +32,18 @@ export class WorldsService {
     }
     /**
      * Create a sub-world (requires Pro/Max subscription)
+     * @param requestBody
      * @returns WorldDetailDto
      * @throws ApiError
      */
-    public static worldControllerCreateWorld(): CancelablePromise<WorldDetailDto> {
+    public static worldControllerCreateWorld(
+        requestBody: CreateWorldDto,
+    ): CancelablePromise<WorldDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/world',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -216,11 +223,13 @@ export class WorldsService {
     /**
      * Create a worldview snapshot
      * @param id World ID
+     * @param requestBody
      * @returns WorldviewSnapshotDto
      * @throws ApiError
      */
     public static worldControllerCreateWorldviewSnapshot(
         id: string,
+        requestBody: CreateSnapshotDto,
     ): CancelablePromise<WorldviewSnapshotDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -228,6 +237,8 @@ export class WorldsService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**

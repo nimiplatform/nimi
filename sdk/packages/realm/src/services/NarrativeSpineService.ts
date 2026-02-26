@@ -3,9 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { CausalChainDto } from '../models/CausalChainDto';
+import type { CreateBranchDto } from '../models/CreateBranchDto';
+import type { CreateNarrativeSpineEventDto } from '../models/CreateNarrativeSpineEventDto';
 import type { NarrativeSpineBranchDetailDto } from '../models/NarrativeSpineBranchDetailDto';
 import type { NarrativeSpineDetailDto } from '../models/NarrativeSpineDetailDto';
 import type { NarrativeSpineEventDetailDto } from '../models/NarrativeSpineEventDetailDto';
+import type { UpdateNarrativeSpineEventDto } from '../models/UpdateNarrativeSpineEventDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -17,7 +20,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerArchiveBranch(
-        branchId: any,
+        branchId: string,
     ): CancelablePromise<NarrativeSpineBranchDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -35,8 +38,8 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerMergeBranch(
-        targetBranchId: any,
-        branchId: any,
+        targetBranchId: string,
+        branchId: string,
     ): CancelablePromise<NarrativeSpineBranchDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -54,7 +57,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetSpine(
-        spineId: any,
+        spineId: string,
     ): CancelablePromise<NarrativeSpineDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -71,7 +74,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetBranches(
-        spineId: any,
+        spineId: string,
     ): CancelablePromise<Array<NarrativeSpineBranchDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -84,11 +87,13 @@ export class NarrativeSpineService {
     /**
      * Create a new branch (fork from event)
      * @param spineId Spine ID
+     * @param requestBody
      * @returns NarrativeSpineBranchDetailDto
      * @throws ApiError
      */
     public static narrativeSpineControllerCreateBranch(
-        spineId: any,
+        spineId: string,
+        requestBody: CreateBranchDto,
     ): CancelablePromise<NarrativeSpineBranchDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -96,6 +101,8 @@ export class NarrativeSpineService {
             path: {
                 'spineId': spineId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -105,7 +112,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetDefaultBranch(
-        spineId: any,
+        spineId: string,
     ): CancelablePromise<NarrativeSpineBranchDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -119,12 +126,14 @@ export class NarrativeSpineService {
      * Append an event to a narrative spine branch
      * @param branchId Branch ID
      * @param spineId Spine ID
+     * @param requestBody
      * @returns NarrativeSpineEventDetailDto
      * @throws ApiError
      */
     public static narrativeSpineControllerAppendEvent(
-        branchId: any,
-        spineId: any,
+        branchId: string,
+        spineId: string,
+        requestBody: CreateNarrativeSpineEventDto,
     ): CancelablePromise<NarrativeSpineEventDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -133,6 +142,8 @@ export class NarrativeSpineService {
                 'branchId': branchId,
                 'spineId': spineId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -142,7 +153,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetEvents(
-        spineId: any,
+        spineId: string,
     ): CancelablePromise<Array<NarrativeSpineEventDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -160,8 +171,8 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerFindSpine(
-        agentId: any,
-        worldId: any,
+        agentId: string,
+        worldId: string,
     ): CancelablePromise<NarrativeSpineDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -180,8 +191,8 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetOrCreateSpine(
-        agentId: any,
-        worldId: any,
+        agentId: string,
+        worldId: string,
     ): CancelablePromise<NarrativeSpineDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -199,7 +210,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetEvent(
-        eventId: any,
+        eventId: string,
     ): CancelablePromise<NarrativeSpineEventDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -212,11 +223,13 @@ export class NarrativeSpineService {
     /**
      * Update a narrative spine event
      * @param eventId Event ID
+     * @param requestBody
      * @returns NarrativeSpineEventDetailDto
      * @throws ApiError
      */
     public static narrativeSpineControllerUpdateEvent(
-        eventId: any,
+        eventId: string,
+        requestBody: UpdateNarrativeSpineEventDto,
     ): CancelablePromise<NarrativeSpineEventDetailDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -224,6 +237,8 @@ export class NarrativeSpineService {
             path: {
                 'eventId': eventId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -234,7 +249,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetCausalChain(
-        eventId: any,
+        eventId: string,
         depth?: number,
     ): CancelablePromise<CausalChainDto> {
         return __request(OpenAPI, {
@@ -255,7 +270,7 @@ export class NarrativeSpineService {
      * @throws ApiError
      */
     public static narrativeSpineControllerGetEventChildren(
-        eventId: any,
+        eventId: string,
     ): CancelablePromise<Array<NarrativeSpineEventDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',

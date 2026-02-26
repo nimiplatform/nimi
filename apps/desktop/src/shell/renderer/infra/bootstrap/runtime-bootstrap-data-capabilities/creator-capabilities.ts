@@ -31,7 +31,7 @@ export async function registerCreatorDataCapabilities(): Promise<void> {
     const items = Array.isArray(record.items) ? record.items : [];
     const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
       method: 'POST',
-      url: '/api/creator/agents:batchCreate',
+      url: '/api/creator/agents/batch-create',
       body: {
         items,
         continueOnError: record.continueOnError !== false,
@@ -41,4 +41,3 @@ export async function registerCreatorDataCapabilities(): Promise<void> {
     return toObjectOr(payload, { created: [], failed: [] });
   });
 }
-

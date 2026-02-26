@@ -128,11 +128,15 @@ export class MeService {
      * Block a user
      * Blocks the specified user. Returns 204 on success or if already blocked.
      * @param id User ID to block
+     * @param requestBody
      * @returns void
      * @throws ApiError
      */
     public static blockUser(
         id: string,
+        requestBody?: {
+            reason?: string;
+        },
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -140,6 +144,8 @@ export class MeService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**

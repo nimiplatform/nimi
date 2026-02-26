@@ -2,9 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AggregateMetricsDto } from '../models/AggregateMetricsDto';
 import type { ConsensusMetricDetailDto } from '../models/ConsensusMetricDetailDto';
+import type { CreateMutationProposalDto } from '../models/CreateMutationProposalDto';
 import type { GrowthProjectionDto } from '../models/GrowthProjectionDto';
 import type { MutationProposalDetailDto } from '../models/MutationProposalDetailDto';
+import type { ReviewProposalDto } from '../models/ReviewProposalDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -16,7 +19,7 @@ export class SoulEvolutionService {
      * @throws ApiError
      */
     public static soulEvolutionControllerGetGrowthProjection(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<GrowthProjectionDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -33,7 +36,7 @@ export class SoulEvolutionService {
      * @throws ApiError
      */
     public static soulEvolutionControllerGetMetrics(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<Array<ConsensusMetricDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -46,11 +49,13 @@ export class SoulEvolutionService {
     /**
      * Aggregate consensus metrics for an agent
      * @param agentId Agent ID
+     * @param requestBody
      * @returns ConsensusMetricDetailDto
      * @throws ApiError
      */
     public static soulEvolutionControllerAggregateMetrics(
-        agentId: any,
+        agentId: string,
+        requestBody: AggregateMetricsDto,
     ): CancelablePromise<Array<ConsensusMetricDetailDto>> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -58,6 +63,8 @@ export class SoulEvolutionService {
             path: {
                 'agentId': agentId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -67,7 +74,7 @@ export class SoulEvolutionService {
      * @throws ApiError
      */
     public static soulEvolutionControllerGetLatestMetrics(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<Array<ConsensusMetricDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -84,7 +91,7 @@ export class SoulEvolutionService {
      * @throws ApiError
      */
     public static soulEvolutionControllerGetProposals(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<Array<MutationProposalDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -97,11 +104,13 @@ export class SoulEvolutionService {
     /**
      * Create a mutation proposal for an agent
      * @param agentId Agent ID
+     * @param requestBody
      * @returns MutationProposalDetailDto
      * @throws ApiError
      */
     public static soulEvolutionControllerCreateProposal(
-        agentId: any,
+        agentId: string,
+        requestBody: CreateMutationProposalDto,
     ): CancelablePromise<MutationProposalDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -109,6 +118,8 @@ export class SoulEvolutionService {
             path: {
                 'agentId': agentId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -118,7 +129,7 @@ export class SoulEvolutionService {
      * @throws ApiError
      */
     public static soulEvolutionControllerGetPendingProposals(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<Array<MutationProposalDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -135,7 +146,7 @@ export class SoulEvolutionService {
      * @throws ApiError
      */
     public static soulEvolutionControllerGetProposal(
-        proposalId: any,
+        proposalId: string,
     ): CancelablePromise<MutationProposalDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -148,11 +159,13 @@ export class SoulEvolutionService {
     /**
      * Review (approve/reject) a mutation proposal
      * @param proposalId Proposal ID
+     * @param requestBody
      * @returns MutationProposalDetailDto
      * @throws ApiError
      */
     public static soulEvolutionControllerReviewProposal(
-        proposalId: any,
+        proposalId: string,
+        requestBody: ReviewProposalDto,
     ): CancelablePromise<MutationProposalDetailDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -160,6 +173,8 @@ export class SoulEvolutionService {
             path: {
                 'proposalId': proposalId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }

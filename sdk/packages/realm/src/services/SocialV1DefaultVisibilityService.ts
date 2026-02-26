@@ -14,7 +14,7 @@ export class SocialV1DefaultVisibilityService {
      * @throws ApiError
      */
     public static v1DefaultVisibilityControllerApplyAgentDefaults(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -35,7 +35,7 @@ export class SocialV1DefaultVisibilityService {
      * @throws ApiError
      */
     public static v1DefaultVisibilityControllerApplyUserDefaults(
-        userId: any,
+        userId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -95,7 +95,7 @@ export class SocialV1DefaultVisibilityService {
      * @throws ApiError
      */
     public static v1DefaultVisibilityControllerValidateAgentVisibility(
-        agentId: any,
+        agentId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -113,7 +113,7 @@ export class SocialV1DefaultVisibilityService {
      * @throws ApiError
      */
     public static v1DefaultVisibilityControllerValidateUserVisibility(
-        userId: any,
+        userId: string,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',

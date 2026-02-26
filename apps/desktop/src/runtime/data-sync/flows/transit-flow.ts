@@ -1,3 +1,4 @@
+import { WorldsService } from '@nimiplatform/sdk-realm';
 import {
   abandonTransitById,
   appendTransitCheckpoint as appendTransitCheckpointFromClient,
@@ -9,7 +10,6 @@ import {
   listTransits,
   startTransitSessionById,
 } from '../clients/transit-client';
-import { requestWorldTransitGate } from '../clients/world-client';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
@@ -293,7 +293,7 @@ export async function startWorldTransit(
 
   try {
     await callApi(
-      () => requestWorldTransitGate(normalized.toWorldId),
+      () => WorldsService.worldControllerTransitToWorld(normalized.toWorldId),
       '世界配额闸校验失败',
     );
   } catch (error) {

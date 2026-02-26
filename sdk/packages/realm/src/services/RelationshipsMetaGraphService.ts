@@ -2,20 +2,27 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CreateRelationshipDto } from '../models/CreateRelationshipDto';
 import type { RelationshipResponseDto } from '../models/RelationshipResponseDto';
+import type { UpdateRelationshipDto } from '../models/UpdateRelationshipDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class RelationshipsMetaGraphService {
     /**
      * Create a relationship with another account
+     * @param requestBody
      * @returns RelationshipResponseDto
      * @throws ApiError
      */
-    public static relationshipControllerCreateRelationship(): CancelablePromise<RelationshipResponseDto> {
+    public static relationshipControllerCreateRelationship(
+        requestBody: CreateRelationshipDto,
+    ): CancelablePromise<RelationshipResponseDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/human/relationships',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -55,11 +62,13 @@ export class RelationshipsMetaGraphService {
     /**
      * Update relationship (strength/context)
      * @param id Relationship ID
+     * @param requestBody
      * @returns RelationshipResponseDto
      * @throws ApiError
      */
     public static relationshipControllerUpdateRelationship(
         id: string,
+        requestBody: UpdateRelationshipDto,
     ): CancelablePromise<RelationshipResponseDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -67,6 +76,8 @@ export class RelationshipsMetaGraphService {
             path: {
                 'id': id,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }

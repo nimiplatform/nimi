@@ -1,13 +1,6 @@
 import { WorldsService } from '@nimiplatform/sdk-realm';
 import type { WorldDetailDto } from '@nimiplatform/sdk-realm/models/WorldDetailDto';
 import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk-realm/models/WorldLevelAuditEventDto';
-import {
-  fetchWorldById,
-  fetchWorldLevelAudits as fetchWorldLevelAuditsFromClient,
-  fetchWorldview,
-  fetchWorldviewEvents,
-  fetchWorldviewSnapshots,
-} from '../clients/world-client';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
@@ -96,10 +89,7 @@ export async function loadWorldLevelAudits(
     : 20;
   try {
     const payload = await callApi(
-      () => fetchWorldLevelAuditsFromClient({
-        worldId: normalizedWorldId,
-        limit: normalizedLimit,
-      }),
+      () => WorldsService.worldControllerGetWorldLevelAudits(normalizedWorldId, normalizedLimit),
       '加载世界等级审计失败',
     );
     if (!Array.isArray(payload)) return [];
@@ -126,7 +116,7 @@ export async function loadWorldDetailById(
   }
   try {
     const payload = await callApi(
-      () => fetchWorldById(normalizedWorldId),
+      () => WorldsService.worldControllerGetWorld(normalizedWorldId),
       '加载世界详情失败',
     );
     const record = toRecord(payload);
@@ -153,7 +143,7 @@ export async function loadWorldSemanticBundle(
       (async () => {
         try {
           const payload = await callApi(
-            () => fetchWorldview(normalizedWorldId),
+            () => WorldsService.worldControllerGetWorldview(normalizedWorldId),
             '加载世界观失败',
           );
           return toRecord(payload);
@@ -164,11 +154,7 @@ export async function loadWorldSemanticBundle(
       (async () => {
         try {
           const payload = await callApi(
-            () => fetchWorldviewEvents({
-              worldId: normalizedWorldId,
-              offset: 0,
-              limit: 50,
-            }),
+            () => WorldsService.worldControllerGetWorldviewEvents(normalizedWorldId, 0, 50),
             '加载世界观事件失败',
           );
           return toRecordArray(payload);
@@ -179,7 +165,7 @@ export async function loadWorldSemanticBundle(
       (async () => {
         try {
           const payload = await callApi(
-            () => fetchWorldviewSnapshots(normalizedWorldId),
+            () => WorldsService.worldControllerGetWorldviewSnapshots(normalizedWorldId),
             '加载世界观快照失败',
           );
           return toRecordArray(payload);

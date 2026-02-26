@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CollapseGapDto } from '../models/CollapseGapDto';
 import type { DetectedGapDto } from '../models/DetectedGapDto';
 import type { TimeGapDetailDto } from '../models/TimeGapDetailDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -15,7 +16,7 @@ export class TimeGapNarrativeService {
      * @throws ApiError
      */
     public static timeGapControllerFindBySpine(
-        spineId: any,
+        spineId: string,
     ): CancelablePromise<Array<TimeGapDetailDto>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -33,8 +34,8 @@ export class TimeGapNarrativeService {
      * @throws ApiError
      */
     public static timeGapControllerDetectGap(
-        agentId: any,
-        spineId: any,
+        agentId: string,
+        spineId: string,
     ): CancelablePromise<DetectedGapDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -63,7 +64,7 @@ export class TimeGapNarrativeService {
      * @throws ApiError
      */
     public static timeGapControllerGetGap(
-        gapId: any,
+        gapId: string,
     ): CancelablePromise<TimeGapDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -76,11 +77,13 @@ export class TimeGapNarrativeService {
     /**
      * Trigger collapse for a time gap (generate synthetic memories)
      * @param gapId Time Gap ID
+     * @param requestBody
      * @returns TimeGapDetailDto
      * @throws ApiError
      */
     public static timeGapControllerCollapseGap(
-        gapId: any,
+        gapId: string,
+        requestBody: CollapseGapDto,
     ): CancelablePromise<TimeGapDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -88,6 +91,8 @@ export class TimeGapNarrativeService {
             path: {
                 'gapId': gapId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -97,7 +102,7 @@ export class TimeGapNarrativeService {
      * @throws ApiError
      */
     public static timeGapControllerSkipGap(
-        gapId: any,
+        gapId: string,
     ): CancelablePromise<TimeGapDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',

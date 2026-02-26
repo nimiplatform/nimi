@@ -12,3 +12,4 @@ pnpm-lock.yaml
 # local caches
 .vscode/
 .idea/
+.cache/

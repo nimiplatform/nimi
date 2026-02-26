@@ -2,7 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { BatchUpsertWorldEventsDto } from '../models/BatchUpsertWorldEventsDto';
+import type { BatchUpsertWorldLorebooksDto } from '../models/BatchUpsertWorldLorebooksDto';
+import type { CreateWorldDraftDto } from '../models/CreateWorldDraftDto';
+import type { PublishWorldDraftDto } from '../models/PublishWorldDraftDto';
 import type { PublishWorldDraftResultDto } from '../models/PublishWorldDraftResultDto';
+import type { UpdateWorldDraftDto } from '../models/UpdateWorldDraftDto';
+import type { UpdateWorldMaintenanceDto } from '../models/UpdateWorldMaintenanceDto';
 import type { WorldAccessSummaryDto } from '../models/WorldAccessSummaryDto';
 import type { WorldDraftDetailDto } from '../models/WorldDraftDetailDto';
 import type { WorldDraftSummaryListDto } from '../models/WorldDraftSummaryListDto';
@@ -51,13 +57,18 @@ export class WorldControlService {
     }
     /**
      * Create world draft
+     * @param requestBody
      * @returns WorldDraftDetailDto
      * @throws ApiError
      */
-    public static worldControlControllerCreateDraft(): CancelablePromise<WorldDraftDetailDto> {
+    public static worldControlControllerCreateDraft(
+        requestBody: CreateWorldDraftDto,
+    ): CancelablePromise<WorldDraftDetailDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/world-drafts',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -67,7 +78,7 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerGetDraft(
-        draftId: any,
+        draftId: string,
     ): CancelablePromise<WorldDraftDetailDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -80,11 +91,13 @@ export class WorldControlService {
     /**
      * Update world draft
      * @param draftId World draft ID
+     * @param requestBody
      * @returns WorldDraftDetailDto
      * @throws ApiError
      */
     public static worldControlControllerUpdateDraft(
-        draftId: any,
+        draftId: string,
+        requestBody: UpdateWorldDraftDto,
     ): CancelablePromise<WorldDraftDetailDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -92,16 +105,20 @@ export class WorldControlService {
             path: {
                 'draftId': draftId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
      * Publish world draft
      * @param draftId World draft ID
+     * @param requestBody
      * @returns PublishWorldDraftResultDto
      * @throws ApiError
      */
     public static worldControlControllerPublishDraft(
-        draftId: any,
+        draftId: string,
+        requestBody: PublishWorldDraftDto,
     ): CancelablePromise<PublishWorldDraftResultDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -109,6 +126,8 @@ export class WorldControlService {
             path: {
                 'draftId': draftId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -129,7 +148,7 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerListWorldEvents(
-        worldId: any,
+        worldId: string,
     ): CancelablePromise<WorldEventListDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -142,11 +161,13 @@ export class WorldControlService {
     /**
      * Batch upsert world events
      * @param worldId World ID
+     * @param requestBody
      * @returns WorldEventListDto
      * @throws ApiError
      */
     public static worldControlControllerBatchUpsertWorldEvents(
-        worldId: any,
+        worldId: string,
+        requestBody: BatchUpsertWorldEventsDto,
     ): CancelablePromise<WorldEventListDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -154,6 +175,8 @@ export class WorldControlService {
             path: {
                 'worldId': worldId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -165,8 +188,8 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerDeleteWorldEvent(
-        eventId: any,
-        worldId: any,
+        eventId: string,
+        worldId: string,
     ): CancelablePromise<WorldEventListDto> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -184,7 +207,7 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerListWorldLorebooks(
-        worldId: any,
+        worldId: string,
     ): CancelablePromise<WorldLorebookListDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -197,11 +220,13 @@ export class WorldControlService {
     /**
      * Batch upsert world lorebooks
      * @param worldId World ID
+     * @param requestBody
      * @returns WorldLorebookListDto
      * @throws ApiError
      */
     public static worldControlControllerBatchUpsertWorldLorebooks(
-        worldId: any,
+        worldId: string,
+        requestBody: BatchUpsertWorldLorebooksDto,
     ): CancelablePromise<WorldLorebookListDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -209,6 +234,8 @@ export class WorldControlService {
             path: {
                 'worldId': worldId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -220,8 +247,8 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerDeleteWorldLorebook(
-        lorebookId: any,
-        worldId: any,
+        lorebookId: string,
+        worldId: string,
     ): CancelablePromise<WorldLorebookListDto> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -239,7 +266,7 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerGetMaintenance(
-        worldId: any,
+        worldId: string,
     ): CancelablePromise<WorldMaintenanceDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -252,11 +279,13 @@ export class WorldControlService {
     /**
      * Update world maintenance payload
      * @param worldId World ID
+     * @param requestBody
      * @returns WorldMaintenanceDto
      * @throws ApiError
      */
     public static worldControlControllerUpdateMaintenance(
-        worldId: any,
+        worldId: string,
+        requestBody: UpdateWorldMaintenanceDto,
     ): CancelablePromise<WorldMaintenanceDto> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -264,6 +293,8 @@ export class WorldControlService {
             path: {
                 'worldId': worldId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -273,7 +304,7 @@ export class WorldControlService {
      * @throws ApiError
      */
     public static worldControlControllerListWorldMutations(
-        worldId: any,
+        worldId: string,
     ): CancelablePromise<WorldMutationListDto> {
         return __request(OpenAPI, {
             method: 'GET',
