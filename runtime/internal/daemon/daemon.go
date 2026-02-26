@@ -250,7 +250,7 @@ type aiProviderTarget struct {
 }
 
 func configuredAIProviderTargets() []aiProviderTarget {
-	targets := make([]aiProviderTarget, 0, 8)
+	targets := make([]aiProviderTarget, 0, 10)
 	seen := map[string]bool{}
 
 	add := func(name string, base string, apiKey string) {
@@ -278,6 +278,8 @@ func configuredAIProviderTargets() []aiProviderTarget {
 	add("cloud-bytedance-openspeech", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY"))
 	add("cloud-gemini", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY"))
 	add("cloud-minimax", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY"))
+	add("cloud-kimi", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY"))
+	add("cloud-glm", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY"))
 	return targets
 }
 

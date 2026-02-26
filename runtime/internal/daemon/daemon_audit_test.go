@@ -72,6 +72,8 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
 	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", "http://127.0.0.1:5234")
 	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL", "http://127.0.0.1:6234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL", "http://127.0.0.1:7234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL", "http://127.0.0.1:8234")
 
 	targets := configuredAIProviderTargets()
 	seen := make(map[string]bool, len(targets))
@@ -85,6 +87,8 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 		"cloud-bytedance-openspeech",
 		"cloud-gemini",
 		"cloud-minimax",
+		"cloud-kimi",
+		"cloud-glm",
 	}
 	for _, name := range required {
 		if !seen[name] {

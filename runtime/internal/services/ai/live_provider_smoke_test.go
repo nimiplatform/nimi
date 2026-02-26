@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -74,6 +75,801 @@ func TestLiveSmokeLiteLLMGenerateText(t *testing.T) {
 	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
 	if text == "" {
 		t.Fatalf("live litellm generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeLocalSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL:   baseURL,
+		LocalAIAPIKey:    apiKey,
+		LocalNexaBaseURL: baseURL,
+		LocalNexaAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi live smoke image: minimal mountain at dawn",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi live smoke short video: ocean waves with stable camera",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi local live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LITELLM_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudLiteLLMBaseURL: baseURL,
+		CloudLiteLLMAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi LiteLLM live smoke image: skyline at sunset",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi LiteLLM live smoke short video: city lights with gentle pan",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi LiteLLM live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeBytedanceSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_BYTEDANCE_API_KEY"))
+	speechBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_BYTEDANCE_SPEECH_BASE_URL"))
+	if speechBaseURL == "" {
+		speechBaseURL = baseURL
+	}
+	speechAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_BYTEDANCE_SPEECH_API_KEY"))
+	if speechAPIKey == "" {
+		speechAPIKey = apiKey
+	}
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL:       baseURL,
+		CloudBytedanceAPIKey:        apiKey,
+		CloudBytedanceSpeechBaseURL: speechBaseURL,
+		CloudBytedanceSpeechAPIKey:  speechAPIKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi Bytedance live smoke image: bright sunrise over a lake",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi Bytedance live smoke short video: calm forest with cinematic motion",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi Bytedance live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeAlibabaSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_ALIBABA_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudAlibabaBaseURL: baseURL,
+		CloudAlibabaAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi Alibaba live smoke image: clean city skyline at sunset",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi Alibaba live smoke short video: river scene with subtle camera movement",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi Alibaba live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeGeminiSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_GEMINI_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_GEMINI_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGeminiBaseURL: baseURL,
+		CloudGeminiAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GEMINI_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi Gemini live smoke image: floating island with waterfalls",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GEMINI_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi Gemini live smoke short video: morning city timelapse",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GEMINI_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi Gemini live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GEMINI_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeMiniMaxSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_MINIMAX_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_MINIMAX_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: baseURL,
+		CloudMiniMaxAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_MINIMAX_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi MiniMax live smoke image: cyberpunk street at night",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_MINIMAX_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi MiniMax live smoke short video: snow mountain drone shot",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_MINIMAX_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi MiniMax live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_MINIMAX_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeKimiSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_KIMI_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_KIMI_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudKimiBaseURL: baseURL,
+		CloudKimiAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_KIMI_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi Kimi live smoke image: minimalist illustration of a flying whale",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_KIMI_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi Kimi live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_KIMI_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func TestLiveSmokeGLMSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_GLM_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_GLM_API_KEY"))
+	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
+	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
+	if audioMIME == "" {
+		audioMIME = "audio/wav"
+	}
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGLMBaseURL: baseURL,
+		CloudGLMAPIKey:  apiKey,
+	})
+
+	t.Run("image", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GLM_IMAGE_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{
+					Prompt:         "Nimi GLM live smoke image: astronaut walking in bamboo forest",
+					ResponseFormat: "png",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GLM_VIDEO_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt:      "Nimi GLM live smoke short video: desert sunrise with smooth movement",
+					DurationSec: 4,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("tts", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GLM_TTS_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+					Text:        "This is Nimi GLM live smoke TTS.",
+					AudioFormat: "mp3",
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("stt", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_GLM_STT_MODEL_ID")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: audioURI},
+					},
+					MimeType: audioMIME,
+				},
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+}
+
+func runLiveSmokeMediaJob(
+	t *testing.T,
+	svc *Service,
+	request *runtimev1.SubmitMediaJobRequest,
+) *runtimev1.MediaJob {
+	t.Helper()
+	response, err := svc.SubmitMediaJob(context.Background(), request)
+	if err != nil {
+		t.Fatalf("live submit media job failed: modal=%s err=%v", request.GetModal().String(), err)
+	}
+	waitTimeout := 3 * time.Minute
+	if request.GetModal() == runtimev1.Modal_MODAL_VIDEO {
+		waitTimeout = 6 * time.Minute
+	}
+	return waitMediaJobTerminal(t, svc, response.GetJob().GetJobId(), waitTimeout)
+}
+
+func assertLiveMediaJobCompleted(t *testing.T, job *runtimev1.MediaJob) {
+	t.Helper()
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("live media job status mismatch: status=%v reason=%v detail=%s", job.GetStatus(), job.GetReasonCode(), strings.TrimSpace(job.GetReasonDetail()))
+	}
+	if len(job.GetArtifacts()) == 0 {
+		t.Fatalf("live media job must return at least one artifact")
 	}
 }
 
