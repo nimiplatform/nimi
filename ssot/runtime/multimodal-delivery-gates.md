@@ -259,6 +259,7 @@ rules:
 | I3 | G4 + G5（external-async + 矩阵 + coverage gate） | 2026-02-26 | 2026-02-26 | G6/G7 发布件待后续轮次 | 非本轮目标范围 | 发布候选与对外文档化 |
 | I4 | R5（协议完整性 + strict fail-close 收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 与 ByteDance WS 专线延后 | 明确非目标范围 | R6 provider 专项适配 |
 | I5 | R6-S1（ByteDance OpenSpeech STT WS transport） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S2 provider 扩展与可靠性增强 |
+| I6 | R6-S2（G6+G7 门禁收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S3 provider 扩展 |
 
 ## 6. 当前 Gate 状态快照（2026-02-26）
 
@@ -270,8 +271,8 @@ rules:
 | G3 | PASS | LocalAI/Nexa/LiteLLM + custom adapter 路径可调用，media fail-close 生效 |
 | G4 | PASS | external-async submit/poll/cancel/event 闭环通过 |
 | G5 | PASS | 覆盖率门禁通过，矩阵与证据文档归档 |
-| G6 | PENDING | 可观测/可靠性专项证据未完成全量收口 |
-| G7 | PENDING | 发布候选清单与回滚策略待补齐 |
+| G6 | PASS | `dev/report/runtime-multimodal-g6-g7-2026-02-26.md` + evidence |
+| G7 | PASS | `go test ./...` + compliance + runtime/sdk coverage 全绿 |
 
 ## 7. 变更控制（MUST）
 
