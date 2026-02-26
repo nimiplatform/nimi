@@ -34,6 +34,7 @@ const (
 	adapterGeminiOperation     = "gemini_operation_adapter"
 	adapterMiniMaxTask         = "minimax_task_adapter"
 	adapterGLMTask             = "glm_task_adapter"
+	adapterKimiChatMultimodal  = "kimi_chat_multimodal_adapter"
 )
 
 func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
@@ -216,6 +217,8 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 		artifacts, usage, providerJobID, err = s.executeMiniMaxTask(ctx, jobID, req, modelResolved)
 	case adapterGLMTask:
 		artifacts, usage, providerJobID, err = s.executeGLMTask(ctx, jobID, req, modelResolved)
+	case adapterKimiChatMultimodal:
+		artifacts, usage, providerJobID, err = s.executeKimiImageChatMultimodal(ctx, req, modelResolved)
 	default:
 		artifacts, usage, providerJobID, err = executeProviderSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName)
 	}
@@ -369,6 +372,10 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	switch {
 	case strings.Contains(joined, "nexa/"):
 		return adapterNexaNative
+	case strings.Contains(joined, "kimi/"), strings.Contains(joined, "moonshot/"):
+		if modal == runtimev1.Modal_MODAL_IMAGE {
+			return adapterKimiChatMultimodal
+		}
 	case strings.Contains(joined, "gemini/"):
 		return adapterGeminiOperation
 	case strings.Contains(joined, "minimax/"):
@@ -1680,6 +1687,243 @@ func resolveGLMTaskPaths(baseURL string) (string, string) {
 	return "/api/paas/v4/videos/generations", "/api/paas/v4/async-result/"
 }
 
+func (s *Service) executeKimiImageChatMultimodal(
+	ctx context.Context,
+	req *runtimev1.SubmitMediaJobRequest,
+	modelResolved string,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(s.config.CloudKimiBaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if req.GetModal() != runtimev1.Modal_MODAL_IMAGE {
+		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+	spec := req.GetImageSpec()
+	if spec == nil {
+		return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+	}
+	apiKey := strings.TrimSpace(s.config.CloudKimiAPIKey)
+	payload := buildKimiImageChatPayload(modelResolved, spec)
+	responsePayload := map[string]any{}
+	if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, "/v1/chat/completions"), apiKey, payload, &responsePayload); err != nil {
+		return nil, nil, "", err
+	}
+
+	artifactBytes, mimeType, artifactURI := extractKimiImageArtifact(responsePayload)
+	if len(artifactBytes) == 0 {
+		return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	if mimeType == "" {
+		mimeType = resolveImageArtifactMIME(spec, artifactBytes)
+	}
+	providerRaw := map[string]any{
+		"adapter":          adapterKimiChatMultimodal,
+		"response":         responsePayload,
+		"prompt":           strings.TrimSpace(spec.GetPrompt()),
+		"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
+		"size":             strings.TrimSpace(spec.GetSize()),
+		"aspect_ratio":     strings.TrimSpace(spec.GetAspectRatio()),
+		"quality":          strings.TrimSpace(spec.GetQuality()),
+		"style":            strings.TrimSpace(spec.GetStyle()),
+		"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+		"reference_images": append([]string(nil), spec.GetReferenceImages()...),
+		"mask":             strings.TrimSpace(spec.GetMask()),
+		"provider_options": structToMap(spec.GetProviderOptions()),
+	}
+	if artifactURI != "" {
+		providerRaw["uri"] = artifactURI
+	}
+	artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+	applyImageSpecMetadata(artifact, spec)
+	return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+}
+
+func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenerationSpec) map[string]any {
+	resolvedModelID := stripProviderModelPrefix(modelResolved, "kimi", "moonshot")
+	contentParts := make([]any, 0, 1+len(spec.GetReferenceImages()))
+	contentParts = append(contentParts, map[string]any{
+		"type": "text",
+		"text": strings.TrimSpace(spec.GetPrompt()),
+	})
+	for _, raw := range spec.GetReferenceImages() {
+		uri := strings.TrimSpace(raw)
+		if uri == "" {
+			continue
+		}
+		contentParts = append(contentParts, map[string]any{
+			"type": "image_url",
+			"image_url": map[string]any{
+				"url": uri,
+			},
+		})
+	}
+
+	response := map[string]any{
+		"modalities": []string{"image"},
+	}
+	responseFormat := strings.TrimSpace(spec.GetResponseFormat())
+	if responseFormat != "" {
+		response["output_image_format"] = responseFormat
+	}
+	if spec.GetN() > 0 {
+		response["n"] = spec.GetN()
+	}
+
+	payload := map[string]any{
+		"model": resolvedModelID,
+		"messages": []any{
+			map[string]any{
+				"role":    "user",
+				"content": contentParts,
+			},
+		},
+		"response": response,
+	}
+	if negativePrompt := strings.TrimSpace(spec.GetNegativePrompt()); negativePrompt != "" {
+		payload["negative_prompt"] = negativePrompt
+	}
+	if size := strings.TrimSpace(spec.GetSize()); size != "" {
+		payload["size"] = size
+	}
+	if aspectRatio := strings.TrimSpace(spec.GetAspectRatio()); aspectRatio != "" {
+		payload["aspect_ratio"] = aspectRatio
+	}
+	if quality := strings.TrimSpace(spec.GetQuality()); quality != "" {
+		payload["quality"] = quality
+	}
+	if style := strings.TrimSpace(spec.GetStyle()); style != "" {
+		payload["style"] = style
+	}
+	if seed := spec.GetSeed(); seed != 0 {
+		payload["seed"] = seed
+	}
+	if mask := strings.TrimSpace(spec.GetMask()); mask != "" {
+		payload["mask"] = mask
+	}
+	if options := structToMap(spec.GetProviderOptions()); len(options) > 0 {
+		payload["provider_options"] = options
+	}
+	return payload
+}
+
+func stripProviderModelPrefix(modelID string, prefixes ...string) string {
+	trimmed := strings.TrimSpace(modelID)
+	if trimmed == "" {
+		return trimmed
+	}
+	parts := strings.SplitN(trimmed, "/", 2)
+	if len(parts) != 2 {
+		return trimmed
+	}
+	prefix := strings.ToLower(strings.TrimSpace(parts[0]))
+	rest := strings.TrimSpace(parts[1])
+	if rest == "" {
+		return trimmed
+	}
+	for _, candidate := range prefixes {
+		if prefix == strings.ToLower(strings.TrimSpace(candidate)) {
+			return rest
+		}
+	}
+	return trimmed
+}
+
+func extractKimiImageArtifact(payload map[string]any) ([]byte, string, string) {
+	if artifactBytes, mimeType, artifactURI := extractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(payload["choices"]); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(payload["output"]); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(payload["data"]); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	return nil, "", ""
+}
+
+func extractKimiImageFromAny(value any) ([]byte, string, string) {
+	switch typed := value.(type) {
+	case map[string]any:
+		return extractKimiImageFromMap(typed)
+	case []any:
+		for _, item := range typed {
+			if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(item); len(artifactBytes) > 0 {
+				return artifactBytes, mimeType, artifactURI
+			}
+		}
+	case string:
+		uri := strings.TrimSpace(typed)
+		if strings.HasPrefix(uri, "http://") || strings.HasPrefix(uri, "https://") {
+			return extractBinaryArtifactBytesAndMIME(map[string]any{
+				"url": uri,
+			})
+		}
+	}
+	return nil, "", ""
+}
+
+func extractKimiImageFromMap(payload map[string]any) ([]byte, string, string) {
+	if payload == nil {
+		return nil, "", ""
+	}
+	if artifactBytes, mimeType, artifactURI := extractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+
+	mimeType := firstNonEmptyString(
+		valueAsString(payload["mime_type"]),
+		valueAsString(payload["content_type"]),
+	)
+	for _, key := range []string{"b64_json", "image_base64", "base64", "data", "image"} {
+		if decoded, ok := decodeBase64ArtifactPayload(valueAsString(payload[key])); ok {
+			return decoded, mimeType, ""
+		}
+	}
+	if imageURL := payload["image_url"]; imageURL != nil {
+		switch typed := imageURL.(type) {
+		case string:
+			return extractBinaryArtifactBytesAndMIME(map[string]any{
+				"url":       typed,
+				"mime_type": mimeType,
+			})
+		case map[string]any:
+			if artifactBytes, nestedMIME, artifactURI := extractKimiImageFromMap(typed); len(artifactBytes) > 0 {
+				return artifactBytes, firstNonEmptyString(mimeType, nestedMIME), artifactURI
+			}
+		}
+	}
+	if artifactBytes, nestedMIME, artifactURI := extractKimiImageFromAny(payload["content"]); len(artifactBytes) > 0 {
+		return artifactBytes, firstNonEmptyString(mimeType, nestedMIME), artifactURI
+	}
+	if artifactBytes, nestedMIME, artifactURI := extractKimiImageFromAny(payload["message"]); len(artifactBytes) > 0 {
+		return artifactBytes, firstNonEmptyString(mimeType, nestedMIME), artifactURI
+	}
+	return nil, "", ""
+}
+
+func decodeBase64ArtifactPayload(raw string) ([]byte, bool) {
+	encoded := strings.TrimSpace(raw)
+	if encoded == "" {
+		return nil, false
+	}
+	if strings.HasPrefix(strings.ToLower(encoded), "data:") {
+		separator := strings.Index(encoded, ",")
+		if separator <= 0 {
+			return nil, false
+		}
+		encoded = strings.TrimSpace(encoded[separator+1:])
+	}
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(decoded) == 0 {
+		return nil, false
+	}
+	return decoded, true
+}
+
 func (s *Service) updateMediaJobPollState(
 	jobID string,
 	providerJobID string,
@@ -1815,6 +2059,23 @@ func extractArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string
 	if payload == nil {
 		return nil, "", ""
 	}
+	if artifactBytes, mimeType, artifactURI := extractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if text := strings.TrimSpace(firstNonEmptyString(
+		valueAsString(payload["artifact_text"]),
+		valueAsString(payload["text"]),
+		valueAsString(mapField(payload["result"], "text")),
+	)); text != "" {
+		return []byte(text), "text/plain", ""
+	}
+	return nil, "", ""
+}
+
+func extractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string) {
+	if payload == nil {
+		return nil, "", ""
+	}
 	paths := []string{
 		valueAsString(payload["b64_json"]),
 		valueAsString(payload["b64_mp4"]),
@@ -1856,13 +2117,6 @@ func extractArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string
 				}
 			}
 		}
-	}
-	if text := strings.TrimSpace(firstNonEmptyString(
-		valueAsString(payload["artifact_text"]),
-		valueAsString(payload["text"]),
-		valueAsString(mapField(payload["result"], "text")),
-	)); text != "" {
-		return []byte(text), "text/plain", ""
 	}
 	return nil, "", ""
 }
