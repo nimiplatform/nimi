@@ -803,6 +803,157 @@ func TestSubmitMediaJobGLMVideoTask(t *testing.T) {
 	}
 }
 
+func TestSubmitMediaJobGLMImageNative(t *testing.T) {
+	imagePayload := []byte("glm-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	var submitPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/paas/v4/images/generations":
+			submitPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{
+						"b64_json":  imageB64,
+						"mime_type": "image/png",
+					},
+				},
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGLMBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "glm/cogview-3",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "mountain at dusk",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit glm image job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+	if submitPath != "/api/paas/v4/images/generations" {
+		t.Fatalf("glm image submit path mismatch: got=%s", submitPath)
+	}
+}
+
+func TestSubmitMediaJobGLMTTSNative(t *testing.T) {
+	audioPayload := []byte("glm-tts-audio")
+	audioB64 := base64.StdEncoding.EncodeToString(audioPayload)
+	var submitPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/paas/v4/audio/speech":
+			submitPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"audio_base64": audioB64,
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGLMBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "glm/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "hello glm",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit glm tts job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("tts payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+	if submitPath != "/api/paas/v4/audio/speech" {
+		t.Fatalf("glm tts submit path mismatch: got=%s", submitPath)
+	}
+}
+
+func TestSubmitMediaJobGLMSTTNative(t *testing.T) {
+	var submitPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/paas/v4/audio/transcriptions":
+			submitPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "glm stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGLMBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "glm/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit glm stt job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != "glm stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+	if submitPath != "/api/paas/v4/audio/transcriptions" {
+		t.Fatalf("glm stt submit path mismatch: got=%s", submitPath)
+	}
+}
+
 func TestSubmitMediaJobKimiImageChatMultimodal(t *testing.T) {
 	imagePayload := []byte("kimi-image-bytes")
 	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
@@ -945,10 +1096,31 @@ func TestResolveGLMTaskPaths(t *testing.T) {
 	}
 }
 
+func TestResolveGLMAPIPath(t *testing.T) {
+	if got := resolveGLMAPIPath("https://open.bigmodel.cn", "audio/speech"); got != "/api/paas/v4/audio/speech" {
+		t.Fatalf("glm api path mismatch: got=%s", got)
+	}
+	if got := resolveGLMAPIPath("https://open.bigmodel.cn/api/paas/v4", "audio/speech"); got != "/audio/speech" {
+		t.Fatalf("glm normalized api path mismatch: got=%s", got)
+	}
+}
+
 func TestResolveMediaAdapterNameKimiImage(t *testing.T) {
 	adapter := resolveMediaAdapterName("moonshot/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE)
 	if adapter != adapterKimiChatMultimodal {
 		t.Fatalf("adapter mismatch: got=%s want=%s", adapter, adapterKimiChatMultimodal)
+	}
+}
+
+func TestResolveMediaAdapterNameGLMNative(t *testing.T) {
+	if adapter := resolveMediaAdapterName("glm/cogview-3", "cogview-3", runtimev1.Modal_MODAL_IMAGE); adapter != adapterGLMNative {
+		t.Fatalf("glm image adapter mismatch: got=%s want=%s", adapter, adapterGLMNative)
+	}
+	if adapter := resolveMediaAdapterName("bigmodel/asr-1", "asr-1", runtimev1.Modal_MODAL_STT); adapter != adapterGLMNative {
+		t.Fatalf("glm stt adapter mismatch: got=%s want=%s", adapter, adapterGLMNative)
+	}
+	if adapter := resolveMediaAdapterName("zhipu/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO); adapter != adapterGLMTask {
+		t.Fatalf("glm video adapter mismatch: got=%s want=%s", adapter, adapterGLMTask)
 	}
 }
 

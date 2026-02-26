@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -8,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
@@ -34,6 +36,7 @@ const (
 	adapterGeminiOperation     = "gemini_operation_adapter"
 	adapterMiniMaxTask         = "minimax_task_adapter"
 	adapterGLMTask             = "glm_task_adapter"
+	adapterGLMNative           = "glm_native_adapter"
 	adapterKimiChatMultimodal  = "kimi_chat_multimodal_adapter"
 )
 
@@ -217,6 +220,8 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 		artifacts, usage, providerJobID, err = s.executeMiniMaxTask(ctx, jobID, req, modelResolved)
 	case adapterGLMTask:
 		artifacts, usage, providerJobID, err = s.executeGLMTask(ctx, jobID, req, modelResolved)
+	case adapterGLMNative:
+		artifacts, usage, providerJobID, err = s.executeGLMNative(ctx, req, modelResolved)
 	case adapterKimiChatMultimodal:
 		artifacts, usage, providerJobID, err = s.executeKimiImageChatMultimodal(ctx, req, modelResolved)
 	default:
@@ -384,6 +389,7 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		if modal == runtimev1.Modal_MODAL_VIDEO {
 			return adapterGLMTask
 		}
+		return adapterGLMNative
 	case strings.Contains(joined, "bytedance/"), strings.Contains(joined, "byte/"):
 		if modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
 			return adapterBytedanceOpenSpeech
@@ -1680,11 +1686,165 @@ func (s *Service) executeGLMTask(
 }
 
 func resolveGLMTaskPaths(baseURL string) (string, string) {
+	return resolveGLMAPIPath(baseURL, "videos/generations"), resolveGLMAPIPath(baseURL, "async-result") + "/"
+}
+
+func resolveGLMAPIPath(baseURL string, relative string) string {
+	trimmed := strings.Trim(strings.TrimSpace(relative), "/")
+	if trimmed == "" {
+		return ""
+	}
 	normalized := strings.ToLower(strings.TrimSpace(baseURL))
 	if strings.Contains(normalized, "/api/paas/v4") {
-		return "/videos/generations", "/async-result/"
+		return "/" + trimmed
 	}
-	return "/api/paas/v4/videos/generations", "/api/paas/v4/async-result/"
+	return "/api/paas/v4/" + trimmed
+}
+
+func (s *Service) executeGLMNative(
+	ctx context.Context,
+	req *runtimev1.SubmitMediaJobRequest,
+	modelResolved string,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(s.config.CloudGLMBaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	apiKey := strings.TrimSpace(s.config.CloudGLMAPIKey)
+
+	switch req.GetModal() {
+	case runtimev1.Modal_MODAL_IMAGE:
+		spec := req.GetImageSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		payload := map[string]any{
+			"model":  modelResolved,
+			"prompt": strings.TrimSpace(spec.GetPrompt()),
+		}
+		if negativePrompt := strings.TrimSpace(spec.GetNegativePrompt()); negativePrompt != "" {
+			payload["negative_prompt"] = negativePrompt
+		}
+		if size := strings.TrimSpace(spec.GetSize()); size != "" {
+			payload["size"] = size
+		}
+		if n := spec.GetN(); n > 0 {
+			payload["n"] = n
+		}
+		if options := structToMap(spec.GetProviderOptions()); len(options) > 0 {
+			payload["provider_options"] = options
+		}
+		responsePayload := map[string]any{}
+		if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, resolveGLMAPIPath(baseURL, "images/generations")), apiKey, payload, &responsePayload); err != nil {
+			return nil, nil, "", err
+		}
+		artifactBytes, mimeType, artifactURI := extractBinaryArtifactBytesAndMIME(responsePayload)
+		if len(artifactBytes) == 0 {
+			artifactBytes, mimeType, artifactURI = extractImageArtifactFromAny(responsePayload["data"])
+		}
+		if len(artifactBytes) == 0 {
+			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		if mimeType == "" {
+			mimeType = resolveImageArtifactMIME(spec, artifactBytes)
+		}
+		providerRaw := map[string]any{
+			"adapter":          adapterGLMNative,
+			"response":         responsePayload,
+			"prompt":           strings.TrimSpace(spec.GetPrompt()),
+			"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
+			"size":             strings.TrimSpace(spec.GetSize()),
+			"aspect_ratio":     strings.TrimSpace(spec.GetAspectRatio()),
+			"quality":          strings.TrimSpace(spec.GetQuality()),
+			"style":            strings.TrimSpace(spec.GetStyle()),
+			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
+			"mask":             strings.TrimSpace(spec.GetMask()),
+			"provider_options": structToMap(spec.GetProviderOptions()),
+		}
+		if artifactURI != "" {
+			providerRaw["uri"] = artifactURI
+		}
+		artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+		applyImageSpecMetadata(artifact, spec)
+		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+	case runtimev1.Modal_MODAL_TTS:
+		spec := req.GetSpeechSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		payload := map[string]any{
+			"model": modelResolved,
+			"input": strings.TrimSpace(spec.GetText()),
+		}
+		if voice := strings.TrimSpace(spec.GetVoice()); voice != "" {
+			payload["voice"] = voice
+		}
+		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
+			payload["language"] = language
+		}
+		if speed := spec.GetSpeed(); speed > 0 {
+			payload["speed"] = speed
+		}
+		if options := structToMap(spec.GetProviderOptions()); len(options) > 0 {
+			payload["provider_options"] = options
+		}
+		body, err := doJSONOrBinaryRequest(ctx, http.MethodPost, joinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/speech")), apiKey, payload)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		if body == nil || len(body.bytes) == 0 || strings.TrimSpace(body.text) != "" {
+			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		mimeType := resolveSpeechArtifactMIME(spec, body.bytes)
+		if normalized := strings.TrimSpace(body.mime); strings.HasPrefix(normalized, "audio/") {
+			mimeType = normalized
+		}
+		artifact := binaryArtifact(mimeType, body.bytes, map[string]any{
+			"adapter":          adapterGLMNative,
+			"voice":            strings.TrimSpace(spec.GetVoice()),
+			"language":         strings.TrimSpace(spec.GetLanguage()),
+			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
+			"emotion":          strings.TrimSpace(spec.GetEmotion()),
+			"provider_options": structToMap(spec.GetProviderOptions()),
+		})
+		applySpeechSpecMetadata(artifact, spec)
+		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetText(), body.bytes, 120), "", nil
+	case runtimev1.Modal_MODAL_STT:
+		spec := req.GetTranscriptionSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		audioBytes, mimeType, audioURI, err := resolveTranscriptionAudioSource(ctx, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		text, err := executeGLMTranscribe(ctx, joinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/transcriptions")), apiKey, modelResolved, spec, audioBytes, mimeType)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		usage := &runtimev1.UsageStats{
+			InputTokens:  maxInt64(1, int64(len(audioBytes)/256)),
+			OutputTokens: estimateTokens(text),
+			ComputeMs:    maxInt64(10, int64(len(audioBytes)/64)),
+		}
+		artifact := binaryArtifact(resolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
+			"text":             text,
+			"adapter":          adapterGLMNative,
+			"language":         strings.TrimSpace(spec.GetLanguage()),
+			"timestamps":       spec.GetTimestamps(),
+			"diarization":      spec.GetDiarization(),
+			"speaker_count":    spec.GetSpeakerCount(),
+			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+			"mime_type":        mimeType,
+			"audio_uri":        audioURI,
+			"provider_options": structToMap(spec.GetProviderOptions()),
+		})
+		applyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
+	default:
+		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
 }
 
 func (s *Service) executeKimiImageChatMultimodal(
@@ -1833,25 +1993,25 @@ func extractKimiImageArtifact(payload map[string]any) ([]byte, string, string) {
 	if artifactBytes, mimeType, artifactURI := extractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(payload["choices"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(payload["choices"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(payload["output"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(payload["output"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(payload["data"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(payload["data"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
 	return nil, "", ""
 }
 
-func extractKimiImageFromAny(value any) ([]byte, string, string) {
+func extractImageArtifactFromAny(value any) ([]byte, string, string) {
 	switch typed := value.(type) {
 	case map[string]any:
-		return extractKimiImageFromMap(typed)
+		return extractImageArtifactFromMap(typed)
 	case []any:
 		for _, item := range typed {
-			if artifactBytes, mimeType, artifactURI := extractKimiImageFromAny(item); len(artifactBytes) > 0 {
+			if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(item); len(artifactBytes) > 0 {
 				return artifactBytes, mimeType, artifactURI
 			}
 		}
@@ -1866,7 +2026,7 @@ func extractKimiImageFromAny(value any) ([]byte, string, string) {
 	return nil, "", ""
 }
 
-func extractKimiImageFromMap(payload map[string]any) ([]byte, string, string) {
+func extractImageArtifactFromMap(payload map[string]any) ([]byte, string, string) {
 	if payload == nil {
 		return nil, "", ""
 	}
@@ -1891,15 +2051,15 @@ func extractKimiImageFromMap(payload map[string]any) ([]byte, string, string) {
 				"mime_type": mimeType,
 			})
 		case map[string]any:
-			if artifactBytes, nestedMIME, artifactURI := extractKimiImageFromMap(typed); len(artifactBytes) > 0 {
+			if artifactBytes, nestedMIME, artifactURI := extractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
 				return artifactBytes, firstNonEmptyString(mimeType, nestedMIME), artifactURI
 			}
 		}
 	}
-	if artifactBytes, nestedMIME, artifactURI := extractKimiImageFromAny(payload["content"]); len(artifactBytes) > 0 {
+	if artifactBytes, nestedMIME, artifactURI := extractImageArtifactFromAny(payload["content"]); len(artifactBytes) > 0 {
 		return artifactBytes, firstNonEmptyString(mimeType, nestedMIME), artifactURI
 	}
-	if artifactBytes, nestedMIME, artifactURI := extractKimiImageFromAny(payload["message"]); len(artifactBytes) > 0 {
+	if artifactBytes, nestedMIME, artifactURI := extractImageArtifactFromAny(payload["message"]); len(artifactBytes) > 0 {
 		return artifactBytes, firstNonEmptyString(mimeType, nestedMIME), artifactURI
 	}
 	return nil, "", ""
@@ -1984,7 +2144,8 @@ func doJSONOrBinaryRequest(
 		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 	}
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
-	if strings.Contains(contentType, "application/json") {
+	looksLikeJSON := len(raw) > 0 && (raw[0] == '{' || raw[0] == '[')
+	if strings.Contains(contentType, "application/json") || looksLikeJSON {
 		parsed := map[string]any{}
 		if unmarshalErr := json.Unmarshal(raw, &parsed); unmarshalErr == nil {
 			if text := strings.TrimSpace(firstNonEmptyString(
@@ -2053,6 +2214,114 @@ func doJSONRequest(
 		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 	}
 	return nil
+}
+
+func executeGLMTranscribe(
+	ctx context.Context,
+	targetURL string,
+	apiKey string,
+	modelID string,
+	spec *runtimev1.SpeechTranscriptionSpec,
+	audio []byte,
+	mimeType string,
+) (string, error) {
+	if len(audio) == 0 {
+		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+	}
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	if err := writer.WriteField("model", modelID); err != nil {
+		return "", mapProviderRequestError(err)
+	}
+	if strings.TrimSpace(mimeType) != "" {
+		if err := writer.WriteField("mime_type", strings.TrimSpace(mimeType)); err != nil {
+			return "", mapProviderRequestError(err)
+		}
+	}
+	if spec != nil {
+		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
+			if err := writer.WriteField("language", language); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+		if prompt := strings.TrimSpace(spec.GetPrompt()); prompt != "" {
+			if err := writer.WriteField("prompt", prompt); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+		if format := strings.TrimSpace(spec.GetResponseFormat()); format != "" {
+			if err := writer.WriteField("response_format", format); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+		if spec.GetTimestamps() {
+			if err := writer.WriteField("timestamps", "true"); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+		if spec.GetDiarization() {
+			if err := writer.WriteField("diarization", "true"); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+		if spec.GetSpeakerCount() > 0 {
+			if err := writer.WriteField("speaker_count", strconv.FormatInt(int64(spec.GetSpeakerCount()), 10)); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+		if options := structToMap(spec.GetProviderOptions()); len(options) > 0 {
+			raw, marshalErr := json.Marshal(options)
+			if marshalErr != nil {
+				return "", mapProviderRequestError(marshalErr)
+			}
+			if err := writer.WriteField("provider_options", string(raw)); err != nil {
+				return "", mapProviderRequestError(err)
+			}
+		}
+	}
+	fileWriter, err := writer.CreateFormFile("file", "audio.bin")
+	if err != nil {
+		return "", mapProviderRequestError(err)
+	}
+	if _, err := fileWriter.Write(audio); err != nil {
+		return "", mapProviderRequestError(err)
+	}
+	if err := writer.Close(); err != nil {
+		return "", mapProviderRequestError(err)
+	}
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, body)
+	if err != nil {
+		return "", mapProviderRequestError(err)
+	}
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Accept", "application/json")
+	if strings.TrimSpace(apiKey) != "" {
+		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return "", mapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var payload map[string]any
+		_ = json.NewDecoder(response.Body).Decode(&payload)
+		return "", mapProviderHTTPError(response.StatusCode, payload)
+	}
+	payload := map[string]any{}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		return "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	text := strings.TrimSpace(firstNonEmptyString(
+		valueAsString(payload["text"]),
+		valueAsString(mapField(payload["result"], "text")),
+		valueAsString(mapField(payload["data"], "text")),
+	))
+	if text == "" {
+		return "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	return text, nil
 }
 
 func extractArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string) {
