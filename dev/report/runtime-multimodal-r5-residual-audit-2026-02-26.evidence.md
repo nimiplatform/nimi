@@ -32,7 +32,13 @@
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobKimiImageChatMultimodal`）
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobKimiImageChatMultimodalInvalidOutput`）
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestResolveMediaAdapterNameKimiImage`）
-5. 合同要求与范围说明
+5. GLM 非视频模态专用 adapter 与断言
+   - `runtime/internal/services/ai/media_job_methods.go`（`adapterGLMNative`, `executeGLMNative`, `executeGLMTranscribe`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobGLMImageNative`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobGLMTTSNative`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobGLMSTTNative`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestResolveGLMAPIPath`, `TestResolveMediaAdapterNameGLMNative`）
+6. 合同要求与范围说明
    - `ssot/runtime/multimodal-provider-contract.md:236`
    - `ssot/runtime/multimodal-provider-contract.md:220`
 
