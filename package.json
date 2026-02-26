@@ -13,6 +13,7 @@
     "generate:realm-sdk": "node scripts/generate-realm-sdk.mjs",
     "generate:runtime-bridge-methods": "node scripts/generate-runtime-bridge-methods.mjs",
     "generate:scope-catalog": "node scripts/generate-scope-catalog.mjs",
+    "world-agent:cross-repo:check": "cd .. && pnpm ssot:world-agent:cross-repo:check",
     "check:runtime-bridge-method-drift": "node scripts/generate-runtime-bridge-methods.mjs --check",
     "check:scope-catalog-drift": "node scripts/check-scope-catalog-drift.mjs",
     "check:sdk-import-boundary": "node scripts/check-sdk-import-boundary.mjs",
