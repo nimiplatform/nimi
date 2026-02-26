@@ -38,7 +38,11 @@
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobGLMTTSNative`）
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobGLMSTTNative`）
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestResolveGLMAPIPath`, `TestResolveMediaAdapterNameGLMNative`）
-6. 合同要求与范围说明
+6. localruntime provider_hints / npu 节点字段闭环与断言
+   - `runtime/internal/services/localruntime/service.go`（`ListNodeCatalog`, `buildNodeProviderHints`）
+   - `runtime/internal/services/localruntime/service_test.go`（`TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider`）
+   - `runtime/internal/services/localruntime/service_test.go`（`TestLocalRuntimeNodeCatalogNexaVideoFailClose`）
+7. 合同要求与范围说明
    - `ssot/runtime/multimodal-provider-contract.md:236`
    - `ssot/runtime/multimodal-provider-contract.md:220`
 
@@ -49,3 +53,4 @@
 3. `cd runtime && go test ./internal/modelregistry`：PASS
 4. `pnpm check:runtime-ai-media-coverage`：PASS
 5. `cd runtime && go run ./cmd/runtime-compliance --gate`：PASS（23/23）
+6. `cd runtime && go test ./internal/services/localruntime -count=1`：PASS

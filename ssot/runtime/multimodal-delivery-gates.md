@@ -263,6 +263,7 @@ rules:
 | I7 | R6-S3（Kimi/GLM provider 扩展首批） | 2026-02-26 | 2026-02-26 | Kimi 图像 chat-multimodal 专用 adapter 待后续 | 范围控制 | R6-S4 Kimi 专项多模态 adapter |
 | I8 | R6-S4（Kimi image chat-multimodal adapter） | 2026-02-26 | 2026-02-26 | GLM 非视频模态专用 adapter 待后续 | 范围控制 | R6-S5 GLM 非视频模态适配 |
 | I9 | R6-S5（GLM 非视频模态专用 adapter） | 2026-02-26 | 2026-02-26 | 无 | 无 | 后续 provider 深化与观测增强 |
+| I10 | R6-S6（localruntime provider_hints 与 npu 字段闭环） | 2026-02-26 | 2026-02-26 | 无 | 无 | provider 实链联调深度提升 |
 
 ## 6. 当前 Gate 状态快照（2026-02-26）
 
