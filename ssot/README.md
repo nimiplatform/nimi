@@ -1,7 +1,7 @@
 ---
 title: Nimi SSOT Index
 status: ACTIVE
-updated_at: 2026-02-25
+updated_at: 2026-02-26
 rules:
   - `@nimiplatform/nimi` 的 `ssot/` 是开源平台主仓唯一真相目录，覆盖 runtime/sdk/desktop/mod/platform/economy；业务 mod SSOT 由 `@nimiplatform/nimi-mods/<mod>/SSOT.md` 自维护。
   - 每篇 SSOT 必须有 frontmatter 与 rules 列表，并在 traceability 矩阵登记。
@@ -16,7 +16,7 @@ This directory is the public SSOT root in `@nimiplatform/nimi`.
 
 - `platform/` — protocol, architecture, migration, vision, open-source governance
 - `runtime/` — service contract, proto contract, DAG workflow, local runtime, providers
-- `sdk/` — SDK design contract
+- `sdk/` — SDK design + package surface + client/runtime/realm/scope/ai-provider/mod/testing contracts
 - `desktop/` — desktop runtime contract and runtime-first application contract
 - `mod/` — mod governance and mod codegen contract
 - `economy/` — creator economy, revenue policy, realm interop mapping

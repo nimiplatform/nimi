@@ -27,7 +27,16 @@ rules:
 | `runtime/workflow-dag.md` | `ssot/runtime/workflow-dag.md` | 2026-02-25 | canonicalized |
 | `runtime/providers/localai.md` | `ssot/runtime/providers/localai.md` | 2026-02-25 | promoted |
 | `runtime/providers/nexa.md` | `ssot/runtime/providers/nexa.md` | 2026-02-25 | promoted |
+| `sdk/INDEX.md` | `ssot/sdk/INDEX.md` | 2026-02-26 | canonicalized |
 | `sdk/design.md` | `ssot/sdk/design.md` | 2026-02-25 | canonicalized |
+| `sdk/package-surface.md` | `ssot/sdk/package-surface.md` | 2026-02-26 | canonicalized |
+| `sdk/client-init.md` | `ssot/sdk/client-init.md` | 2026-02-26 | canonicalized |
+| `sdk/runtime-contract.md` | `ssot/sdk/runtime-contract.md` | 2026-02-26 | canonicalized |
+| `sdk/realm-contract.md` | `ssot/sdk/realm-contract.md` | 2026-02-26 | canonicalized |
+| `sdk/scope-contract.md` | `ssot/sdk/scope-contract.md` | 2026-02-26 | canonicalized |
+| `sdk/ai-provider-contract.md` | `ssot/sdk/ai-provider-contract.md` | 2026-02-26 | canonicalized |
+| `sdk/mod-contract.md` | `ssot/sdk/mod-contract.md` | 2026-02-26 | canonicalized |
+| `sdk/testing-gates.md` | `ssot/sdk/testing-gates.md` | 2026-02-26 | canonicalized |
 | `desktop/runtime-contract.md` | `ssot/desktop/runtime-contract.md` | 2026-02-25 | renamed |
 | `mod/governance.md` | `ssot/mod/governance.md` | 2026-02-25 | promoted |
 | `mod/codegen.md` | `ssot/mod/codegen.md` | 2026-02-25 | canonicalized |
