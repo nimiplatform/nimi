@@ -2,11 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { WorldLorebookUpsertDto } from './WorldLorebookUpsertDto';
+import type { WorldPatchDto } from './WorldPatchDto';
+import type { WorldviewPatchDto } from './WorldviewPatchDto';
 export type UpdateWorldMaintenanceDto = {
     ifSnapshotVersion?: string;
-    lorebookUpserts?: Array<Record<string, any>>;
+    lorebookUpserts?: Array<WorldLorebookUpsertDto>;
     reason?: string;
-    worldPatch?: Record<string, any>;
-    worldviewPatch?: Record<string, any>;
+    worldPatch?: WorldPatchDto;
+    worldviewPatch?: WorldviewPatchDto;
 };
 

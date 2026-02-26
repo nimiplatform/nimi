@@ -2,11 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { WorldEventGraphSummaryDto } from './WorldEventGraphSummaryDto';
+import type { WorldLorebookDetailDto } from './WorldLorebookDetailDto';
+import type { WorldPatchDto } from './WorldPatchDto';
+import type { WorldviewPatchDto } from './WorldviewPatchDto';
 export type WorldMaintenanceDto = {
     editorSnapshotVersion?: string;
-    eventSummary?: Record<string, any>;
-    lorebooks: Array<Record<string, any>>;
-    world: Record<string, any>;
-    worldview?: Record<string, any>;
+    eventSummary?: WorldEventGraphSummaryDto;
+    lorebooks: Array<WorldLorebookDetailDto>;
+    world: WorldPatchDto;
+    worldview?: WorldviewPatchDto;
 };
 

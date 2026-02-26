@@ -3,9 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { WorldEventDetailDto } from './WorldEventDetailDto';
+import type { WorldEventGraphSummaryDto } from './WorldEventGraphSummaryDto';
 export type WorldEventListDto = {
     editorSnapshotVersion?: string;
-    eventGraphSummary?: Record<string, any>;
+    eventGraphSummary?: WorldEventGraphSummaryDto;
     items: Array<WorldEventDetailDto>;
     worldId: string;
 };

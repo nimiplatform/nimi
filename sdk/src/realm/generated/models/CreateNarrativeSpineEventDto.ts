@@ -2,13 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { GravityFieldDto } from './GravityFieldDto';
 import type { SpineEventPayloadDto } from './SpineEventPayloadDto';
 export type CreateNarrativeSpineEventDto = {
     /**
      * Additional causal links
      */
     causalLinks?: Array<string>;
-    gravityField?: Record<string, any>;
+    gravityField?: GravityFieldDto;
     narrativeWeight?: number;
     /**
      * Parent event ID for causal linking

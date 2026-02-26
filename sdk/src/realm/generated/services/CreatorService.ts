@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { BatchCreateAgentsRequestDto } from '../models/BatchCreateAgentsRequestDto';
+import type { CreateAgentDto } from '../models/CreateAgentDto';
+import type { CreateApiKeyDto } from '../models/CreateApiKeyDto';
 import type { UserLiteDto } from '../models/UserLiteDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -25,13 +28,7 @@ export class CreatorService {
      * @throws ApiError
      */
     public static creatorControllerCreateAgent(
-        requestBody: {
-            avatarUrl?: string | null;
-            bio?: string;
-            displayName: string;
-            dna?: Record<string, any>;
-            handle: string;
-        },
+        requestBody: CreateAgentDto,
     ): CancelablePromise<UserLiteDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -47,10 +44,7 @@ export class CreatorService {
      * @throws ApiError
      */
     public static creatorControllerBatchCreateAgents(
-        requestBody: {
-            continueOnError?: boolean;
-            items: Array<Record<string, any>>;
-        },
+        requestBody: BatchCreateAgentsRequestDto,
     ): CancelablePromise<{
         created?: Array<Record<string, any>>;
         failed?: Array<Record<string, any>>;
@@ -88,11 +82,7 @@ export class CreatorService {
      * @throws ApiError
      */
     public static creatorControllerCreateKey(
-        requestBody: {
-            label: string;
-            scopes?: Array<string>;
-            type?: 'PERSONAL' | 'SERVICE';
-        },
+        requestBody: CreateApiKeyDto,
     ): CancelablePromise<{
         createdAt?: string;
         id?: string;

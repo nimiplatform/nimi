@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { GravityFieldDto } from './GravityFieldDto';
 export type UpdateNarrativeSpineEventDto = {
     canonFlag?: boolean;
-    gravityField?: Record<string, any>;
+    gravityField?: GravityFieldDto;
     narrativeWeight?: number;
 };
 

@@ -2,15 +2,20 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ActivateAgentDto } from '../models/ActivateAgentDto';
 import type { AgentVisibilitySettingsDto } from '../models/AgentVisibilitySettingsDto';
 import type { ApproveRequestDto } from '../models/ApproveRequestDto';
+import type { CreateAgentDto } from '../models/CreateAgentDto';
 import type { CreateAgentResponseDto } from '../models/CreateAgentResponseDto';
 import type { CreateKeyEventDto } from '../models/CreateKeyEventDto';
+import type { ForceActionDto } from '../models/ForceActionDto';
 import type { MemoryStatsResponseDto } from '../models/MemoryStatsResponseDto';
 import type { RejectRequestDto } from '../models/RejectRequestDto';
 import type { RemoveAgentRelationshipDto } from '../models/RemoveAgentRelationshipDto';
+import type { SelectAvatarDto } from '../models/SelectAvatarDto';
 import type { SetAgentRelationshipDto } from '../models/SetAgentRelationshipDto';
 import type { SoulPrimeDto } from '../models/SoulPrimeDto';
+import type { UpdateAgentDnaDto } from '../models/UpdateAgentDnaDto';
 import type { UpdateAgentVisibilityDto } from '../models/UpdateAgentVisibilityDto';
 import type { UpdateSoulPrimeDto } from '../models/UpdateSoulPrimeDto';
 import type { UpdateUserProfileDto } from '../models/UpdateUserProfileDto';
@@ -26,13 +31,7 @@ export class AgentsService {
      * @throws ApiError
      */
     public static agentControllerCreate(
-        requestBody: {
-            avatarUrl?: string | null;
-            bio?: string;
-            displayName: string;
-            dna?: Record<string, any>;
-            handle: string;
-        },
+        requestBody: CreateAgentDto,
     ): CancelablePromise<CreateAgentResponseDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -84,7 +83,7 @@ export class AgentsService {
      */
     public static agentControllerActivate(
         id: string,
-        requestBody: Record<string, any>,
+        requestBody: ActivateAgentDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -210,9 +209,7 @@ export class AgentsService {
      */
     public static agentControllerSelectAvatar(
         id: string,
-        requestBody: {
-            avatarUrl: string;
-        },
+        requestBody: SelectAvatarDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -233,7 +230,7 @@ export class AgentsService {
      */
     public static agentControllerUpdateDna(
         id: string,
-        requestBody: Record<string, any>,
+        requestBody: UpdateAgentDnaDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -254,7 +251,7 @@ export class AgentsService {
      */
     public static agentControllerForceAction(
         id: string,
-        requestBody: Record<string, any>,
+        requestBody: ForceActionDto,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',

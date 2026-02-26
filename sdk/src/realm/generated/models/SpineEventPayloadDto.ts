@@ -2,11 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SceneContextDto } from './SceneContextDto';
 export type SpineEventPayloadDto = {
     content: string;
     metadata?: Record<string, any>;
     participants?: Array<string>;
-    sceneContext?: Record<string, any>;
+    sceneContext?: SceneContextDto;
     type: SpineEventPayloadDto.type;
 };
 export namespace SpineEventPayloadDto {

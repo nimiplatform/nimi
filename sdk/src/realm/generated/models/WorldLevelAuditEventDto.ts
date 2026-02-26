@@ -12,7 +12,7 @@ export type WorldLevelAuditEventDto = {
     ewmaScore?: number;
     freezeReason?: WorldLevelAuditEventDto.freezeReason;
     id: string;
-    meta?: Record<string, any>;
+    meta?: Record<string, any> | null;
     nativeCount?: number;
     nativeLimit?: number;
     nextLevel?: number;
