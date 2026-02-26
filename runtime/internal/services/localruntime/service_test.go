@@ -209,8 +209,25 @@ func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if node.GetServiceId() != "svc-vision" {
 		t.Fatalf("node service id mismatch: %s", node.GetServiceId())
 	}
+	if node.GetAdapter() != "localai_native_adapter" {
+		t.Fatalf("localai image adapter mismatch: %s", node.GetAdapter())
+	}
 	if !node.GetAvailable() {
 		t.Fatalf("node must be available before removal")
+	}
+
+	chatNodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
+		Capability: "chat",
+		Provider:   "localai",
+	})
+	if err != nil {
+		t.Fatalf("list chat node catalog: %v", err)
+	}
+	if len(chatNodesResp.GetNodes()) != 1 {
+		t.Fatalf("chat node count mismatch: got=%d want=1", len(chatNodesResp.GetNodes()))
+	}
+	if chatNodesResp.GetNodes()[0].GetAdapter() != "openai_compat_adapter" {
+		t.Fatalf("localai chat adapter mismatch: %s", chatNodesResp.GetNodes()[0].GetAdapter())
 	}
 
 	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{

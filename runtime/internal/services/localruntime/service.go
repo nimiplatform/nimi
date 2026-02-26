@@ -487,7 +487,7 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 				continue
 			}
 			available := service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
-			adapter := adapterForProvider(provider)
+			adapter := adapterForProviderCapability(provider, capability)
 			apiPath := apiPathForProviderCapability(provider, capability)
 			reasonCode := ""
 			policyGate := ""
@@ -831,10 +831,19 @@ func matchesCatalogSearch(item *runtimev1.LocalCatalogModelDescriptor, query str
 	return false
 }
 
-func adapterForProvider(provider string) string {
-	switch strings.ToLower(strings.TrimSpace(provider)) {
+func adapterForProviderCapability(provider string, capability string) string {
+	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+	normalizedCapability := strings.ToLower(strings.TrimSpace(capability))
+	switch normalizedProvider {
 	case "nexa":
 		return "nexa_native_adapter"
+	case "localai":
+		switch normalizedCapability {
+		case "image", "video", "tts", "speech", "stt", "transcription":
+			return "localai_native_adapter"
+		default:
+			return "openai_compat_adapter"
+		}
 	default:
 		return "openai_compat_adapter"
 	}
