@@ -230,6 +230,21 @@ export function ContactsView(props: ContactsViewProps) {
       {/* Header */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6">
         <h1 className="text-lg font-semibold tracking-tight text-gray-900">{t('Contacts.title')}</h1>
+        
+        {/* Search */}
+        <div className="flex h-[36px] w-[360px] items-center rounded-full border border-gray-200 bg-gray-50 px-4">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#99a1af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            className="ml-2 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            placeholder={t('Contacts.searchPlaceholder')}
+            value={props.searchText}
+            onChange={(event) => props.onSearchTextChange(event.target.value)}
+          />
+        </div>
+        
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -244,22 +259,6 @@ export function ContactsView(props: ContactsViewProps) {
             </svg>
             {t('Contacts.addContact')}
           </button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex h-[38px] max-w-md items-center rounded-[10px] border border-gray-200 bg-gray-50 px-3">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#99a1af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            className="ml-2 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-            placeholder={t('Contacts.searchPlaceholder')}
-            value={props.searchText}
-            onChange={(event) => props.onSearchTextChange(event.target.value)}
-          />
         </div>
       </div>
 
