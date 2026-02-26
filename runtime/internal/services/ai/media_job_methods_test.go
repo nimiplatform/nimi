@@ -293,6 +293,131 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWS(t *testing.T) {
 	}
 }
 
+func TestSubmitMediaJobBytedanceOpenSpeechSTTWSFailedMapsUnavailable(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.Handle("/api/v3/auc/bigmodel/recognize/stream", websocket.Handler(func(connection *websocket.Conn) {
+		defer connection.Close()
+		for {
+			var payload map[string]any
+			if err := websocket.JSON.Receive(connection, &payload); err != nil {
+				return
+			}
+			if strings.EqualFold(strings.TrimSpace(valueAsString(payload["event"])), "finish") {
+				_ = websocket.JSON.Send(connection, map[string]any{
+					"status": "failed",
+					"error":  "provider failure",
+					"done":   true,
+				})
+				return
+			}
+		}
+	}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL:       server.URL,
+		CloudBytedanceSpeechBaseURL: server.URL,
+	})
+	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "bytedance/stt-ws-failed",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+					Source: &runtimev1.SpeechTranscriptionAudioSource_AudioChunks{
+						AudioChunks: &runtimev1.AudioChunks{
+							Chunks: [][]byte{
+								[]byte("audio-chunk-1"),
+							},
+						},
+					},
+				},
+				MimeType: "audio/wav",
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"transport": "ws",
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance ws failed stt job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, response.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: got=%v want=%v", job.GetStatus(), runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED)
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobBytedanceOpenSpeechSTTWSReadTimeoutMapsProviderTimeout(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.Handle("/api/v3/auc/bigmodel/recognize/stream", websocket.Handler(func(connection *websocket.Conn) {
+		defer connection.Close()
+		for {
+			var payload map[string]any
+			if err := websocket.JSON.Receive(connection, &payload); err != nil {
+				return
+			}
+			if strings.EqualFold(strings.TrimSpace(valueAsString(payload["event"])), "finish") {
+				time.Sleep(200 * time.Millisecond)
+				return
+			}
+		}
+	}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL:       server.URL,
+		CloudBytedanceSpeechBaseURL: server.URL,
+	})
+	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "bytedance/stt-ws-slow",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     2000,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+					Source: &runtimev1.SpeechTranscriptionAudioSource_AudioChunks{
+						AudioChunks: &runtimev1.AudioChunks{
+							Chunks: [][]byte{
+								[]byte("audio-chunk-1"),
+								[]byte("audio-chunk-2"),
+							},
+						},
+					},
+				},
+				MimeType: "audio/wav",
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"transport":          "ws",
+					"ws_read_timeout_ms": 30,
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance ws timeout stt job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, response.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT {
+		t.Fatalf("job status mismatch: got=%v want=%v", job.GetStatus(), runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT)
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+	}
+}
+
 func TestSubmitMediaJobBytedanceVideoViaOpenAICompat(t *testing.T) {
 	videoPayload := []byte("bytedance-video-bytes")
 	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)

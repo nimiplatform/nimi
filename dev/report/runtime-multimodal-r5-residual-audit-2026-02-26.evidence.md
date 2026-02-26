@@ -18,6 +18,8 @@
 2. ByteDance OpenSpeech STT WebSocket 实现与断言
    - `runtime/internal/services/ai/media_job_methods.go`（`executeBytedanceOpenSpeechWS`）
    - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobBytedanceOpenSpeechSTTWS`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobBytedanceOpenSpeechSTTWSFailedMapsUnavailable`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobBytedanceOpenSpeechSTTWSReadTimeoutMapsProviderTimeout`）
 3. 合同要求与范围说明
    - `ssot/runtime/multimodal-provider-contract.md:236`
    - `ssot/runtime/multimodal-provider-contract.md:220`

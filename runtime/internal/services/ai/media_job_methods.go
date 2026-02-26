@@ -1164,9 +1164,7 @@ func executeBytedanceOpenSpeechWS(
 		if ctx.Err() != nil {
 			return "", responsePayload, mapProviderRequestError(ctx.Err())
 		}
-		if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-			_ = connection.SetReadDeadline(time.Now().UTC().Add(readTimeout))
-		}
+		_ = connection.SetReadDeadline(computeWSReadDeadline(ctx, readTimeout))
 		var payload map[string]any
 		if receiveErr := websocket.JSON.Receive(connection, &payload); receiveErr != nil {
 			if errors.Is(receiveErr, io.EOF) {
@@ -1231,6 +1229,15 @@ func executeBytedanceOpenSpeechWS(
 		"transport":     "ws",
 		"response":      responsePayload,
 	}, nil
+}
+
+func computeWSReadDeadline(ctx context.Context, readTimeout time.Duration) time.Time {
+	now := time.Now().UTC()
+	deadline := now.Add(readTimeout)
+	if ctxDeadline, hasDeadline := ctx.Deadline(); hasDeadline && ctxDeadline.Before(deadline) {
+		return ctxDeadline
+	}
+	return deadline
 }
 
 func resolveBytedanceOpenSpeechWSURL(baseURL string, providerOptions map[string]any) string {
