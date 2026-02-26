@@ -258,6 +258,7 @@ rules:
 | I2 | G3（provider 实链与 fail-close） | 2026-02-26 | 2026-02-26 | 无 | 无 | I3 async workflow + matrix |
 | I3 | G4 + G5（external-async + 矩阵 + coverage gate） | 2026-02-26 | 2026-02-26 | G6/G7 发布件待后续轮次 | 非本轮目标范围 | 发布候选与对外文档化 |
 | I4 | R5（协议完整性 + strict fail-close 收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 与 ByteDance WS 专线延后 | 明确非目标范围 | R6 provider 专项适配 |
+| I5 | R6-S1（ByteDance OpenSpeech STT WS transport） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S2 provider 扩展与可靠性增强 |
 
 ## 6. 当前 Gate 状态快照（2026-02-26）
 

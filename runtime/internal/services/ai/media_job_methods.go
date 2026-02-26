@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -17,6 +18,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
+	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -983,6 +985,32 @@ func (s *Service) executeBytedanceOpenSpeech(
 		if resolveErr != nil {
 			return nil, nil, "", resolveErr
 		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		if shouldUseBytedanceOpenSpeechWS(spec, providerOptions) {
+			text, wsRaw, wsErr := executeBytedanceOpenSpeechWS(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, providerOptions)
+			if wsErr != nil {
+				return nil, nil, "", wsErr
+			}
+			providerRaw := map[string]any{
+				"text":             text,
+				"adapter":          adapterBytedanceOpenSpeech,
+				"transport":        "ws",
+				"mime_type":        mimeType,
+				"audio_uri":        audioURI,
+				"response_format":  spec.GetResponseFormat(),
+				"provider_options": providerOptions,
+			}
+			if len(wsRaw) > 0 {
+				providerRaw["ws_response"] = wsRaw
+			}
+			artifact := binaryArtifact(resolveTranscriptionArtifactMIME(spec), []byte(text), providerRaw)
+			applyTranscriptionSpecMetadata(artifact, spec, audioURI)
+			return []*runtimev1.MediaArtifact{artifact}, &runtimev1.UsageStats{
+				InputTokens:  maxInt64(1, int64(len(audioBytes)/256)),
+				OutputTokens: estimateTokens(text),
+				ComputeMs:    maxInt64(10, int64(len(audioBytes)/64)),
+			}, "", nil
+		}
 		payload := map[string]any{
 			"model":           modelResolved,
 			"mime_type":       mimeType,
@@ -996,7 +1024,8 @@ func (s *Service) executeBytedanceOpenSpeech(
 		if spec.GetLanguage() != "" {
 			payload["language"] = spec.GetLanguage()
 		}
-		if opts := structToMap(spec.GetProviderOptions()); len(opts) > 0 {
+		if len(providerOptions) > 0 {
+			opts := providerOptions
 			payload["provider_options"] = opts
 		}
 		body, err := doJSONOrBinaryRequest(ctx, http.MethodPost, joinURL(baseURL, "/api/v3/auc/bigmodel/recognize/flash"), apiKey, payload)
@@ -1013,7 +1042,7 @@ func (s *Service) executeBytedanceOpenSpeech(
 			"mime_type":        mimeType,
 			"audio_uri":        audioURI,
 			"response_format":  spec.GetResponseFormat(),
-			"provider_options": structToMap(spec.GetProviderOptions()),
+			"provider_options": providerOptions,
 		})
 		applyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.MediaArtifact{artifact}, &runtimev1.UsageStats{
@@ -1024,6 +1053,248 @@ func (s *Service) executeBytedanceOpenSpeech(
 	default:
 		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 	}
+}
+
+func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscriptionSpec, providerOptions map[string]any) bool {
+	if spec == nil {
+		return false
+	}
+	if valueAsBool(firstNonNil(providerOptions["prefer_ws"], providerOptions["use_ws"], providerOptions["websocket"])) {
+		return true
+	}
+	transport := strings.ToLower(strings.TrimSpace(valueAsString(providerOptions["transport"])))
+	if transport == "ws" || transport == "websocket" {
+		return true
+	}
+	if source := spec.GetAudioSource(); source != nil {
+		if chunks := source.GetAudioChunks(); chunks != nil && len(chunks.GetChunks()) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func executeBytedanceOpenSpeechWS(
+	ctx context.Context,
+	baseURL string,
+	apiKey string,
+	modelResolved string,
+	spec *runtimev1.SpeechTranscriptionSpec,
+	audioBytes []byte,
+	mimeType string,
+	providerOptions map[string]any,
+) (string, map[string]any, error) {
+	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL, providerOptions)
+	if targetURL == "" {
+		return "", nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+	}
+	config, err := websocket.NewConfig(targetURL, websocketOrigin(targetURL))
+	if err != nil {
+		return "", nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+	}
+	config.Header = http.Header{}
+	config.Header.Set("Content-Type", "application/json")
+	if strings.TrimSpace(apiKey) != "" {
+		config.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	}
+	connection, err := websocket.DialConfig(config)
+	if err != nil {
+		return "", nil, mapProviderRequestError(err)
+	}
+	defer connection.Close()
+
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = connection.Close()
+		case <-done:
+		}
+	}()
+	defer close(done)
+
+	if deadline, ok := ctx.Deadline(); ok {
+		_ = connection.SetDeadline(deadline)
+	}
+
+	chunks := transcriptionAudioChunks(spec, audioBytes)
+	startPayload := map[string]any{
+		"event":            "start",
+		"model":            modelResolved,
+		"mime_type":        mimeType,
+		"language":         strings.TrimSpace(spec.GetLanguage()),
+		"timestamps":       spec.GetTimestamps(),
+		"diarization":      spec.GetDiarization(),
+		"speaker_count":    spec.GetSpeakerCount(),
+		"prompt":           strings.TrimSpace(spec.GetPrompt()),
+		"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+		"provider_options": providerOptions,
+	}
+	if err := websocket.JSON.Send(connection, startPayload); err != nil {
+		return "", nil, mapProviderRequestError(err)
+	}
+	for index, chunk := range chunks {
+		if len(chunk) == 0 {
+			continue
+		}
+		frame := map[string]any{
+			"event":        "audio",
+			"seq":          index + 1,
+			"audio_base64": base64.StdEncoding.EncodeToString(chunk),
+		}
+		if err := websocket.JSON.Send(connection, frame); err != nil {
+			return "", nil, mapProviderRequestError(err)
+		}
+	}
+	if err := websocket.JSON.Send(connection, map[string]any{"event": "finish"}); err != nil {
+		return "", nil, mapProviderRequestError(err)
+	}
+
+	readTimeout := 4 * time.Second
+	if rawTimeout := valueAsInt64(firstNonNil(providerOptions["ws_read_timeout_ms"], providerOptions["read_timeout_ms"])); rawTimeout > 0 {
+		readTimeout = time.Duration(rawTimeout) * time.Millisecond
+	}
+	messageCount := 0
+	lastStatus := ""
+	finalText := ""
+	var deltaBuilder strings.Builder
+	responsePayload := map[string]any{}
+
+	for {
+		if ctx.Err() != nil {
+			return "", responsePayload, mapProviderRequestError(ctx.Err())
+		}
+		if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+			_ = connection.SetReadDeadline(time.Now().UTC().Add(readTimeout))
+		}
+		var payload map[string]any
+		if receiveErr := websocket.JSON.Receive(connection, &payload); receiveErr != nil {
+			if errors.Is(receiveErr, io.EOF) {
+				break
+			}
+			if isNetworkTimeout(receiveErr) {
+				if finalText != "" || strings.TrimSpace(deltaBuilder.String()) != "" {
+					break
+				}
+				return "", responsePayload, status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+			}
+			return "", responsePayload, mapProviderRequestError(receiveErr)
+		}
+		messageCount++
+		responsePayload = payload
+
+		errorMessage := strings.TrimSpace(firstNonEmptyString(
+			valueAsString(payload["error"]),
+			valueAsString(payload["error_message"]),
+			valueAsString(mapField(payload["error"], "message")),
+			valueAsString(mapField(payload["result"], "error")),
+		))
+		if errorMessage != "" {
+			return "", responsePayload, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		}
+		if delta := strings.TrimSpace(firstNonEmptyString(
+			valueAsString(payload["delta"]),
+			valueAsString(payload["partial_text"]),
+			valueAsString(mapField(payload["result"], "delta")),
+		)); delta != "" {
+			deltaBuilder.WriteString(delta)
+		}
+		if text := strings.TrimSpace(firstNonEmptyString(
+			valueAsString(payload["text"]),
+			valueAsString(payload["final_text"]),
+			valueAsString(mapField(payload["result"], "text")),
+		)); text != "" {
+			finalText = text
+		}
+		lastStatus = strings.ToLower(strings.TrimSpace(firstNonEmptyString(
+			valueAsString(payload["status"]),
+			valueAsString(mapField(payload["result"], "status")),
+		)))
+		doneFlag := valueAsBool(firstNonNil(payload["done"], mapField(payload["result"], "done")))
+		if lastStatus == "failed" || lastStatus == "error" {
+			return "", responsePayload, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		}
+		if doneFlag || lastStatus == "completed" || lastStatus == "finished" || lastStatus == "done" {
+			break
+		}
+	}
+
+	if strings.TrimSpace(finalText) == "" {
+		finalText = strings.TrimSpace(deltaBuilder.String())
+	}
+	if finalText == "" {
+		return "", responsePayload, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	}
+	return finalText, map[string]any{
+		"status":        lastStatus,
+		"message_count": messageCount,
+		"transport":     "ws",
+		"response":      responsePayload,
+	}, nil
+}
+
+func resolveBytedanceOpenSpeechWSURL(baseURL string, providerOptions map[string]any) string {
+	if explicitURL := strings.TrimSpace(valueAsString(providerOptions["ws_url"])); explicitURL != "" {
+		return explicitURL
+	}
+	wsPath := strings.TrimSpace(valueAsString(providerOptions["ws_path"]))
+	if wsPath == "" {
+		wsPath = "/api/v3/auc/bigmodel/recognize/stream"
+	}
+	httpURL := joinURL(baseURL, wsPath)
+	parsed, err := url.Parse(httpURL)
+	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
+		return ""
+	}
+	switch parsed.Scheme {
+	case "wss", "https":
+		parsed.Scheme = "wss"
+	default:
+		parsed.Scheme = "ws"
+	}
+	return parsed.String()
+}
+
+func websocketOrigin(targetURL string) string {
+	parsed, err := url.Parse(strings.TrimSpace(targetURL))
+	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
+		return "http://localhost/"
+	}
+	if parsed.Scheme == "wss" {
+		return "https://" + parsed.Host + "/"
+	}
+	return "http://" + parsed.Host + "/"
+}
+
+func transcriptionAudioChunks(spec *runtimev1.SpeechTranscriptionSpec, fallback []byte) [][]byte {
+	if spec != nil {
+		if source := spec.GetAudioSource(); source != nil {
+			if chunks := source.GetAudioChunks(); chunks != nil {
+				collected := make([][]byte, 0, len(chunks.GetChunks()))
+				for _, chunk := range chunks.GetChunks() {
+					if len(chunk) == 0 {
+						continue
+					}
+					collected = append(collected, append([]byte(nil), chunk...))
+				}
+				if len(collected) > 0 {
+					return collected
+				}
+			}
+		}
+	}
+	if len(fallback) > 0 {
+		return [][]byte{append([]byte(nil), fallback...)}
+	}
+	return nil
+}
+
+func isNetworkTimeout(err error) bool {
+	if err == nil {
+		return false
+	}
+	timeoutError, ok := err.(net.Error)
+	return ok && timeoutError.Timeout()
 }
 
 func (s *Service) executeGeminiOperation(

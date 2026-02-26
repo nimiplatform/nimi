@@ -15,8 +15,9 @@
    - `runtime/internal/services/localruntime/service.go:490`
    - `runtime/internal/services/localruntime/service.go:834`
    - `runtime/internal/services/localruntime/service_test.go:220`
-2. ByteDance OpenSpeech HTTP 实现路径
-   - `runtime/internal/services/ai/media_job_methods.go:929`
+2. ByteDance OpenSpeech STT WebSocket 实现与断言
+   - `runtime/internal/services/ai/media_job_methods.go`（`executeBytedanceOpenSpeechWS`）
+   - `runtime/internal/services/ai/media_job_methods_test.go`（`TestSubmitMediaJobBytedanceOpenSpeechSTTWS`）
 3. 合同要求与范围说明
    - `ssot/runtime/multimodal-provider-contract.md:236`
    - `ssot/runtime/multimodal-provider-contract.md:220`
@@ -24,3 +25,5 @@
 ## 3. 复核命令
 
 1. `cd runtime && go test ./internal/services/localruntime`：PASS
+2. `cd runtime && go test ./internal/services/ai`：PASS
+3. `pnpm check:runtime-ai-media-coverage`：PASS

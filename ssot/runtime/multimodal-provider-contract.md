@@ -219,8 +219,9 @@ rules:
 
 当前交付切面（R5）：
 
-1. 已纳入：Bytedance OpenSpeech（HTTP）、Gemini operation、MiniMax task
-2. 延后 R6：Kimi/GLM 专项 adapter、Bytedance WS 流式语音专线
+1. R5 已纳入：Bytedance OpenSpeech（HTTP）、Gemini operation、MiniMax task
+2. R6 增量已纳入：Bytedance OpenSpeech STT WebSocket transport（audio chunk 流式提交）
+3. 后续待补：Kimi/GLM 专项 adapter
 
 要求：
 

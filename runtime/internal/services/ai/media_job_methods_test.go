@@ -15,6 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -209,6 +210,86 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTT(t *testing.T) {
 	}
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != "bytedance stt text" {
 		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+}
+
+func TestSubmitMediaJobBytedanceOpenSpeechSTTWS(t *testing.T) {
+	var startSeen atomic.Bool
+	var finishSeen atomic.Bool
+	var chunkCount atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.Handle("/api/v3/auc/bigmodel/recognize/stream", websocket.Handler(func(connection *websocket.Conn) {
+		defer connection.Close()
+		for {
+			var payload map[string]any
+			if err := websocket.JSON.Receive(connection, &payload); err != nil {
+				return
+			}
+			switch strings.ToLower(strings.TrimSpace(valueAsString(payload["event"]))) {
+			case "start":
+				startSeen.Store(true)
+			case "audio":
+				chunkCount.Add(1)
+			case "finish":
+				finishSeen.Store(true)
+				_ = websocket.JSON.Send(connection, map[string]any{
+					"status": "completed",
+					"text":   "bytedance ws stt text",
+					"done":   true,
+				})
+				return
+			}
+		}
+	}))
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL:       server.URL,
+		CloudBytedanceSpeechBaseURL: server.URL,
+	})
+	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "bytedance/stt-ws-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+					Source: &runtimev1.SpeechTranscriptionAudioSource_AudioChunks{
+						AudioChunks: &runtimev1.AudioChunks{
+							Chunks: [][]byte{
+								[]byte("audio-chunk-1"),
+								[]byte("audio-chunk-2"),
+							},
+						},
+					},
+				},
+				MimeType: "audio/wav",
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"transport": "ws",
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance ws stt job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, response.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != "bytedance ws stt text" {
+		t.Fatalf("stt ws text mismatch: got=%q", got)
+	}
+	if !startSeen.Load() || !finishSeen.Load() {
+		t.Fatalf("ws lifecycle frames not observed: start=%v finish=%v", startSeen.Load(), finishSeen.Load())
+	}
+	if chunkCount.Load() != 2 {
+		t.Fatalf("ws chunk frame count mismatch: got=%d want=2", chunkCount.Load())
 	}
 }
 
