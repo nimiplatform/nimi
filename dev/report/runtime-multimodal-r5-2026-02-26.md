@@ -50,5 +50,9 @@
 ## 4. R5 非目标状态
 
 1. Kimi/GLM 专项 adapter：未纳入本轮
-2. ByteDance WS 流式语音专线：未纳入本轮
+2. ByteDance WS 流式语音专线：未纳入 R5 基线（后续已在 R6-S1 纳入 STT WS transport）
 
+## 5. 后续收敛更新（截至 2026-02-26）
+
+1. G6/G7 门禁已收敛为 PASS，见 `dev/report/runtime-multimodal-g6-g7-2026-02-26.md`
+2. ByteDance OpenSpeech STT WebSocket transport 已落地，见 `dev/report/runtime-multimodal-r5-residual-audit-2026-02-26.md`
