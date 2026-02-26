@@ -19,6 +19,11 @@ export const RuntimeMethodIds = {
     generate: '/nimi.runtime.v1.RuntimeAiService/Generate',
     streamGenerate: '/nimi.runtime.v1.RuntimeAiService/StreamGenerate',
     embed: '/nimi.runtime.v1.RuntimeAiService/Embed',
+    submitMediaJob: '/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob',
+    getMediaJob: '/nimi.runtime.v1.RuntimeAiService/GetMediaJob',
+    cancelMediaJob: '/nimi.runtime.v1.RuntimeAiService/CancelMediaJob',
+    subscribeMediaJobEvents: '/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents',
+    getMediaArtifacts: '/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts',
     generateImage: '/nimi.runtime.v1.RuntimeAiService/GenerateImage',
     generateVideo: '/nimi.runtime.v1.RuntimeAiService/GenerateVideo',
     synthesizeSpeech: '/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech',
@@ -89,6 +94,7 @@ export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
 
 export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.streamGenerate,
+  RuntimeMethodIds.ai.subscribeMediaJobEvents,
   RuntimeMethodIds.ai.generateImage,
   RuntimeMethodIds.ai.generateVideo,
   RuntimeMethodIds.ai.synthesizeSpeech,
@@ -113,6 +119,8 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.generate,
   RuntimeMethodIds.ai.streamGenerate,
   RuntimeMethodIds.ai.embed,
+  RuntimeMethodIds.ai.submitMediaJob,
+  RuntimeMethodIds.ai.cancelMediaJob,
   RuntimeMethodIds.ai.generateImage,
   RuntimeMethodIds.ai.generateVideo,
   RuntimeMethodIds.ai.synthesizeSpeech,

@@ -13,8 +13,8 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Timestamp } from "../../google/protobuf/timestamp";
 import { Struct } from "../../google/protobuf/struct";
+import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
 import { FallbackPolicy } from "./ai";
 import { RoutePolicy } from "./ai";
@@ -458,6 +458,10 @@ export interface WorkflowNode {
      * @generated from protobuf field: string retry_backoff = 6
      */
     retryBackoff: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorkflowExecutionMode execution_mode = 7
+     */
+    executionMode: WorkflowExecutionMode;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.WorkflowDefinition
@@ -543,6 +547,22 @@ export interface WorkflowNodeStatus {
      * @generated from protobuf field: string reason = 4
      */
     reason: string;
+    /**
+     * @generated from protobuf field: string provider_job_id = 5
+     */
+    providerJobId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp next_poll_at = 6
+     */
+    nextPollAt?: Timestamp;
+    /**
+     * @generated from protobuf field: int32 retry_count = 7
+     */
+    retryCount: number;
+    /**
+     * @generated from protobuf field: string last_error = 8
+     */
+    lastError: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetWorkflowResponse
@@ -704,7 +724,23 @@ export enum WorkflowEventType {
     /**
      * @generated from protobuf enum value: WORKFLOW_EVENT_CANCELED = 8;
      */
-    WORKFLOW_EVENT_CANCELED = 8
+    WORKFLOW_EVENT_CANCELED = 8,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED = 9;
+     */
+    WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED = 9,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING = 10;
+     */
+    WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING = 10,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED = 11;
+     */
+    WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED = 11,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EVENT_NODE_EXTERNAL_FAILED = 12;
+     */
+    WORKFLOW_EVENT_NODE_EXTERNAL_FAILED = 12
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.WorkflowNodeType
@@ -787,6 +823,23 @@ export enum MergeStrategy {
      * @generated from protobuf enum value: MERGE_STRATEGY_N_OF_M = 3;
      */
     N_OF_M = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.WorkflowExecutionMode
+ */
+export enum WorkflowExecutionMode {
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EXECUTION_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EXECUTION_MODE_INLINE = 1;
+     */
+    INLINE = 1,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC = 2;
+     */
+    EXTERNAL_ASYNC = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WorkflowEdge$Type extends MessageType<WorkflowEdge> {
@@ -1874,7 +1927,8 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
             { no: 31, name: "merge_config", kind: "message", oneof: "typeConfig", T: () => MergeNodeConfig },
             { no: 32, name: "noop_config", kind: "message", oneof: "typeConfig", T: () => NoopNodeConfig },
             { no: 5, name: "retry_max_attempts", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 6, name: "retry_backoff", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "retry_backoff", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "execution_mode", kind: "enum", T: () => ["nimi.runtime.v1.WorkflowExecutionMode", WorkflowExecutionMode, "WORKFLOW_EXECUTION_MODE_"] }
         ]);
     }
     create(value?: PartialMessage<WorkflowNode>): WorkflowNode {
@@ -1885,6 +1939,7 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
         message.typeConfig = { oneofKind: undefined };
         message.retryMaxAttempts = 0;
         message.retryBackoff = "";
+        message.executionMode = 0;
         if (value !== undefined)
             reflectionMergePartial<WorkflowNode>(this, message, value);
         return message;
@@ -1987,6 +2042,9 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
                 case /* string retry_backoff */ 6:
                     message.retryBackoff = reader.string();
                     break;
+                case /* nimi.runtime.v1.WorkflowExecutionMode execution_mode */ 7:
+                    message.executionMode = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2014,6 +2072,9 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
         /* string retry_backoff = 6; */
         if (message.retryBackoff !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.retryBackoff);
+        /* nimi.runtime.v1.WorkflowExecutionMode execution_mode = 7; */
+        if (message.executionMode !== 0)
+            writer.tag(7, WireType.Varint).int32(message.executionMode);
         /* nimi.runtime.v1.AiGenerateNodeConfig ai_generate_config = 10; */
         if (message.typeConfig.oneofKind === "aiGenerateConfig")
             AiGenerateNodeConfig.internalBinaryWrite(message.typeConfig.aiGenerateConfig, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
@@ -2313,7 +2374,11 @@ class WorkflowNodeStatus$Type extends MessageType<WorkflowNodeStatus> {
             { no: 1, name: "node_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.WorkflowStatus", WorkflowStatus, "WORKFLOW_STATUS_"] },
             { no: 3, name: "attempt", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "provider_job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "next_poll_at", kind: "message", T: () => Timestamp },
+            { no: 7, name: "retry_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "last_error", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<WorkflowNodeStatus>): WorkflowNodeStatus {
@@ -2322,6 +2387,9 @@ class WorkflowNodeStatus$Type extends MessageType<WorkflowNodeStatus> {
         message.status = 0;
         message.attempt = 0;
         message.reason = "";
+        message.providerJobId = "";
+        message.retryCount = 0;
+        message.lastError = "";
         if (value !== undefined)
             reflectionMergePartial<WorkflowNodeStatus>(this, message, value);
         return message;
@@ -2342,6 +2410,18 @@ class WorkflowNodeStatus$Type extends MessageType<WorkflowNodeStatus> {
                     break;
                 case /* string reason */ 4:
                     message.reason = reader.string();
+                    break;
+                case /* string provider_job_id */ 5:
+                    message.providerJobId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp next_poll_at */ 6:
+                    message.nextPollAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.nextPollAt);
+                    break;
+                case /* int32 retry_count */ 7:
+                    message.retryCount = reader.int32();
+                    break;
+                case /* string last_error */ 8:
+                    message.lastError = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2367,6 +2447,18 @@ class WorkflowNodeStatus$Type extends MessageType<WorkflowNodeStatus> {
         /* string reason = 4; */
         if (message.reason !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.reason);
+        /* string provider_job_id = 5; */
+        if (message.providerJobId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.providerJobId);
+        /* google.protobuf.Timestamp next_poll_at = 6; */
+        if (message.nextPollAt)
+            Timestamp.internalBinaryWrite(message.nextPollAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* int32 retry_count = 7; */
+        if (message.retryCount !== 0)
+            writer.tag(7, WireType.Varint).int32(message.retryCount);
+        /* string last_error = 8; */
+        if (message.lastError !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.lastError);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

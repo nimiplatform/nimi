@@ -27,14 +27,24 @@ import type {
 } from './generated/runtime/v1/grant';
 import type {
   ArtifactChunk,
+  CancelMediaJobRequest,
+  CancelMediaJobResponse,
   EmbedRequest,
   EmbedResponse,
+  GetMediaArtifactsRequest,
+  GetMediaArtifactsResponse,
+  GetMediaJobRequest,
+  GetMediaJobResponse,
   GenerateImageRequest,
   GenerateRequest,
   GenerateResponse,
   GenerateVideoRequest,
+  MediaJobEvent,
+  SubmitMediaJobRequest,
+  SubmitMediaJobResponse,
   StreamGenerateEvent,
   StreamGenerateRequest,
+  SubscribeMediaJobEventsRequest,
   SynthesizeSpeechRequest,
   TranscribeAudioRequest,
   TranscribeAudioResponse,
@@ -248,6 +258,11 @@ export type RuntimeAiClient = {
   generate(request: GenerateRequest, options?: RuntimeCallOptions): Promise<GenerateResponse>;
   streamGenerate(request: StreamGenerateRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<StreamGenerateEvent>>;
   embed(request: EmbedRequest, options?: RuntimeCallOptions): Promise<EmbedResponse>;
+  submitMediaJob(request: SubmitMediaJobRequest, options?: RuntimeCallOptions): Promise<SubmitMediaJobResponse>;
+  getMediaJob(request: GetMediaJobRequest, options?: RuntimeCallOptions): Promise<GetMediaJobResponse>;
+  cancelMediaJob(request: CancelMediaJobRequest, options?: RuntimeCallOptions): Promise<CancelMediaJobResponse>;
+  subscribeMediaJobEvents(request: SubscribeMediaJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<MediaJobEvent>>;
+  getMediaArtifacts(request: GetMediaArtifactsRequest, options?: RuntimeCallOptions): Promise<GetMediaArtifactsResponse>;
   generateImage(request: GenerateImageRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
   generateVideo(request: GenerateVideoRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
   synthesizeSpeech(request: SynthesizeSpeechRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;

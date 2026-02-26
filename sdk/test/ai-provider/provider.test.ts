@@ -16,6 +16,22 @@ async function* emptyAsyncIterable<T>(): AsyncIterable<T> {
 function createRuntimeStub(
   aiOverrides: Partial<RuntimeClient['ai']>,
 ): RuntimeClient {
+  const mediaJobs = new Map<string, {
+    job: {
+      jobId: string;
+      status: number;
+      routeDecision: number;
+      modelResolved: string;
+      traceId: string;
+    };
+    artifacts: Array<{
+      artifactId: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }>;
+  }>();
+  let mediaJobCounter = 0;
+
   const ai = {
     generate: async () => ({
       output: {
@@ -47,6 +63,52 @@ function createRuntimeStub(
       modelResolved: 'embed/default',
       traceId: 'trace-embed',
     }),
+    submitMediaJob: async (request) => {
+      mediaJobCounter += 1;
+      const jobId = `job-default-${mediaJobCounter}`;
+      const modal = Number((request as { modal?: number }).modal || 0);
+      const modelResolved = String((request as { modelId?: string }).modelId || 'media/default');
+      const traceId = `trace-media-${mediaJobCounter}`;
+      const artifact = modal === 5
+        ? {
+          artifactId: `${jobId}-artifact-1`,
+          mimeType: 'text/plain',
+          bytes: Buffer.from('ok', 'utf8'),
+        }
+        : {
+          artifactId: `${jobId}-artifact-1`,
+          mimeType: 'application/octet-stream',
+          bytes: Uint8Array.from([1]),
+        };
+      mediaJobs.set(jobId, {
+        job: {
+          jobId,
+          status: 4,
+          routeDecision: 1,
+          modelResolved,
+          traceId,
+        },
+        artifacts: [artifact],
+      });
+      return {
+        job: mediaJobs.get(jobId)?.job,
+      };
+    },
+    getMediaJob: async (request) => ({
+      job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
+    }),
+    cancelMediaJob: async () => ({
+      canceled: true,
+    }),
+    subscribeMediaJobEvents: async () => emptyAsyncIterable(),
+    getMediaArtifacts: async (request) => {
+      const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
+      return {
+        jobId: entry?.job.jobId || '',
+        artifacts: entry?.artifacts || [],
+        traceId: entry?.job.traceId || '',
+      };
+    },
     generateImage: async () => emptyAsyncIterable(),
     generateVideo: async () => emptyAsyncIterable(),
     synthesizeSpeech: async () => emptyAsyncIterable(),
@@ -202,6 +264,22 @@ test('createNimiAiProvider text streaming maps delta and finish events', async (
 });
 
 test('createNimiAiProvider embedding and image models map runtime responses', async () => {
+  const mediaJobs = new Map<string, {
+    job: {
+      jobId: string;
+      status: number;
+      routeDecision: number;
+      modelResolved: string;
+      traceId: string;
+    };
+    artifacts: Array<{
+      artifactId: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }>;
+  }>();
+  let mediaJobCounter = 0;
+
   const runtime = createRuntimeStub({
     embed: async () => ({
       vectors: [{
@@ -217,22 +295,36 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
       modelResolved: 'embed/default',
       traceId: 'trace-embed',
     }),
-    generateImage: async function* () {
-      yield {
-        artifactId: 'image-1',
-        mimeType: 'image/png',
-        chunk: Uint8Array.from([1, 2]),
-        traceId: 'trace-image',
-        routeDecision: 1,
-        modelResolved: 'image/default',
+    submitMediaJob: async () => {
+      mediaJobCounter += 1;
+      const jobId = `job-image-${mediaJobCounter}`;
+      mediaJobs.set(jobId, {
+        job: {
+          jobId,
+          status: 4,
+          routeDecision: 1,
+          modelResolved: 'image/default',
+          traceId: 'trace-image',
+        },
+        artifacts: [{
+          artifactId: 'image-1',
+          mimeType: 'image/png',
+          bytes: Uint8Array.from([1, 2, 3, 4]),
+        }],
+      });
+      return {
+        job: mediaJobs.get(jobId)?.job,
       };
-      yield {
-        artifactId: 'image-1',
-        mimeType: 'image/png',
-        chunk: Uint8Array.from([3, 4]),
-        traceId: 'trace-image',
-        routeDecision: 1,
-        modelResolved: 'image/default',
+    },
+    getMediaJob: async (request) => ({
+      job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
+    }),
+    getMediaArtifacts: async (request) => {
+      const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
+      return {
+        jobId: entry?.job.jobId || '',
+        artifacts: entry?.artifacts || [],
+        traceId: entry?.job.traceId || '',
       };
     },
   });
@@ -264,6 +356,22 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
 });
 
 test('createNimiAiProvider maps runtime failures and exposes video/tts/stt extensions', async () => {
+  const mediaJobs = new Map<string, {
+    job: {
+      jobId: string;
+      status: number;
+      routeDecision: number;
+      modelResolved: string;
+      traceId: string;
+    };
+    artifacts: Array<{
+      artifactId: string;
+      mimeType: string;
+      bytes: Uint8Array;
+    }>;
+  }>();
+  let mediaJobCounter = 0;
+
   const runtime = createRuntimeStub({
     generate: async () => {
       throw JSON.stringify({
@@ -274,35 +382,55 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
         message: 'provider timeout',
       });
     },
-    generateVideo: async function* () {
-      yield {
-        artifactId: 'video-1',
-        mimeType: 'video/mp4',
-        chunk: Uint8Array.from([9, 8, 7]),
-        routeDecision: 2,
-        modelResolved: 'video/default',
-        traceId: 'trace-video',
+    submitMediaJob: async (request) => {
+      mediaJobCounter += 1;
+      const jobId = `job-${mediaJobCounter}`;
+      const modal = Number((request as { modal?: number }).modal || 0);
+      const modelResolved = String((request as { modelId?: string }).modelId || 'media/default');
+      const routeDecision = modal === 3 ? 2 : 1;
+      const traceId = modal === 3 ? 'trace-video' : modal === 4 ? 'trace-tts' : 'trace-stt';
+      const artifacts = modal === 3
+        ? [{
+          artifactId: 'video-1',
+          mimeType: 'video/mp4',
+          bytes: Uint8Array.from([9, 8, 7]),
+        }]
+        : modal === 4
+          ? [{
+            artifactId: 'audio-1',
+            mimeType: 'audio/wav',
+            bytes: Uint8Array.from([6, 5]),
+          }]
+          : [{
+            artifactId: 'stt-1',
+            mimeType: 'text/plain',
+            bytes: Buffer.from('transcribed text', 'utf8'),
+          }];
+      mediaJobs.set(jobId, {
+        job: {
+          jobId,
+          status: 4,
+          routeDecision,
+          modelResolved,
+          traceId,
+        },
+        artifacts,
+      });
+      return {
+        job: mediaJobs.get(jobId)?.job,
       };
     },
-    synthesizeSpeech: async function* () {
-      yield {
-        artifactId: 'audio-1',
-        mimeType: 'audio/wav',
-        chunk: Uint8Array.from([6, 5]),
-        routeDecision: 1,
-        modelResolved: 'tts/default',
-        traceId: 'trace-tts',
-      };
-    },
-    transcribeAudio: async () => ({
-      text: 'transcribed text',
-      usage: {
-        inputTokens: '4',
-      },
-      routeDecision: 1,
-      modelResolved: 'stt/default',
-      traceId: 'trace-stt',
+    getMediaJob: async (request) => ({
+      job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
     }),
+    getMediaArtifacts: async (request) => {
+      const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
+      return {
+        jobId: entry?.job.jobId || '',
+        artifacts: entry?.artifacts || [],
+        traceId: entry?.job.traceId || '',
+      };
+    },
   });
 
   const nimi = createNimiAiProvider({

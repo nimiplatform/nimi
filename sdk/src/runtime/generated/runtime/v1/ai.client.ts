@@ -11,6 +11,16 @@ import type { SynthesizeSpeechRequest } from "./ai";
 import type { GenerateVideoRequest } from "./ai";
 import type { ArtifactChunk } from "./ai";
 import type { GenerateImageRequest } from "./ai";
+import type { GetMediaArtifactsResponse } from "./ai";
+import type { GetMediaArtifactsRequest } from "./ai";
+import type { MediaJobEvent } from "./ai";
+import type { SubscribeMediaJobEventsRequest } from "./ai";
+import type { CancelMediaJobResponse } from "./ai";
+import type { CancelMediaJobRequest } from "./ai";
+import type { GetMediaJobResponse } from "./ai";
+import type { GetMediaJobRequest } from "./ai";
+import type { SubmitMediaJobResponse } from "./ai";
+import type { SubmitMediaJobRequest } from "./ai";
 import type { EmbedResponse } from "./ai";
 import type { EmbedRequest } from "./ai";
 import type { StreamGenerateEvent } from "./ai";
@@ -37,6 +47,26 @@ export interface IRuntimeAiServiceClient {
      * @generated from protobuf rpc: Embed
      */
     embed(input: EmbedRequest, options?: RpcOptions): UnaryCall<EmbedRequest, EmbedResponse>;
+    /**
+     * @generated from protobuf rpc: SubmitMediaJob
+     */
+    submitMediaJob(input: SubmitMediaJobRequest, options?: RpcOptions): UnaryCall<SubmitMediaJobRequest, SubmitMediaJobResponse>;
+    /**
+     * @generated from protobuf rpc: GetMediaJob
+     */
+    getMediaJob(input: GetMediaJobRequest, options?: RpcOptions): UnaryCall<GetMediaJobRequest, GetMediaJobResponse>;
+    /**
+     * @generated from protobuf rpc: CancelMediaJob
+     */
+    cancelMediaJob(input: CancelMediaJobRequest, options?: RpcOptions): UnaryCall<CancelMediaJobRequest, CancelMediaJobResponse>;
+    /**
+     * @generated from protobuf rpc: SubscribeMediaJobEvents
+     */
+    subscribeMediaJobEvents(input: SubscribeMediaJobEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeMediaJobEventsRequest, MediaJobEvent>;
+    /**
+     * @generated from protobuf rpc: GetMediaArtifacts
+     */
+    getMediaArtifacts(input: GetMediaArtifactsRequest, options?: RpcOptions): UnaryCall<GetMediaArtifactsRequest, GetMediaArtifactsResponse>;
     /**
      * @generated from protobuf rpc: GenerateImage
      */
@@ -85,31 +115,66 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<EmbedRequest, EmbedResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: SubmitMediaJob
+     */
+    submitMediaJob(input: SubmitMediaJobRequest, options?: RpcOptions): UnaryCall<SubmitMediaJobRequest, SubmitMediaJobResponse> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<SubmitMediaJobRequest, SubmitMediaJobResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetMediaJob
+     */
+    getMediaJob(input: GetMediaJobRequest, options?: RpcOptions): UnaryCall<GetMediaJobRequest, GetMediaJobResponse> {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetMediaJobRequest, GetMediaJobResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: CancelMediaJob
+     */
+    cancelMediaJob(input: CancelMediaJobRequest, options?: RpcOptions): UnaryCall<CancelMediaJobRequest, CancelMediaJobResponse> {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept<CancelMediaJobRequest, CancelMediaJobResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: SubscribeMediaJobEvents
+     */
+    subscribeMediaJobEvents(input: SubscribeMediaJobEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeMediaJobEventsRequest, MediaJobEvent> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<SubscribeMediaJobEventsRequest, MediaJobEvent>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetMediaArtifacts
+     */
+    getMediaArtifacts(input: GetMediaArtifactsRequest, options?: RpcOptions): UnaryCall<GetMediaArtifactsRequest, GetMediaArtifactsResponse> {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetMediaArtifactsRequest, GetMediaArtifactsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: GenerateImage
      */
     generateImage(input: GenerateImageRequest, options?: RpcOptions): ServerStreamingCall<GenerateImageRequest, ArtifactChunk> {
-        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
         return stackIntercept<GenerateImageRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: GenerateVideo
      */
     generateVideo(input: GenerateVideoRequest, options?: RpcOptions): ServerStreamingCall<GenerateVideoRequest, ArtifactChunk> {
-        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
         return stackIntercept<GenerateVideoRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SynthesizeSpeech
      */
     synthesizeSpeech(input: SynthesizeSpeechRequest, options?: RpcOptions): ServerStreamingCall<SynthesizeSpeechRequest, ArtifactChunk> {
-        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
         return stackIntercept<SynthesizeSpeechRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: TranscribeAudio
      */
     transcribeAudio(input: TranscribeAudioRequest, options?: RpcOptions): UnaryCall<TranscribeAudioRequest, TranscribeAudioResponse> {
-        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
         return stackIntercept<TranscribeAudioRequest, TranscribeAudioResponse>("unary", this._transport, method, opt, input);
     }
 }

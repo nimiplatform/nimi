@@ -27,14 +27,24 @@ import {
 } from '../generated/runtime/v1/grant';
 import {
   ArtifactChunk,
+  CancelMediaJobRequest,
+  CancelMediaJobResponse,
   EmbedRequest,
   EmbedResponse,
+  GetMediaArtifactsRequest,
+  GetMediaArtifactsResponse,
+  GetMediaJobRequest,
+  GetMediaJobResponse,
   GenerateImageRequest,
   GenerateRequest,
   GenerateResponse,
   GenerateVideoRequest,
+  MediaJobEvent,
+  SubmitMediaJobRequest,
+  SubmitMediaJobResponse,
   StreamGenerateEvent,
   StreamGenerateRequest,
+  SubscribeMediaJobEventsRequest,
   SynthesizeSpeechRequest,
   TranscribeAudioRequest,
   TranscribeAudioResponse,
@@ -207,6 +217,22 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: EmbedRequest,
     responseType: EmbedResponse,
   },
+  [RuntimeMethodIds.ai.submitMediaJob]: {
+    requestType: SubmitMediaJobRequest,
+    responseType: SubmitMediaJobResponse,
+  },
+  [RuntimeMethodIds.ai.getMediaJob]: {
+    requestType: GetMediaJobRequest,
+    responseType: GetMediaJobResponse,
+  },
+  [RuntimeMethodIds.ai.cancelMediaJob]: {
+    requestType: CancelMediaJobRequest,
+    responseType: CancelMediaJobResponse,
+  },
+  [RuntimeMethodIds.ai.getMediaArtifacts]: {
+    requestType: GetMediaArtifactsRequest,
+    responseType: GetMediaArtifactsResponse,
+  },
   [RuntimeMethodIds.ai.transcribeAudio]: {
     requestType: TranscribeAudioRequest,
     responseType: TranscribeAudioResponse,
@@ -373,6 +399,10 @@ export const RuntimeStreamMethodCodecs: Record<string, RuntimeStreamMethodCodec<
   [RuntimeMethodIds.ai.streamGenerate]: {
     requestType: StreamGenerateRequest,
     eventType: StreamGenerateEvent,
+  },
+  [RuntimeMethodIds.ai.subscribeMediaJobEvents]: {
+    requestType: SubscribeMediaJobEventsRequest,
+    eventType: MediaJobEvent,
   },
   [RuntimeMethodIds.ai.generateImage]: {
     requestType: GenerateImageRequest,

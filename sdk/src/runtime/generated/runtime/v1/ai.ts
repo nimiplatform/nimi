@@ -388,6 +388,492 @@ export interface EmbedResponse {
     traceId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ImageGenerationSpec
+ */
+export interface ImageGenerationSpec {
+    /**
+     * @generated from protobuf field: string prompt = 1
+     */
+    prompt: string;
+    /**
+     * @generated from protobuf field: string negative_prompt = 2
+     */
+    negativePrompt: string;
+    /**
+     * @generated from protobuf field: int32 n = 3
+     */
+    n: number;
+    /**
+     * @generated from protobuf field: string size = 4
+     */
+    size: string;
+    /**
+     * @generated from protobuf field: string aspect_ratio = 5
+     */
+    aspectRatio: string;
+    /**
+     * @generated from protobuf field: string quality = 6
+     */
+    quality: string;
+    /**
+     * @generated from protobuf field: string style = 7
+     */
+    style: string;
+    /**
+     * @generated from protobuf field: int64 seed = 8
+     */
+    seed: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 10
+     */
+    providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoGenerationSpec
+ */
+export interface VideoGenerationSpec {
+    /**
+     * @generated from protobuf field: string prompt = 1
+     */
+    prompt: string;
+    /**
+     * @generated from protobuf field: string negative_prompt = 2
+     */
+    negativePrompt: string;
+    /**
+     * @generated from protobuf field: int32 duration_sec = 3
+     */
+    durationSec: number;
+    /**
+     * @generated from protobuf field: int32 fps = 4
+     */
+    fps: number;
+    /**
+     * @generated from protobuf field: string resolution = 5
+     */
+    resolution: string;
+    /**
+     * @generated from protobuf field: string aspect_ratio = 6
+     */
+    aspectRatio: string;
+    /**
+     * @generated from protobuf field: int64 seed = 7
+     */
+    seed: string;
+    /**
+     * @generated from protobuf field: string first_frame_uri = 8
+     */
+    firstFrameUri: string;
+    /**
+     * @generated from protobuf field: string last_frame_uri = 9
+     */
+    lastFrameUri: string;
+    /**
+     * @generated from protobuf field: string camera_motion = 10
+     */
+    cameraMotion: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     */
+    providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechSynthesisSpec
+ */
+export interface SpeechSynthesisSpec {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: string voice = 2
+     */
+    voice: string;
+    /**
+     * @generated from protobuf field: string language = 3
+     */
+    language: string;
+    /**
+     * @generated from protobuf field: string audio_format = 4
+     */
+    audioFormat: string;
+    /**
+     * @generated from protobuf field: int32 sample_rate_hz = 5
+     */
+    sampleRateHz: number;
+    /**
+     * @generated from protobuf field: float speed = 6
+     */
+    speed: number;
+    /**
+     * @generated from protobuf field: float pitch = 7
+     */
+    pitch: number;
+    /**
+     * @generated from protobuf field: float volume = 8
+     */
+    volume: number;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     */
+    providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechTranscriptionSpec
+ */
+export interface SpeechTranscriptionSpec {
+    /**
+     * @generated from protobuf field: bytes audio_bytes = 1
+     */
+    audioBytes: Uint8Array;
+    /**
+     * @generated from protobuf field: string audio_uri = 2
+     */
+    audioUri: string;
+    /**
+     * @generated from protobuf field: string mime_type = 3
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: string language = 4
+     */
+    language: string;
+    /**
+     * @generated from protobuf field: bool timestamps = 5
+     */
+    timestamps: boolean;
+    /**
+     * @generated from protobuf field: bool diarization = 6
+     */
+    diarization: boolean;
+    /**
+     * @generated from protobuf field: int32 speaker_count = 7
+     */
+    speakerCount: number;
+    /**
+     * @generated from protobuf field: string prompt = 8
+     */
+    prompt: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     */
+    providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MediaArtifact
+ */
+export interface MediaArtifact {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string mime_type = 2
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: bytes bytes = 3
+     */
+    bytes: Uint8Array;
+    /**
+     * @generated from protobuf field: string uri = 4
+     */
+    uri: string;
+    /**
+     * @generated from protobuf field: string sha256 = 5
+     */
+    sha256: string;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 6
+     */
+    sizeBytes: string;
+    /**
+     * @generated from protobuf field: int64 duration_ms = 7
+     */
+    durationMs: string;
+    /**
+     * @generated from protobuf field: int32 fps = 8
+     */
+    fps: number;
+    /**
+     * @generated from protobuf field: int32 width = 9
+     */
+    width: number;
+    /**
+     * @generated from protobuf field: int32 height = 10
+     */
+    height: number;
+    /**
+     * @generated from protobuf field: int32 sample_rate_hz = 11
+     */
+    sampleRateHz: number;
+    /**
+     * @generated from protobuf field: int32 channels = 12
+     */
+    channels: number;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_raw = 13
+     */
+    providerRaw?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MediaJob
+ */
+export interface MediaJob {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+    /**
+     * @generated from protobuf field: string app_id = 2
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 3
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string model_id = 4
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Modal modal = 5
+     */
+    modal: Modal;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 6
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_decision = 7
+     */
+    routeDecision: RoutePolicy;
+    /**
+     * @generated from protobuf field: string model_resolved = 8
+     */
+    modelResolved: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MediaJobStatus status = 9
+     */
+    status: MediaJobStatus;
+    /**
+     * @generated from protobuf field: string provider_job_id = 10
+     */
+    providerJobId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 11
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string reason_detail = 12
+     */
+    reasonDetail: string;
+    /**
+     * @generated from protobuf field: int32 retry_count = 13
+     */
+    retryCount: number;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 14
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 15
+     */
+    updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp next_poll_at = 16
+     */
+    nextPollAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 17
+     */
+    providerOptions?: Struct;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.MediaArtifact artifacts = 18
+     */
+    artifacts: MediaArtifact[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 19
+     */
+    usage?: UsageStats;
+    /**
+     * @generated from protobuf field: string trace_id = 20
+     */
+    traceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitMediaJobRequest
+ */
+export interface SubmitMediaJobRequest {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 2
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string model_id = 3
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Modal modal = 4
+     */
+    modal: Modal;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 5
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FallbackPolicy fallback = 6
+     */
+    fallback: FallbackPolicy;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 7
+     */
+    timeoutMs: number;
+    /**
+     * @generated from protobuf oneof: spec
+     */
+    spec: {
+        oneofKind: "imageSpec";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ImageGenerationSpec image_spec = 20
+         */
+        imageSpec: ImageGenerationSpec;
+    } | {
+        oneofKind: "videoSpec";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VideoGenerationSpec video_spec = 21
+         */
+        videoSpec: VideoGenerationSpec;
+    } | {
+        oneofKind: "speechSpec";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SpeechSynthesisSpec speech_spec = 22
+         */
+        speechSpec: SpeechSynthesisSpec;
+    } | {
+        oneofKind: "transcriptionSpec";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SpeechTranscriptionSpec transcription_spec = 23
+         */
+        transcriptionSpec: SpeechTranscriptionSpec;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitMediaJobResponse
+ */
+export interface SubmitMediaJobResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MediaJob job = 1
+     */
+    job?: MediaJob;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetMediaJobRequest
+ */
+export interface GetMediaJobRequest {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetMediaJobResponse
+ */
+export interface GetMediaJobResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MediaJob job = 1
+     */
+    job?: MediaJob;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelMediaJobRequest
+ */
+export interface CancelMediaJobRequest {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+    /**
+     * @generated from protobuf field: string reason = 2
+     */
+    reason: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelMediaJobResponse
+ */
+export interface CancelMediaJobResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MediaJob job = 1
+     */
+    job?: MediaJob;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MediaJobEvent
+ */
+export interface MediaJobEvent {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MediaJobEventType event_type = 1
+     */
+    eventType: MediaJobEventType;
+    /**
+     * @generated from protobuf field: uint64 sequence = 2
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: string trace_id = 3
+     */
+    traceId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp timestamp = 4
+     */
+    timestamp?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MediaJob job = 5
+     */
+    job?: MediaJob;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeMediaJobEventsRequest
+ */
+export interface SubscribeMediaJobEventsRequest {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetMediaArtifactsRequest
+ */
+export interface GetMediaArtifactsRequest {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetMediaArtifactsResponse
+ */
+export interface GetMediaArtifactsResponse {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.MediaArtifact artifacts = 2
+     */
+    artifacts: MediaArtifact[];
+    /**
+     * @generated from protobuf field: string trace_id = 3
+     */
+    traceId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GenerateImageRequest
  */
 export interface GenerateImageRequest {
@@ -721,6 +1207,80 @@ export enum StreamEventType {
      * @generated from protobuf enum value: STREAM_EVENT_FAILED = 7;
      */
     STREAM_EVENT_FAILED = 7
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.MediaJobStatus
+ */
+export enum MediaJobStatus {
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_SUBMITTED = 1;
+     */
+    SUBMITTED = 1,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_QUEUED = 2;
+     */
+    QUEUED = 2,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_RUNNING = 3;
+     */
+    RUNNING = 3,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_COMPLETED = 4;
+     */
+    COMPLETED = 4,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_FAILED = 5;
+     */
+    FAILED = 5,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_CANCELED = 6;
+     */
+    CANCELED = 6,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_STATUS_TIMEOUT = 7;
+     */
+    TIMEOUT = 7
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.MediaJobEventType
+ */
+export enum MediaJobEventType {
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_TYPE_UNSPECIFIED = 0;
+     */
+    MEDIA_JOB_EVENT_TYPE_UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_SUBMITTED = 1;
+     */
+    MEDIA_JOB_EVENT_SUBMITTED = 1,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_QUEUED = 2;
+     */
+    MEDIA_JOB_EVENT_QUEUED = 2,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_RUNNING = 3;
+     */
+    MEDIA_JOB_EVENT_RUNNING = 3,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_COMPLETED = 4;
+     */
+    MEDIA_JOB_EVENT_COMPLETED = 4,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_FAILED = 5;
+     */
+    MEDIA_JOB_EVENT_FAILED = 5,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_CANCELED = 6;
+     */
+    MEDIA_JOB_EVENT_CANCELED = 6,
+    /**
+     * @generated from protobuf enum value: MEDIA_JOB_EVENT_TIMEOUT = 7;
+     */
+    MEDIA_JOB_EVENT_TIMEOUT = 7
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ChatMessage$Type extends MessageType<ChatMessage> {
@@ -1837,6 +2397,1408 @@ class EmbedResponse$Type extends MessageType<EmbedResponse> {
  */
 export const EmbedResponse = new EmbedResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ImageGenerationSpec$Type extends MessageType<ImageGenerationSpec> {
+    constructor() {
+        super("nimi.runtime.v1.ImageGenerationSpec", [
+            { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "negative_prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "n", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "size", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "aspect_ratio", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "quality", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "style", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "provider_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<ImageGenerationSpec>): ImageGenerationSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prompt = "";
+        message.negativePrompt = "";
+        message.n = 0;
+        message.size = "";
+        message.aspectRatio = "";
+        message.quality = "";
+        message.style = "";
+        message.seed = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ImageGenerationSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImageGenerationSpec): ImageGenerationSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prompt */ 1:
+                    message.prompt = reader.string();
+                    break;
+                case /* string negative_prompt */ 2:
+                    message.negativePrompt = reader.string();
+                    break;
+                case /* int32 n */ 3:
+                    message.n = reader.int32();
+                    break;
+                case /* string size */ 4:
+                    message.size = reader.string();
+                    break;
+                case /* string aspect_ratio */ 5:
+                    message.aspectRatio = reader.string();
+                    break;
+                case /* string quality */ 6:
+                    message.quality = reader.string();
+                    break;
+                case /* string style */ 7:
+                    message.style = reader.string();
+                    break;
+                case /* int64 seed */ 8:
+                    message.seed = reader.int64().toString();
+                    break;
+                case /* google.protobuf.Struct provider_options */ 10:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImageGenerationSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prompt = 1; */
+        if (message.prompt !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prompt);
+        /* string negative_prompt = 2; */
+        if (message.negativePrompt !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.negativePrompt);
+        /* int32 n = 3; */
+        if (message.n !== 0)
+            writer.tag(3, WireType.Varint).int32(message.n);
+        /* string size = 4; */
+        if (message.size !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.size);
+        /* string aspect_ratio = 5; */
+        if (message.aspectRatio !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.aspectRatio);
+        /* string quality = 6; */
+        if (message.quality !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.quality);
+        /* string style = 7; */
+        if (message.style !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.style);
+        /* int64 seed = 8; */
+        if (message.seed !== "0")
+            writer.tag(8, WireType.Varint).int64(message.seed);
+        /* google.protobuf.Struct provider_options = 10; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImageGenerationSpec
+ */
+export const ImageGenerationSpec = new ImageGenerationSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoGenerationSpec$Type extends MessageType<VideoGenerationSpec> {
+    constructor() {
+        super("nimi.runtime.v1.VideoGenerationSpec", [
+            { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "negative_prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "duration_sec", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "fps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "resolution", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "aspect_ratio", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 8, name: "first_frame_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "last_frame_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "camera_motion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<VideoGenerationSpec>): VideoGenerationSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prompt = "";
+        message.negativePrompt = "";
+        message.durationSec = 0;
+        message.fps = 0;
+        message.resolution = "";
+        message.aspectRatio = "";
+        message.seed = "0";
+        message.firstFrameUri = "";
+        message.lastFrameUri = "";
+        message.cameraMotion = "";
+        if (value !== undefined)
+            reflectionMergePartial<VideoGenerationSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoGenerationSpec): VideoGenerationSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prompt */ 1:
+                    message.prompt = reader.string();
+                    break;
+                case /* string negative_prompt */ 2:
+                    message.negativePrompt = reader.string();
+                    break;
+                case /* int32 duration_sec */ 3:
+                    message.durationSec = reader.int32();
+                    break;
+                case /* int32 fps */ 4:
+                    message.fps = reader.int32();
+                    break;
+                case /* string resolution */ 5:
+                    message.resolution = reader.string();
+                    break;
+                case /* string aspect_ratio */ 6:
+                    message.aspectRatio = reader.string();
+                    break;
+                case /* int64 seed */ 7:
+                    message.seed = reader.int64().toString();
+                    break;
+                case /* string first_frame_uri */ 8:
+                    message.firstFrameUri = reader.string();
+                    break;
+                case /* string last_frame_uri */ 9:
+                    message.lastFrameUri = reader.string();
+                    break;
+                case /* string camera_motion */ 10:
+                    message.cameraMotion = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_options */ 20:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoGenerationSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prompt = 1; */
+        if (message.prompt !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prompt);
+        /* string negative_prompt = 2; */
+        if (message.negativePrompt !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.negativePrompt);
+        /* int32 duration_sec = 3; */
+        if (message.durationSec !== 0)
+            writer.tag(3, WireType.Varint).int32(message.durationSec);
+        /* int32 fps = 4; */
+        if (message.fps !== 0)
+            writer.tag(4, WireType.Varint).int32(message.fps);
+        /* string resolution = 5; */
+        if (message.resolution !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.resolution);
+        /* string aspect_ratio = 6; */
+        if (message.aspectRatio !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.aspectRatio);
+        /* int64 seed = 7; */
+        if (message.seed !== "0")
+            writer.tag(7, WireType.Varint).int64(message.seed);
+        /* string first_frame_uri = 8; */
+        if (message.firstFrameUri !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.firstFrameUri);
+        /* string last_frame_uri = 9; */
+        if (message.lastFrameUri !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.lastFrameUri);
+        /* string camera_motion = 10; */
+        if (message.cameraMotion !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.cameraMotion);
+        /* google.protobuf.Struct provider_options = 20; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoGenerationSpec
+ */
+export const VideoGenerationSpec = new VideoGenerationSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechSynthesisSpec", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "voice", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "audio_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "speed", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 7, name: "pitch", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 8, name: "volume", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechSynthesisSpec>): SpeechSynthesisSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.voice = "";
+        message.language = "";
+        message.audioFormat = "";
+        message.sampleRateHz = 0;
+        message.speed = 0;
+        message.pitch = 0;
+        message.volume = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SpeechSynthesisSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechSynthesisSpec): SpeechSynthesisSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* string voice */ 2:
+                    message.voice = reader.string();
+                    break;
+                case /* string language */ 3:
+                    message.language = reader.string();
+                    break;
+                case /* string audio_format */ 4:
+                    message.audioFormat = reader.string();
+                    break;
+                case /* int32 sample_rate_hz */ 5:
+                    message.sampleRateHz = reader.int32();
+                    break;
+                case /* float speed */ 6:
+                    message.speed = reader.float();
+                    break;
+                case /* float pitch */ 7:
+                    message.pitch = reader.float();
+                    break;
+                case /* float volume */ 8:
+                    message.volume = reader.float();
+                    break;
+                case /* google.protobuf.Struct provider_options */ 20:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechSynthesisSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* string voice = 2; */
+        if (message.voice !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.voice);
+        /* string language = 3; */
+        if (message.language !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.language);
+        /* string audio_format = 4; */
+        if (message.audioFormat !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.audioFormat);
+        /* int32 sample_rate_hz = 5; */
+        if (message.sampleRateHz !== 0)
+            writer.tag(5, WireType.Varint).int32(message.sampleRateHz);
+        /* float speed = 6; */
+        if (message.speed !== 0)
+            writer.tag(6, WireType.Bit32).float(message.speed);
+        /* float pitch = 7; */
+        if (message.pitch !== 0)
+            writer.tag(7, WireType.Bit32).float(message.pitch);
+        /* float volume = 8; */
+        if (message.volume !== 0)
+            writer.tag(8, WireType.Bit32).float(message.volume);
+        /* google.protobuf.Struct provider_options = 20; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechSynthesisSpec
+ */
+export const SpeechSynthesisSpec = new SpeechSynthesisSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechTranscriptionSpec", [
+            { no: 1, name: "audio_bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "audio_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "timestamps", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "diarization", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "speaker_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechTranscriptionSpec>): SpeechTranscriptionSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.audioBytes = new Uint8Array(0);
+        message.audioUri = "";
+        message.mimeType = "";
+        message.language = "";
+        message.timestamps = false;
+        message.diarization = false;
+        message.speakerCount = 0;
+        message.prompt = "";
+        if (value !== undefined)
+            reflectionMergePartial<SpeechTranscriptionSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechTranscriptionSpec): SpeechTranscriptionSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes audio_bytes */ 1:
+                    message.audioBytes = reader.bytes();
+                    break;
+                case /* string audio_uri */ 2:
+                    message.audioUri = reader.string();
+                    break;
+                case /* string mime_type */ 3:
+                    message.mimeType = reader.string();
+                    break;
+                case /* string language */ 4:
+                    message.language = reader.string();
+                    break;
+                case /* bool timestamps */ 5:
+                    message.timestamps = reader.bool();
+                    break;
+                case /* bool diarization */ 6:
+                    message.diarization = reader.bool();
+                    break;
+                case /* int32 speaker_count */ 7:
+                    message.speakerCount = reader.int32();
+                    break;
+                case /* string prompt */ 8:
+                    message.prompt = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_options */ 20:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechTranscriptionSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes audio_bytes = 1; */
+        if (message.audioBytes.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.audioBytes);
+        /* string audio_uri = 2; */
+        if (message.audioUri !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.audioUri);
+        /* string mime_type = 3; */
+        if (message.mimeType !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* string language = 4; */
+        if (message.language !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.language);
+        /* bool timestamps = 5; */
+        if (message.timestamps !== false)
+            writer.tag(5, WireType.Varint).bool(message.timestamps);
+        /* bool diarization = 6; */
+        if (message.diarization !== false)
+            writer.tag(6, WireType.Varint).bool(message.diarization);
+        /* int32 speaker_count = 7; */
+        if (message.speakerCount !== 0)
+            writer.tag(7, WireType.Varint).int32(message.speakerCount);
+        /* string prompt = 8; */
+        if (message.prompt !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.prompt);
+        /* google.protobuf.Struct provider_options = 20; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechTranscriptionSpec
+ */
+export const SpeechTranscriptionSpec = new SpeechTranscriptionSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MediaArtifact$Type extends MessageType<MediaArtifact> {
+    constructor() {
+        super("nimi.runtime.v1.MediaArtifact", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 4, name: "uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 7, name: "duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 8, name: "fps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 9, name: "width", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 10, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 11, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 12, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 13, name: "provider_raw", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<MediaArtifact>): MediaArtifact {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.mimeType = "";
+        message.bytes = new Uint8Array(0);
+        message.uri = "";
+        message.sha256 = "";
+        message.sizeBytes = "0";
+        message.durationMs = "0";
+        message.fps = 0;
+        message.width = 0;
+        message.height = 0;
+        message.sampleRateHz = 0;
+        message.channels = 0;
+        if (value !== undefined)
+            reflectionMergePartial<MediaArtifact>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MediaArtifact): MediaArtifact {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string mime_type */ 2:
+                    message.mimeType = reader.string();
+                    break;
+                case /* bytes bytes */ 3:
+                    message.bytes = reader.bytes();
+                    break;
+                case /* string uri */ 4:
+                    message.uri = reader.string();
+                    break;
+                case /* string sha256 */ 5:
+                    message.sha256 = reader.string();
+                    break;
+                case /* int64 size_bytes */ 6:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* int64 duration_ms */ 7:
+                    message.durationMs = reader.int64().toString();
+                    break;
+                case /* int32 fps */ 8:
+                    message.fps = reader.int32();
+                    break;
+                case /* int32 width */ 9:
+                    message.width = reader.int32();
+                    break;
+                case /* int32 height */ 10:
+                    message.height = reader.int32();
+                    break;
+                case /* int32 sample_rate_hz */ 11:
+                    message.sampleRateHz = reader.int32();
+                    break;
+                case /* int32 channels */ 12:
+                    message.channels = reader.int32();
+                    break;
+                case /* google.protobuf.Struct provider_raw */ 13:
+                    message.providerRaw = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerRaw);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MediaArtifact, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* string mime_type = 2; */
+        if (message.mimeType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.mimeType);
+        /* bytes bytes = 3; */
+        if (message.bytes.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.bytes);
+        /* string uri = 4; */
+        if (message.uri !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.uri);
+        /* string sha256 = 5; */
+        if (message.sha256 !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sha256);
+        /* int64 size_bytes = 6; */
+        if (message.sizeBytes !== "0")
+            writer.tag(6, WireType.Varint).int64(message.sizeBytes);
+        /* int64 duration_ms = 7; */
+        if (message.durationMs !== "0")
+            writer.tag(7, WireType.Varint).int64(message.durationMs);
+        /* int32 fps = 8; */
+        if (message.fps !== 0)
+            writer.tag(8, WireType.Varint).int32(message.fps);
+        /* int32 width = 9; */
+        if (message.width !== 0)
+            writer.tag(9, WireType.Varint).int32(message.width);
+        /* int32 height = 10; */
+        if (message.height !== 0)
+            writer.tag(10, WireType.Varint).int32(message.height);
+        /* int32 sample_rate_hz = 11; */
+        if (message.sampleRateHz !== 0)
+            writer.tag(11, WireType.Varint).int32(message.sampleRateHz);
+        /* int32 channels = 12; */
+        if (message.channels !== 0)
+            writer.tag(12, WireType.Varint).int32(message.channels);
+        /* google.protobuf.Struct provider_raw = 13; */
+        if (message.providerRaw)
+            Struct.internalBinaryWrite(message.providerRaw, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MediaArtifact
+ */
+export const MediaArtifact = new MediaArtifact$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MediaJob$Type extends MessageType<MediaJob> {
+    constructor() {
+        super("nimi.runtime.v1.MediaJob", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "modal", kind: "enum", T: () => ["nimi.runtime.v1.Modal", Modal, "MODAL_"] },
+            { no: 6, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 7, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 8, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.MediaJobStatus", MediaJobStatus, "MEDIA_JOB_STATUS_"] },
+            { no: 10, name: "provider_job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 12, name: "reason_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "retry_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 14, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 15, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 16, name: "next_poll_at", kind: "message", T: () => Timestamp },
+            { no: 17, name: "provider_options", kind: "message", T: () => Struct },
+            { no: 18, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MediaArtifact },
+            { no: 19, name: "usage", kind: "message", T: () => UsageStats },
+            { no: 20, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MediaJob>): MediaJob {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        message.appId = "";
+        message.subjectUserId = "";
+        message.modelId = "";
+        message.modal = 0;
+        message.routePolicy = 0;
+        message.routeDecision = 0;
+        message.modelResolved = "";
+        message.status = 0;
+        message.providerJobId = "";
+        message.reasonCode = 0;
+        message.reasonDetail = "";
+        message.retryCount = 0;
+        message.artifacts = [];
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<MediaJob>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MediaJob): MediaJob {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                case /* string app_id */ 2:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 3:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string model_id */ 4:
+                    message.modelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.Modal modal */ 5:
+                    message.modal = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 6:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_decision */ 7:
+                    message.routeDecision = reader.int32();
+                    break;
+                case /* string model_resolved */ 8:
+                    message.modelResolved = reader.string();
+                    break;
+                case /* nimi.runtime.v1.MediaJobStatus status */ 9:
+                    message.status = reader.int32();
+                    break;
+                case /* string provider_job_id */ 10:
+                    message.providerJobId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 11:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string reason_detail */ 12:
+                    message.reasonDetail = reader.string();
+                    break;
+                case /* int32 retry_count */ 13:
+                    message.retryCount = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 14:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 15:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* google.protobuf.Timestamp next_poll_at */ 16:
+                    message.nextPollAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.nextPollAt);
+                    break;
+                case /* google.protobuf.Struct provider_options */ 17:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                case /* repeated nimi.runtime.v1.MediaArtifact artifacts */ 18:
+                    message.artifacts.push(MediaArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.UsageStats usage */ 19:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
+                case /* string trace_id */ 20:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MediaJob, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        /* string app_id = 2; */
+        if (message.appId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 3; */
+        if (message.subjectUserId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string model_id = 4; */
+        if (message.modelId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.modelId);
+        /* nimi.runtime.v1.Modal modal = 5; */
+        if (message.modal !== 0)
+            writer.tag(5, WireType.Varint).int32(message.modal);
+        /* nimi.runtime.v1.RoutePolicy route_policy = 6; */
+        if (message.routePolicy !== 0)
+            writer.tag(6, WireType.Varint).int32(message.routePolicy);
+        /* nimi.runtime.v1.RoutePolicy route_decision = 7; */
+        if (message.routeDecision !== 0)
+            writer.tag(7, WireType.Varint).int32(message.routeDecision);
+        /* string model_resolved = 8; */
+        if (message.modelResolved !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.modelResolved);
+        /* nimi.runtime.v1.MediaJobStatus status = 9; */
+        if (message.status !== 0)
+            writer.tag(9, WireType.Varint).int32(message.status);
+        /* string provider_job_id = 10; */
+        if (message.providerJobId !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.providerJobId);
+        /* nimi.runtime.v1.ReasonCode reason_code = 11; */
+        if (message.reasonCode !== 0)
+            writer.tag(11, WireType.Varint).int32(message.reasonCode);
+        /* string reason_detail = 12; */
+        if (message.reasonDetail !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.reasonDetail);
+        /* int32 retry_count = 13; */
+        if (message.retryCount !== 0)
+            writer.tag(13, WireType.Varint).int32(message.retryCount);
+        /* google.protobuf.Timestamp created_at = 14; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 15; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp next_poll_at = 16; */
+        if (message.nextPollAt)
+            Timestamp.internalBinaryWrite(message.nextPollAt, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct provider_options = 17; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.MediaArtifact artifacts = 18; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            MediaArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.UsageStats usage = 19; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 20; */
+        if (message.traceId !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MediaJob
+ */
+export const MediaJob = new MediaJob$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitMediaJobRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "modal", kind: "enum", T: () => ["nimi.runtime.v1.Modal", Modal, "MODAL_"] },
+            { no: 5, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 6, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
+            { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 20, name: "image_spec", kind: "message", oneof: "spec", T: () => ImageGenerationSpec },
+            { no: 21, name: "video_spec", kind: "message", oneof: "spec", T: () => VideoGenerationSpec },
+            { no: 22, name: "speech_spec", kind: "message", oneof: "spec", T: () => SpeechSynthesisSpec },
+            { no: 23, name: "transcription_spec", kind: "message", oneof: "spec", T: () => SpeechTranscriptionSpec }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitMediaJobRequest>): SubmitMediaJobRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.subjectUserId = "";
+        message.modelId = "";
+        message.modal = 0;
+        message.routePolicy = 0;
+        message.fallback = 0;
+        message.timeoutMs = 0;
+        message.spec = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<SubmitMediaJobRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitMediaJobRequest): SubmitMediaJobRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 2:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string model_id */ 3:
+                    message.modelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.Modal modal */ 4:
+                    message.modal = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 5:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.FallbackPolicy fallback */ 6:
+                    message.fallback = reader.int32();
+                    break;
+                case /* int32 timeout_ms */ 7:
+                    message.timeoutMs = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ImageGenerationSpec image_spec */ 20:
+                    message.spec = {
+                        oneofKind: "imageSpec",
+                        imageSpec: ImageGenerationSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageSpec)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VideoGenerationSpec video_spec */ 21:
+                    message.spec = {
+                        oneofKind: "videoSpec",
+                        videoSpec: VideoGenerationSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoSpec)
+                    };
+                    break;
+                case /* nimi.runtime.v1.SpeechSynthesisSpec speech_spec */ 22:
+                    message.spec = {
+                        oneofKind: "speechSpec",
+                        speechSpec: SpeechSynthesisSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).speechSpec)
+                    };
+                    break;
+                case /* nimi.runtime.v1.SpeechTranscriptionSpec transcription_spec */ 23:
+                    message.spec = {
+                        oneofKind: "transcriptionSpec",
+                        transcriptionSpec: SpeechTranscriptionSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).transcriptionSpec)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitMediaJobRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 2; */
+        if (message.subjectUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string model_id = 3; */
+        if (message.modelId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.modelId);
+        /* nimi.runtime.v1.Modal modal = 4; */
+        if (message.modal !== 0)
+            writer.tag(4, WireType.Varint).int32(message.modal);
+        /* nimi.runtime.v1.RoutePolicy route_policy = 5; */
+        if (message.routePolicy !== 0)
+            writer.tag(5, WireType.Varint).int32(message.routePolicy);
+        /* nimi.runtime.v1.FallbackPolicy fallback = 6; */
+        if (message.fallback !== 0)
+            writer.tag(6, WireType.Varint).int32(message.fallback);
+        /* int32 timeout_ms = 7; */
+        if (message.timeoutMs !== 0)
+            writer.tag(7, WireType.Varint).int32(message.timeoutMs);
+        /* nimi.runtime.v1.ImageGenerationSpec image_spec = 20; */
+        if (message.spec.oneofKind === "imageSpec")
+            ImageGenerationSpec.internalBinaryWrite(message.spec.imageSpec, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoGenerationSpec video_spec = 21; */
+        if (message.spec.oneofKind === "videoSpec")
+            VideoGenerationSpec.internalBinaryWrite(message.spec.videoSpec, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechSynthesisSpec speech_spec = 22; */
+        if (message.spec.oneofKind === "speechSpec")
+            SpeechSynthesisSpec.internalBinaryWrite(message.spec.speechSpec, writer.tag(22, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechTranscriptionSpec transcription_spec = 23; */
+        if (message.spec.oneofKind === "transcriptionSpec")
+            SpeechTranscriptionSpec.internalBinaryWrite(message.spec.transcriptionSpec, writer.tag(23, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitMediaJobRequest
+ */
+export const SubmitMediaJobRequest = new SubmitMediaJobRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitMediaJobResponse$Type extends MessageType<SubmitMediaJobResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitMediaJobResponse", [
+            { no: 1, name: "job", kind: "message", T: () => MediaJob }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitMediaJobResponse>): SubmitMediaJobResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SubmitMediaJobResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitMediaJobResponse): SubmitMediaJobResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.MediaJob job */ 1:
+                    message.job = MediaJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitMediaJobResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.MediaJob job = 1; */
+        if (message.job)
+            MediaJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitMediaJobResponse
+ */
+export const SubmitMediaJobResponse = new SubmitMediaJobResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetMediaJobRequest$Type extends MessageType<GetMediaJobRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetMediaJobRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetMediaJobRequest>): GetMediaJobRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetMediaJobRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMediaJobRequest): GetMediaJobRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetMediaJobRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetMediaJobRequest
+ */
+export const GetMediaJobRequest = new GetMediaJobRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetMediaJobResponse$Type extends MessageType<GetMediaJobResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetMediaJobResponse", [
+            { no: 1, name: "job", kind: "message", T: () => MediaJob }
+        ]);
+    }
+    create(value?: PartialMessage<GetMediaJobResponse>): GetMediaJobResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetMediaJobResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMediaJobResponse): GetMediaJobResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.MediaJob job */ 1:
+                    message.job = MediaJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetMediaJobResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.MediaJob job = 1; */
+        if (message.job)
+            MediaJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetMediaJobResponse
+ */
+export const GetMediaJobResponse = new GetMediaJobResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelMediaJobRequest$Type extends MessageType<CancelMediaJobRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CancelMediaJobRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CancelMediaJobRequest>): CancelMediaJobRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        message.reason = "";
+        if (value !== undefined)
+            reflectionMergePartial<CancelMediaJobRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelMediaJobRequest): CancelMediaJobRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                case /* string reason */ 2:
+                    message.reason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelMediaJobRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        /* string reason = 2; */
+        if (message.reason !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelMediaJobRequest
+ */
+export const CancelMediaJobRequest = new CancelMediaJobRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelMediaJobResponse$Type extends MessageType<CancelMediaJobResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CancelMediaJobResponse", [
+            { no: 1, name: "job", kind: "message", T: () => MediaJob }
+        ]);
+    }
+    create(value?: PartialMessage<CancelMediaJobResponse>): CancelMediaJobResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CancelMediaJobResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelMediaJobResponse): CancelMediaJobResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.MediaJob job */ 1:
+                    message.job = MediaJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelMediaJobResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.MediaJob job = 1; */
+        if (message.job)
+            MediaJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelMediaJobResponse
+ */
+export const CancelMediaJobResponse = new CancelMediaJobResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MediaJobEvent$Type extends MessageType<MediaJobEvent> {
+    constructor() {
+        super("nimi.runtime.v1.MediaJobEvent", [
+            { no: 1, name: "event_type", kind: "enum", T: () => ["nimi.runtime.v1.MediaJobEventType", MediaJobEventType] },
+            { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "timestamp", kind: "message", T: () => Timestamp },
+            { no: 5, name: "job", kind: "message", T: () => MediaJob }
+        ]);
+    }
+    create(value?: PartialMessage<MediaJobEvent>): MediaJobEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.eventType = 0;
+        message.sequence = "0";
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<MediaJobEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MediaJobEvent): MediaJobEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.MediaJobEventType event_type */ 1:
+                    message.eventType = reader.int32();
+                    break;
+                case /* uint64 sequence */ 2:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* string trace_id */ 3:
+                    message.traceId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp timestamp */ 4:
+                    message.timestamp = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.timestamp);
+                    break;
+                case /* nimi.runtime.v1.MediaJob job */ 5:
+                    message.job = MediaJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MediaJobEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.MediaJobEventType event_type = 1; */
+        if (message.eventType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.eventType);
+        /* uint64 sequence = 2; */
+        if (message.sequence !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.sequence);
+        /* string trace_id = 3; */
+        if (message.traceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        /* google.protobuf.Timestamp timestamp = 4; */
+        if (message.timestamp)
+            Timestamp.internalBinaryWrite(message.timestamp, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaJob job = 5; */
+        if (message.job)
+            MediaJob.internalBinaryWrite(message.job, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MediaJobEvent
+ */
+export const MediaJobEvent = new MediaJobEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeMediaJobEventsRequest$Type extends MessageType<SubscribeMediaJobEventsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeMediaJobEventsRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeMediaJobEventsRequest>): SubscribeMediaJobEventsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeMediaJobEventsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeMediaJobEventsRequest): SubscribeMediaJobEventsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeMediaJobEventsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeMediaJobEventsRequest
+ */
+export const SubscribeMediaJobEventsRequest = new SubscribeMediaJobEventsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetMediaArtifactsRequest$Type extends MessageType<GetMediaArtifactsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetMediaArtifactsRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetMediaArtifactsRequest>): GetMediaArtifactsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetMediaArtifactsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMediaArtifactsRequest): GetMediaArtifactsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetMediaArtifactsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetMediaArtifactsRequest
+ */
+export const GetMediaArtifactsRequest = new GetMediaArtifactsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetMediaArtifactsResponse$Type extends MessageType<GetMediaArtifactsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetMediaArtifactsResponse", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MediaArtifact },
+            { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetMediaArtifactsResponse>): GetMediaArtifactsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        message.artifacts = [];
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetMediaArtifactsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMediaArtifactsResponse): GetMediaArtifactsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.MediaArtifact artifacts */ 2:
+                    message.artifacts.push(MediaArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string trace_id */ 3:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetMediaArtifactsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        /* repeated nimi.runtime.v1.MediaArtifact artifacts = 2; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            MediaArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 3; */
+        if (message.traceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetMediaArtifactsResponse
+ */
+export const GetMediaArtifactsResponse = new GetMediaArtifactsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GenerateImageRequest$Type extends MessageType<GenerateImageRequest> {
     constructor() {
         super("nimi.runtime.v1.GenerateImageRequest", [
@@ -2419,6 +4381,11 @@ export const RuntimeAiService = new ServiceType("nimi.runtime.v1.RuntimeAiServic
     { name: "Generate", options: {}, I: GenerateRequest, O: GenerateResponse },
     { name: "StreamGenerate", serverStreaming: true, options: {}, I: StreamGenerateRequest, O: StreamGenerateEvent },
     { name: "Embed", options: {}, I: EmbedRequest, O: EmbedResponse },
+    { name: "SubmitMediaJob", options: {}, I: SubmitMediaJobRequest, O: SubmitMediaJobResponse },
+    { name: "GetMediaJob", options: {}, I: GetMediaJobRequest, O: GetMediaJobResponse },
+    { name: "CancelMediaJob", options: {}, I: CancelMediaJobRequest, O: CancelMediaJobResponse },
+    { name: "SubscribeMediaJobEvents", serverStreaming: true, options: {}, I: SubscribeMediaJobEventsRequest, O: MediaJobEvent },
+    { name: "GetMediaArtifacts", options: {}, I: GetMediaArtifactsRequest, O: GetMediaArtifactsResponse },
     { name: "GenerateImage", serverStreaming: true, options: {}, I: GenerateImageRequest, O: ArtifactChunk },
     { name: "GenerateVideo", serverStreaming: true, options: {}, I: GenerateVideoRequest, O: ArtifactChunk },
     { name: "SynthesizeSpeech", serverStreaming: true, options: {}, I: SynthesizeSpeechRequest, O: ArtifactChunk },

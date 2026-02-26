@@ -22,6 +22,7 @@ import {
   type RuntimeClient,
   type RuntimeStreamCallOptions,
 } from '../runtime/index.js';
+import { Struct } from '../runtime/generated/google/protobuf/struct.js';
 import { ReasonCode, type AiFallbackPolicy, type AiRoutePolicy } from '../types/index.js';
 
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
@@ -29,6 +30,14 @@ const ROUTE_POLICY_TOKEN_API = 2;
 const FALLBACK_POLICY_DENY = 1;
 const FALLBACK_POLICY_ALLOW = 2;
 const MODAL_TEXT = 1;
+const MODAL_IMAGE = 2;
+const MODAL_VIDEO = 3;
+const MODAL_TTS = 4;
+const MODAL_STT = 5;
+const MEDIA_JOB_STATUS_COMPLETED = 4;
+const MEDIA_JOB_STATUS_FAILED = 5;
+const MEDIA_JOB_STATUS_CANCELED = 6;
+const MEDIA_JOB_STATUS_TIMEOUT = 7;
 
 type RuntimeDefaults = {
   appId: string;
@@ -52,6 +61,13 @@ export type NimiAiProviderConfig = {
 export type NimiRuntimeVideoModel = {
   generate(options: {
     prompt: string;
+    negativePrompt?: string;
+    durationSec?: number;
+    fps?: number;
+    resolution?: string;
+    aspectRatio?: string;
+    seed?: number;
+    providerOptions?: Record<string, unknown>;
     routePolicy?: AiRoutePolicy;
     fallback?: AiFallbackPolicy;
     timeoutMs?: number;
@@ -62,6 +78,14 @@ export type NimiRuntimeVideoModel = {
 export type NimiRuntimeSpeechModel = {
   synthesize(options: {
     text: string;
+    voice?: string;
+    language?: string;
+    audioFormat?: string;
+    sampleRateHz?: number;
+    speed?: number;
+    pitch?: number;
+    volume?: number;
+    providerOptions?: Record<string, unknown>;
     routePolicy?: AiRoutePolicy;
     fallback?: AiFallbackPolicy;
     timeoutMs?: number;
@@ -71,8 +95,15 @@ export type NimiRuntimeSpeechModel = {
 
 export type NimiRuntimeTranscriptionModel = {
   transcribe(options: {
-    audioBytes: Uint8Array;
-    mimeType: string;
+    audioBytes?: Uint8Array;
+    audioUrl?: string;
+    mimeType?: string;
+    language?: string;
+    timestamps?: boolean;
+    diarization?: boolean;
+    speakerCount?: number;
+    prompt?: string;
+    providerOptions?: Record<string, unknown>;
     routePolicy?: AiRoutePolicy;
     fallback?: AiFallbackPolicy;
     timeoutMs?: number;
@@ -310,6 +341,136 @@ function toBase64(value: Uint8Array): string {
     actionHint: 'use_node_or_tauri_runtime',
     source: 'sdk',
   });
+}
+
+function toUtf8(value: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(value).toString('utf8');
+  }
+  if (typeof TextDecoder !== 'undefined') {
+    return new TextDecoder('utf-8').decode(value);
+  }
+  let output = '';
+  for (let index = 0; index < value.length; index += 1) {
+    output += String.fromCharCode(value[index] || 0);
+  }
+  return output;
+}
+
+function toProtoStruct(input: Record<string, unknown> | undefined): any {
+  if (!input || Object.keys(input).length === 0) {
+    return undefined;
+  }
+  try {
+    return Struct.fromJson(input as unknown as object);
+  } catch {
+    return undefined;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+type MediaJobExecution = {
+  artifacts: NimiArtifact[];
+  traceId: string;
+  routeDecision: AiRoutePolicy;
+  modelResolved: string;
+};
+
+async function executeMediaJob(
+  runtime: RuntimeClient,
+  defaults: RuntimeDefaults,
+  request: Record<string, unknown>,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<MediaJobExecution> {
+  const submitResponse = await runtime.ai.submitMediaJob(
+    request as never,
+    toCallOptions(defaults, {
+      timeoutMs,
+      metadata: undefined,
+    }),
+  );
+  const initialJob = asRecord(submitResponse.job);
+  const jobId = ensureText(initialJob.jobId, 'jobId');
+  const startedAt = Date.now();
+  const maxWaitMs = timeoutMs > 0 ? timeoutMs : 120000;
+
+  while (true) {
+    if (signal?.aborted) {
+      throw createNimiError({
+        message: 'media job aborted',
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        actionHint: 'retry_media_job_request',
+        source: 'sdk',
+      });
+    }
+
+    const jobResponse = await runtime.ai.getMediaJob(
+      { jobId } as never,
+      toCallOptions(defaults, { timeoutMs }),
+    );
+    const job = asRecord(jobResponse.job);
+    const status = Number(job.status || 0);
+    if (status === MEDIA_JOB_STATUS_COMPLETED) {
+      const artifactsResponse = await runtime.ai.getMediaArtifacts(
+        { jobId } as never,
+        toCallOptions(defaults, { timeoutMs }),
+      );
+      const artifacts = Array.isArray(artifactsResponse.artifacts)
+        ? artifactsResponse.artifacts
+        : [];
+      const traceId = normalizeText(artifactsResponse.traceId) || normalizeText(job.traceId);
+      const routeDecision = fromRouteDecision(job.routeDecision);
+      const modelResolved = normalizeText(job.modelResolved) || normalizeText(request.modelId);
+
+      return {
+        artifacts: artifacts.map((item) => {
+          const record = asRecord(item);
+          const bytes = record.bytes instanceof Uint8Array
+            ? record.bytes
+            : new Uint8Array(0);
+          return {
+            artifactId: normalizeText(record.artifactId),
+            mimeType: normalizeText(record.mimeType),
+            bytes,
+            traceId,
+            routeDecision,
+            modelResolved,
+          };
+        }),
+        traceId,
+        routeDecision,
+        modelResolved,
+      };
+    }
+    if (
+      status === MEDIA_JOB_STATUS_FAILED
+      || status === MEDIA_JOB_STATUS_CANCELED
+      || status === MEDIA_JOB_STATUS_TIMEOUT
+    ) {
+      const reasonCode = normalizeText(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE;
+      throw createNimiError({
+        message: normalizeText(job.reasonDetail) || `media job failed: ${reasonCode}`,
+        reasonCode,
+        actionHint: 'retry_media_job_request',
+        source: 'runtime',
+      });
+    }
+    if ((Date.now() - startedAt) > maxWaitMs) {
+      throw createNimiError({
+        message: 'media job timeout',
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        actionHint: 'retry_media_job_request',
+        source: 'runtime',
+      });
+    }
+    await sleep(250);
+  }
 }
 
 function ensureRuntime(config: NimiAiProviderConfig): {
@@ -722,20 +883,23 @@ function createImageModel(
     maxImagesPerCall: undefined,
     doGenerate: async (options: ImageModelV3CallOptions) => {
       try {
-        const stream = await runtime.ai.generateImage({
+        const timeoutMs = defaults.timeoutMs || 0;
+        const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           subjectUserId: defaults.subjectUserId,
           modelId,
-          prompt: normalizeText(options.prompt),
+          modal: MODAL_IMAGE,
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
-          timeoutMs: defaults.timeoutMs || 0,
-        }, toStreamOptions(defaults, {
-          timeoutMs: defaults.timeoutMs,
-          signal: options.abortSignal,
-        }));
-
-        const artifacts = await collectArtifacts(stream);
+          timeoutMs,
+          spec: {
+            oneofKind: 'imageSpec',
+            imageSpec: {
+              prompt: normalizeText(options.prompt),
+            },
+          },
+        }, timeoutMs, options.abortSignal);
+        const artifacts = media.artifacts;
         const providerMetadata = {
           nimi: {
             images: artifacts.map((artifact) => ({
@@ -771,20 +935,33 @@ function createVideoModel(
   return {
     generate: async (options) => {
       try {
-        const stream = await runtime.ai.generateVideo({
+        const resolvedRoute = options.routePolicy || defaults.routePolicy;
+        const resolvedFallback = options.fallback || defaults.fallback;
+        const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
+        const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           subjectUserId: defaults.subjectUserId,
           modelId,
-          prompt: normalizeText(options.prompt),
-          routePolicy: resolveRoutePolicy(options.routePolicy || defaults.routePolicy),
-          fallback: resolveFallbackPolicy(options.fallback || defaults.fallback),
-          timeoutMs: options.timeoutMs || defaults.timeoutMs || 0,
-        }, toStreamOptions(defaults, {
-          timeoutMs: options.timeoutMs,
-          signal: options.signal,
-        }));
+          modal: MODAL_VIDEO,
+          routePolicy: resolveRoutePolicy(resolvedRoute),
+          fallback: resolveFallbackPolicy(resolvedFallback),
+          timeoutMs,
+          spec: {
+            oneofKind: 'videoSpec',
+            videoSpec: {
+              prompt: normalizeText(options.prompt),
+              negativePrompt: normalizeText(options.negativePrompt),
+              durationSec: Number(options.durationSec || 0),
+              fps: Number(options.fps || 0),
+              resolution: normalizeText(options.resolution),
+              aspectRatio: normalizeText(options.aspectRatio),
+              seed: Number(options.seed || 0),
+              providerOptions: toProtoStruct(options.providerOptions),
+            },
+          },
+        }, timeoutMs, options.signal);
         return {
-          artifacts: await collectArtifacts(stream),
+          artifacts: media.artifacts,
         };
       } catch (error) {
         throw normalizeProviderError(error);
@@ -801,20 +978,34 @@ function createSpeechModel(
   return {
     synthesize: async (options) => {
       try {
-        const stream = await runtime.ai.synthesizeSpeech({
+        const resolvedRoute = options.routePolicy || defaults.routePolicy;
+        const resolvedFallback = options.fallback || defaults.fallback;
+        const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
+        const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           subjectUserId: defaults.subjectUserId,
           modelId,
-          text: normalizeText(options.text),
-          routePolicy: resolveRoutePolicy(options.routePolicy || defaults.routePolicy),
-          fallback: resolveFallbackPolicy(options.fallback || defaults.fallback),
-          timeoutMs: options.timeoutMs || defaults.timeoutMs || 0,
-        }, toStreamOptions(defaults, {
-          timeoutMs: options.timeoutMs,
-          signal: options.signal,
-        }));
+          modal: MODAL_TTS,
+          routePolicy: resolveRoutePolicy(resolvedRoute),
+          fallback: resolveFallbackPolicy(resolvedFallback),
+          timeoutMs,
+          spec: {
+            oneofKind: 'speechSpec',
+            speechSpec: {
+              text: normalizeText(options.text),
+              voice: normalizeText(options.voice),
+              language: normalizeText(options.language),
+              audioFormat: normalizeText(options.audioFormat),
+              sampleRateHz: Number(options.sampleRateHz || 0),
+              speed: Number(options.speed || 0),
+              pitch: Number(options.pitch || 0),
+              volume: Number(options.volume || 0),
+              providerOptions: toProtoStruct(options.providerOptions),
+            },
+          },
+        }, timeoutMs, options.signal);
         return {
-          artifacts: await collectArtifacts(stream),
+          artifacts: media.artifacts,
         };
       } catch (error) {
         throw normalizeProviderError(error);
@@ -831,23 +1022,47 @@ function createTranscriptionModel(
   return {
     transcribe: async (options) => {
       try {
-        const response = await runtime.ai.transcribeAudio({
+        if (!(options.audioBytes && options.audioBytes.length > 0) && !normalizeText(options.audioUrl)) {
+          throw createNimiError({
+            message: 'audioBytes or audioUrl is required',
+            reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
+            actionHint: 'set_audio_bytes_or_audio_url',
+            source: 'sdk',
+          });
+        }
+        const resolvedRoute = options.routePolicy || defaults.routePolicy;
+        const resolvedFallback = options.fallback || defaults.fallback;
+        const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
+        const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           subjectUserId: defaults.subjectUserId,
           modelId,
-          audioBytes: options.audioBytes,
-          mimeType: normalizeText(options.mimeType),
-          routePolicy: resolveRoutePolicy(options.routePolicy || defaults.routePolicy),
-          fallback: resolveFallbackPolicy(options.fallback || defaults.fallback),
-          timeoutMs: options.timeoutMs || defaults.timeoutMs || 0,
-        }, toCallOptions(defaults, {
-          timeoutMs: options.timeoutMs,
-        }));
+          modal: MODAL_STT,
+          routePolicy: resolveRoutePolicy(resolvedRoute),
+          fallback: resolveFallbackPolicy(resolvedFallback),
+          timeoutMs,
+          spec: {
+            oneofKind: 'transcriptionSpec',
+            transcriptionSpec: {
+              audioBytes: options.audioBytes || new Uint8Array(0),
+              audioUri: normalizeText(options.audioUrl),
+              mimeType: normalizeText(options.mimeType || 'audio/wav'),
+              language: normalizeText(options.language),
+              timestamps: Boolean(options.timestamps),
+              diarization: Boolean(options.diarization),
+              speakerCount: Number(options.speakerCount || 0),
+              prompt: normalizeText(options.prompt),
+              providerOptions: toProtoStruct(options.providerOptions),
+            },
+          },
+        }, timeoutMs, undefined);
+        const firstArtifact = media.artifacts[0];
+        const text = firstArtifact ? normalizeText(toUtf8(firstArtifact.bytes)) : '';
         return {
-          text: normalizeText(response.text),
-          traceId: normalizeText(response.traceId),
-          routeDecision: fromRouteDecision(response.routeDecision),
-          modelResolved: normalizeText(response.modelResolved),
+          text,
+          traceId: normalizeText(media.traceId),
+          routeDecision: media.routeDecision,
+          modelResolved: normalizeText(media.modelResolved),
         };
       } catch (error) {
         throw normalizeProviderError(error);

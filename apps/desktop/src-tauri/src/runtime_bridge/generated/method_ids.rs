@@ -2,11 +2,16 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob",
     "/nimi.runtime.v1.RuntimeAiService/Embed",
     "/nimi.runtime.v1.RuntimeAiService/Generate",
     "/nimi.runtime.v1.RuntimeAiService/GenerateImage",
     "/nimi.runtime.v1.RuntimeAiService/GenerateVideo",
+    "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts",
+    "/nimi.runtime.v1.RuntimeAiService/GetMediaJob",
     "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
+    "/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob",
+    "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech",
     "/nimi.runtime.v1.RuntimeAiService/TranscribeAudio",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
@@ -71,6 +76,7 @@ pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAiService/GenerateImage",
     "/nimi.runtime.v1.RuntimeAiService/GenerateVideo",
     "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
+    "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",

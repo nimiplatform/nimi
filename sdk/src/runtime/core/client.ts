@@ -10,6 +10,7 @@ import {
   type GenerateImageRequest,
   type GenerateRequest,
   type GenerateVideoRequest,
+  type SubmitMediaJobRequest,
   type StreamGenerateRequest,
   type SynthesizeSpeechRequest,
   type TranscribeAudioRequest,
@@ -247,6 +248,8 @@ function normalizeRequestForMethod<Request>(methodId: string, request: Request):
       return withAiRouteValidation(methodId, request as unknown as StreamGenerateRequest) as Request;
     case RuntimeMethodIds.ai.embed:
       return withAiRouteValidation(methodId, request as unknown as EmbedRequest) as Request;
+    case RuntimeMethodIds.ai.submitMediaJob:
+      return withAiRouteValidation(methodId, request as unknown as SubmitMediaJobRequest) as Request;
     case RuntimeMethodIds.ai.generateImage:
       return withAiRouteValidation(methodId, request as unknown as GenerateImageRequest) as Request;
     case RuntimeMethodIds.ai.generateVideo:
@@ -471,6 +474,11 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       generate: unary(RuntimeMethodIds.ai.generate),
       streamGenerate: stream(RuntimeMethodIds.ai.streamGenerate),
       embed: unary(RuntimeMethodIds.ai.embed),
+      submitMediaJob: unary(RuntimeMethodIds.ai.submitMediaJob),
+      getMediaJob: unary(RuntimeMethodIds.ai.getMediaJob),
+      cancelMediaJob: unary(RuntimeMethodIds.ai.cancelMediaJob),
+      subscribeMediaJobEvents: stream(RuntimeMethodIds.ai.subscribeMediaJobEvents),
+      getMediaArtifacts: unary(RuntimeMethodIds.ai.getMediaArtifacts),
       generateImage: stream(RuntimeMethodIds.ai.generateImage),
       generateVideo: stream(RuntimeMethodIds.ai.generateVideo),
       synthesizeSpeech: stream(RuntimeMethodIds.ai.synthesizeSpeech),
