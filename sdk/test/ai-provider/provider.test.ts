@@ -479,3 +479,100 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
   assert.equal(stt.text, 'transcribed text');
   assert.equal(stt.routeDecision, 'local-runtime');
 });
+
+test('createNimiAiProvider abort signal cancels media job before throwing', async () => {
+  let cancelCalled = false;
+  const runtime = createRuntimeStub({
+    submitMediaJob: async () => ({
+      job: {
+        jobId: 'job-abort-1',
+        status: 2,
+        routeDecision: 1,
+        modelResolved: 'video/default',
+        traceId: 'trace-abort',
+      },
+    }),
+    getMediaJob: async () => ({
+      job: {
+        jobId: 'job-abort-1',
+        status: 3,
+        routeDecision: 1,
+        modelResolved: 'video/default',
+        traceId: 'trace-abort',
+      },
+    }),
+    cancelMediaJob: async () => {
+      cancelCalled = true;
+      return { canceled: true } as never;
+    },
+  });
+  const abortController = new AbortController();
+  abortController.abort();
+
+  const nimi = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  });
+  await assert.rejects(async () => {
+    await nimi.video('video/default').generate({
+      prompt: 'cancel me',
+      signal: abortController.signal,
+    });
+  });
+  assert.equal(cancelCalled, true);
+});
+
+test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitMediaJob', async () => {
+  let capturedSubmitRequest: Record<string, unknown> | null = null;
+  const runtime = createRuntimeStub({
+    submitMediaJob: async (request) => {
+      capturedSubmitRequest = request as Record<string, unknown>;
+      return {
+        job: {
+          jobId: 'job-meta-1',
+          status: 4,
+          routeDecision: 1,
+          modelResolved: 'video/default',
+          traceId: 'trace-meta',
+        },
+      };
+    },
+    getMediaJob: async () => ({
+      job: {
+        jobId: 'job-meta-1',
+        status: 4,
+        routeDecision: 1,
+        modelResolved: 'video/default',
+        traceId: 'trace-meta',
+      },
+    }),
+    getMediaArtifacts: async () => ({
+      jobId: 'job-meta-1',
+      traceId: 'trace-meta',
+      artifacts: [{
+        artifactId: 'video-meta-1',
+        mimeType: 'video/mp4',
+        bytes: Uint8Array.from([1, 2, 3]),
+      }],
+    }),
+  });
+
+  const nimi = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  });
+  await nimi.video('video/default').generate({
+    prompt: 'meta',
+    requestId: 'req-001',
+    idempotencyKey: 'idem-001',
+    labels: {
+      source: 'test',
+    },
+  });
+  assert.ok(capturedSubmitRequest);
+  assert.equal(capturedSubmitRequest.requestId, 'req-001');
+  assert.equal(capturedSubmitRequest.idempotencyKey, 'idem-001');
+  assert.deepEqual(capturedSubmitRequest.labels, { source: 'test' });
+});

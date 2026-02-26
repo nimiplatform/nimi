@@ -17,7 +17,9 @@ import type {
   WorkflowNode,
 } from './generated/runtime/v1/workflow';
 import {
+  WorkflowExecutionMode,
   WorkflowNodeType,
+  WorkflowResumeStrategy,
 } from './generated/runtime/v1/workflow';
 
 export type WorkflowNodeBase = {
@@ -25,6 +27,9 @@ export type WorkflowNodeBase = {
   dependsOn?: readonly string[];
   retryMaxAttempts?: number;
   retryBackoff?: string;
+  executionMode?: WorkflowExecutionMode;
+  resumeStrategy?: WorkflowResumeStrategy;
+  callbackRef?: string;
 };
 
 function createNode(base: WorkflowNodeBase, nodeType: WorkflowNodeType, typeConfig: WorkflowNode['typeConfig']): WorkflowNode {
@@ -35,6 +40,9 @@ function createNode(base: WorkflowNodeBase, nodeType: WorkflowNodeType, typeConf
     typeConfig,
     retryMaxAttempts: Number(base.retryMaxAttempts || 0),
     retryBackoff: String(base.retryBackoff || '').trim(),
+    executionMode: base.executionMode ?? WorkflowExecutionMode.INLINE,
+    resumeStrategy: base.resumeStrategy ?? WorkflowResumeStrategy.AUTO,
+    callbackRef: String(base.callbackRef || '').trim(),
   };
 }
 

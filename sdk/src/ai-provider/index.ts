@@ -67,7 +67,13 @@ export type NimiRuntimeVideoModel = {
     resolution?: string;
     aspectRatio?: string;
     seed?: number;
+    firstFrameUri?: string;
+    lastFrameUri?: string;
+    cameraMotion?: string;
     providerOptions?: Record<string, unknown>;
+    requestId?: string;
+    idempotencyKey?: string;
+    labels?: Record<string, string>;
     routePolicy?: AiRoutePolicy;
     fallback?: AiFallbackPolicy;
     timeoutMs?: number;
@@ -85,7 +91,11 @@ export type NimiRuntimeSpeechModel = {
     speed?: number;
     pitch?: number;
     volume?: number;
+    emotion?: string;
     providerOptions?: Record<string, unknown>;
+    requestId?: string;
+    idempotencyKey?: string;
+    labels?: Record<string, string>;
     routePolicy?: AiRoutePolicy;
     fallback?: AiFallbackPolicy;
     timeoutMs?: number;
@@ -97,13 +107,18 @@ export type NimiRuntimeTranscriptionModel = {
   transcribe(options: {
     audioBytes?: Uint8Array;
     audioUrl?: string;
+    audioChunks?: Uint8Array[];
     mimeType?: string;
     language?: string;
     timestamps?: boolean;
     diarization?: boolean;
     speakerCount?: number;
     prompt?: string;
+    responseFormat?: string;
     providerOptions?: Record<string, unknown>;
+    requestId?: string;
+    idempotencyKey?: string;
+    labels?: Record<string, string>;
     routePolicy?: AiRoutePolicy;
     fallback?: AiFallbackPolicy;
     timeoutMs?: number;
@@ -362,10 +377,29 @@ function toProtoStruct(input: Record<string, unknown> | undefined): any {
     return undefined;
   }
   try {
-    return Struct.fromJson(input as unknown as object);
+    return Struct.fromJson(input as never);
   } catch {
     return undefined;
   }
+}
+
+function toLabels(input: unknown): Record<string, string> | undefined {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return undefined;
+  }
+  const labels: Record<string, string> = {};
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    const normalizedKey = normalizeText(key);
+    if (!normalizedKey) {
+      continue;
+    }
+    const normalizedValue = normalizeText(value);
+    if (!normalizedValue) {
+      continue;
+    }
+    labels[normalizedKey] = normalizedValue;
+  }
+  return Object.keys(labels).length > 0 ? labels : undefined;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -399,9 +433,28 @@ async function executeMediaJob(
   const jobId = ensureText(initialJob.jobId, 'jobId');
   const startedAt = Date.now();
   const maxWaitMs = timeoutMs > 0 ? timeoutMs : 120000;
+  let cancelIssued = false;
+  const cancelRemoteJob = async (reason: string) => {
+    if (cancelIssued) {
+      return;
+    }
+    cancelIssued = true;
+    try {
+      await runtime.ai.cancelMediaJob(
+        {
+          jobId,
+          reason,
+        } as never,
+        toCallOptions(defaults, { timeoutMs }),
+      );
+    } catch {
+      // ignore cancel errors and preserve original failure reason
+    }
+  };
 
   while (true) {
     if (signal?.aborted) {
+      await cancelRemoteJob('aborted_by_abort_signal');
       throw createNimiError({
         message: 'media job aborted',
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
@@ -462,6 +515,7 @@ async function executeMediaJob(
       });
     }
     if ((Date.now() - startedAt) > maxWaitMs) {
+      await cancelRemoteJob('aborted_by_sdk_timeout');
       throw createNimiError({
         message: 'media job timeout',
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
@@ -884,6 +938,9 @@ function createImageModel(
     doGenerate: async (options: ImageModelV3CallOptions) => {
       try {
         const timeoutMs = defaults.timeoutMs || 0;
+        const optionRecord = asRecord(options as unknown as Record<string, unknown>);
+        const providerOptions = asRecord(options.providerOptions);
+        const requestLabels = toLabels(providerOptions.labels);
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           subjectUserId: defaults.subjectUserId,
@@ -892,10 +949,24 @@ function createImageModel(
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs,
+          requestId: normalizeText(providerOptions.requestId),
+          idempotencyKey: normalizeText(providerOptions.idempotencyKey),
+          labels: requestLabels,
           spec: {
             oneofKind: 'imageSpec',
             imageSpec: {
               prompt: normalizeText(options.prompt),
+              negativePrompt: normalizeText(optionRecord.negativePrompt),
+              n: Number(optionRecord.n || 0),
+              size: normalizeText(optionRecord.size),
+              aspectRatio: normalizeText(optionRecord.aspectRatio),
+              quality: normalizeText(providerOptions.quality),
+              style: normalizeText(providerOptions.style),
+              seed: Number(optionRecord.seed || 0),
+              referenceImages: [],
+              mask: normalizeText(optionRecord.mask),
+              responseFormat: normalizeText(providerOptions.responseFormat),
+              providerOptions: toProtoStruct(options.providerOptions as Record<string, unknown> | undefined),
             },
           },
         }, timeoutMs, options.abortSignal);
@@ -946,6 +1017,9 @@ function createVideoModel(
           routePolicy: resolveRoutePolicy(resolvedRoute),
           fallback: resolveFallbackPolicy(resolvedFallback),
           timeoutMs,
+          requestId: normalizeText(options.requestId),
+          idempotencyKey: normalizeText(options.idempotencyKey),
+          labels: toLabels(options.labels),
           spec: {
             oneofKind: 'videoSpec',
             videoSpec: {
@@ -956,6 +1030,9 @@ function createVideoModel(
               resolution: normalizeText(options.resolution),
               aspectRatio: normalizeText(options.aspectRatio),
               seed: Number(options.seed || 0),
+              firstFrameUri: normalizeText(options.firstFrameUri),
+              lastFrameUri: normalizeText(options.lastFrameUri),
+              cameraMotion: normalizeText(options.cameraMotion),
               providerOptions: toProtoStruct(options.providerOptions),
             },
           },
@@ -989,6 +1066,9 @@ function createSpeechModel(
           routePolicy: resolveRoutePolicy(resolvedRoute),
           fallback: resolveFallbackPolicy(resolvedFallback),
           timeoutMs,
+          requestId: normalizeText(options.requestId),
+          idempotencyKey: normalizeText(options.idempotencyKey),
+          labels: toLabels(options.labels),
           spec: {
             oneofKind: 'speechSpec',
             speechSpec: {
@@ -1000,6 +1080,7 @@ function createSpeechModel(
               speed: Number(options.speed || 0),
               pitch: Number(options.pitch || 0),
               volume: Number(options.volume || 0),
+              emotion: normalizeText(options.emotion),
               providerOptions: toProtoStruct(options.providerOptions),
             },
           },
@@ -1022,17 +1103,46 @@ function createTranscriptionModel(
   return {
     transcribe: async (options) => {
       try {
-        if (!(options.audioBytes && options.audioBytes.length > 0) && !normalizeText(options.audioUrl)) {
+        const hasAudioChunks = Array.isArray(options.audioChunks)
+          && options.audioChunks.some((chunk) => chunk instanceof Uint8Array && chunk.length > 0);
+        if (!(options.audioBytes && options.audioBytes.length > 0) && !normalizeText(options.audioUrl) && !hasAudioChunks) {
           throw createNimiError({
-            message: 'audioBytes or audioUrl is required',
+            message: 'audioBytes, audioUrl, or audioChunks is required',
             reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
-            actionHint: 'set_audio_bytes_or_audio_url',
+            actionHint: 'set_audio_source',
             source: 'sdk',
           });
         }
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
         const resolvedFallback = options.fallback || defaults.fallback;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
+        const audioChunks = Array.isArray(options.audioChunks)
+          ? options.audioChunks.filter((chunk): chunk is Uint8Array => chunk instanceof Uint8Array && chunk.length > 0)
+          : [];
+        const audioSource = audioChunks.length > 0
+          ? {
+            source: {
+              oneofKind: 'audioChunks' as const,
+              audioChunks: {
+                chunks: audioChunks,
+              },
+            },
+          }
+          : options.audioBytes && options.audioBytes.length > 0
+            ? {
+              source: {
+                oneofKind: 'audioBytes' as const,
+                audioBytes: options.audioBytes,
+              },
+            }
+            : normalizeText(options.audioUrl)
+              ? {
+                source: {
+                  oneofKind: 'audioUri' as const,
+                  audioUri: normalizeText(options.audioUrl),
+                },
+              }
+              : undefined;
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           subjectUserId: defaults.subjectUserId,
@@ -1041,6 +1151,9 @@ function createTranscriptionModel(
           routePolicy: resolveRoutePolicy(resolvedRoute),
           fallback: resolveFallbackPolicy(resolvedFallback),
           timeoutMs,
+          requestId: normalizeText(options.requestId),
+          idempotencyKey: normalizeText(options.idempotencyKey),
+          labels: toLabels(options.labels),
           spec: {
             oneofKind: 'transcriptionSpec',
             transcriptionSpec: {
@@ -1052,6 +1165,8 @@ function createTranscriptionModel(
               diarization: Boolean(options.diarization),
               speakerCount: Number(options.speakerCount || 0),
               prompt: normalizeText(options.prompt),
+              audioSource,
+              responseFormat: normalizeText(options.responseFormat),
               providerOptions: toProtoStruct(options.providerOptions),
             },
           },
