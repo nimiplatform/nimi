@@ -33,6 +33,8 @@ const (
 	adapterOpenAICompat        = "openai_compat_adapter"
 	adapterNexaNative          = "nexa_native_adapter"
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
+	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
+	adapterAlibabaNative       = "alibaba_native_adapter"
 	adapterGeminiOperation     = "gemini_operation_adapter"
 	adapterMiniMaxTask         = "minimax_task_adapter"
 	adapterGLMTask             = "glm_task_adapter"
@@ -214,6 +216,10 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 	switch adapterName {
 	case adapterBytedanceOpenSpeech:
 		artifacts, usage, providerJobID, err = s.executeBytedanceOpenSpeech(ctx, req, modelResolved)
+	case adapterBytedanceARKTask:
+		artifacts, usage, providerJobID, err = s.executeBytedanceARKTask(ctx, jobID, req, modelResolved)
+	case adapterAlibabaNative:
+		artifacts, usage, providerJobID, err = s.executeAlibabaNative(ctx, jobID, req, modelResolved)
 	case adapterGeminiOperation:
 		artifacts, usage, providerJobID, err = s.executeGeminiOperation(ctx, jobID, req, modelResolved)
 	case adapterMiniMaxTask:
@@ -377,6 +383,8 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	switch {
 	case strings.Contains(joined, "nexa/"):
 		return adapterNexaNative
+	case strings.Contains(joined, "alibaba/"), strings.Contains(joined, "aliyun/"):
+		return adapterAlibabaNative
 	case strings.Contains(joined, "kimi/"), strings.Contains(joined, "moonshot/"):
 		if modal == runtimev1.Modal_MODAL_IMAGE {
 			return adapterKimiChatMultimodal
@@ -393,6 +401,9 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	case strings.Contains(joined, "bytedance/"), strings.Contains(joined, "byte/"):
 		if modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
 			return adapterBytedanceOpenSpeech
+		}
+		if modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO {
+			return adapterBytedanceARKTask
 		}
 	}
 	return adapterOpenAICompat
@@ -1075,6 +1086,705 @@ func (s *Service) executeBytedanceOpenSpeech(
 	}
 }
 
+func (s *Service) executeBytedanceARKTask(
+	ctx context.Context,
+	jobID string,
+	req *runtimev1.SubmitMediaJobRequest,
+	modelResolved string,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(s.config.CloudBytedanceBaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	apiKey := strings.TrimSpace(s.config.CloudBytedanceAPIKey)
+
+	switch req.GetModal() {
+	case runtimev1.Modal_MODAL_IMAGE:
+		spec := req.GetImageSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		submitPath := resolveBytedanceARKImagePath(spec)
+		submitPayload := map[string]any{
+			"model":           modelResolved,
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+			"size":            spec.GetSize(),
+			"aspect_ratio":    spec.GetAspectRatio(),
+			"quality":         spec.GetQuality(),
+			"style":           spec.GetStyle(),
+			"response_format": spec.GetResponseFormat(),
+		}
+		if spec.GetSeed() != 0 {
+			submitPayload["seed"] = spec.GetSeed()
+		}
+		if len(spec.GetReferenceImages()) > 0 {
+			submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
+		}
+		if strings.TrimSpace(spec.GetMask()) != "" {
+			submitPayload["mask"] = strings.TrimSpace(spec.GetMask())
+		}
+		submitPayload["input"] = map[string]any{
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+		}
+		if len(providerOptions) > 0 {
+			submitPayload["provider_options"] = providerOptions
+		}
+
+		submitResp := map[string]any{}
+		if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+			return nil, nil, "", err
+		}
+		artifactBytes, mimeType, artifactURI := extractTaskArtifactBytesAndMIME(submitResp)
+		if len(artifactBytes) == 0 {
+			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		if mimeType == "" {
+			mimeType = resolveImageArtifactMIME(spec, artifactBytes)
+		}
+		providerRaw := map[string]any{
+			"adapter":          adapterBytedanceARKTask,
+			"endpoint":         submitPath,
+			"response":         submitResp,
+			"prompt":           strings.TrimSpace(spec.GetPrompt()),
+			"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
+			"size":             strings.TrimSpace(spec.GetSize()),
+			"aspect_ratio":     strings.TrimSpace(spec.GetAspectRatio()),
+			"quality":          strings.TrimSpace(spec.GetQuality()),
+			"style":            strings.TrimSpace(spec.GetStyle()),
+			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
+			"mask":             strings.TrimSpace(spec.GetMask()),
+			"provider_options": providerOptions,
+		}
+		if artifactURI != "" {
+			providerRaw["uri"] = artifactURI
+		}
+		artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+		applyImageSpecMetadata(artifact, spec)
+		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+	case runtimev1.Modal_MODAL_VIDEO:
+		spec := req.GetVideoSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		submitPath := resolveBytedanceARKVideoSubmitPath(spec)
+		queryPathTemplate := resolveBytedanceARKVideoQueryPathTemplate(spec)
+		submitPayload := map[string]any{
+			"model":           modelResolved,
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+			"duration_sec":    spec.GetDurationSec(),
+			"fps":             spec.GetFps(),
+			"resolution":      spec.GetResolution(),
+			"aspect_ratio":    spec.GetAspectRatio(),
+			"first_frame_uri": spec.GetFirstFrameUri(),
+			"last_frame_uri":  spec.GetLastFrameUri(),
+			"camera_motion":   spec.GetCameraMotion(),
+		}
+		if spec.GetSeed() != 0 {
+			submitPayload["seed"] = spec.GetSeed()
+		}
+		submitPayload["input"] = map[string]any{
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+		}
+		if len(providerOptions) > 0 {
+			submitPayload["provider_options"] = providerOptions
+		}
+
+		submitResp := map[string]any{}
+		if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+			return nil, nil, "", err
+		}
+		providerJobID := extractTaskIDFromPayload(submitResp)
+		if providerJobID == "" {
+			artifactBytes, mimeType, artifactURI := extractTaskArtifactBytesAndMIME(submitResp)
+			if len(artifactBytes) == 0 {
+				return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			}
+			if mimeType == "" {
+				mimeType = resolveVideoArtifactMIME(spec, artifactBytes)
+			}
+			providerRaw := map[string]any{
+				"adapter":         adapterBytedanceARKTask,
+				"submit_endpoint": submitPath,
+				"response":        submitResp,
+			}
+			if artifactURI != "" {
+				providerRaw["uri"] = artifactURI
+			}
+			artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+			applyVideoSpecMetadata(artifact, spec)
+			return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 420), "", nil
+		}
+		return s.pollProviderTaskForArtifact(
+			ctx,
+			jobID,
+			baseURL,
+			apiKey,
+			adapterBytedanceARKTask,
+			providerJobID,
+			submitPath,
+			queryPathTemplate,
+			"video/mp4",
+			420,
+			spec.GetPrompt(),
+			func(artifact *runtimev1.MediaArtifact) {
+				applyVideoSpecMetadata(artifact, spec)
+			},
+			map[string]any{
+				"provider_options": providerOptions,
+			},
+		)
+	default:
+		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+}
+
+func (s *Service) executeAlibabaNative(
+	ctx context.Context,
+	jobID string,
+	req *runtimev1.SubmitMediaJobRequest,
+	modelResolved string,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(s.config.CloudAlibabaBaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	apiKey := strings.TrimSpace(s.config.CloudAlibabaAPIKey)
+
+	switch req.GetModal() {
+	case runtimev1.Modal_MODAL_IMAGE:
+		spec := req.GetImageSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		submitPath := resolveAlibabaImageSubmitPath(spec)
+		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(providerOptions)
+		submitPayload := map[string]any{
+			"model":           modelResolved,
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+			"input": map[string]any{
+				"prompt":          spec.GetPrompt(),
+				"negative_prompt": spec.GetNegativePrompt(),
+			},
+			"parameters": map[string]any{
+				"n":            spec.GetN(),
+				"size":         spec.GetSize(),
+				"aspect_ratio": spec.GetAspectRatio(),
+				"quality":      spec.GetQuality(),
+				"style":        spec.GetStyle(),
+				"seed":         spec.GetSeed(),
+				"mask":         spec.GetMask(),
+				"format":       spec.GetResponseFormat(),
+			},
+		}
+		if len(spec.GetReferenceImages()) > 0 {
+			submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
+		}
+		if len(providerOptions) > 0 {
+			submitPayload["provider_options"] = providerOptions
+		}
+		submitResp := map[string]any{}
+		if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+			return nil, nil, "", err
+		}
+		providerJobID := extractTaskIDFromPayload(submitResp)
+		if providerJobID == "" {
+			artifactBytes, mimeType, artifactURI := extractTaskArtifactBytesAndMIME(submitResp)
+			if len(artifactBytes) == 0 {
+				return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			}
+			if mimeType == "" {
+				mimeType = resolveImageArtifactMIME(spec, artifactBytes)
+			}
+			providerRaw := map[string]any{
+				"adapter":          adapterAlibabaNative,
+				"submit_endpoint":  submitPath,
+				"response":         submitResp,
+				"provider_options": providerOptions,
+			}
+			if artifactURI != "" {
+				providerRaw["uri"] = artifactURI
+			}
+			artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+			applyImageSpecMetadata(artifact, spec)
+			return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+		}
+		return s.pollProviderTaskForArtifact(
+			ctx,
+			jobID,
+			baseURL,
+			apiKey,
+			adapterAlibabaNative,
+			providerJobID,
+			submitPath,
+			queryPathTemplate,
+			resolveImageArtifactMIME(spec, nil),
+			180,
+			spec.GetPrompt(),
+			func(artifact *runtimev1.MediaArtifact) {
+				applyImageSpecMetadata(artifact, spec)
+			},
+			map[string]any{
+				"provider_options": providerOptions,
+			},
+		)
+	case runtimev1.Modal_MODAL_VIDEO:
+		spec := req.GetVideoSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		submitPath := resolveAlibabaVideoSubmitPath(spec)
+		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(providerOptions)
+		submitPayload := map[string]any{
+			"model":           modelResolved,
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+			"input": map[string]any{
+				"prompt":          spec.GetPrompt(),
+				"negative_prompt": spec.GetNegativePrompt(),
+			},
+			"parameters": map[string]any{
+				"duration_sec":    spec.GetDurationSec(),
+				"fps":             spec.GetFps(),
+				"resolution":      spec.GetResolution(),
+				"aspect_ratio":    spec.GetAspectRatio(),
+				"seed":            spec.GetSeed(),
+				"first_frame_uri": spec.GetFirstFrameUri(),
+				"last_frame_uri":  spec.GetLastFrameUri(),
+				"camera_motion":   spec.GetCameraMotion(),
+			},
+		}
+		if len(providerOptions) > 0 {
+			submitPayload["provider_options"] = providerOptions
+		}
+		submitResp := map[string]any{}
+		if err := doJSONRequest(ctx, http.MethodPost, joinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+			return nil, nil, "", err
+		}
+		providerJobID := extractTaskIDFromPayload(submitResp)
+		if providerJobID == "" {
+			artifactBytes, mimeType, artifactURI := extractTaskArtifactBytesAndMIME(submitResp)
+			if len(artifactBytes) == 0 {
+				return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			}
+			if mimeType == "" {
+				mimeType = resolveVideoArtifactMIME(spec, artifactBytes)
+			}
+			providerRaw := map[string]any{
+				"adapter":          adapterAlibabaNative,
+				"submit_endpoint":  submitPath,
+				"response":         submitResp,
+				"provider_options": providerOptions,
+			}
+			if artifactURI != "" {
+				providerRaw["uri"] = artifactURI
+			}
+			artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+			applyVideoSpecMetadata(artifact, spec)
+			return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetPrompt(), artifactBytes, 420), "", nil
+		}
+		return s.pollProviderTaskForArtifact(
+			ctx,
+			jobID,
+			baseURL,
+			apiKey,
+			adapterAlibabaNative,
+			providerJobID,
+			submitPath,
+			queryPathTemplate,
+			"video/mp4",
+			420,
+			spec.GetPrompt(),
+			func(artifact *runtimev1.MediaArtifact) {
+				applyVideoSpecMetadata(artifact, spec)
+			},
+			map[string]any{
+				"provider_options": providerOptions,
+			},
+		)
+	case runtimev1.Modal_MODAL_TTS:
+		spec := req.GetSpeechSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		payload := map[string]any{
+			"model": modelResolved,
+			"input": map[string]any{
+				"text": strings.TrimSpace(spec.GetText()),
+			},
+			"parameters": map[string]any{
+				"voice":       strings.TrimSpace(spec.GetVoice()),
+				"language":    strings.TrimSpace(spec.GetLanguage()),
+				"emotion":     strings.TrimSpace(spec.GetEmotion()),
+				"speed":       spec.GetSpeed(),
+				"pitch":       spec.GetPitch(),
+				"volume":      spec.GetVolume(),
+				"format":      strings.TrimSpace(spec.GetAudioFormat()),
+				"sample_rate": spec.GetSampleRateHz(),
+			},
+			"text":           strings.TrimSpace(spec.GetText()),
+			"audio_format":   strings.TrimSpace(spec.GetAudioFormat()),
+			"sample_rate_hz": spec.GetSampleRateHz(),
+		}
+		if len(providerOptions) > 0 {
+			payload["provider_options"] = providerOptions
+		}
+		body, err := doJSONOrBinaryRequest(ctx, http.MethodPost, joinURL(baseURL, resolveAlibabaTTSPath(spec)), apiKey, payload)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		artifactBytes, mimeType := extractSpeechArtifactFromResponseBody(body)
+		if len(artifactBytes) == 0 {
+			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
+			mimeType = resolveSpeechArtifactMIME(spec, artifactBytes)
+		}
+		artifact := binaryArtifact(mimeType, artifactBytes, map[string]any{
+			"adapter":          adapterAlibabaNative,
+			"endpoint":         resolveAlibabaTTSPath(spec),
+			"voice":            strings.TrimSpace(spec.GetVoice()),
+			"language":         strings.TrimSpace(spec.GetLanguage()),
+			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
+			"emotion":          strings.TrimSpace(spec.GetEmotion()),
+			"provider_options": providerOptions,
+		})
+		applySpeechSpecMetadata(artifact, spec)
+		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+	case runtimev1.Modal_MODAL_STT:
+		spec := req.GetTranscriptionSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		audioBytes, mimeType, audioURI, err := resolveTranscriptionAudioSource(ctx, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		endpoint := resolveAlibabaSTTPath(spec)
+		text, err := executeGLMTranscribe(ctx, joinURL(baseURL, endpoint), apiKey, modelResolved, spec, audioBytes, mimeType)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		usage := &runtimev1.UsageStats{
+			InputTokens:  maxInt64(1, int64(len(audioBytes)/256)),
+			OutputTokens: estimateTokens(text),
+			ComputeMs:    maxInt64(10, int64(len(audioBytes)/64)),
+		}
+		artifact := binaryArtifact(resolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
+			"text":             text,
+			"adapter":          adapterAlibabaNative,
+			"endpoint":         endpoint,
+			"language":         strings.TrimSpace(spec.GetLanguage()),
+			"timestamps":       spec.GetTimestamps(),
+			"diarization":      spec.GetDiarization(),
+			"speaker_count":    spec.GetSpeakerCount(),
+			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+			"mime_type":        mimeType,
+			"audio_uri":        audioURI,
+			"provider_options": structToMap(spec.GetProviderOptions()),
+		})
+		applyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
+	default:
+		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+}
+
+func (s *Service) pollProviderTaskForArtifact(
+	ctx context.Context,
+	jobID string,
+	baseURL string,
+	apiKey string,
+	adapter string,
+	providerJobID string,
+	submitPath string,
+	queryPathTemplate string,
+	defaultMIME string,
+	computeMs int64,
+	prompt string,
+	applyMetadata func(*runtimev1.MediaArtifact),
+	extraProviderRaw map[string]any,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	s.updateMediaJobPollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+	retryCount := int32(0)
+	for {
+		if ctx.Err() != nil {
+			return nil, nil, providerJobID, mapProviderRequestError(ctx.Err())
+		}
+		retryCount++
+		pollResp := map[string]any{}
+		pollPath := resolveTaskQueryPath(queryPathTemplate, providerJobID)
+		if err := doJSONRequest(ctx, http.MethodGet, joinURL(baseURL, pollPath), apiKey, nil, &pollResp); err != nil {
+			return nil, nil, providerJobID, err
+		}
+		statusText := resolveAsyncTaskStatus(pollResp)
+		if isAsyncTaskPendingStatus(statusText) {
+			s.updateMediaJobPollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		if isAsyncTaskFailedStatus(statusText) {
+			s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, statusText)
+			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		}
+		artifactBytes, mimeType, artifactURI := extractTaskArtifactBytesAndMIME(pollResp)
+		if len(artifactBytes) == 0 {
+			s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, providerJobID, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		if strings.TrimSpace(mimeType) == "" {
+			mimeType = strings.TrimSpace(defaultMIME)
+			if mimeType == "" {
+				mimeType = strings.TrimSpace(http.DetectContentType(artifactBytes))
+			}
+		}
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		providerRaw := map[string]any{
+			"adapter":         adapter,
+			"submit_endpoint": submitPath,
+			"query_endpoint":  queryPathTemplate,
+			"response":        pollResp,
+		}
+		for key, value := range extraProviderRaw {
+			providerRaw[key] = value
+		}
+		if artifactURI != "" {
+			providerRaw["uri"] = artifactURI
+		}
+		artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
+		if applyMetadata != nil {
+			applyMetadata(artifact)
+		}
+		s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, "")
+		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+	}
+}
+
+func extractTaskIDFromPayload(payload map[string]any) string {
+	if payload == nil {
+		return ""
+	}
+	return strings.TrimSpace(firstNonEmptyString(
+		valueAsString(payload["task_id"]),
+		valueAsString(payload["taskId"]),
+		valueAsString(payload["id"]),
+		valueAsString(mapField(payload["task"], "id")),
+		valueAsString(mapField(payload["task"], "task_id")),
+		valueAsString(mapField(payload["result"], "id")),
+		valueAsString(mapField(payload["result"], "task_id")),
+		valueAsString(mapField(payload["data"], "id")),
+		valueAsString(mapField(payload["data"], "task_id")),
+		valueAsString(mapField(payload["output"], "id")),
+		valueAsString(mapField(payload["output"], "task_id")),
+	))
+}
+
+func resolveAsyncTaskStatus(payload map[string]any) string {
+	if payload == nil {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(firstNonEmptyString(
+		valueAsString(payload["status"]),
+		valueAsString(payload["task_status"]),
+		valueAsString(mapField(payload["result"], "status")),
+		valueAsString(mapField(payload["result"], "task_status")),
+		valueAsString(mapField(payload["data"], "status")),
+		valueAsString(mapField(payload["data"], "task_status")),
+		valueAsString(mapField(payload["output"], "status")),
+		valueAsString(mapField(payload["output"], "task_status")),
+	)))
+}
+
+func isAsyncTaskPendingStatus(statusText string) bool {
+	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	case "", "submitted", "queued", "pending", "running", "processing", "in_progress":
+		return true
+	default:
+		return false
+	}
+}
+
+func isAsyncTaskFailedStatus(statusText string) bool {
+	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	case "failed", "error", "canceled", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func extractTaskArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string) {
+	if artifactBytes, mimeType, artifactURI := extractArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(payload["result"]); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(payload["data"]); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	if artifactBytes, mimeType, artifactURI := extractImageArtifactFromAny(payload["output"]); len(artifactBytes) > 0 {
+		return artifactBytes, mimeType, artifactURI
+	}
+	return nil, "", ""
+}
+
+func resolveTaskQueryPath(queryTemplate string, providerJobID string) string {
+	template := strings.TrimSpace(queryTemplate)
+	if template == "" {
+		return ""
+	}
+	taskID := url.PathEscape(strings.TrimSpace(providerJobID))
+	if taskID == "" {
+		return template
+	}
+	if strings.Contains(template, "{task_id}") {
+		return strings.ReplaceAll(template, "{task_id}", taskID)
+	}
+	if strings.HasSuffix(template, "/") {
+		return template + taskID
+	}
+	return template + "/" + taskID
+}
+
+func resolveBytedanceARKImagePath(spec *runtimev1.ImageGenerationSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return firstProviderEndpointPath(
+		providerOptions,
+		[]string{"image_path", "image_submit_path"},
+		[]string{"image_paths", "image_submit_paths"},
+		[]string{"/api/v3/images/generations"},
+	)
+}
+
+func resolveBytedanceARKVideoSubmitPath(spec *runtimev1.VideoGenerationSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return firstProviderEndpointPath(
+		providerOptions,
+		[]string{"video_path", "video_submit_path", "task_submit_path"},
+		[]string{"video_paths", "video_submit_paths", "task_submit_paths"},
+		[]string{"/api/v3/contents/generations/tasks"},
+	)
+}
+
+func resolveBytedanceARKVideoQueryPathTemplate(spec *runtimev1.VideoGenerationSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return resolveTaskQueryPathTemplate(
+		providerOptions,
+		[]string{"video_query_path", "video_query_path_template", "task_query_path"},
+		[]string{"video_query_paths", "video_query_path_templates", "task_query_paths"},
+		[]string{"/api/v3/contents/generations/tasks/{task_id}"},
+	)
+}
+
+func resolveAlibabaImageSubmitPath(spec *runtimev1.ImageGenerationSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return firstProviderEndpointPath(
+		providerOptions,
+		[]string{"image_path", "image_submit_path"},
+		[]string{"image_paths", "image_submit_paths"},
+		[]string{"/api/v1/services/aigc/image2image/image-synthesis"},
+	)
+}
+
+func resolveAlibabaVideoSubmitPath(spec *runtimev1.VideoGenerationSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return firstProviderEndpointPath(
+		providerOptions,
+		[]string{"video_path", "video_submit_path"},
+		[]string{"video_paths", "video_submit_paths"},
+		[]string{"/api/v1/services/aigc/video-generation/video-synthesis"},
+	)
+}
+
+func resolveAlibabaTaskQueryPathTemplate(providerOptions map[string]any) string {
+	return resolveTaskQueryPathTemplate(
+		providerOptions,
+		[]string{"task_query_path", "query_path", "task_query_path_template"},
+		[]string{"task_query_paths", "query_paths", "task_query_path_templates"},
+		[]string{"/api/v1/tasks/{task_id}"},
+	)
+}
+
+func resolveAlibabaTTSPath(spec *runtimev1.SpeechSynthesisSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return firstProviderEndpointPath(
+		providerOptions,
+		[]string{"tts_path", "speech_path"},
+		[]string{"tts_paths", "speech_paths"},
+		[]string{"/api/v1/services/aigc/multimodal-generation/generation"},
+	)
+}
+
+func resolveAlibabaSTTPath(spec *runtimev1.SpeechTranscriptionSpec) string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return firstProviderEndpointPath(
+		providerOptions,
+		[]string{"stt_path", "transcription_path"},
+		[]string{"stt_paths", "transcription_paths"},
+		[]string{"/api/v1/services/audio/asr/transcription"},
+	)
+}
+
+func resolveTaskQueryPathTemplate(providerOptions map[string]any, singleKeys []string, listKeys []string, defaults []string) string {
+	candidates := resolveProviderEndpointPaths(providerOptions, singleKeys, listKeys, defaults)
+	for _, candidate := range candidates {
+		trimmed := strings.TrimSpace(candidate)
+		if trimmed == "" {
+			continue
+		}
+		if strings.Contains(trimmed, "{task_id}") {
+			return trimmed
+		}
+		if strings.HasSuffix(trimmed, "/") {
+			return trimmed + "{task_id}"
+		}
+		return trimmed + "/{task_id}"
+	}
+	return ""
+}
+
+func firstProviderEndpointPath(providerOptions map[string]any, singleKeys []string, listKeys []string, defaults []string) string {
+	paths := resolveProviderEndpointPaths(providerOptions, singleKeys, listKeys, defaults)
+	if len(paths) == 0 {
+		return ""
+	}
+	return paths[0]
+}
+
 func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscriptionSpec, providerOptions map[string]any) bool {
 	if spec == nil {
 		return false
@@ -1340,12 +2050,22 @@ func (s *Service) executeGeminiOperation(
 		"model": modelResolved,
 		"modal": strings.ToLower(req.GetModal().String()),
 	}
+	providerOptions := structToMap(extractProviderOptions(req))
+	prompt := ""
+	defaultMIME := ""
+	computeMs := int64(180)
+	transcriptionAudioBytes := []byte(nil)
+	transcriptionAudioURI := ""
+	transcriptionMIME := ""
 	switch req.GetModal() {
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
+		prompt = spec.GetPrompt()
+		defaultMIME = "image/png"
+		computeMs = 180
 		submitPayload["prompt"] = spec.GetPrompt()
 		submitPayload["negative_prompt"] = spec.GetNegativePrompt()
 		submitPayload["size"] = spec.GetSize()
@@ -1360,6 +2080,9 @@ func (s *Service) executeGeminiOperation(
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
+		prompt = spec.GetPrompt()
+		defaultMIME = "video/mp4"
+		computeMs = 420
 		submitPayload["prompt"] = spec.GetPrompt()
 		submitPayload["negative_prompt"] = spec.GetNegativePrompt()
 		submitPayload["duration_sec"] = spec.GetDurationSec()
@@ -1369,11 +2092,58 @@ func (s *Service) executeGeminiOperation(
 		submitPayload["first_frame_uri"] = spec.GetFirstFrameUri()
 		submitPayload["last_frame_uri"] = spec.GetLastFrameUri()
 		submitPayload["camera_motion"] = spec.GetCameraMotion()
+	case runtimev1.Modal_MODAL_TTS:
+		spec := req.GetSpeechSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		prompt = spec.GetText()
+		defaultMIME = resolveSpeechArtifactMIME(spec, nil)
+		computeMs = 120
+		submitPayload["input"] = spec.GetText()
+		submitPayload["text"] = spec.GetText()
+		submitPayload["voice"] = spec.GetVoice()
+		submitPayload["language"] = spec.GetLanguage()
+		submitPayload["emotion"] = spec.GetEmotion()
+		submitPayload["speed"] = spec.GetSpeed()
+		submitPayload["pitch"] = spec.GetPitch()
+		submitPayload["volume"] = spec.GetVolume()
+		submitPayload["sample_rate_hz"] = spec.GetSampleRateHz()
+		if format := strings.TrimSpace(spec.GetAudioFormat()); format != "" {
+			submitPayload["audio_format"] = format
+			submitPayload["response_format"] = format
+		}
+	case runtimev1.Modal_MODAL_STT:
+		spec := req.GetTranscriptionSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		audioBytes, mimeType, audioURI, err := resolveTranscriptionAudioSource(ctx, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		prompt = spec.GetPrompt()
+		defaultMIME = resolveTranscriptionArtifactMIME(spec)
+		computeMs = maxInt64(10, int64(len(audioBytes)/64))
+		transcriptionAudioBytes = audioBytes
+		transcriptionAudioURI = audioURI
+		transcriptionMIME = mimeType
+		submitPayload["audio_base64"] = base64.StdEncoding.EncodeToString(audioBytes)
+		submitPayload["mime_type"] = mimeType
+		submitPayload["language"] = spec.GetLanguage()
+		submitPayload["timestamps"] = spec.GetTimestamps()
+		submitPayload["diarization"] = spec.GetDiarization()
+		submitPayload["speaker_count"] = spec.GetSpeakerCount()
+		submitPayload["prompt"] = spec.GetPrompt()
+		submitPayload["response_format"] = spec.GetResponseFormat()
+		if strings.TrimSpace(audioURI) != "" {
+			submitPayload["audio_uri"] = audioURI
+		}
 	default:
 		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 	}
-	if opts := structToMap(extractProviderOptions(req)); len(opts) > 0 {
-		submitPayload["provider_options"] = opts
+	if len(providerOptions) > 0 {
+		submitPayload["provider_options"] = providerOptions
 	}
 
 	submitResp := map[string]any{}
@@ -1408,8 +2178,11 @@ func (s *Service) executeGeminiOperation(
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
-		statusText := strings.ToLower(strings.TrimSpace(valueAsString(pollResp["status"])))
-		if statusText == "failed" || statusText == "error" {
+		statusText := strings.ToLower(strings.TrimSpace(firstNonEmptyString(
+			valueAsString(pollResp["status"]),
+			valueAsString(mapField(pollResp["result"], "status")),
+		)))
+		if statusText == "failed" || statusText == "error" || statusText == "canceled" || statusText == "cancelled" {
 			s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 		}
@@ -1419,11 +2192,7 @@ func (s *Service) executeGeminiOperation(
 			return nil, nil, providerJobID, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 		}
 		if mimeType == "" {
-			if req.GetModal() == runtimev1.Modal_MODAL_IMAGE {
-				mimeType = "image/png"
-			} else {
-				mimeType = "video/mp4"
-			}
+			mimeType = defaultMIME
 		}
 		providerRaw := map[string]any{
 			"adapter":  adapterGeminiOperation,
@@ -1432,22 +2201,63 @@ func (s *Service) executeGeminiOperation(
 		if artifactURI != "" {
 			providerRaw["uri"] = artifactURI
 		}
+		if req.GetModal() == runtimev1.Modal_MODAL_STT {
+			providerRaw["audio_uri"] = transcriptionAudioURI
+			providerRaw["mime_type"] = transcriptionMIME
+		}
 		artifact := binaryArtifact(mimeType, artifactBytes, providerRaw)
-		prompt := ""
+		var usage *runtimev1.UsageStats
 		if req.GetImageSpec() != nil {
-			prompt = req.GetImageSpec().GetPrompt()
 			applyImageSpecMetadata(artifact, req.GetImageSpec())
 		}
 		if req.GetVideoSpec() != nil {
-			prompt = req.GetVideoSpec().GetPrompt()
 			applyVideoSpecMetadata(artifact, req.GetVideoSpec())
 		}
-		computeMs := int64(180)
-		if req.GetModal() == runtimev1.Modal_MODAL_VIDEO {
-			computeMs = 420
+		if req.GetSpeechSpec() != nil {
+			spec := req.GetSpeechSpec()
+			providerRaw["voice"] = strings.TrimSpace(spec.GetVoice())
+			providerRaw["language"] = strings.TrimSpace(spec.GetLanguage())
+			providerRaw["audio_format"] = strings.TrimSpace(spec.GetAudioFormat())
+			providerRaw["emotion"] = strings.TrimSpace(spec.GetEmotion())
+			providerRaw["provider_options"] = providerOptions
+			applySpeechSpecMetadata(artifact, spec)
+			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "audio/") {
+				artifact.MimeType = resolveSpeechArtifactMIME(spec, artifactBytes)
+			}
+			usage = artifactUsage(spec.GetText(), artifactBytes, computeMs)
+		}
+		if req.GetTranscriptionSpec() != nil {
+			spec := req.GetTranscriptionSpec()
+			text := strings.TrimSpace(firstNonEmptyString(
+				valueAsString(pollResp["artifact_text"]),
+				valueAsString(pollResp["text"]),
+				valueAsString(mapField(pollResp["result"], "text")),
+				string(artifactBytes),
+			))
+			providerRaw["text"] = text
+			providerRaw["language"] = strings.TrimSpace(spec.GetLanguage())
+			providerRaw["timestamps"] = spec.GetTimestamps()
+			providerRaw["diarization"] = spec.GetDiarization()
+			providerRaw["speaker_count"] = spec.GetSpeakerCount()
+			providerRaw["response_format"] = strings.TrimSpace(spec.GetResponseFormat())
+			providerRaw["provider_options"] = providerOptions
+			applyTranscriptionSpecMetadata(artifact, spec, transcriptionAudioURI)
+			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "text/") &&
+				!strings.EqualFold(strings.TrimSpace(artifact.GetMimeType()), "application/json") {
+				artifact.MimeType = resolveTranscriptionArtifactMIME(spec)
+			}
+			usage = &runtimev1.UsageStats{
+				InputTokens:  maxInt64(1, int64(len(transcriptionAudioBytes)/256)),
+				OutputTokens: estimateTokens(text),
+				ComputeMs:    computeMs,
+			}
+		}
+		artifact.ProviderRaw = toStruct(providerRaw)
+		if usage == nil {
+			usage = artifactUsage(prompt, artifactBytes, computeMs)
 		}
 		s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+		return []*runtimev1.MediaArtifact{artifact}, usage, providerJobID, nil
 	}
 }
 
@@ -1462,6 +2272,153 @@ func (s *Service) executeMiniMaxTask(
 		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	apiKey := strings.TrimSpace(s.config.CloudMiniMaxAPIKey)
+
+	switch req.GetModal() {
+	case runtimev1.Modal_MODAL_TTS:
+		spec := req.GetSpeechSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		providerOptions := structToMap(spec.GetProviderOptions())
+		miniMaxPayload := map[string]any{
+			"model":  modelResolved,
+			"text":   strings.TrimSpace(spec.GetText()),
+			"input":  strings.TrimSpace(spec.GetText()),
+			"stream": false,
+		}
+		if len(providerOptions) > 0 {
+			miniMaxPayload["provider_options"] = providerOptions
+		}
+		voiceSetting := map[string]any{}
+		if voice := strings.TrimSpace(spec.GetVoice()); voice != "" {
+			voiceSetting["voice"] = voice
+		}
+		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
+			voiceSetting["language"] = language
+		}
+		if emotion := strings.TrimSpace(spec.GetEmotion()); emotion != "" {
+			voiceSetting["emotion"] = emotion
+		}
+		if speed := spec.GetSpeed(); speed > 0 {
+			voiceSetting["speed"] = speed
+		}
+		if pitch := spec.GetPitch(); pitch != 0 {
+			voiceSetting["pitch"] = pitch
+		}
+		if volume := spec.GetVolume(); volume > 0 {
+			voiceSetting["volume"] = volume
+		}
+		if len(voiceSetting) > 0 {
+			miniMaxPayload["voice_setting"] = voiceSetting
+		}
+		audioSetting := map[string]any{}
+		if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
+			audioSetting["format"] = audioFormat
+			miniMaxPayload["audio_format"] = audioFormat
+			miniMaxPayload["response_format"] = audioFormat
+		}
+		if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
+			audioSetting["sample_rate"] = sampleRate
+			miniMaxPayload["sample_rate_hz"] = sampleRate
+		}
+		if len(audioSetting) > 0 {
+			miniMaxPayload["audio_setting"] = audioSetting
+		}
+		openAIPayload := map[string]any{
+			"model":          modelResolved,
+			"input":          strings.TrimSpace(spec.GetText()),
+			"text":           strings.TrimSpace(spec.GetText()),
+			"voice":          strings.TrimSpace(spec.GetVoice()),
+			"language":       strings.TrimSpace(spec.GetLanguage()),
+			"emotion":        strings.TrimSpace(spec.GetEmotion()),
+			"speed":          spec.GetSpeed(),
+			"pitch":          spec.GetPitch(),
+			"volume":         spec.GetVolume(),
+			"sample_rate_hz": spec.GetSampleRateHz(),
+		}
+		if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
+			openAIPayload["audio_format"] = audioFormat
+			openAIPayload["response_format"] = audioFormat
+		}
+		if len(providerOptions) > 0 {
+			openAIPayload["provider_options"] = providerOptions
+		}
+		paths := resolveMiniMaxSpeechPaths(spec)
+		var lastErr error
+		for _, endpointPath := range paths {
+			payload := openAIPayload
+			if isMiniMaxNativeTTSPath(endpointPath) {
+				payload = miniMaxPayload
+			}
+			body, err := doJSONOrBinaryRequest(ctx, http.MethodPost, joinURL(baseURL, endpointPath), apiKey, payload)
+			if err != nil {
+				if status.Code(err) == codes.NotFound {
+					lastErr = err
+					continue
+				}
+				return nil, nil, "", err
+			}
+			artifactBytes, mimeType := extractSpeechArtifactFromResponseBody(body)
+			if len(artifactBytes) == 0 {
+				lastErr = status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+				continue
+			}
+			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
+				mimeType = resolveSpeechArtifactMIME(spec, artifactBytes)
+			}
+			artifact := binaryArtifact(mimeType, artifactBytes, map[string]any{
+				"adapter":          adapterMiniMaxTask,
+				"endpoint":         endpointPath,
+				"voice":            strings.TrimSpace(spec.GetVoice()),
+				"language":         strings.TrimSpace(spec.GetLanguage()),
+				"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
+				"emotion":          strings.TrimSpace(spec.GetEmotion()),
+				"provider_options": providerOptions,
+			})
+			applySpeechSpecMetadata(artifact, spec)
+			return []*runtimev1.MediaArtifact{artifact}, artifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+		}
+		if lastErr != nil {
+			if status.Code(lastErr) == codes.NotFound {
+				return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+			}
+			return nil, nil, "", lastErr
+		}
+		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	case runtimev1.Modal_MODAL_STT:
+		spec := req.GetTranscriptionSpec()
+		if spec == nil {
+			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		}
+		audioBytes, mimeType, audioURI, err := resolveTranscriptionAudioSource(ctx, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		text, endpointPath, err := executeMiniMaxTranscribe(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		usage := &runtimev1.UsageStats{
+			InputTokens:  maxInt64(1, int64(len(audioBytes)/256)),
+			OutputTokens: estimateTokens(text),
+			ComputeMs:    maxInt64(10, int64(len(audioBytes)/64)),
+		}
+		artifact := binaryArtifact(resolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
+			"text":             text,
+			"adapter":          adapterMiniMaxTask,
+			"endpoint":         endpointPath,
+			"language":         strings.TrimSpace(spec.GetLanguage()),
+			"timestamps":       spec.GetTimestamps(),
+			"diarization":      spec.GetDiarization(),
+			"speaker_count":    spec.GetSpeakerCount(),
+			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
+			"mime_type":        mimeType,
+			"audio_uri":        audioURI,
+			"provider_options": structToMap(spec.GetProviderOptions()),
+		})
+		applyTranscriptionSpecMetadata(artifact, spec, audioURI)
+		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
+	}
 
 	submitPath := "/v1/image_generation"
 	queryPath := "/v1/query/image_generation"
@@ -1546,13 +2503,17 @@ func (s *Service) executeMiniMaxTask(
 		if err := doJSONRequest(ctx, http.MethodGet, queryURL.String(), apiKey, nil, &pollResp); err != nil {
 			return nil, nil, providerJobID, err
 		}
-		statusText := strings.ToLower(strings.TrimSpace(valueAsString(pollResp["status"])))
-		if statusText == "running" || statusText == "queued" || statusText == "processing" || statusText == "" {
+		statusText := strings.ToLower(strings.TrimSpace(firstNonEmptyString(
+			valueAsString(pollResp["status"]),
+			valueAsString(pollResp["task_status"]),
+			valueAsString(mapField(pollResp["result"], "status")),
+		)))
+		if isMiniMaxTaskPendingStatus(statusText) {
 			s.updateMediaJobPollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
-		if statusText == "failed" || statusText == "error" {
+		if isMiniMaxTaskFailedStatus(statusText) {
 			s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 		}
@@ -1585,6 +2546,167 @@ func (s *Service) executeMiniMaxTask(
 		s.updateMediaJobPollState(jobID, providerJobID, retryCount, nil, "")
 		return []*runtimev1.MediaArtifact{artifact}, artifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
 	}
+}
+
+func isMiniMaxTaskPendingStatus(statusText string) bool {
+	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	case "", "queued", "pending", "running", "processing", "in_progress":
+		return true
+	default:
+		return false
+	}
+}
+
+func isMiniMaxTaskFailedStatus(statusText string) bool {
+	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	case "failed", "error", "canceled", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func resolveMiniMaxSpeechPaths(spec *runtimev1.SpeechSynthesisSpec) []string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return resolveProviderEndpointPaths(
+		providerOptions,
+		[]string{"tts_path", "speech_path", "audio_speech_path"},
+		[]string{"tts_paths", "speech_paths"},
+		[]string{"/v1/t2a_v2", "/v1/audio/speech"},
+	)
+}
+
+func resolveMiniMaxTranscriptionPaths(spec *runtimev1.SpeechTranscriptionSpec) []string {
+	providerOptions := map[string]any{}
+	if spec != nil {
+		providerOptions = structToMap(spec.GetProviderOptions())
+	}
+	return resolveProviderEndpointPaths(
+		providerOptions,
+		[]string{"stt_path", "transcription_path", "audio_transcriptions_path"},
+		[]string{"stt_paths", "transcription_paths"},
+		[]string{"/v1/audio/transcriptions", "/v1/stt/transcriptions", "/v1/stt"},
+	)
+}
+
+func resolveProviderEndpointPaths(
+	providerOptions map[string]any,
+	singleKeys []string,
+	listKeys []string,
+	defaults []string,
+) []string {
+	paths := make([]string, 0, len(defaults)+len(singleKeys))
+	seen := map[string]bool{}
+	addPath := func(raw string) {
+		normalized := normalizeProviderEndpointPath(raw)
+		if normalized == "" || seen[normalized] {
+			return
+		}
+		seen[normalized] = true
+		paths = append(paths, normalized)
+	}
+	for _, key := range singleKeys {
+		addPath(valueAsString(providerOptions[key]))
+	}
+	for _, key := range listKeys {
+		switch typed := providerOptions[key].(type) {
+		case string:
+			addPath(typed)
+		case []string:
+			for _, item := range typed {
+				addPath(item)
+			}
+		case []any:
+			for _, item := range typed {
+				addPath(valueAsString(item))
+			}
+		}
+	}
+	for _, item := range defaults {
+		addPath(item)
+	}
+	return paths
+}
+
+func normalizeProviderEndpointPath(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+		return trimmed
+	}
+	if !strings.HasPrefix(trimmed, "/") {
+		trimmed = "/" + trimmed
+	}
+	return trimmed
+}
+
+func isMiniMaxNativeTTSPath(endpointPath string) bool {
+	lower := strings.ToLower(strings.TrimSpace(endpointPath))
+	return strings.Contains(lower, "t2a")
+}
+
+func extractSpeechArtifactFromResponseBody(body *jsonOrBinaryBody) ([]byte, string) {
+	if body == nil {
+		return nil, ""
+	}
+	if strings.TrimSpace(body.text) != "" {
+		return nil, ""
+	}
+	mimeType := strings.TrimSpace(body.mime)
+	payload := append([]byte(nil), body.bytes...)
+	if len(payload) == 0 {
+		return nil, mimeType
+	}
+	looksLikeJSON := payload[0] == '{' || payload[0] == '['
+	if strings.Contains(strings.ToLower(mimeType), "application/json") || looksLikeJSON {
+		parsed := map[string]any{}
+		if err := json.Unmarshal(payload, &parsed); err == nil {
+			if artifactBytes, parsedMIME, _ := extractArtifactBytesAndMIME(parsed); len(artifactBytes) > 0 {
+				if strings.TrimSpace(parsedMIME) != "" {
+					mimeType = strings.TrimSpace(parsedMIME)
+				}
+				return artifactBytes, mimeType
+			}
+			return nil, mimeType
+		}
+	}
+	return payload, mimeType
+}
+
+func executeMiniMaxTranscribe(
+	ctx context.Context,
+	baseURL string,
+	apiKey string,
+	modelResolved string,
+	spec *runtimev1.SpeechTranscriptionSpec,
+	audioBytes []byte,
+	mimeType string,
+) (string, string, error) {
+	paths := resolveMiniMaxTranscriptionPaths(spec)
+	if len(paths) == 0 {
+		return "", "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+	var lastErr error
+	for _, endpointPath := range paths {
+		text, err := executeGLMTranscribe(ctx, joinURL(baseURL, endpointPath), apiKey, modelResolved, spec, audioBytes, mimeType)
+		if err == nil {
+			return text, endpointPath, nil
+		}
+		if status.Code(err) == codes.NotFound {
+			lastErr = err
+			continue
+		}
+		return "", "", err
+	}
+	if lastErr != nil {
+		return "", "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+	}
+	return "", "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 }
 
 func (s *Service) executeGLMTask(
@@ -2159,6 +3281,10 @@ func doJSONOrBinaryRequest(
 				valueAsString(parsed["audio_base64"]),
 				valueAsString(parsed["b64_json"]),
 				valueAsString(mapField(parsed["result"], "audio")),
+				valueAsString(mapField(parsed["result"], "audio_base64")),
+				valueAsString(mapField(parsed["data"], "audio")),
+				valueAsString(mapField(parsed["data"], "audio_base64")),
+				valueAsString(mapField(parsed["output"], "audio")),
 			)); b64 != "" {
 				decoded, decodeErr := base64.StdEncoding.DecodeString(b64)
 				if decodeErr == nil {
@@ -2348,10 +3474,19 @@ func extractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 	paths := []string{
 		valueAsString(payload["b64_json"]),
 		valueAsString(payload["b64_mp4"]),
+		valueAsString(payload["audio"]),
+		valueAsString(payload["audio_base64"]),
 		valueAsString(mapField(payload["artifact"], "b64_json")),
 		valueAsString(mapField(payload["artifact"], "b64_mp4")),
+		valueAsString(mapField(payload["artifact"], "audio")),
+		valueAsString(mapField(payload["artifact"], "audio_base64")),
 		valueAsString(mapField(payload["result"], "b64_json")),
 		valueAsString(mapField(payload["result"], "b64_mp4")),
+		valueAsString(mapField(payload["result"], "audio")),
+		valueAsString(mapField(payload["result"], "audio_base64")),
+		valueAsString(mapField(payload["data"], "audio")),
+		valueAsString(mapField(payload["data"], "audio_base64")),
+		valueAsString(mapField(payload["output"], "audio")),
 	}
 	for _, raw := range paths {
 		trimmed := strings.TrimSpace(raw)
@@ -2369,8 +3504,15 @@ func extractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 	}
 	artifactURI := strings.TrimSpace(firstNonEmptyString(
 		valueAsString(payload["url"]),
+		valueAsString(payload["audio_url"]),
 		valueAsString(mapField(payload["artifact"], "url")),
+		valueAsString(mapField(payload["artifact"], "audio_url")),
 		valueAsString(mapField(payload["result"], "url")),
+		valueAsString(mapField(payload["result"], "audio_url")),
+		valueAsString(mapField(payload["data"], "url")),
+		valueAsString(mapField(payload["data"], "audio_url")),
+		valueAsString(mapField(payload["output"], "url")),
+		valueAsString(mapField(payload["output"], "audio_url")),
 	))
 	if artifactURI != "" {
 		response, err := http.Get(artifactURI)

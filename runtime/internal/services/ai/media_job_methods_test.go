@@ -418,17 +418,23 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSReadTimeoutMapsProviderTimeout(t 
 	}
 }
 
-func TestSubmitMediaJobBytedanceVideoViaOpenAICompat(t *testing.T) {
+func TestSubmitMediaJobBytedanceARKVideoTask(t *testing.T) {
 	videoPayload := []byte("bytedance-video-bytes")
 	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	var pollCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/video/generations":
-			http.NotFound(w, r)
-			return
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/videos/generations":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v3/contents/generations/tasks":
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"data":[{"b64_mp4":"` + videoB64 + `"}]}`))
+			_, _ = w.Write([]byte(`{"task_id":"ark-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v3/contents/generations/tasks/ark-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			if pollCount.Add(1) < 2 {
+				_, _ = w.Write([]byte(`{"status":"running"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_mp4":"` + videoB64 + `","mime_type":"video/mp4"}}`))
 			return
 		default:
 			http.NotFound(w, r)
@@ -459,8 +465,402 @@ func TestSubmitMediaJobBytedanceVideoViaOpenAICompat(t *testing.T) {
 	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
 		t.Fatalf("job status mismatch: %v", job.GetStatus())
 	}
+	if job.GetProviderJobId() != "ark-task-1" {
+		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
+	}
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
 		t.Fatalf("video bytes mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+}
+
+func TestSubmitMediaJobBytedanceARKImage(t *testing.T) {
+	imagePayload := []byte("bytedance-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v3/images/generations" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"b64_json":"` + imageB64 + `","mime_type":"image/png"}]}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "bytedance/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "bytedance image prompt",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance image job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image bytes mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+}
+
+func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
+	imagePayload := []byte("alibaba-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	videoPayload := []byte("alibaba-video-bytes")
+	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	audioPayload := []byte("alibaba-tts-audio")
+	var videoPollCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/image2image/image-synthesis":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ali-image-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/ali-image-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_json":"` + imageB64 + `","mime_type":"image/png"}}`))
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/video-generation/video-synthesis":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ali-video-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/ali-video-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			if videoPollCount.Add(1) < 2 {
+				_, _ = w.Write([]byte(`{"status":"running"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_mp4":"` + videoB64 + `","mime_type":"video/mp4"}}`))
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/multimodal-generation/generation":
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioPayload)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/audio/asr/transcription":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"text":"alibaba stt text"}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudAlibabaBaseURL: server.URL,
+	})
+
+	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "aliyun/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "alibaba image prompt",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit alibaba image job: %v", err)
+	}
+	imageJob := waitMediaJobTerminal(t, svc, imageResp.GetJob().GetJobId(), 3*time.Second)
+	if imageJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("image job status mismatch: %v", imageJob.GetStatus())
+	}
+	if imageJob.GetProviderJobId() != "ali-image-task-1" {
+		t.Fatalf("image provider job id mismatch: %s", imageJob.GetProviderJobId())
+	}
+	if got := string(imageJob.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+
+	videoResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "aliyun/video-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "alibaba video prompt",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit alibaba video job: %v", err)
+	}
+	videoJob := waitMediaJobTerminal(t, svc, videoResp.GetJob().GetJobId(), 3*time.Second)
+	if videoJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("video job status mismatch: %v", videoJob.GetStatus())
+	}
+	if videoJob.GetProviderJobId() != "ali-video-task-1" {
+		t.Fatalf("video provider job id mismatch: %s", videoJob.GetProviderJobId())
+	}
+	if got := string(videoJob.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
+		t.Fatalf("video payload mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+
+	ttsResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "aliyun/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "alibaba tts",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit alibaba tts job: %v", err)
+	}
+	ttsJob := waitMediaJobTerminal(t, svc, ttsResp.GetJob().GetJobId(), 3*time.Second)
+	if ttsJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("tts job status mismatch: %v", ttsJob.GetStatus())
+	}
+	if got := string(ttsJob.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("tts payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+
+	sttResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "aliyun/stt-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit alibaba stt job: %v", err)
+	}
+	sttJob := waitMediaJobTerminal(t, svc, sttResp.GetJob().GetJobId(), 3*time.Second)
+	if sttJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("stt job status mismatch: %v", sttJob.GetStatus())
+	}
+	if got := string(sttJob.GetArtifacts()[0].GetBytes()); got != "alibaba stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+}
+
+func TestSubmitMediaJobBytedanceARKVideoTaskCustomPaths(t *testing.T) {
+	videoPayload := []byte("bytedance-custom-video-bytes")
+	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/custom/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ark-custom-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/custom/tasks/ark-custom-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_mp4":"` + videoB64 + `","mime_type":"video/mp4"}}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "bytedance/video-custom-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "custom path video",
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"video_submit_path":         "/custom/tasks",
+					"video_query_path_template": "/custom/tasks/{task_id}",
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance custom path video job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetProviderJobId() != "ark-custom-task-1" {
+		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
+		t.Fatalf("video bytes mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+}
+
+func TestSubmitMediaJobBytedanceARKVideoTaskFailedMapsUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v3/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ark-failed-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v3/contents/generations/tasks/ark-failed-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"failed"}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudBytedanceBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "bytedance/video-failed-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "failed video",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance failed video job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobAlibabaNativeImageTaskCustomPaths(t *testing.T) {
+	imagePayload := []byte("alibaba-custom-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/custom/alibaba/image":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ali-custom-image-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/custom/alibaba/tasks/ali-custom-image-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_json":"` + imageB64 + `","mime_type":"image/png"}}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudAlibabaBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "aliyun/image-custom-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "custom alibaba image",
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"image_submit_path":        "/custom/alibaba/image",
+					"task_query_path_template": "/custom/alibaba/tasks/{task_id}",
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit alibaba custom path image job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetProviderJobId() != "ali-custom-image-task-1" {
+		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+}
+
+func TestSubmitMediaJobAlibabaNativeVideoTaskFailedMapsUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services/aigc/video-generation/video-synthesis":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ali-failed-video-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tasks/ali-failed-video-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"failed"}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudAlibabaBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "alibaba/video-failed-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "failed alibaba video",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit alibaba failed video job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 }
 
@@ -607,6 +1007,288 @@ func TestSubmitMediaJobGeminiImageOperation(t *testing.T) {
 	}
 }
 
+func TestSubmitMediaJobGeminiTTSOperation(t *testing.T) {
+	audioPayload := []byte("gemini-tts-audio")
+	audioB64 := base64.StdEncoding.EncodeToString(audioPayload)
+	var capturedSubmitPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/operations":
+			_ = json.NewDecoder(r.Body).Decode(&capturedSubmitPayload)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"name": "op-tts-1",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/operations/op-tts-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"done":   true,
+				"status": "succeeded",
+				"artifact": map[string]any{
+					"audio_base64": audioB64,
+					"mime_type":    "audio/wav",
+				},
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGeminiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "gemini/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text:        "hello gemini",
+				Voice:       "voice-a",
+				AudioFormat: "wav",
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"style": "calm",
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit gemini tts operation job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetProviderJobId() != "op-tts-1" {
+		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("audio payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+	if got := job.GetArtifacts()[0].GetMimeType(); got != "audio/wav" {
+		t.Fatalf("artifact mime mismatch: got=%s", got)
+	}
+	if valueAsString(capturedSubmitPayload["input"]) != "hello gemini" {
+		t.Fatalf("gemini tts input mismatch: %#v", capturedSubmitPayload)
+	}
+	if _, ok := capturedSubmitPayload["provider_options"]; !ok {
+		t.Fatalf("gemini tts provider options missing: %#v", capturedSubmitPayload)
+	}
+}
+
+func TestSubmitMediaJobGeminiSTTOperation(t *testing.T) {
+	var capturedSubmitPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/operations":
+			_ = json.NewDecoder(r.Body).Decode(&capturedSubmitPayload)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"name": "op-stt-1",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/operations/op-stt-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"done":   true,
+				"status": "succeeded",
+				"text":   "gemini stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGeminiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "gemini/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+				Language:   "en",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit gemini stt operation job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetProviderJobId() != "op-stt-1" {
+		t.Fatalf("provider job id mismatch: %s", job.GetProviderJobId())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != "gemini stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+	audioBase64 := strings.TrimSpace(valueAsString(capturedSubmitPayload["audio_base64"]))
+	if audioBase64 == "" {
+		t.Fatalf("gemini stt audio_base64 missing: %#v", capturedSubmitPayload)
+	}
+	if valueAsString(capturedSubmitPayload["mime_type"]) != "audio/wav" {
+		t.Fatalf("gemini stt mime_type mismatch: %#v", capturedSubmitPayload)
+	}
+}
+
+func TestSubmitMediaJobGeminiTTSOperationFailedMapsUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/operations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"name": "op-tts-fail",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/operations/op-tts-fail":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"done":   true,
+				"status": "failed",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGeminiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "gemini/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "hello gemini",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit gemini tts failed job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobGeminiOperationTimeoutMapsProviderTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/operations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"name": "op-timeout-1",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/operations/op-timeout-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"done":   false,
+				"status": "running",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGeminiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "gemini/veo-3",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     80,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "timeout test",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit gemini timeout job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+	}
+}
+
+func TestSubmitMediaJobGeminiSTTOperationFailedMapsUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/operations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"name": "op-stt-fail",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/operations/op-stt-fail":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"done":   true,
+				"status": "failed",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudGeminiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "gemini/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit gemini stt failed job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
 func TestSubmitMediaJobMiniMaxTask(t *testing.T) {
 	imagePayload := []byte("minimax-image-bytes")
 	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
@@ -727,6 +1409,328 @@ func TestSubmitMediaJobMiniMaxVideoTask(t *testing.T) {
 	}
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
 		t.Fatalf("video payload mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+}
+
+func TestSubmitMediaJobMiniMaxTTSTask(t *testing.T) {
+	audioPayload := []byte("minimax-tts-audio")
+	audioB64 := base64.StdEncoding.EncodeToString(audioPayload)
+	var ttsPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/t2a_v2":
+			_ = json.NewDecoder(r.Body).Decode(&ttsPayload)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"audio_base64": audioB64,
+				"mime_type":    "audio/mpeg",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/speech-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text:        "hello minimax",
+				Voice:       "voice-a",
+				AudioFormat: "mp3",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax tts task job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("audio payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+	voiceSetting, ok := ttsPayload["voice_setting"].(map[string]any)
+	if !ok {
+		t.Fatalf("minimax tts voice_setting missing: %#v", ttsPayload)
+	}
+	if valueAsString(voiceSetting["voice"]) != "voice-a" {
+		t.Fatalf("minimax tts voice mismatch: %#v", voiceSetting)
+	}
+}
+
+func TestSubmitMediaJobMiniMaxTTSTaskFallbackToOpenAISpeech(t *testing.T) {
+	audioPayload := []byte("minimax-tts-fallback-audio")
+	var fallbackPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/t2a_v2":
+			http.NotFound(w, r)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
+			fallbackPath = r.URL.Path
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioPayload)
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/speech-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "hello minimax fallback",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax tts fallback job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("audio payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+	if fallbackPath != "/v1/audio/speech" {
+		t.Fatalf("minimax tts fallback path mismatch: got=%s", fallbackPath)
+	}
+}
+
+func TestSubmitMediaJobMiniMaxSTTTask(t *testing.T) {
+	var submitPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
+			submitPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "minimax stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax stt task job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != "minimax stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+	if submitPath != "/v1/audio/transcriptions" {
+		t.Fatalf("minimax stt submit path mismatch: got=%s", submitPath)
+	}
+}
+
+func TestSubmitMediaJobMiniMaxSTTTaskUnsupportedMapsRouteUnsupported(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax stt unsupported job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+}
+
+func TestSubmitMediaJobMiniMaxImageTaskFailedMapsUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/image_generation":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"task_id": "task-failed-1",
+			})
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/query/image_generation":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "failed",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "should fail",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax failed job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("job reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobMiniMaxTTSTaskUnavailableMapsProviderUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/t2a_v2" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{
+					"message": "tts unavailable",
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/speech-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "minimax tts unavailable",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax tts unavailable job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobMiniMaxSTTTaskTimeoutMapsProviderTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions" {
+			time.Sleep(300 * time.Millisecond)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "late text",
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudMiniMaxBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "minimax/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     80,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit minimax stt timeout job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	}
 }
 
@@ -1085,6 +2089,641 @@ func TestSubmitMediaJobKimiImageChatMultimodalInvalidOutput(t *testing.T) {
 	}
 }
 
+func TestSubmitMediaJobKimiTTSOpenAICompat(t *testing.T) {
+	audioPayload := []byte("kimi-tts-audio")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech" {
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioPayload)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudKimiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "kimi/voice-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "hello kimi",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit kimi tts job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("tts payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+}
+
+func TestSubmitMediaJobKimiTTSUnavailableMapsProviderUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{
+					"message": "tts unavailable",
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudKimiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "kimi/voice-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "hello kimi",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit kimi tts unavailable job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobKimiSTTOpenAICompat(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "kimi stt text",
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudKimiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "kimi/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit kimi stt job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != "kimi stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+}
+
+func TestSubmitMediaJobKimiSTTUnavailableMapsProviderUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{
+					"message": "service unavailable",
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudKimiBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "kimi/asr-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit kimi stt unavailable job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobLocalAIModalities(t *testing.T) {
+	videoPayload := []byte("localai-video-bytes")
+	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	audioPayload := []byte("localai-tts-audio")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/video/generations":
+			http.NotFound(w, r)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/videos/generations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_mp4": videoB64, "mime_type": "video/mp4"},
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioPayload)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "localai stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL: server.URL,
+	})
+
+	videoResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/video-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "local video",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit localai video job: %v", err)
+	}
+	videoJob := waitMediaJobTerminal(t, svc, videoResp.GetJob().GetJobId(), 3*time.Second)
+	if videoJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("video job status mismatch: %v", videoJob.GetStatus())
+	}
+	if got := string(videoJob.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
+		t.Fatalf("video payload mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+
+	ttsResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "local tts",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit localai tts job: %v", err)
+	}
+	ttsJob := waitMediaJobTerminal(t, svc, ttsResp.GetJob().GetJobId(), 3*time.Second)
+	if ttsJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("tts job status mismatch: %v", ttsJob.GetStatus())
+	}
+	if got := string(ttsJob.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("tts payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+
+	sttResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/stt-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit localai stt job: %v", err)
+	}
+	sttJob := waitMediaJobTerminal(t, svc, sttResp.GetJob().GetJobId(), 3*time.Second)
+	if sttJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("stt job status mismatch: %v", sttJob.GetStatus())
+	}
+	if got := string(sttJob.GetArtifacts()[0].GetBytes()); got != "localai stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+}
+
+func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
+	imagePayload := []byte("litellm-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	videoPayload := []byte("litellm-video-bytes")
+	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	audioPayload := []byte("litellm-tts-audio")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_json": imageB64, "mime_type": "image/png"},
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/video/generations":
+			http.NotFound(w, r)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/videos/generations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_mp4": videoB64, "mime_type": "video/mp4"},
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioPayload)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "litellm stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudLiteLLMBaseURL: server.URL,
+	})
+
+	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "litellm/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "litellm image",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit litellm image job: %v", err)
+	}
+	imageJob := waitMediaJobTerminal(t, svc, imageResp.GetJob().GetJobId(), 3*time.Second)
+	if imageJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("image job status mismatch: %v", imageJob.GetStatus())
+	}
+	if got := string(imageJob.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+
+	videoResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "litellm/video-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "litellm video",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit litellm video job: %v", err)
+	}
+	videoJob := waitMediaJobTerminal(t, svc, videoResp.GetJob().GetJobId(), 3*time.Second)
+	if videoJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("video job status mismatch: %v", videoJob.GetStatus())
+	}
+	if got := string(videoJob.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
+		t.Fatalf("video payload mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+
+	ttsResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "litellm/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "litellm tts",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit litellm tts job: %v", err)
+	}
+	ttsJob := waitMediaJobTerminal(t, svc, ttsResp.GetJob().GetJobId(), 3*time.Second)
+	if ttsJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("tts job status mismatch: %v", ttsJob.GetStatus())
+	}
+	if got := string(ttsJob.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("tts payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+
+	sttResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "litellm/stt-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit litellm stt job: %v", err)
+	}
+	sttJob := waitMediaJobTerminal(t, svc, sttResp.GetJob().GetJobId(), 3*time.Second)
+	if sttJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("stt job status mismatch: %v", sttJob.GetStatus())
+	}
+	if got := string(sttJob.GetArtifacts()[0].GetBytes()); got != "litellm stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+}
+
+func TestSubmitMediaJobLiteLLMImageUnavailableMapsProviderUnavailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{
+					"message": "upstream unavailable",
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudLiteLLMBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "litellm/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "fail image",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit litellm unavailable job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobLiteLLMSTTTimeoutMapsProviderTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions" {
+			time.Sleep(300 * time.Millisecond)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "late transcribe",
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudLiteLLMBaseURL: server.URL,
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "litellm/stt-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     80,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit litellm stt timeout job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+	}
+}
+
+func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
+	imagePayload := []byte("nexa-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	audioPayload := []byte("nexa-tts-audio")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_json": imageB64, "mime_type": "image/png"},
+				},
+			})
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write(audioPayload)
+			return
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"text": "nexa stt text",
+			})
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalNexaBaseURL: server.URL,
+	})
+
+	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "nexa/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "nexa image",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit nexa image job: %v", err)
+	}
+	imageJob := waitMediaJobTerminal(t, svc, imageResp.GetJob().GetJobId(), 3*time.Second)
+	if imageJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("image job status mismatch: %v", imageJob.GetStatus())
+	}
+	if got := string(imageJob.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+
+	ttsResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "nexa/tts-1",
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: "nexa tts",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit nexa tts job: %v", err)
+	}
+	ttsJob := waitMediaJobTerminal(t, svc, ttsResp.GetJob().GetJobId(), 3*time.Second)
+	if ttsJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("tts job status mismatch: %v", ttsJob.GetStatus())
+	}
+	if got := string(ttsJob.GetArtifacts()[0].GetBytes()); got != string(audioPayload) {
+		t.Fatalf("tts payload mismatch: got=%q want=%q", got, string(audioPayload))
+	}
+
+	sttResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "nexa/stt-1",
+		Modal:         runtimev1.Modal_MODAL_STT,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: []byte("audio-bytes"),
+				MimeType:   "audio/wav",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit nexa stt job: %v", err)
+	}
+	sttJob := waitMediaJobTerminal(t, svc, sttResp.GetJob().GetJobId(), 3*time.Second)
+	if sttJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("stt job status mismatch: %v", sttJob.GetStatus())
+	}
+	if got := string(sttJob.GetArtifacts()[0].GetBytes()); got != "nexa stt text" {
+		t.Fatalf("stt text mismatch: got=%q", got)
+	}
+
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "nexa/video-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: "nexa video unsupported",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit nexa video job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+}
+
 func TestResolveGLMTaskPaths(t *testing.T) {
 	submitPath, queryPrefix := resolveGLMTaskPaths("https://open.bigmodel.cn")
 	if submitPath != "/api/paas/v4/videos/generations" || queryPrefix != "/api/paas/v4/async-result/" {
@@ -1121,6 +2760,21 @@ func TestResolveMediaAdapterNameGLMNative(t *testing.T) {
 	}
 	if adapter := resolveMediaAdapterName("zhipu/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO); adapter != adapterGLMTask {
 		t.Fatalf("glm video adapter mismatch: got=%s want=%s", adapter, adapterGLMTask)
+	}
+}
+
+func TestResolveMediaAdapterNameAlibabaAndBytedance(t *testing.T) {
+	if adapter := resolveMediaAdapterName("aliyun/wanx-v2", "wanx-v2", runtimev1.Modal_MODAL_IMAGE); adapter != adapterAlibabaNative {
+		t.Fatalf("alibaba image adapter mismatch: got=%s want=%s", adapter, adapterAlibabaNative)
+	}
+	if adapter := resolveMediaAdapterName("alibaba/wan2.2", "wan2.2", runtimev1.Modal_MODAL_VIDEO); adapter != adapterAlibabaNative {
+		t.Fatalf("alibaba video adapter mismatch: got=%s want=%s", adapter, adapterAlibabaNative)
+	}
+	if adapter := resolveMediaAdapterName("bytedance/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO); adapter != adapterBytedanceARKTask {
+		t.Fatalf("bytedance video adapter mismatch: got=%s want=%s", adapter, adapterBytedanceARKTask)
+	}
+	if adapter := resolveMediaAdapterName("byte/stt-1", "stt-1", runtimev1.Modal_MODAL_STT); adapter != adapterBytedanceOpenSpeech {
+		t.Fatalf("bytedance stt adapter mismatch: got=%s want=%s", adapter, adapterBytedanceOpenSpeech)
 	}
 }
 
