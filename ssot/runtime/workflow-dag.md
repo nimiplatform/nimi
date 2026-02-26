@@ -619,7 +619,7 @@ executor 收到 node
 
 ## 8. 版本策略
 
-### V1（当前 Gate）
+### V1（冻结基线）
 
 - `WorkflowEdge` 显式数据边
 - `WorkflowNodeType` enum 替代 freeform string
@@ -652,21 +652,23 @@ executor 收到 node
 
 ## 10. 发布门槛（补充 runtime/service-contract.md §11）
 
-已按 `@nimiplatform/nimi/runtime` 测试落地并通过（含 workflow/scriptworker 单测与合同测试）。
+`MUST`：发布候选前需完成 workflow/scriptworker 单测与合同测试，并在 `dev/report/*.md` 归档证据。
 
 注意：本节门槛是 DAG baseline。涉及外部 provider 异步任务编排（external async）时，必须额外通过 `ssot/runtime/multimodal-delivery-gates.md` 的 G4/G5/G7 门禁。
 
-- [x] `WorkflowEdge` 数据边校验测试通过（类型匹配、无环、slot 唯一性）
-- [x] 7 个 AI 节点类型 → `RuntimeAiService` RPC 映射测试通过
-- [x] `TRANSFORM_EXTRACT` JSONPath 提取测试通过
-- [x] `TRANSFORM_TEMPLATE` 模板渲染测试通过
-- [x] `CONTROL_BRANCH` 条件分支测试通过（true/false 路径、skipped 节点传播）
-- [x] `CONTROL_MERGE` 汇聚策略测试通过（ALL/ANY/N_OF_M）
-- [x] Starlark Script Worker 执行 + 沙箱约束测试通过（超时/内存/无 IO）
-- [x] Result Store 写入/读取/清理生命周期测试通过
-- [x] Artifact Store 写入/引用/清理生命周期测试通过
-- [x] 端到端 workflow 提交 → 执行 → 进度推送 → 完成测试通过
-- [x] Script Worker Protocol 合同测试通过（request/response schema）
+最小门槛：
+
+- `WorkflowEdge` 数据边校验（类型匹配、无环、slot 唯一性）
+- 7 个 AI 节点类型 -> `RuntimeAiService` RPC 映射
+- `TRANSFORM_EXTRACT` JSONPath 提取
+- `TRANSFORM_TEMPLATE` 模板渲染
+- `CONTROL_BRANCH` 条件分支（true/false 路径、skipped 节点传播）
+- `CONTROL_MERGE` 汇聚策略（ALL/ANY/N_OF_M）
+- Starlark Script Worker 执行 + 沙箱约束（超时/内存/无 IO）
+- Result Store 写入/读取/清理生命周期
+- Artifact Store 写入/引用/清理生命周期
+- 端到端 workflow 提交 -> 执行 -> 进度推送 -> 完成
+- Script Worker Protocol 合同（request/response schema）
 
 ## 11. 待定项
 

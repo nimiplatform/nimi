@@ -615,36 +615,38 @@ App 授权链路 reasonCode 最小集合：
 
 ## 11. 发布门槛（必填）
 
-已通过 `go run ./cmd/runtime-compliance --gate`（2026-02-24，23/23）。
+`MUST`：发布候选前必须通过 `go run ./cmd/runtime-compliance --gate`，并在 `dev/report/*.md` 归档对应证据。
 
 注意：
 
-1. 上述 `23/23` 为 runtime 基础门槛，不覆盖多厂商多模态完整兼容。
+1. runtime-compliance 仅覆盖 runtime 基础门槛，不覆盖多厂商多模态完整兼容。
 2. 任何多模态发布候选必须额外通过 `ssot/runtime/multimodal-delivery-gates.md` 的 G0-G7 全部门禁。
 
-- [x] gRPC schema 冻结并通过 breaking-change 检查
-- [x] strict-only 版本协商测试通过（跨 minor 拒绝、compatMode=strict 强校验）
-- [x] 鉴权与授权链路测试通过
-- [x] ExternalPrincipal -> App 授权链路测试通过（preset + custom）
-- [x] token 委托链路测试通过（subset + ttl + depth + cascade revoke）
-- [x] `delegate` preset 二次委托拒绝测试通过
-- [x] 资源级约束测试通过（resourceSelectors subset + out-of-scope deny）
-- [x] 同意证据链路测试通过（consent required + consent invalid deny）
-- [x] App 策略更新后 token 即时失效测试通过
-- [x] App mode 违规测试通过（domain/scope/worldRelation/manifest）
-- [x] App mode 违规 `actionHint` 映射测试通过
-- [x] `Generate/StreamGenerate` 请求响应 schema 测试通过
-- [x] 流事件 envelope 测试通过（started/delta/usage/completed/failed）
-- [x] AI 错误码映射测试通过（provider timeout/unavailable/filter/stream broken）
-- [x] AI 路由策略回归通过（explicit route + no silent fallback）
-- [x] 模型管理 contract tests 通过（pull/list/remove/health）
-- [x] 调用归因 metadata 回归通过（`callerKind/callerId/surfaceId`）
-- [x] `ListUsageStats` 口径一致性测试通过（desktop/mod/third-party）
-- [x] `GetRuntimeHealth/SubscribeRuntimeHealthEvents` 合同测试通过
-- [x] DAG 状态机测试通过
-- [x] GPU 仲裁回归测试通过
-- [x] 审计字段完整性测试通过
-- [x] local-runtime 与 token-api 路由回归通过
+基础门槛最小集合：
+
+- gRPC schema 冻结并通过 breaking-change 检查
+- strict-only 版本协商（跨 minor 拒绝、compatMode=strict 强校验）
+- 鉴权与授权链路
+- ExternalPrincipal -> App 授权链路（preset + custom）
+- token 委托链路（subset + ttl + depth + cascade revoke）
+- `delegate` preset 二次委托拒绝
+- 资源级约束（resourceSelectors subset + out-of-scope deny）
+- 同意证据链路（consent required + consent invalid deny）
+- App 策略更新后 token 即时失效
+- App mode 违规（domain/scope/worldRelation/manifest）
+- App mode 违规 `actionHint` 映射
+- `Generate/StreamGenerate` 请求响应 schema
+- 流事件 envelope（started/delta/usage/completed/failed）
+- AI 错误码映射（provider timeout/unavailable/filter/stream broken）
+- AI 路由策略（explicit route + no silent fallback）
+- 模型管理 contract（pull/list/remove/health）
+- 调用归因 metadata（`callerKind/callerId/surfaceId`）
+- `ListUsageStats` 口径一致性（desktop/mod/third-party）
+- `GetRuntimeHealth/SubscribeRuntimeHealthEvents` 合同
+- DAG 状态机
+- GPU 仲裁
+- 审计字段完整性
+- local-runtime 与 token-api 路由回归
 
 ## 12. 待定项（必填）
 

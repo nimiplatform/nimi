@@ -394,15 +394,14 @@ Codegen mod 必须进入与其他 mod 同一治理链事务，不允许“只 di
 
 ## 13. 发布门槛
 
-- [x] 端到端：描述 -> 生成 -> build -> install -> 可交互
-- [x] codegen mod 不再走旁路注册，完整进入 8 阶段治理链
-- [x] capability catalog 生效：T2 必拒绝，T1 必确认
-- [x] 权限拒绝后运行时调用 fail-close 且可审计
-- [x] 静态扫描可拦截禁用模式
-- [x] reload 无重复注册与资源泄漏
-- [x] 至少 3 个场景稳定可用（含“三年级数学题”）
-
-> REF-ERRATA (2026-02-25): §13 勾选状态已按 `apps/desktop/test/mod-codegen-*.test.ts` 与治理链实现更新。
+1. 端到端：描述 -> 生成 -> build -> install -> 可交互。
+2. codegen mod 不再走旁路注册，必须完整进入 8 阶段治理链。
+3. capability catalog 生效：T2 必拒绝，T1 必确认。
+4. 权限拒绝后运行时调用 fail-close 且可审计。
+5. 静态扫描可拦截禁用模式。
+6. reload 无重复注册与资源泄漏。
+7. 至少 3 个场景稳定可用（含“三年级数学题”）。
+8. 执行结果与证据归档必须写入 `dev/report/*`，不得在 SSOT 以勾选状态记录。
 
 ## 14. 待定项
 

@@ -22,7 +22,6 @@ rules:
 
 本文件定义 Runtime 在多厂商多模态（TTS/STT/Image/Video）上的统一合同，目标是让协议、SDK、Runtime、Workflow 与测试口径一致，避免“最小公共子集”长期固化为技术债。
 
-- 当前状态：`ACTIVE`
 - 用途：冻结“字段表达能力 + 异步任务语义 + provider 适配边界 + 验收标准”
 - 非目标：不定义 Desktop UI 交互稿，不定义厂商商业策略
 
@@ -217,17 +216,12 @@ rules:
 4. Kimi 图像多模态输出语义
 5. 其他未来 provider 的 task/WS 协议
 
-当前交付切面（R5）：
-
-1. R5 已纳入：Bytedance OpenSpeech（HTTP）、Gemini operation、MiniMax task
-2. R6 增量已纳入：Bytedance OpenSpeech STT WebSocket transport（audio chunk 流式提交）
-3. 后续待补：Kimi/GLM 专项 adapter
-
 要求：
 
 1. `provider_options` 只作为扩展，不替代 canonical 必填字段。
 2. 非兼容协议必须在 adapter 层封装，不污染统一 service 入口。
 3. 不可表达能力必须 fail-close，返回 `AI_ROUTE_UNSUPPORTED` + `action_hint`。
+4. 具体交付进度与轮次状态必须记录在 `dev/report/*.md`，不得内嵌到本合同。
 
 ## 8. Local Provider 合同（MUST）
 

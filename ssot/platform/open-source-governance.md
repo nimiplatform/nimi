@@ -54,87 +54,82 @@ rules:
 4. `MUST`：发布产物（runtime/sdk/proto/desktop）必须可由工作流复现。
 5. `MUST`：本文件先于实现变更更新；实现与文档不一致时以本文件为准并触发修正。
 
-## 2. 当前状态快照（2026-02-26）
+## 2. 治理缺口模型（Normative Backlog）
 
-### 2.1 已具备基础能力
+### 2.1 优先级模型
 
-| 维度 | 现状 | 证据 |
-|---|---|---|
-| 仓库治理基础 | 已有 `LICENSE`、`CODEOWNERS`、`CONTRIBUTING.md`、`SECURITY.md`、`CODE_OF_CONDUCT.md`、`DCO` | 根目录对应文件 |
-| Issue 模板 | 4 个模板（bug/feature/mod/security） | `.github/ISSUE_TEMPLATE/*` |
-| PR 模板 | 已有标准 checklist | `.github/PULL_REQUEST_TEMPLATE.md` |
-| 标签体系 | 24 个标签，覆盖组件/类型/优先级/尺寸 | `.github/labels.yml` |
-| 自动化工作流 | `ci`、`security`、`release-runtime`、`release`、`dco`、`auto-labeler`、`stale`、`actionlint`、`markdownlint` | `.github/workflows/*.yml` |
-| CI 门禁深度 | 主 CI 已拆分为多 job 并行拓扑（docs/static/sdk/runtime/desktop-security）+ 聚合 gate，含路径感知与 coverage gate | `.github/workflows/ci.yml` |
-| 文档站 | 已有 VitePress 文档工程 | `docs/.vitepress/` |
-| SSOT 机制 | frontmatter/traceability 已有自动检查 | `scripts/check-ssot-*.mjs` |
+| 优先级 | 语义 |
+|---|---|
+| P0 | 发布前阻断项（必须达标） |
+| P1 | 发布后 30 天内补齐项 |
+| P2 | 社区增长期持续优化项 |
 
-### 2.2 关键缺口（本地可验证）
+### 2.2 治理任务清单（合同层）
 
-| ID | 缺口 | 当前状态 | 优先级 |
+| ID | 治理目标 | 证据类型 | 优先级 |
 |---|---|---|---|
-| OSG-P0-01 | Dependabot 自动依赖升级 | 已新增 `.github/dependabot.yml`（待首轮 PR 验证） | P0 |
-| OSG-P0-02 | 机密与供应链安全基线（可复现） | 已新增 `security.yml` + `.secrets.baseline` + `cargo audit`（待首轮 PR 验证） | P0 |
-| OSG-P0-03 | 发布流水线自动化 | 已新增 `release.yml` + `release-runtime.yml`（待首轮 tag 验证） | P0 |
-| OSG-P0-04 | Go 二进制发布配置 | 已新增 `.goreleaser.yml` + `release-runtime.yml`（待首个 tag 验证） | P0 |
-| OSG-P0-05 | 覆盖率门槛与可视化 | 已新增 `check:sdk-coverage` + `check:runtime-go-coverage` 并接入 CI 阻断 | P0 |
-| OSG-P0-06 | CI 拓扑优化（并发/按变更范围执行） | 已完成多 job 并发 + `changes` 路径感知 + `js-contract` 聚合 gate | P0 |
-| OSG-P0-07 | 发布物签名与 SBOM | 已为 runtime/desktop 发布链路接入 keyless cosign 签名 + SBOM 生成 + verify/upload | P0 |
-| OSG-P1-01 | pre-commit hooks | 已新增 `.pre-commit-config.yaml` | P1 |
-| OSG-P1-02 | PR 安全影响评估模板 | 已补齐安全影响评估与回滚计划段落 | P1 |
-| OSG-P1-03 | Markdown lint 基线 | 已新增 `.markdownlint-cli2.jsonc` + `markdownlint.yml` workflow | P1 |
-| OSG-P1-04 | 开发环境变量样例 | 已新增根级 `.env.example` | P1 |
-| OSG-P1-05 | Workflow 自检（actionlint） | 已新增 `actionlint.yml` workflow | P1 |
-| OSG-P2-01 | 社区引导与资金页面 | 已新增 `.github/FUNDING.yml`、`.github/ISSUE_TEMPLATE/config.yml` | P2 |
-| OSG-P2-02 | 治理外显文档 | 已新增 `VISION.md`、`GOVERNANCE.md` | P2 |
-| OSG-P2-03 | 品牌与分发运营面 | 已补齐首轮自动欢迎（`first-interaction.yml`）；social preview/topics 仍待补齐 | P2 |
+| OSG-P0-01 | Dependabot 自动依赖升级 | workflow 运行记录 + PR 证据 | P0 |
+| OSG-P0-02 | 机密与供应链安全基线（可复现） | 安全 workflow 输出 + 基线文件 | P0 |
+| OSG-P0-03 | 发布流水线自动化 | tag 发布记录 + 产物可复现证据 | P0 |
+| OSG-P0-04 | Go 二进制发布配置 | 多平台产物 + checksum/signature 证据 | P0 |
+| OSG-P0-05 | 覆盖率门槛与可视化 | coverage gate 配置 + CI 阻断证据 | P0 |
+| OSG-P0-06 | CI 拓扑优化（并发/按变更范围执行） | workflow DAG + path-aware 执行证据 | P0 |
+| OSG-P0-07 | 发布物签名与 SBOM | SBOM + keyless signature + verify 证据 | P0 |
+| OSG-P1-01 | pre-commit hooks | pre-commit 配置 + 本地/CI 一致性证据 | P1 |
+| OSG-P1-02 | PR 安全影响评估模板 | 模板字段 + PR 样本证据 | P1 |
+| OSG-P1-03 | Markdown lint 基线 | lint 配置 + CI 门禁证据 | P1 |
+| OSG-P1-04 | 开发环境变量样例 | `.env.example` + 使用文档证据 | P1 |
+| OSG-P1-05 | Workflow 自检（actionlint） | actionlint workflow 证据 | P1 |
+| OSG-P2-01 | 社区引导与资金页面 | FUNDING + issue config 证据 | P2 |
+| OSG-P2-02 | 治理外显文档 | `VISION.md` + `GOVERNANCE.md` 证据 | P2 |
+| OSG-P2-03 | 品牌与分发运营面 | topics/social preview/欢迎流程证据 | P2 |
 
 ## 3. 对标 OpenClaw 的归一化结论
 
 ### 3.1 结论摘要
 
-1. Nimi 在“协议门禁、DCO、License 分层、SSOT 追踪”上具备明显结构化优势。
-2. Nimi 的主要短板不在“基础工程意识”，而在“开源运营工业化”能力：依赖治理、安全扫描、自动发布、CI 拓扑。
-3. 当前仓库已完成 P0 与 P1 基线；P2 主要剩余品牌运营面，可在社区增长期持续补齐。
+1. Nimi 在“协议门禁、DCO、License 分层、SSOT 追踪”上具备结构化优势。
+2. Nimi 的关键挑战集中在开源运营工业化：依赖治理、安全扫描、自动发布、CI 拓扑。
+3. 治理执行采用 `P0 -> P1 -> P2` 顺序收敛；每轮执行态证据统一归档到 `dev/report/*`。
 
 ### 3.2 归一化矩阵
 
-| 维度 | Benchmark 信号（OpenClaw） | Nimi 现状 | 判定 |
+| 维度 | Benchmark 信号（OpenClaw） | Nimi 合同目标 | 执行证据归档 |
 |---|---|---|---|
-| CI 结构 | 多 job + 矩阵 + scope 化 | 已完成多 job 并发与 path-aware 执行 | 已收敛（P0） |
-| 依赖治理 | 多生态 Dependabot | 已新增基础配置（待首轮 PR 验证） | 推进中（P0） |
-| 安全扫描 | secret/action 安全链路完备 | 已新增 detect-secrets + zizmor + cargo audit（待首轮 PR 验证） | 推进中（P0） |
-| 发布自动化 | npm/容器/客户端自动发布 | runtime/sdk/proto/desktop 自动发布工作流均已落地（待首轮 tag 验证） | 已落地（P0） |
-| 覆盖率治理 | 有阈值与趋势 | 已接入 runtime + sdk coverage 阻断 | 已收敛（P0） |
-| 社区模板 | issue/PR 与治理指南完整 | issue 强、PR 中等 | 可补齐（P1） |
-| 贡献者体验 | pre-commit + lint 体系 | pre-commit/markdownlint/actionlint 已接入 | 已收敛（P1） |
-| 社区运营 | funding/引导/自动回复 | funding、issue 引导与首轮自动欢迎已补齐；品牌展示项仍待补齐 | 推进中（P2） |
+| CI 结构 | 多 job + 矩阵 + scope 化 | 多 job 并发与 path-aware 执行可复现 | `dev/report/*` |
+| 依赖治理 | 多生态 Dependabot | 覆盖 npm/gomod/actions/docker 生态 | `dev/report/*` |
+| 安全扫描 | secret/action 安全链路完备 | secret + action + vuln 扫描可复现 | `dev/report/*` |
+| 发布自动化 | npm/容器/客户端自动发布 | runtime/sdk/proto/desktop 发布可复现 | `dev/report/*` |
+| 覆盖率治理 | 有阈值与趋势 | runtime + sdk 覆盖率门禁阻断 | `dev/report/*` |
+| 社区模板 | issue/PR 与治理指南完整 | issue/PR/governance 模板闭环 | `dev/report/*` |
+| 贡献者体验 | pre-commit + lint 体系 | 本地与 CI 质量工具链一致 | `dev/report/*` |
+| 社区运营 | funding/引导/自动回复 | funding/引导/品牌分发面可追踪 | `dev/report/*` |
 
 ## 4. 可执行补齐清单（按优先级）
 
 ### 4.1 Phase A（发布前必须完成，P0）
 
-- [x] `OSG-P0-01` 依赖自动化：已新增 `.github/dependabot.yml`，覆盖 `npm`、`gomod`、`github-actions`、`docker`。
-- [x] `OSG-P0-02` 安全基线：已新增 secret scanning 与 workflow 安全审计（`detect-secrets` + `zizmor`），并把 `cargo audit` 纳入 CI。
-- [x] `OSG-P0-03` 发布流水线：已新增 `.github/workflows/release.yml`，覆盖 sdk/proto/desktop；runtime 由 `release-runtime.yml` 覆盖（待首轮 tag 验证）。
-- [x] `OSG-P0-04` Runtime 发布配置：已新增 `.goreleaser.yml` 与 `.github/workflows/release-runtime.yml`，支持多平台二进制产物（待首个 tag 验证）。
-- [x] `OSG-P0-05` 覆盖率门禁：已为 runtime + sdk 核心包定义最低阈值并在 CI 阻断不达标变更（`check:sdk-coverage`, `check:runtime-go-coverage`）。
-- [x] `OSG-P0-06` CI 拓扑重构：已拆分为多 job，增加 `concurrency` 与路径感知，docs-only 变更默认跳过重型链路。
-- [x] `OSG-P0-07` 供应链发布门禁：runtime/desktop 发布产物已接入 `SBOM + keyless signature + verify + release upload`。
+1. `OSG-P0-01`：依赖自动化覆盖 `npm/gomod/github-actions/docker`。
+2. `OSG-P0-02`：安全基线覆盖 secret scanning + workflow 安全审计 + 漏洞审计。
+3. `OSG-P0-03`：发布流水线覆盖 `sdk/proto/desktop/runtime` 全链路。
+4. `OSG-P0-04`：runtime 多平台二进制发布可复现。
+5. `OSG-P0-05`：runtime + sdk 覆盖率门禁作为 CI hard gate。
+6. `OSG-P0-06`：CI 拓扑具备并发与路径感知执行能力。
+7. `OSG-P0-07`：发布链路具备 `SBOM + keyless signature + verify + upload`。
 
 ### 4.2 Phase B（发布后 30 天，P1）
 
-- [x] `OSG-P1-01` pre-commit：已新增 `.pre-commit-config.yaml`（空白字符、YAML、secret、基本 lint）。
-- [x] `OSG-P1-02` PR 模板增强：已增加安全影响评估、风险等级、失败恢复计划。
-- [x] `OSG-P1-03` Markdown lint：已新增 `.markdownlint-cli2.jsonc` 和 CI 校验（`markdownlint.yml`）。
-- [x] `OSG-P1-04` 环境样例：已新增 `.env.example`（变量说明与安全注释）。
-- [x] `OSG-P1-05` workflow lint：已新增 `actionlint.yml`。
+1. `OSG-P1-01`：pre-commit hooks 与 CI 规则保持一致。
+2. `OSG-P1-02`：PR 模板包含安全影响评估、风险等级、失败恢复计划。
+3. `OSG-P1-03`：Markdown lint 规则与 CI 门禁可重放。
+4. `OSG-P1-04`：开发环境变量样例完整并可追踪。
+5. `OSG-P1-05`：workflow lint（actionlint）纳入默认门禁。
 
 ### 4.3 Phase C（社区增长期，P2）
 
-- [x] `OSG-P2-01` 社区入口：已新增 `.github/FUNDING.yml` 与 `.github/ISSUE_TEMPLATE/config.yml`。
-- [x] `OSG-P2-02` 治理外显：已新增 `VISION.md` 与 `GOVERNANCE.md`。
-- [ ] `OSG-P2-03` 品牌运营：已完成自动回复/欢迎流程，待补齐 GitHub topics 与社交预览图。
+1. `OSG-P2-01`：社区入口（funding + issue config）完整。
+2. `OSG-P2-02`：治理外显（vision + governance）完整。
+3. `OSG-P2-03`：品牌与分发运营面（topics + social preview + welcome flow）完整。
 
 ## 5. 8-PR 落地路线（可直接执行）
 
@@ -208,18 +203,9 @@ This SSOT is continuously maintained from:
 ### 8.2 维护规则
 
 1. 新增或变更开源治理能力时，先改本文件，再改实现。
-2. P0/P1/P2 清单状态变更必须附带“证据文件或 workflow 链接”。
+2. P0/P1/P2 的执行状态与日期化证据必须记录到 `dev/report/*`，不得直接写入 SSOT。
 3. 本文件与 `docs/dev/release.md` 出现冲突时，以本文件为准并立即修正文档漂移。
 
 ### 8.3 Promotion Notes
 
-- REF-ERRATA (2026-02-25): consolidated strategy/checklist into one executable SSOT.
-- REF-ERRATA (2026-02-25): added benchmark-normalized, PR-based open-source readiness backlog (P0/P1/P2).
-- REF-ERRATA (2026-02-25): completed PR-03 baseline by adding `.goreleaser.yml` and `.github/workflows/release-runtime.yml` (tag-triggered runtime release).
-- REF-ERRATA (2026-02-25): completed PR-04 baseline by adding `.github/workflows/release.yml` and SDK/proto/desktop release automation runbook updates.
-- REF-ERRATA (2026-02-25): completed PR-05 by adding `check:sdk-coverage` + `check:runtime-go-coverage` and wiring both into CI hard gates.
-- REF-ERRATA (2026-02-25): completed PR-06 by splitting CI into parallel jobs with `changes` path detection and `js-contract` aggregate gate.
-- REF-ERRATA (2026-02-25): added runtime/desktop release supply-chain hard gate (`SBOM + keyless signature + verify + upload`).
-- REF-ERRATA (2026-02-26): completed PR-07 baseline by adding `.pre-commit-config.yaml`, `.markdownlint-cli2.jsonc`, `.env.example`, `.github/workflows/actionlint.yml`, `.github/workflows/markdownlint.yml`.
-- REF-ERRATA (2026-02-26): completed PR-08 baseline by adding `VISION.md`, `GOVERNANCE.md`, `.github/FUNDING.yml`, `.github/ISSUE_TEMPLATE/config.yml`, and PR template security/rollback sections.
-- REF-ERRATA (2026-02-26): added `.github/workflows/first-interaction.yml` as baseline contributor welcome automation (P2 partial closure).
+执行态历史（轮次、完成情况、证据链接）统一归档在 `dev/report/*`，本节仅保留规范性变更说明。

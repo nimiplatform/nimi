@@ -193,12 +193,6 @@ rules:
 4. `stream/non-stream`
 5. `success/unsupported/timeout/unavailable`
 
-本轮报告：
-
-1. `dev/report/runtime-multimodal-r5-2026-02-26.md`
-2. `dev/report/runtime-multimodal-r5-2026-02-26.evidence.md`
-3. 历史参考：`dev/report/runtime-multimodal-g3-g5-matrix-2026-02-26-r4.md`
-
 覆盖率门槛（必须上调）：
 
 1. Runtime service layer（`runtime/internal/services/...`）statements `>= 60%`
@@ -248,37 +242,16 @@ rules:
 1. 全部命令成功。
 2. 发布说明包含矩阵报告与已知限制。
 
-## 5. 迭代执行模板（每轮必填）
+## 5. 执行态记录归档（MUST）
 
-每次迭代必须更新以下模板：
+1. 迭代计划、完成状态、PASS/FAIL 快照、日期化证据必须写入 `dev/report/*.md` 或 `dev/plan/*.md`，不得直接写入 SSOT。
+2. 每轮 Gate 执行必须在 `dev/report` 产出两类文档：
+   - 结果摘要：`runtime-multimodal-<scope>-<date>.md`
+   - 证据明细：`runtime-multimodal-<scope>-<date>.evidence.md`
+3. 报告最小字段必须包含：`gate`、`status`、`commands`、`evidence paths`、`residual risks`。
+4. SSOT 仅保留“门禁定义与验收规则”，不保留任何“某日是否通过”的执行态结论。
 
-| Iteration | 目标 Gate | 计划完成日期 | 实际完成日期 | 未完成项 | 阻塞原因 | 下轮承接 |
-|---|---|---|---|---|---|---|
-| I1 | G1 + G2（协议与 SDK 映射） | 2026-02-26 | 2026-02-26 | 无 | 无 | I2 provider 实链 |
-| I2 | G3（provider 实链与 fail-close） | 2026-02-26 | 2026-02-26 | 无 | 无 | I3 async workflow + matrix |
-| I3 | G4 + G5（external-async + 矩阵 + coverage gate） | 2026-02-26 | 2026-02-26 | G6/G7 发布件待后续轮次 | 非本轮目标范围 | 发布候选与对外文档化 |
-| I4 | R5（协议完整性 + strict fail-close 收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 与 ByteDance WS 专线延后 | 明确非目标范围 | R6 provider 专项适配 |
-| I5 | R6-S1（ByteDance OpenSpeech STT WS transport） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S2 provider 扩展与可靠性增强 |
-| I6 | R6-S2（G6+G7 门禁收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 专项 adapter 待后续 | 范围控制 | R6-S3 provider 扩展 |
-| I7 | R6-S3（Kimi/GLM provider 扩展首批） | 2026-02-26 | 2026-02-26 | Kimi 图像 chat-multimodal 专用 adapter 待后续 | 范围控制 | R6-S4 Kimi 专项多模态 adapter |
-| I8 | R6-S4（Kimi image chat-multimodal adapter） | 2026-02-26 | 2026-02-26 | GLM 非视频模态专用 adapter 待后续 | 范围控制 | R6-S5 GLM 非视频模态适配 |
-| I9 | R6-S5（GLM 非视频模态专用 adapter） | 2026-02-26 | 2026-02-26 | 无 | 无 | 后续 provider 深化与观测增强 |
-| I10 | R6-S6（localruntime provider_hints 与 npu 字段闭环） | 2026-02-26 | 2026-02-26 | 无 | 无 | provider 实链联调深度提升 |
-
-## 6. 当前 Gate 状态快照（2026-02-26）
-
-| Gate | 状态 | 证据 |
-|---|---|---|
-| G0 | PASS | ssot 文档齐备且互引有效 |
-| G1 | PASS | `buf lint/breaking/generate` 全绿 |
-| G2 | PASS | SDK build/test 通过，canonical 字段映射就绪 |
-| G3 | PASS | LocalAI/Nexa/LiteLLM + custom adapter 路径可调用，media fail-close 生效 |
-| G4 | PASS | external-async submit/poll/cancel/event 闭环通过 |
-| G5 | PASS | 覆盖率门禁通过，矩阵与证据文档归档 |
-| G6 | PASS | `dev/report/runtime-multimodal-g6-g7-2026-02-26.md` + evidence |
-| G7 | PASS | `go test ./...` + compliance + runtime/sdk coverage 全绿 |
-
-## 7. 变更控制（MUST）
+## 6. 变更控制（MUST）
 
 1. 任何“降门槛”变更必须单独 PR 并说明风险。
 2. 新增 provider 必须补齐本文件 Gate 证据，不允许“先接入后补测试”。

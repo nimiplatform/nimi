@@ -665,28 +665,19 @@ catalog 规则：
 
 ## 9. 冻结检查清单（必填）
 
-- [x] 六原语字段冻结
-- [x] 错误码冻结
-- [x] 版本协商策略冻结
-- [x] 能力画像 schema 冻结
-- [x] 固定参与方 `capabilityProfileRef` 冻结
-- [x] scope catalog 自动生成管线冻结
-- [x] App 授权策略 schema 冻结（preset/custom 同模型）
-- [x] World-App 绑定 schema 冻结（render/extension + 1:1）
-- [x] token 委托约束冻结（depth/ttl/subset）
-- [x] L0/L1/L2 合规门槛冻结
-- [x] 合规测试入口冻结
-- [x] 审计事件字典冻结
-
-> REF-ERRATA (2026-02-25): §9 冻结清单全量更新为已冻结。依据：
-> 六原语字段由 proto `buf breaking` 门禁保障冻结；错误码由 runtime-compliance 23/23 gate 覆盖；
-> 版本协商策略由 L0 envelope metadata 字段固定；能力画像 schema 由 runtime proto CapabilityProfile 冻结；
-> scope catalog 由 `check:scope-catalog-drift` + `generate-scope-catalog.mjs` 自动管线保障；
-> App 授权策略由 proto AppPolicy 字段集固定（preset/custom 同模型）；
-> World-App 绑定由 proto WorldAppBinding 冻结（render/extension + 1:1）；
-> token 委托约束由 proto DelegationConstraints 冻结（depth/ttl/subset）；
-> L0/L1/L2 合规门槛由 `runtime-compliance --gate` 保障；合规测试入口由 CI 集成固定；
-> 审计事件字典由 runtime AuditService + proto AuditEvent 冻结。
+1. 六原语字段冻结。
+2. 错误码冻结。
+3. 版本协商策略冻结。
+4. 能力画像 schema 冻结。
+5. 固定参与方 `capabilityProfileRef` 冻结。
+6. scope catalog 自动生成管线冻结。
+7. App 授权策略 schema 冻结（preset/custom 同模型）。
+8. World-App 绑定 schema 冻结（render/extension + 1:1）。
+9. token 委托约束冻结（depth/ttl/subset）。
+10. L0/L1/L2 合规门槛冻结。
+11. 合规测试入口冻结。
+12. 审计事件字典冻结。
+13. 执行结果与证据归档必须写入 `dev/report/*`，不得在 SSOT 以勾选状态记录。
 
 ## 10. 决策收敛（必填）
 
