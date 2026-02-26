@@ -16,6 +16,47 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { ReasonCode } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
+ * @generated from protobuf message nimi.runtime.v1.ModelCapabilityProfile
+ */
+export interface ModelCapabilityProfile {
+    /**
+     * @generated from protobuf field: bool supports_text_generate = 1
+     */
+    supportsTextGenerate: boolean;
+    /**
+     * @generated from protobuf field: bool supports_text_stream = 2
+     */
+    supportsTextStream: boolean;
+    /**
+     * @generated from protobuf field: bool supports_embedding = 3
+     */
+    supportsEmbedding: boolean;
+    /**
+     * @generated from protobuf field: bool supports_image_generation = 4
+     */
+    supportsImageGeneration: boolean;
+    /**
+     * @generated from protobuf field: bool supports_video_generation = 5
+     */
+    supportsVideoGeneration: boolean;
+    /**
+     * @generated from protobuf field: bool supports_speech_synthesis = 6
+     */
+    supportsSpeechSynthesis: boolean;
+    /**
+     * @generated from protobuf field: bool supports_speech_transcription = 7
+     */
+    supportsSpeechTranscription: boolean;
+    /**
+     * @generated from protobuf field: bool supports_async_media_job = 8
+     */
+    supportsAsyncMediaJob: boolean;
+    /**
+     * @generated from protobuf field: bool supports_streaming = 9
+     */
+    supportsStreaming: boolean;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ModelDescriptor
  */
 export interface ModelDescriptor {
@@ -39,6 +80,10 @@ export interface ModelDescriptor {
      * @generated from protobuf field: google.protobuf.Timestamp last_health_at = 5
      */
     lastHealthAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelCapabilityProfile capability_profile = 6
+     */
+    capabilityProfile?: ModelCapabilityProfile;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListModelsRequest
@@ -157,6 +202,117 @@ export enum ModelStatus {
     REMOVED = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
+class ModelCapabilityProfile$Type extends MessageType<ModelCapabilityProfile> {
+    constructor() {
+        super("nimi.runtime.v1.ModelCapabilityProfile", [
+            { no: 1, name: "supports_text_generate", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "supports_text_stream", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "supports_embedding", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "supports_image_generation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "supports_video_generation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "supports_speech_synthesis", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "supports_speech_transcription", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "supports_async_media_job", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "supports_streaming", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ModelCapabilityProfile>): ModelCapabilityProfile {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.supportsTextGenerate = false;
+        message.supportsTextStream = false;
+        message.supportsEmbedding = false;
+        message.supportsImageGeneration = false;
+        message.supportsVideoGeneration = false;
+        message.supportsSpeechSynthesis = false;
+        message.supportsSpeechTranscription = false;
+        message.supportsAsyncMediaJob = false;
+        message.supportsStreaming = false;
+        if (value !== undefined)
+            reflectionMergePartial<ModelCapabilityProfile>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelCapabilityProfile): ModelCapabilityProfile {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool supports_text_generate */ 1:
+                    message.supportsTextGenerate = reader.bool();
+                    break;
+                case /* bool supports_text_stream */ 2:
+                    message.supportsTextStream = reader.bool();
+                    break;
+                case /* bool supports_embedding */ 3:
+                    message.supportsEmbedding = reader.bool();
+                    break;
+                case /* bool supports_image_generation */ 4:
+                    message.supportsImageGeneration = reader.bool();
+                    break;
+                case /* bool supports_video_generation */ 5:
+                    message.supportsVideoGeneration = reader.bool();
+                    break;
+                case /* bool supports_speech_synthesis */ 6:
+                    message.supportsSpeechSynthesis = reader.bool();
+                    break;
+                case /* bool supports_speech_transcription */ 7:
+                    message.supportsSpeechTranscription = reader.bool();
+                    break;
+                case /* bool supports_async_media_job */ 8:
+                    message.supportsAsyncMediaJob = reader.bool();
+                    break;
+                case /* bool supports_streaming */ 9:
+                    message.supportsStreaming = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ModelCapabilityProfile, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool supports_text_generate = 1; */
+        if (message.supportsTextGenerate !== false)
+            writer.tag(1, WireType.Varint).bool(message.supportsTextGenerate);
+        /* bool supports_text_stream = 2; */
+        if (message.supportsTextStream !== false)
+            writer.tag(2, WireType.Varint).bool(message.supportsTextStream);
+        /* bool supports_embedding = 3; */
+        if (message.supportsEmbedding !== false)
+            writer.tag(3, WireType.Varint).bool(message.supportsEmbedding);
+        /* bool supports_image_generation = 4; */
+        if (message.supportsImageGeneration !== false)
+            writer.tag(4, WireType.Varint).bool(message.supportsImageGeneration);
+        /* bool supports_video_generation = 5; */
+        if (message.supportsVideoGeneration !== false)
+            writer.tag(5, WireType.Varint).bool(message.supportsVideoGeneration);
+        /* bool supports_speech_synthesis = 6; */
+        if (message.supportsSpeechSynthesis !== false)
+            writer.tag(6, WireType.Varint).bool(message.supportsSpeechSynthesis);
+        /* bool supports_speech_transcription = 7; */
+        if (message.supportsSpeechTranscription !== false)
+            writer.tag(7, WireType.Varint).bool(message.supportsSpeechTranscription);
+        /* bool supports_async_media_job = 8; */
+        if (message.supportsAsyncMediaJob !== false)
+            writer.tag(8, WireType.Varint).bool(message.supportsAsyncMediaJob);
+        /* bool supports_streaming = 9; */
+        if (message.supportsStreaming !== false)
+            writer.tag(9, WireType.Varint).bool(message.supportsStreaming);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelCapabilityProfile
+ */
+export const ModelCapabilityProfile = new ModelCapabilityProfile$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
     constructor() {
         super("nimi.runtime.v1.ModelDescriptor", [
@@ -164,7 +320,8 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
             { no: 2, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ModelStatus", ModelStatus, "MODEL_STATUS_"] },
             { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "last_health_at", kind: "message", T: () => Timestamp }
+            { no: 5, name: "last_health_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "capability_profile", kind: "message", T: () => ModelCapabilityProfile }
         ]);
     }
     create(value?: PartialMessage<ModelDescriptor>): ModelDescriptor {
@@ -197,6 +354,9 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
                 case /* google.protobuf.Timestamp last_health_at */ 5:
                     message.lastHealthAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastHealthAt);
                     break;
+                case /* nimi.runtime.v1.ModelCapabilityProfile capability_profile */ 6:
+                    message.capabilityProfile = ModelCapabilityProfile.internalBinaryRead(reader, reader.uint32(), options, message.capabilityProfile);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -224,6 +384,9 @@ class ModelDescriptor$Type extends MessageType<ModelDescriptor> {
         /* google.protobuf.Timestamp last_health_at = 5; */
         if (message.lastHealthAt)
             Timestamp.internalBinaryWrite(message.lastHealthAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ModelCapabilityProfile capability_profile = 6; */
+        if (message.capabilityProfile)
+            ModelCapabilityProfile.internalBinaryWrite(message.capabilityProfile, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -2,7 +2,7 @@
 title: Nimi Runtime Proto Contract
 status: FROZEN
 created_at: 2026-02-24
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
@@ -117,3 +117,4 @@ rules:
 ## 8. 变更记录
 
 - `2026-02-26`：从“SSOT 内嵌 proto 草案”重构为“proto-first 治理合同”；移除并行 schema 定义。
+- `2026-02-27`：R5 协议完整性收敛：扩展 canonical 多模态字段、`SubmitMediaJob` 幂等元数据、`WorkflowNode` 外部异步恢复语义与 `ModelCapabilityProfile`。

@@ -195,7 +195,10 @@ message ImageGenerationSpec {
   string quality = 6;
   string style = 7;
   int64 seed = 8;
+  repeated string reference_images = 9;
   google.protobuf.Struct provider_options = 10;
+  string mask = 11;
+  string response_format = 12;
 }
 
 message VideoGenerationSpec {
@@ -221,18 +224,33 @@ message SpeechSynthesisSpec {
   float speed = 6;
   float pitch = 7;
   float volume = 8;
+  string emotion = 9;
   google.protobuf.Struct provider_options = 20;
 }
 
+message AudioChunks {
+  repeated bytes chunks = 1;
+}
+
+message SpeechTranscriptionAudioSource {
+  oneof source {
+    bytes audio_bytes = 1;
+    string audio_uri = 2;
+    AudioChunks audio_chunks = 3;
+  }
+}
+
 message SpeechTranscriptionSpec {
-  bytes audio_bytes = 1;
-  string audio_uri = 2;
+  bytes audio_bytes = 1 [deprecated = true];
+  string audio_uri = 2 [deprecated = true];
   string mime_type = 3;
   string language = 4;
   bool timestamps = 5;
   bool diarization = 6;
   int32 speaker_count = 7;
   string prompt = 8;
+  SpeechTranscriptionAudioSource audio_source = 9;
+  string response_format = 10;
   google.protobuf.Struct provider_options = 20;
 }
 
@@ -283,6 +301,9 @@ message SubmitMediaJobRequest {
   RoutePolicy route_policy = 5;
   FallbackPolicy fallback = 6;
   int32 timeout_ms = 7;
+  string request_id = 8;
+  string idempotency_key = 9;
+  map<string, string> labels = 10;
   oneof spec {
     ImageGenerationSpec image_spec = 20;
     VideoGenerationSpec video_spec = 21;
@@ -404,8 +425,20 @@ service RuntimeAiService {
   rpc CancelMediaJob(CancelMediaJobRequest) returns (CancelMediaJobResponse);
   rpc SubscribeMediaJobEvents(SubscribeMediaJobEventsRequest) returns (stream MediaJobEvent);
   rpc GetMediaArtifacts(GetMediaArtifactsRequest) returns (GetMediaArtifactsResponse);
-  rpc GenerateImage(GenerateImageRequest) returns (stream ArtifactChunk);
-  rpc GenerateVideo(GenerateVideoRequest) returns (stream ArtifactChunk);
-  rpc SynthesizeSpeech(SynthesizeSpeechRequest) returns (stream ArtifactChunk);
-  rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse);
+  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+  rpc GenerateImage(GenerateImageRequest) returns (stream ArtifactChunk) {
+    option deprecated = true;
+  }
+  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+  rpc GenerateVideo(GenerateVideoRequest) returns (stream ArtifactChunk) {
+    option deprecated = true;
+  }
+  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+  rpc SynthesizeSpeech(SynthesizeSpeechRequest) returns (stream ArtifactChunk) {
+    option deprecated = true;
+  }
+  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+  rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse) {
+    option deprecated = true;
+  }
 }

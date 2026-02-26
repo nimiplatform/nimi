@@ -45,9 +45,17 @@ type RuntimeAiServiceClient interface {
 	CancelMediaJob(ctx context.Context, in *CancelMediaJobRequest, opts ...grpc.CallOption) (*CancelMediaJobResponse, error)
 	SubscribeMediaJobEvents(ctx context.Context, in *SubscribeMediaJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MediaJobEvent], error)
 	GetMediaArtifacts(ctx context.Context, in *GetMediaArtifactsRequest, opts ...grpc.CallOption) (*GetMediaArtifactsResponse, error)
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	GenerateVideo(ctx context.Context, in *GenerateVideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	SynthesizeSpeech(ctx context.Context, in *SynthesizeSpeechRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	TranscribeAudio(ctx context.Context, in *TranscribeAudioRequest, opts ...grpc.CallOption) (*TranscribeAudioResponse, error)
 }
 
@@ -157,6 +165,7 @@ func (c *runtimeAiServiceClient) GetMediaArtifacts(ctx context.Context, in *GetM
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *runtimeAiServiceClient) GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_GenerateImage_FullMethodName, cOpts...)
@@ -176,6 +185,7 @@ func (c *runtimeAiServiceClient) GenerateImage(ctx context.Context, in *Generate
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_GenerateImageClient = grpc.ServerStreamingClient[ArtifactChunk]
 
+// Deprecated: Do not use.
 func (c *runtimeAiServiceClient) GenerateVideo(ctx context.Context, in *GenerateVideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[3], RuntimeAiService_GenerateVideo_FullMethodName, cOpts...)
@@ -195,6 +205,7 @@ func (c *runtimeAiServiceClient) GenerateVideo(ctx context.Context, in *Generate
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_GenerateVideoClient = grpc.ServerStreamingClient[ArtifactChunk]
 
+// Deprecated: Do not use.
 func (c *runtimeAiServiceClient) SynthesizeSpeech(ctx context.Context, in *SynthesizeSpeechRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[4], RuntimeAiService_SynthesizeSpeech_FullMethodName, cOpts...)
@@ -214,6 +225,7 @@ func (c *runtimeAiServiceClient) SynthesizeSpeech(ctx context.Context, in *Synth
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_SynthesizeSpeechClient = grpc.ServerStreamingClient[ArtifactChunk]
 
+// Deprecated: Do not use.
 func (c *runtimeAiServiceClient) TranscribeAudio(ctx context.Context, in *TranscribeAudioRequest, opts ...grpc.CallOption) (*TranscribeAudioResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TranscribeAudioResponse)
@@ -236,9 +248,17 @@ type RuntimeAiServiceServer interface {
 	CancelMediaJob(context.Context, *CancelMediaJobRequest) (*CancelMediaJobResponse, error)
 	SubscribeMediaJobEvents(*SubscribeMediaJobEventsRequest, grpc.ServerStreamingServer[MediaJobEvent]) error
 	GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error)
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	GenerateImage(*GenerateImageRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	GenerateVideo(*GenerateVideoRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	SynthesizeSpeech(*SynthesizeSpeechRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
+	// Deprecated: Do not use.
+	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
 	TranscribeAudio(context.Context, *TranscribeAudioRequest) (*TranscribeAudioResponse, error)
 }
 

@@ -424,9 +424,21 @@ export interface ImageGenerationSpec {
      */
     seed: string;
     /**
+     * @generated from protobuf field: repeated string reference_images = 9
+     */
+    referenceImages: string[];
+    /**
      * @generated from protobuf field: google.protobuf.Struct provider_options = 10
      */
     providerOptions?: Struct;
+    /**
+     * @generated from protobuf field: string mask = 11
+     */
+    mask: string;
+    /**
+     * @generated from protobuf field: string response_format = 12
+     */
+    responseFormat: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerationSpec
@@ -514,20 +526,64 @@ export interface SpeechSynthesisSpec {
      */
     volume: number;
     /**
+     * @generated from protobuf field: string emotion = 9
+     */
+    emotion: string;
+    /**
      * @generated from protobuf field: google.protobuf.Struct provider_options = 20
      */
     providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AudioChunks
+ */
+export interface AudioChunks {
+    /**
+     * @generated from protobuf field: repeated bytes chunks = 1
+     */
+    chunks: Uint8Array[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechTranscriptionAudioSource
+ */
+export interface SpeechTranscriptionAudioSource {
+    /**
+     * @generated from protobuf oneof: source
+     */
+    source: {
+        oneofKind: "audioBytes";
+        /**
+         * @generated from protobuf field: bytes audio_bytes = 1
+         */
+        audioBytes: Uint8Array;
+    } | {
+        oneofKind: "audioUri";
+        /**
+         * @generated from protobuf field: string audio_uri = 2
+         */
+        audioUri: string;
+    } | {
+        oneofKind: "audioChunks";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioChunks audio_chunks = 3
+         */
+        audioChunks: AudioChunks;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SpeechTranscriptionSpec
  */
 export interface SpeechTranscriptionSpec {
     /**
-     * @generated from protobuf field: bytes audio_bytes = 1
+     * @deprecated
+     * @generated from protobuf field: bytes audio_bytes = 1 [deprecated = true]
      */
     audioBytes: Uint8Array;
     /**
-     * @generated from protobuf field: string audio_uri = 2
+     * @deprecated
+     * @generated from protobuf field: string audio_uri = 2 [deprecated = true]
      */
     audioUri: string;
     /**
@@ -554,6 +610,14 @@ export interface SpeechTranscriptionSpec {
      * @generated from protobuf field: string prompt = 8
      */
     prompt: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source = 9
+     */
+    audioSource?: SpeechTranscriptionAudioSource;
+    /**
+     * @generated from protobuf field: string response_format = 10
+     */
+    responseFormat: string;
     /**
      * @generated from protobuf field: google.protobuf.Struct provider_options = 20
      */
@@ -733,6 +797,20 @@ export interface SubmitMediaJobRequest {
      * @generated from protobuf field: int32 timeout_ms = 7
      */
     timeoutMs: number;
+    /**
+     * @generated from protobuf field: string request_id = 8
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string idempotency_key = 9
+     */
+    idempotencyKey: string;
+    /**
+     * @generated from protobuf field: map<string, string> labels = 10
+     */
+    labels: {
+        [key: string]: string;
+    };
     /**
      * @generated from protobuf oneof: spec
      */
@@ -2408,7 +2486,10 @@ class ImageGenerationSpec$Type extends MessageType<ImageGenerationSpec> {
             { no: 6, name: "quality", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "style", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 10, name: "provider_options", kind: "message", T: () => Struct }
+            { no: 9, name: "reference_images", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "provider_options", kind: "message", T: () => Struct },
+            { no: 11, name: "mask", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ImageGenerationSpec>): ImageGenerationSpec {
@@ -2421,6 +2502,9 @@ class ImageGenerationSpec$Type extends MessageType<ImageGenerationSpec> {
         message.quality = "";
         message.style = "";
         message.seed = "0";
+        message.referenceImages = [];
+        message.mask = "";
+        message.responseFormat = "";
         if (value !== undefined)
             reflectionMergePartial<ImageGenerationSpec>(this, message, value);
         return message;
@@ -2454,8 +2538,17 @@ class ImageGenerationSpec$Type extends MessageType<ImageGenerationSpec> {
                 case /* int64 seed */ 8:
                     message.seed = reader.int64().toString();
                     break;
+                case /* repeated string reference_images */ 9:
+                    message.referenceImages.push(reader.string());
+                    break;
                 case /* google.protobuf.Struct provider_options */ 10:
                     message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                case /* string mask */ 11:
+                    message.mask = reader.string();
+                    break;
+                case /* string response_format */ 12:
+                    message.responseFormat = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2493,9 +2586,18 @@ class ImageGenerationSpec$Type extends MessageType<ImageGenerationSpec> {
         /* int64 seed = 8; */
         if (message.seed !== "0")
             writer.tag(8, WireType.Varint).int64(message.seed);
+        /* repeated string reference_images = 9; */
+        for (let i = 0; i < message.referenceImages.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.referenceImages[i]);
         /* google.protobuf.Struct provider_options = 10; */
         if (message.providerOptions)
             Struct.internalBinaryWrite(message.providerOptions, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* string mask = 11; */
+        if (message.mask !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.mask);
+        /* string response_format = 12; */
+        if (message.responseFormat !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.responseFormat);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2644,6 +2746,7 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
             { no: 6, name: "speed", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 7, name: "pitch", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 8, name: "volume", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 9, name: "emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "provider_options", kind: "message", T: () => Struct }
         ]);
     }
@@ -2657,6 +2760,7 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
         message.speed = 0;
         message.pitch = 0;
         message.volume = 0;
+        message.emotion = "";
         if (value !== undefined)
             reflectionMergePartial<SpeechSynthesisSpec>(this, message, value);
         return message;
@@ -2689,6 +2793,9 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
                     break;
                 case /* float volume */ 8:
                     message.volume = reader.float();
+                    break;
+                case /* string emotion */ 9:
+                    message.emotion = reader.string();
                     break;
                 case /* google.protobuf.Struct provider_options */ 20:
                     message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
@@ -2729,6 +2836,9 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
         /* float volume = 8; */
         if (message.volume !== 0)
             writer.tag(8, WireType.Bit32).float(message.volume);
+        /* string emotion = 9; */
+        if (message.emotion !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.emotion);
         /* google.protobuf.Struct provider_options = 20; */
         if (message.providerOptions)
             Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
@@ -2743,6 +2853,123 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
  */
 export const SpeechSynthesisSpec = new SpeechSynthesisSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AudioChunks$Type extends MessageType<AudioChunks> {
+    constructor() {
+        super("nimi.runtime.v1.AudioChunks", [
+            { no: 1, name: "chunks", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AudioChunks>): AudioChunks {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.chunks = [];
+        if (value !== undefined)
+            reflectionMergePartial<AudioChunks>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioChunks): AudioChunks {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated bytes chunks */ 1:
+                    message.chunks.push(reader.bytes());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioChunks, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated bytes chunks = 1; */
+        for (let i = 0; i < message.chunks.length; i++)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.chunks[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioChunks
+ */
+export const AudioChunks = new AudioChunks$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechTranscriptionAudioSource$Type extends MessageType<SpeechTranscriptionAudioSource> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechTranscriptionAudioSource", [
+            { no: 1, name: "audio_bytes", kind: "scalar", oneof: "source", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "audio_uri", kind: "scalar", oneof: "source", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "audio_chunks", kind: "message", oneof: "source", T: () => AudioChunks }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechTranscriptionAudioSource>): SpeechTranscriptionAudioSource {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.source = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<SpeechTranscriptionAudioSource>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechTranscriptionAudioSource): SpeechTranscriptionAudioSource {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes audio_bytes */ 1:
+                    message.source = {
+                        oneofKind: "audioBytes",
+                        audioBytes: reader.bytes()
+                    };
+                    break;
+                case /* string audio_uri */ 2:
+                    message.source = {
+                        oneofKind: "audioUri",
+                        audioUri: reader.string()
+                    };
+                    break;
+                case /* nimi.runtime.v1.AudioChunks audio_chunks */ 3:
+                    message.source = {
+                        oneofKind: "audioChunks",
+                        audioChunks: AudioChunks.internalBinaryRead(reader, reader.uint32(), options, (message.source as any).audioChunks)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechTranscriptionAudioSource, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes audio_bytes = 1; */
+        if (message.source.oneofKind === "audioBytes")
+            writer.tag(1, WireType.LengthDelimited).bytes(message.source.audioBytes);
+        /* string audio_uri = 2; */
+        if (message.source.oneofKind === "audioUri")
+            writer.tag(2, WireType.LengthDelimited).string(message.source.audioUri);
+        /* nimi.runtime.v1.AudioChunks audio_chunks = 3; */
+        if (message.source.oneofKind === "audioChunks")
+            AudioChunks.internalBinaryWrite(message.source.audioChunks, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechTranscriptionAudioSource
+ */
+export const SpeechTranscriptionAudioSource = new SpeechTranscriptionAudioSource$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> {
     constructor() {
         super("nimi.runtime.v1.SpeechTranscriptionSpec", [
@@ -2754,6 +2981,8 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
             { no: 6, name: "diarization", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "speaker_count", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 8, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "audio_source", kind: "message", T: () => SpeechTranscriptionAudioSource },
+            { no: 10, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "provider_options", kind: "message", T: () => Struct }
         ]);
     }
@@ -2767,6 +2996,7 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
         message.diarization = false;
         message.speakerCount = 0;
         message.prompt = "";
+        message.responseFormat = "";
         if (value !== undefined)
             reflectionMergePartial<SpeechTranscriptionSpec>(this, message, value);
         return message;
@@ -2776,10 +3006,10 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* bytes audio_bytes */ 1:
+                case /* bytes audio_bytes = 1 [deprecated = true] */ 1:
                     message.audioBytes = reader.bytes();
                     break;
-                case /* string audio_uri */ 2:
+                case /* string audio_uri = 2 [deprecated = true] */ 2:
                     message.audioUri = reader.string();
                     break;
                 case /* string mime_type */ 3:
@@ -2800,6 +3030,12 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
                 case /* string prompt */ 8:
                     message.prompt = reader.string();
                     break;
+                case /* nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source */ 9:
+                    message.audioSource = SpeechTranscriptionAudioSource.internalBinaryRead(reader, reader.uint32(), options, message.audioSource);
+                    break;
+                case /* string response_format */ 10:
+                    message.responseFormat = reader.string();
+                    break;
                 case /* google.protobuf.Struct provider_options */ 20:
                     message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
                     break;
@@ -2815,10 +3051,10 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
         return message;
     }
     internalBinaryWrite(message: SpeechTranscriptionSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bytes audio_bytes = 1; */
+        /* bytes audio_bytes = 1 [deprecated = true]; */
         if (message.audioBytes.length)
             writer.tag(1, WireType.LengthDelimited).bytes(message.audioBytes);
-        /* string audio_uri = 2; */
+        /* string audio_uri = 2 [deprecated = true]; */
         if (message.audioUri !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.audioUri);
         /* string mime_type = 3; */
@@ -2839,6 +3075,12 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
         /* string prompt = 8; */
         if (message.prompt !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.prompt);
+        /* nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source = 9; */
+        if (message.audioSource)
+            SpeechTranscriptionAudioSource.internalBinaryWrite(message.audioSource, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* string response_format = 10; */
+        if (message.responseFormat !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.responseFormat);
         /* google.protobuf.Struct provider_options = 20; */
         if (message.providerOptions)
             Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
@@ -3199,6 +3441,9 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
             { no: 5, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 6, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
             { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "idempotency_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "labels", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 20, name: "image_spec", kind: "message", oneof: "spec", T: () => ImageGenerationSpec },
             { no: 21, name: "video_spec", kind: "message", oneof: "spec", T: () => VideoGenerationSpec },
             { no: 22, name: "speech_spec", kind: "message", oneof: "spec", T: () => SpeechSynthesisSpec },
@@ -3214,6 +3459,9 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
         message.routePolicy = 0;
         message.fallback = 0;
         message.timeoutMs = 0;
+        message.requestId = "";
+        message.idempotencyKey = "";
+        message.labels = {};
         message.spec = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<SubmitMediaJobRequest>(this, message, value);
@@ -3244,6 +3492,15 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
                     break;
                 case /* int32 timeout_ms */ 7:
                     message.timeoutMs = reader.int32();
+                    break;
+                case /* string request_id */ 8:
+                    message.requestId = reader.string();
+                    break;
+                case /* string idempotency_key */ 9:
+                    message.idempotencyKey = reader.string();
+                    break;
+                case /* map<string, string> labels */ 10:
+                    this.binaryReadMap10(message.labels, reader, options);
                     break;
                 case /* nimi.runtime.v1.ImageGenerationSpec image_spec */ 20:
                     message.spec = {
@@ -3280,6 +3537,22 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
         }
         return message;
     }
+    private binaryReadMap10(map: SubmitMediaJobRequest["labels"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof SubmitMediaJobRequest["labels"] | undefined, val: SubmitMediaJobRequest["labels"][any] | undefined;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = reader.string();
+                    break;
+                case 2:
+                    val = reader.string();
+                    break;
+                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.SubmitMediaJobRequest.labels");
+            }
+        }
+        map[key ?? ""] = val ?? "";
+    }
     internalBinaryWrite(message: SubmitMediaJobRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string app_id = 1; */
         if (message.appId !== "")
@@ -3302,6 +3575,15 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
         /* int32 timeout_ms = 7; */
         if (message.timeoutMs !== 0)
             writer.tag(7, WireType.Varint).int32(message.timeoutMs);
+        /* string request_id = 8; */
+        if (message.requestId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.requestId);
+        /* string idempotency_key = 9; */
+        if (message.idempotencyKey !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.idempotencyKey);
+        /* map<string, string> labels = 10; */
+        for (let k of globalThis.Object.keys(message.labels))
+            writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.labels[k]).join();
         /* nimi.runtime.v1.ImageGenerationSpec image_spec = 20; */
         if (message.spec.oneofKind === "imageSpec")
             ImageGenerationSpec.internalBinaryWrite(message.spec.imageSpec, writer.tag(20, WireType.LengthDelimited).fork(), options).join();

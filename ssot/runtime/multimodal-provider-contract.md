@@ -2,7 +2,7 @@
 title: Nimi Runtime Multimodal Provider Contract
 status: ACTIVE
 created_at: 2026-02-26
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: proto-contract.md
 references:
   - ssot/runtime/service-contract.md
@@ -250,7 +250,7 @@ rules:
 
 1. `execution_mode = INLINE | EXTERNAL_ASYNC`
 2. `provider_job_id`
-3. `resume_token`
+3. `resume_strategy`
 4. `callback_ref`
 5. `next_poll_at`
 6. `retry_count`

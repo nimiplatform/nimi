@@ -1576,7 +1576,10 @@ type ImageGenerationSpec struct {
 	Quality         string                 `protobuf:"bytes,6,opt,name=quality,proto3" json:"quality,omitempty"`
 	Style           string                 `protobuf:"bytes,7,opt,name=style,proto3" json:"style,omitempty"`
 	Seed            int64                  `protobuf:"varint,8,opt,name=seed,proto3" json:"seed,omitempty"`
+	ReferenceImages []string               `protobuf:"bytes,9,rep,name=reference_images,json=referenceImages,proto3" json:"reference_images,omitempty"`
 	ProviderOptions *structpb.Struct       `protobuf:"bytes,10,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
+	Mask            string                 `protobuf:"bytes,11,opt,name=mask,proto3" json:"mask,omitempty"`
+	ResponseFormat  string                 `protobuf:"bytes,12,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1667,11 +1670,32 @@ func (x *ImageGenerationSpec) GetSeed() int64 {
 	return 0
 }
 
+func (x *ImageGenerationSpec) GetReferenceImages() []string {
+	if x != nil {
+		return x.ReferenceImages
+	}
+	return nil
+}
+
 func (x *ImageGenerationSpec) GetProviderOptions() *structpb.Struct {
 	if x != nil {
 		return x.ProviderOptions
 	}
 	return nil
+}
+
+func (x *ImageGenerationSpec) GetMask() string {
+	if x != nil {
+		return x.Mask
+	}
+	return ""
+}
+
+func (x *ImageGenerationSpec) GetResponseFormat() string {
+	if x != nil {
+		return x.ResponseFormat
+	}
+	return ""
 }
 
 type VideoGenerationSpec struct {
@@ -1808,6 +1832,7 @@ type SpeechSynthesisSpec struct {
 	Speed           float32                `protobuf:"fixed32,6,opt,name=speed,proto3" json:"speed,omitempty"`
 	Pitch           float32                `protobuf:"fixed32,7,opt,name=pitch,proto3" json:"pitch,omitempty"`
 	Volume          float32                `protobuf:"fixed32,8,opt,name=volume,proto3" json:"volume,omitempty"`
+	Emotion         string                 `protobuf:"bytes,9,opt,name=emotion,proto3" json:"emotion,omitempty"`
 	ProviderOptions *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -1899,6 +1924,13 @@ func (x *SpeechSynthesisSpec) GetVolume() float32 {
 	return 0
 }
 
+func (x *SpeechSynthesisSpec) GetEmotion() string {
+	if x != nil {
+		return x.Emotion
+	}
+	return ""
+}
+
 func (x *SpeechSynthesisSpec) GetProviderOptions() *structpb.Struct {
 	if x != nil {
 		return x.ProviderOptions
@@ -1906,24 +1938,170 @@ func (x *SpeechSynthesisSpec) GetProviderOptions() *structpb.Struct {
 	return nil
 }
 
+type AudioChunks struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Chunks        [][]byte               `protobuf:"bytes,1,rep,name=chunks,proto3" json:"chunks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AudioChunks) Reset() {
+	*x = AudioChunks{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AudioChunks) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AudioChunks) ProtoMessage() {}
+
+func (x *AudioChunks) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AudioChunks.ProtoReflect.Descriptor instead.
+func (*AudioChunks) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AudioChunks) GetChunks() [][]byte {
+	if x != nil {
+		return x.Chunks
+	}
+	return nil
+}
+
+type SpeechTranscriptionAudioSource struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Source:
+	//
+	//	*SpeechTranscriptionAudioSource_AudioBytes
+	//	*SpeechTranscriptionAudioSource_AudioUri
+	//	*SpeechTranscriptionAudioSource_AudioChunks
+	Source        isSpeechTranscriptionAudioSource_Source `protobuf_oneof:"source"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SpeechTranscriptionAudioSource) Reset() {
+	*x = SpeechTranscriptionAudioSource{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SpeechTranscriptionAudioSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SpeechTranscriptionAudioSource) ProtoMessage() {}
+
+func (x *SpeechTranscriptionAudioSource) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SpeechTranscriptionAudioSource.ProtoReflect.Descriptor instead.
+func (*SpeechTranscriptionAudioSource) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SpeechTranscriptionAudioSource) GetSource() isSpeechTranscriptionAudioSource_Source {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *SpeechTranscriptionAudioSource) GetAudioBytes() []byte {
+	if x != nil {
+		if x, ok := x.Source.(*SpeechTranscriptionAudioSource_AudioBytes); ok {
+			return x.AudioBytes
+		}
+	}
+	return nil
+}
+
+func (x *SpeechTranscriptionAudioSource) GetAudioUri() string {
+	if x != nil {
+		if x, ok := x.Source.(*SpeechTranscriptionAudioSource_AudioUri); ok {
+			return x.AudioUri
+		}
+	}
+	return ""
+}
+
+func (x *SpeechTranscriptionAudioSource) GetAudioChunks() *AudioChunks {
+	if x != nil {
+		if x, ok := x.Source.(*SpeechTranscriptionAudioSource_AudioChunks); ok {
+			return x.AudioChunks
+		}
+	}
+	return nil
+}
+
+type isSpeechTranscriptionAudioSource_Source interface {
+	isSpeechTranscriptionAudioSource_Source()
+}
+
+type SpeechTranscriptionAudioSource_AudioBytes struct {
+	AudioBytes []byte `protobuf:"bytes,1,opt,name=audio_bytes,json=audioBytes,proto3,oneof"`
+}
+
+type SpeechTranscriptionAudioSource_AudioUri struct {
+	AudioUri string `protobuf:"bytes,2,opt,name=audio_uri,json=audioUri,proto3,oneof"`
+}
+
+type SpeechTranscriptionAudioSource_AudioChunks struct {
+	AudioChunks *AudioChunks `protobuf:"bytes,3,opt,name=audio_chunks,json=audioChunks,proto3,oneof"`
+}
+
+func (*SpeechTranscriptionAudioSource_AudioBytes) isSpeechTranscriptionAudioSource_Source() {}
+
+func (*SpeechTranscriptionAudioSource_AudioUri) isSpeechTranscriptionAudioSource_Source() {}
+
+func (*SpeechTranscriptionAudioSource_AudioChunks) isSpeechTranscriptionAudioSource_Source() {}
+
 type SpeechTranscriptionSpec struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	AudioBytes      []byte                 `protobuf:"bytes,1,opt,name=audio_bytes,json=audioBytes,proto3" json:"audio_bytes,omitempty"`
-	AudioUri        string                 `protobuf:"bytes,2,opt,name=audio_uri,json=audioUri,proto3" json:"audio_uri,omitempty"`
-	MimeType        string                 `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
-	Language        string                 `protobuf:"bytes,4,opt,name=language,proto3" json:"language,omitempty"`
-	Timestamps      bool                   `protobuf:"varint,5,opt,name=timestamps,proto3" json:"timestamps,omitempty"`
-	Diarization     bool                   `protobuf:"varint,6,opt,name=diarization,proto3" json:"diarization,omitempty"`
-	SpeakerCount    int32                  `protobuf:"varint,7,opt,name=speaker_count,json=speakerCount,proto3" json:"speaker_count,omitempty"`
-	Prompt          string                 `protobuf:"bytes,8,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	ProviderOptions *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Deprecated: Marked as deprecated in runtime/v1/ai.proto.
+	AudioBytes []byte `protobuf:"bytes,1,opt,name=audio_bytes,json=audioBytes,proto3" json:"audio_bytes,omitempty"`
+	// Deprecated: Marked as deprecated in runtime/v1/ai.proto.
+	AudioUri        string                          `protobuf:"bytes,2,opt,name=audio_uri,json=audioUri,proto3" json:"audio_uri,omitempty"`
+	MimeType        string                          `protobuf:"bytes,3,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	Language        string                          `protobuf:"bytes,4,opt,name=language,proto3" json:"language,omitempty"`
+	Timestamps      bool                            `protobuf:"varint,5,opt,name=timestamps,proto3" json:"timestamps,omitempty"`
+	Diarization     bool                            `protobuf:"varint,6,opt,name=diarization,proto3" json:"diarization,omitempty"`
+	SpeakerCount    int32                           `protobuf:"varint,7,opt,name=speaker_count,json=speakerCount,proto3" json:"speaker_count,omitempty"`
+	Prompt          string                          `protobuf:"bytes,8,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	AudioSource     *SpeechTranscriptionAudioSource `protobuf:"bytes,9,opt,name=audio_source,json=audioSource,proto3" json:"audio_source,omitempty"`
+	ResponseFormat  string                          `protobuf:"bytes,10,opt,name=response_format,json=responseFormat,proto3" json:"response_format,omitempty"`
+	ProviderOptions *structpb.Struct                `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SpeechTranscriptionSpec) Reset() {
 	*x = SpeechTranscriptionSpec{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[17]
+	mi := &file_runtime_v1_ai_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1935,7 +2113,7 @@ func (x *SpeechTranscriptionSpec) String() string {
 func (*SpeechTranscriptionSpec) ProtoMessage() {}
 
 func (x *SpeechTranscriptionSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[17]
+	mi := &file_runtime_v1_ai_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1948,9 +2126,10 @@ func (x *SpeechTranscriptionSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpeechTranscriptionSpec.ProtoReflect.Descriptor instead.
 func (*SpeechTranscriptionSpec) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{19}
 }
 
+// Deprecated: Marked as deprecated in runtime/v1/ai.proto.
 func (x *SpeechTranscriptionSpec) GetAudioBytes() []byte {
 	if x != nil {
 		return x.AudioBytes
@@ -1958,6 +2137,7 @@ func (x *SpeechTranscriptionSpec) GetAudioBytes() []byte {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in runtime/v1/ai.proto.
 func (x *SpeechTranscriptionSpec) GetAudioUri() string {
 	if x != nil {
 		return x.AudioUri
@@ -2007,6 +2187,20 @@ func (x *SpeechTranscriptionSpec) GetPrompt() string {
 	return ""
 }
 
+func (x *SpeechTranscriptionSpec) GetAudioSource() *SpeechTranscriptionAudioSource {
+	if x != nil {
+		return x.AudioSource
+	}
+	return nil
+}
+
+func (x *SpeechTranscriptionSpec) GetResponseFormat() string {
+	if x != nil {
+		return x.ResponseFormat
+	}
+	return ""
+}
+
 func (x *SpeechTranscriptionSpec) GetProviderOptions() *structpb.Struct {
 	if x != nil {
 		return x.ProviderOptions
@@ -2035,7 +2229,7 @@ type MediaArtifact struct {
 
 func (x *MediaArtifact) Reset() {
 	*x = MediaArtifact{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[18]
+	mi := &file_runtime_v1_ai_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2047,7 +2241,7 @@ func (x *MediaArtifact) String() string {
 func (*MediaArtifact) ProtoMessage() {}
 
 func (x *MediaArtifact) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[18]
+	mi := &file_runtime_v1_ai_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2060,7 +2254,7 @@ func (x *MediaArtifact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaArtifact.ProtoReflect.Descriptor instead.
 func (*MediaArtifact) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MediaArtifact) GetArtifactId() string {
@@ -2182,7 +2376,7 @@ type MediaJob struct {
 
 func (x *MediaJob) Reset() {
 	*x = MediaJob{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[19]
+	mi := &file_runtime_v1_ai_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2194,7 +2388,7 @@ func (x *MediaJob) String() string {
 func (*MediaJob) ProtoMessage() {}
 
 func (x *MediaJob) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[19]
+	mi := &file_runtime_v1_ai_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2207,7 +2401,7 @@ func (x *MediaJob) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaJob.ProtoReflect.Descriptor instead.
 func (*MediaJob) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MediaJob) GetJobId() string {
@@ -2351,14 +2545,17 @@ func (x *MediaJob) GetTraceId() string {
 }
 
 type SubmitMediaJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ModelId       string                 `protobuf:"bytes,3,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Modal         Modal                  `protobuf:"varint,4,opt,name=modal,proto3,enum=nimi.runtime.v1.Modal" json:"modal,omitempty"`
-	RoutePolicy   RoutePolicy            `protobuf:"varint,5,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
-	Fallback      FallbackPolicy         `protobuf:"varint,6,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
-	TimeoutMs     int32                  `protobuf:"varint,7,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AppId          string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId  string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	ModelId        string                 `protobuf:"bytes,3,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Modal          Modal                  `protobuf:"varint,4,opt,name=modal,proto3,enum=nimi.runtime.v1.Modal" json:"modal,omitempty"`
+	RoutePolicy    RoutePolicy            `protobuf:"varint,5,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
+	Fallback       FallbackPolicy         `protobuf:"varint,6,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
+	TimeoutMs      int32                  `protobuf:"varint,7,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	RequestId      string                 `protobuf:"bytes,8,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	IdempotencyKey string                 `protobuf:"bytes,9,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	Labels         map[string]string      `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Types that are valid to be assigned to Spec:
 	//
 	//	*SubmitMediaJobRequest_ImageSpec
@@ -2372,7 +2569,7 @@ type SubmitMediaJobRequest struct {
 
 func (x *SubmitMediaJobRequest) Reset() {
 	*x = SubmitMediaJobRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[20]
+	mi := &file_runtime_v1_ai_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2384,7 +2581,7 @@ func (x *SubmitMediaJobRequest) String() string {
 func (*SubmitMediaJobRequest) ProtoMessage() {}
 
 func (x *SubmitMediaJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[20]
+	mi := &file_runtime_v1_ai_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2397,7 +2594,7 @@ func (x *SubmitMediaJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitMediaJobRequest.ProtoReflect.Descriptor instead.
 func (*SubmitMediaJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SubmitMediaJobRequest) GetAppId() string {
@@ -2447,6 +2644,27 @@ func (x *SubmitMediaJobRequest) GetTimeoutMs() int32 {
 		return x.TimeoutMs
 	}
 	return 0
+}
+
+func (x *SubmitMediaJobRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *SubmitMediaJobRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *SubmitMediaJobRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 func (x *SubmitMediaJobRequest) GetSpec() isSubmitMediaJobRequest_Spec {
@@ -2529,7 +2747,7 @@ type SubmitMediaJobResponse struct {
 
 func (x *SubmitMediaJobResponse) Reset() {
 	*x = SubmitMediaJobResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[21]
+	mi := &file_runtime_v1_ai_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2541,7 +2759,7 @@ func (x *SubmitMediaJobResponse) String() string {
 func (*SubmitMediaJobResponse) ProtoMessage() {}
 
 func (x *SubmitMediaJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[21]
+	mi := &file_runtime_v1_ai_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2554,7 +2772,7 @@ func (x *SubmitMediaJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitMediaJobResponse.ProtoReflect.Descriptor instead.
 func (*SubmitMediaJobResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SubmitMediaJobResponse) GetJob() *MediaJob {
@@ -2573,7 +2791,7 @@ type GetMediaJobRequest struct {
 
 func (x *GetMediaJobRequest) Reset() {
 	*x = GetMediaJobRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[22]
+	mi := &file_runtime_v1_ai_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2585,7 +2803,7 @@ func (x *GetMediaJobRequest) String() string {
 func (*GetMediaJobRequest) ProtoMessage() {}
 
 func (x *GetMediaJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[22]
+	mi := &file_runtime_v1_ai_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2598,7 +2816,7 @@ func (x *GetMediaJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMediaJobRequest.ProtoReflect.Descriptor instead.
 func (*GetMediaJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetMediaJobRequest) GetJobId() string {
@@ -2617,7 +2835,7 @@ type GetMediaJobResponse struct {
 
 func (x *GetMediaJobResponse) Reset() {
 	*x = GetMediaJobResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[23]
+	mi := &file_runtime_v1_ai_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2629,7 +2847,7 @@ func (x *GetMediaJobResponse) String() string {
 func (*GetMediaJobResponse) ProtoMessage() {}
 
 func (x *GetMediaJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[23]
+	mi := &file_runtime_v1_ai_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2642,7 +2860,7 @@ func (x *GetMediaJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMediaJobResponse.ProtoReflect.Descriptor instead.
 func (*GetMediaJobResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetMediaJobResponse) GetJob() *MediaJob {
@@ -2662,7 +2880,7 @@ type CancelMediaJobRequest struct {
 
 func (x *CancelMediaJobRequest) Reset() {
 	*x = CancelMediaJobRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[24]
+	mi := &file_runtime_v1_ai_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2674,7 +2892,7 @@ func (x *CancelMediaJobRequest) String() string {
 func (*CancelMediaJobRequest) ProtoMessage() {}
 
 func (x *CancelMediaJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[24]
+	mi := &file_runtime_v1_ai_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2687,7 +2905,7 @@ func (x *CancelMediaJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelMediaJobRequest.ProtoReflect.Descriptor instead.
 func (*CancelMediaJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CancelMediaJobRequest) GetJobId() string {
@@ -2713,7 +2931,7 @@ type CancelMediaJobResponse struct {
 
 func (x *CancelMediaJobResponse) Reset() {
 	*x = CancelMediaJobResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[25]
+	mi := &file_runtime_v1_ai_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2725,7 +2943,7 @@ func (x *CancelMediaJobResponse) String() string {
 func (*CancelMediaJobResponse) ProtoMessage() {}
 
 func (x *CancelMediaJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[25]
+	mi := &file_runtime_v1_ai_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2738,7 +2956,7 @@ func (x *CancelMediaJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelMediaJobResponse.ProtoReflect.Descriptor instead.
 func (*CancelMediaJobResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CancelMediaJobResponse) GetJob() *MediaJob {
@@ -2761,7 +2979,7 @@ type MediaJobEvent struct {
 
 func (x *MediaJobEvent) Reset() {
 	*x = MediaJobEvent{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[26]
+	mi := &file_runtime_v1_ai_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2773,7 +2991,7 @@ func (x *MediaJobEvent) String() string {
 func (*MediaJobEvent) ProtoMessage() {}
 
 func (x *MediaJobEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[26]
+	mi := &file_runtime_v1_ai_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2786,7 +3004,7 @@ func (x *MediaJobEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaJobEvent.ProtoReflect.Descriptor instead.
 func (*MediaJobEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *MediaJobEvent) GetEventType() MediaJobEventType {
@@ -2833,7 +3051,7 @@ type SubscribeMediaJobEventsRequest struct {
 
 func (x *SubscribeMediaJobEventsRequest) Reset() {
 	*x = SubscribeMediaJobEventsRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[27]
+	mi := &file_runtime_v1_ai_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2845,7 +3063,7 @@ func (x *SubscribeMediaJobEventsRequest) String() string {
 func (*SubscribeMediaJobEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeMediaJobEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[27]
+	mi := &file_runtime_v1_ai_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2858,7 +3076,7 @@ func (x *SubscribeMediaJobEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeMediaJobEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeMediaJobEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SubscribeMediaJobEventsRequest) GetJobId() string {
@@ -2877,7 +3095,7 @@ type GetMediaArtifactsRequest struct {
 
 func (x *GetMediaArtifactsRequest) Reset() {
 	*x = GetMediaArtifactsRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[28]
+	mi := &file_runtime_v1_ai_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2889,7 +3107,7 @@ func (x *GetMediaArtifactsRequest) String() string {
 func (*GetMediaArtifactsRequest) ProtoMessage() {}
 
 func (x *GetMediaArtifactsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[28]
+	mi := &file_runtime_v1_ai_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2902,7 +3120,7 @@ func (x *GetMediaArtifactsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMediaArtifactsRequest.ProtoReflect.Descriptor instead.
 func (*GetMediaArtifactsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetMediaArtifactsRequest) GetJobId() string {
@@ -2923,7 +3141,7 @@ type GetMediaArtifactsResponse struct {
 
 func (x *GetMediaArtifactsResponse) Reset() {
 	*x = GetMediaArtifactsResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[29]
+	mi := &file_runtime_v1_ai_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2935,7 +3153,7 @@ func (x *GetMediaArtifactsResponse) String() string {
 func (*GetMediaArtifactsResponse) ProtoMessage() {}
 
 func (x *GetMediaArtifactsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[29]
+	mi := &file_runtime_v1_ai_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2948,7 +3166,7 @@ func (x *GetMediaArtifactsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMediaArtifactsResponse.ProtoReflect.Descriptor instead.
 func (*GetMediaArtifactsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetMediaArtifactsResponse) GetJobId() string {
@@ -2987,7 +3205,7 @@ type GenerateImageRequest struct {
 
 func (x *GenerateImageRequest) Reset() {
 	*x = GenerateImageRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[30]
+	mi := &file_runtime_v1_ai_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2999,7 +3217,7 @@ func (x *GenerateImageRequest) String() string {
 func (*GenerateImageRequest) ProtoMessage() {}
 
 func (x *GenerateImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[30]
+	mi := &file_runtime_v1_ai_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3012,7 +3230,7 @@ func (x *GenerateImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateImageRequest.ProtoReflect.Descriptor instead.
 func (*GenerateImageRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GenerateImageRequest) GetAppId() string {
@@ -3079,7 +3297,7 @@ type GenerateVideoRequest struct {
 
 func (x *GenerateVideoRequest) Reset() {
 	*x = GenerateVideoRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[31]
+	mi := &file_runtime_v1_ai_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3091,7 +3309,7 @@ func (x *GenerateVideoRequest) String() string {
 func (*GenerateVideoRequest) ProtoMessage() {}
 
 func (x *GenerateVideoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[31]
+	mi := &file_runtime_v1_ai_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3104,7 +3322,7 @@ func (x *GenerateVideoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateVideoRequest.ProtoReflect.Descriptor instead.
 func (*GenerateVideoRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GenerateVideoRequest) GetAppId() string {
@@ -3171,7 +3389,7 @@ type SynthesizeSpeechRequest struct {
 
 func (x *SynthesizeSpeechRequest) Reset() {
 	*x = SynthesizeSpeechRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[32]
+	mi := &file_runtime_v1_ai_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3183,7 +3401,7 @@ func (x *SynthesizeSpeechRequest) String() string {
 func (*SynthesizeSpeechRequest) ProtoMessage() {}
 
 func (x *SynthesizeSpeechRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[32]
+	mi := &file_runtime_v1_ai_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3196,7 +3414,7 @@ func (x *SynthesizeSpeechRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SynthesizeSpeechRequest.ProtoReflect.Descriptor instead.
 func (*SynthesizeSpeechRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SynthesizeSpeechRequest) GetAppId() string {
@@ -3265,7 +3483,7 @@ type ArtifactChunk struct {
 
 func (x *ArtifactChunk) Reset() {
 	*x = ArtifactChunk{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[33]
+	mi := &file_runtime_v1_ai_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3277,7 +3495,7 @@ func (x *ArtifactChunk) String() string {
 func (*ArtifactChunk) ProtoMessage() {}
 
 func (x *ArtifactChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[33]
+	mi := &file_runtime_v1_ai_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3290,7 +3508,7 @@ func (x *ArtifactChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtifactChunk.ProtoReflect.Descriptor instead.
 func (*ArtifactChunk) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ArtifactChunk) GetArtifactId() string {
@@ -3372,7 +3590,7 @@ type TranscribeAudioRequest struct {
 
 func (x *TranscribeAudioRequest) Reset() {
 	*x = TranscribeAudioRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[34]
+	mi := &file_runtime_v1_ai_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3384,7 +3602,7 @@ func (x *TranscribeAudioRequest) String() string {
 func (*TranscribeAudioRequest) ProtoMessage() {}
 
 func (x *TranscribeAudioRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[34]
+	mi := &file_runtime_v1_ai_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3397,7 +3615,7 @@ func (x *TranscribeAudioRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TranscribeAudioRequest.ProtoReflect.Descriptor instead.
 func (*TranscribeAudioRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *TranscribeAudioRequest) GetAppId() string {
@@ -3469,7 +3687,7 @@ type TranscribeAudioResponse struct {
 
 func (x *TranscribeAudioResponse) Reset() {
 	*x = TranscribeAudioResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[35]
+	mi := &file_runtime_v1_ai_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3481,7 +3699,7 @@ func (x *TranscribeAudioResponse) String() string {
 func (*TranscribeAudioResponse) ProtoMessage() {}
 
 func (x *TranscribeAudioResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[35]
+	mi := &file_runtime_v1_ai_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3494,7 +3712,7 @@ func (x *TranscribeAudioResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TranscribeAudioResponse.ProtoReflect.Descriptor instead.
 func (*TranscribeAudioResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *TranscribeAudioResponse) GetText() string {
@@ -3635,7 +3853,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12C\n" +
 	"\x0eroute_decision\x18\x03 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12%\n" +
 	"\x0emodel_resolved\x18\x04 \x01(\tR\rmodelResolved\x12\x19\n" +
-	"\btrace_id\x18\x05 \x01(\tR\atraceId\"\xa3\x02\n" +
+	"\btrace_id\x18\x05 \x01(\tR\atraceId\"\x8b\x03\n" +
 	"\x13ImageGenerationSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12\f\n" +
@@ -3644,9 +3862,12 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\faspect_ratio\x18\x05 \x01(\tR\vaspectRatio\x12\x18\n" +
 	"\aquality\x18\x06 \x01(\tR\aquality\x12\x14\n" +
 	"\x05style\x18\a \x01(\tR\x05style\x12\x12\n" +
-	"\x04seed\x18\b \x01(\x03R\x04seed\x12B\n" +
+	"\x04seed\x18\b \x01(\x03R\x04seed\x12)\n" +
+	"\x10reference_images\x18\t \x03(\tR\x0freferenceImages\x12B\n" +
 	"\x10provider_options\x18\n" +
-	" \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\x99\x03\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\x12\x12\n" +
+	"\x04mask\x18\v \x01(\tR\x04mask\x12'\n" +
+	"\x0fresponse_format\x18\f \x01(\tR\x0eresponseFormat\"\x99\x03\n" +
 	"\x13VideoGenerationSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12!\n" +
@@ -3661,7 +3882,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0elast_frame_uri\x18\t \x01(\tR\flastFrameUri\x12#\n" +
 	"\rcamera_motion\x18\n" +
 	" \x01(\tR\fcameraMotion\x12B\n" +
-	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xac\x02\n" +
+	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xc6\x02\n" +
 	"\x13SpeechSynthesisSpec\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x14\n" +
 	"\x05voice\x18\x02 \x01(\tR\x05voice\x12\x1a\n" +
@@ -3670,12 +3891,21 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0esample_rate_hz\x18\x05 \x01(\x05R\fsampleRateHz\x12\x14\n" +
 	"\x05speed\x18\x06 \x01(\x02R\x05speed\x12\x14\n" +
 	"\x05pitch\x18\a \x01(\x02R\x05pitch\x12\x16\n" +
-	"\x06volume\x18\b \x01(\x02R\x06volume\x12B\n" +
-	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xd3\x02\n" +
-	"\x17SpeechTranscriptionSpec\x12\x1f\n" +
-	"\vaudio_bytes\x18\x01 \x01(\fR\n" +
-	"audioBytes\x12\x1b\n" +
-	"\taudio_uri\x18\x02 \x01(\tR\baudioUri\x12\x1b\n" +
+	"\x06volume\x18\b \x01(\x02R\x06volume\x12\x18\n" +
+	"\aemotion\x18\t \x01(\tR\aemotion\x12B\n" +
+	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"%\n" +
+	"\vAudioChunks\x12\x16\n" +
+	"\x06chunks\x18\x01 \x03(\fR\x06chunks\"\xaf\x01\n" +
+	"\x1eSpeechTranscriptionAudioSource\x12!\n" +
+	"\vaudio_bytes\x18\x01 \x01(\fH\x00R\n" +
+	"audioBytes\x12\x1d\n" +
+	"\taudio_uri\x18\x02 \x01(\tH\x00R\baudioUri\x12A\n" +
+	"\faudio_chunks\x18\x03 \x01(\v2\x1c.nimi.runtime.v1.AudioChunksH\x00R\vaudioChunksB\b\n" +
+	"\x06source\"\xd8\x03\n" +
+	"\x17SpeechTranscriptionSpec\x12#\n" +
+	"\vaudio_bytes\x18\x01 \x01(\fB\x02\x18\x01R\n" +
+	"audioBytes\x12\x1f\n" +
+	"\taudio_uri\x18\x02 \x01(\tB\x02\x18\x01R\baudioUri\x12\x1b\n" +
 	"\tmime_type\x18\x03 \x01(\tR\bmimeType\x12\x1a\n" +
 	"\blanguage\x18\x04 \x01(\tR\blanguage\x12\x1e\n" +
 	"\n" +
@@ -3683,7 +3913,10 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"timestamps\x12 \n" +
 	"\vdiarization\x18\x06 \x01(\bR\vdiarization\x12#\n" +
 	"\rspeaker_count\x18\a \x01(\x05R\fspeakerCount\x12\x16\n" +
-	"\x06prompt\x18\b \x01(\tR\x06prompt\x12B\n" +
+	"\x06prompt\x18\b \x01(\tR\x06prompt\x12R\n" +
+	"\faudio_source\x18\t \x01(\v2/.nimi.runtime.v1.SpeechTranscriptionAudioSourceR\vaudioSource\x12'\n" +
+	"\x0fresponse_format\x18\n" +
+	" \x01(\tR\x0eresponseFormat\x12B\n" +
 	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\x8b\x03\n" +
 	"\rMediaArtifact\x12\x1f\n" +
 	"\vartifact_id\x18\x01 \x01(\tR\n" +
@@ -3729,7 +3962,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x10provider_options\x18\x11 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\x12<\n" +
 	"\tartifacts\x18\x12 \x03(\v2\x1e.nimi.runtime.v1.MediaArtifactR\tartifacts\x121\n" +
 	"\x05usage\x18\x13 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12\x19\n" +
-	"\btrace_id\x18\x14 \x01(\tR\atraceId\"\xf6\x04\n" +
+	"\btrace_id\x18\x14 \x01(\tR\atraceId\"\xc5\x06\n" +
 	"\x15SubmitMediaJobRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
@@ -3738,14 +3971,22 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\froute_policy\x18\x05 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
 	"\bfallback\x18\x06 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\x12E\n" +
+	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\b \x01(\tR\trequestId\x12'\n" +
+	"\x0fidempotency_key\x18\t \x01(\tR\x0eidempotencyKey\x12J\n" +
+	"\x06labels\x18\n" +
+	" \x03(\v22.nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntryR\x06labels\x12E\n" +
 	"\n" +
 	"image_spec\x18\x14 \x01(\v2$.nimi.runtime.v1.ImageGenerationSpecH\x00R\timageSpec\x12E\n" +
 	"\n" +
 	"video_spec\x18\x15 \x01(\v2$.nimi.runtime.v1.VideoGenerationSpecH\x00R\tvideoSpec\x12G\n" +
 	"\vspeech_spec\x18\x16 \x01(\v2$.nimi.runtime.v1.SpeechSynthesisSpecH\x00R\n" +
 	"speechSpec\x12Y\n" +
-	"\x12transcription_spec\x18\x17 \x01(\v2(.nimi.runtime.v1.SpeechTranscriptionSpecH\x00R\x11transcriptionSpecB\x06\n" +
+	"\x12transcription_spec\x18\x17 \x01(\v2(.nimi.runtime.v1.SpeechTranscriptionSpecH\x00R\x11transcriptionSpec\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x06\n" +
 	"\x04spec\"E\n" +
 	"\x16SubmitMediaJobResponse\x12+\n" +
 	"\x03job\x18\x01 \x01(\v2\x19.nimi.runtime.v1.MediaJobR\x03job\"+\n" +
@@ -3878,7 +4119,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x19MEDIA_JOB_EVENT_COMPLETED\x10\x04\x12\x1a\n" +
 	"\x16MEDIA_JOB_EVENT_FAILED\x10\x05\x12\x1c\n" +
 	"\x18MEDIA_JOB_EVENT_CANCELED\x10\x06\x12\x1b\n" +
-	"\x17MEDIA_JOB_EVENT_TIMEOUT\x10\a2\x81\t\n" +
+	"\x17MEDIA_JOB_EVENT_TIMEOUT\x10\a2\x95\t\n" +
 	"\x10RuntimeAiService\x12O\n" +
 	"\bGenerate\x12 .nimi.runtime.v1.GenerateRequest\x1a!.nimi.runtime.v1.GenerateResponse\x12`\n" +
 	"\x0eStreamGenerate\x12&.nimi.runtime.v1.StreamGenerateRequest\x1a$.nimi.runtime.v1.StreamGenerateEvent0\x01\x12F\n" +
@@ -3887,11 +4128,11 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\vGetMediaJob\x12#.nimi.runtime.v1.GetMediaJobRequest\x1a$.nimi.runtime.v1.GetMediaJobResponse\x12a\n" +
 	"\x0eCancelMediaJob\x12&.nimi.runtime.v1.CancelMediaJobRequest\x1a'.nimi.runtime.v1.CancelMediaJobResponse\x12l\n" +
 	"\x17SubscribeMediaJobEvents\x12/.nimi.runtime.v1.SubscribeMediaJobEventsRequest\x1a\x1e.nimi.runtime.v1.MediaJobEvent0\x01\x12j\n" +
-	"\x11GetMediaArtifacts\x12).nimi.runtime.v1.GetMediaArtifactsRequest\x1a*.nimi.runtime.v1.GetMediaArtifactsResponse\x12X\n" +
-	"\rGenerateImage\x12%.nimi.runtime.v1.GenerateImageRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01\x12X\n" +
-	"\rGenerateVideo\x12%.nimi.runtime.v1.GenerateVideoRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01\x12^\n" +
-	"\x10SynthesizeSpeech\x12(.nimi.runtime.v1.SynthesizeSpeechRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01\x12d\n" +
-	"\x0fTranscribeAudio\x12'.nimi.runtime.v1.TranscribeAudioRequest\x1a(.nimi.runtime.v1.TranscribeAudioResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x11GetMediaArtifacts\x12).nimi.runtime.v1.GetMediaArtifactsRequest\x1a*.nimi.runtime.v1.GetMediaArtifactsResponse\x12]\n" +
+	"\rGenerateImage\x12%.nimi.runtime.v1.GenerateImageRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk\"\x03\x88\x02\x010\x01\x12]\n" +
+	"\rGenerateVideo\x12%.nimi.runtime.v1.GenerateVideoRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk\"\x03\x88\x02\x010\x01\x12c\n" +
+	"\x10SynthesizeSpeech\x12(.nimi.runtime.v1.SynthesizeSpeechRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk\"\x03\x88\x02\x010\x01\x12i\n" +
+	"\x0fTranscribeAudio\x12'.nimi.runtime.v1.TranscribeAudioRequest\x1a(.nimi.runtime.v1.TranscribeAudioResponse\"\x03\x88\x02\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_ai_proto_rawDescOnce sync.Once
@@ -3906,7 +4147,7 @@ func file_runtime_v1_ai_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_ai_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_runtime_v1_ai_proto_goTypes = []any{
 	(Modal)(0),                             // 0: nimi.runtime.v1.Modal
 	(RoutePolicy)(0),                       // 1: nimi.runtime.v1.RoutePolicy
@@ -3932,41 +4173,44 @@ var file_runtime_v1_ai_proto_goTypes = []any{
 	(*ImageGenerationSpec)(nil),            // 21: nimi.runtime.v1.ImageGenerationSpec
 	(*VideoGenerationSpec)(nil),            // 22: nimi.runtime.v1.VideoGenerationSpec
 	(*SpeechSynthesisSpec)(nil),            // 23: nimi.runtime.v1.SpeechSynthesisSpec
-	(*SpeechTranscriptionSpec)(nil),        // 24: nimi.runtime.v1.SpeechTranscriptionSpec
-	(*MediaArtifact)(nil),                  // 25: nimi.runtime.v1.MediaArtifact
-	(*MediaJob)(nil),                       // 26: nimi.runtime.v1.MediaJob
-	(*SubmitMediaJobRequest)(nil),          // 27: nimi.runtime.v1.SubmitMediaJobRequest
-	(*SubmitMediaJobResponse)(nil),         // 28: nimi.runtime.v1.SubmitMediaJobResponse
-	(*GetMediaJobRequest)(nil),             // 29: nimi.runtime.v1.GetMediaJobRequest
-	(*GetMediaJobResponse)(nil),            // 30: nimi.runtime.v1.GetMediaJobResponse
-	(*CancelMediaJobRequest)(nil),          // 31: nimi.runtime.v1.CancelMediaJobRequest
-	(*CancelMediaJobResponse)(nil),         // 32: nimi.runtime.v1.CancelMediaJobResponse
-	(*MediaJobEvent)(nil),                  // 33: nimi.runtime.v1.MediaJobEvent
-	(*SubscribeMediaJobEventsRequest)(nil), // 34: nimi.runtime.v1.SubscribeMediaJobEventsRequest
-	(*GetMediaArtifactsRequest)(nil),       // 35: nimi.runtime.v1.GetMediaArtifactsRequest
-	(*GetMediaArtifactsResponse)(nil),      // 36: nimi.runtime.v1.GetMediaArtifactsResponse
-	(*GenerateImageRequest)(nil),           // 37: nimi.runtime.v1.GenerateImageRequest
-	(*GenerateVideoRequest)(nil),           // 38: nimi.runtime.v1.GenerateVideoRequest
-	(*SynthesizeSpeechRequest)(nil),        // 39: nimi.runtime.v1.SynthesizeSpeechRequest
-	(*ArtifactChunk)(nil),                  // 40: nimi.runtime.v1.ArtifactChunk
-	(*TranscribeAudioRequest)(nil),         // 41: nimi.runtime.v1.TranscribeAudioRequest
-	(*TranscribeAudioResponse)(nil),        // 42: nimi.runtime.v1.TranscribeAudioResponse
-	(*structpb.Struct)(nil),                // 43: google.protobuf.Struct
-	(*UsageStats)(nil),                     // 44: nimi.runtime.v1.UsageStats
-	(ReasonCode)(0),                        // 45: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),          // 46: google.protobuf.Timestamp
-	(*structpb.ListValue)(nil),             // 47: google.protobuf.ListValue
+	(*AudioChunks)(nil),                    // 24: nimi.runtime.v1.AudioChunks
+	(*SpeechTranscriptionAudioSource)(nil), // 25: nimi.runtime.v1.SpeechTranscriptionAudioSource
+	(*SpeechTranscriptionSpec)(nil),        // 26: nimi.runtime.v1.SpeechTranscriptionSpec
+	(*MediaArtifact)(nil),                  // 27: nimi.runtime.v1.MediaArtifact
+	(*MediaJob)(nil),                       // 28: nimi.runtime.v1.MediaJob
+	(*SubmitMediaJobRequest)(nil),          // 29: nimi.runtime.v1.SubmitMediaJobRequest
+	(*SubmitMediaJobResponse)(nil),         // 30: nimi.runtime.v1.SubmitMediaJobResponse
+	(*GetMediaJobRequest)(nil),             // 31: nimi.runtime.v1.GetMediaJobRequest
+	(*GetMediaJobResponse)(nil),            // 32: nimi.runtime.v1.GetMediaJobResponse
+	(*CancelMediaJobRequest)(nil),          // 33: nimi.runtime.v1.CancelMediaJobRequest
+	(*CancelMediaJobResponse)(nil),         // 34: nimi.runtime.v1.CancelMediaJobResponse
+	(*MediaJobEvent)(nil),                  // 35: nimi.runtime.v1.MediaJobEvent
+	(*SubscribeMediaJobEventsRequest)(nil), // 36: nimi.runtime.v1.SubscribeMediaJobEventsRequest
+	(*GetMediaArtifactsRequest)(nil),       // 37: nimi.runtime.v1.GetMediaArtifactsRequest
+	(*GetMediaArtifactsResponse)(nil),      // 38: nimi.runtime.v1.GetMediaArtifactsResponse
+	(*GenerateImageRequest)(nil),           // 39: nimi.runtime.v1.GenerateImageRequest
+	(*GenerateVideoRequest)(nil),           // 40: nimi.runtime.v1.GenerateVideoRequest
+	(*SynthesizeSpeechRequest)(nil),        // 41: nimi.runtime.v1.SynthesizeSpeechRequest
+	(*ArtifactChunk)(nil),                  // 42: nimi.runtime.v1.ArtifactChunk
+	(*TranscribeAudioRequest)(nil),         // 43: nimi.runtime.v1.TranscribeAudioRequest
+	(*TranscribeAudioResponse)(nil),        // 44: nimi.runtime.v1.TranscribeAudioResponse
+	nil,                                    // 45: nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
+	(*structpb.Struct)(nil),                // 46: google.protobuf.Struct
+	(*UsageStats)(nil),                     // 47: nimi.runtime.v1.UsageStats
+	(ReasonCode)(0),                        // 48: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),          // 49: google.protobuf.Timestamp
+	(*structpb.ListValue)(nil),             // 50: google.protobuf.ListValue
 }
 var file_runtime_v1_ai_proto_depIdxs = []int32{
-	43, // 0: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
+	46, // 0: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
 	0,  // 1: nimi.runtime.v1.GenerateRequest.modal:type_name -> nimi.runtime.v1.Modal
 	7,  // 2: nimi.runtime.v1.GenerateRequest.input:type_name -> nimi.runtime.v1.ChatMessage
 	8,  // 3: nimi.runtime.v1.GenerateRequest.tools:type_name -> nimi.runtime.v1.ToolSpec
 	1,  // 4: nimi.runtime.v1.GenerateRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 5: nimi.runtime.v1.GenerateRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	43, // 6: nimi.runtime.v1.GenerateResponse.output:type_name -> google.protobuf.Struct
+	46, // 6: nimi.runtime.v1.GenerateResponse.output:type_name -> google.protobuf.Struct
 	3,  // 7: nimi.runtime.v1.GenerateResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	44, // 8: nimi.runtime.v1.GenerateResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	47, // 8: nimi.runtime.v1.GenerateResponse.usage:type_name -> nimi.runtime.v1.UsageStats
 	1,  // 9: nimi.runtime.v1.GenerateResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
 	0,  // 10: nimi.runtime.v1.StreamGenerateRequest.modal:type_name -> nimi.runtime.v1.Modal
 	7,  // 11: nimi.runtime.v1.StreamGenerateRequest.input:type_name -> nimi.runtime.v1.ChatMessage
@@ -3974,95 +4218,98 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	1,  // 13: nimi.runtime.v1.StreamGenerateRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 14: nimi.runtime.v1.StreamGenerateRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
 	1,  // 15: nimi.runtime.v1.StreamStarted.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	43, // 16: nimi.runtime.v1.ToolCallEvent.tool_input:type_name -> google.protobuf.Struct
-	43, // 17: nimi.runtime.v1.ToolResultEvent.tool_output:type_name -> google.protobuf.Struct
+	46, // 16: nimi.runtime.v1.ToolCallEvent.tool_input:type_name -> google.protobuf.Struct
+	46, // 17: nimi.runtime.v1.ToolResultEvent.tool_output:type_name -> google.protobuf.Struct
 	3,  // 18: nimi.runtime.v1.StreamCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	45, // 19: nimi.runtime.v1.StreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	48, // 19: nimi.runtime.v1.StreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	4,  // 20: nimi.runtime.v1.StreamGenerateEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
-	46, // 21: nimi.runtime.v1.StreamGenerateEvent.timestamp:type_name -> google.protobuf.Timestamp
+	49, // 21: nimi.runtime.v1.StreamGenerateEvent.timestamp:type_name -> google.protobuf.Timestamp
 	12, // 22: nimi.runtime.v1.StreamGenerateEvent.started:type_name -> nimi.runtime.v1.StreamStarted
 	13, // 23: nimi.runtime.v1.StreamGenerateEvent.delta:type_name -> nimi.runtime.v1.StreamDelta
 	14, // 24: nimi.runtime.v1.StreamGenerateEvent.tool_call:type_name -> nimi.runtime.v1.ToolCallEvent
 	15, // 25: nimi.runtime.v1.StreamGenerateEvent.tool_result:type_name -> nimi.runtime.v1.ToolResultEvent
-	44, // 26: nimi.runtime.v1.StreamGenerateEvent.usage:type_name -> nimi.runtime.v1.UsageStats
+	47, // 26: nimi.runtime.v1.StreamGenerateEvent.usage:type_name -> nimi.runtime.v1.UsageStats
 	16, // 27: nimi.runtime.v1.StreamGenerateEvent.completed:type_name -> nimi.runtime.v1.StreamCompleted
 	17, // 28: nimi.runtime.v1.StreamGenerateEvent.failed:type_name -> nimi.runtime.v1.StreamFailed
 	1,  // 29: nimi.runtime.v1.EmbedRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 30: nimi.runtime.v1.EmbedRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	47, // 31: nimi.runtime.v1.EmbedResponse.vectors:type_name -> google.protobuf.ListValue
-	44, // 32: nimi.runtime.v1.EmbedResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	50, // 31: nimi.runtime.v1.EmbedResponse.vectors:type_name -> google.protobuf.ListValue
+	47, // 32: nimi.runtime.v1.EmbedResponse.usage:type_name -> nimi.runtime.v1.UsageStats
 	1,  // 33: nimi.runtime.v1.EmbedResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	43, // 34: nimi.runtime.v1.ImageGenerationSpec.provider_options:type_name -> google.protobuf.Struct
-	43, // 35: nimi.runtime.v1.VideoGenerationSpec.provider_options:type_name -> google.protobuf.Struct
-	43, // 36: nimi.runtime.v1.SpeechSynthesisSpec.provider_options:type_name -> google.protobuf.Struct
-	43, // 37: nimi.runtime.v1.SpeechTranscriptionSpec.provider_options:type_name -> google.protobuf.Struct
-	43, // 38: nimi.runtime.v1.MediaArtifact.provider_raw:type_name -> google.protobuf.Struct
-	0,  // 39: nimi.runtime.v1.MediaJob.modal:type_name -> nimi.runtime.v1.Modal
-	1,  // 40: nimi.runtime.v1.MediaJob.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	1,  // 41: nimi.runtime.v1.MediaJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	5,  // 42: nimi.runtime.v1.MediaJob.status:type_name -> nimi.runtime.v1.MediaJobStatus
-	45, // 43: nimi.runtime.v1.MediaJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	46, // 44: nimi.runtime.v1.MediaJob.created_at:type_name -> google.protobuf.Timestamp
-	46, // 45: nimi.runtime.v1.MediaJob.updated_at:type_name -> google.protobuf.Timestamp
-	46, // 46: nimi.runtime.v1.MediaJob.next_poll_at:type_name -> google.protobuf.Timestamp
-	43, // 47: nimi.runtime.v1.MediaJob.provider_options:type_name -> google.protobuf.Struct
-	25, // 48: nimi.runtime.v1.MediaJob.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
-	44, // 49: nimi.runtime.v1.MediaJob.usage:type_name -> nimi.runtime.v1.UsageStats
-	0,  // 50: nimi.runtime.v1.SubmitMediaJobRequest.modal:type_name -> nimi.runtime.v1.Modal
-	1,  // 51: nimi.runtime.v1.SubmitMediaJobRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 52: nimi.runtime.v1.SubmitMediaJobRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	21, // 53: nimi.runtime.v1.SubmitMediaJobRequest.image_spec:type_name -> nimi.runtime.v1.ImageGenerationSpec
-	22, // 54: nimi.runtime.v1.SubmitMediaJobRequest.video_spec:type_name -> nimi.runtime.v1.VideoGenerationSpec
-	23, // 55: nimi.runtime.v1.SubmitMediaJobRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
-	24, // 56: nimi.runtime.v1.SubmitMediaJobRequest.transcription_spec:type_name -> nimi.runtime.v1.SpeechTranscriptionSpec
-	26, // 57: nimi.runtime.v1.SubmitMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
-	26, // 58: nimi.runtime.v1.GetMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
-	26, // 59: nimi.runtime.v1.CancelMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
-	6,  // 60: nimi.runtime.v1.MediaJobEvent.event_type:type_name -> nimi.runtime.v1.MediaJobEventType
-	46, // 61: nimi.runtime.v1.MediaJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	26, // 62: nimi.runtime.v1.MediaJobEvent.job:type_name -> nimi.runtime.v1.MediaJob
-	25, // 63: nimi.runtime.v1.GetMediaArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
-	1,  // 64: nimi.runtime.v1.GenerateImageRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 65: nimi.runtime.v1.GenerateImageRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	1,  // 66: nimi.runtime.v1.GenerateVideoRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 67: nimi.runtime.v1.GenerateVideoRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	1,  // 68: nimi.runtime.v1.SynthesizeSpeechRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 69: nimi.runtime.v1.SynthesizeSpeechRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	44, // 70: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
-	1,  // 71: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	1,  // 72: nimi.runtime.v1.TranscribeAudioRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 73: nimi.runtime.v1.TranscribeAudioRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	44, // 74: nimi.runtime.v1.TranscribeAudioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
-	1,  // 75: nimi.runtime.v1.TranscribeAudioResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	9,  // 76: nimi.runtime.v1.RuntimeAiService.Generate:input_type -> nimi.runtime.v1.GenerateRequest
-	11, // 77: nimi.runtime.v1.RuntimeAiService.StreamGenerate:input_type -> nimi.runtime.v1.StreamGenerateRequest
-	19, // 78: nimi.runtime.v1.RuntimeAiService.Embed:input_type -> nimi.runtime.v1.EmbedRequest
-	27, // 79: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:input_type -> nimi.runtime.v1.SubmitMediaJobRequest
-	29, // 80: nimi.runtime.v1.RuntimeAiService.GetMediaJob:input_type -> nimi.runtime.v1.GetMediaJobRequest
-	31, // 81: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:input_type -> nimi.runtime.v1.CancelMediaJobRequest
-	34, // 82: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:input_type -> nimi.runtime.v1.SubscribeMediaJobEventsRequest
-	35, // 83: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:input_type -> nimi.runtime.v1.GetMediaArtifactsRequest
-	37, // 84: nimi.runtime.v1.RuntimeAiService.GenerateImage:input_type -> nimi.runtime.v1.GenerateImageRequest
-	38, // 85: nimi.runtime.v1.RuntimeAiService.GenerateVideo:input_type -> nimi.runtime.v1.GenerateVideoRequest
-	39, // 86: nimi.runtime.v1.RuntimeAiService.SynthesizeSpeech:input_type -> nimi.runtime.v1.SynthesizeSpeechRequest
-	41, // 87: nimi.runtime.v1.RuntimeAiService.TranscribeAudio:input_type -> nimi.runtime.v1.TranscribeAudioRequest
-	10, // 88: nimi.runtime.v1.RuntimeAiService.Generate:output_type -> nimi.runtime.v1.GenerateResponse
-	18, // 89: nimi.runtime.v1.RuntimeAiService.StreamGenerate:output_type -> nimi.runtime.v1.StreamGenerateEvent
-	20, // 90: nimi.runtime.v1.RuntimeAiService.Embed:output_type -> nimi.runtime.v1.EmbedResponse
-	28, // 91: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:output_type -> nimi.runtime.v1.SubmitMediaJobResponse
-	30, // 92: nimi.runtime.v1.RuntimeAiService.GetMediaJob:output_type -> nimi.runtime.v1.GetMediaJobResponse
-	32, // 93: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:output_type -> nimi.runtime.v1.CancelMediaJobResponse
-	33, // 94: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:output_type -> nimi.runtime.v1.MediaJobEvent
-	36, // 95: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:output_type -> nimi.runtime.v1.GetMediaArtifactsResponse
-	40, // 96: nimi.runtime.v1.RuntimeAiService.GenerateImage:output_type -> nimi.runtime.v1.ArtifactChunk
-	40, // 97: nimi.runtime.v1.RuntimeAiService.GenerateVideo:output_type -> nimi.runtime.v1.ArtifactChunk
-	40, // 98: nimi.runtime.v1.RuntimeAiService.SynthesizeSpeech:output_type -> nimi.runtime.v1.ArtifactChunk
-	42, // 99: nimi.runtime.v1.RuntimeAiService.TranscribeAudio:output_type -> nimi.runtime.v1.TranscribeAudioResponse
-	88, // [88:100] is the sub-list for method output_type
-	76, // [76:88] is the sub-list for method input_type
-	76, // [76:76] is the sub-list for extension type_name
-	76, // [76:76] is the sub-list for extension extendee
-	0,  // [0:76] is the sub-list for field type_name
+	46, // 34: nimi.runtime.v1.ImageGenerationSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 35: nimi.runtime.v1.VideoGenerationSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 36: nimi.runtime.v1.SpeechSynthesisSpec.provider_options:type_name -> google.protobuf.Struct
+	24, // 37: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
+	25, // 38: nimi.runtime.v1.SpeechTranscriptionSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
+	46, // 39: nimi.runtime.v1.SpeechTranscriptionSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 40: nimi.runtime.v1.MediaArtifact.provider_raw:type_name -> google.protobuf.Struct
+	0,  // 41: nimi.runtime.v1.MediaJob.modal:type_name -> nimi.runtime.v1.Modal
+	1,  // 42: nimi.runtime.v1.MediaJob.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	1,  // 43: nimi.runtime.v1.MediaJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	5,  // 44: nimi.runtime.v1.MediaJob.status:type_name -> nimi.runtime.v1.MediaJobStatus
+	48, // 45: nimi.runtime.v1.MediaJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	49, // 46: nimi.runtime.v1.MediaJob.created_at:type_name -> google.protobuf.Timestamp
+	49, // 47: nimi.runtime.v1.MediaJob.updated_at:type_name -> google.protobuf.Timestamp
+	49, // 48: nimi.runtime.v1.MediaJob.next_poll_at:type_name -> google.protobuf.Timestamp
+	46, // 49: nimi.runtime.v1.MediaJob.provider_options:type_name -> google.protobuf.Struct
+	27, // 50: nimi.runtime.v1.MediaJob.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
+	47, // 51: nimi.runtime.v1.MediaJob.usage:type_name -> nimi.runtime.v1.UsageStats
+	0,  // 52: nimi.runtime.v1.SubmitMediaJobRequest.modal:type_name -> nimi.runtime.v1.Modal
+	1,  // 53: nimi.runtime.v1.SubmitMediaJobRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 54: nimi.runtime.v1.SubmitMediaJobRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	45, // 55: nimi.runtime.v1.SubmitMediaJobRequest.labels:type_name -> nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
+	21, // 56: nimi.runtime.v1.SubmitMediaJobRequest.image_spec:type_name -> nimi.runtime.v1.ImageGenerationSpec
+	22, // 57: nimi.runtime.v1.SubmitMediaJobRequest.video_spec:type_name -> nimi.runtime.v1.VideoGenerationSpec
+	23, // 58: nimi.runtime.v1.SubmitMediaJobRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
+	26, // 59: nimi.runtime.v1.SubmitMediaJobRequest.transcription_spec:type_name -> nimi.runtime.v1.SpeechTranscriptionSpec
+	28, // 60: nimi.runtime.v1.SubmitMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
+	28, // 61: nimi.runtime.v1.GetMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
+	28, // 62: nimi.runtime.v1.CancelMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
+	6,  // 63: nimi.runtime.v1.MediaJobEvent.event_type:type_name -> nimi.runtime.v1.MediaJobEventType
+	49, // 64: nimi.runtime.v1.MediaJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	28, // 65: nimi.runtime.v1.MediaJobEvent.job:type_name -> nimi.runtime.v1.MediaJob
+	27, // 66: nimi.runtime.v1.GetMediaArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
+	1,  // 67: nimi.runtime.v1.GenerateImageRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 68: nimi.runtime.v1.GenerateImageRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	1,  // 69: nimi.runtime.v1.GenerateVideoRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 70: nimi.runtime.v1.GenerateVideoRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	1,  // 71: nimi.runtime.v1.SynthesizeSpeechRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 72: nimi.runtime.v1.SynthesizeSpeechRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	47, // 73: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
+	1,  // 74: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	1,  // 75: nimi.runtime.v1.TranscribeAudioRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 76: nimi.runtime.v1.TranscribeAudioRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	47, // 77: nimi.runtime.v1.TranscribeAudioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	1,  // 78: nimi.runtime.v1.TranscribeAudioResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	9,  // 79: nimi.runtime.v1.RuntimeAiService.Generate:input_type -> nimi.runtime.v1.GenerateRequest
+	11, // 80: nimi.runtime.v1.RuntimeAiService.StreamGenerate:input_type -> nimi.runtime.v1.StreamGenerateRequest
+	19, // 81: nimi.runtime.v1.RuntimeAiService.Embed:input_type -> nimi.runtime.v1.EmbedRequest
+	29, // 82: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:input_type -> nimi.runtime.v1.SubmitMediaJobRequest
+	31, // 83: nimi.runtime.v1.RuntimeAiService.GetMediaJob:input_type -> nimi.runtime.v1.GetMediaJobRequest
+	33, // 84: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:input_type -> nimi.runtime.v1.CancelMediaJobRequest
+	36, // 85: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:input_type -> nimi.runtime.v1.SubscribeMediaJobEventsRequest
+	37, // 86: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:input_type -> nimi.runtime.v1.GetMediaArtifactsRequest
+	39, // 87: nimi.runtime.v1.RuntimeAiService.GenerateImage:input_type -> nimi.runtime.v1.GenerateImageRequest
+	40, // 88: nimi.runtime.v1.RuntimeAiService.GenerateVideo:input_type -> nimi.runtime.v1.GenerateVideoRequest
+	41, // 89: nimi.runtime.v1.RuntimeAiService.SynthesizeSpeech:input_type -> nimi.runtime.v1.SynthesizeSpeechRequest
+	43, // 90: nimi.runtime.v1.RuntimeAiService.TranscribeAudio:input_type -> nimi.runtime.v1.TranscribeAudioRequest
+	10, // 91: nimi.runtime.v1.RuntimeAiService.Generate:output_type -> nimi.runtime.v1.GenerateResponse
+	18, // 92: nimi.runtime.v1.RuntimeAiService.StreamGenerate:output_type -> nimi.runtime.v1.StreamGenerateEvent
+	20, // 93: nimi.runtime.v1.RuntimeAiService.Embed:output_type -> nimi.runtime.v1.EmbedResponse
+	30, // 94: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:output_type -> nimi.runtime.v1.SubmitMediaJobResponse
+	32, // 95: nimi.runtime.v1.RuntimeAiService.GetMediaJob:output_type -> nimi.runtime.v1.GetMediaJobResponse
+	34, // 96: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:output_type -> nimi.runtime.v1.CancelMediaJobResponse
+	35, // 97: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:output_type -> nimi.runtime.v1.MediaJobEvent
+	38, // 98: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:output_type -> nimi.runtime.v1.GetMediaArtifactsResponse
+	42, // 99: nimi.runtime.v1.RuntimeAiService.GenerateImage:output_type -> nimi.runtime.v1.ArtifactChunk
+	42, // 100: nimi.runtime.v1.RuntimeAiService.GenerateVideo:output_type -> nimi.runtime.v1.ArtifactChunk
+	42, // 101: nimi.runtime.v1.RuntimeAiService.SynthesizeSpeech:output_type -> nimi.runtime.v1.ArtifactChunk
+	44, // 102: nimi.runtime.v1.RuntimeAiService.TranscribeAudio:output_type -> nimi.runtime.v1.TranscribeAudioResponse
+	91, // [91:103] is the sub-list for method output_type
+	79, // [79:91] is the sub-list for method input_type
+	79, // [79:79] is the sub-list for extension type_name
+	79, // [79:79] is the sub-list for extension extendee
+	0,  // [0:79] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_proto_init() }
@@ -4080,7 +4327,12 @@ func file_runtime_v1_ai_proto_init() {
 		(*StreamGenerateEvent_Completed)(nil),
 		(*StreamGenerateEvent_Failed)(nil),
 	}
-	file_runtime_v1_ai_proto_msgTypes[20].OneofWrappers = []any{
+	file_runtime_v1_ai_proto_msgTypes[18].OneofWrappers = []any{
+		(*SpeechTranscriptionAudioSource_AudioBytes)(nil),
+		(*SpeechTranscriptionAudioSource_AudioUri)(nil),
+		(*SpeechTranscriptionAudioSource_AudioChunks)(nil),
+	}
+	file_runtime_v1_ai_proto_msgTypes[22].OneofWrappers = []any{
 		(*SubmitMediaJobRequest_ImageSpec)(nil),
 		(*SubmitMediaJobRequest_VideoSpec)(nil),
 		(*SubmitMediaJobRequest_SpeechSpec)(nil),
@@ -4092,7 +4344,7 @@ func file_runtime_v1_ai_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_ai_proto_rawDesc), len(file_runtime_v1_ai_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   36,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

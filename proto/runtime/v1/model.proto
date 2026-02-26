@@ -15,12 +15,25 @@ enum ModelStatus {
   MODEL_STATUS_REMOVED = 4;
 }
 
+message ModelCapabilityProfile {
+  bool supports_text_generate = 1;
+  bool supports_text_stream = 2;
+  bool supports_embedding = 3;
+  bool supports_image_generation = 4;
+  bool supports_video_generation = 5;
+  bool supports_speech_synthesis = 6;
+  bool supports_speech_transcription = 7;
+  bool supports_async_media_job = 8;
+  bool supports_streaming = 9;
+}
+
 message ModelDescriptor {
   string model_id = 1;
   string version = 2;
   ModelStatus status = 3;
   repeated string capabilities = 4;
   google.protobuf.Timestamp last_health_at = 5;
+  ModelCapabilityProfile capability_profile = 6;
 }
 
 message ListModelsRequest {}

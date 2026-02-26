@@ -77,20 +77,129 @@ func (ModelStatus) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_model_proto_rawDescGZIP(), []int{0}
 }
 
+type ModelCapabilityProfile struct {
+	state                       protoimpl.MessageState `protogen:"open.v1"`
+	SupportsTextGenerate        bool                   `protobuf:"varint,1,opt,name=supports_text_generate,json=supportsTextGenerate,proto3" json:"supports_text_generate,omitempty"`
+	SupportsTextStream          bool                   `protobuf:"varint,2,opt,name=supports_text_stream,json=supportsTextStream,proto3" json:"supports_text_stream,omitempty"`
+	SupportsEmbedding           bool                   `protobuf:"varint,3,opt,name=supports_embedding,json=supportsEmbedding,proto3" json:"supports_embedding,omitempty"`
+	SupportsImageGeneration     bool                   `protobuf:"varint,4,opt,name=supports_image_generation,json=supportsImageGeneration,proto3" json:"supports_image_generation,omitempty"`
+	SupportsVideoGeneration     bool                   `protobuf:"varint,5,opt,name=supports_video_generation,json=supportsVideoGeneration,proto3" json:"supports_video_generation,omitempty"`
+	SupportsSpeechSynthesis     bool                   `protobuf:"varint,6,opt,name=supports_speech_synthesis,json=supportsSpeechSynthesis,proto3" json:"supports_speech_synthesis,omitempty"`
+	SupportsSpeechTranscription bool                   `protobuf:"varint,7,opt,name=supports_speech_transcription,json=supportsSpeechTranscription,proto3" json:"supports_speech_transcription,omitempty"`
+	SupportsAsyncMediaJob       bool                   `protobuf:"varint,8,opt,name=supports_async_media_job,json=supportsAsyncMediaJob,proto3" json:"supports_async_media_job,omitempty"`
+	SupportsStreaming           bool                   `protobuf:"varint,9,opt,name=supports_streaming,json=supportsStreaming,proto3" json:"supports_streaming,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *ModelCapabilityProfile) Reset() {
+	*x = ModelCapabilityProfile{}
+	mi := &file_runtime_v1_model_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModelCapabilityProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModelCapabilityProfile) ProtoMessage() {}
+
+func (x *ModelCapabilityProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_model_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModelCapabilityProfile.ProtoReflect.Descriptor instead.
+func (*ModelCapabilityProfile) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ModelCapabilityProfile) GetSupportsTextGenerate() bool {
+	if x != nil {
+		return x.SupportsTextGenerate
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsTextStream() bool {
+	if x != nil {
+		return x.SupportsTextStream
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsEmbedding() bool {
+	if x != nil {
+		return x.SupportsEmbedding
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsImageGeneration() bool {
+	if x != nil {
+		return x.SupportsImageGeneration
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsVideoGeneration() bool {
+	if x != nil {
+		return x.SupportsVideoGeneration
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsSpeechSynthesis() bool {
+	if x != nil {
+		return x.SupportsSpeechSynthesis
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsSpeechTranscription() bool {
+	if x != nil {
+		return x.SupportsSpeechTranscription
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsAsyncMediaJob() bool {
+	if x != nil {
+		return x.SupportsAsyncMediaJob
+	}
+	return false
+}
+
+func (x *ModelCapabilityProfile) GetSupportsStreaming() bool {
+	if x != nil {
+		return x.SupportsStreaming
+	}
+	return false
+}
+
 type ModelDescriptor struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	Status        ModelStatus            `protobuf:"varint,3,opt,name=status,proto3,enum=nimi.runtime.v1.ModelStatus" json:"status,omitempty"`
-	Capabilities  []string               `protobuf:"bytes,4,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	LastHealthAt  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_health_at,json=lastHealthAt,proto3" json:"last_health_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState  `protogen:"open.v1"`
+	ModelId           string                  `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Version           string                  `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Status            ModelStatus             `protobuf:"varint,3,opt,name=status,proto3,enum=nimi.runtime.v1.ModelStatus" json:"status,omitempty"`
+	Capabilities      []string                `protobuf:"bytes,4,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	LastHealthAt      *timestamppb.Timestamp  `protobuf:"bytes,5,opt,name=last_health_at,json=lastHealthAt,proto3" json:"last_health_at,omitempty"`
+	CapabilityProfile *ModelCapabilityProfile `protobuf:"bytes,6,opt,name=capability_profile,json=capabilityProfile,proto3" json:"capability_profile,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ModelDescriptor) Reset() {
 	*x = ModelDescriptor{}
-	mi := &file_runtime_v1_model_proto_msgTypes[0]
+	mi := &file_runtime_v1_model_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -102,7 +211,7 @@ func (x *ModelDescriptor) String() string {
 func (*ModelDescriptor) ProtoMessage() {}
 
 func (x *ModelDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[0]
+	mi := &file_runtime_v1_model_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -115,7 +224,7 @@ func (x *ModelDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelDescriptor.ProtoReflect.Descriptor instead.
 func (*ModelDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{0}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ModelDescriptor) GetModelId() string {
@@ -153,6 +262,13 @@ func (x *ModelDescriptor) GetLastHealthAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ModelDescriptor) GetCapabilityProfile() *ModelCapabilityProfile {
+	if x != nil {
+		return x.CapabilityProfile
+	}
+	return nil
+}
+
 type ListModelsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -161,7 +277,7 @@ type ListModelsRequest struct {
 
 func (x *ListModelsRequest) Reset() {
 	*x = ListModelsRequest{}
-	mi := &file_runtime_v1_model_proto_msgTypes[1]
+	mi := &file_runtime_v1_model_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -173,7 +289,7 @@ func (x *ListModelsRequest) String() string {
 func (*ListModelsRequest) ProtoMessage() {}
 
 func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[1]
+	mi := &file_runtime_v1_model_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -186,7 +302,7 @@ func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{2}
 }
 
 type ListModelsResponse struct {
@@ -198,7 +314,7 @@ type ListModelsResponse struct {
 
 func (x *ListModelsResponse) Reset() {
 	*x = ListModelsResponse{}
-	mi := &file_runtime_v1_model_proto_msgTypes[2]
+	mi := &file_runtime_v1_model_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +326,7 @@ func (x *ListModelsResponse) String() string {
 func (*ListModelsResponse) ProtoMessage() {}
 
 func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[2]
+	mi := &file_runtime_v1_model_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +339,7 @@ func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListModelsResponse) GetModels() []*ModelDescriptor {
@@ -245,7 +361,7 @@ type PullModelRequest struct {
 
 func (x *PullModelRequest) Reset() {
 	*x = PullModelRequest{}
-	mi := &file_runtime_v1_model_proto_msgTypes[3]
+	mi := &file_runtime_v1_model_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -257,7 +373,7 @@ func (x *PullModelRequest) String() string {
 func (*PullModelRequest) ProtoMessage() {}
 
 func (x *PullModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[3]
+	mi := &file_runtime_v1_model_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +386,7 @@ func (x *PullModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullModelRequest.ProtoReflect.Descriptor instead.
 func (*PullModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PullModelRequest) GetAppId() string {
@@ -312,7 +428,7 @@ type PullModelResponse struct {
 
 func (x *PullModelResponse) Reset() {
 	*x = PullModelResponse{}
-	mi := &file_runtime_v1_model_proto_msgTypes[4]
+	mi := &file_runtime_v1_model_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -324,7 +440,7 @@ func (x *PullModelResponse) String() string {
 func (*PullModelResponse) ProtoMessage() {}
 
 func (x *PullModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[4]
+	mi := &file_runtime_v1_model_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -337,7 +453,7 @@ func (x *PullModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullModelResponse.ProtoReflect.Descriptor instead.
 func (*PullModelResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PullModelResponse) GetTaskId() string {
@@ -371,7 +487,7 @@ type RemoveModelRequest struct {
 
 func (x *RemoveModelRequest) Reset() {
 	*x = RemoveModelRequest{}
-	mi := &file_runtime_v1_model_proto_msgTypes[5]
+	mi := &file_runtime_v1_model_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +499,7 @@ func (x *RemoveModelRequest) String() string {
 func (*RemoveModelRequest) ProtoMessage() {}
 
 func (x *RemoveModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[5]
+	mi := &file_runtime_v1_model_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +512,7 @@ func (x *RemoveModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveModelRequest.ProtoReflect.Descriptor instead.
 func (*RemoveModelRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RemoveModelRequest) GetAppId() string {
@@ -422,7 +538,7 @@ type CheckModelHealthRequest struct {
 
 func (x *CheckModelHealthRequest) Reset() {
 	*x = CheckModelHealthRequest{}
-	mi := &file_runtime_v1_model_proto_msgTypes[6]
+	mi := &file_runtime_v1_model_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +550,7 @@ func (x *CheckModelHealthRequest) String() string {
 func (*CheckModelHealthRequest) ProtoMessage() {}
 
 func (x *CheckModelHealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[6]
+	mi := &file_runtime_v1_model_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +563,7 @@ func (x *CheckModelHealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckModelHealthRequest.ProtoReflect.Descriptor instead.
 func (*CheckModelHealthRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{6}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CheckModelHealthRequest) GetModelId() string {
@@ -468,7 +584,7 @@ type CheckModelHealthResponse struct {
 
 func (x *CheckModelHealthResponse) Reset() {
 	*x = CheckModelHealthResponse{}
-	mi := &file_runtime_v1_model_proto_msgTypes[7]
+	mi := &file_runtime_v1_model_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +596,7 @@ func (x *CheckModelHealthResponse) String() string {
 func (*CheckModelHealthResponse) ProtoMessage() {}
 
 func (x *CheckModelHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_model_proto_msgTypes[7]
+	mi := &file_runtime_v1_model_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +609,7 @@ func (x *CheckModelHealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckModelHealthResponse.ProtoReflect.Descriptor instead.
 func (*CheckModelHealthResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_model_proto_rawDescGZIP(), []int{7}
+	return file_runtime_v1_model_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CheckModelHealthResponse) GetHealthy() bool {
@@ -521,13 +637,24 @@ var File_runtime_v1_model_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_model_proto_rawDesc = "" +
 	"\n" +
-	"\x16runtime/v1/model.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\xe2\x01\n" +
+	"\x16runtime/v1/model.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\x8f\x04\n" +
+	"\x16ModelCapabilityProfile\x124\n" +
+	"\x16supports_text_generate\x18\x01 \x01(\bR\x14supportsTextGenerate\x120\n" +
+	"\x14supports_text_stream\x18\x02 \x01(\bR\x12supportsTextStream\x12-\n" +
+	"\x12supports_embedding\x18\x03 \x01(\bR\x11supportsEmbedding\x12:\n" +
+	"\x19supports_image_generation\x18\x04 \x01(\bR\x17supportsImageGeneration\x12:\n" +
+	"\x19supports_video_generation\x18\x05 \x01(\bR\x17supportsVideoGeneration\x12:\n" +
+	"\x19supports_speech_synthesis\x18\x06 \x01(\bR\x17supportsSpeechSynthesis\x12B\n" +
+	"\x1dsupports_speech_transcription\x18\a \x01(\bR\x1bsupportsSpeechTranscription\x127\n" +
+	"\x18supports_async_media_job\x18\b \x01(\bR\x15supportsAsyncMediaJob\x12-\n" +
+	"\x12supports_streaming\x18\t \x01(\bR\x11supportsStreaming\"\xba\x02\n" +
 	"\x0fModelDescriptor\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x124\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x1c.nimi.runtime.v1.ModelStatusR\x06status\x12\"\n" +
 	"\fcapabilities\x18\x04 \x03(\tR\fcapabilities\x12@\n" +
-	"\x0elast_health_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastHealthAt\"\x13\n" +
+	"\x0elast_health_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\flastHealthAt\x12V\n" +
+	"\x12capability_profile\x18\x06 \x01(\v2'.nimi.runtime.v1.ModelCapabilityProfileR\x11capabilityProfile\"\x13\n" +
 	"\x11ListModelsRequest\"N\n" +
 	"\x12ListModelsResponse\x128\n" +
 	"\x06models\x18\x01 \x03(\v2 .nimi.runtime.v1.ModelDescriptorR\x06models\"v\n" +
@@ -578,40 +705,42 @@ func file_runtime_v1_model_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_model_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_runtime_v1_model_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_runtime_v1_model_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_runtime_v1_model_proto_goTypes = []any{
 	(ModelStatus)(0),                 // 0: nimi.runtime.v1.ModelStatus
-	(*ModelDescriptor)(nil),          // 1: nimi.runtime.v1.ModelDescriptor
-	(*ListModelsRequest)(nil),        // 2: nimi.runtime.v1.ListModelsRequest
-	(*ListModelsResponse)(nil),       // 3: nimi.runtime.v1.ListModelsResponse
-	(*PullModelRequest)(nil),         // 4: nimi.runtime.v1.PullModelRequest
-	(*PullModelResponse)(nil),        // 5: nimi.runtime.v1.PullModelResponse
-	(*RemoveModelRequest)(nil),       // 6: nimi.runtime.v1.RemoveModelRequest
-	(*CheckModelHealthRequest)(nil),  // 7: nimi.runtime.v1.CheckModelHealthRequest
-	(*CheckModelHealthResponse)(nil), // 8: nimi.runtime.v1.CheckModelHealthResponse
-	(*timestamppb.Timestamp)(nil),    // 9: google.protobuf.Timestamp
-	(ReasonCode)(0),                  // 10: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                      // 11: nimi.runtime.v1.Ack
+	(*ModelCapabilityProfile)(nil),   // 1: nimi.runtime.v1.ModelCapabilityProfile
+	(*ModelDescriptor)(nil),          // 2: nimi.runtime.v1.ModelDescriptor
+	(*ListModelsRequest)(nil),        // 3: nimi.runtime.v1.ListModelsRequest
+	(*ListModelsResponse)(nil),       // 4: nimi.runtime.v1.ListModelsResponse
+	(*PullModelRequest)(nil),         // 5: nimi.runtime.v1.PullModelRequest
+	(*PullModelResponse)(nil),        // 6: nimi.runtime.v1.PullModelResponse
+	(*RemoveModelRequest)(nil),       // 7: nimi.runtime.v1.RemoveModelRequest
+	(*CheckModelHealthRequest)(nil),  // 8: nimi.runtime.v1.CheckModelHealthRequest
+	(*CheckModelHealthResponse)(nil), // 9: nimi.runtime.v1.CheckModelHealthResponse
+	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
+	(ReasonCode)(0),                  // 11: nimi.runtime.v1.ReasonCode
+	(*Ack)(nil),                      // 12: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_model_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.ModelDescriptor.status:type_name -> nimi.runtime.v1.ModelStatus
-	9,  // 1: nimi.runtime.v1.ModelDescriptor.last_health_at:type_name -> google.protobuf.Timestamp
-	1,  // 2: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
-	10, // 3: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	10, // 4: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 5: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
-	4,  // 6: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
-	6,  // 7: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
-	7,  // 8: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
-	3,  // 9: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
-	5,  // 10: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
-	11, // 11: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
-	8,  // 12: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
-	9,  // [9:13] is the sub-list for method output_type
-	5,  // [5:9] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	10, // 1: nimi.runtime.v1.ModelDescriptor.last_health_at:type_name -> google.protobuf.Timestamp
+	1,  // 2: nimi.runtime.v1.ModelDescriptor.capability_profile:type_name -> nimi.runtime.v1.ModelCapabilityProfile
+	2,  // 3: nimi.runtime.v1.ListModelsResponse.models:type_name -> nimi.runtime.v1.ModelDescriptor
+	11, // 4: nimi.runtime.v1.PullModelResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	11, // 5: nimi.runtime.v1.CheckModelHealthResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 6: nimi.runtime.v1.RuntimeModelService.ListModels:input_type -> nimi.runtime.v1.ListModelsRequest
+	5,  // 7: nimi.runtime.v1.RuntimeModelService.PullModel:input_type -> nimi.runtime.v1.PullModelRequest
+	7,  // 8: nimi.runtime.v1.RuntimeModelService.RemoveModel:input_type -> nimi.runtime.v1.RemoveModelRequest
+	8,  // 9: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:input_type -> nimi.runtime.v1.CheckModelHealthRequest
+	4,  // 10: nimi.runtime.v1.RuntimeModelService.ListModels:output_type -> nimi.runtime.v1.ListModelsResponse
+	6,  // 11: nimi.runtime.v1.RuntimeModelService.PullModel:output_type -> nimi.runtime.v1.PullModelResponse
+	12, // 12: nimi.runtime.v1.RuntimeModelService.RemoveModel:output_type -> nimi.runtime.v1.Ack
+	9,  // 13: nimi.runtime.v1.RuntimeModelService.CheckModelHealth:output_type -> nimi.runtime.v1.CheckModelHealthResponse
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_model_proto_init() }
@@ -626,7 +755,7 @@ func file_runtime_v1_model_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_model_proto_rawDesc), len(file_runtime_v1_model_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

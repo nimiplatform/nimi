@@ -68,18 +68,30 @@ export interface IRuntimeAiServiceClient {
      */
     getMediaArtifacts(input: GetMediaArtifactsRequest, options?: RpcOptions): UnaryCall<GetMediaArtifactsRequest, GetMediaArtifactsResponse>;
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: GenerateImage
      */
     generateImage(input: GenerateImageRequest, options?: RpcOptions): ServerStreamingCall<GenerateImageRequest, ArtifactChunk>;
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: GenerateVideo
      */
     generateVideo(input: GenerateVideoRequest, options?: RpcOptions): ServerStreamingCall<GenerateVideoRequest, ArtifactChunk>;
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: SynthesizeSpeech
      */
     synthesizeSpeech(input: SynthesizeSpeechRequest, options?: RpcOptions): ServerStreamingCall<SynthesizeSpeechRequest, ArtifactChunk>;
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: TranscribeAudio
      */
     transcribeAudio(input: TranscribeAudioRequest, options?: RpcOptions): UnaryCall<TranscribeAudioRequest, TranscribeAudioResponse>;
@@ -150,6 +162,9 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<GetMediaArtifactsRequest, GetMediaArtifactsResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: GenerateImage
      */
     generateImage(input: GenerateImageRequest, options?: RpcOptions): ServerStreamingCall<GenerateImageRequest, ArtifactChunk> {
@@ -157,6 +172,9 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<GenerateImageRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: GenerateVideo
      */
     generateVideo(input: GenerateVideoRequest, options?: RpcOptions): ServerStreamingCall<GenerateVideoRequest, ArtifactChunk> {
@@ -164,6 +182,9 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<GenerateVideoRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: SynthesizeSpeech
      */
     synthesizeSpeech(input: SynthesizeSpeechRequest, options?: RpcOptions): ServerStreamingCall<SynthesizeSpeechRequest, ArtifactChunk> {
@@ -171,6 +192,9 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<SynthesizeSpeechRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
+     * Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
+     *
+     * @deprecated
      * @generated from protobuf rpc: TranscribeAudio
      */
     transcribeAudio(input: TranscribeAudioRequest, options?: RpcOptions): UnaryCall<TranscribeAudioRequest, TranscribeAudioResponse> {

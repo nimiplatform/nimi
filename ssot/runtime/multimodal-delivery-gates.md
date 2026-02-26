@@ -2,7 +2,7 @@
 title: Nimi Runtime Multimodal Delivery Gates
 status: ACTIVE
 created_at: 2026-02-26
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: service-contract.md
 references:
   - ssot/runtime/multimodal-provider-contract.md
@@ -256,6 +256,7 @@ rules:
 | I1 | G1 + G2（协议与 SDK 映射） | 2026-02-26 | 2026-02-26 | 无 | 无 | I2 provider 实链 |
 | I2 | G3（provider 实链与 fail-close） | 2026-02-26 | 2026-02-26 | 无 | 无 | I3 async workflow + matrix |
 | I3 | G4 + G5（external-async + 矩阵 + coverage gate） | 2026-02-26 | 2026-02-26 | G6/G7 发布件待后续轮次 | 非本轮目标范围 | 发布候选与对外文档化 |
+| I4 | R5（协议完整性 + strict fail-close 收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 与 ByteDance WS 专线延后 | 明确非目标范围 | R6 provider 专项适配 |
 
 ## 6. 变更控制（MUST）
 

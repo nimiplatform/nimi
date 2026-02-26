@@ -462,6 +462,14 @@ export interface WorkflowNode {
      * @generated from protobuf field: nimi.runtime.v1.WorkflowExecutionMode execution_mode = 7
      */
     executionMode: WorkflowExecutionMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorkflowResumeStrategy resume_strategy = 8
+     */
+    resumeStrategy: WorkflowResumeStrategy;
+    /**
+     * @generated from protobuf field: string callback_ref = 9
+     */
+    callbackRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.WorkflowDefinition
@@ -840,6 +848,23 @@ export enum WorkflowExecutionMode {
      * @generated from protobuf enum value: WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC = 2;
      */
     EXTERNAL_ASYNC = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.WorkflowResumeStrategy
+ */
+export enum WorkflowResumeStrategy {
+    /**
+     * @generated from protobuf enum value: WORKFLOW_RESUME_STRATEGY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_RESUME_STRATEGY_AUTO = 1;
+     */
+    AUTO = 1,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_RESUME_STRATEGY_MANUAL = 2;
+     */
+    MANUAL = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WorkflowEdge$Type extends MessageType<WorkflowEdge> {
@@ -1928,7 +1953,9 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
             { no: 32, name: "noop_config", kind: "message", oneof: "typeConfig", T: () => NoopNodeConfig },
             { no: 5, name: "retry_max_attempts", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 6, name: "retry_backoff", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "execution_mode", kind: "enum", T: () => ["nimi.runtime.v1.WorkflowExecutionMode", WorkflowExecutionMode, "WORKFLOW_EXECUTION_MODE_"] }
+            { no: 7, name: "execution_mode", kind: "enum", T: () => ["nimi.runtime.v1.WorkflowExecutionMode", WorkflowExecutionMode, "WORKFLOW_EXECUTION_MODE_"] },
+            { no: 8, name: "resume_strategy", kind: "enum", T: () => ["nimi.runtime.v1.WorkflowResumeStrategy", WorkflowResumeStrategy, "WORKFLOW_RESUME_STRATEGY_"] },
+            { no: 9, name: "callback_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<WorkflowNode>): WorkflowNode {
@@ -1940,6 +1967,8 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
         message.retryMaxAttempts = 0;
         message.retryBackoff = "";
         message.executionMode = 0;
+        message.resumeStrategy = 0;
+        message.callbackRef = "";
         if (value !== undefined)
             reflectionMergePartial<WorkflowNode>(this, message, value);
         return message;
@@ -2045,6 +2074,12 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
                 case /* nimi.runtime.v1.WorkflowExecutionMode execution_mode */ 7:
                     message.executionMode = reader.int32();
                     break;
+                case /* nimi.runtime.v1.WorkflowResumeStrategy resume_strategy */ 8:
+                    message.resumeStrategy = reader.int32();
+                    break;
+                case /* string callback_ref */ 9:
+                    message.callbackRef = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2075,6 +2110,12 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
         /* nimi.runtime.v1.WorkflowExecutionMode execution_mode = 7; */
         if (message.executionMode !== 0)
             writer.tag(7, WireType.Varint).int32(message.executionMode);
+        /* nimi.runtime.v1.WorkflowResumeStrategy resume_strategy = 8; */
+        if (message.resumeStrategy !== 0)
+            writer.tag(8, WireType.Varint).int32(message.resumeStrategy);
+        /* string callback_ref = 9; */
+        if (message.callbackRef !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.callbackRef);
         /* nimi.runtime.v1.AiGenerateNodeConfig ai_generate_config = 10; */
         if (message.typeConfig.oneofKind === "aiGenerateConfig")
             AiGenerateNodeConfig.internalBinaryWrite(message.typeConfig.aiGenerateConfig, writer.tag(10, WireType.LengthDelimited).fork(), options).join();

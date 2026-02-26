@@ -349,6 +349,55 @@ func (WorkflowExecutionMode) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{4}
 }
 
+type WorkflowResumeStrategy int32
+
+const (
+	WorkflowResumeStrategy_WORKFLOW_RESUME_STRATEGY_UNSPECIFIED WorkflowResumeStrategy = 0
+	WorkflowResumeStrategy_WORKFLOW_RESUME_STRATEGY_AUTO        WorkflowResumeStrategy = 1
+	WorkflowResumeStrategy_WORKFLOW_RESUME_STRATEGY_MANUAL      WorkflowResumeStrategy = 2
+)
+
+// Enum value maps for WorkflowResumeStrategy.
+var (
+	WorkflowResumeStrategy_name = map[int32]string{
+		0: "WORKFLOW_RESUME_STRATEGY_UNSPECIFIED",
+		1: "WORKFLOW_RESUME_STRATEGY_AUTO",
+		2: "WORKFLOW_RESUME_STRATEGY_MANUAL",
+	}
+	WorkflowResumeStrategy_value = map[string]int32{
+		"WORKFLOW_RESUME_STRATEGY_UNSPECIFIED": 0,
+		"WORKFLOW_RESUME_STRATEGY_AUTO":        1,
+		"WORKFLOW_RESUME_STRATEGY_MANUAL":      2,
+	}
+)
+
+func (x WorkflowResumeStrategy) Enum() *WorkflowResumeStrategy {
+	p := new(WorkflowResumeStrategy)
+	*p = x
+	return p
+}
+
+func (x WorkflowResumeStrategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowResumeStrategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_workflow_proto_enumTypes[5].Descriptor()
+}
+
+func (WorkflowResumeStrategy) Type() protoreflect.EnumType {
+	return &file_runtime_v1_workflow_proto_enumTypes[5]
+}
+
+func (x WorkflowResumeStrategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowResumeStrategy.Descriptor instead.
+func (WorkflowResumeStrategy) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{5}
+}
+
 type WorkflowEdge struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FromNodeId    string                 `protobuf:"bytes,1,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
@@ -1397,6 +1446,8 @@ type WorkflowNode struct {
 	RetryMaxAttempts int32                     `protobuf:"varint,5,opt,name=retry_max_attempts,json=retryMaxAttempts,proto3" json:"retry_max_attempts,omitempty"`
 	RetryBackoff     string                    `protobuf:"bytes,6,opt,name=retry_backoff,json=retryBackoff,proto3" json:"retry_backoff,omitempty"`
 	ExecutionMode    WorkflowExecutionMode     `protobuf:"varint,7,opt,name=execution_mode,json=executionMode,proto3,enum=nimi.runtime.v1.WorkflowExecutionMode" json:"execution_mode,omitempty"`
+	ResumeStrategy   WorkflowResumeStrategy    `protobuf:"varint,8,opt,name=resume_strategy,json=resumeStrategy,proto3,enum=nimi.runtime.v1.WorkflowResumeStrategy" json:"resume_strategy,omitempty"`
+	CallbackRef      string                    `protobuf:"bytes,9,opt,name=callback_ref,json=callbackRef,proto3" json:"callback_ref,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1595,6 +1646,20 @@ func (x *WorkflowNode) GetExecutionMode() WorkflowExecutionMode {
 		return x.ExecutionMode
 	}
 	return WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_UNSPECIFIED
+}
+
+func (x *WorkflowNode) GetResumeStrategy() WorkflowResumeStrategy {
+	if x != nil {
+		return x.ResumeStrategy
+	}
+	return WorkflowResumeStrategy_WORKFLOW_RESUME_STRATEGY_UNSPECIFIED
+}
+
+func (x *WorkflowNode) GetCallbackRef() string {
+	if x != nil {
+		return x.CallbackRef
+	}
+	return ""
 }
 
 type isWorkflowNode_TypeConfig interface {
@@ -2383,8 +2448,7 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\x0fMergeNodeConfig\x12:\n" +
 	"\bstrategy\x18\x01 \x01(\x0e2\x1e.nimi.runtime.v1.MergeStrategyR\bstrategy\x12#\n" +
 	"\rmin_completed\x18\x02 \x01(\x05R\fminCompleted\"\x10\n" +
-	"\x0eNoopNodeConfig\"\x95\n" +
-	"\n" +
+	"\x0eNoopNodeConfig\"\x8a\v\n" +
 	"\fWorkflowNode\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12>\n" +
 	"\tnode_type\x18\x02 \x01(\x0e2!.nimi.runtime.v1.WorkflowNodeTypeR\bnodeType\x12\x1d\n" +
@@ -2407,7 +2471,9 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"noopConfig\x12,\n" +
 	"\x12retry_max_attempts\x18\x05 \x01(\x05R\x10retryMaxAttempts\x12#\n" +
 	"\rretry_backoff\x18\x06 \x01(\tR\fretryBackoff\x12M\n" +
-	"\x0eexecution_mode\x18\a \x01(\x0e2&.nimi.runtime.v1.WorkflowExecutionModeR\rexecutionModeB\r\n" +
+	"\x0eexecution_mode\x18\a \x01(\x0e2&.nimi.runtime.v1.WorkflowExecutionModeR\rexecutionMode\x12P\n" +
+	"\x0fresume_strategy\x18\b \x01(\x0e2'.nimi.runtime.v1.WorkflowResumeStrategyR\x0eresumeStrategy\x12!\n" +
+	"\fcallback_ref\x18\t \x01(\tR\vcallbackRefB\r\n" +
 	"\vtype_config\"\xa3\x01\n" +
 	"\x12WorkflowDefinition\x12#\n" +
 	"\rworkflow_type\x18\x01 \x01(\tR\fworkflowType\x123\n" +
@@ -2510,7 +2576,11 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\x15WorkflowExecutionMode\x12'\n" +
 	"#WORKFLOW_EXECUTION_MODE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eWORKFLOW_EXECUTION_MODE_INLINE\x10\x01\x12*\n" +
-	"&WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC\x10\x022\x93\x03\n" +
+	"&WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC\x10\x02*\x8a\x01\n" +
+	"\x16WorkflowResumeStrategy\x12(\n" +
+	"$WORKFLOW_RESUME_STRATEGY_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dWORKFLOW_RESUME_STRATEGY_AUTO\x10\x01\x12#\n" +
+	"\x1fWORKFLOW_RESUME_STRATEGY_MANUAL\x10\x022\x93\x03\n" +
 	"\x16RuntimeWorkflowService\x12a\n" +
 	"\x0eSubmitWorkflow\x12&.nimi.runtime.v1.SubmitWorkflowRequest\x1a'.nimi.runtime.v1.SubmitWorkflowResponse\x12X\n" +
 	"\vGetWorkflow\x12#.nimi.runtime.v1.GetWorkflowRequest\x1a$.nimi.runtime.v1.GetWorkflowResponse\x12N\n" +
@@ -2529,7 +2599,7 @@ func file_runtime_v1_workflow_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_workflow_proto_rawDescData
 }
 
-var file_runtime_v1_workflow_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_runtime_v1_workflow_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_runtime_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_runtime_v1_workflow_proto_goTypes = []any{
 	(WorkflowStatus)(0),                    // 0: nimi.runtime.v1.WorkflowStatus
@@ -2537,101 +2607,103 @@ var file_runtime_v1_workflow_proto_goTypes = []any{
 	(WorkflowNodeType)(0),                  // 2: nimi.runtime.v1.WorkflowNodeType
 	(MergeStrategy)(0),                     // 3: nimi.runtime.v1.MergeStrategy
 	(WorkflowExecutionMode)(0),             // 4: nimi.runtime.v1.WorkflowExecutionMode
-	(*WorkflowEdge)(nil),                   // 5: nimi.runtime.v1.WorkflowEdge
-	(*AiGenerateNodeConfig)(nil),           // 6: nimi.runtime.v1.AiGenerateNodeConfig
-	(*AiStreamNodeConfig)(nil),             // 7: nimi.runtime.v1.AiStreamNodeConfig
-	(*AiEmbedNodeConfig)(nil),              // 8: nimi.runtime.v1.AiEmbedNodeConfig
-	(*AiImageNodeConfig)(nil),              // 9: nimi.runtime.v1.AiImageNodeConfig
-	(*AiVideoNodeConfig)(nil),              // 10: nimi.runtime.v1.AiVideoNodeConfig
-	(*AiTtsNodeConfig)(nil),                // 11: nimi.runtime.v1.AiTtsNodeConfig
-	(*AiSttNodeConfig)(nil),                // 12: nimi.runtime.v1.AiSttNodeConfig
-	(*ExtractNodeConfig)(nil),              // 13: nimi.runtime.v1.ExtractNodeConfig
-	(*TemplateNodeConfig)(nil),             // 14: nimi.runtime.v1.TemplateNodeConfig
-	(*ScriptNodeConfig)(nil),               // 15: nimi.runtime.v1.ScriptNodeConfig
-	(*BranchNodeConfig)(nil),               // 16: nimi.runtime.v1.BranchNodeConfig
-	(*MergeNodeConfig)(nil),                // 17: nimi.runtime.v1.MergeNodeConfig
-	(*NoopNodeConfig)(nil),                 // 18: nimi.runtime.v1.NoopNodeConfig
-	(*WorkflowNode)(nil),                   // 19: nimi.runtime.v1.WorkflowNode
-	(*WorkflowDefinition)(nil),             // 20: nimi.runtime.v1.WorkflowDefinition
-	(*SubmitWorkflowRequest)(nil),          // 21: nimi.runtime.v1.SubmitWorkflowRequest
-	(*SubmitWorkflowResponse)(nil),         // 22: nimi.runtime.v1.SubmitWorkflowResponse
-	(*GetWorkflowRequest)(nil),             // 23: nimi.runtime.v1.GetWorkflowRequest
-	(*WorkflowNodeStatus)(nil),             // 24: nimi.runtime.v1.WorkflowNodeStatus
-	(*GetWorkflowResponse)(nil),            // 25: nimi.runtime.v1.GetWorkflowResponse
-	(*CancelWorkflowRequest)(nil),          // 26: nimi.runtime.v1.CancelWorkflowRequest
-	(*WorkflowEvent)(nil),                  // 27: nimi.runtime.v1.WorkflowEvent
-	(*SubscribeWorkflowEventsRequest)(nil), // 28: nimi.runtime.v1.SubscribeWorkflowEventsRequest
-	(Modal)(0),                             // 29: nimi.runtime.v1.Modal
-	(*ToolSpec)(nil),                       // 30: nimi.runtime.v1.ToolSpec
-	(RoutePolicy)(0),                       // 31: nimi.runtime.v1.RoutePolicy
-	(FallbackPolicy)(0),                    // 32: nimi.runtime.v1.FallbackPolicy
-	(ReasonCode)(0),                        // 33: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),          // 34: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),                // 35: google.protobuf.Struct
-	(*Ack)(nil),                            // 36: nimi.runtime.v1.Ack
+	(WorkflowResumeStrategy)(0),            // 5: nimi.runtime.v1.WorkflowResumeStrategy
+	(*WorkflowEdge)(nil),                   // 6: nimi.runtime.v1.WorkflowEdge
+	(*AiGenerateNodeConfig)(nil),           // 7: nimi.runtime.v1.AiGenerateNodeConfig
+	(*AiStreamNodeConfig)(nil),             // 8: nimi.runtime.v1.AiStreamNodeConfig
+	(*AiEmbedNodeConfig)(nil),              // 9: nimi.runtime.v1.AiEmbedNodeConfig
+	(*AiImageNodeConfig)(nil),              // 10: nimi.runtime.v1.AiImageNodeConfig
+	(*AiVideoNodeConfig)(nil),              // 11: nimi.runtime.v1.AiVideoNodeConfig
+	(*AiTtsNodeConfig)(nil),                // 12: nimi.runtime.v1.AiTtsNodeConfig
+	(*AiSttNodeConfig)(nil),                // 13: nimi.runtime.v1.AiSttNodeConfig
+	(*ExtractNodeConfig)(nil),              // 14: nimi.runtime.v1.ExtractNodeConfig
+	(*TemplateNodeConfig)(nil),             // 15: nimi.runtime.v1.TemplateNodeConfig
+	(*ScriptNodeConfig)(nil),               // 16: nimi.runtime.v1.ScriptNodeConfig
+	(*BranchNodeConfig)(nil),               // 17: nimi.runtime.v1.BranchNodeConfig
+	(*MergeNodeConfig)(nil),                // 18: nimi.runtime.v1.MergeNodeConfig
+	(*NoopNodeConfig)(nil),                 // 19: nimi.runtime.v1.NoopNodeConfig
+	(*WorkflowNode)(nil),                   // 20: nimi.runtime.v1.WorkflowNode
+	(*WorkflowDefinition)(nil),             // 21: nimi.runtime.v1.WorkflowDefinition
+	(*SubmitWorkflowRequest)(nil),          // 22: nimi.runtime.v1.SubmitWorkflowRequest
+	(*SubmitWorkflowResponse)(nil),         // 23: nimi.runtime.v1.SubmitWorkflowResponse
+	(*GetWorkflowRequest)(nil),             // 24: nimi.runtime.v1.GetWorkflowRequest
+	(*WorkflowNodeStatus)(nil),             // 25: nimi.runtime.v1.WorkflowNodeStatus
+	(*GetWorkflowResponse)(nil),            // 26: nimi.runtime.v1.GetWorkflowResponse
+	(*CancelWorkflowRequest)(nil),          // 27: nimi.runtime.v1.CancelWorkflowRequest
+	(*WorkflowEvent)(nil),                  // 28: nimi.runtime.v1.WorkflowEvent
+	(*SubscribeWorkflowEventsRequest)(nil), // 29: nimi.runtime.v1.SubscribeWorkflowEventsRequest
+	(Modal)(0),                             // 30: nimi.runtime.v1.Modal
+	(*ToolSpec)(nil),                       // 31: nimi.runtime.v1.ToolSpec
+	(RoutePolicy)(0),                       // 32: nimi.runtime.v1.RoutePolicy
+	(FallbackPolicy)(0),                    // 33: nimi.runtime.v1.FallbackPolicy
+	(ReasonCode)(0),                        // 34: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),          // 35: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),                // 36: google.protobuf.Struct
+	(*Ack)(nil),                            // 37: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_workflow_proto_depIdxs = []int32{
-	29, // 0: nimi.runtime.v1.AiGenerateNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
-	30, // 1: nimi.runtime.v1.AiGenerateNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
-	31, // 2: nimi.runtime.v1.AiGenerateNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 3: nimi.runtime.v1.AiGenerateNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	29, // 4: nimi.runtime.v1.AiStreamNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
-	30, // 5: nimi.runtime.v1.AiStreamNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
-	31, // 6: nimi.runtime.v1.AiStreamNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 7: nimi.runtime.v1.AiStreamNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	31, // 8: nimi.runtime.v1.AiEmbedNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 9: nimi.runtime.v1.AiEmbedNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	31, // 10: nimi.runtime.v1.AiImageNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 11: nimi.runtime.v1.AiImageNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	31, // 12: nimi.runtime.v1.AiVideoNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 13: nimi.runtime.v1.AiVideoNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	31, // 14: nimi.runtime.v1.AiTtsNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 15: nimi.runtime.v1.AiTtsNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	31, // 16: nimi.runtime.v1.AiSttNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	32, // 17: nimi.runtime.v1.AiSttNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	30, // 0: nimi.runtime.v1.AiGenerateNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
+	31, // 1: nimi.runtime.v1.AiGenerateNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
+	32, // 2: nimi.runtime.v1.AiGenerateNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 3: nimi.runtime.v1.AiGenerateNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	30, // 4: nimi.runtime.v1.AiStreamNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
+	31, // 5: nimi.runtime.v1.AiStreamNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
+	32, // 6: nimi.runtime.v1.AiStreamNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 7: nimi.runtime.v1.AiStreamNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	32, // 8: nimi.runtime.v1.AiEmbedNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 9: nimi.runtime.v1.AiEmbedNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	32, // 10: nimi.runtime.v1.AiImageNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 11: nimi.runtime.v1.AiImageNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	32, // 12: nimi.runtime.v1.AiVideoNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 13: nimi.runtime.v1.AiVideoNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	32, // 14: nimi.runtime.v1.AiTtsNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 15: nimi.runtime.v1.AiTtsNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	32, // 16: nimi.runtime.v1.AiSttNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	33, // 17: nimi.runtime.v1.AiSttNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
 	3,  // 18: nimi.runtime.v1.MergeNodeConfig.strategy:type_name -> nimi.runtime.v1.MergeStrategy
 	2,  // 19: nimi.runtime.v1.WorkflowNode.node_type:type_name -> nimi.runtime.v1.WorkflowNodeType
-	6,  // 20: nimi.runtime.v1.WorkflowNode.ai_generate_config:type_name -> nimi.runtime.v1.AiGenerateNodeConfig
-	7,  // 21: nimi.runtime.v1.WorkflowNode.ai_stream_config:type_name -> nimi.runtime.v1.AiStreamNodeConfig
-	8,  // 22: nimi.runtime.v1.WorkflowNode.ai_embed_config:type_name -> nimi.runtime.v1.AiEmbedNodeConfig
-	9,  // 23: nimi.runtime.v1.WorkflowNode.ai_image_config:type_name -> nimi.runtime.v1.AiImageNodeConfig
-	10, // 24: nimi.runtime.v1.WorkflowNode.ai_video_config:type_name -> nimi.runtime.v1.AiVideoNodeConfig
-	11, // 25: nimi.runtime.v1.WorkflowNode.ai_tts_config:type_name -> nimi.runtime.v1.AiTtsNodeConfig
-	12, // 26: nimi.runtime.v1.WorkflowNode.ai_stt_config:type_name -> nimi.runtime.v1.AiSttNodeConfig
-	13, // 27: nimi.runtime.v1.WorkflowNode.extract_config:type_name -> nimi.runtime.v1.ExtractNodeConfig
-	14, // 28: nimi.runtime.v1.WorkflowNode.template_config:type_name -> nimi.runtime.v1.TemplateNodeConfig
-	15, // 29: nimi.runtime.v1.WorkflowNode.script_config:type_name -> nimi.runtime.v1.ScriptNodeConfig
-	16, // 30: nimi.runtime.v1.WorkflowNode.branch_config:type_name -> nimi.runtime.v1.BranchNodeConfig
-	17, // 31: nimi.runtime.v1.WorkflowNode.merge_config:type_name -> nimi.runtime.v1.MergeNodeConfig
-	18, // 32: nimi.runtime.v1.WorkflowNode.noop_config:type_name -> nimi.runtime.v1.NoopNodeConfig
+	7,  // 20: nimi.runtime.v1.WorkflowNode.ai_generate_config:type_name -> nimi.runtime.v1.AiGenerateNodeConfig
+	8,  // 21: nimi.runtime.v1.WorkflowNode.ai_stream_config:type_name -> nimi.runtime.v1.AiStreamNodeConfig
+	9,  // 22: nimi.runtime.v1.WorkflowNode.ai_embed_config:type_name -> nimi.runtime.v1.AiEmbedNodeConfig
+	10, // 23: nimi.runtime.v1.WorkflowNode.ai_image_config:type_name -> nimi.runtime.v1.AiImageNodeConfig
+	11, // 24: nimi.runtime.v1.WorkflowNode.ai_video_config:type_name -> nimi.runtime.v1.AiVideoNodeConfig
+	12, // 25: nimi.runtime.v1.WorkflowNode.ai_tts_config:type_name -> nimi.runtime.v1.AiTtsNodeConfig
+	13, // 26: nimi.runtime.v1.WorkflowNode.ai_stt_config:type_name -> nimi.runtime.v1.AiSttNodeConfig
+	14, // 27: nimi.runtime.v1.WorkflowNode.extract_config:type_name -> nimi.runtime.v1.ExtractNodeConfig
+	15, // 28: nimi.runtime.v1.WorkflowNode.template_config:type_name -> nimi.runtime.v1.TemplateNodeConfig
+	16, // 29: nimi.runtime.v1.WorkflowNode.script_config:type_name -> nimi.runtime.v1.ScriptNodeConfig
+	17, // 30: nimi.runtime.v1.WorkflowNode.branch_config:type_name -> nimi.runtime.v1.BranchNodeConfig
+	18, // 31: nimi.runtime.v1.WorkflowNode.merge_config:type_name -> nimi.runtime.v1.MergeNodeConfig
+	19, // 32: nimi.runtime.v1.WorkflowNode.noop_config:type_name -> nimi.runtime.v1.NoopNodeConfig
 	4,  // 33: nimi.runtime.v1.WorkflowNode.execution_mode:type_name -> nimi.runtime.v1.WorkflowExecutionMode
-	19, // 34: nimi.runtime.v1.WorkflowDefinition.nodes:type_name -> nimi.runtime.v1.WorkflowNode
-	5,  // 35: nimi.runtime.v1.WorkflowDefinition.edges:type_name -> nimi.runtime.v1.WorkflowEdge
-	20, // 36: nimi.runtime.v1.SubmitWorkflowRequest.definition:type_name -> nimi.runtime.v1.WorkflowDefinition
-	33, // 37: nimi.runtime.v1.SubmitWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,  // 38: nimi.runtime.v1.WorkflowNodeStatus.status:type_name -> nimi.runtime.v1.WorkflowStatus
-	34, // 39: nimi.runtime.v1.WorkflowNodeStatus.next_poll_at:type_name -> google.protobuf.Timestamp
-	0,  // 40: nimi.runtime.v1.GetWorkflowResponse.status:type_name -> nimi.runtime.v1.WorkflowStatus
-	24, // 41: nimi.runtime.v1.GetWorkflowResponse.nodes:type_name -> nimi.runtime.v1.WorkflowNodeStatus
-	35, // 42: nimi.runtime.v1.GetWorkflowResponse.output:type_name -> google.protobuf.Struct
-	33, // 43: nimi.runtime.v1.GetWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	1,  // 44: nimi.runtime.v1.WorkflowEvent.event_type:type_name -> nimi.runtime.v1.WorkflowEventType
-	34, // 45: nimi.runtime.v1.WorkflowEvent.timestamp:type_name -> google.protobuf.Timestamp
-	33, // 46: nimi.runtime.v1.WorkflowEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	35, // 47: nimi.runtime.v1.WorkflowEvent.payload:type_name -> google.protobuf.Struct
-	21, // 48: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:input_type -> nimi.runtime.v1.SubmitWorkflowRequest
-	23, // 49: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:input_type -> nimi.runtime.v1.GetWorkflowRequest
-	26, // 50: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:input_type -> nimi.runtime.v1.CancelWorkflowRequest
-	28, // 51: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:input_type -> nimi.runtime.v1.SubscribeWorkflowEventsRequest
-	22, // 52: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:output_type -> nimi.runtime.v1.SubmitWorkflowResponse
-	25, // 53: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:output_type -> nimi.runtime.v1.GetWorkflowResponse
-	36, // 54: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:output_type -> nimi.runtime.v1.Ack
-	27, // 55: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:output_type -> nimi.runtime.v1.WorkflowEvent
-	52, // [52:56] is the sub-list for method output_type
-	48, // [48:52] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	5,  // 34: nimi.runtime.v1.WorkflowNode.resume_strategy:type_name -> nimi.runtime.v1.WorkflowResumeStrategy
+	20, // 35: nimi.runtime.v1.WorkflowDefinition.nodes:type_name -> nimi.runtime.v1.WorkflowNode
+	6,  // 36: nimi.runtime.v1.WorkflowDefinition.edges:type_name -> nimi.runtime.v1.WorkflowEdge
+	21, // 37: nimi.runtime.v1.SubmitWorkflowRequest.definition:type_name -> nimi.runtime.v1.WorkflowDefinition
+	34, // 38: nimi.runtime.v1.SubmitWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,  // 39: nimi.runtime.v1.WorkflowNodeStatus.status:type_name -> nimi.runtime.v1.WorkflowStatus
+	35, // 40: nimi.runtime.v1.WorkflowNodeStatus.next_poll_at:type_name -> google.protobuf.Timestamp
+	0,  // 41: nimi.runtime.v1.GetWorkflowResponse.status:type_name -> nimi.runtime.v1.WorkflowStatus
+	25, // 42: nimi.runtime.v1.GetWorkflowResponse.nodes:type_name -> nimi.runtime.v1.WorkflowNodeStatus
+	36, // 43: nimi.runtime.v1.GetWorkflowResponse.output:type_name -> google.protobuf.Struct
+	34, // 44: nimi.runtime.v1.GetWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1,  // 45: nimi.runtime.v1.WorkflowEvent.event_type:type_name -> nimi.runtime.v1.WorkflowEventType
+	35, // 46: nimi.runtime.v1.WorkflowEvent.timestamp:type_name -> google.protobuf.Timestamp
+	34, // 47: nimi.runtime.v1.WorkflowEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	36, // 48: nimi.runtime.v1.WorkflowEvent.payload:type_name -> google.protobuf.Struct
+	22, // 49: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:input_type -> nimi.runtime.v1.SubmitWorkflowRequest
+	24, // 50: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:input_type -> nimi.runtime.v1.GetWorkflowRequest
+	27, // 51: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:input_type -> nimi.runtime.v1.CancelWorkflowRequest
+	29, // 52: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:input_type -> nimi.runtime.v1.SubscribeWorkflowEventsRequest
+	23, // 53: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:output_type -> nimi.runtime.v1.SubmitWorkflowResponse
+	26, // 54: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:output_type -> nimi.runtime.v1.GetWorkflowResponse
+	37, // 55: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:output_type -> nimi.runtime.v1.Ack
+	28, // 56: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:output_type -> nimi.runtime.v1.WorkflowEvent
+	53, // [53:57] is the sub-list for method output_type
+	49, // [49:53] is the sub-list for method input_type
+	49, // [49:49] is the sub-list for extension type_name
+	49, // [49:49] is the sub-list for extension extendee
+	0,  // [0:49] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_workflow_proto_init() }
@@ -2661,7 +2733,7 @@ func file_runtime_v1_workflow_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_workflow_proto_rawDesc), len(file_runtime_v1_workflow_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,

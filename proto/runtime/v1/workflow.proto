@@ -69,6 +69,12 @@ enum WorkflowExecutionMode {
   WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC = 2;
 }
 
+enum WorkflowResumeStrategy {
+  WORKFLOW_RESUME_STRATEGY_UNSPECIFIED = 0;
+  WORKFLOW_RESUME_STRATEGY_AUTO = 1;
+  WORKFLOW_RESUME_STRATEGY_MANUAL = 2;
+}
+
 message WorkflowEdge {
   string from_node_id = 1;
   string from_output = 2;
@@ -199,6 +205,8 @@ message WorkflowNode {
   int32 retry_max_attempts = 5;
   string retry_backoff = 6;
   WorkflowExecutionMode execution_mode = 7;
+  WorkflowResumeStrategy resume_strategy = 8;
+  string callback_ref = 9;
 }
 
 message WorkflowDefinition {
