@@ -72,7 +72,7 @@ export function GiftsTab({ giftStats }: GiftsTabProps) {
           name: catalogItem.name,
           emoji: catalogItem.emoji || '🎁',
           iconUrl: catalogItem.iconUrl || null,
-          energyCost: catalogItem.energyCost,
+          energyCost: catalogItem.sparkCost,
           count,
         });
       }
