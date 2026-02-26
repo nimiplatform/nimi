@@ -1,0 +1,287 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { existsSync } from 'node:fs';
+import net from 'node:net';
+import { dirname, resolve } from 'node:path';
+import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
+import { createNimiClient } from '../../../../src/client.js';
+import { createRuntimeClient } from '../../../../src/runtime/index.js';
+
+const APP_ID = 'nimi.desktop.sdk.ai.live';
+const SUBJECT_USER_ID = 'user-sdk-live';
+
+async function allocatePort(): Promise<number> {
+  return await new Promise((resolvePromise, reject) => {
+    const server = net.createServer();
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        server.close();
+        reject(new Error('failed to allocate port'));
+        return;
+      }
+      const { port } = address;
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolvePromise(port);
+      });
+    });
+    server.on('error', reject);
+  });
+}
+
+function resolveRuntimeDir(): string {
+  let cursor = dirname(fileURLToPath(import.meta.url));
+  for (let depth = 0; depth < 12; depth += 1) {
+    const candidate = resolve(cursor, 'runtime');
+    if (existsSync(resolve(candidate, 'cmd', 'nimi'))) {
+      return candidate;
+    }
+    const parent = resolve(cursor, '..');
+    if (parent === cursor) {
+      break;
+    }
+    cursor = parent;
+  }
+  throw new Error('runtime directory not found from sdk live smoke test');
+}
+
+async function waitForRuntimeReady(endpoint: string): Promise<void> {
+  const client = createRuntimeClient({
+    appId: APP_ID,
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
+    defaults: {
+      callerKind: 'desktop-core',
+      callerId: 'sdk-ai-live-ready-check',
+    },
+  });
+
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    try {
+      await client.localRuntime.listLocalModels({});
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+    }
+  }
+
+  throw new Error(`runtime readiness check failed: ${String(lastError)}`);
+}
+
+async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> {
+  const killGroup = (signal: NodeJS.Signals) => {
+    if (daemon.pid === undefined) {
+      return;
+    }
+    try {
+      process.kill(-daemon.pid, signal);
+    } catch {
+      // no-op
+    }
+    try {
+      process.kill(daemon.pid, signal);
+    } catch {
+      // no-op
+    }
+  };
+
+  killGroup('SIGTERM');
+  const settled = await Promise.race([
+    once(daemon, 'exit'),
+    new Promise((resolvePromise) => setTimeout(() => resolvePromise('timeout'), 8_000)),
+  ]);
+  if (settled === 'timeout') {
+    killGroup('SIGKILL');
+  }
+}
+
+function promptFromText(text: string) {
+  return [{
+    role: 'user' as const,
+    content: [{
+      type: 'text' as const,
+      text,
+    }],
+  }];
+}
+
+function requiredEnvOrSkip(t: { skip: (msg?: string) => void }, key: string): string | null {
+  const value = String(process.env[key] || '').trim();
+  if (!value) {
+    t.skip(`set ${key} to run live smoke test`);
+    return null;
+  }
+  return value;
+}
+
+type RuntimeRunResult = {
+  stdout: string;
+  stderr: string;
+};
+
+async function withRuntimeDaemon(
+  runtimeEnv: Record<string, string>,
+  run: (endpoint: string) => Promise<void>,
+): Promise<RuntimeRunResult> {
+  const runtimeDir = resolveRuntimeDir();
+  const grpcPort = await allocatePort();
+  const httpPort = await allocatePort();
+  const endpoint = `127.0.0.1:${grpcPort}`;
+
+  const daemon = spawn('go', ['run', './cmd/nimi', 'serve'], {
+    cwd: runtimeDir,
+    detached: true,
+    env: {
+      ...process.env,
+      NIMI_RUNTIME_GRPC_ADDR: endpoint,
+      NIMI_RUNTIME_HTTP_ADDR: `127.0.0.1:${httpPort}`,
+      NIMI_RUNTIME_ENABLE_WORKERS: '0',
+      ...runtimeEnv,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  let stdout = '';
+  daemon.stdout.on('data', (chunk: Buffer | string) => {
+    stdout += String(chunk || '');
+  });
+
+  let stderr = '';
+  daemon.stderr.on('data', (chunk: Buffer | string) => {
+    stderr += String(chunk || '');
+  });
+
+  const daemonError = once(daemon, 'error')
+    .then(([error]) => error as Error)
+    .catch(() => null);
+
+  try {
+    const readyOrError = await Promise.race([
+      waitForRuntimeReady(endpoint).then(() => null),
+      daemonError,
+    ]);
+    if (readyOrError) {
+      throw new Error(`runtime daemon failed before ready: ${readyOrError.message}`);
+    }
+
+    await run(endpoint);
+    return { stdout, stderr };
+  } finally {
+    await terminateDaemon(daemon);
+  }
+}
+
+function createSdkTextModel(endpoint: string, routePolicy: 'local-runtime' | 'token-api', modelId: string) {
+  const client = createNimiClient({
+    appId: APP_ID,
+    runtime: {
+      transport: {
+        type: 'node-grpc',
+        endpoint,
+      },
+      defaults: {
+        callerKind: 'desktop-core',
+        callerId: 'sdk-ai-live-smoke',
+      },
+    },
+  });
+
+  if (!client.runtime) {
+    throw new Error('runtime client not configured');
+  }
+
+  const provider = createNimiAiProvider({
+    runtime: client.runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+    routePolicy,
+    fallback: 'deny',
+    timeoutMs: 45_000,
+  });
+
+  return provider.text(modelId);
+}
+
+test('nimi sdk ai-provider live smoke: local provider generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const baseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_LOCAL_BASE_URL');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_LOCAL_MODEL_ID');
+  if (!baseURL || !modelID) {
+    return;
+  }
+  const apiKey = String(process.env.NIMI_LIVE_LOCAL_API_KEY || '').trim();
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_LOCAL_AI_BASE_URL: baseURL,
+      ...(apiKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: apiKey } : {}),
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'local-runtime', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK local live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'local live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk local live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
+
+test('nimi sdk ai-provider live smoke: litellm generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const baseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_LITELLM_BASE_URL');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_LITELLM_MODEL_ID');
+  if (!baseURL || !modelID) {
+    return;
+  }
+  const apiKey = String(process.env.NIMI_LIVE_LITELLM_API_KEY || '').trim();
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL: baseURL,
+      ...(apiKey ? { NIMI_RUNTIME_CLOUD_LITELLM_API_KEY: apiKey } : {}),
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK LiteLLM live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'litellm live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk litellm live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
