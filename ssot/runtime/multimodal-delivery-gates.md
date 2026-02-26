@@ -15,7 +15,6 @@ rules:
   - Gates are release blockers; failing any gate blocks multimodal release.
   - Every gate MUST have machine-checkable evidence in CI.
 ---
----
 
 # Runtime 多模态交付清单与验收门禁（V1.5）
 
@@ -194,9 +193,14 @@ rules:
 4. `stream/non-stream`
 5. `success/unsupported/timeout/unavailable`
 
+本轮报告：
+
+1. `dev/report/runtime-multimodal-g3-g5-matrix-2026-02-26-r4.md`
+2. `dev/report/runtime-multimodal-g3-g5-matrix-2026-02-26-r4.evidence.md`
+
 覆盖率门槛（必须上调）：
 
-1. Runtime 全局 statements `>= 60%`
+1. Runtime service layer（`runtime/internal/services/...`）statements `>= 60%`
 2. `internal/services/ai` statements `>= 70%`
 3. 媒体核心函数（image/video/tts/stt/async job）函数覆盖 `>= 80%`
 
@@ -249,9 +253,9 @@ rules:
 
 | Iteration | 目标 Gate | 计划完成日期 | 实际完成日期 | 未完成项 | 阻塞原因 | 下轮承接 |
 |---|---|---|---|---|---|---|
-| I1 |  |  |  |  |  |  |
-| I2 |  |  |  |  |  |  |
-| I3 |  |  |  |  |  |  |
+| I1 | G1 + G2（协议与 SDK 映射） | 2026-02-26 | 2026-02-26 | 无 | 无 | I2 provider 实链 |
+| I2 | G3（provider 实链与 fail-close） | 2026-02-26 | 2026-02-26 | 无 | 无 | I3 async workflow + matrix |
+| I3 | G4 + G5（external-async + 矩阵 + coverage gate） | 2026-02-26 | 2026-02-26 | G6/G7 发布件待后续轮次 | 非本轮目标范围 | 发布候选与对外文档化 |
 
 ## 6. 变更控制（MUST）
 

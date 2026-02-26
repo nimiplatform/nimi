@@ -9,7 +9,7 @@ references:
   - ssot/runtime/proto-contract.md
   - ssot/runtime/workflow-dag.md
   - ssot/runtime/local-runtime.md
-  - research/multimodal-provider-audit-2026-02-24.md
+  - dev/research/multimodal-provider-audit-2026-02-24.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
   - Multimodal compatibility MUST be fail-close, never silent downgrade.

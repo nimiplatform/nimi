@@ -50,6 +50,28 @@ enum StreamEventType {
   STREAM_EVENT_FAILED = 7;
 }
 
+enum MediaJobStatus {
+  MEDIA_JOB_STATUS_UNSPECIFIED = 0;
+  MEDIA_JOB_STATUS_SUBMITTED = 1;
+  MEDIA_JOB_STATUS_QUEUED = 2;
+  MEDIA_JOB_STATUS_RUNNING = 3;
+  MEDIA_JOB_STATUS_COMPLETED = 4;
+  MEDIA_JOB_STATUS_FAILED = 5;
+  MEDIA_JOB_STATUS_CANCELED = 6;
+  MEDIA_JOB_STATUS_TIMEOUT = 7;
+}
+
+enum MediaJobEventType {
+  MEDIA_JOB_EVENT_TYPE_UNSPECIFIED = 0;
+  MEDIA_JOB_EVENT_SUBMITTED = 1;
+  MEDIA_JOB_EVENT_QUEUED = 2;
+  MEDIA_JOB_EVENT_RUNNING = 3;
+  MEDIA_JOB_EVENT_COMPLETED = 4;
+  MEDIA_JOB_EVENT_FAILED = 5;
+  MEDIA_JOB_EVENT_CANCELED = 6;
+  MEDIA_JOB_EVENT_TIMEOUT = 7;
+}
+
 message ChatMessage {
   string role = 1;
   string content = 2;
@@ -164,6 +186,154 @@ message EmbedResponse {
   string trace_id = 5;
 }
 
+message ImageGenerationSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  int32 n = 3;
+  string size = 4;
+  string aspect_ratio = 5;
+  string quality = 6;
+  string style = 7;
+  int64 seed = 8;
+  google.protobuf.Struct provider_options = 10;
+}
+
+message VideoGenerationSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  int32 duration_sec = 3;
+  int32 fps = 4;
+  string resolution = 5;
+  string aspect_ratio = 6;
+  int64 seed = 7;
+  string first_frame_uri = 8;
+  string last_frame_uri = 9;
+  string camera_motion = 10;
+  google.protobuf.Struct provider_options = 20;
+}
+
+message SpeechSynthesisSpec {
+  string text = 1;
+  string voice = 2;
+  string language = 3;
+  string audio_format = 4;
+  int32 sample_rate_hz = 5;
+  float speed = 6;
+  float pitch = 7;
+  float volume = 8;
+  google.protobuf.Struct provider_options = 20;
+}
+
+message SpeechTranscriptionSpec {
+  bytes audio_bytes = 1;
+  string audio_uri = 2;
+  string mime_type = 3;
+  string language = 4;
+  bool timestamps = 5;
+  bool diarization = 6;
+  int32 speaker_count = 7;
+  string prompt = 8;
+  google.protobuf.Struct provider_options = 20;
+}
+
+message MediaArtifact {
+  string artifact_id = 1;
+  string mime_type = 2;
+  bytes bytes = 3;
+  string uri = 4;
+  string sha256 = 5;
+  int64 size_bytes = 6;
+  int64 duration_ms = 7;
+  int32 fps = 8;
+  int32 width = 9;
+  int32 height = 10;
+  int32 sample_rate_hz = 11;
+  int32 channels = 12;
+  google.protobuf.Struct provider_raw = 13;
+}
+
+message MediaJob {
+  string job_id = 1;
+  string app_id = 2;
+  string subject_user_id = 3;
+  string model_id = 4;
+  Modal modal = 5;
+  RoutePolicy route_policy = 6;
+  RoutePolicy route_decision = 7;
+  string model_resolved = 8;
+  MediaJobStatus status = 9;
+  string provider_job_id = 10;
+  ReasonCode reason_code = 11;
+  string reason_detail = 12;
+  int32 retry_count = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  google.protobuf.Timestamp next_poll_at = 16;
+  google.protobuf.Struct provider_options = 17;
+  repeated MediaArtifact artifacts = 18;
+  UsageStats usage = 19;
+  string trace_id = 20;
+}
+
+message SubmitMediaJobRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  Modal modal = 4;
+  RoutePolicy route_policy = 5;
+  FallbackPolicy fallback = 6;
+  int32 timeout_ms = 7;
+  oneof spec {
+    ImageGenerationSpec image_spec = 20;
+    VideoGenerationSpec video_spec = 21;
+    SpeechSynthesisSpec speech_spec = 22;
+    SpeechTranscriptionSpec transcription_spec = 23;
+  }
+}
+
+message SubmitMediaJobResponse {
+  MediaJob job = 1;
+}
+
+message GetMediaJobRequest {
+  string job_id = 1;
+}
+
+message GetMediaJobResponse {
+  MediaJob job = 1;
+}
+
+message CancelMediaJobRequest {
+  string job_id = 1;
+  string reason = 2;
+}
+
+message CancelMediaJobResponse {
+  MediaJob job = 1;
+}
+
+message MediaJobEvent {
+  MediaJobEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  MediaJob job = 5;
+}
+
+message SubscribeMediaJobEventsRequest {
+  string job_id = 1;
+}
+
+message GetMediaArtifactsRequest {
+  string job_id = 1;
+}
+
+message GetMediaArtifactsResponse {
+  string job_id = 1;
+  repeated MediaArtifact artifacts = 2;
+  string trace_id = 3;
+}
+
 message GenerateImageRequest {
   string app_id = 1;
   string subject_user_id = 2;
@@ -229,6 +399,11 @@ service RuntimeAiService {
   rpc Generate(GenerateRequest) returns (GenerateResponse);
   rpc StreamGenerate(StreamGenerateRequest) returns (stream StreamGenerateEvent);
   rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc SubmitMediaJob(SubmitMediaJobRequest) returns (SubmitMediaJobResponse);
+  rpc GetMediaJob(GetMediaJobRequest) returns (GetMediaJobResponse);
+  rpc CancelMediaJob(CancelMediaJobRequest) returns (CancelMediaJobResponse);
+  rpc SubscribeMediaJobEvents(SubscribeMediaJobEventsRequest) returns (stream MediaJobEvent);
+  rpc GetMediaArtifacts(GetMediaArtifactsRequest) returns (GetMediaArtifactsResponse);
   rpc GenerateImage(GenerateImageRequest) returns (stream ArtifactChunk);
   rpc GenerateVideo(GenerateVideoRequest) returns (stream ArtifactChunk);
   rpc SynthesizeSpeech(SynthesizeSpeechRequest) returns (stream ArtifactChunk);
