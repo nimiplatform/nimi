@@ -3,7 +3,7 @@
 - 审计日期：2026-02-26
 - 审计仓库：`/Users/snwozy/nimi-realm/nimi`
 - 证据边界：仅仓内可复现证据（本地命令 + 仓库文件）
-- 证据索引：`/Users/snwozy/nimi-realm/nimi/reports/nimi-platform-audit-2026-02-26-r2.evidence.md`
+- 证据索引：`/Users/snwozy/nimi-realm/nimi/dev/report/nimi-platform-audit-2026-02-26-r2.evidence.md`
 
 ## 决策摘要（Release Review 1 页）
 
@@ -85,7 +85,7 @@
 | release 供应链链路 | PASS | `release.yml` / `release-runtime.yml` 含 SBOM + cosign sign/verify |
 | desktop release 可复现性 | PASS | release-desktop 已补 external mods + env 契约，且本地关键构建通过 |
 
-详见完整证据：`/Users/snwozy/nimi-realm/nimi/reports/nimi-platform-audit-2026-02-26-r2.evidence.md`
+详见完整证据：`/Users/snwozy/nimi-realm/nimi/dev/report/nimi-platform-audit-2026-02-26-r2.evidence.md`
 
 ## 5. 运行基线（3 次中位数 P50）
 
@@ -144,7 +144,7 @@
 
 ### 7.2 证据索引
 
-见：`/Users/snwozy/nimi-realm/nimi/reports/nimi-platform-audit-2026-02-26-r2.evidence.md`
+见：`/Users/snwozy/nimi-realm/nimi/dev/report/nimi-platform-audit-2026-02-26-r2.evidence.md`
 
 ### 7.3 审计边界与不可验证项
 

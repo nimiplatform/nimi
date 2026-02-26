@@ -3,7 +3,7 @@
 - Date: 2026-02-26
 - Workspace: `/Users/snwozy/nimi-realm/nimi`
 - Evidence policy: in-repo reproducible only
-- Report: `/Users/snwozy/nimi-realm/nimi/reports/nimi-platform-audit-2026-02-26-r3.md`
+- Report: `/Users/snwozy/nimi-realm/nimi/dev/report/nimi-platform-audit-2026-02-26-r3.md`
 
 ## 1. 关键命令与结果
 

@@ -112,3 +112,13 @@ nimi-mods──nimi-hook──→ desktop ──@nimiplatform/sdk──→ runti
 | `docs/mods/` | Mod development |
 | `docs/protocol/` | Platform Protocol spec |
 | `docs/error-codes.md` | Error code dictionary |
+| `dev/research/` | Research and investigation documents |
+| `dev/report/` | Audit and assessment reports |
+| `dev/plan/` | Iteration/refactor/implementation plans |
+
+### Dev Document Routing (MUST)
+
+- `dev/research/` MUST contain research documents only.
+- `dev/report/` MUST contain audit/report documents only.
+- `dev/plan/` MUST contain iteration, refactor, and implementation plan documents only.
+- New development-process documents MUST be placed in one of the `dev/*` folders above (not repo root).

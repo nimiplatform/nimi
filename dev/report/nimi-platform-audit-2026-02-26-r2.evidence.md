@@ -13,7 +13,7 @@
 1. `ssot/platform/open-source-governance.md`
 2. `AGENTS.md`
 3. `docs/dev/mod-runtime-layout-contract.md`
-4. `reports/nimi-platform-audit-2026-02-26.md`（历史对照，不继承结论）
+4. `dev/report/nimi-platform-audit-2026-02-26.md`（历史对照，不继承结论）
 
 ## 2. Static Gate Results
 
