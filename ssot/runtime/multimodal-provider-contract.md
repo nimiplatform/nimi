@@ -2,7 +2,7 @@
 title: Nimi Runtime Multimodal Provider Contract
 status: ACTIVE
 created_at: 2026-02-26
-updated_at: 2026-02-27
+updated_at: 2026-02-26
 parent: proto-contract.md
 references:
   - ssot/runtime/service-contract.md
@@ -14,7 +14,6 @@ rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
   - Multimodal compatibility MUST be fail-close, never silent downgrade.
   - Changes must preserve traceability to source and contract-level acceptance gates.
----
 ---
 
 # Runtime 多厂商多模态兼容合同（V1.5 冻结）
@@ -217,6 +216,11 @@ rules:
 3. MiniMax image/video 任务语义
 4. Kimi 图像多模态输出语义
 5. 其他未来 provider 的 task/WS 协议
+
+当前交付切面（R5）：
+
+1. 已纳入：Bytedance OpenSpeech（HTTP）、Gemini operation、MiniMax task
+2. 延后 R6：Kimi/GLM 专项 adapter、Bytedance WS 流式语音专线
 
 要求：
 

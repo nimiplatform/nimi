@@ -2,7 +2,7 @@
 title: Nimi Runtime Multimodal Delivery Gates
 status: ACTIVE
 created_at: 2026-02-26
-updated_at: 2026-02-27
+updated_at: 2026-02-26
 parent: service-contract.md
 references:
   - ssot/runtime/multimodal-provider-contract.md
@@ -195,8 +195,9 @@ rules:
 
 本轮报告：
 
-1. `dev/report/runtime-multimodal-g3-g5-matrix-2026-02-26-r4.md`
-2. `dev/report/runtime-multimodal-g3-g5-matrix-2026-02-26-r4.evidence.md`
+1. `dev/report/runtime-multimodal-r5-2026-02-26.md`
+2. `dev/report/runtime-multimodal-r5-2026-02-26.evidence.md`
+3. 历史参考：`dev/report/runtime-multimodal-g3-g5-matrix-2026-02-26-r4.md`
 
 覆盖率门槛（必须上调）：
 
@@ -238,7 +239,7 @@ rules:
 发布候选命令：
 
 1. `cd runtime && go test ./...`
-2. `go run ./runtime/cmd/runtime-compliance --gate`
+2. `cd runtime && go run ./cmd/runtime-compliance --gate`
 3. `pnpm check:runtime-go-coverage`（阈值已提升）
 4. `pnpm check:sdk-coverage`
 
@@ -258,7 +259,20 @@ rules:
 | I3 | G4 + G5（external-async + 矩阵 + coverage gate） | 2026-02-26 | 2026-02-26 | G6/G7 发布件待后续轮次 | 非本轮目标范围 | 发布候选与对外文档化 |
 | I4 | R5（协议完整性 + strict fail-close 收敛） | 2026-02-26 | 2026-02-26 | Kimi/GLM 与 ByteDance WS 专线延后 | 明确非目标范围 | R6 provider 专项适配 |
 
-## 6. 变更控制（MUST）
+## 6. 当前 Gate 状态快照（2026-02-26）
+
+| Gate | 状态 | 证据 |
+|---|---|---|
+| G0 | PASS | ssot 文档齐备且互引有效 |
+| G1 | PASS | `buf lint/breaking/generate` 全绿 |
+| G2 | PASS | SDK build/test 通过，canonical 字段映射就绪 |
+| G3 | PASS | LocalAI/Nexa/LiteLLM + custom adapter 路径可调用，media fail-close 生效 |
+| G4 | PASS | external-async submit/poll/cancel/event 闭环通过 |
+| G5 | PASS | 覆盖率门禁通过，矩阵与证据文档归档 |
+| G6 | PENDING | 可观测/可靠性专项证据未完成全量收口 |
+| G7 | PENDING | 发布候选清单与回滚策略待补齐 |
+
+## 7. 变更控制（MUST）
 
 1. 任何“降门槛”变更必须单独 PR 并说明风险。
 2. 新增 provider 必须补齐本文件 Gate 证据，不允许“先接入后补测试”。
