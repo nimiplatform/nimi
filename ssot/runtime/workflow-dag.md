@@ -2,7 +2,7 @@
 title: Nimi Runtime DAG Workflow Design
 status: DRAFT
 created_at: 2026-02-25
-updated_at: 2026-02-25
+updated_at: 2026-02-26
 parent: INDEX.md
 references:
   - ssot/runtime/service-contract.md
@@ -643,14 +643,18 @@ executor 收到 node
 
 | 文档 | 本文影响 |
 |------|---------|
-| `runtime/proto-contract.md §5` | workflow.proto 骨架需要按本文 §3 更新 |
-| `runtime/service-contract.md §7` | DAG 约束章节需要补充 edge 校验规则和节点类型注册语义 |
+| `ssot/runtime/proto-contract.md §5` | workflow.proto 骨架需要按本文 §3 更新 |
+| `ssot/runtime/service-contract.md §7` | DAG 约束章节需要补充 edge 校验规则和节点类型注册语义 |
+| `ssot/runtime/multimodal-provider-contract.md` | 外部任务型媒体（video/image/tts/stt）需要补齐 external-async 节点语义 |
+| `ssot/runtime/multimodal-delivery-gates.md` | workflow 外部任务编排能力需要纳入 G4/G5/G7 验收 |
 | `sdk/design.md §5` | `@nimiplatform/sdk/runtime` 的 `workflow.*` 接口需要映射新的 WorkflowDefinition 结构 |
 | `platform/architecture.md §2.2` | Workflow DAG 描述需要补充"标准化内置节点 + Script Worker"定位 |
 
 ## 10. 发布门槛（补充 runtime/service-contract.md §11）
 
 已按 `@nimiplatform/nimi/runtime` 测试落地并通过（含 workflow/scriptworker 单测与合同测试）。
+
+注意：本节门槛是 DAG baseline。涉及外部 provider 异步任务编排（external async）时，必须额外通过 `ssot/runtime/multimodal-delivery-gates.md` 的 G4/G5/G7 门禁。
 
 - [x] `WorkflowEdge` 数据边校验测试通过（类型匹配、无环、slot 唯一性）
 - [x] 7 个 AI 节点类型 → `RuntimeAiService` RPC 映射测试通过

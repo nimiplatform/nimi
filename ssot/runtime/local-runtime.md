@@ -2,7 +2,7 @@
 title: Nimi Local AI Runtime SSOT
 status: ACTIVE
 version: v1.4
-updated_at: 2026-02-22
+updated_at: 2026-02-26
 rules:
   - local-ai-runtime 的 owner 固定为 desktop execution-plane，禁止将第三方推理主执行链迁回 nimi-realm。
   - Local AI Runtime 依赖抽象固定为 `model -> service -> node`；用户主路径不开放任意节点画布编辑。
@@ -309,3 +309,5 @@ Local AI Runtime 域目标：
 2. Runtime 语义对象见 `docs/L1-foundation/runtime-execution.md`。
 3. Mod 接入边界见 `ssot/mod/governance.md`。
 4. 跨域总语义见 `ssot/platform/ai-last-mile.md`。
+5. 多厂商多模态 canonical 合同见 `ssot/runtime/multimodal-provider-contract.md`。
+6. 多轮迭代验收门禁见 `ssot/runtime/multimodal-delivery-gates.md`。

@@ -2,7 +2,7 @@
 title: Nimi Runtime Service Skeleton
 status: FROZEN
 created_at: 2026-02-24
-updated_at: 2026-02-24
+updated_at: 2026-02-26
 parent: INDEX.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
@@ -19,6 +19,8 @@ rules:
 - 当前状态：`FROZEN`
 - 用途：runtime 独立实现前的接口与治理冻结草案
 - 非目标：不覆盖 Desktop UI 与 World 业务规则
+- 多模态补充合同：`ssot/runtime/multimodal-provider-contract.md`
+- 多模态交付门禁：`ssot/runtime/multimodal-delivery-gates.md`
 
 ## 1. 目标与边界（必填）
 
@@ -387,6 +389,8 @@ App 授权链路 reasonCode 最小集合：
 
 目标：把 AI 推理路径提升到“可直接编码 + 可直接测试”的合同精度。
 
+> REF-ERRATA (2026-02-26): 本节定义的是 V1 baseline。多厂商多模态 canonical 字段、async job、一等 artifact metadata、provider custom adapter 规则，以 `ssot/runtime/multimodal-provider-contract.md` 为准。
+
 #### 6.4.1 `Generate`（unary）
 
 请求最小字段：
@@ -612,6 +616,11 @@ App 授权链路 reasonCode 最小集合：
 ## 11. 发布门槛（必填）
 
 已通过 `go run ./cmd/runtime-compliance --gate`（2026-02-24，23/23）。
+
+注意：
+
+1. 上述 `23/23` 为 runtime 基础门槛，不覆盖多厂商多模态完整兼容。
+2. 任何多模态发布候选必须额外通过 `ssot/runtime/multimodal-delivery-gates.md` 的 G0-G7 全部门禁。
 
 - [x] gRPC schema 冻结并通过 breaking-change 检查
 - [x] strict-only 版本协商测试通过（跨 minor 拒绝、compatMode=strict 强校验）

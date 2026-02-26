@@ -207,6 +207,7 @@ export function ContactsView(props: ContactsViewProps) {
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [hoveredContact, setHoveredContact] = useState<ContactRecord | null>(null);
+  const [moreMenuContactId, setMoreMenuContactId] = useState<string | null>(null);
 
   if (props.loading) {
     return (
@@ -359,7 +360,7 @@ export function ContactsView(props: ContactsViewProps) {
                 className={`flex flex-col rounded-xl border p-4 shadow-sm relative ${
                   contact.isAgent 
                     ? 'bg-slate-50 border-slate-200' 
-                    : 'bg-white border-gray-200'
+                    : 'border-white/60 bg-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl'
                 }`}
               >
                 {/* Header: Avatar + Name + Badge */}
@@ -459,7 +460,7 @@ export function ContactsView(props: ContactsViewProps) {
                       <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-500">
                         {contact.age ? (
                           <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                            contact.isAgent ? 'bg-slate-100' : 'bg-gray-50'
+                            contact.isAgent ? 'bg-slate-100' : 'bg-white/60'
                           }`}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M12 6a2 2 0 0 0-2 2v2H6v2h12v-2h-4V8a2 2 0 0 0-2-2z" />
@@ -472,7 +473,7 @@ export function ContactsView(props: ContactsViewProps) {
                         ) : null}
                         {contact.location ? (
                           <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full truncate max-w-[120px] ${
-                            contact.isAgent ? 'bg-slate-100' : 'bg-gray-50'
+                            contact.isAgent ? 'bg-slate-100' : 'bg-white/60'
                           }`}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
@@ -496,14 +497,14 @@ export function ContactsView(props: ContactsViewProps) {
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {contact.tags.slice(0, 4).map((tag, idx) => (
                       <span key={idx} className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${
-                        contact.isAgent ? 'bg-slate-100 text-slate-600' : 'bg-gray-100 text-gray-600'
+                        contact.isAgent ? 'bg-slate-100 text-slate-600' : 'bg-[#4ECCA3]/15 text-[#2A9D8F]'
                       }`}>
                         #{tag}
                       </span>
                     ))}
                     {contact.tags.length > 4 ? (
                       <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ${
-                        contact.isAgent ? 'bg-slate-100 text-slate-500' : 'bg-gray-100 text-gray-500'
+                        contact.isAgent ? 'bg-slate-100 text-slate-500' : 'bg-[#4ECCA3]/10 text-[#2A9D8F]'
                       }`}>
                         +{contact.tags.length - 4}
                       </span>
@@ -533,15 +534,77 @@ export function ContactsView(props: ContactsViewProps) {
                         <button
                           type="button"
                           onClick={() => props.onMessage(contact)}
-                          className="flex items-center justify-center gap-1.5 rounded-lg bg-mint-500 py-2 text-sm font-medium text-white hover:bg-mint-600 transition-colors shadow-sm flex-1"
+                          className={`flex items-center justify-center gap-1.5 rounded-lg bg-mint-500 py-2 text-sm font-medium text-white hover:bg-mint-600 transition-colors shadow-sm ${
+                            moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans'
+                              ? 'flex-[0.6]' 
+                              : 'flex-1'
+                          }`}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                           </svg>
-                          {t('Contacts.message')}
+                          {!(moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans') && t('Contacts.message')}
                         </button>
                       ) : null}
 
+                      {/* More menu button - only for humans */}
+                      {!contact.isAgent && props.activeFilter === 'humans' && (
+                        <div className="relative flex items-center">
+                          {/* More button - fixed position on the right */}
+                          <button
+                            type="button"
+                            onClick={() => setMoreMenuContactId(moreMenuContactId === contact.id ? null : contact.id)}
+                            className="relative z-10 flex h-[38px] w-[38px] items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-gray-700 transition-colors shrink-0"
+                            aria-label="More options"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="5" r="1.5" />
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="12" cy="19" r="1.5" />
+                            </svg>
+                          </button>
+
+                          {/* Expanded action buttons - slide out from behind the more button to the left */}
+                          <div 
+                            className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out absolute right-[42px] ${
+                              moreMenuContactId === contact.id ? 'w-auto opacity-100' : 'w-0 opacity-0'
+                            }`}
+                          >
+                            {/* Block button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMoreMenuContactId(null);
+                                setBlockingContact(contact);
+                              }}
+                              className="flex items-center justify-center gap-1.5 rounded-lg bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-sm whitespace-nowrap"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                              </svg>
+                              Block
+                            </button>
+                            {/* Remove friend button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMoreMenuContactId(null);
+                                setRemovingContact(contact);
+                              }}
+                              className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="8.5" cy="7" r="4" />
+                                <line x1="18" y1="8" x2="23" y2="13" />
+                                <line x1="23" y1="8" x2="18" y2="13" />
+                              </svg>
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

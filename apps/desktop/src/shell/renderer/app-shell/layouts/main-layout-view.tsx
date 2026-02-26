@@ -480,7 +480,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     <img
       src={logoImage}
       alt="Nimi"
-      className="h-9 w-9 shrink-0 rounded-xl object-cover"
+      className="h-9 w-9 shrink-0 object-cover"
+      style={{ mixBlendMode: 'multiply' }}
     />
   );
 
@@ -597,7 +598,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 setSettingsMenuOpen(false);
                 props.onNav('home');
               }}
-              className="rounded-xl p-0.5 transition hover:bg-gray-100"
+              className="flex items-center justify-center"
               aria-label="Nimi Home"
               title="Home"
             >

@@ -2,7 +2,7 @@
 title: Nimi Runtime Proto Contract
 status: FROZEN
 created_at: 2026-02-24
-updated_at: 2026-02-25
+updated_at: 2026-02-26
 parent: INDEX.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
@@ -20,6 +20,8 @@ rules:
 - 运行时执行规则：`runtime/service-contract.md`（状态机、审计、治理、默认超时）
 - SDK 导入面映射：`sdk/design.md`
 - 字段与 service 真相：本文件
+- 多模态兼容合同：`ssot/runtime/multimodal-provider-contract.md`
+- 多模态交付门禁：`ssot/runtime/multimodal-delivery-gates.md`
 
 V1 全量覆盖范围（9 services）：
 - `RuntimeAuthService`
@@ -414,6 +416,8 @@ service RuntimeAiService {
   rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse);
 }
 ```
+
+> REF-ERRATA (2026-02-26): 上述 `ai.proto` 片段为 V1 baseline。面向多厂商多模态的 canonical media 字段、async job RPC、artifact metadata 扩展与 provider_options 口径，以 `ssot/runtime/multimodal-provider-contract.md` 为强约束真相。
 
 ## 5. workflow.proto（DAG 定稿）
 
