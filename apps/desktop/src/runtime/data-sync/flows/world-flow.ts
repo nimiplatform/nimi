@@ -1,6 +1,6 @@
-import { WorldsService } from '@nimiplatform/sdk-realm';
-import type { WorldDetailDto } from '@nimiplatform/sdk-realm/models/WorldDetailDto';
-import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk-realm/models/WorldLevelAuditEventDto';
+import { WorldsService } from '@nimiplatform/sdk/realm';
+import type { WorldDetailDto } from '@nimiplatform/sdk/realm';
+import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (

@@ -1,4 +1,4 @@
-import { AuthService } from '@nimiplatform/sdk-realm';
+import { AuthService } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 import { emitAuthLog, traceIdOf, type PasswordAuthDebug } from '../auth';
 

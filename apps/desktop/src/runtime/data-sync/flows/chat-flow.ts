@@ -1,9 +1,9 @@
-import { HumanChatService } from '@nimiplatform/sdk-realm';
-import type { MessageType } from '@nimiplatform/sdk-realm/models/MessageType';
-import type { SendMessageInputDto } from '@nimiplatform/sdk-realm/models/SendMessageInputDto';
-import type { StartChatInputDto } from '@nimiplatform/sdk-realm/models/StartChatInputDto';
-import type { ChatSyncResultDto } from '@nimiplatform/sdk-realm/models/ChatSyncResultDto';
-import type { MessageViewDto } from '@nimiplatform/sdk-realm/models/MessageViewDto';
+import { HumanChatService } from '@nimiplatform/sdk/realm';
+import type { MessageType } from '@nimiplatform/sdk/realm';
+import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
+import type { StartChatInputDto } from '@nimiplatform/sdk/realm';
+import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
+import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;

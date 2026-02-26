@@ -12,8 +12,8 @@
       "@runtime/*": ["../desktop/src/runtime/*"],
       "@renderer/*": ["../desktop/src/shell/renderer/*"],
       "@mods/*": ["../desktop/src/mods/*"],
-      "@nimiplatform/sdk-realm/*": ["../../sdk/packages/realm/src/*"],
-      "@nimiplatform/mod-sdk/*": ["../../sdk/packages/mod-sdk/src/*"],
+      "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
+      "@nimiplatform/sdk/*": ["../../sdk/src/*"],
       "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]
     },
     "target": "ES2022",
@@ -23,7 +23,7 @@
     "jsx": "react-jsx",
     "strict": true,
     "strictNullChecks": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -46,9 +46,8 @@
     "vite.config.ts",
     "../desktop/src/**/*.ts",
     "../desktop/src/**/*.tsx",
-    "../../sdk/packages/mod-sdk/src/**/*.ts",
-    "../../sdk/packages/mod-sdk/src/**/*.tsx",
-    "../_libs/shell-core/src/**/*.ts",
-    "../../sdk/packages/realm/src/**/*.ts"
+    "../../sdk/src/**/*.ts",
+    "../../sdk/src/**/*.tsx",
+    "../_libs/shell-core/src/**/*.ts"
   ]
 }

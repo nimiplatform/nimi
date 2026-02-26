@@ -6,7 +6,7 @@ import {
   invokeModTranscribe,
   invokeModVideo,
 } from '../../llm-adapter/execution';
-import type { LocalAiProviderHints } from '@nimiplatform/mod-sdk/types';
+import type { LocalAiProviderHints } from '@nimiplatform/sdk/mod/types';
 import type { HookSourceType } from '../contracts/types.js';
 import { createHookRecord, type PermissionResolver } from './utils.js';
 import { HookAuditTrail } from '../audit/hook-audit.js';

@@ -1,4 +1,4 @@
-import { OPENROUTER_AUDIO_CHAT_MODELS } from '@nimiplatform/mod-sdk/model-options';
+import { OPENROUTER_AUDIO_CHAT_MODELS } from '@nimiplatform/sdk/mod/model-options';
 import type { ApiVendor, CapabilityV11, ProviderStatusV11 } from './modality';
 import { normalizeStatusV11, normalizeVendorV11 } from './modality';
 

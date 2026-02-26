@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
+import type { PostDto } from '@nimiplatform/sdk/realm';
 import type { ProfileData, ProfileTab } from './profile-model';
 import { formatProfileDate, getProfileInitial } from './profile-model';
 import { PostsTab } from './components/posts-tab';

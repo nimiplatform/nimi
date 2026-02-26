@@ -1,4 +1,4 @@
-import { OpenAPI } from '@nimiplatform/sdk-realm/core/OpenAPI';
+import { OpenAPI } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog, type RuntimeLogMessage } from '@runtime/telemetry/logger';
 
 type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;

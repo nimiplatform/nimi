@@ -1,6 +1,7 @@
 import { invokeModLlm } from './invoke-text';
 import type { ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult } from './types';
 import { buildLocalId, estimateTokens } from './utils';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput): Promise<ExecuteLocalKernelTurnResult> {
   const prompt = [
@@ -80,7 +81,7 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
       id: buildLocalId('audit-event'),
       turnIndex: input.turnIndex,
       eventType: 'LOCAL_PROVIDER_EXECUTED',
-      reasonCode: 'LOCAL_ONLY_NOT_SYNCED',
+      reasonCode: ReasonCode.LOCAL_ONLY_NOT_SYNCED,
       detail: {
         provider: input.provider,
         model: input.localProviderModel || '',

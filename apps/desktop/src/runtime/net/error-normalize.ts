@@ -1,4 +1,4 @@
-import { ApiError } from '@nimiplatform/sdk-realm';
+import { ApiError } from '@nimiplatform/sdk/realm';
 import { tryParseJsonLike } from './json';
 
 export function normalizeApiError(error: unknown): Error {

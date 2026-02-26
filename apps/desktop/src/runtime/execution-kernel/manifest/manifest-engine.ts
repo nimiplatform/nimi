@@ -1,4 +1,5 @@
 import type { ModManifest } from '../contracts/types';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const FORBIDDEN_CAPABILITIES = new Set([
   'system.root',
@@ -104,14 +105,14 @@ export class ManifestEngine {
     runtimeVersion: string,
   ): { compatible: boolean; reasonCode: string } {
     if (!manifest.nimi?.minVersion && !manifest.nimi?.maxVersion) {
-      return { compatible: true, reasonCode: 'COMPAT_NO_MIN_VERSION' };
+      return { compatible: true, reasonCode: ReasonCode.COMPAT_NO_MIN_VERSION };
     }
 
     const runtime = this.parseVersionParts(runtimeVersion);
     if (manifest.nimi?.minVersion) {
       const min = this.parseVersionParts(manifest.nimi.minVersion);
       if (runtime.major < min.major || (runtime.major === min.major && runtime.minor < min.minor)) {
-        return { compatible: false, reasonCode: 'COMPAT_RUNTIME_TOO_OLD' };
+        return { compatible: false, reasonCode: ReasonCode.COMPAT_RUNTIME_TOO_OLD };
       }
     }
 
@@ -121,11 +122,11 @@ export class ManifestEngine {
         runtime.major > max.major
         || (runtime.major === max.major && runtime.minor > max.minor)
       ) {
-        return { compatible: false, reasonCode: 'COMPAT_RUNTIME_TOO_NEW' };
+        return { compatible: false, reasonCode: ReasonCode.COMPAT_RUNTIME_TOO_NEW };
       }
     }
 
-    return { compatible: true, reasonCode: 'COMPAT_OK' };
+    return { compatible: true, reasonCode: ReasonCode.COMPAT_OK };
   }
 
   private isValidEntryPath(entry: string): boolean {

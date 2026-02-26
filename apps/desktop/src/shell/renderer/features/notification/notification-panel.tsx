@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ReviewRating } from '@nimiplatform/sdk-realm/models/ReviewRating';
+import { ReviewRating } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 
 const PAGE_SIZE = 20;

@@ -1,4 +1,5 @@
 import type { AccessMode } from '../contracts/types';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type RegistryEntry = {
   modId: string;
@@ -34,26 +35,26 @@ export class RegistryGateway {
   } {
     const sourceRef = String(ref || '');
     if (!sourceRef) {
-      return { ok: true, reasonCode: 'SOURCE_DEFAULTED' };
+      return { ok: true, reasonCode: ReasonCode.SOURCE_DEFAULTED };
     }
 
     const blocked = BLOCKED_SOURCES.some((prefix) =>
       sourceRef.toLowerCase().startsWith(prefix),
     );
     if (blocked) {
-      return { ok: false, reasonCode: 'DISCOVERY_SOURCE_BLOCKED' };
+      return { ok: false, reasonCode: ReasonCode.DISCOVERY_SOURCE_BLOCKED };
     }
 
     const allowList = MODE_ALLOWED_PREFIXES[mode];
     if (!allowList) {
-      return { ok: false, reasonCode: 'DISCOVERY_MODE_UNKNOWN' };
+      return { ok: false, reasonCode: ReasonCode.DISCOVERY_MODE_UNKNOWN };
     }
 
     const matched = allowList.some((prefix) => sourceRef.startsWith(prefix));
     if (!matched) {
-      return { ok: false, reasonCode: 'DISCOVERY_SOURCE_UNTRUSTED' };
+      return { ok: false, reasonCode: ReasonCode.DISCOVERY_SOURCE_UNTRUSTED };
     }
-    return { ok: true, reasonCode: 'DISCOVERY_ALLOWED' };
+    return { ok: true, reasonCode: ReasonCode.DISCOVERY_ALLOWED };
   }
 
   recordDiscovery(modId: string, version: string, source: string, mode: AccessMode): void {

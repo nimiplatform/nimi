@@ -1,9 +1,9 @@
-import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/mod-sdk/utils';
+import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/mod/utils';
 import {
   loadRuntimeModSettingsMap,
   persistRuntimeModSettingsMap,
   type RuntimeModSettingsMap,
-} from '@nimiplatform/mod-sdk/settings';
+} from '@nimiplatform/sdk/mod/settings';
 
 export const RUNTIME_MOD_LIFECYCLE_STORAGE_KEY = 'nimi.runtime.mod-lifecycle.v1';
 

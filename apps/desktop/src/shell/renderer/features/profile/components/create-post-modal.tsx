@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { PostMediaType } from '@nimiplatform/sdk-realm/models/PostMediaType';
+import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 
 type CreatePostModalProps = {

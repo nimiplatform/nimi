@@ -1,4 +1,5 @@
 import type { LifecycleState } from '../contracts/types';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type LifecycleEntry = {
   state: LifecycleState;
@@ -51,9 +52,9 @@ export class LifecycleManager {
     const current = this.get(modId, version);
     if (!current) {
       if (targetState === 'DISCOVERED' || targetState === 'INSTALLED') {
-        return { valid: true, reasonCode: 'TRANSITION_INITIAL' };
+        return { valid: true, reasonCode: ReasonCode.TRANSITION_INITIAL };
       }
-      return { valid: false, reasonCode: 'LIFECYCLE_NOT_FOUND' };
+      return { valid: false, reasonCode: ReasonCode.LIFECYCLE_NOT_FOUND };
     }
 
     const allowed = VALID_TRANSITIONS[current];
@@ -63,7 +64,7 @@ export class LifecycleManager {
         reasonCode: `TRANSITION_INVALID:${current}->${targetState}`,
       };
     }
-    return { valid: true, reasonCode: 'TRANSITION_VALID' };
+    return { valid: true, reasonCode: ReasonCode.TRANSITION_VALID };
   }
 
   getHistory(

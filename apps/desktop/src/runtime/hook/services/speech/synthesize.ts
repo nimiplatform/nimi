@@ -16,6 +16,7 @@ import type {
   SpeechSynthesizeInput,
   SpeechSynthesizeResultPayload,
 } from './types.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 async function resolveSpeechRoute(
   context: SpeechServiceInput,
@@ -166,7 +167,7 @@ export async function synthesizeModSpeech(
       adapter: route.adapter,
       model: route.model,
       endpoint: route.endpoint,
-      reasonCode: 'PLAY_PROVIDER_UNAVAILABLE',
+      reasonCode: ReasonCode.PLAY_PROVIDER_UNAVAILABLE,
       detail: 'speech provider returned empty audioUri',
     });
     throw createHookError(

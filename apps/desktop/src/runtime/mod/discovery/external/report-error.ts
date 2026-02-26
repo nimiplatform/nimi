@@ -4,13 +4,7 @@ export function reportSideloadDiscoveryError(input: {
   flowId: string;
   manifestId: string;
   entryPath: string;
-  reasonCode:
-    | 'entry-not-found'
-    | 'entry-read-failed'
-    | 'factory-missing'
-    | 'load-factory-failed'
-    | 'build-registration-failed'
-    | 'runtime-exception';
+  reasonCode: string;
   error: unknown;
   onError?: (detail: { manifestId: string; entryPath?: string; error: unknown }) => void;
 }) {

@@ -9,6 +9,7 @@ import {
 import type { InvokeModLlmInput, InvokeModLlmStreamEvent } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { createScopedAbortSignal, formatProviderError } from './utils';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function* invokeModLlmStream(
   input: InvokeModLlmInput,
@@ -43,7 +44,7 @@ export async function* invokeModLlmStream(
       adapter: runtimeCall.plan.adapter,
       model: runtimeCall.modelId,
       endpoint: runtimeCall.plan.endpoint,
-      reasonCode: 'LOCAL_AI_CAPABILITY_MISSING',
+      reasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
       detail: 'prompt required',
       policyGate,
       extra: { stream: true },
@@ -122,7 +123,7 @@ export async function* invokeModLlmStream(
         adapter: runtimeCall.plan.adapter,
         model: runtimeCall.modelId,
         endpoint: runtimeCall.plan.endpoint,
-        reasonCode: 'LOCAL_AI_PROVIDER_TIMEOUT',
+        reasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
         detail: `provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`,
         policyGate,
         extra: { stream: true },
@@ -139,7 +140,7 @@ export async function* invokeModLlmStream(
         adapter: runtimeCall.plan.adapter,
         model: runtimeCall.modelId,
         endpoint: runtimeCall.plan.endpoint,
-        reasonCode: 'LOCAL_AI_PROVIDER_TIMEOUT',
+        reasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
         detail: 'stream aborted by caller',
         policyGate,
         extra: { stream: true },

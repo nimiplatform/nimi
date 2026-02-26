@@ -9,14 +9,11 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const PACKAGE_MAP = [
-  { id: 'sdk-types', name: '@nimiplatform/sdk-types', dir: 'sdk/packages/types' },
-  { id: 'sdk-realm', name: '@nimiplatform/sdk-realm', dir: 'sdk/packages/realm' },
-  { id: 'sdk-runtime', name: '@nimiplatform/sdk-runtime', dir: 'sdk/packages/runtime' },
-  { id: 'sdk', name: '@nimiplatform/sdk', dir: 'sdk/packages/sdk' },
-  { id: 'mod-sdk', name: '@nimiplatform/mod-sdk', dir: 'sdk/packages/mod-sdk' },
-  { id: 'ai-provider', name: '@nimiplatform/ai-provider', dir: 'sdk/packages/ai-provider' },
-];
+const PACKAGE = {
+  id: 'sdk',
+  name: '@nimiplatform/sdk',
+  dir: 'sdk',
+};
 
 function runCommand(command, args, cwd) {
   const result = spawnSync(command, args, {
@@ -40,42 +37,30 @@ function tarballFileName(packageName, version) {
   return `${normalized}-${version}.tgz`;
 }
 
-async function packAllPackages(packDir, versions) {
-  for (const item of PACKAGE_MAP) {
-    runCommand('pnpm', ['--filter', item.name, 'pack', '--pack-destination', packDir], repoRoot);
-    const tarball = path.join(packDir, tarballFileName(item.name, versions[item.id]));
-    try {
-      await fs.access(tarball);
-    } catch {
-      throw new Error(`Packed tarball not found: ${tarball}`);
-    }
+async function packSdk(packDir, version) {
+  runCommand('pnpm', ['--filter', PACKAGE.name, 'pack', '--pack-destination', packDir], repoRoot);
+  const tarball = path.join(packDir, tarballFileName(PACKAGE.name, version));
+  try {
+    await fs.access(tarball);
+  } catch {
+    throw new Error(`Packed tarball not found: ${tarball}`);
   }
+  return tarball;
 }
 
-async function writeConsumerPackageJson(appDir, tarballById) {
-  const overrideMap = {};
-  const dependencies = {
-    react: '19.2.3',
-    'react-dom': '19.2.3',
-    i18next: '^25.8.11',
-    'react-i18next': '^16.5.4',
-    ai: '6.0.85',
-  };
-
-  for (const item of PACKAGE_MAP) {
-    const fileSpecifier = `file:${tarballById[item.id]}`;
-    dependencies[item.name] = fileSpecifier;
-    overrideMap[item.name] = fileSpecifier;
-  }
-
+async function writeConsumerPackageJson(appDir, sdkTarballPath) {
   const payload = {
     name: 'nimi-sdk-consumer-smoke',
     version: '0.0.0',
     private: true,
     type: 'module',
-    dependencies,
-    pnpm: {
-      overrides: overrideMap,
+    dependencies: {
+      react: '19.2.3',
+      'react-dom': '19.2.3',
+      i18next: '^25.8.11',
+      'react-i18next': '^16.5.4',
+      ai: '6.0.85',
+      '@nimiplatform/sdk': `file:${sdkTarballPath}`,
     },
   };
 
@@ -86,15 +71,45 @@ async function writeSmokeEntry(appDir) {
   const source = [
     "import { createNimiClient } from '@nimiplatform/sdk';",
     "import { Modal } from '@nimiplatform/sdk/runtime';",
-    "import { OpenAPI } from '@nimiplatform/sdk/realm';",
-    "import { createHookClient } from '@nimiplatform/mod-sdk/hook';",
-    "import { createNimiAiProvider } from '@nimiplatform/ai-provider';",
+    "import { OpenAPI, openApiRequest } from '@nimiplatform/sdk/realm';",
+    "import { ReasonCode } from '@nimiplatform/sdk/types';",
+    "import { createScopeModule } from '@nimiplatform/sdk/scope';",
+    "import { createAiClient } from '@nimiplatform/sdk/mod/ai';",
+    "import { createHookClient } from '@nimiplatform/sdk/mod/hook';",
+    "import * as modTypes from '@nimiplatform/sdk/mod/types';",
+    "import { SlotHost } from '@nimiplatform/sdk/mod/ui';",
+    "import { createRendererFlowId } from '@nimiplatform/sdk/mod/logging';",
+    "import { getPendingModTranslationCount } from '@nimiplatform/sdk/mod/i18n';",
+    "import { normalizeRuntimeModSettingsMap } from '@nimiplatform/sdk/mod/settings';",
+    "import { loadStorageJsonFrom } from '@nimiplatform/sdk/mod/utils';",
+    "import { filterModelOptions } from '@nimiplatform/sdk/mod/model-options';",
+    "import { normalizeRuntimeRouteSource } from '@nimiplatform/sdk/mod/runtime-route';",
+    "import { clearModSdkHost } from '@nimiplatform/sdk/mod/host';",
+    "import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';",
     '',
     "if (typeof createNimiClient !== 'function') throw new Error('sdk export invalid');",
     "if (typeof createNimiAiProvider !== 'function') throw new Error('ai-provider export invalid');",
-    "if (typeof createHookClient !== 'function') throw new Error('mod-sdk export invalid');",
-    "if (typeof OpenAPI !== 'object') throw new Error('sdk-realm export invalid');",
-    "if (typeof Modal !== 'object') throw new Error('sdk-runtime export invalid');",
+    "if (typeof createAiClient !== 'function') throw new Error('mod ai export invalid');",
+    "if (typeof createHookClient !== 'function') throw new Error('mod hook export invalid');",
+    "if (typeof modTypes !== 'object') throw new Error('mod types export invalid');",
+    "if (typeof SlotHost !== 'function') throw new Error('mod ui export invalid');",
+    "if (typeof createRendererFlowId !== 'function') throw new Error('mod logging export invalid');",
+    "if (typeof getPendingModTranslationCount !== 'function') throw new Error('mod i18n export invalid');",
+    "if (typeof normalizeRuntimeModSettingsMap !== 'function') throw new Error('mod settings export invalid');",
+    "if (typeof loadStorageJsonFrom !== 'function') throw new Error('mod utils export invalid');",
+    "if (typeof filterModelOptions !== 'function') throw new Error('mod model-options export invalid');",
+    "if (typeof normalizeRuntimeRouteSource !== 'function') throw new Error('mod runtime-route export invalid');",
+    "if (typeof clearModSdkHost !== 'function') throw new Error('mod host export invalid');",
+    "if (typeof OpenAPI !== 'object') throw new Error('realm export invalid');",
+    "if (typeof Modal !== 'object') throw new Error('runtime export invalid');",
+    "if (typeof openApiRequest !== 'function') throw new Error('openApiRequest export invalid');",
+    "if (typeof ReasonCode !== 'object') throw new Error('types export invalid');",
+    "if (typeof createScopeModule !== 'function') throw new Error('scope export invalid');",
+    "if (normalizeRuntimeRouteSource('token-api') !== 'token-api') throw new Error('mod runtime-route call invalid');",
+    "if (!Array.isArray(filterModelOptions([], 'x'))) throw new Error('mod model-options call invalid');",
+    "if (typeof getPendingModTranslationCount() !== 'number') throw new Error('mod i18n call invalid');",
+    "if (typeof normalizeRuntimeModSettingsMap({}) !== 'object') throw new Error('mod settings call invalid');",
+    "if (loadStorageJsonFrom(undefined, 'missing') !== null) throw new Error('mod utils call invalid');",
     "console.log('sdk consumer smoke ok');",
     '',
   ].join('\n');
@@ -108,19 +123,10 @@ async function main() {
   await fs.mkdir(packDir, { recursive: true });
   await fs.mkdir(appDir, { recursive: true });
 
-  const versions = {};
-  for (const item of PACKAGE_MAP) {
-    versions[item.id] = await readPackageVersion(item.dir);
-  }
+  const version = await readPackageVersion(PACKAGE.dir);
+  const tarball = await packSdk(packDir, version);
 
-  await packAllPackages(packDir, versions);
-
-  const tarballById = {};
-  for (const item of PACKAGE_MAP) {
-    tarballById[item.id] = path.join(packDir, tarballFileName(item.name, versions[item.id]));
-  }
-
-  await writeConsumerPackageJson(appDir, tarballById);
+  await writeConsumerPackageJson(appDir, tarball);
   await writeSmokeEntry(appDir);
 
   runCommand('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], appDir);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { PostService } from '@nimiplatform/sdk-realm/services/PostService';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
+import { PostService } from '@nimiplatform/sdk/realm';
+import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 
 const PAGE_SIZE = 20;

@@ -1,4 +1,4 @@
-import { setModSdkHost } from '@nimiplatform/mod-sdk/host';
+import { setModSdkHost } from '@nimiplatform/sdk/mod/host';
 
 export type WireModSdkHostInput = Parameters<typeof setModSdkHost>[0];
 

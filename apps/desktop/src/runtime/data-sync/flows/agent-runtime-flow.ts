@@ -1,5 +1,5 @@
-import { OpenAPI } from '@nimiplatform/sdk-realm/core/OpenAPI';
-import { request as openApiRequest } from '@nimiplatform/sdk-realm/core/request';
+import { OpenAPI } from '@nimiplatform/sdk/realm';
+import { openApiRequest } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { resolveChatRouteByPolicy } from '@runtime/chat';

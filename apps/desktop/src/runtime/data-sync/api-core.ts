@@ -1,4 +1,4 @@
-import { ApiError } from '@nimiplatform/sdk-realm';
+import { ApiError } from '@nimiplatform/sdk/realm';
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 

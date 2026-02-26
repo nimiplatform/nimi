@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { GiftCatalogItemDto } from '@nimiplatform/sdk-realm/models/GiftCatalogItemDto';
+import type { GiftCatalogItemDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import type { GiftWallItem } from '../profile-model';
 

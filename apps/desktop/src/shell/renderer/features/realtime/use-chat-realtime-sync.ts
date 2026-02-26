@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
-import type { ChatSyncResultDto } from '@nimiplatform/sdk-realm/models/ChatSyncResultDto';
-import type { ChatViewDto } from '@nimiplatform/sdk-realm/models/ChatViewDto';
-import type { ListChatsResultDto } from '@nimiplatform/sdk-realm/models/ListChatsResultDto';
-import type { ListMessagesResultDto } from '@nimiplatform/sdk-realm/models/ListMessagesResultDto';
-import type { MessageViewDto } from '@nimiplatform/sdk-realm/models/MessageViewDto';
+import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
+import type { ChatViewDto } from '@nimiplatform/sdk/realm';
+import type { ListChatsResultDto } from '@nimiplatform/sdk/realm';
+import type { ListMessagesResultDto } from '@nimiplatform/sdk/realm';
+import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { io, type Socket } from 'socket.io-client';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';

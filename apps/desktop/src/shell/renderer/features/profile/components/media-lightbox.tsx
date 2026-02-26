@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
-import { PostMediaType } from '@nimiplatform/sdk-realm/models/PostMediaType';
+import type { PostDto } from '@nimiplatform/sdk/realm';
+import { PostMediaType } from '@nimiplatform/sdk/realm';
 
 type MediaLightboxProps = {
   post: PostDto;

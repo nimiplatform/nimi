@@ -208,6 +208,15 @@ jobs:
       - name: SDK import boundary check
         run: pnpm check:sdk-import-boundary
 
+      - name: SDK single-package layout check
+        run: pnpm check:sdk-single-package-layout
+
+      - name: SDK public naming check
+        run: pnpm check:sdk-public-naming
+
+      - name: ReasonCode constants policy check
+        run: pnpm check:reason-code-constants
+
       - name: Runtime bridge method drift check
         run: pnpm check:runtime-bridge-method-drift
 
@@ -236,17 +245,8 @@ jobs:
       - name: Build SDK surfaces
         run: pnpm build:sdk
 
-      - name: Test sdk-runtime
-        run: pnpm --filter @nimiplatform/sdk-runtime test
-
-      - name: Cross-package gRPC contract test (sdk-runtime <-> runtime)
-        run: pnpm --filter @nimiplatform/sdk-runtime test:contract
-
-      - name: Test sdk facade
+      - name: Test unified sdk
         run: pnpm --filter @nimiplatform/sdk test
-
-      - name: Test ai-provider
-        run: pnpm --filter @nimiplatform/ai-provider test
 
       - name: SDK coverage gate
         run: pnpm check:sdk-coverage

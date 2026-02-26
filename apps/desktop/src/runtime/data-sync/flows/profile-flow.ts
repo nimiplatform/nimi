@@ -1,5 +1,5 @@
-import { MeService, UserService } from '@nimiplatform/sdk-realm';
-import type { UserProfileDto } from '@nimiplatform/sdk-realm/models/UserProfileDto';
+import { MeService, UserService } from '@nimiplatform/sdk/realm';
+import type { UserProfileDto } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 import { loadCreatorAgents } from './social-flow';
 

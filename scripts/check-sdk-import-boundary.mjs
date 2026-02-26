@@ -8,16 +8,11 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const sdkPackageJsonPaths = [
-  'sdk/packages/sdk/package.json',
-  'sdk/packages/runtime/package.json',
-  'sdk/packages/realm/package.json',
-  'sdk/packages/mod-sdk/package.json',
-  'sdk/packages/types/package.json',
-  'sdk/packages/ai-provider/package.json',
+  'sdk/package.json',
 ].map((relative) => path.join(repoRoot, relative));
 
 const forbiddenExportPattern = /(?:^|\/)(internal|generated)(?:\/|$)/;
-const forbiddenImportPattern = /from\s+['"]@nimiplatform\/sdk(?:-[^/'"]+)?\/(?:internal|generated)\//g;
+const forbiddenImportPattern = /from\s+['"]@nimiplatform\/sdk\/(?:internal|generated)\//g;
 
 function collectExportValues(node, values) {
   if (!node) {
@@ -72,8 +67,8 @@ async function main() {
     }
   }
 
-  const sdkPackagesRoot = path.join(repoRoot, 'sdk', 'packages');
-  const sourceFiles = await collectSourceFiles(sdkPackagesRoot);
+  const sdkSourceRoot = path.join(repoRoot, 'sdk', 'src');
+  const sourceFiles = await collectSourceFiles(sdkSourceRoot);
   for (const file of sourceFiles) {
     const raw = await fs.readFile(file, 'utf8');
     if (forbiddenImportPattern.test(raw)) {

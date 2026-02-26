@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
-import { ExploreService } from '@nimiplatform/sdk-realm/services/ExploreService';
-import { SearchService } from '@nimiplatform/sdk-realm/services/SearchService';
+import type { PostDto } from '@nimiplatform/sdk/realm';
+import { ExploreService } from '@nimiplatform/sdk/realm';
+import { SearchService } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ExploreView } from './explore-view';

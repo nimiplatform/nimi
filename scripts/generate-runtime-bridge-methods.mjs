@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const repoRoot = resolve(new URL('..', import.meta.url).pathname);
-const methodIdsFile = resolve(repoRoot, 'sdk/packages/runtime/src/method-ids.ts');
+const methodIdsFile = resolve(repoRoot, 'sdk/src/runtime/method-ids.ts');
 const outputFile = resolve(
   repoRoot,
   'apps/desktop/src-tauri/src/runtime_bridge/generated/method_ids.rs',

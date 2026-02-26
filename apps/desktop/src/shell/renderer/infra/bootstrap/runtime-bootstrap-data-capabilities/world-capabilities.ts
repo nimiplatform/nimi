@@ -1,5 +1,5 @@
-import { OpenAPI } from '@nimiplatform/sdk-realm/core/OpenAPI.js';
-import { request as openApiRequest } from '@nimiplatform/sdk-realm/core/request.js';
+import { OpenAPI } from '@nimiplatform/sdk/realm';
+import { openApiRequest } from '@nimiplatform/sdk/realm';
 import { WORLD_DATA_API_CAPABILITIES, toRecord } from '../runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
 

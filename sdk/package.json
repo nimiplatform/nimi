@@ -1,10 +1,106 @@
 {
-  "name": "nimi-sdk-workspace",
-  "private": true,
+  "name": "@nimiplatform/sdk",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./realm": {
+      "types": "./dist/realm/index.d.ts",
+      "default": "./dist/realm/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "default": "./dist/runtime/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./ai-provider": {
+      "types": "./dist/ai-provider/index.d.ts",
+      "default": "./dist/ai-provider/index.js"
+    },
+    "./mod/ai": {
+      "types": "./dist/mod/ai/index.d.ts",
+      "default": "./dist/mod/ai/index.js"
+    },
+    "./mod/hook": {
+      "types": "./dist/mod/hook/index.d.ts",
+      "default": "./dist/mod/hook/index.js"
+    },
+    "./mod/types": {
+      "types": "./dist/mod/types/index.d.ts",
+      "default": "./dist/mod/types/index.js"
+    },
+    "./mod/ui": {
+      "types": "./dist/mod/ui.d.ts",
+      "default": "./dist/mod/ui.js"
+    },
+    "./mod/logging": {
+      "types": "./dist/mod/logging.d.ts",
+      "default": "./dist/mod/logging.js"
+    },
+    "./mod/i18n": {
+      "types": "./dist/mod/i18n.d.ts",
+      "default": "./dist/mod/i18n.js"
+    },
+    "./mod/settings": {
+      "types": "./dist/mod/settings.d.ts",
+      "default": "./dist/mod/settings.js"
+    },
+    "./mod/utils": {
+      "types": "./dist/mod/utils/index.d.ts",
+      "default": "./dist/mod/utils/index.js"
+    },
+    "./mod/model-options": {
+      "types": "./dist/mod/model-options/index.d.ts",
+      "default": "./dist/mod/model-options/index.js"
+    },
+    "./mod/runtime-route": {
+      "types": "./dist/mod/runtime-route.d.ts",
+      "default": "./dist/mod/runtime-route.js"
+    },
+    "./mod/host": {
+      "types": "./dist/mod/host.d.ts",
+      "default": "./dist/mod/host.js"
+    },
+    "./scope": {
+      "types": "./dist/scope/index.d.ts",
+      "default": "./dist/scope/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@ai-sdk/provider": "^3.0.8",
+    "@grpc/grpc-js": "^1.14.1",
+    "@protobuf-ts/runtime": "2.11.1",
+    "@protobuf-ts/runtime-rpc": "2.11.1",
+    "i18next": "^25.8.11",
+    "react-i18next": "^16.5.4"
+  },
+  "peerDependencies": {
+    "react": "*"
+  },
   "scripts": {
-    "build": "pnpm -r --filter ./packages/* build",
-    "lint": "pnpm -r --filter ./packages/* lint",
-    "test": "pnpm -r --filter ./packages/* test"
+    "build": "node ../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.14",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

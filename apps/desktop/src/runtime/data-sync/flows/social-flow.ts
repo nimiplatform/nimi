@@ -1,4 +1,4 @@
-import { CreatorService, UserService } from '@nimiplatform/sdk-realm';
+import { CreatorService, UserService } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 

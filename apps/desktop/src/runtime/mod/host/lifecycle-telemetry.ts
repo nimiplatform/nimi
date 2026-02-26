@@ -1,4 +1,5 @@
 import { createRuntimeModFlowId, emitRuntimeModRuntimeLog } from '../logging';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type RuntimeModLifecycleStatus = 'start' | 'done' | 'failed' | 'skipped';
 
@@ -105,7 +106,7 @@ export function emitRuntimeModRegisterFailed(input: {
     costMs: Date.now() - input.startedAt,
     details: withLifecycleStatus('failed', {
       modId: input.modId,
-      reasonCode: 'runtime-mod-register-failed',
+      reasonCode: ReasonCode.RUNTIME_MOD_REGISTER_FAILED,
       error: input.error instanceof Error ? input.error.message : String(input.error || ''),
     }),
   });

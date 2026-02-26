@@ -3,6 +3,7 @@ import type {
   HookActionRequestContext,
   HookActionResult,
 } from '../../contracts/action.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export function createExecutionId(actionId: string): string {
   const suffix = Math.random().toString(36).slice(2, 8);
@@ -85,7 +86,7 @@ export function assertValidContext(context: HookActionRequestContext): {
   if (!principalId || !subjectAccountId || !traceId) {
     return {
       ok: false,
-      reasonCode: 'ACTION_CONTEXT_INVALID',
+      reasonCode: ReasonCode.ACTION_CONTEXT_INVALID,
       actionHint: 'refresh-token',
     };
   }
@@ -96,7 +97,7 @@ export function assertValidContext(context: HookActionRequestContext): {
     if (!issuer || !authTokenId) {
       return {
         ok: false,
-        reasonCode: 'ACTION_CONTEXT_INVALID',
+        reasonCode: ReasonCode.ACTION_CONTEXT_INVALID,
         actionHint: 'reauthorize-external-agent',
       };
     }
@@ -107,7 +108,7 @@ export function assertValidContext(context: HookActionRequestContext): {
     if (!userAccountId || subjectAccountId !== userAccountId) {
       return {
         ok: false,
-        reasonCode: 'SUBJECT_ACCOUNT_MISMATCH',
+        reasonCode: ReasonCode.SUBJECT_ACCOUNT_MISMATCH,
         actionHint: 'reauthorize-delegated',
       };
     }
@@ -118,7 +119,7 @@ export function assertValidContext(context: HookActionRequestContext): {
   if (!externalAccountId || subjectAccountId !== externalAccountId) {
     return {
       ok: false,
-      reasonCode: 'SUBJECT_ACCOUNT_MISMATCH',
+      reasonCode: ReasonCode.SUBJECT_ACCOUNT_MISMATCH,
       actionHint: 'reauthorize-autonomous',
     };
   }

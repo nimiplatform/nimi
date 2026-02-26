@@ -52,6 +52,7 @@ import {
   toReasonText,
   toRecord,
 } from './action-runtime/primitives.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type ActionEntry = {
   modId: string;
@@ -308,7 +309,7 @@ export class HookRuntimeActionService {
     if (!entry) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_NOT_FOUND',
+        reasonCode: ReasonCode.ACTION_NOT_FOUND,
         actionHint: 'discover-actions',
       }, executionId, traceId, 'guarded') as HookActionVerifyResult;
     }
@@ -320,7 +321,7 @@ export class HookRuntimeActionService {
       traceId,
       phase: 'verify',
       status: 'accepted',
-      reasonCode: 'ACTION_ACCEPTED',
+      reasonCode: ReasonCode.ACTION_ACCEPTED,
     });
 
     const preflight = await this.runPreflightPipeline({
@@ -374,7 +375,7 @@ export class HookRuntimeActionService {
 
     const result = normalizeResult({
       ok: true,
-      reasonCode: 'ACTION_VERIFIED',
+      reasonCode: ReasonCode.ACTION_VERIFIED,
       actionHint: 'commit-with-verify-ticket',
       output: {
         verifyTicket,
@@ -423,7 +424,7 @@ export class HookRuntimeActionService {
     if (!entry) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_NOT_FOUND',
+        reasonCode: ReasonCode.ACTION_NOT_FOUND,
         actionHint: 'discover-actions',
       }, executionId, traceId, 'guarded');
     }
@@ -436,7 +437,7 @@ export class HookRuntimeActionService {
         traceId,
         phase: 'commit',
         status: 'accepted',
-        reasonCode: 'ACTION_ACCEPTED',
+        reasonCode: ReasonCode.ACTION_ACCEPTED,
         strict: true,
       });
       if (ledgerFailure) {
@@ -473,7 +474,7 @@ export class HookRuntimeActionService {
     if (input.phase === 'dry-run' && (!entry.descriptor.supportsDryRun || entry.descriptor.executionMode === 'opaque')) {
       return this.finalize(entry, input.requestContext, traceId, executionId, 'dry-run', normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_DRY_RUN_UNSUPPORTED',
+        reasonCode: ReasonCode.ACTION_DRY_RUN_UNSUPPORTED,
         actionHint: 'use-verify-commit',
       }, executionId, traceId, entry.descriptor.executionMode));
     }
@@ -491,12 +492,12 @@ export class HookRuntimeActionService {
           traceId,
           phase: 'commit',
           status: 'rejected',
-          reasonCode: 'ACTION_IDEMPOTENCY_KEY_REQUIRED',
+          reasonCode: ReasonCode.ACTION_IDEMPOTENCY_KEY_REQUIRED,
         });
       }
       return this.finalize(entry, input.requestContext, traceId, executionId, input.phase, normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_IDEMPOTENCY_KEY_REQUIRED',
+        reasonCode: ReasonCode.ACTION_IDEMPOTENCY_KEY_REQUIRED,
         actionHint: 'add-idempotency-key',
       }, executionId, traceId, entry.descriptor.executionMode));
     }
@@ -592,7 +593,7 @@ export class HookRuntimeActionService {
         traceId,
         phase: 'commit',
         status: 'executing',
-        reasonCode: 'ACTION_EXECUTING',
+        reasonCode: ReasonCode.ACTION_EXECUTING,
         strict: true,
       });
       if (ledgerFailure) {
@@ -628,20 +629,20 @@ export class HookRuntimeActionService {
       } catch (error) {
         return pipelineStop(normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_EXECUTION_FAILED',
+          reasonCode: ReasonCode.ACTION_EXECUTION_FAILED,
           actionHint: error instanceof Error ? error.message : String(error || 'runtime execute failed'),
         }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode));
       }
 
       let result = normalizeResult(ctx.handlerOutput || {
         ok: false,
-        reasonCode: 'ACTION_EXECUTION_FAILED',
+        reasonCode: ReasonCode.ACTION_EXECUTION_FAILED,
         actionHint: 'handler returned empty output',
       }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode);
       if (result.ok && !ctx.entry.outputValidator(result.output || {})) {
         result = normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_OUTPUT_SCHEMA_INVALID',
+          reasonCode: ReasonCode.ACTION_OUTPUT_SCHEMA_INVALID,
           actionHint: toReasonText(ctx.entry.outputValidator),
         }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode);
       }
@@ -652,7 +653,7 @@ export class HookRuntimeActionService {
     handlerPipeline.use('audit', async (ctx) => {
       const result = ctx.result || normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_EXECUTION_FAILED',
+        reasonCode: ReasonCode.ACTION_EXECUTION_FAILED,
         actionHint: 'missing-result',
       }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode);
       return pipelineStop(result);
@@ -671,10 +672,10 @@ export class HookRuntimeActionService {
     const runResult = await handlerPipeline.run(handlerContext);
     const result = runResult || normalizeResult({
       ok: false,
-      reasonCode: 'ACTION_EXECUTION_FAILED',
+      reasonCode: ReasonCode.ACTION_EXECUTION_FAILED,
       actionHint: 'pipeline-empty-result',
     }, executionId, traceId, entry.descriptor.executionMode);
-    if (result.ok && result.reasonCode === 'ACTION_COMMITTED' && input.phase === 'dry-run') {
+    if (result.ok && result.reasonCode === ReasonCode.ACTION_COMMITTED && input.phase === 'dry-run') {
       result.reasonCode = 'ACTION_DRY_RUN_READY';
       result.actionHint = 'review-dry-run';
     }
@@ -696,7 +697,7 @@ export class HookRuntimeActionService {
           traceId,
           phase: 'commit',
           status: 'failed',
-          reasonCode: 'ACTION_RUNTIME_STORE_UNAVAILABLE',
+          reasonCode: ReasonCode.ACTION_RUNTIME_STORE_UNAVAILABLE,
           payload: {
             actionHint: 'retry-later',
             idempotencyKey,
@@ -706,7 +707,7 @@ export class HookRuntimeActionService {
         });
         return normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_RUNTIME_STORE_UNAVAILABLE',
+          reasonCode: ReasonCode.ACTION_RUNTIME_STORE_UNAVAILABLE,
           actionHint: 'retry-later',
         }, executionId, traceId, entry.descriptor.executionMode);
       }
@@ -758,7 +759,7 @@ export class HookRuntimeActionService {
       if (ctx.entry.descriptor.executionMode === 'opaque' && ctx.entry.descriptor.riskLevel === 'high') {
         return pipelineStop(normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_OPAQUE_HIGH_RISK_FORBIDDEN',
+          reasonCode: ReasonCode.ACTION_OPAQUE_HIGH_RISK_FORBIDDEN,
           actionHint: 'use-full-or-guarded',
         }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode));
       }
@@ -776,7 +777,7 @@ export class HookRuntimeActionService {
         if (!verified) {
           return pipelineStop(normalizeResult({
             ok: false,
-            reasonCode: 'ACTION_CONTEXT_INVALID',
+            reasonCode: ReasonCode.ACTION_CONTEXT_INVALID,
             actionHint: 'reauthorize-external-agent',
           }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode));
         }
@@ -789,7 +790,7 @@ export class HookRuntimeActionService {
       if (!ctx.entry.inputValidator(ctx.input)) {
         return pipelineStop(normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_INPUT_SCHEMA_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_SCHEMA_INVALID,
           actionHint: toReasonText(ctx.entry.inputValidator),
         }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode));
       }
@@ -802,7 +803,7 @@ export class HookRuntimeActionService {
       } catch {
         return pipelineStop(normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_PERMISSION_DENIED',
+          reasonCode: ReasonCode.ACTION_PERMISSION_DENIED,
           actionHint: 'request-permission',
         }, ctx.executionId, ctx.traceId, ctx.entry.descriptor.executionMode));
       }
@@ -847,7 +848,7 @@ export class HookRuntimeActionService {
     if (!ticketId) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_VERIFY_REQUIRED',
+        reasonCode: ReasonCode.ACTION_VERIFY_REQUIRED,
         actionHint: 'run-verify-first',
       }, createExecutionId(input.entry.descriptor.actionId), input.traceId, input.entry.descriptor.executionMode);
     }
@@ -870,7 +871,7 @@ export class HookRuntimeActionService {
     if (!ticket) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_VERIFY_TICKET_INVALID',
+        reasonCode: ReasonCode.ACTION_VERIFY_TICKET_INVALID,
         actionHint: 'run-verify-first',
       }, createExecutionId(input.entry.descriptor.actionId), input.traceId, input.entry.descriptor.executionMode);
     }
@@ -878,7 +879,7 @@ export class HookRuntimeActionService {
     if (!Number.isFinite(ticket.expiresAtMs) || ticket.expiresAtMs <= this.now()) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_VERIFY_TICKET_EXPIRED',
+        reasonCode: ReasonCode.ACTION_VERIFY_TICKET_EXPIRED,
         actionHint: 'run-verify-again',
       }, createExecutionId(input.entry.descriptor.actionId), input.traceId, input.entry.descriptor.executionMode);
     }
@@ -889,7 +890,7 @@ export class HookRuntimeActionService {
       || ticket.inputDigest !== input.inputDigest) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_VERIFY_TICKET_INVALID',
+        reasonCode: ReasonCode.ACTION_VERIFY_TICKET_INVALID,
         actionHint: 'run-verify-again',
       }, createExecutionId(input.entry.descriptor.actionId), input.traceId, input.entry.descriptor.executionMode);
     }
@@ -956,7 +957,7 @@ export class HookRuntimeActionService {
       }
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_RUNTIME_STORE_UNAVAILABLE',
+        reasonCode: ReasonCode.ACTION_RUNTIME_STORE_UNAVAILABLE,
         actionHint: 'retry-later',
       }, input.executionId, input.traceId, input.entry.descriptor.executionMode);
     }
@@ -1022,7 +1023,7 @@ export class HookRuntimeActionService {
     } catch {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_RUNTIME_STORE_UNAVAILABLE',
+        reasonCode: ReasonCode.ACTION_RUNTIME_STORE_UNAVAILABLE,
         actionHint: 'retry-later',
       }, input.executionId, input.traceId, input.executionMode);
     }
@@ -1042,7 +1043,7 @@ export class HookRuntimeActionService {
     }
     return normalizeResult({
       ok: false,
-      reasonCode: 'ACTION_RUNTIME_STORE_UNAVAILABLE',
+      reasonCode: ReasonCode.ACTION_RUNTIME_STORE_UNAVAILABLE,
       actionHint: 'retry-later',
     }, input.executionId, input.traceId, input.executionMode);
   }
@@ -1065,13 +1066,13 @@ export class HookRuntimeActionService {
       if (memory.inputDigest !== input.inputDigest) {
         return normalizeResult({
           ok: false,
-          reasonCode: 'ACTION_IDEMPOTENCY_KEY_CONFLICT',
+          reasonCode: ReasonCode.ACTION_IDEMPOTENCY_KEY_CONFLICT,
           actionHint: 'use-new-idempotency-key',
         }, input.executionId, input.traceId, input.executionMode);
       }
       return normalizeResult({
         ok: memory.response.ok,
-        reasonCode: 'ACTION_IDEMPOTENCY_REPLAYED',
+        reasonCode: ReasonCode.ACTION_IDEMPOTENCY_REPLAYED,
         actionHint: 'replayed-previous-response',
         output: memory.response.output,
         warnings: memory.response.warnings,
@@ -1090,7 +1091,7 @@ export class HookRuntimeActionService {
     if (String(persisted.inputDigest || '').trim() !== input.inputDigest) {
       return normalizeResult({
         ok: false,
-        reasonCode: 'ACTION_IDEMPOTENCY_KEY_CONFLICT',
+        reasonCode: ReasonCode.ACTION_IDEMPOTENCY_KEY_CONFLICT,
         actionHint: 'use-new-idempotency-key',
       }, input.executionId, input.traceId, input.executionMode);
     }
@@ -1106,7 +1107,7 @@ export class HookRuntimeActionService {
       : undefined;
     return normalizeResult({
       ok: Boolean(response.ok),
-      reasonCode: 'ACTION_IDEMPOTENCY_REPLAYED',
+      reasonCode: ReasonCode.ACTION_IDEMPOTENCY_REPLAYED,
       actionHint: 'replayed-previous-response',
       output: replayOutput,
       warnings: Array.isArray(response.warnings)

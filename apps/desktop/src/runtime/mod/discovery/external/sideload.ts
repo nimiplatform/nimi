@@ -6,6 +6,7 @@ import { createRuntimeModFlowId, emitRuntimeModRuntimeLog } from '../../logging'
 import { buildSideloadRuntimeModRegistration } from './build-registration';
 import { loadSideloadRuntimeModFactory } from './load-factory';
 import { reportSideloadDiscoveryError } from './report-error';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function discoverSideloadRuntimeMods(input: {
   manifests: RuntimeLocalManifestSummaryLike[];
@@ -53,7 +54,7 @@ export async function discoverSideloadRuntimeMods(input: {
             flowId,
             manifestId: manifest.id,
             entryPath,
-            reasonCode: 'load-factory-failed',
+            reasonCode: ReasonCode.LOAD_FACTORY_FAILED,
             error,
             onError: input.onError,
           });
@@ -86,7 +87,7 @@ export async function discoverSideloadRuntimeMods(input: {
             flowId,
             manifestId: manifest.id,
             entryPath,
-            reasonCode: 'build-registration-failed',
+            reasonCode: ReasonCode.BUILD_REGISTRATION_FAILED,
             error,
             onError: input.onError,
           });
@@ -117,7 +118,7 @@ export async function discoverSideloadRuntimeMods(input: {
         flowId,
         manifestId: manifest.id,
         entryPath,
-        reasonCode: 'runtime-exception',
+        reasonCode: ReasonCode.RUNTIME_EXCEPTION,
         error,
         onError: input.onError,
       });

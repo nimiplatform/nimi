@@ -14,9 +14,10 @@ import type {
   ResolvedRuntimeRouteBinding,
   RuntimeRouteHint,
   RuntimeRouteOverride,
-} from '@nimiplatform/mod-sdk/types';
+} from '@nimiplatform/sdk/mod/types';
 import { RuntimeRouteResolutionError } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type RuntimeFields = {
   provider: string;
@@ -212,8 +213,8 @@ export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields)
       const policyGate = resolveRoutePolicyGate(error);
       const shouldFallbackToTokenApi = normalizedOverrideSource !== 'token-api'
         && (
-          reasonCode === 'RUNTIME_ROUTE_MODEL_MISSING'
-          || reasonCode === 'RUNTIME_ROUTE_CAPABILITY_MISSING'
+          reasonCode === ReasonCode.RUNTIME_ROUTE_MODEL_MISSING
+          || reasonCode === ReasonCode.RUNTIME_ROUTE_CAPABILITY_MISSING
         );
 
       if (shouldFallbackToTokenApi) {
@@ -297,7 +298,7 @@ export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields)
               message: 'fallback_to_token_api_persist_failed',
               flowId: routeFlowId,
               details: {
-                reasonCode: 'LOCAL_AI_AUDIT_WRITE_FAILED',
+                reasonCode: ReasonCode.LOCAL_AI_AUDIT_WRITE_FAILED,
                 detail: safeErrorMessage(auditError),
               },
             });

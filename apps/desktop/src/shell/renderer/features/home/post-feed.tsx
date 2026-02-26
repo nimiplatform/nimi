@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
+import type { PostDto } from '@nimiplatform/sdk/realm';
 
 export type FeedItem = PostDto;
 

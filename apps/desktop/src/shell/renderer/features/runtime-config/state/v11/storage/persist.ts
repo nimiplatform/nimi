@@ -1,4 +1,4 @@
-import { loadStorageJsonFrom, removeLocalStorageKey, saveStorageJsonTo } from '@nimiplatform/mod-sdk/utils';
+import { loadStorageJsonFrom, removeLocalStorageKey, saveStorageJsonTo } from '@nimiplatform/sdk/mod/utils';
 import { type RuntimeConfigStateV11 } from '../types';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,

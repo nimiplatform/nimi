@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
-import type { MessageViewDto } from '@nimiplatform/sdk-realm/models/MessageViewDto';
-import type { ChatViewDto } from '@nimiplatform/sdk-realm/models/ChatViewDto';
+import type { MessageViewDto } from '@nimiplatform/sdk/realm';
+import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate } from '@renderer/i18n';
 

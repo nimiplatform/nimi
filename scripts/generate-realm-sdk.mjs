@@ -8,8 +8,9 @@ import { createHash } from 'node:crypto';
 
 const OPENAPI_TYPESCRIPT_CODEGEN_VERSION = '0.30.0';
 const DEFAULT_SPEC_RELATIVE_PATH = path.join('.cache', 'realm-openapi', 'api-nimi.yaml');
-const REALM_SRC_RELATIVE_PATH = path.join('sdk', 'packages', 'realm', 'src');
-const REALM_PACKAGE_JSON_RELATIVE_PATH = path.join('sdk', 'packages', 'realm', 'package.json');
+const REALM_GENERATED_RELATIVE_PATH = path.join('sdk', 'src', 'realm', 'generated');
+const REALM_FACADE_RELATIVE_PATH = path.join('sdk', 'src', 'realm', 'index.ts');
+const SDK_PACKAGE_JSON_RELATIVE_PATH = path.join('sdk', 'package.json');
 const CLEAN_TARGETS = ['core', 'models', 'services', 'schemas', 'index.ts'];
 
 function parseArgs(argv) {
@@ -70,8 +71,8 @@ function printHelp() {
       'Options:',
       '  -i, --input <path>  OpenAPI yaml path (default: .cache/realm-openapi/api-nimi.yaml).',
       '  --skip-clean        Skip cleanup before code generation.',
-      '  --skip-version-bump Skip automatic patch bump for @nimiplatform/sdk-realm.',
-      '  --set-version <v>   Set @nimiplatform/sdk-realm package version explicitly.',
+      '  --skip-version-bump Skip automatic patch bump for @nimiplatform/sdk.',
+      '  --set-version <v>   Set @nimiplatform/sdk package version explicitly.',
     ].join('\n'),
   );
   process.stdout.write('\n');
@@ -107,7 +108,7 @@ function resolveInputPath(repoRoot, inputFromArgs) {
 }
 
 function cleanRealmSources(repoRoot) {
-  const realmSrcPath = path.join(repoRoot, REALM_SRC_RELATIVE_PATH);
+  const realmSrcPath = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH);
   if (!existsSync(realmSrcPath)) {
     throw new Error(`Realm SDK source directory not found: ${realmSrcPath}`);
   }
@@ -133,8 +134,8 @@ function bumpPatch(version) {
   return `${major}.${minor}.${patch}`;
 }
 
-function readRealmPackageJson(repoRoot) {
-  const packagePath = path.join(repoRoot, REALM_PACKAGE_JSON_RELATIVE_PATH);
+function readSdkPackageJson(repoRoot) {
+  const packagePath = path.join(repoRoot, SDK_PACKAGE_JSON_RELATIVE_PATH);
   const content = readFileSync(packagePath, 'utf8');
   return {
     packagePath,
@@ -142,7 +143,7 @@ function readRealmPackageJson(repoRoot) {
   };
 }
 
-function writeRealmPackageJson(packagePath, parsed) {
+function writeSdkPackageJson(packagePath, parsed) {
   writeFileSync(packagePath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8');
 }
 
@@ -208,23 +209,23 @@ function computeDirectoryHash(rootDir) {
 }
 
 function maybeUpdateRealmVersion(repoRoot, options, generatedChanged) {
-  const { packagePath, parsed } = readRealmPackageJson(repoRoot);
+  const { packagePath, parsed } = readSdkPackageJson(repoRoot);
   const currentVersion = String(parsed.version || '').trim();
   if (!currentVersion) {
-    throw new Error(`${REALM_PACKAGE_JSON_RELATIVE_PATH} is missing version field`);
+    throw new Error(`${SDK_PACKAGE_JSON_RELATIVE_PATH} is missing version field`);
   }
 
   if (options.setVersion) {
     ensureValidSemver(options.setVersion);
     if (options.setVersion !== currentVersion) {
       parsed.version = options.setVersion;
-      writeRealmPackageJson(packagePath, parsed);
+      writeSdkPackageJson(packagePath, parsed);
       process.stdout.write(
-        `[generate:realm-sdk] set @nimiplatform/sdk-realm version: ${currentVersion} -> ${options.setVersion}\n`,
+        `[generate:realm-sdk] set @nimiplatform/sdk version: ${currentVersion} -> ${options.setVersion}\n`,
       );
     } else {
       process.stdout.write(
-        `[generate:realm-sdk] @nimiplatform/sdk-realm version unchanged: ${currentVersion}\n`,
+        `[generate:realm-sdk] @nimiplatform/sdk version unchanged: ${currentVersion}\n`,
       );
     }
     return;
@@ -242,14 +243,14 @@ function maybeUpdateRealmVersion(repoRoot, options, generatedChanged) {
 
   const nextVersion = bumpPatch(currentVersion);
   parsed.version = nextVersion;
-  writeRealmPackageJson(packagePath, parsed);
+  writeSdkPackageJson(packagePath, parsed);
   process.stdout.write(
-    `[generate:realm-sdk] bumped @nimiplatform/sdk-realm version: ${currentVersion} -> ${nextVersion}\n`,
+    `[generate:realm-sdk] bumped @nimiplatform/sdk version: ${currentVersion} -> ${nextVersion}\n`,
   );
 }
 
 function runCodegen(repoRoot, inputPath) {
-  const outputPath = path.join(repoRoot, REALM_SRC_RELATIVE_PATH);
+  const outputPath = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH);
 
   if (hasLocalOpenApiBinary(repoRoot)) {
     runCommand(repoRoot, 'OpenAPI codegen (local openapi binary)', [
@@ -300,7 +301,7 @@ function parsePathObjectKeys(pathObjectSource) {
 }
 
 function validateGeneratedServices(repoRoot) {
-  const servicesDir = path.join(repoRoot, REALM_SRC_RELATIVE_PATH, 'services');
+  const servicesDir = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH, 'services');
   const serviceFiles = collectServiceFiles(servicesDir);
   const violations = [];
   const adminLeaks = [];
@@ -367,12 +368,74 @@ function validateGeneratedServices(repoRoot) {
   }
 }
 
+function writeRealmFacade(repoRoot) {
+  const generatedIndexPath = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH, 'index.ts');
+  const facadePath = path.join(repoRoot, REALM_FACADE_RELATIVE_PATH);
+  const raw = readFileSync(generatedIndexPath, 'utf8').split('\n');
+  const blocked = new Set([
+    'Auth2faVerifyDto',
+    'Me2faPrepareResponseDto',
+    'Me2faVerifyDto',
+    'Me2FaService',
+    'SocialV1DefaultVisibilityService',
+    'SocialFourDimensionalAttributesService',
+  ]);
+
+  const out = [];
+  out.push('/* eslint-disable */');
+  out.push('// AUTO-GENERATED FACADE from realm/generated/index.ts. DO NOT EDIT BY HAND.');
+  out.push('');
+  out.push("export type { ApiRequestOptions } from './generated/core/ApiRequestOptions';");
+  out.push("export { request as openApiRequest } from './generated/core/request';");
+
+  for (const line of raw) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('export ')) {
+      continue;
+    }
+    let blockedExport = false;
+    for (const symbol of blocked) {
+      if (
+        trimmed.includes(`{ ${symbol} }`)
+        || trimmed.includes(`{ ${symbol} `)
+        || trimmed.includes(` ${symbol} }`)
+        || trimmed.includes(` ${symbol} from`)
+      ) {
+        blockedExport = true;
+        break;
+      }
+    }
+    if (blockedExport) {
+      continue;
+    }
+    out.push(line
+      .replace("'./core/", "'./generated/core/")
+      .replace('"./core/', '"./generated/core/')
+      .replace("'./models/", "'./generated/models/")
+      .replace('"./models/', '"./generated/models/')
+      .replace("'./services/", "'./generated/services/")
+      .replace('"./services/', '"./generated/services/'));
+  }
+
+  out.push('');
+  out.push('// Naming-normalized facade exports (do not expose legacy names).');
+  out.push("export { Me2FaService as MeTwoFactorService } from './generated/services/Me2FaService';");
+  out.push("export { SocialV1DefaultVisibilityService as SocialDefaultVisibilityService } from './generated/services/SocialV1DefaultVisibilityService';");
+  out.push("export { SocialFourDimensionalAttributesService as SocialAttributesService } from './generated/services/SocialFourDimensionalAttributesService';");
+  out.push("export type { Auth2faVerifyDto as AuthTwoFactorVerifyInput } from './generated/models/Auth2faVerifyDto';");
+  out.push("export type { Me2faVerifyDto as MeTwoFactorVerifyInput } from './generated/models/Me2faVerifyDto';");
+  out.push("export type { Me2faPrepareResponseDto as MeTwoFactorPrepareOutput } from './generated/models/Me2faPrepareResponseDto';");
+  out.push('');
+
+  writeFileSync(facadePath, out.join('\n'), 'utf8');
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const repoRoot = path.resolve(scriptDir, '..');
   const inputPath = resolveInputPath(repoRoot, options.input);
-  const realmSrcPath = path.join(repoRoot, REALM_SRC_RELATIVE_PATH);
+  const realmSrcPath = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH);
 
   if (!existsSync(inputPath)) {
     throw new Error(`OpenAPI spec not found: ${inputPath}`);
@@ -387,6 +450,7 @@ function main() {
 
   runCodegen(repoRoot, inputPath);
   validateGeneratedServices(repoRoot);
+  writeRealmFacade(repoRoot);
   const afterHash = computeDirectoryHash(realmSrcPath);
   const generatedChanged = beforeHash !== afterHash;
   process.stdout.write(`[generate:realm-sdk] generated changed: ${generatedChanged}\n`);

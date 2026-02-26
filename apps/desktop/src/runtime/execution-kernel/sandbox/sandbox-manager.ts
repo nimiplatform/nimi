@@ -1,3 +1,4 @@
+import { ReasonCode } from '@nimiplatform/sdk/types';
 type SandboxProfile = {
   profileId: string;
   modId: string;
@@ -76,22 +77,22 @@ export class SandboxManager {
   } {
     const profile = this.profiles.get(profileId);
     if (!profile) {
-      return { allowed: false, reasonCode: 'SANDBOX_PROFILE_NOT_FOUND' };
+      return { allowed: false, reasonCode: ReasonCode.SANDBOX_PROFILE_NOT_FOUND };
     }
     if (!profile.active) {
-      return { allowed: false, reasonCode: 'SANDBOX_PROFILE_INACTIVE' };
+      return { allowed: false, reasonCode: ReasonCode.SANDBOX_PROFILE_INACTIVE };
     }
     const matchedPattern = profile.capabilities.find((cap) => this.capabilityMatches(cap, capability));
     if (matchedPattern) {
       if (matchedPattern === '*') {
-        return { allowed: true, reasonCode: 'SANDBOX_WILDCARD_GRANT' };
+        return { allowed: true, reasonCode: ReasonCode.SANDBOX_WILDCARD_GRANT };
       }
       if (matchedPattern.includes('*')) {
-        return { allowed: true, reasonCode: 'SANDBOX_CAPABILITY_PATTERN_MATCH' };
+        return { allowed: true, reasonCode: ReasonCode.SANDBOX_CAPABILITY_PATTERN_MATCH };
       }
-      return { allowed: true, reasonCode: 'SANDBOX_CAPABILITY_GRANTED' };
+      return { allowed: true, reasonCode: ReasonCode.SANDBOX_CAPABILITY_GRANTED };
     }
-    return { allowed: false, reasonCode: 'SANDBOX_CAPABILITY_DENIED' };
+    return { allowed: false, reasonCode: ReasonCode.SANDBOX_CAPABILITY_DENIED };
   }
 
   listActive(): SandboxProfile[] {

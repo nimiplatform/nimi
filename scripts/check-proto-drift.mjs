@@ -10,7 +10,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const targets = [
   'runtime/gen',
-  'sdk/packages/runtime/src/generated',
+  'sdk/src/runtime/generated',
 ];
 
 function normalizePath(input) {

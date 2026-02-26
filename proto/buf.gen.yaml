@@ -10,7 +10,7 @@ plugins:
       - paths=source_relative
       - require_unimplemented_servers=false
   - remote: buf.build/community/timostamm-protobuf-ts
-    out: ../sdk/packages/runtime/src/generated
+    out: ../sdk/src/runtime/generated
     opt:
       - long_type_string
       - ts_nocheck

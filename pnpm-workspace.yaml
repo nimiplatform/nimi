@@ -2,4 +2,4 @@ packages:
   - 'apps/*'
   - 'apps/_libs/*'
   - 'docs'
-  - 'sdk/packages/*'
+  - 'sdk'

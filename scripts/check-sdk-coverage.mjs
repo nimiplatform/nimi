@@ -12,22 +12,24 @@ const repoRoot = path.resolve(__dirname, '..');
 const coverageChecks = [
   {
     label: '@nimiplatform/sdk coverage',
-    include: 'sdk/packages/sdk/src/**/*.ts',
-    tests: 'sdk/packages/sdk/test/**/*.test.ts',
+    include: [
+      'sdk/src/ai-provider/**/*.ts',
+      'sdk/src/client.ts',
+      'sdk/src/realm/index.ts',
+      'sdk/src/runtime/**/*.ts',
+      'sdk/src/scope/**/*.ts',
+      'sdk/src/types/index.ts',
+    ],
+    exclude: [
+      'sdk/src/realm/generated/**/*.ts',
+      'sdk/src/runtime/generated/**/*.ts',
+      'sdk/src/runtime/types.ts',
+    ],
+    tests: 'sdk/test/**/*.test.ts',
     thresholds: {
       lines: Number(process.env.NIMI_SDK_MIN_LINES_COVERAGE || '90'),
       branches: Number(process.env.NIMI_SDK_MIN_BRANCHES_COVERAGE || '70'),
-      functions: Number(process.env.NIMI_SDK_MIN_FUNCTIONS_COVERAGE || '95'),
-    },
-  },
-  {
-    label: '@nimiplatform/sdk-runtime coverage',
-    include: 'sdk/packages/runtime/src/**/*.ts',
-    tests: 'sdk/packages/runtime/test/*.test.ts',
-    thresholds: {
-      lines: Number(process.env.NIMI_SDK_RUNTIME_MIN_LINES_COVERAGE || '68'),
-      branches: Number(process.env.NIMI_SDK_RUNTIME_MIN_BRANCHES_COVERAGE || '70'),
-      functions: Number(process.env.NIMI_SDK_RUNTIME_MIN_FUNCTIONS_COVERAGE || '48'),
+      functions: Number(process.env.NIMI_SDK_MIN_FUNCTIONS_COVERAGE || '90'),
     },
   },
 ];
@@ -45,7 +47,8 @@ function runNodeTestCoverage(check) {
     'tsx',
     '--test',
     '--experimental-test-coverage',
-    `--test-coverage-include=${check.include}`,
+    ...check.include.map((pattern) => `--test-coverage-include=${pattern}`),
+    ...(check.exclude || []).map((pattern) => `--test-coverage-exclude=${pattern}`),
     `--test-coverage-lines=${check.thresholds.lines}`,
     `--test-coverage-branches=${check.thresholds.branches}`,
     `--test-coverage-functions=${check.thresholds.functions}`,

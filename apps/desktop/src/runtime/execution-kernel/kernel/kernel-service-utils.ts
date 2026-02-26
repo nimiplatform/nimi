@@ -7,6 +7,7 @@ import type {
 } from '../contracts/types';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import type { SandboxManager } from '../sandbox/sandbox-manager';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type RuntimeContext = {
   manifest: ModManifest;
@@ -103,7 +104,7 @@ export function resolveSandboxCapability(
 ): { allowed: boolean; reasonCode: string } {
   const ctx = contexts.get(key);
   if (!ctx) {
-    return { allowed: false, reasonCode: 'MOD_NOT_INSTALLED' };
+    return { allowed: false, reasonCode: ReasonCode.MOD_NOT_INSTALLED };
   }
   return sandbox.checkCapability(ctx.sandboxProfileId, capability);
 }

@@ -1,5 +1,6 @@
 import { emitRuntimeLog } from '../telemetry/logger';
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type RuntimeLocalRuntimeClient = {
   listLocalModels: (...args: unknown[]) => Promise<Record<string, unknown>>;
@@ -1139,7 +1140,7 @@ function assertLifecycleWriteAllowed(command: string, caller: LocalAiRuntimeWrit
       command,
       caller: normalizedCaller,
       decision: 'DENY',
-      reasonCode: 'LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED',
+      reasonCode: ReasonCode.LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED,
     },
   });
   throw new Error(`LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED: caller=${normalizedCaller}`);
@@ -1153,8 +1154,8 @@ function isRuntimeUnavailableError(error: unknown): boolean {
   const reasonCode = asString((error as { reasonCode?: unknown } | null)?.reasonCode).toUpperCase();
   if (
     reasonCode.includes('UNAVAILABLE')
-    || reasonCode === 'RUNTIME_UNAVAILABLE'
-    || reasonCode === 'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE'
+    || reasonCode === ReasonCode.RUNTIME_UNAVAILABLE
+    || reasonCode === ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE
   ) {
     return true;
   }

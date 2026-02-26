@@ -1,6 +1,7 @@
 import {
   resolveCodegenCapabilityDecision,
 } from './capability-catalog';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type CodegenPreflightViolation = {
   reasonCode: string;
@@ -38,54 +39,54 @@ const CODEGEN_DEFAULT_MAX_BUNDLE_BYTES = 512 * 1024;
 
 const CODEGEN_DENY_PATTERNS: DenyPattern[] = [
   {
-    reasonCode: 'CODEGEN_PATTERN_EVAL_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_EVAL_FORBIDDEN,
     pattern: /\beval\s*\(/,
     detail: 'eval() is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_NEW_FUNCTION_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_NEW_FUNCTION_FORBIDDEN,
     pattern: /\bnew\s+Function\s*\(/,
     detail: 'new Function() is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_FETCH_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_FETCH_FORBIDDEN,
     pattern: /\bfetch\s*\(/,
     detail: 'direct fetch() is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_XMLHTTPREQUEST_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_XMLHTTPREQUEST_FORBIDDEN,
     pattern: /\bXMLHttpRequest\b/,
     detail: 'XMLHttpRequest is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_WEBSOCKET_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_WEBSOCKET_FORBIDDEN,
     pattern: /\bWebSocket\s*\(/,
     detail: 'WebSocket is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_IMPORTSCRIPTS_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_IMPORTSCRIPTS_FORBIDDEN,
     pattern: /\bimportScripts\s*\(/,
     detail: 'importScripts() is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_PROCESS_ENV_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_PROCESS_ENV_FORBIDDEN,
     pattern: /\bprocess\.env\b/,
     detail: 'process.env is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_REQUIRE_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_REQUIRE_FORBIDDEN,
     pattern: /\brequire\s*\(/,
     detail: 'require() is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_LOCALSTORAGE_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_LOCALSTORAGE_FORBIDDEN,
     pattern: /\blocalStorage\b/,
     detail: 'localStorage direct access is forbidden in codegen mods',
   },
   {
-    reasonCode: 'CODEGEN_PATTERN_HOST_IMPORT_FORBIDDEN',
+    reasonCode: ReasonCode.CODEGEN_PATTERN_HOST_IMPORT_FORBIDDEN,
     pattern: /@nimiplatform\/mod-sdk\/host/,
-    detail: '@nimiplatform/mod-sdk/host import is forbidden in codegen mods',
+    detail: '@nimiplatform/sdk/mod/host import is forbidden in codegen mods',
   },
 ];
 
@@ -136,7 +137,7 @@ export function preflightCodegenBundle(input: CodegenPreflightInput): CodegenPre
   const violations: CodegenPreflightViolation[] = [];
   if (!String(input.modId || '').trim()) {
     violations.push({
-      reasonCode: 'CODEGEN_MOD_ID_REQUIRED',
+      reasonCode: ReasonCode.CODEGEN_MOD_ID_REQUIRED,
       detail: 'modId is required for codegen preflight',
       severity: 'error',
     });
@@ -145,21 +146,21 @@ export function preflightCodegenBundle(input: CodegenPreflightInput): CodegenPre
   const capabilityDecision = resolveCodegenCapabilityDecision(capabilities);
   if (capabilityDecision.denied.length > 0) {
     violations.push({
-      reasonCode: 'CODEGEN_CAPABILITY_DENIED',
+      reasonCode: ReasonCode.CODEGEN_CAPABILITY_DENIED,
       detail: `T2 capabilities are forbidden: ${capabilityDecision.denied.join(', ')}`,
       severity: 'error',
     });
   }
   if (capabilityDecision.unknown.length > 0) {
     violations.push({
-      reasonCode: 'CODEGEN_CAPABILITY_UNKNOWN',
+      reasonCode: ReasonCode.CODEGEN_CAPABILITY_UNKNOWN,
       detail: `unknown capabilities are forbidden in V1: ${capabilityDecision.unknown.join(', ')}`,
       severity: 'error',
     });
   }
   if (capabilityDecision.requiresConsent.length > 0) {
     violations.push({
-      reasonCode: 'CODEGEN_T1_CONSENT_REQUIRED',
+      reasonCode: ReasonCode.CODEGEN_T1_CONSENT_REQUIRED,
       detail: `consent required for: ${capabilityDecision.requiresConsent.join(', ')}`,
       severity: 'warning',
     });
@@ -172,7 +173,7 @@ export function preflightCodegenBundle(input: CodegenPreflightInput): CodegenPre
     : estimateBundleBytes(sourceCode);
   if (bundleBytes > maxBundleBytes) {
     violations.push({
-      reasonCode: 'CODEGEN_BUNDLE_TOO_LARGE',
+      reasonCode: ReasonCode.CODEGEN_BUNDLE_TOO_LARGE,
       detail: `bundle exceeds limit ${bundleBytes}/${maxBundleBytes} bytes`,
       severity: 'error',
     });

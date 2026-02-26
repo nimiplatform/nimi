@@ -57,9 +57,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.30",
-    "@nimiplatform/mod-sdk": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
-    "@nimiplatform/sdk-realm": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",
     "@tanstack/react-query": "^5.90.16",
     "ai": "6.0.85",

@@ -1,6 +1,6 @@
-import { OpenAPI } from '@nimiplatform/sdk-realm/core/OpenAPI';
-import { request as openApiRequest } from '@nimiplatform/sdk-realm/core/request';
-import type { MemoryStatsResponseDto } from '@nimiplatform/sdk-realm/models/MemoryStatsResponseDto';
+import { OpenAPI } from '@nimiplatform/sdk/realm';
+import { openApiRequest } from '@nimiplatform/sdk/realm';
+import type { MemoryStatsResponseDto } from '@nimiplatform/sdk/realm';
 
 export type AgentMemoryRecord = Record<string, unknown>;
 

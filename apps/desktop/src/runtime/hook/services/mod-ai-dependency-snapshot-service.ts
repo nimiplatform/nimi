@@ -2,6 +2,7 @@ import type {
   HookModAiDependencySnapshot,
   HookModAiDependencySnapshotResolver,
 } from '../contracts/facade.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 function toMissingDependencySnapshot(input: {
   modId: string;
@@ -40,14 +41,14 @@ export class HookRuntimeModAiDependencySnapshotService {
     if (!modId) {
       return toMissingDependencySnapshot({
         modId: '',
-        reasonCode: 'LOCAL_AI_MOD_ID_REQUIRED',
+        reasonCode: ReasonCode.LOCAL_AI_MOD_ID_REQUIRED,
         warning: 'modId required',
       });
     }
     if (!this.resolver) {
       return toMissingDependencySnapshot({
         modId,
-        reasonCode: 'LOCAL_AI_DEPENDENCY_SNAPSHOT_RESOLVER_MISSING',
+        reasonCode: ReasonCode.LOCAL_AI_DEPENDENCY_SNAPSHOT_RESOLVER_MISSING,
         warning: 'dependency snapshot resolver unavailable',
       });
     }

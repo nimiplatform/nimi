@@ -1,8 +1,8 @@
-import { MediaService, PostService } from '@nimiplatform/sdk-realm';
-import type { CreatePostDto } from '@nimiplatform/sdk-realm/models/CreatePostDto';
-import type { DirectUploadResponseDto } from '@nimiplatform/sdk-realm/models/DirectUploadResponseDto';
-import type { FeedResponseDto } from '@nimiplatform/sdk-realm/models/FeedResponseDto';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
+import { MediaService, PostService } from '@nimiplatform/sdk/realm';
+import type { CreatePostDto } from '@nimiplatform/sdk/realm';
+import type { DirectUploadResponseDto } from '@nimiplatform/sdk/realm';
+import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
+import type { PostDto } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
+import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostCard } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
 import {

@@ -9,6 +9,7 @@ import {
 import type { InvokeModEmbeddingInput, InvokeModEmbeddingOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { formatProviderError } from './utils';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 function normalizeEmbeddingInputs(input: string | string[]): string[] {
   const raw = Array.isArray(input) ? input : [input];
@@ -47,7 +48,7 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       adapter: runtimeCall.plan.adapter,
       model: runtimeCall.modelId,
       endpoint: runtimeCall.plan.endpoint,
-      reasonCode: 'LOCAL_AI_CAPABILITY_MISSING',
+      reasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
       detail,
       policyGate,
     });

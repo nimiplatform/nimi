@@ -1,4 +1,4 @@
-import { ExploreService } from '@nimiplatform/sdk-realm';
+import { ExploreService } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;

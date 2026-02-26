@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PostDto } from '@nimiplatform/sdk-realm/models/PostDto';
+import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 
 const PAGE_SIZE = 15;

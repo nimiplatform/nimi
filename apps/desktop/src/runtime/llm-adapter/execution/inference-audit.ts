@@ -1,5 +1,6 @@
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { emitRuntimeLog } from '../../telemetry/logger';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type InferenceRouteSource = 'local-runtime' | 'token-api';
 export type InferencePersistMode = 'persist' | 'log-only';
@@ -190,7 +191,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
       details: {
         eventType: input.eventType,
         modId: input.modId,
-        reasonCode: 'LOCAL_AI_AUDIT_WRITE_FAILED',
+        reasonCode: ReasonCode.LOCAL_AI_AUDIT_WRITE_FAILED,
         detail: error instanceof Error ? error.message : String(error || ''),
       },
     });

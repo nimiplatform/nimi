@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import type { ChatViewDto } from '@nimiplatform/sdk-realm/models/ChatViewDto';
+import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 
 function getChatTitle(chat: ChatViewDto): string {

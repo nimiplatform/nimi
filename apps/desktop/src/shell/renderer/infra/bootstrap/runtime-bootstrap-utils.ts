@@ -1,7 +1,7 @@
 import { createProviderAdapter } from '@runtime/llm-adapter';
 import { DEFAULT_TEMPLATES } from '@runtime/llm-adapter/registry/templates';
 import type { ModelProfile } from '@runtime/llm-adapter/types';
-import type { ResolvedRuntimeRouteBinding } from '@nimiplatform/mod-sdk/types';
+import type { ResolvedRuntimeRouteBinding } from '@nimiplatform/sdk/mod/types';
 import {
   dedupeStringsV11,
   normalizeEndpointV11,

@@ -1,4 +1,4 @@
-import { ApiError } from '@nimiplatform/sdk-realm';
+import { ApiError } from '@nimiplatform/sdk/realm';
 import { normalizeApiError } from './error-normalize';
 
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);

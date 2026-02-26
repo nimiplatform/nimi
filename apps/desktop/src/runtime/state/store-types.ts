@@ -1,5 +1,5 @@
-import type { ChatViewDto } from '@nimiplatform/sdk-realm/models/ChatViewDto';
-import type { MessageViewDto } from '@nimiplatform/sdk-realm/models/MessageViewDto';
+import type { ChatViewDto } from '@nimiplatform/sdk/realm';
+import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 
 export type AuthState = {
   isAuthenticated: boolean;

@@ -139,12 +139,7 @@ jobs:
 
           const version = process.env.RELEASE_VERSION;
           const packages = [
-            ['@nimiplatform/sdk-types', 'sdk/packages/types/package.json'],
-            ['@nimiplatform/sdk-realm', 'sdk/packages/realm/package.json'],
-            ['@nimiplatform/sdk-runtime', 'sdk/packages/runtime/package.json'],
-            ['@nimiplatform/sdk', 'sdk/packages/sdk/package.json'],
-            ['@nimiplatform/ai-provider', 'sdk/packages/ai-provider/package.json'],
-            ['@nimiplatform/mod-sdk', 'sdk/packages/mod-sdk/package.json'],
+            ['@nimiplatform/sdk', 'sdk/package.json'],
           ];
 
           const violations = [];
@@ -181,12 +176,7 @@ jobs:
           set -euo pipefail
 
           packages=(
-            "@nimiplatform/sdk-types"
-            "@nimiplatform/sdk-realm"
-            "@nimiplatform/sdk-runtime"
             "@nimiplatform/sdk"
-            "@nimiplatform/ai-provider"
-            "@nimiplatform/mod-sdk"
           )
 
           if [[ "${PUBLISH}" == "true" ]]; then

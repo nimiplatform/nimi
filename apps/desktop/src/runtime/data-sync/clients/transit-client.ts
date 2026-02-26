@@ -1,5 +1,5 @@
-import { OpenAPI } from '@nimiplatform/sdk-realm/core/OpenAPI';
-import { request as openApiRequest } from '@nimiplatform/sdk-realm/core/request';
+import { OpenAPI } from '@nimiplatform/sdk/realm';
+import { openApiRequest } from '@nimiplatform/sdk/realm';
 
 type TransitType = 'INBOUND' | 'OUTBOUND' | 'RETURN';
 type TransitStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';

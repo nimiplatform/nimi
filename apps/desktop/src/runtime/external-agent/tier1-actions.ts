@@ -1,5 +1,6 @@
 import type { DesktopHookRuntimeService } from '@runtime/hook';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const LOCAL_CHAT_MOD_ID = 'world.nimi.local-chat';
 const WORLD_STUDIO_MOD_ID = 'world.nimi.world-studio';
@@ -52,7 +53,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       const models = await localAiRuntime.list();
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { models },
       };
@@ -84,7 +85,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       const models = await localAiRuntime.health(localModelId);
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { models },
       };
@@ -111,14 +112,14 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       if (!localModelId) {
         return {
           ok: false,
-          reasonCode: 'ACTION_INPUT_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'provide-local-model-id',
         };
       }
       const model = await localAiRuntime.start(localModelId, { caller: 'core' });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { model },
       };
@@ -145,14 +146,14 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       if (!localModelId) {
         return {
           ok: false,
-          reasonCode: 'ACTION_INPUT_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'provide-local-model-id',
         };
       }
       const model = await localAiRuntime.stop(localModelId, { caller: 'core' });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { model },
       };
@@ -179,14 +180,14 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       if (!localModelId) {
         return {
           ok: false,
-          reasonCode: 'ACTION_INPUT_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'provide-local-model-id',
         };
       }
       const model = await localAiRuntime.remove(localModelId, { caller: 'core' });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { model },
       };
@@ -214,7 +215,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       if (!modelId || !repo) {
         return {
           ok: false,
-          reasonCode: 'ACTION_INPUT_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'provide-model-and-repo',
         };
       }
@@ -231,7 +232,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       }, { caller: 'core' });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { model },
       };
@@ -258,7 +259,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       if (!manifestPath) {
         return {
           ok: false,
-          reasonCode: 'ACTION_INPUT_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'provide-manifest-path',
         };
       }
@@ -267,7 +268,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       }, { caller: 'core' });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: { model },
       };
@@ -311,7 +312,7 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
       });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: {
           sessions: sessions as Record<string, unknown>,
@@ -352,7 +353,7 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
       });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: {
           session: upserted as Record<string, unknown>,
@@ -384,7 +385,7 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
       });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: {
           drafts: drafts as Record<string, unknown>,
@@ -421,14 +422,14 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
       if (!draftId || Object.keys(patch).length <= 0) {
         return {
           ok: false,
-          reasonCode: 'ACTION_INPUT_INVALID',
+          reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'provide-draft-update-input',
         };
       }
       if (input.dryRun) {
         return {
           ok: true,
-          reasonCode: 'ACTION_EXECUTED',
+          reasonCode: ReasonCode.ACTION_EXECUTED,
           actionHint: 'preflight-ok',
           output: { draftId, preflight: true },
         };
@@ -440,7 +441,7 @@ function registerModActions(hookRuntime: DesktopHookRuntimeService): void {
       });
       return {
         ok: true,
-        reasonCode: 'ACTION_EXECUTED',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
         output: {
           draft: updated as Record<string, unknown>,

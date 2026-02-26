@@ -10,10 +10,10 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AuthService } from '@nimiplatform/sdk-realm/services/AuthService';
-import { OAuthProvider } from '@nimiplatform/sdk-realm/models/OAuthProvider';
-import { OAuthLoginResultDto } from '@nimiplatform/sdk-realm/models/OAuthLoginResultDto';
-import type { AuthTokensDto } from '@nimiplatform/sdk-realm/models/AuthTokensDto';
+import { AuthService } from '@nimiplatform/sdk/realm';
+import { OAuthProvider } from '@nimiplatform/sdk/realm';
+import { OAuthLoginResultDto } from '@nimiplatform/sdk/realm';
+import type { AuthTokensDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';

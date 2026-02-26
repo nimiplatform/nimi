@@ -19,10 +19,11 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
-import type { AiRuntimeDependencySnapshot } from '@nimiplatform/mod-sdk/ai';
-import type { RuntimeLlmHealthInput, RuntimeLlmHealthResult } from '@nimiplatform/mod-sdk/types';
+import type { AiRuntimeDependencySnapshot } from '@nimiplatform/sdk/mod/ai';
+import type { RuntimeLlmHealthInput, RuntimeLlmHealthResult } from '@nimiplatform/sdk/mod/types';
 import { createResolveRouteBinding } from './runtime-bootstrap-route-resolvers';
 import type { WireModSdkHostInput } from './runtime-bootstrap-host';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type HostCapabilityInput = {
   checkLocalLlmHealth: (input: CheckLlmHealthInput) => Promise<ProviderHealth>;
@@ -388,13 +389,13 @@ export function createModAiDependencySnapshotResolver(): (
         modId: '',
         status: 'missing',
         routeSource: 'token-api',
-        reasonCode: 'LOCAL_AI_MOD_ID_REQUIRED',
+        reasonCode: ReasonCode.LOCAL_AI_MOD_ID_REQUIRED,
         warnings: ['modId required'],
         dependencies: [],
         repairActions: [{
           actionId: 'runtime:open-setup',
           label: 'Open Runtime Setup',
-          reasonCode: 'LOCAL_AI_MOD_ID_REQUIRED',
+          reasonCode: ReasonCode.LOCAL_AI_MOD_ID_REQUIRED,
         }],
         updatedAt: new Date().toISOString(),
       };
@@ -406,13 +407,13 @@ export function createModAiDependencySnapshotResolver(): (
         modId,
         status: 'missing',
         routeSource: 'token-api',
-        reasonCode: 'LOCAL_AI_DEPENDENCIES_DECLARATION_MISSING',
+        reasonCode: ReasonCode.LOCAL_AI_DEPENDENCIES_DECLARATION_MISSING,
         warnings: ['manifest ai.dependencies missing'],
         dependencies: [],
         repairActions: [{
           actionId: 'runtime:open-setup',
           label: 'Open Runtime Setup',
-          reasonCode: 'LOCAL_AI_DEPENDENCIES_DECLARATION_MISSING',
+          reasonCode: ReasonCode.LOCAL_AI_DEPENDENCIES_DECLARATION_MISSING,
         }],
         updatedAt: new Date().toISOString(),
       };

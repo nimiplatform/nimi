@@ -1,8 +1,8 @@
-import { MeService } from '@nimiplatform/sdk-realm';
-import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk-realm/models/UpdateUserNotificationSettingsDto';
-import type { UpdateUserSettingsDto } from '@nimiplatform/sdk-realm/models/UpdateUserSettingsDto';
-import type { UserNotificationSettingsDto } from '@nimiplatform/sdk-realm/models/UserNotificationSettingsDto';
-import type { UserSettingsDto } from '@nimiplatform/sdk-realm/models/UserSettingsDto';
+import { MeService } from '@nimiplatform/sdk/realm';
+import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
+import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
+import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
+import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (

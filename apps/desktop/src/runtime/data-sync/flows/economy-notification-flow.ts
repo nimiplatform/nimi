@@ -1,9 +1,9 @@
-import { EconomyCurrencyGiftsService, NotificationService, ReviewsEconomyTrustService } from '@nimiplatform/sdk-realm';
-import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk-realm/models/MarkNotificationsReadInputDto';
-import type { CreateReviewDto } from '@nimiplatform/sdk-realm/models/CreateReviewDto';
-import type { CreateWithdrawalDto } from '@nimiplatform/sdk-realm/models/CreateWithdrawalDto';
-import type { RejectGiftDto } from '@nimiplatform/sdk-realm/models/RejectGiftDto';
-import type { SendGiftDto } from '@nimiplatform/sdk-realm/models/SendGiftDto';
+import { EconomyCurrencyGiftsService, NotificationService, ReviewsEconomyTrustService } from '@nimiplatform/sdk/realm';
+import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
+import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
+import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
+import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
+import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (

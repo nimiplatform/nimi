@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk-realm/models/UpdateUserNotificationSettingsDto';
-import type { UserNotificationSettingsDto } from '@nimiplatform/sdk-realm/models/UserNotificationSettingsDto';
+import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
+import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import {
   PageShell,
   SaveFooter,

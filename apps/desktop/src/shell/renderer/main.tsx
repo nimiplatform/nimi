@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { bindRuntimeI18n } from '@nimiplatform/mod-sdk/i18n';
+import { bindRuntimeI18n } from '@nimiplatform/sdk/mod/i18n';
 import { i18n, initI18n } from '@renderer/i18n';
 import '@renderer/styles.css';
 

@@ -56,12 +56,8 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../desktop/src/mods'),
       },
       {
-        find: '@nimiplatform/sdk-realm',
-        replacement: path.resolve(__dirname, '../../sdk/packages/realm/src'),
-      },
-      {
-        find: '@nimiplatform/mod-sdk',
-        replacement: path.resolve(__dirname, '../../sdk/packages/mod-sdk/src'),
+        find: '@nimiplatform/sdk',
+        replacement: path.resolve(__dirname, '../../sdk/src'),
       },
       {
         find: '@nimiplatform/shell-core',

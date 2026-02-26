@@ -10,12 +10,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 const LICENSE_CHECKS = [
   { file: 'nimi-mods/package.json', expected: 'MIT' },
   { file: 'apps/_libs/shell-core/package.json', expected: 'MIT' },
-  { file: 'sdk/packages/types/package.json', expected: 'Apache-2.0' },
-  { file: 'sdk/packages/realm/package.json', expected: 'Apache-2.0' },
-  { file: 'sdk/packages/runtime/package.json', expected: 'Apache-2.0' },
-  { file: 'sdk/packages/sdk/package.json', expected: 'Apache-2.0' },
-  { file: 'sdk/packages/ai-provider/package.json', expected: 'Apache-2.0' },
-  { file: 'sdk/packages/mod-sdk/package.json', expected: 'Apache-2.0' },
+  { file: 'sdk/package.json', expected: 'Apache-2.0' },
 ];
 
 async function main() {

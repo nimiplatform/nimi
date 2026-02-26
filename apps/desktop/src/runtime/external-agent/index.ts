@@ -1,5 +1,6 @@
 import { tauriInvoke, hasTauriInvoke } from '@runtime/llm-adapter/tauri-bridge';
 import { getRuntimeHookRuntime } from '@runtime/mod';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type ExternalAgentActionDescriptor = {
   actionId: string;
@@ -280,7 +281,7 @@ export async function startExternalAgentActionBridge(): Promise<void> {
         await completeExecution({
           executionId: request.executionId,
           ok: false,
-          reasonCode: 'ACTION_EXECUTION_BRIDGE_FAILED',
+          reasonCode: ReasonCode.ACTION_EXECUTION_BRIDGE_FAILED,
           actionHint: 'retry',
           traceId: request.context.traceId || request.executionId,
           executionMode: 'guarded',

@@ -10,7 +10,7 @@
     },
     "local-chat": {
       "enforced": true,
-      "reason": "Mod uses @nimiplatform/mod-sdk i18n namespace and must keep en/zh parity."
+      "reason": "Mod uses @nimiplatform/sdk/mod i18n namespace and must keep en/zh parity."
     },
     "re-life": {
       "enforced": false,

@@ -4,8 +4,8 @@ import type {
   StoreState,
   StoreEventMap,
 } from './store-types';
-import type { ChatViewDto } from '@nimiplatform/sdk-realm/models/ChatViewDto';
-import type { MessageViewDto } from '@nimiplatform/sdk-realm/models/MessageViewDto';
+import type { ChatViewDto } from '@nimiplatform/sdk/realm';
+import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { MemoryCache } from './core/cache';
 import { EventEmitter } from './core/event-emitter';

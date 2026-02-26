@@ -7,6 +7,7 @@ import type {
   ModManifest,
   UpdateInput,
 } from '../../contracts/types';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type RuntimeContext = {
   manifest: ModManifest;
@@ -30,7 +31,10 @@ type LifecycleAuditInput = {
   modId: string;
   version: string;
   eventType: 'MOD_ENABLED' | 'MOD_DISABLED' | 'MOD_UNINSTALLED';
-  reasonCode: 'STATE_ENABLED' | 'STATE_DISABLED' | 'STATE_UNINSTALLED';
+  reasonCode:
+    | typeof ReasonCode.STATE_ENABLED
+    | typeof ReasonCode.STATE_DISABLED
+    | typeof ReasonCode.STATE_UNINSTALLED;
 };
 
 async function appendLifecycleAudit(input: LifecycleAuditInput) {
@@ -81,7 +85,7 @@ export async function runEnableFlow(input: {
     modId: input.lifecycle.modId,
     version: input.lifecycle.version,
     eventType: 'MOD_ENABLED',
-    reasonCode: 'STATE_ENABLED',
+    reasonCode: ReasonCode.STATE_ENABLED,
   });
   return { state: 'ENABLED' as const };
 }
@@ -108,7 +112,7 @@ export async function runDisableFlow(input: {
     modId: input.lifecycle.modId,
     version: input.lifecycle.version,
     eventType: 'MOD_DISABLED',
-    reasonCode: 'STATE_DISABLED',
+    reasonCode: ReasonCode.STATE_DISABLED,
   });
   return { state: 'DISABLED' as const };
 }
@@ -143,7 +147,7 @@ export async function runUninstallFlow(input: {
     modId: input.lifecycle.modId,
     version: input.lifecycle.version,
     eventType: 'MOD_UNINSTALLED',
-    reasonCode: 'STATE_UNINSTALLED',
+    reasonCode: ReasonCode.STATE_UNINSTALLED,
   });
   return { state: 'UNINSTALLED' as const };
 }

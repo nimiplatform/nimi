@@ -9,16 +9,19 @@
   "scripts": {
     "build": "pnpm build:sdk && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm check:bundle-size",
     "build:all": "pnpm -r build",
-    "build:sdk": "pnpm --filter @nimiplatform/sdk-types build && pnpm --filter @nimiplatform/sdk-realm build && pnpm --filter @nimiplatform/sdk-runtime build && pnpm --filter @nimiplatform/mod-sdk build && pnpm --filter @nimiplatform/sdk build && pnpm --filter @nimiplatform/ai-provider build",
+    "build:sdk": "pnpm --filter @nimiplatform/sdk build",
     "generate:realm-sdk": "node scripts/generate-realm-sdk.mjs",
     "generate:runtime-bridge-methods": "node scripts/generate-runtime-bridge-methods.mjs",
     "generate:scope-catalog": "node scripts/generate-scope-catalog.mjs",
     "check:runtime-bridge-method-drift": "node scripts/generate-runtime-bridge-methods.mjs --check",
     "check:scope-catalog-drift": "node scripts/check-scope-catalog-drift.mjs",
     "check:sdk-import-boundary": "node scripts/check-sdk-import-boundary.mjs",
+    "check:sdk-single-package-layout": "node scripts/check-sdk-single-package-layout.mjs",
+    "check:sdk-public-naming": "node scripts/check-sdk-public-naming.mjs",
+    "check:reason-code-constants": "node scripts/check-reason-code-constants.mjs",
     "check:no-local-ai-private-calls": "if rg -n \"['\\\"]local_ai_[a-z0-9_]+['\\\"]\" apps/desktop/src --glob '*.{ts,tsx}'; then echo \"desktop TS private local_ai_* command literals are forbidden; use runtime.localRuntime.*\" && exit 1; else exit 0; fi",
     "check:no-local-ai-tauri-commands": "if rg -n \"\\blocal_ai_[a-z0-9_]+\\b\" apps/desktop/src-tauri/src --glob '*.rs'; then echo \"desktop tauri local_ai_* command symbols are forbidden; use runtime bridge APIs\" && exit 1; else exit 0; fi",
-    "check:no-legacy-mod-permissions-field": "if rg -n \"\\bpermissions\\s*:\" apps/desktop/src/runtime/mod apps/desktop/src/runtime/execution-kernel nimi-mods sdk/packages/mod-sdk/src/types/runtime-mod.ts docs/mods/README.md --glob '*.{ts,tsx,md,yaml,yml}'; then echo \"legacy permissions field is forbidden in manifest/runtime registration; use capabilities\" && exit 1; else exit 0; fi",
+    "check:no-legacy-mod-permissions-field": "if rg -n \"\\bpermissions\\s*:\" apps/desktop/src/runtime/mod apps/desktop/src/runtime/execution-kernel nimi-mods sdk/src/mod/types/runtime-mod.ts docs/mods/README.md --glob '*.{ts,tsx,md,yaml,yml}'; then echo \"legacy permissions field is forbidden in manifest/runtime registration; use capabilities\" && exit 1; else exit 0; fi",
     "check:no-nimid-doc-invocation": "if rg -n \"go run \\./cmd/nimid\" docs README.md runtime/README.md; then echo \"legacy daemon invocation go run ./cmd/nimid is forbidden in docs; use go run ./cmd/nimi serve\" && exit 1; else exit 0; fi",
     "check:no-nimid-source": "if rg -n \"cmd/nimid|\\bnimid\\b\" runtime sdk ssot README.md CHANGELOG.md | rg -v \"check:no-nimid-source\" | rg -v \"check:no-nimid-doc-invocation\"; then echo \"legacy nimid entry/symbol is forbidden; use go run ./cmd/nimi serve\" && exit 1; else exit 0; fi",
     "check:examples": "pnpm --filter @nimiplatform/docs run check:examples",
@@ -47,13 +50,13 @@
     "proto:lint": "cd proto && ../scripts/run-buf.sh lint",
     "proto:breaking": "./scripts/proto-breaking.sh",
     "proto:drift-check": "node scripts/check-proto-drift.mjs",
-    "check:mods-no-runtime-sdk": "if rg -n \"@nimiplatform/sdk/runtime|@nimiplatform/sdk-runtime\" nimi-mods -g '*.{ts,tsx,js,mjs,cjs}'; then echo \"mods must not import runtime sdk directly\" && exit 1; else exit 0; fi",
+    "check:mods-no-runtime-sdk": "if rg -n \"@nimiplatform/sdk/runtime\" nimi-mods -g '*.{ts,tsx,js,mjs,cjs}'; then echo \"mods must not import runtime sdk directly\" && exit 1; else exit 0; fi",
     "dev:desktop": "pnpm --filter @nimiplatform/desktop dev:shell",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
     "docs:build": "pnpm --filter @nimiplatform/docs build",
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",
-    "lint": "pnpm check:mods-no-runtime-sdk && pnpm check:local-chat-service-boundary && pnpm check:no-legacy-imports && pnpm check:no-legacy-app-auth-cli && pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands && pnpm check:no-legacy-mod-permissions-field && pnpm check:no-nimid-doc-invocation && pnpm check:no-nimid-source && pnpm check:examples && pnpm check:markdown && pnpm check:no-absolute-user-paths && pnpm check:no-legacy-doc-contracts && pnpm check:ssot-frontmatter && pnpm check:ssot-traceability && pnpm check:ssot-links && pnpm check:runtime-bridge-method-drift && pnpm check:scope-catalog-drift && pnpm check:sdk-import-boundary && pnpm check:desktop-no-client-alias && pnpm check:package-license-matrix && pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/web lint",
-    "test": "pnpm --filter @nimiplatform/sdk-runtime test && pnpm --filter @nimiplatform/sdk test && pnpm --filter @nimiplatform/ai-provider test && pnpm --filter @nimiplatform/desktop test && pnpm --filter @nimiplatform/web test"
+    "lint": "pnpm check:mods-no-runtime-sdk && pnpm check:local-chat-service-boundary && pnpm check:no-legacy-imports && pnpm check:no-legacy-app-auth-cli && pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands && pnpm check:no-legacy-mod-permissions-field && pnpm check:no-nimid-doc-invocation && pnpm check:no-nimid-source && pnpm check:examples && pnpm check:markdown && pnpm check:no-absolute-user-paths && pnpm check:no-legacy-doc-contracts && pnpm check:ssot-frontmatter && pnpm check:ssot-traceability && pnpm check:ssot-links && pnpm check:runtime-bridge-method-drift && pnpm check:scope-catalog-drift && pnpm check:sdk-import-boundary && pnpm check:sdk-single-package-layout && pnpm check:sdk-public-naming && pnpm check:reason-code-constants && pnpm check:desktop-no-client-alias && pnpm check:package-license-matrix && pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/web lint",
+    "test": "pnpm --filter @nimiplatform/sdk test && pnpm --filter @nimiplatform/desktop test && pnpm --filter @nimiplatform/web test"
   }
 }

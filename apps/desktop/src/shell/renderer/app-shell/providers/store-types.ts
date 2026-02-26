@@ -3,7 +3,7 @@ import type {
   RuntimeLocalManifestSummary,
 } from '@renderer/bridge';
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
-import type { RuntimeModSettingsMap } from '@nimiplatform/mod-sdk/settings';
+import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod/settings';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =

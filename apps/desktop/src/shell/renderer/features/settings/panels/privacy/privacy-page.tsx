@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { UpdateUserSettingsDto } from '@nimiplatform/sdk-realm/models/UpdateUserSettingsDto';
-import type { UserSettingsDto } from '@nimiplatform/sdk-realm/models/UserSettingsDto';
-import type { Visibility } from '@nimiplatform/sdk-realm/models/Visibility';
+import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
+import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
+import type { Visibility } from '@nimiplatform/sdk/realm';
 import { PageShell, SaveFooter, SectionTitle } from '../../settings-layout-components';
 
 type VisibilityValue = 'PUBLIC' | 'FRIENDS' | 'PRIVATE';

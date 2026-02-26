@@ -2,6 +2,7 @@ import type {
   HookActionDescriptorView,
   HookActionRequestContext,
 } from '../contracts/action.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type SocialCheckInput = {
   descriptor: HookActionDescriptorView;
@@ -77,7 +78,7 @@ export class HookActionSocialPreconditionService {
     if (requirement !== 'human-agent-active') {
       return {
         ok: false,
-        reasonCode: 'SOCIAL_PRECONDITION_FAILED',
+        reasonCode: ReasonCode.SOCIAL_PRECONDITION_FAILED,
         actionHint: 'unsupported-social-precondition',
       };
     }
@@ -86,7 +87,7 @@ export class HookActionSocialPreconditionService {
     if (!humanAccountId) {
       return {
         ok: false,
-        reasonCode: 'SOCIAL_PRECONDITION_FAILED',
+        reasonCode: ReasonCode.SOCIAL_PRECONDITION_FAILED,
         actionHint: 'missing-subject-account',
       };
     }
@@ -95,7 +96,7 @@ export class HookActionSocialPreconditionService {
     if (!agentAccountId) {
       return {
         ok: false,
-        reasonCode: 'SOCIAL_PRECONDITION_FAILED',
+        reasonCode: ReasonCode.SOCIAL_PRECONDITION_FAILED,
         actionHint: 'provide-agent-account-id',
       };
     }
@@ -103,7 +104,7 @@ export class HookActionSocialPreconditionService {
     if (!this.resolve) {
       return {
         ok: false,
-        reasonCode: 'SOCIAL_PRECONDITION_FAILED',
+        reasonCode: ReasonCode.SOCIAL_PRECONDITION_FAILED,
         actionHint: 'social-snapshot-unavailable',
       };
     }
@@ -124,7 +125,7 @@ export class HookActionSocialPreconditionService {
     if (!ok) {
       return {
         ok: false,
-        reasonCode: 'SOCIAL_PRECONDITION_FAILED',
+        reasonCode: ReasonCode.SOCIAL_PRECONDITION_FAILED,
         actionHint: 'activate-friendship',
       };
     }

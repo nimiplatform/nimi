@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
         '@runtime': path.resolve(__dirname, 'src/runtime'),
         '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
         '@mods': path.resolve(__dirname, 'src/mods'),
-        '@nimiplatform/mod-sdk': path.resolve(__dirname, '../../sdk/packages/mod-sdk/src'),
+        '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
         '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
       },
     },
@@ -96,22 +96,22 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
-            if (normalizedId.includes('/sdk/packages/runtime/src/generated/')) {
+            if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'sdk-runtime-generated';
             }
             if (
-              normalizedId.includes('/sdk/packages/runtime/src/core/')
-              || normalizedId.includes('/sdk/packages/runtime/src/transports/')
-              || normalizedId.includes('/sdk/packages/runtime/src/errors.ts')
-              || normalizedId.includes('/sdk/packages/runtime/src/method-ids.ts')
-              || normalizedId.includes('/sdk/packages/runtime/src/workflow-builder.ts')
+              normalizedId.includes('/sdk/src/runtime/core/')
+              || normalizedId.includes('/sdk/src/runtime/transports/')
+              || normalizedId.includes('/sdk/src/runtime/errors.ts')
+              || normalizedId.includes('/sdk/src/runtime/method-ids.ts')
+              || normalizedId.includes('/sdk/src/runtime/workflow-builder.ts')
             ) {
               return 'sdk-runtime-core';
             }
-            if (normalizedId.includes('/sdk/packages/sdk/src/')) {
+            if (normalizedId.includes('/sdk/src/')) {
               return 'sdk-client';
             }
-            if (normalizedId.includes('/sdk/packages/types/src/')) {
+            if (normalizedId.includes('/sdk/src/types/')) {
               return 'sdk-types';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {

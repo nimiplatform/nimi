@@ -181,7 +181,7 @@ export class OpenAICompatibleSpeechAdapter implements SpeechAdapter {
 
       const payload = await response.json().catch(() => ({ data: [] }));
       const data = Array.isArray(payload?.data) ? payload.data : [];
-      const found = data.some((item) => String(item?.id || '') === model);
+      const found = data.some((item: unknown) => String((item as { id?: unknown })?.id || '') === model);
       return {
         status: found ? 'healthy' : 'unsupported',
         detail: found ? `model found: ${model}` : `model not found: ${model}`,

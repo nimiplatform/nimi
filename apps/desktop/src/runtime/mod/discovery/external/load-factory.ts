@@ -3,6 +3,7 @@ import {
   loadRuntimeModFactoryFromEntryPath,
   loadRuntimeModFactoryFromSource,
 } from '../module-loader';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type LoadSideloadFactoryResult =
   | {
@@ -10,7 +11,11 @@ export type LoadSideloadFactoryResult =
   }
   | {
     factory: null;
-    reason: 'entry-not-found' | 'entry-read-failed' | 'factory-missing' | 'runtime-exception';
+    reason:
+      | typeof ReasonCode.ENTRY_NOT_FOUND
+      | typeof ReasonCode.ENTRY_READ_FAILED
+      | typeof ReasonCode.FACTORY_MISSING
+      | typeof ReasonCode.RUNTIME_EXCEPTION;
     error?: unknown;
   };
 
@@ -29,7 +34,7 @@ export async function loadSideloadRuntimeModFactory(input: {
     }
     return {
       factory: null,
-      reason: 'factory-missing',
+      reason: ReasonCode.FACTORY_MISSING,
     };
   } catch (error) {
     importError = error;
@@ -41,7 +46,7 @@ export async function loadSideloadRuntimeModFactory(input: {
   } catch (error) {
     return {
       factory: null,
-      reason: 'entry-read-failed',
+      reason: ReasonCode.ENTRY_READ_FAILED,
       error,
     };
   }
@@ -49,7 +54,7 @@ export async function loadSideloadRuntimeModFactory(input: {
   if (!source.trim()) {
     return {
       factory: null,
-      reason: 'entry-not-found',
+      reason: ReasonCode.ENTRY_NOT_FOUND,
       error: importError,
     };
   }
@@ -61,7 +66,7 @@ export async function loadSideloadRuntimeModFactory(input: {
     if (!factory) {
       return {
         factory: null,
-        reason: 'factory-missing',
+        reason: ReasonCode.FACTORY_MISSING,
       };
     }
     return { factory };
@@ -71,7 +76,7 @@ export async function loadSideloadRuntimeModFactory(input: {
       const entryImportMessage = normalizeErrorMessage(importError);
       return {
         factory: null,
-        reason: 'runtime-exception',
+        reason: ReasonCode.RUNTIME_EXCEPTION,
         error: new Error(
           `entry-import-failed: ${entryImportMessage}; source-fallback-failed: ${fallbackErrorMessage}`,
         ),
@@ -79,7 +84,7 @@ export async function loadSideloadRuntimeModFactory(input: {
     }
     return {
       factory: null,
-      reason: 'runtime-exception',
+      reason: ReasonCode.RUNTIME_EXCEPTION,
       error,
     };
   }

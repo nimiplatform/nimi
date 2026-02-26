@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SDK version matrix check — verifies all @nimiplatform/* SDK packages
- * declare consistent cross-references and compatible version ranges.
+ * SDK version check — unified single package mode.
  */
 
 import { promises as fs } from 'node:fs';
@@ -13,12 +12,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const SDK_PACKAGES = [
-  'sdk/packages/sdk',
-  'sdk/packages/runtime',
-  'sdk/packages/realm',
-  'sdk/packages/mod-sdk',
-  'sdk/packages/types',
-  'sdk/packages/ai-provider',
+  'sdk',
 ];
 
 async function main() {

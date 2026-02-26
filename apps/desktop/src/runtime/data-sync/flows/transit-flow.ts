@@ -1,4 +1,4 @@
-import { WorldsService } from '@nimiplatform/sdk-realm';
+import { WorldsService } from '@nimiplatform/sdk/realm';
 import {
   abandonTransitById,
   appendTransitCheckpoint as appendTransitCheckpointFromClient,
