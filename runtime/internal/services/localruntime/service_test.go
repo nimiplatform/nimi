@@ -215,6 +215,18 @@ func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if !node.GetAvailable() {
 		t.Fatalf("node must be available before removal")
 	}
+	if node.GetProviderHints() == nil || node.GetProviderHints().GetLocalai() == nil {
+		t.Fatalf("localai image node must include provider hints")
+	}
+	if node.GetProviderHints().GetLocalai().GetPreferredAdapter() != "localai_native_adapter" {
+		t.Fatalf("localai image preferred adapter mismatch: %s", node.GetProviderHints().GetLocalai().GetPreferredAdapter())
+	}
+	if node.GetProviderHints().GetLocalai().GetStablediffusionPipeline() == "" {
+		t.Fatalf("localai image provider hints should include stablediffusion pipeline")
+	}
+	if node.GetProviderHints().GetExtra()["service_id"] != "svc-vision" {
+		t.Fatalf("provider hints extra.service_id mismatch: %s", node.GetProviderHints().GetExtra()["service_id"])
+	}
 
 	chatNodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
 		Capability: "chat",
@@ -226,8 +238,15 @@ func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if len(chatNodesResp.GetNodes()) != 1 {
 		t.Fatalf("chat node count mismatch: got=%d want=1", len(chatNodesResp.GetNodes()))
 	}
-	if chatNodesResp.GetNodes()[0].GetAdapter() != "openai_compat_adapter" {
-		t.Fatalf("localai chat adapter mismatch: %s", chatNodesResp.GetNodes()[0].GetAdapter())
+	chatNode := chatNodesResp.GetNodes()[0]
+	if chatNode.GetAdapter() != "openai_compat_adapter" {
+		t.Fatalf("localai chat adapter mismatch: %s", chatNode.GetAdapter())
+	}
+	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetLocalai() == nil {
+		t.Fatalf("localai chat node must include provider hints")
+	}
+	if chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter() != "openai_compat_adapter" {
+		t.Fatalf("localai chat preferred adapter mismatch: %s", chatNode.GetProviderHints().GetLocalai().GetPreferredAdapter())
 	}
 
 	if _, err := svc.RemoveLocalService(context.Background(), &runtimev1.RemoveLocalServiceRequest{
@@ -300,8 +319,37 @@ func TestLocalRuntimeNodeCatalogNexaVideoFailClose(t *testing.T) {
 	if videoNode.GetPolicyGate() == "" {
 		t.Fatalf("nexa video policy gate should be set")
 	}
+	if videoNode.GetProviderHints() == nil || videoNode.GetProviderHints().GetNexa() == nil {
+		t.Fatalf("nexa video node should include provider hints")
+	}
+	videoHints := videoNode.GetProviderHints().GetNexa()
+	if videoHints.GetPreferredAdapter() != "nexa_native_adapter" {
+		t.Fatalf("nexa video preferred adapter mismatch: %s", videoHints.GetPreferredAdapter())
+	}
+	if videoHints.GetPolicyGate() != videoNode.GetPolicyGate() {
+		t.Fatalf("nexa video policy gate mismatch: node=%s hints=%s", videoNode.GetPolicyGate(), videoHints.GetPolicyGate())
+	}
+	if videoHints.GetNpuMode() == "" {
+		t.Fatalf("nexa video npu mode must not be empty")
+	}
+	if videoHints.GetPolicyGate() != "" && videoHints.GetPolicyGateAllowsNpu() {
+		t.Fatalf("nexa video policy gate should disable policyGateAllowsNpu")
+	}
+	if videoHints.GetPolicyGate() != "" && videoHints.GetNpuUsable() {
+		t.Fatalf("nexa video policy gate should disable npuUsable")
+	}
 	if !chatNode.GetAvailable() {
 		t.Fatalf("nexa chat node should remain available")
+	}
+	if chatNode.GetProviderHints() == nil || chatNode.GetProviderHints().GetNexa() == nil {
+		t.Fatalf("nexa chat node should include provider hints")
+	}
+	chatHints := chatNode.GetProviderHints().GetNexa()
+	if chatHints.GetPreferredAdapter() != "nexa_native_adapter" {
+		t.Fatalf("nexa chat preferred adapter mismatch: %s", chatHints.GetPreferredAdapter())
+	}
+	if !chatHints.GetHostNpuReady() && chatHints.GetNpuUsable() {
+		t.Fatalf("nexa chat npuUsable cannot be true when host_npu_ready=false")
 	}
 }
 

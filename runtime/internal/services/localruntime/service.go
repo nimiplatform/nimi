@@ -465,6 +465,7 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 	capabilityFilter := strings.ToLower(strings.TrimSpace(req.GetCapability()))
 	serviceFilter := strings.TrimSpace(req.GetServiceId())
 	providerFilter := strings.ToLower(strings.TrimSpace(req.GetProvider()))
+	deviceProfile := collectDeviceProfile()
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -508,6 +509,7 @@ func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCata
 				BackendSource: "runtime",
 				Available:     available,
 				ReasonCode:    reasonCode,
+				ProviderHints: buildNodeProviderHints(service, provider, capability, adapter, policyGate, available, deviceProfile),
 				PolicyGate:    policyGate,
 				ApiPath:       apiPath,
 				ReadOnly:      false,
@@ -868,6 +870,85 @@ func apiPathForProviderCapability(provider string, capability string) string {
 	default:
 		return "/v1/chat/completions"
 	}
+}
+
+func buildNodeProviderHints(
+	service *runtimev1.LocalServiceDescriptor,
+	provider string,
+	capability string,
+	adapter string,
+	policyGate string,
+	available bool,
+	deviceProfile *runtimev1.LocalDeviceProfile,
+) *runtimev1.LocalProviderHints {
+	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+	normalizedCapability := strings.ToLower(strings.TrimSpace(capability))
+	normalizedPolicyGate := strings.TrimSpace(policyGate)
+	hints := &runtimev1.LocalProviderHints{
+		Extra: map[string]string{
+			"provider":     normalizedProvider,
+			"capability":   normalizedCapability,
+			"service_id":   strings.TrimSpace(service.GetServiceId()),
+			"endpoint":     strings.TrimSpace(service.GetEndpoint()),
+			"policy_gate":  normalizedPolicyGate,
+			"adapter":      strings.TrimSpace(adapter),
+			"availability": fmt.Sprintf("%t", available),
+		},
+	}
+	switch normalizedProvider {
+	case "localai":
+		localAI := &runtimev1.LocalProviderHintsLocalAi{
+			Backend:          "localai",
+			PreferredAdapter: strings.TrimSpace(adapter),
+		}
+		switch normalizedCapability {
+		case "stt", "transcription":
+			localAI.WhisperVariant = "whisper-large-v3"
+		case "image":
+			localAI.StablediffusionPipeline = "default"
+		case "video":
+			localAI.VideoBackend = "openai_compat"
+		}
+		hints.Localai = localAI
+	case "nexa":
+		npuProfile := &runtimev1.LocalNpuProfile{}
+		if deviceProfile != nil && deviceProfile.GetNpu() != nil {
+			npuProfile = deviceProfile.GetNpu()
+		}
+		hostNPUReady := npuProfile.GetReady()
+		modelProbeHasNPUCandidate := true
+		policyGateAllowsNPU := normalizedPolicyGate == "" && hostNPUReady && modelProbeHasNPUCandidate
+		npuUsable := policyGateAllowsNPU && available
+		gateReason := ""
+		gateDetail := ""
+		switch {
+		case normalizedPolicyGate != "":
+			gateReason = runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String()
+			gateDetail = "policy gate blocked nexa capability"
+		case !hostNPUReady:
+			gateReason = "LOCAL_NPU_NOT_READY"
+			gateDetail = defaultString(npuProfile.GetDetail(), "host npu profile not ready")
+		case !available:
+			gateReason = "LOCAL_NODE_UNAVAILABLE"
+			gateDetail = "node unavailable"
+		}
+		hints.Nexa = &runtimev1.LocalProviderHintsNexa{
+			Backend:                   "nexa",
+			PreferredAdapter:          strings.TrimSpace(adapter),
+			PluginId:                  strings.TrimSpace(service.GetServiceId()),
+			DeviceId:                  defaultString(strings.TrimSpace(npuProfile.GetVendor()), "host-npu"),
+			ModelType:                 normalizedCapability,
+			NpuMode:                   defaultString(strings.TrimSpace(hints.GetExtra()["npu_mode"]), "auto"),
+			PolicyGate:                normalizedPolicyGate,
+			HostNpuReady:              hostNPUReady,
+			ModelProbeHasNpuCandidate: modelProbeHasNPUCandidate,
+			PolicyGateAllowsNpu:       policyGateAllowsNPU,
+			NpuUsable:                 npuUsable,
+			GateReason:                gateReason,
+			GateDetail:                gateDetail,
+		}
+	}
+	return hints
 }
 
 func matchesLocalAuditFilter(event *runtimev1.LocalAuditEvent, req *runtimev1.ListLocalAuditsRequest, eventTypes map[string]bool) bool {
