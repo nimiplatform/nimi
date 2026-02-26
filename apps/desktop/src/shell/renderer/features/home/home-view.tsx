@@ -68,7 +68,7 @@ export function HomeView(props: HomeViewProps) {
             onClick={() => setCreatePostOpen(true)}
             className="flex w-full items-center gap-3 rounded-[10px] border border-gray-200 bg-white px-4 py-3 text-left transition hover:bg-gray-50"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-cyan-500">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -86,7 +86,7 @@ export function HomeView(props: HomeViewProps) {
                 onClick={() => setScope(s.value)}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
                   scope === s.value
-                    ? 'bg-brand-500 text-white'
+                    ? 'bg-cyan-500 text-white'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >

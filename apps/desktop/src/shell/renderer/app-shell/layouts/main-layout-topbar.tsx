@@ -61,7 +61,14 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
           title="Spark"
           aria-label={t('Common.openWalletSpark')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="url(#sparkGradient)" className="drop-shadow-sm">
+            <defs>
+              <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fbbf24" />
+                <stop offset="50%" stopColor="#f59e0b" />
+                <stop offset="100%" stopColor="#d97706" />
+              </linearGradient>
+            </defs>
             <path d="M13 2L3 14h9l-1 8 10-12h-7z" />
           </svg>
           <span>{props.balancesPending ? '--' : formatMetricValue(props.sparkBalance)}</span>
@@ -74,13 +81,15 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
           title="Gem"
           aria-label={t('Common.openWalletGem')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="url(#gemGradient)" className="drop-shadow-sm">
+            <defs>
+              <linearGradient id="gemGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#a78bfa" />
+                <stop offset="50%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#7c3aed" />
+              </linearGradient>
+            </defs>
             <path d="M6 3h12l4 6-10 13L2 9z" />
-            <path d="M12 22V9" />
-            <path d="M12 9L2 9" />
-            <path d="M12 9l10 0" />
-            <path d="M6 3l6 6" />
-            <path d="M18 3l-6 6" />
           </svg>
           <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
         </button>

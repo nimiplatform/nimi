@@ -513,7 +513,7 @@ export function ContactsView(props: ContactsViewProps) {
                 ) : null}
 
                 {/* Action Buttons */}
-                <div className="mt-auto pt-4 flex gap-2 items-center">
+                <div className="mt-auto pt-4 flex items-center justify-end">
                   {props.activeFilter === 'blocks' ? (
                     // Blocked contact - show Unblock button
                     <button
@@ -530,54 +530,48 @@ export function ContactsView(props: ContactsViewProps) {
                   ) : (
                     // Normal contact - show Message (except Agents/My Agents tabs) and More menu
                     <>
-                      {props.activeFilter !== 'agents' && props.activeFilter !== 'myAgents' ? (
-                        <button
-                          type="button"
-                          onClick={() => props.onMessage(contact)}
-                          className={`flex items-center justify-center gap-1.5 rounded-lg bg-mint-500 py-2 text-sm font-medium text-white hover:bg-mint-600 transition-colors shadow-sm ${
+                      {/* Buttons container - slides from right to left when expanding */}
+                      {props.activeFilter !== 'agents' && props.activeFilter !== 'myAgents' && (
+                        <div 
+                          className={`flex items-center gap-2 transition-all duration-300 ease-out overflow-hidden ${
                             moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans'
-                              ? 'flex-[0.6]' 
-                              : 'flex-1'
+                              ? 'w-[calc(100%-46px)]' 
+                              : 'w-[calc(100%-46px)]'
                           }`}
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                          {!(moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans') && t('Contacts.message')}
-                        </button>
-                      ) : null}
-
-                      {/* More menu button - only for humans */}
-                      {!contact.isAgent && props.activeFilter === 'humans' && (
-                        <div className="relative flex items-center">
-                          {/* More button - fixed position on the right */}
+                          {/* Chat button */}
                           <button
                             type="button"
-                            onClick={() => setMoreMenuContactId(moreMenuContactId === contact.id ? null : contact.id)}
-                            className="relative z-10 flex h-[38px] w-[38px] items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-gray-700 transition-colors shrink-0"
-                            aria-label="More options"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="5" r="1.5" />
-                              <circle cx="12" cy="12" r="1.5" />
-                              <circle cx="12" cy="19" r="1.5" />
-                            </svg>
-                          </button>
-
-                          {/* Expanded action buttons - slide out from behind the more button to the left */}
-                          <div 
-                            className={`flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out absolute right-[42px] ${
-                              moreMenuContactId === contact.id ? 'w-auto opacity-100' : 'w-0 opacity-0'
+                            onClick={() => props.onMessage(contact)}
+                            className={`flex items-center justify-center gap-1.5 rounded-lg bg-mint-500 text-sm font-medium text-white hover:bg-mint-600 transition-all duration-300 shadow-sm shrink-0 ${
+                              moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans'
+                                ? 'h-[36px] w-[60px] px-0' 
+                                : 'w-full py-2'
                             }`}
                           >
-                            {/* Block button */}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                            {!(moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans') && (
+                              <span className="transition-opacity duration-200">{t('Contacts.message')}</span>
+                            )}
+                          </button>
+                          
+                          {/* Block and Remove buttons - slide in from right */}
+                          <div 
+                            className={`flex items-center gap-2 transition-all duration-300 ease-out ${
+                              moreMenuContactId === contact.id && !contact.isAgent && props.activeFilter === 'humans'
+                                ? 'w-[calc(100%-68px)] opacity-100' 
+                                : 'w-0 opacity-0 overflow-hidden'
+                            }`}
+                          >
                             <button
                               type="button"
                               onClick={() => {
                                 setMoreMenuContactId(null);
                                 setBlockingContact(contact);
                               }}
-                              className="flex items-center justify-center gap-1.5 rounded-lg bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-sm whitespace-nowrap"
+                              className="flex h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-600 text-sm font-medium text-white hover:bg-gray-700 transition-colors shadow-sm shrink-0"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10" />
@@ -585,14 +579,13 @@ export function ContactsView(props: ContactsViewProps) {
                               </svg>
                               Block
                             </button>
-                            {/* Remove friend button */}
                             <button
                               type="button"
                               onClick={() => {
                                 setMoreMenuContactId(null);
                                 setRemovingContact(contact);
                               }}
-                              className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap"
+                              className="flex h-[36px] flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-500 text-sm font-medium text-white hover:bg-red-600 transition-colors shadow-sm shrink-0"
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -604,6 +597,22 @@ export function ContactsView(props: ContactsViewProps) {
                             </button>
                           </div>
                         </div>
+                      )}
+
+                      {/* More menu button - completely static, no animation */}
+                      {!contact.isAgent && props.activeFilter === 'humans' && (
+                        <button
+                          type="button"
+                          onClick={() => setMoreMenuContactId(moreMenuContactId === contact.id ? null : contact.id)}
+                          className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-gray-700 transition-colors shrink-0 ml-2"
+                          aria-label="More options"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="5" r="1.5" />
+                            <circle cx="12" cy="12" r="1.5" />
+                            <circle cx="12" cy="19" r="1.5" />
+                          </svg>
+                        </button>
                       )}
                     </>
                   )}
