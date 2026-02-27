@@ -1,5 +1,6 @@
 import type { DesktopExecutionKernelService } from '@runtime/execution-kernel';
 import type { DesktopHookRuntimeService, HookSourceType } from '@runtime/hook';
+import type { ModRuntimeContext } from '@nimiplatform/sdk/mod/types';
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -33,7 +34,10 @@ export type RuntimeModLifecycleContext = {
   kernel: DesktopExecutionKernelService;
   hookRuntime: DesktopHookRuntimeService;
   getHttpContext: () => RuntimeHttpContext;
+  sdkRuntimeContext: ModRuntimeContext;
 };
+
+export type RuntimeModSdkContextProvider = () => ModRuntimeContext;
 
 export type RuntimeModRegistration = {
   modId: string;

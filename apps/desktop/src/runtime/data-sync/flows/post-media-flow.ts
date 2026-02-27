@@ -1,10 +1,10 @@
-import { MediaService, PostService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { DirectUploadResponseDto } from '@nimiplatform/sdk/realm';
 import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -45,7 +45,7 @@ export async function loadPostFeed(
   };
   try {
     return await callApi(
-      () => PostService.getHomeFeed(
+      (realm) => realm.services.PostService.getHomeFeed(
         normalized.visibility,
         normalized.worldId,
         normalized.authorId,
@@ -68,7 +68,7 @@ export async function createPost(
 ): Promise<PostDto> {
   try {
     return await callApi(
-      () => PostService.createPost(payload),
+      (realm) => realm.services.PostService.createPost(payload),
       '发布帖子失败',
     );
   } catch (error) {
@@ -86,7 +86,7 @@ export async function createImageDirectUpload(
 ): Promise<DirectUploadResponseDto> {
   try {
     return await callApi(
-      () => MediaService.createImageDirectUpload(),
+      (realm) => realm.services.MediaService.createImageDirectUpload(),
       '创建图片上传失败',
     );
   } catch (error) {
@@ -101,7 +101,7 @@ export async function createVideoDirectUpload(
 ): Promise<{ uid: string; uploadURL: string }> {
   try {
     const payload = await callApi(
-      () => MediaService.createVideoDirectUpload(),
+      (realm) => realm.services.MediaService.createVideoDirectUpload(),
       '创建视频上传失败',
     );
     const record = payload && typeof payload === 'object'

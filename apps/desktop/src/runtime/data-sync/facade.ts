@@ -2,6 +2,7 @@ import { store } from '@runtime/state';
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
 import type { AuthState } from '@runtime/state';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
@@ -75,7 +76,7 @@ export class DataSync {
   private accessToken = '';
   private fetchImpl: FetchImpl | null = null;
   private readonly polling = new DataSyncPollingManager();
-  private readonly callApiTask = <T>(task: () => Promise<T>, fallbackMessage?: string) =>
+  private readonly callApiTask = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) =>
     this.callApi(task, fallbackMessage);
   private readonly emitFacadeError = (
     action: string,
@@ -138,7 +139,7 @@ export class DataSync {
     if (!this.apiBaseUrl) throw new Error('API not initialized');
   }
 
-  async callApi<T>(task: () => Promise<T>, fallbackMessage?: string): Promise<T> {
+  async callApi(task: (realm: Realm) => Promise<any>, fallbackMessage?: string): Promise<any> {
     this.assertApiConfigured();
     try {
       const result = await withOpenApiContextLock(
@@ -150,7 +151,7 @@ export class DataSync {
         task,
       );
       const normalized = tryParseJsonLike(result);
-      return (normalized === undefined ? ({} as T) : normalized) as T;
+      return normalized === undefined ? {} : normalized;
     } catch (error) {
       throw normalizeApiError(error, fallbackMessage);
     }

@@ -4,6 +4,7 @@ import type {
   RegisterRuntimeModOptions,
   RuntimeModRegistration,
 } from '../types';
+import type { ModRuntimeContext } from '@nimiplatform/sdk/mod/types';
 import { resolveRegistrationCapabilities } from './capability-bindings';
 import { assertRuntimeModCapabilitiesDeclared } from './lifecycle-validate';
 import {
@@ -30,6 +31,7 @@ export function unregisterRuntimeModLifecycle(input: {
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
   getHttpContext: () => { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
+  sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
 }): { removed: boolean; defaultPrivateExecutionModId: string } {
   const flowId = createRuntimeModUnregisterFlowId();
@@ -76,6 +78,7 @@ export async function registerRuntimeModLifecycle(input: {
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
   getHttpContext: () => { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
+  sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
   unregisterRuntimeMod: (modId: string) => boolean;
 }): Promise<{ registered: boolean; defaultPrivateExecutionModId: string }> {
@@ -131,6 +134,7 @@ export async function registerRuntimeModLifecycle(input: {
       hookRuntime: input.hookRuntime,
       kernel: input.kernel,
       getHttpContext: input.getHttpContext,
+      sdkRuntimeContext: input.sdkRuntimeContext,
       defaultPrivateExecutionModId: input.defaultPrivateExecutionModId,
     });
 

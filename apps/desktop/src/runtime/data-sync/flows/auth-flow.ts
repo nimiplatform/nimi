@@ -1,8 +1,8 @@
-import { AuthService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 import { emitAuthLog, traceIdOf, type PasswordAuthDebug } from '../auth';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 
 export async function loginWithPassword(
   callApi: DataSyncApiCaller,
@@ -28,7 +28,7 @@ export async function loginWithPassword(
   });
   try {
     const result = await callApi(
-      () => AuthService.passwordLogin({ identifier, password }),
+      (realm) => realm.services.AuthService.passwordLogin({ identifier, password }),
       '登录失败',
     );
     emitAuthLog({
@@ -86,7 +86,7 @@ export async function registerWithPassword(
   });
   try {
     const result = await callApi(
-      () => AuthService.passwordRegister({ email, password }),
+      (realm) => realm.services.AuthService.passwordRegister({ email, password }),
       '注册失败',
     );
     emitAuthLog({
@@ -126,7 +126,7 @@ export async function logoutWithCleanup(input: {
   stopAllPolling: () => void;
 }) {
   try {
-    await input.callApi(() => AuthService.logout({}), '登出失败');
+    await input.callApi((realm) => realm.services.AuthService.logout({}), '登出失败');
   } finally {
     input.clearAuth();
     input.stopAllPolling();

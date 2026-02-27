@@ -7,6 +7,7 @@ import { withOpenApiContextLock } from '@runtime/context/openapi-context';
 import {
   getRuntimeHookRuntime,
   listRegisteredRuntimeModIds,
+  setRuntimeModSdkContextProvider,
   setRuntimeHttpContextProvider,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
@@ -102,17 +103,20 @@ export function bootstrapRuntime(): Promise<void> {
         };
       });
 
-      wireModSdkHost(
-        buildRuntimeHostCapabilities({
-          checkLocalLlmHealth,
-          executeLocalKernelTurn,
-          withOpenApiContextLock: async <T>(
-            context: { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
-            task: () => Promise<T>,
-          ) => withOpenApiContextLock<T>(context, task),
-          getRuntimeHookRuntime: () => getRuntimeHookRuntime(),
-        }),
-      );
+      const runtimeHostCapabilities = buildRuntimeHostCapabilities({
+        checkLocalLlmHealth,
+        executeLocalKernelTurn,
+        withOpenApiContextLock: async <T>(
+          context: { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
+          task: () => Promise<T>,
+        ) => withOpenApiContextLock<T>(context, task),
+        getRuntimeHookRuntime: () => getRuntimeHookRuntime(),
+      });
+      wireModSdkHost(runtimeHostCapabilities);
+      setRuntimeModSdkContextProvider(() => ({
+        runtimeHost: runtimeHostCapabilities.runtime,
+        runtime: runtimeHostCapabilities.runtime.getRuntimeHookRuntime(),
+      }));
 
       const hookRuntime = getRuntimeHookRuntime();
       hookRuntime.setSpeechFetchImpl(proxyFetch);

@@ -1,5 +1,3 @@
-import { OpenAPI } from '@nimiplatform/sdk/realm';
-import { openApiRequest } from '@nimiplatform/sdk/realm';
 import type { MemoryStatsResponseDto } from '@nimiplatform/sdk/realm';
 import { CORE_DATA_API_CAPABILITIES, toRecord } from '../runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
@@ -23,6 +21,40 @@ type AgentMemoryRecallQuery = {
   queryText?: string;
   topK?: number;
 };
+
+type RealmRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+
+type RealmRequestSpec = {
+  method: RealmRequestMethod;
+  url: string;
+  path?: Record<string, string | number | boolean>;
+  query?: Record<string, unknown>;
+  body?: unknown;
+  headers?: Record<string, string>;
+  timeoutMs?: number;
+};
+
+function resolveRequestPath(
+  url: string,
+  pathParams?: Record<string, string | number | boolean>,
+): string {
+  let resolved = String(url || '').trim();
+  for (const [key, value] of Object.entries(pathParams || {})) {
+    resolved = resolved.replaceAll(`{${key}}`, encodeURIComponent(String(value)));
+  }
+  return resolved;
+}
+
+async function requestRealm<T>(spec: RealmRequestSpec): Promise<T> {
+  return withRuntimeOpenApiContext((realm) => realm.raw.request<T>({
+    method: spec.method,
+    path: resolveRequestPath(spec.url, spec.path),
+    query: spec.query,
+    body: spec.body,
+    headers: spec.headers,
+    timeoutMs: spec.timeoutMs,
+  }));
+}
 
 function toPositiveInt(value: unknown): number | undefined {
   const parsed = Number(value);
@@ -171,10 +203,10 @@ async function resolveCurrentUserId(): Promise<string | null> {
   }
 
   try {
-    const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+    const payload = await requestRealm<unknown>({
       method: 'GET',
       url: '/api/human/me',
-    }));
+    });
     const userId = String(toRecord(payload).id || '').trim();
     if (!userId) return null;
     currentUserIdCache = {
@@ -218,14 +250,14 @@ function toMemoryRecallQuery(query: Record<string, unknown>): AgentMemoryRecallQ
 }
 
 async function loadRemoteCoreMemories(agentId: string, query?: AgentMemorySliceQuery): Promise<AgentMemoryRecord[]> {
-  const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+  const payload = await requestRealm<unknown>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/core',
     path: {
       id: agentId,
     },
     query: toSliceQueryPayload(query),
-  }));
+  });
   return toMemoryRecordArray(payload);
 }
 
@@ -234,7 +266,7 @@ async function loadRemoteE2EMemories(input: {
   entityId: string;
   query?: AgentMemorySliceQuery;
 }): Promise<AgentMemoryRecord[]> {
-  const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+  const payload = await requestRealm<unknown>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/e2e/{entityId}',
     path: {
@@ -242,7 +274,7 @@ async function loadRemoteE2EMemories(input: {
       entityId: input.entityId,
     },
     query: toSliceQueryPayload(input.query),
-  }));
+  });
   return toMemoryRecordArray(payload);
 }
 
@@ -255,7 +287,7 @@ async function loadRemoteRecall(input: {
   core: AgentMemoryRecord[];
   e2e: AgentMemoryRecord[];
 }> {
-  const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+  const payload = await requestRealm<unknown>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/recall/{entityId}',
     path: {
@@ -263,7 +295,7 @@ async function loadRemoteRecall(input: {
       entityId: input.entityId,
     },
     query: toRecallQueryPayload(input.query),
-  }));
+  });
   const root = toRecord(payload);
   const explicitCore = toMemoryRecordArray(root.core || root.coreMemory || root.coreMemories);
   const explicitE2E = toMemoryRecordArray(root.e2e || root.e2eMemory || root.e2eMemories);
@@ -294,22 +326,22 @@ async function loadRemoteRecall(input: {
 }
 
 async function loadRemoteMemoryStats(agentId: string): Promise<MemoryStatsResponseDto> {
-  return withRuntimeOpenApiContext(() => openApiRequest<MemoryStatsResponseDto>(OpenAPI, {
+  return requestRealm<MemoryStatsResponseDto>({
     method: 'GET',
     url: '/api/agent/accounts/{id}/memory/stats',
     path: {
       id: agentId,
     },
-  }));
+  });
 }
 
 export async function registerCoreDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.friendsWithDetailsList, async () => {
-    const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+    const payload = await requestRealm<unknown>({
       method: 'GET',
       url: '/api/human/me/friends/list',
       query: { limit: 100 },
-    }));
+    });
     return toObjectOr(payload, { items: [] });
   });
 
@@ -317,11 +349,11 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const userId = String(toRecord(query).userId || '').trim();
     if (!userId) return null;
     try {
-      const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+      const payload = await requestRealm<unknown>({
         method: 'GET',
         url: '/api/human/accounts/{id}',
         path: { id: userId },
-      }));
+      });
       return toNullableObject(payload);
     } catch {
       return null;
@@ -332,11 +364,11 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const handle = String(toRecord(query).handle || '').trim();
     if (!handle) return null;
     try {
-      const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+      const payload = await requestRealm<unknown>({
         method: 'GET',
         url: '/api/human/handle/{handle}',
         path: { handle },
-      }));
+      });
       return toNullableObject(payload);
     } catch {
       return null;
@@ -347,11 +379,11 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const worldId = String(toRecord(query).worldId || '').trim();
     if (!worldId) return null;
     try {
-      const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+      const payload = await requestRealm<unknown>({
         method: 'GET',
         url: '/api/world/by-id/{id}',
         path: { id: worldId },
-      }));
+      });
       return toNullableObject(payload);
     } catch {
       return null;
@@ -362,11 +394,11 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     const worldId = String(toRecord(query).worldId || '').trim();
     if (!worldId) return null;
     try {
-      const payload = await withRuntimeOpenApiContext(() => openApiRequest<unknown>(OpenAPI, {
+      const payload = await requestRealm<unknown>({
         method: 'GET',
         url: '/api/world/by-id/{id}/worldview',
         path: { id: worldId },
-      }));
+      });
       return toNullableObject(payload);
     } catch {
       return null;

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { PostService } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
@@ -51,10 +50,9 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
             setLoadingInitial(true);
           }
         }
-        const data = await dataSync.callApi(() =>
-          PostService.getHomeFeed(undefined, undefined, profileId, undefined, MEDIA_PAGE_SIZE, cursorArg ?? undefined),
+        const data = await dataSync.callApi((realm) => realm.services.PostService.getHomeFeed(undefined, undefined, profileId, undefined, MEDIA_PAGE_SIZE, cursorArg ?? undefined),
         );
-        const allItems = data?.items ?? [];
+        const allItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
         const nextCursor = data?.page?.nextCursor ?? null;
         const mediaItems = allItems.filter((p) => p.media && p.media.length > 0);
 

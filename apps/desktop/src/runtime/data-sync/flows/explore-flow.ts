@@ -1,7 +1,7 @@
-import { ExploreService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -17,7 +17,7 @@ export async function loadExploreFeedItems(
   store.setExploreLoading(true);
   try {
     const result = await callApi(
-      () => ExploreService.getExploreFeed(undefined, tag || undefined, limit),
+      (realm) => realm.services.ExploreService.getExploreFeed(undefined, tag || undefined, limit),
       '加载探索流失败',
     );
     store.setExploreItems(result.items || [], result.nextCursor, result.hasMore);
@@ -48,7 +48,7 @@ export async function loadMoreExploreFeedItems(
   store.setExploreLoading(true);
   try {
     const result = await callApi(
-      () => ExploreService.getExploreFeed(undefined, currentTag || undefined, limit, cursor),
+      (realm) => realm.services.ExploreService.getExploreFeed(undefined, currentTag || undefined, limit, cursor),
       '加载更多探索流失败',
     );
     store.appendExploreItems(result.items || [], result.nextCursor, result.hasMore);

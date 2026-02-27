@@ -1,6 +1,6 @@
-import { CreatorService, UserService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 
 function toStringOrUndefined(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
@@ -45,7 +45,7 @@ export async function searchUserByIdentifier(
       return null;
     }
     const byHandle = await callApi(
-      () => UserService.getUserByHandle(normalized),
+      (realm) => realm.services.UserService.getUserByHandle(normalized),
       '根据 handle 查询用户失败',
     );
     if (!byHandle?.id) {
@@ -81,7 +81,7 @@ export async function searchUserByIdentifier(
 
   if (!user && !isHandleIdentifier) {
     const byId = await callApi(
-      () => UserService.getUser(identifier),
+      (realm) => realm.services.UserService.getUser(identifier),
       '根据用户ID查询失败',
     );
     if (byId?.id) {
@@ -118,7 +118,7 @@ export async function loadCreatorAgents(
 
   try {
     const agents = await callApi(
-      () => CreatorService.creatorControllerListAgents(),
+      (realm) => realm.services.CreatorService.creatorControllerListAgents(),
       '加载我的 Agent 列表失败',
     );
     return Array.isArray(agents)

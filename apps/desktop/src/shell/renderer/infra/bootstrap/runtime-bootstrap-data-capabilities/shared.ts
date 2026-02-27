@@ -1,4 +1,5 @@
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import {
   getRuntimeHookRuntime,
   getRuntimeHttpContext,
@@ -20,7 +21,6 @@ export async function registerCoreDataCapability(
   });
 }
 
-export async function withRuntimeOpenApiContext<T>(task: () => Promise<T>): Promise<T> {
+export async function withRuntimeOpenApiContext<T>(task: (realm: Realm) => Promise<T>): Promise<T> {
   return withOpenApiContextLock(getRuntimeHttpContext(), task);
 }
-

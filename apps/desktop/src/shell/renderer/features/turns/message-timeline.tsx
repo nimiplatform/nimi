@@ -358,10 +358,10 @@ export function MessageTimeline() {
               return (
                 <div key={message.id}>
                   {showDateSeparator && dateLabel ? (
-                    <div className="my-3 flex items-center gap-3">
-                      <div className="h-px flex-1 bg-gray-100" />
+                    <div className="my-3 flex items-center justify-center gap-3">
+                      <div className="h-px w-24 bg-gray-100" />
                       <span className="text-[11px] font-medium text-gray-400">{dateLabel}</span>
-                      <div className="h-px flex-1 bg-gray-100" />
+                      <div className="h-px w-24 bg-gray-100" />
                     </div>
                   ) : null}
                 <div className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>

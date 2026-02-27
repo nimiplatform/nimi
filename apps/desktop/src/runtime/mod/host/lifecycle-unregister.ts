@@ -5,6 +5,7 @@ import type {
 } from '../types';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
 import type { DesktopExecutionKernelService } from '@runtime/execution-kernel';
+import type { ModRuntimeContext } from '@nimiplatform/sdk/mod/types';
 import { emitRuntimeModRuntimeLog } from '../logging';
 
 export function resolveDefaultPrivateExecutionModId(
@@ -24,6 +25,7 @@ export function unregisterRuntimeModState(input: {
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
   getHttpContext: () => RuntimeHttpContext;
+  sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
 }): { removed: boolean; defaultPrivateExecutionModId: string } {
   const targetModId = String(input.modId || '').trim();
@@ -46,6 +48,7 @@ export function unregisterRuntimeModState(input: {
       kernel: input.kernel,
       hookRuntime: input.hookRuntime,
       getHttpContext: input.getHttpContext,
+      sdkRuntimeContext: input.sdkRuntimeContext,
     };
     try {
       const teardownResult = registration.teardown(teardownContext);

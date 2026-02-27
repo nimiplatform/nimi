@@ -1,5 +1,4 @@
-import { OpenAPI } from '@nimiplatform/sdk/realm';
-import { openApiRequest } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 
 type TransitType = 'INBOUND' | 'OUTBOUND' | 'RETURN';
 type TransitStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
@@ -30,26 +29,29 @@ function normalizeTransitQuery(input: {
   };
 }
 
-export async function fetchSceneQuota(): Promise<unknown> {
-  return openApiRequest<unknown>(OpenAPI, {
+export async function fetchSceneQuota(realm: Realm): Promise<unknown> {
+  return realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/world/me/scene-quota',
+    path: '/api/world/me/scene-quota',
   });
 }
 
-export async function createTransit(input: {
-  agentId: string;
-  fromWorldId?: string;
-  toWorldId: string;
-  transitType: TransitType;
-  reason?: string;
-  carriedState?: Record<string, unknown>;
-}): Promise<unknown> {
+export async function createTransit(
+  realm: Realm,
+  input: {
+    agentId: string;
+    fromWorldId?: string;
+    toWorldId: string;
+    transitType: TransitType;
+    reason?: string;
+    carriedState?: Record<string, unknown>;
+  },
+): Promise<unknown> {
   const agentId = assertNonEmpty(input.agentId, 'TRANSIT_CLIENT_AGENT_ID_REQUIRED');
   const toWorldId = assertNonEmpty(input.toWorldId, 'TRANSIT_CLIENT_WORLD_ID_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'POST',
-    url: '/api/world/transit',
+    path: '/api/world/transit',
     body: {
       agentId,
       fromWorldId: String(input.fromWorldId || '').trim() || undefined,
@@ -58,84 +60,82 @@ export async function createTransit(input: {
       reason: String(input.reason || '').trim() || undefined,
       carriedState: input.carriedState,
     },
-    mediaType: 'application/json',
   });
 }
 
-export async function listTransits(query?: {
-  agentId?: string;
-  status?: TransitStatus;
-  transitType?: TransitType;
-}): Promise<unknown> {
-  return openApiRequest<unknown>(OpenAPI, {
+export async function listTransits(
+  realm: Realm,
+  query?: {
+    agentId?: string;
+    status?: TransitStatus;
+    transitType?: TransitType;
+  },
+): Promise<unknown> {
+  return realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/world/transit',
+    path: '/api/world/transit',
     query: normalizeTransitQuery(query),
   });
 }
 
-export async function fetchTransitById(transitId: string): Promise<unknown> {
+export async function fetchTransitById(realm: Realm, transitId: string): Promise<unknown> {
   const id = assertNonEmpty(transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/world/transit/{id}',
-    path: { id },
+    path: `/api/world/transit/${encodeURIComponent(id)}`,
   });
 }
 
-export async function fetchActiveTransit(agentId: string): Promise<unknown> {
+export async function fetchActiveTransit(realm: Realm, agentId: string): Promise<unknown> {
   const normalizedAgentId = assertNonEmpty(agentId, 'TRANSIT_CLIENT_AGENT_ID_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/world/transit/active/{agentId}',
-    path: { agentId: normalizedAgentId },
+    path: `/api/world/transit/active/${encodeURIComponent(normalizedAgentId)}`,
   });
 }
 
-export async function startTransitSessionById(transitId: string): Promise<unknown> {
+export async function startTransitSessionById(realm: Realm, transitId: string): Promise<unknown> {
   const id = assertNonEmpty(transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'POST',
-    url: '/api/world/transit/{id}/session/start',
-    path: { id },
+    path: `/api/world/transit/${encodeURIComponent(id)}/session/start`,
   });
 }
 
-export async function appendTransitCheckpoint(input: {
-  transitId: string;
-  name: string;
-  status: TransitCheckpointStatus;
-  data?: Record<string, unknown>;
-}): Promise<unknown> {
+export async function appendTransitCheckpoint(
+  realm: Realm,
+  input: {
+    transitId: string;
+    name: string;
+    status: TransitCheckpointStatus;
+    data?: Record<string, unknown>;
+  },
+): Promise<unknown> {
   const transitId = assertNonEmpty(input.transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
   const name = assertNonEmpty(input.name, 'TRANSIT_CLIENT_CHECKPOINT_NAME_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'POST',
-    url: '/api/world/transit/{id}/checkpoints',
-    path: { id: transitId },
+    path: `/api/world/transit/${encodeURIComponent(transitId)}/checkpoints`,
     body: {
       name,
       status: input.status,
       data: input.data,
     },
-    mediaType: 'application/json',
   });
 }
 
-export async function completeTransitById(transitId: string): Promise<unknown> {
+export async function completeTransitById(realm: Realm, transitId: string): Promise<unknown> {
   const id = assertNonEmpty(transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'POST',
-    url: '/api/world/transit/{id}/complete',
-    path: { id },
+    path: `/api/world/transit/${encodeURIComponent(id)}/complete`,
   });
 }
 
-export async function abandonTransitById(transitId: string): Promise<unknown> {
+export async function abandonTransitById(realm: Realm, transitId: string): Promise<unknown> {
   const id = assertNonEmpty(transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
-  return openApiRequest<unknown>(OpenAPI, {
+  return realm.raw.request<unknown>({
     method: 'POST',
-    url: '/api/world/transit/{id}/abandon',
-    path: { id },
+    path: `/api/world/transit/${encodeURIComponent(id)}/abandon`,
   });
 }

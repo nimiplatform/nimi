@@ -1,9 +1,9 @@
-import { MeService, UserService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { UserProfileDto } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 import { loadCreatorAgents } from './social-flow';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -83,7 +83,7 @@ async function resolvePendingRequestProfiles(
   const tasks = Array.from(userMap.entries()).map(async ([userId, requestedAt]) => {
     try {
       const profile = await callApi(
-        () => UserService.getUser(userId),
+        (realm) => realm.services.UserService.getUser(userId),
         '加载好友请求用户资料失败',
       ) as Record<string, unknown>;
       const handle = toNonEmptyString(profile.handle);
@@ -134,7 +134,7 @@ async function fetchPendingFriendRequests(
 ): Promise<PendingFriendRequestListDto> {
   try {
     return await callApi(
-      () => MeService.getMyPendingFriendRequests(),
+      (realm) => realm.services.MeService.getMyPendingFriendRequests(),
       '加载好友请求失败',
     );
   } catch (error) {
@@ -149,10 +149,12 @@ async function fetchBlockedUsers(
 ): Promise<Array<Record<string, unknown>>> {
   try {
     const response = await callApi(
-      () => MeService.getMyBlockedUsers(undefined, 100),
+      (realm) => realm.services.MeService.getMyBlockedUsers(undefined, 100),
       '加载拉黑列表失败',
     );
-    const items = Array.isArray(response?.items) ? response.items : [];
+    const items = Array.isArray(response?.items)
+      ? (response.items as Array<Record<string, unknown>>)
+      : [];
     return items
       .map((item) => {
         const id = toNonEmptyString(item?.id);
@@ -185,7 +187,7 @@ async function loadSocialSnapshotInternal(
 ): Promise<SocialContactSnapshot> {
   const [friendsResult, pendingResult, creatorAgents, blockedUsers] = await Promise.all([
     callApi(
-      () => MeService.listMyFriendsWithDetails(undefined, 100),
+      (realm) => realm.services.MeService.listMyFriendsWithDetails(undefined, 100),
       '加载好友失败',
     ),
     fetchPendingFriendRequests(callApi, emitDataSyncError),
@@ -219,7 +221,7 @@ export async function loadCurrentUserProfile(
   emitDataSyncError: DataSyncErrorEmitter,
 ) {
   try {
-    const user = await callApi(() => MeService.getMe(), '获取当前用户失败');
+    const user = await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
     store.updateState('auth.user', user);
     return user;
   } catch (error) {
@@ -234,7 +236,7 @@ export async function updateCurrentUserProfile(
   data: Record<string, unknown>,
 ) {
   try {
-    const user = await callApi(() => MeService.updateMe(data), '更新用户资料失败');
+    const user = await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
     store.updateState('auth.user', user);
     return user;
   } catch (error) {
@@ -350,7 +352,7 @@ export async function loadUserProfileById(
 ): Promise<UserProfileDto> {
   try {
     const profile = await callApi(
-      () => UserService.getUser(id),
+      (realm) => realm.services.UserService.getUser(id),
       '获取用户资料失败',
     );
     return profile;
@@ -368,7 +370,7 @@ export async function addFriendById(
     throw new Error('用户ID不能为空');
   }
   await callApi(
-    () => UserService.addFriend(userId),
+    (realm) => realm.services.UserService.addFriend(userId),
     '添加好友失败',
   );
   return { id: userId };
@@ -382,7 +384,7 @@ export async function removeFriendById(
     throw new Error('用户ID不能为空');
   }
   await callApi(
-    () => UserService.removeFriend(userId),
+    (realm) => realm.services.UserService.removeFriend(userId),
     '删除好友失败',
   );
 }
@@ -450,7 +452,7 @@ export async function blockUser(
     });
   } else {
     await callApi(
-      () => MeService.blockUser(contactId),
+      (realm) => realm.services.MeService.blockUser(contactId),
       '拉黑用户失败',
     );
   }
@@ -487,7 +489,7 @@ export async function unblockUser(
     });
   } else {
     await callApi(
-      () => MeService.unblockUser(contactId),
+      (realm) => realm.services.MeService.unblockUser(contactId),
       '取消拉黑失败',
     );
     store.removeBlockedContact(contactId);

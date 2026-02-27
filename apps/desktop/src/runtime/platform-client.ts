@@ -1,8 +1,13 @@
-import type { NimiClient } from '@nimiplatform/sdk';
+import type { Realm, Runtime } from '@nimiplatform/sdk';
 
 const DEFAULT_APP_ID = 'nimi.desktop';
 
-let platformClient: NimiClient | null = null;
+export type PlatformClient = {
+  runtime: Runtime;
+  realm: Realm;
+};
+
+let platformClient: PlatformClient | null = null;
 let sdkModulePromise: Promise<typeof import('@nimiplatform/sdk')> | null = null;
 
 async function loadSdkModule(): Promise<typeof import('@nimiplatform/sdk')> {
@@ -17,27 +22,31 @@ export type PlatformClientRuntimeDefaults = {
   accessToken?: string;
 };
 
-export async function initializePlatformClient(input: PlatformClientRuntimeDefaults): Promise<NimiClient> {
+export async function initializePlatformClient(input: PlatformClientRuntimeDefaults): Promise<PlatformClient> {
   const sdk = await loadSdkModule();
-  const client = sdk.createNimiClient({
+  const runtime = new sdk.Runtime({
     appId: DEFAULT_APP_ID,
-    realm: {
-      baseUrl: String(input.apiBaseUrl || '').trim(),
-      accessToken: String(input.accessToken || '').trim() || undefined,
-    },
-    runtime: {
-      transport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
+    transport: {
+      type: 'tauri-ipc',
+      commandNamespace: 'runtime_bridge',
+      eventNamespace: 'runtime_bridge',
     },
   });
+  const realm = new sdk.Realm({
+    baseUrl: String(input.apiBaseUrl || '').trim(),
+    auth: {
+      accessToken: String(input.accessToken || '').trim() || undefined,
+    },
+  });
+  const client: PlatformClient = {
+    runtime,
+    realm,
+  };
   platformClient = client;
   return client;
 }
 
-export function getPlatformClient(): NimiClient {
+export function getPlatformClient(): PlatformClient {
   if (!platformClient) {
     throw new Error('PLATFORM_CLIENT_NOT_READY');
   }

@@ -1,5 +1,4 @@
-import { OpenAPI } from '@nimiplatform/sdk/realm';
-import { openApiRequest } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { resolveChatRouteByPolicy } from '@runtime/chat';
@@ -14,7 +13,7 @@ import {
   type AgentMemorySliceQuery,
 } from '../clients/agent-memory-client';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -66,12 +65,10 @@ async function getProfileByHandle(
   }
   try {
     const payload = await callApi(
-      () =>
-        openApiRequest<unknown>(OpenAPI, {
-          method: 'GET',
-          url: '/api/agent/handle/{handle}',
-          path: { handle: normalized },
-        }),
+      (realm) => realm.raw.request<unknown>({
+        method: 'GET',
+        path: `/api/agent/handle/${encodeURIComponent(normalized)}`,
+      }),
       '按 handle 加载 Agent 资料失败',
     );
     return toRecord(payload);
@@ -90,12 +87,10 @@ async function getProfileById(
   }
   try {
     const payload = await callApi(
-      () =>
-        openApiRequest<unknown>(OpenAPI, {
-          method: 'GET',
-          url: '/api/agent/accounts/{id}',
-          path: { id: normalized },
-        }),
+      (realm) => realm.raw.request<unknown>({
+        method: 'GET',
+        path: `/api/agent/accounts/${encodeURIComponent(normalized)}`,
+      }),
       '按 id 加载 Agent 资料失败',
     );
     return toRecord(payload);
@@ -173,7 +168,7 @@ export async function loadAgentMemoryStats(
 ) {
   try {
     return await callApi(
-      () => fetchAgentMemoryStats({ agentId }),
+      (realm) => fetchAgentMemoryStats(realm, { agentId }),
       '加载 Agent 记忆统计失败',
     );
   } catch (error) {
@@ -196,7 +191,7 @@ export async function listAgentCoreMemories(
   }
   try {
     const response = await callApi(
-      () => fetchAgentCoreMemorySlice({
+      (realm) => fetchAgentCoreMemorySlice(realm, {
         agentId,
         query: input.query,
       }),
@@ -228,7 +223,7 @@ export async function listAgentE2EMemories(
   }
   try {
     const response = await callApi(
-      () => fetchAgentE2EMemorySlice({
+      (realm) => fetchAgentE2EMemorySlice(realm, {
         agentId,
         entityId,
         query: input.query,
@@ -261,7 +256,7 @@ export async function recallAgentMemoryForEntity(
   }
   try {
     const response = await callApi(
-      () => fetchAgentRecallForEntity({
+      (realm) => fetchAgentRecallForEntity(realm, {
         agentId,
         entityId,
         query: input.query,
@@ -286,12 +281,11 @@ export async function resolveChatRoute(
 ): Promise<DesktopChatRouteResultDto> {
   try {
     const route = await callApi(
-      async () => {
-        const payload = await openApiRequest<unknown>(OpenAPI, {
+      async (realm) => {
+        const payload = await realm.raw.request<unknown>({
           method: 'POST',
-          url: '/api/desktop/chat/route',
+          path: '/api/desktop/chat/route',
           body: data,
-          mediaType: 'application/json',
         });
 
         if (!isDesktopChatRouteResultLike(payload)) {

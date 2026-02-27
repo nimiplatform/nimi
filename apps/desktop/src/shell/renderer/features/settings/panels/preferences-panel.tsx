@@ -119,8 +119,11 @@ function toNotificationPayload(form: NotificationForm): UpdateUserNotificationSe
       email: form.email,
     },
     gifts: {
+      acceptedRejected: form.giftReceived,
       received: form.giftReceived,
       actionRequired: form.giftActionRequired,
+      paymentFailed: form.giftActionRequired,
+      refunds: form.giftActionRequired,
     },
   };
 }

@@ -1,5 +1,6 @@
 import type { DesktopChatRouteRequestDto } from '@runtime/chat';
 import type { DesktopChatRouteResultDto } from '@runtime/chat';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
@@ -105,7 +106,7 @@ import {
   updateMySettings,
 } from './flows/settings-flow';
 
-export type DataSyncCallApi = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+export type DataSyncCallApi = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 export type DataSyncEmitError = (
   action: string,
   error: unknown,

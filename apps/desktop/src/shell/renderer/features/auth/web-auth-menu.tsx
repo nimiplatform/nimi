@@ -10,10 +10,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AuthService } from '@nimiplatform/sdk/realm';
-import { OAuthProvider } from '@nimiplatform/sdk/realm';
-import { OAuthLoginResultDto } from '@nimiplatform/sdk/realm';
-import type { AuthTokensDto } from '@nimiplatform/sdk/realm';
+import { OAuthLoginState, OAuthProvider } from '@nimiplatform/sdk/realm';
+import type { AuthTokensDto, OAuthLoginResultDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -773,12 +771,12 @@ export function AuthMenu({
   };
 
   const handleLoginResult = async (result: OAuthLoginResultDto, successMessage: string) => {
-    if (result.loginState === OAuthLoginResultDto.loginState.BLOCKED) {
+    if (result.loginState === OAuthLoginState.BLOCKED) {
       setLoginError(String(result.blockedReason || '账号不可用，请联系支持团队。'));
       return;
     }
 
-    if (result.loginState === OAuthLoginResultDto.loginState.NEEDS_2FA) {
+    if (result.loginState === OAuthLoginState.NEEDS_2FA) {
       setTempToken(String(result.tempToken || ''));
       setTwoFactorCode('');
       setView('email_2fa');
@@ -791,7 +789,7 @@ export function AuthMenu({
 
     await applyTokens(result.tokens, successMessage);
 
-    if (result.loginState === OAuthLoginResultDto.loginState.NEEDS_ONBOARDING) {
+    if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING) {
       setStatusBanner({
         kind: 'warning',
         message: '已登录，请完成资料设置。',
@@ -829,7 +827,7 @@ export function AuthMenu({
           void (async () => {
             try {
               const result = await dataSync.callApi(
-                () => AuthService.oauthLogin({
+                (realm) => realm.services.AuthService.oauthLogin({
                   provider: OAuthProvider.GOOGLE,
                   accessToken,
                 }),
@@ -864,7 +862,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const result = await dataSync.callApi(
-        () => AuthService.passwordLogin({
+        (realm) => realm.services.AuthService.passwordLogin({
           identifier,
           password,
         }),
@@ -908,7 +906,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const result = await dataSync.callApi(
-        () => AuthService.passwordRegister({
+        (realm) => realm.services.AuthService.passwordRegister({
           email: normalizedEmail,
           password,
         }),
@@ -934,7 +932,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const result = await dataSync.callApi(
-        () => AuthService.requestEmailOtp({ email: normalizedEmail }),
+        (realm) => realm.services.AuthService.requestEmailOtp({ email: normalizedEmail }),
         '发送验证码失败',
       );
       if (!result?.success) {
@@ -962,7 +960,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const result = await dataSync.callApi(
-        () => AuthService.verifyEmailOtp({
+        (realm) => realm.services.AuthService.verifyEmailOtp({
           email: normalizedEmail,
           code: otpCode,
         }),
@@ -991,7 +989,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const result = await dataSync.callApi(
-        () => AuthService.requestEmailOtp({ email: normalizedEmail }),
+        (realm) => realm.services.AuthService.requestEmailOtp({ email: normalizedEmail }),
         '重新发送验证码失败',
       );
       if (!result?.success) {
@@ -1017,7 +1015,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const tokens = await dataSync.callApi(
-        () => AuthService.verify2Fa({
+        (realm) => realm.services.AuthService.verify2Fa({
           tempToken,
           code: twoFactorCode,
         }),
@@ -1122,7 +1120,7 @@ export function AuthMenu({
       const chainId = parseChainId(chainIdRaw);
 
       const challenge = await dataSync.callApi(
-        () => AuthService.walletChallenge({
+        (realm) => realm.services.AuthService.walletChallenge({
           walletAddress,
           chainId,
           walletType,
@@ -1144,7 +1142,7 @@ export function AuthMenu({
       }
 
       const result = await dataSync.callApi(
-        () => AuthService.walletLogin({
+        (realm) => realm.services.AuthService.walletLogin({
           walletAddress,
           chainId,
           nonce: challenge.nonce,

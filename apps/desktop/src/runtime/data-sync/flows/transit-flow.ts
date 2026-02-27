@@ -1,4 +1,4 @@
-import { WorldsService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import {
   abandonTransitById,
   appendTransitCheckpoint as appendTransitCheckpointFromClient,
@@ -11,7 +11,7 @@ import {
   startTransitSessionById,
 } from '../clients/transit-client';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -244,7 +244,7 @@ export async function loadSceneQuota(
 ): Promise<SceneQuotaDto> {
   try {
     const payload = await callApi(
-      () => fetchSceneQuota(),
+      (realm) => fetchSceneQuota(realm),
       '加载场景配额失败',
     );
     return normalizeSceneQuota(payload);
@@ -263,7 +263,7 @@ async function getTransitById(
   if (!normalizedTransitId) throw createFlowError('WORLD_TRANSIT_ID_REQUIRED');
   try {
     const payload = await callApi(
-      () => fetchTransitById(normalizedTransitId),
+      (realm) => fetchTransitById(realm, normalizedTransitId),
       '加载跃迁详情失败',
     );
     const detail = normalizeTransitDetail(payload);
@@ -293,7 +293,7 @@ export async function startWorldTransit(
 
   try {
     await callApi(
-      () => WorldsService.worldControllerTransitToWorld(normalized.toWorldId),
+      (realm) => realm.services.WorldsService.worldControllerTransitToWorld(normalized.toWorldId),
       '世界配额闸校验失败',
     );
   } catch (error) {
@@ -307,7 +307,7 @@ export async function startWorldTransit(
 
   try {
     const payload = await callApi(
-      () => createTransit({
+      (realm) => createTransit(realm, {
         agentId: normalized.agentId,
         fromWorldId: normalized.fromWorldId,
         toWorldId: normalized.toWorldId,
@@ -342,7 +342,7 @@ export async function listWorldTransits(
 ): Promise<TransitDetailDto[]> {
   try {
     const payload = await callApi(
-      () => listTransits({
+      (realm) => listTransits(realm, {
         agentId: toText(query?.agentId) || undefined,
         status: query?.status,
         transitType: query?.transitType,
@@ -369,7 +369,7 @@ export async function getActiveWorldTransit(
   if (!normalizedAgentId) throw createFlowError('WORLD_TRANSIT_AGENT_ID_REQUIRED');
   try {
     const payload = await callApi(
-      () => fetchActiveTransit(normalizedAgentId),
+      (realm) => fetchActiveTransit(realm, normalizedAgentId),
       '加载活跃跃迁失败',
     );
     return normalizeTransitDetail(payload);
@@ -388,7 +388,7 @@ export async function startTransitSession(
   if (!normalizedTransitId) throw createFlowError('WORLD_TRANSIT_ID_REQUIRED');
   try {
     const payload = await callApi(
-      () => startTransitSessionById(normalizedTransitId),
+      (realm) => startTransitSessionById(realm, normalizedTransitId),
       '启动跃迁会话失败',
     );
     const sessionData = normalizeTransitSessionData(payload);
@@ -419,7 +419,7 @@ export async function addTransitCheckpoint(
 
   try {
     const payload = await callApi(
-      () => appendTransitCheckpointFromClient({
+      (realm) => appendTransitCheckpointFromClient(realm, {
         transitId: normalizedTransitId,
         name: checkpointName,
         status: input.status,
@@ -448,7 +448,7 @@ export async function completeWorldTransit(
   assertTerminalTransitionAllowed(current.status, 'COMPLETED');
   try {
     const payload = await callApi(
-      () => completeTransitById(current.id),
+      (realm) => completeTransitById(realm, current.id),
       '完成跃迁失败',
     );
     const detail = normalizeTransitDetail(payload);
@@ -472,7 +472,7 @@ export async function abandonWorldTransit(
   assertTerminalTransitionAllowed(current.status, 'ABANDONED');
   try {
     const payload = await callApi(
-      () => abandonTransitById(current.id),
+      (realm) => abandonTransitById(realm, current.id),
       '放弃跃迁失败',
     );
     const detail = normalizeTransitDetail(payload);

@@ -1,8 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
-import { ExploreService } from '@nimiplatform/sdk/realm';
-import { SearchService } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ExploreView } from './explore-view';
@@ -108,7 +106,7 @@ export function ExplorePanel() {
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = searchText.trim() || undefined;
-      const result = await dataSync.callApi(() => SearchService.searchUsers(
+      const result = await dataSync.callApi((realm) => realm.services.SearchService.searchUsers(
         PAGE_SIZE,
         undefined,
         undefined,
@@ -154,8 +152,7 @@ export function ExplorePanel() {
   const fetchPostPage = useCallback(
     async (cursor: string | null) => {
       const tag = selectedCategory || undefined;
-      const result = await dataSync.callApi(() =>
-        ExploreService.getExploreFeed(undefined, tag, PAGE_SIZE, cursor ?? undefined),
+      const result = await dataSync.callApi((realm) => realm.services.ExploreService.getExploreFeed(undefined, tag, PAGE_SIZE, cursor ?? undefined),
       );
       const payload = toRecord(result);
       const items = Array.isArray(payload?.items) ? (payload.items as PostDto[]) : [];

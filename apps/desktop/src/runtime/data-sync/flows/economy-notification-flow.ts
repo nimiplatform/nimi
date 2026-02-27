@@ -1,11 +1,11 @@
-import { EconomyCurrencyGiftsService, NotificationService, ReviewsEconomyTrustService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -18,7 +18,7 @@ export async function loadCurrencyBalances(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerGetBalances(),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetBalances(),
       '加载 Spark / Gem 余额失败',
     );
   } catch (error) {
@@ -35,7 +35,7 @@ export async function loadSparkTransactionHistory(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerGetSparkHistory(limit, cursor),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetSparkHistory(limit, cursor),
       '加载 Spark 流水失败',
     );
   } catch (error) {
@@ -52,7 +52,7 @@ export async function loadGemTransactionHistory(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerGetGemHistory(limit, cursor),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetGemHistory(limit, cursor),
       '加载 Gem 流水失败',
     );
   } catch (error) {
@@ -67,7 +67,7 @@ export async function loadSubscriptionStatus(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerGetSubscription(),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetSubscription(),
       '加载订阅状态失败',
     );
   } catch (error) {
@@ -82,7 +82,7 @@ export async function loadWithdrawalEligibility(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerCanWithdraw(),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerCanWithdraw(),
       '加载提现资格失败',
     );
   } catch (error) {
@@ -99,7 +99,7 @@ export async function loadWithdrawalHistory(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerGetWithdrawalHistory(limit, cursor),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetWithdrawalHistory(limit, cursor),
       '加载提现记录失败',
     );
   } catch (error) {
@@ -115,7 +115,7 @@ export async function createWithdrawal(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerCreateWithdrawal(input),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerCreateWithdrawal(input),
       '创建提现申请失败',
     );
   } catch (error) {
@@ -132,7 +132,7 @@ export async function loadGiftCatalog(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerGetGiftCatalog(),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetGiftCatalog(),
       '加载礼物目录失败',
     );
   } catch (error) {
@@ -148,7 +148,7 @@ export async function sendGift(
 ) {
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerSendGift(input),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerSendGift(input),
       '发送礼物失败',
     );
   } catch (error) {
@@ -171,7 +171,7 @@ export async function claimGift(
   }
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerClaimGift(normalizedId),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerClaimGift(normalizedId),
       '领取礼物失败',
     );
   } catch (error) {
@@ -192,7 +192,7 @@ export async function rejectGift(
   }
   try {
     return await callApi(
-      () => EconomyCurrencyGiftsService.economyControllerRejectGift(normalizedId, input),
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerRejectGift(normalizedId, input),
       '拒收礼物失败',
     );
   } catch (error) {
@@ -211,7 +211,7 @@ export async function createGiftReview(
 ) {
   try {
     return await callApi(
-      () => ReviewsEconomyTrustService.reviewControllerCreateReview(input),
+      (realm) => realm.services.ReviewsEconomyTrustService.reviewControllerCreateReview(input),
       '提交评价失败',
     );
   } catch (error) {
@@ -229,7 +229,7 @@ export async function loadNotificationUnreadCount(
 ) {
   try {
     return await callApi(
-      () => NotificationService.getUnreadCount(),
+      (realm) => realm.services.NotificationService.getUnreadCount(),
       '加载通知未读数失败',
     );
   } catch (error) {
@@ -250,7 +250,7 @@ export async function loadNotifications(
 ) {
   try {
     return await callApi(
-      () => NotificationService.listNotifications(
+      (realm) => realm.services.NotificationService.listNotifications(
         options?.type,
         options?.unreadOnly,
         options?.limit,
@@ -276,7 +276,7 @@ export async function markNotificationsRead(
 ) {
   try {
     await callApi(
-      () => NotificationService.markNotificationsRead(input),
+      (realm) => realm.services.NotificationService.markNotificationsRead(input),
       '标记通知已读失败',
     );
     return { ok: true };
@@ -300,7 +300,7 @@ export async function markNotificationRead(
   }
   try {
     await callApi(
-      () => NotificationService.markNotificationRead(normalizedId),
+      (realm) => realm.services.NotificationService.markNotificationRead(normalizedId),
       '标记通知已读失败',
     );
     return { id: normalizedId };

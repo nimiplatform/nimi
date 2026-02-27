@@ -1,4 +1,4 @@
-import { HumanChatService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { MessageType } from '@nimiplatform/sdk/realm';
 import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { StartChatInputDto } from '@nimiplatform/sdk/realm';
@@ -6,7 +6,7 @@ import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import { store } from '@runtime/state';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -80,7 +80,7 @@ export async function loadChatList(
   store.setChatsLoading(true);
   try {
     const result = await callApi(
-      () => HumanChatService.listChats(limit),
+      (realm) => realm.services.HumanChatService.listChats(limit),
       '加载会话列表失败',
     );
     const nextCursor = result.nextCursor ?? null;
@@ -108,7 +108,7 @@ export async function loadMoreChatList(
   store.setChatsLoading(true);
   try {
     const result = await callApi(
-      () => HumanChatService.listChats(20, cursor || undefined),
+      (realm) => realm.services.HumanChatService.listChats(20, cursor || undefined),
       '加载更多会话失败',
     );
     const nextCursor = result.nextCursor ?? null;
@@ -137,15 +137,15 @@ export async function startChatWithTarget(
       data.type = 'TEXT' as MessageType;
       data.payload = {
         content: normalizedMessage,
-      };
+      } as unknown as Record<string, never>;
     }
 
     const result = await callApi(
-      () => HumanChatService.startChat(data),
+      (realm) => realm.services.HumanChatService.startChat(data),
       '创建会话失败',
     );
     const chat = await callApi(
-      () => HumanChatService.getChatById(result.chatId),
+      (realm) => realm.services.HumanChatService.getChatById(result.chatId),
       '加载新会话详情失败',
     );
     const chats = store.getState<Array<typeof chat>>('chats.items') ?? [];
@@ -177,7 +177,7 @@ export async function loadChatMessages(
   store.setMessagesLoading(chatId, true);
   try {
     const result = await callApi(
-      () => HumanChatService.listMessages(chatId, limit),
+      (realm) => realm.services.HumanChatService.listMessages(chatId, limit),
       '加载消息失败',
     );
     const nextBefore = result.nextBefore ?? null;
@@ -204,7 +204,7 @@ export async function loadMoreChatMessages(
   store.setMessagesLoading(chatId, true);
   try {
     const result = await callApi(
-      () => HumanChatService.listMessages(
+      (realm) => realm.services.HumanChatService.listMessages(
         chatId,
         50,
         undefined,
@@ -236,7 +236,7 @@ export async function sendChatMessage(
       clientMessageId,
       type: 'TEXT' as MessageType,
       text: content,
-      payload: { content },
+      payload: { content } as unknown as Record<string, never>,
       ...options,
     };
     const outbox = getChatOutbox(chatId);
@@ -248,7 +248,7 @@ export async function sendChatMessage(
     });
 
     const message = await callApi(
-      () => HumanChatService.sendMessage(chatId, data),
+      (realm) => realm.services.HumanChatService.sendMessage(chatId, data),
       '发送消息失败',
     );
     outbox.delete(data.clientMessageId);
@@ -286,7 +286,7 @@ export async function flushPendingChatOutbox(
     for (const entry of pending) {
       try {
         const message = await callApi(
-          () => HumanChatService.sendMessage(entry.chatId, entry.body),
+          (realm) => realm.services.HumanChatService.sendMessage(entry.chatId, entry.body),
           '重放聊天消息失败',
         );
         outbox.delete(entry.body.clientMessageId);
@@ -312,7 +312,7 @@ export async function markChatAsRead(
   chatId: string,
 ) {
   try {
-    await callApi(() => HumanChatService.markChatRead(chatId));
+    await callApi((realm) => realm.services.HumanChatService.markChatRead(chatId));
     store.updateChat(chatId, { unreadCount: 0 });
   } catch (error) {
     emitDataSyncError('mark-chat-read', error, { chatId });
@@ -331,7 +331,7 @@ export async function syncChatEventWindow(
 
   try {
     const result = await callApi(
-      () => HumanChatService.syncChatEvents(chatId, normalizedLimit, normalizedAfterSeq),
+      (realm) => realm.services.HumanChatService.syncChatEvents(chatId, normalizedLimit, normalizedAfterSeq),
       '同步聊天事件失败',
     );
     return result;

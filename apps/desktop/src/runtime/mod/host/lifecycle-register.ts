@@ -3,6 +3,7 @@ import type { DesktopHookRuntimeService } from '@runtime/hook';
 import type { HookSourceType } from '@runtime/hook/contracts/types';
 import { anyCapabilityMatches } from '@runtime/hook/contracts/capabilities';
 import type { RuntimeModRegistration } from '../types';
+import type { ModRuntimeContext } from '@nimiplatform/sdk/mod/types';
 import { resolveDeclaredDataCapabilities } from './capability-bindings';
 import { resolveCodegenCapabilityDecision } from '../codegen/capability-catalog';
 
@@ -17,6 +18,7 @@ export async function registerRuntimeModState(input: {
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
   getHttpContext: () => { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
+  sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
 }): Promise<{ defaultPrivateExecutionModId: string }> {
   const mergedCapabilities = [
@@ -54,6 +56,7 @@ export async function registerRuntimeModState(input: {
     kernel: input.kernel,
     hookRuntime: input.hookRuntime,
     getHttpContext: input.getHttpContext,
+    sdkRuntimeContext: input.sdkRuntimeContext,
   });
 
   input.registeredMods.set(input.mod.modId, input.mod);

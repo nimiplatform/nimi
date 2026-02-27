@@ -1,9 +1,13 @@
-import { ApiError } from '@nimiplatform/sdk/realm';
 import { normalizeApiError } from './error-normalize';
 
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 export type RetryReasonKind = 'status' | 'network';
+
+type ApiErrorLike = {
+  status: number;
+  message?: string;
+};
 
 export type RetryEvent =
   | {
@@ -52,8 +56,16 @@ function isRetryableNetworkError(error: unknown): error is Error {
   return error.name === 'TypeError';
 }
 
-function isRetryableApiError(error: unknown): error is ApiError {
-  return error instanceof ApiError && RETRYABLE_STATUS_CODES.has(error.status);
+function isApiErrorLike(error: unknown): error is ApiErrorLike {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const status = Number((error as { status?: unknown }).status);
+  return Number.isFinite(status) && status > 0;
+}
+
+function isRetryableApiError(error: unknown): error is ApiErrorLike {
+  return isApiErrorLike(error) && RETRYABLE_STATUS_CODES.has(error.status);
 }
 
 function getRetryDelayMs(attempt: number, initialDelayMs: number, maxDelayMs: number) {

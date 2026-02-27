@@ -1,6 +1,4 @@
-import { OpenAPI } from '@nimiplatform/sdk/realm';
-import { openApiRequest } from '@nimiplatform/sdk/realm';
-import type { MemoryStatsResponseDto } from '@nimiplatform/sdk/realm';
+import type { MemoryStatsResponseDto, Realm } from '@nimiplatform/sdk/realm';
 
 export type AgentMemoryRecord = Record<string, unknown>;
 
@@ -98,14 +96,16 @@ function toRecallQuery(query: AgentMemoryRecallQuery | undefined): Record<string
   return Object.keys(next).length > 0 ? next : undefined;
 }
 
-export async function fetchAgentCoreMemorySlice(input: {
-  agentId: string;
-  query?: AgentMemorySliceQuery;
-}): Promise<AgentMemorySliceResponse> {
-  const payload = await openApiRequest<unknown>(OpenAPI, {
+export async function fetchAgentCoreMemorySlice(
+  realm: Realm,
+  input: {
+    agentId: string;
+    query?: AgentMemorySliceQuery;
+  },
+): Promise<AgentMemorySliceResponse> {
+  const payload = await realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/core',
-    path: { id: input.agentId },
+    path: `/api/agent/accounts/${encodeURIComponent(input.agentId)}/memory/core`,
     query: toSliceQuery(input.query),
   });
   return {
@@ -114,18 +114,17 @@ export async function fetchAgentCoreMemorySlice(input: {
   };
 }
 
-export async function fetchAgentE2EMemorySlice(input: {
-  agentId: string;
-  entityId: string;
-  query?: AgentMemorySliceQuery;
-}): Promise<AgentMemorySliceResponse> {
-  const payload = await openApiRequest<unknown>(OpenAPI, {
+export async function fetchAgentE2EMemorySlice(
+  realm: Realm,
+  input: {
+    agentId: string;
+    entityId: string;
+    query?: AgentMemorySliceQuery;
+  },
+): Promise<AgentMemorySliceResponse> {
+  const payload = await realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/e2e/{entityId}',
-    path: {
-      id: input.agentId,
-      entityId: input.entityId,
-    },
+    path: `/api/agent/accounts/${encodeURIComponent(input.agentId)}/memory/e2e/${encodeURIComponent(input.entityId)}`,
     query: toSliceQuery(input.query),
   });
   return {
@@ -134,18 +133,17 @@ export async function fetchAgentE2EMemorySlice(input: {
   };
 }
 
-export async function fetchAgentRecallForEntity(input: {
-  agentId: string;
-  entityId: string;
-  query?: AgentMemoryRecallQuery;
-}): Promise<AgentMemoryRecallResponse> {
-  const payload = await openApiRequest<unknown>(OpenAPI, {
+export async function fetchAgentRecallForEntity(
+  realm: Realm,
+  input: {
+    agentId: string;
+    entityId: string;
+    query?: AgentMemoryRecallQuery;
+  },
+): Promise<AgentMemoryRecallResponse> {
+  const payload = await realm.raw.request<unknown>({
     method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/recall/{entityId}',
-    path: {
-      id: input.agentId,
-      entityId: input.entityId,
-    },
+    path: `/api/agent/accounts/${encodeURIComponent(input.agentId)}/memory/recall/${encodeURIComponent(input.entityId)}`,
     query: toRecallQuery(input.query),
   });
 
@@ -180,14 +178,14 @@ export async function fetchAgentRecallForEntity(input: {
   };
 }
 
-export async function fetchAgentMemoryStats(input: {
-  agentId: string;
-}): Promise<MemoryStatsResponseDto> {
-  return openApiRequest<MemoryStatsResponseDto>(OpenAPI, {
+export async function fetchAgentMemoryStats(
+  realm: Realm,
+  input: {
+    agentId: string;
+  },
+): Promise<MemoryStatsResponseDto> {
+  return realm.raw.request<MemoryStatsResponseDto>({
     method: 'GET',
-    url: '/api/agent/accounts/{id}/memory/stats',
-    path: {
-      id: input.agentId,
-    },
+    path: `/api/agent/accounts/${encodeURIComponent(input.agentId)}/memory/stats`,
   });
 }

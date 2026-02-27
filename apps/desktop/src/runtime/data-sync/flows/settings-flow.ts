@@ -1,10 +1,10 @@
-import { MeService } from '@nimiplatform/sdk/realm';
+import type { Realm } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
 
-type DataSyncApiCaller = <T>(task: () => Promise<T>, fallbackMessage?: string) => Promise<T>;
+type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -42,7 +42,7 @@ export async function loadMySettings(
 ): Promise<UserSettingsDto> {
   try {
     return await callApi(
-      () => MeService.getMySettings(),
+      (realm) => realm.services.MeService.getMySettings(),
       '加载隐私设置失败',
     );
   } catch (error) {
@@ -58,7 +58,7 @@ export async function updateMySettings(
 ): Promise<UserSettingsDto> {
   try {
     return await callApi(
-      () => MeService.updateMySettings(payload),
+      (realm) => realm.services.MeService.updateMySettings(payload),
       '保存隐私设置失败',
     );
   } catch (error) {
@@ -73,7 +73,7 @@ export async function loadMyNotificationSettings(
 ): Promise<UserNotificationSettingsDto> {
   try {
     return await callApi(
-      () => MeService.getMyNotificationSettings(),
+      (realm) => realm.services.MeService.getMyNotificationSettings(),
       '加载通知设置失败',
     );
   } catch (error) {
@@ -89,7 +89,7 @@ export async function updateMyNotificationSettings(
 ): Promise<UserNotificationSettingsDto> {
   try {
     return await callApi(
-      () => MeService.updateMyNotificationSettings(payload),
+      (realm) => realm.services.MeService.updateMyNotificationSettings(payload),
       '保存通知设置失败',
     );
   } catch (error) {
@@ -104,7 +104,7 @@ export async function loadMyCreatorEligibility(
 ): Promise<CreatorEligibility> {
   try {
     const payload = await callApi(
-      () => MeService.getMyCreatorEligibility(),
+      (realm) => realm.services.MeService.getMyCreatorEligibility(),
       '加载创作者资格失败',
     );
     const data = payload && typeof payload === 'object'
