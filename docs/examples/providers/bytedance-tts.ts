@@ -14,7 +14,8 @@
  * - NIMI_APP_ID=example.providers.bytedance.tts
  * - NIMI_SUBJECT_USER_ID=local-user
  * - NIMI_BYTEDANCE_ENDPOINT=https://your-openspeech-endpoint
- * - NIMI_BYTEDANCE_TTS_MODEL=bytedance/tts-1
+ * - NIMI_BYTEDANCE_TTS_MODEL=bytedance/voice-1
+ * - NIMI_BYTEDANCE_TTS_VOICE=zh_female
  * - NIMI_BYTEDANCE_TTS_TEXT="Hello from ByteDance OpenSpeech via nimi runtime."
  * - NIMI_BYTEDANCE_TTS_OUT=./tmp/bytedance-tts.mp3
  */
@@ -97,7 +98,8 @@ async function main(): Promise<void> {
   const endpoint = env('NIMI_RUNTIME_GRPC_ENDPOINT', '127.0.0.1:46371');
   const appId = env('NIMI_APP_ID', 'example.providers.bytedance.tts');
   const subjectUserId = env('NIMI_SUBJECT_USER_ID', 'local-user');
-  const model = env('NIMI_BYTEDANCE_TTS_MODEL', 'bytedance/tts-1');
+  const model = env('NIMI_BYTEDANCE_TTS_MODEL', 'bytedance/voice-1');
+  const voice = env('NIMI_BYTEDANCE_TTS_VOICE', 'zh_female');
   const text = env('NIMI_BYTEDANCE_TTS_TEXT', 'Hello from ByteDance OpenSpeech via nimi runtime.');
   const out = env('NIMI_BYTEDANCE_TTS_OUT', './tmp/bytedance-tts.mp3');
 
@@ -134,7 +136,7 @@ async function main(): Promise<void> {
       oneofKind: 'speechSpec',
       speechSpec: {
         text,
-        voice: '',
+        voice,
         language: '',
         audioFormat: 'mp3',
         sampleRateHz: 0,

@@ -50,7 +50,12 @@ test('applyRuntimeBridgeConfigToState maps provider endpoints into runtime setup
   });
 
   assert.equal(next.localRuntime.endpoint, 'http://127.0.0.1:18080/v1');
-  assert.equal(next.connectors.length, 2);
+  assert.ok(next.connectors.length >= 2);
+
+  const managedConnectors = next.connectors.filter(
+    (connector) => connector.vendor === 'gemini' || connector.vendor === 'dashscope',
+  );
+  assert.equal(managedConnectors.length, 2);
 
   const geminiConnector = next.connectors.find((connector) => connector.vendor === 'gemini');
   assert.ok(geminiConnector);
