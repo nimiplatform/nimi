@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::fs;
 use std::io::Write;
 use std::net::{SocketAddr, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -13,6 +13,8 @@ use super::error_map::bridge_error;
 
 const DEFAULT_GRPC_ADDR: &str = "127.0.0.1:46371";
 const DEFAULT_RUNTIME_BINARY: &str = "nimi";
+const DEFAULT_RUNTIME_BRIDGE_MODE: &str = "RELEASE";
+const RUNTIME_BRIDGE_MODE_ENV: &str = "NIMI_RUNTIME_BRIDGE_MODE";
 const DEFAULT_RUNTIME_CONFIG_REL_PATH: &str = ".nimi/config.json";
 const LEGACY_RUNTIME_CONFIG_REL_PATH: &str = ".nimi/runtime/config.json";
 
@@ -24,6 +26,7 @@ static DAEMON_LAST_ERROR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 pub struct RuntimeBridgeDaemonStatus {
     pub running: bool,
     pub managed: bool,
+    pub launch_mode: String,
     pub grpc_addr: String,
     pub pid: Option<u32>,
     pub last_error: Option<String>,
@@ -81,6 +84,138 @@ fn runtime_binary() -> String {
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_RUNTIME_BINARY.to_string())
+}
+
+#[derive(Debug, Clone)]
+struct RuntimeCliCommandSpec {
+    program: String,
+    args: Vec<String>,
+    current_dir: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RuntimeBridgeMode {
+    Runtime,
+    Release,
+}
+
+fn runtime_dev_root_dir() -> Option<PathBuf> {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../runtime");
+    if root.exists() {
+        Some(root)
+    } else {
+        None
+    }
+}
+
+fn is_executable_available(name: &str) -> bool {
+    if name.contains(std::path::MAIN_SEPARATOR) || name.contains('/') || name.contains('\\') {
+        return Path::new(name).exists();
+    }
+
+    let Some(raw_path) = std::env::var_os("PATH") else {
+        return false;
+    };
+
+    for dir in std::env::split_paths(&raw_path) {
+        let candidate = dir.join(name);
+        if candidate.exists() {
+            return true;
+        }
+
+        #[cfg(windows)]
+        {
+            const WINDOWS_EXTENSIONS: [&str; 4] = [".exe", ".cmd", ".bat", ".com"];
+            for extension in WINDOWS_EXTENSIONS {
+                let candidate = dir.join(format!("{name}{extension}"));
+                if candidate.exists() {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
+}
+
+fn runtime_bridge_mode_label(mode: RuntimeBridgeMode) -> &'static str {
+    match mode {
+        RuntimeBridgeMode::Runtime => "RUNTIME",
+        RuntimeBridgeMode::Release => "RELEASE",
+    }
+}
+
+fn parse_runtime_bridge_mode(raw: &str) -> Option<RuntimeBridgeMode> {
+    let normalized = raw.trim().to_ascii_uppercase();
+    match normalized.as_str() {
+        "RUNTIME" => Some(RuntimeBridgeMode::Runtime),
+        "RELEASE" => Some(RuntimeBridgeMode::Release),
+        _ => None,
+    }
+}
+
+fn runtime_bridge_mode() -> Result<RuntimeBridgeMode, String> {
+    let raw = read_non_empty_env(RUNTIME_BRIDGE_MODE_ENV)
+        .unwrap_or_else(|| DEFAULT_RUNTIME_BRIDGE_MODE.to_string());
+    parse_runtime_bridge_mode(raw.as_str()).ok_or_else(|| {
+        bridge_error(
+            "RUNTIME_BRIDGE_MODE_INVALID",
+            format!(
+                "{} must be RUNTIME or RELEASE, received: {}",
+                RUNTIME_BRIDGE_MODE_ENV, raw
+            )
+            .as_str(),
+        )
+    })
+}
+
+fn runtime_bridge_mode_for_status() -> (RuntimeBridgeMode, Option<String>) {
+    match runtime_bridge_mode() {
+        Ok(mode) => (mode, None),
+        Err(error) => (RuntimeBridgeMode::Release, Some(error)),
+    }
+}
+
+fn runtime_cli_command_spec(args: &[&str]) -> Result<RuntimeCliCommandSpec, String> {
+    let mode = runtime_bridge_mode()?;
+    match mode {
+        RuntimeBridgeMode::Runtime => {
+            if !is_executable_available("go") {
+                return Err(bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_GO_NOT_FOUND",
+                    "runtime mode requires `go` in PATH",
+                ));
+            }
+            let runtime_dir = runtime_dev_root_dir().ok_or_else(|| {
+                bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND",
+                    "runtime mode requires ./runtime directory in workspace",
+                )
+            })?;
+            let mut resolved_args = vec!["run".to_string(), "./cmd/nimi".to_string()];
+            resolved_args.extend(args.iter().map(|value| (*value).to_string()));
+            Ok(RuntimeCliCommandSpec {
+                program: "go".to_string(),
+                args: resolved_args,
+                current_dir: Some(runtime_dir),
+            })
+        }
+        RuntimeBridgeMode::Release => {
+            let binary = runtime_binary();
+            if binary == DEFAULT_RUNTIME_BINARY && !is_executable_available(DEFAULT_RUNTIME_BINARY)
+            {
+                return Err(bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND",
+                    "release mode requires `nimi` in PATH (or set NIMI_RUNTIME_BINARY)",
+                ));
+            }
+            Ok(RuntimeCliCommandSpec {
+                program: binary,
+                args: args.iter().map(|value| (*value).to_string()).collect(),
+                current_dir: None,
+            })
+        }
+    }
 }
 
 fn read_non_empty_env(name: &str) -> Option<String> {
@@ -182,10 +317,15 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
         }
     };
 
+    let (mode, mode_error) = runtime_bridge_mode_for_status();
+    let has_mode_error = mode_error.is_some();
     let addr = grpc_addr();
     let running = probe_running(addr.as_str());
     let mut last_error = read_last_error();
-    if running && last_error.is_some() {
+    if let Some(error) = mode_error {
+        last_error = Some(error);
+    }
+    if running && last_error.is_some() && !has_mode_error {
         set_last_error(None);
         last_error = None;
     }
@@ -193,6 +333,7 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
     RuntimeBridgeDaemonStatus {
         running,
         managed,
+        launch_mode: runtime_bridge_mode_label(mode).to_string(),
         grpc_addr: addr,
         pid,
         last_error,
@@ -206,14 +347,20 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
         return Ok(current);
     }
 
-    let binary = runtime_binary();
     let grpc = grpc_addr();
-    let mut command = Command::new(binary.as_str());
+    let spec = runtime_cli_command_spec(&["serve"]).map_err(|error| {
+        set_last_error(Some(error.clone()));
+        error
+    })?;
+    let mut command = Command::new(spec.program.as_str());
     command
-        .arg("serve")
+        .args(spec.args)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .stdin(Stdio::null());
+    if let Some(current_dir) = spec.current_dir {
+        command.current_dir(current_dir);
+    }
 
     let child = command.spawn().map_err(|error| {
         let message = error.to_string();
@@ -290,12 +437,15 @@ fn run_runtime_cli_json(args: &[&str], stdin_payload: Option<&str>) -> Result<Va
 }
 
 fn run_runtime_cli(args: &[&str], stdin_payload: Option<&str>) -> Result<String, String> {
-    let binary = runtime_binary();
-    let mut command = Command::new(binary.as_str());
+    let spec = runtime_cli_command_spec(args)?;
+    let mut command = Command::new(spec.program.as_str());
     command
-        .args(args)
+        .args(spec.args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if let Some(current_dir) = spec.current_dir {
+        command.current_dir(current_dir);
+    }
     if stdin_payload.is_some() {
         command.stdin(Stdio::piped());
     } else {
@@ -357,7 +507,9 @@ fn run_runtime_cli(args: &[&str], stdin_payload: Option<&str>) -> Result<String,
 
 #[cfg(test)]
 mod tests {
-    use super::{config_get, config_set, runtime_config_path, start, status, stop};
+    use super::{
+        config_get, config_set, runtime_cli_command_spec, runtime_config_path, start, status, stop,
+    };
     use std::fs;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
@@ -527,6 +679,98 @@ exit 9
                 assert!(err.contains("config failed from fake cli"));
             },
         );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runtime_cli_command_spec_uses_runtime_mode_branch() {
+        let _guard = env_guard();
+        let dir = make_temp_dir("runtime-cli-fallback-path");
+        let fake_go = dir.join("go");
+        write_executable(&fake_go, "#!/bin/sh\nexit 0\n");
+
+        with_env_var("PATH", dir.to_str().expect("temp path"), || {
+            std::env::remove_var("NIMI_RUNTIME_BINARY");
+            with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME", || {
+                let spec = runtime_cli_command_spec(&["config", "get", "--json"]).expect("spec");
+                assert_eq!(spec.program, "go");
+                assert_eq!(spec.args[0], "run");
+                assert_eq!(spec.args[1], "./cmd/nimi");
+                assert_eq!(spec.args[2], "config");
+                assert_eq!(spec.args[3], "get");
+                assert_eq!(spec.args[4], "--json");
+                let current_dir = spec.current_dir.expect("current dir");
+                assert!(current_dir.ends_with("runtime"));
+            });
+        });
+
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn runtime_cli_command_spec_rejects_invalid_mode() {
+        let _guard = env_guard();
+        with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "invalid", || {
+            let error = runtime_cli_command_spec(&["config", "get", "--json"])
+                .err()
+                .unwrap_or_default();
+            assert!(error.contains("RUNTIME_BRIDGE_MODE_INVALID"));
+            assert!(error.contains("NIMI_RUNTIME_BRIDGE_MODE"));
+        });
+    }
+
+    #[test]
+    fn status_includes_launch_mode() {
+        let _guard = env_guard();
+        with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME", || {
+            let snapshot = status();
+            assert_eq!(snapshot.launch_mode, "RUNTIME");
+        });
+        with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE", || {
+            let snapshot = status();
+            assert_eq!(snapshot.launch_mode, "RELEASE");
+        });
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runtime_cli_command_spec_release_mode_uses_binary_branch() {
+        let _guard = env_guard();
+        let dir = make_temp_dir("runtime-cli-release-path");
+        let fake_nimi = dir.join("nimi");
+        write_executable(&fake_nimi, "#!/bin/sh\nexit 0\n");
+
+        with_env_var("PATH", dir.to_str().expect("temp path"), || {
+            std::env::remove_var("NIMI_RUNTIME_BINARY");
+            with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE", || {
+                let spec = runtime_cli_command_spec(&["config", "get", "--json"]).expect("spec");
+                assert_eq!(spec.program, "nimi");
+                assert_eq!(spec.args[0], "config");
+                assert_eq!(spec.args[1], "get");
+                assert_eq!(spec.args[2], "--json");
+                assert!(spec.current_dir.is_none());
+            });
+        });
+
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn runtime_cli_command_spec_release_mode_requires_binary() {
+        let _guard = env_guard();
+        let dir = make_temp_dir("runtime-cli-release-missing-binary");
+        with_env_var("PATH", dir.to_str().expect("temp path"), || {
+            std::env::remove_var("NIMI_RUNTIME_BINARY");
+            with_env_var("NIMI_RUNTIME_BRIDGE_MODE", "RELEASE", || {
+                let error = runtime_cli_command_spec(&["config", "get", "--json"])
+                    .err()
+                    .unwrap_or_default();
+                assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND"));
+            });
+        });
+
         let _ = fs::remove_dir_all(dir);
     }
 }

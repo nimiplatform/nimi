@@ -64,7 +64,7 @@ export function getRuntimeConfig() {
   );
 
   const config = {
-    apiBaseUrl: getRuntimeEnv('NIMI_API_BASE_URL') || 'http://localhost:3002',
+    apiBaseUrl: getRuntimeEnv('NIMI_REALM_URL') || 'http://localhost:3002',
     accessToken: getRuntimeEnv('NIMI_ACCESS_TOKEN') || '',
     targetType,
     targetAccountId: getRuntimeEnv('NIMI_TARGET_ACCOUNT_ID') || '',

@@ -23,7 +23,7 @@ export function resolveControlPlaneRuntimeConfig(input: {
   baseUrl: string;
   accessToken: string;
 } {
-  const runtimeApiBaseUrl = getRuntimeEnv('NIMI_API_BASE_URL');
+  const runtimeApiBaseUrl = getRuntimeEnv('NIMI_REALM_URL');
   const runtimeAccessToken = getRuntimeEnv('NIMI_ACCESS_TOKEN');
   return {
     baseUrl: String(input.apiBaseUrl || runtimeApiBaseUrl || DEFAULT_CONTROL_PLANE_API_BASE_URL),

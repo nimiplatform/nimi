@@ -33,6 +33,7 @@ export type RuntimeDefaults = {
 export type RuntimeBridgeDaemonStatus = {
   running: boolean;
   managed: boolean;
+  launchMode: 'RUNTIME' | 'RELEASE' | 'INVALID';
   grpcAddr: string;
   pid?: number;
   lastError?: string;
@@ -400,9 +401,14 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
 
 export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDaemonStatus {
   const record = assertRecord(value, 'runtime_bridge_status returned invalid payload');
+  const launchModeRaw = String(record.launchMode || '').trim().toUpperCase();
+  const launchMode = launchModeRaw === 'RUNTIME' || launchModeRaw === 'RELEASE'
+    ? launchModeRaw
+    : 'INVALID';
   return {
     running: Boolean(record.running),
     managed: Boolean(record.managed),
+    launchMode,
     grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'runtime_bridge_status'),
     pid: parseOptionalNumber(record.pid),
     lastError: parseOptionalString(record.lastError),

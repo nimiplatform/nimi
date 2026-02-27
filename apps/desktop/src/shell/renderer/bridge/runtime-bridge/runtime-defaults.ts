@@ -35,7 +35,7 @@ function resolveApiBaseUrlFallback(): string {
   if (resolveShellMode() === 'web') {
     return browserOrigin;
   }
-  return readEnv('NIMI_API_BASE_URL') || 'http://localhost:3002';
+  return readEnv('NIMI_REALM_URL') || 'http://localhost:3002';
 }
 
 function readRuntimeDefaultsFallback(): RuntimeDefaults {

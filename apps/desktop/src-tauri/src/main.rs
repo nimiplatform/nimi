@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{env, path::PathBuf};
+use std::{env, path::Path, path::PathBuf};
 
 use reqwest::{header::HeaderMap, Method, Url};
 use serde::{Deserialize, Serialize};
@@ -266,36 +266,52 @@ fn install_panic_hook() {
 }
 
 fn load_dotenv_files() {
-    let cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-
-    let candidates = [
-        cwd.join(".env"),
-        cwd.join("nimi/apps/desktop/.env"),
-        cwd.join("../.env"),
-        cwd.join("../../.env"),
-        manifest_dir.join(".env"),
-        manifest_dir.join("../.env"),
-        manifest_dir.join("../../.env"),
-    ];
-
-    for path in candidates {
-        eprintln!(
-            "[boot:{:}] load_dotenv_candidate path={}",
-            now_ms(),
-            path.display()
-        );
-        if path.exists() {
-            let _ = dotenvy::from_path(&path);
-            eprintln!("[boot:{:}] dotenv loaded path={}", now_ms(), path.display());
-        } else {
-            eprintln!(
-                "[boot:{:}] dotenv skipped path={}",
+    let root_env_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../.env");
+    eprintln!(
+        "[boot:{:}] load_dotenv_candidate path={}",
+        now_ms(),
+        root_env_path.display()
+    );
+    if root_env_path.exists() {
+        match load_dotenv_file_preserve_env(&root_env_path) {
+            Ok(()) => eprintln!(
+                "[boot:{:}] dotenv loaded path={}",
                 now_ms(),
-                path.display()
-            );
+                root_env_path.display()
+            ),
+            Err(error) => eprintln!(
+                "[boot:{:}] dotenv load failed path={} error={}",
+                now_ms(),
+                root_env_path.display(),
+                error
+            ),
+        }
+    } else {
+        eprintln!(
+            "[boot:{:}] dotenv skipped path={}",
+            now_ms(),
+            root_env_path.display()
+        );
+    }
+}
+
+fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
+    let iter = dotenvy::from_path_iter(path)
+        .map_err(|error| format!("open dotenv file failed: {error}"))?;
+    let mut parsed = HashMap::<String, String>::new();
+    for item in iter {
+        let (key, value) = item.map_err(|error| format!("parse dotenv failed: {error}"))?;
+        parsed.insert(key, value);
+    }
+
+    // Keep explicit process env precedence while still honoring last declaration
+    // within the same dotenv file (Node loadEnvFile semantics).
+    for (key, value) in parsed {
+        if env::var_os(&key).is_none() {
+            env::set_var(key, value);
         }
     }
+    Ok(())
 }
 
 fn normalize_http_method(input: Option<String>) -> Result<Method, String> {
@@ -326,7 +342,7 @@ fn normalize_origin(url: &Url) -> Result<String, String> {
 fn allowed_http_origins() -> HashSet<String> {
     let mut origins = HashSet::new();
     let candidates = [
-        env_value("NIMI_API_BASE_URL", "http://localhost:3002"),
+        env_value("NIMI_REALM_URL", "http://localhost:3002"),
         "http://localhost".to_string(),
         "http://127.0.0.1".to_string(),
         "http://localhost:3002".to_string(),
@@ -582,7 +598,7 @@ fn redact_body_preview(input: &str, max_bytes: usize) -> String {
 #[tauri::command]
 fn runtime_defaults() -> RuntimeDefaults {
     let defaults = RuntimeDefaults {
-        api_base_url: env_value("NIMI_API_BASE_URL", "http://localhost:3002"),
+        api_base_url: env_value("NIMI_REALM_URL", "http://localhost:3002"),
         realtime_url: env_value("NIMI_REALTIME_URL", ""),
         access_token: env_value("NIMI_ACCESS_TOKEN", ""),
         local_provider_endpoint: env_value(
@@ -1059,7 +1075,7 @@ mod tests {
 
     #[test]
     fn allowed_http_origins_contains_runtime_defaults() {
-        std::env::set_var("NIMI_API_BASE_URL", "https://gateway.nimi.local/v1");
+        std::env::set_var("NIMI_REALM_URL", "https://gateway.nimi.local/v1");
         std::env::set_var("NIMI_LOCAL_PROVIDER_ENDPOINT", "http://127.0.0.1:1234/v1");
         std::env::set_var("NIMI_LOCAL_OPENAI_ENDPOINT", "http://localhost:1234/v1");
 

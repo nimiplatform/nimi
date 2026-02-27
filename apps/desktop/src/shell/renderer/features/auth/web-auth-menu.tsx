@@ -231,9 +231,9 @@ function normalizeWebAuthLaunchPath(input: URL): URL {
 }
 
 function resolveDesktopWebAuthLaunchBaseUrl(inputBaseUrl?: string): string {
-  const baseUrl = String(inputBaseUrl || readEnv('NIMI_API_BASE_URL')).trim();
+  const baseUrl = String(inputBaseUrl || readEnv('NIMI_REALM_URL')).trim();
   if (!baseUrl) {
-    throw new Error('缺少 NIMI_API_BASE_URL');
+    throw new Error('缺少 NIMI_REALM_URL');
   }
 
   try {
@@ -245,7 +245,7 @@ function resolveDesktopWebAuthLaunchBaseUrl(inputBaseUrl?: string): string {
     return parsed.toString();
   } catch (error) {
     throw new Error(
-      `无效的 NIMI_API_BASE_URL：${toErrorMessage(error, '配置解析失败')}`,
+      `无效的 NIMI_REALM_URL：${toErrorMessage(error, '配置解析失败')}`,
     );
   }
 }

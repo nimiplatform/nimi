@@ -9,8 +9,8 @@ type RuntimeDaemonStatusDetail = {
 };
 
 function buildRuntimeDaemonStatusDetail(status: RuntimeBridgeDaemonStatus): RuntimeDaemonStatusDetail {
-  const runningDetail = `runtime daemon running (${status.grpcAddr})`;
-  const stoppedDetail = `runtime daemon stopped (${status.grpcAddr})${status.lastError ? `: ${status.lastError}` : ''}`;
+  const runningDetail = `runtime daemon running (${status.grpcAddr}) · mode=${status.launchMode}`;
+  const stoppedDetail = `runtime daemon stopped (${status.grpcAddr}) · mode=${status.launchMode}${status.lastError ? `: ${status.lastError}` : ''}`;
   return {
     runningDetail,
     stoppedDetail,

@@ -60,8 +60,8 @@ export function DiagnosticsPanel({
     mode: 'poll' | 'action',
   ) => {
     const checkedAt = new Date().toISOString();
-    const stoppedDetail = `runtime daemon stopped (${status.grpcAddr})${status.lastError ? `: ${status.lastError}` : ''}`;
-    const runningDetail = `runtime daemon running (${status.grpcAddr})`;
+    const stoppedDetail = `runtime daemon stopped (${status.grpcAddr}) · mode=${status.launchMode}${status.lastError ? `: ${status.lastError}` : ''}`;
+    const runningDetail = `runtime daemon running (${status.grpcAddr}) · mode=${status.launchMode}`;
 
     updateState((previous) => {
       if (!status.running) {
@@ -308,6 +308,7 @@ export function DiagnosticsPanel({
               gRPC: {daemonStatus?.grpcAddr || '127.0.0.1:46371'}
               {daemonStatus?.pid ? ` · pid ${daemonStatus.pid}` : ''}
               {daemonStatus?.managed ? ' · managed' : ''}
+              {daemonStatus?.launchMode ? ` · mode ${daemonStatus.launchMode}` : ''}
             </p>
             <p className="text-[11px] text-gray-500">
               last update: {daemonUpdatedAt ? formatLocaleDateTime(daemonUpdatedAt) : '-'}

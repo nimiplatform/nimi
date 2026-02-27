@@ -2,8 +2,10 @@ import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import { logRendererEvent, toRendererLogMessage } from '@renderer/bridge/runtime-bridge/logging';
 import { proxyHttp } from '@renderer/bridge/runtime-bridge/http';
 import {
+  getRuntimeBridgeConfig as getDesktopRuntimeBridgeConfig,
   getRuntimeBridgeStatus as getDesktopRuntimeBridgeStatus,
   restartRuntimeBridge as restartDesktopRuntimeBridge,
+  setRuntimeBridgeConfig as setDesktopRuntimeBridgeConfig,
   startRuntimeBridge as startDesktopRuntimeBridge,
   stopRuntimeBridge as stopDesktopRuntimeBridge,
 } from '@renderer/bridge/runtime-bridge/runtime-daemon';
@@ -17,6 +19,8 @@ import type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   RendererLogMessage,
+  RuntimeBridgeConfigGetResult,
+  RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
@@ -29,6 +33,8 @@ export type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   RendererLogMessage,
+  RuntimeBridgeConfigGetResult,
+  RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
@@ -48,6 +54,10 @@ export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatu
   return getDesktopRuntimeBridgeStatus();
 }
 
+export async function getRuntimeBridgeConfig(): Promise<RuntimeBridgeConfigGetResult> {
+  return getDesktopRuntimeBridgeConfig();
+}
+
 export async function startRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
   return startDesktopRuntimeBridge();
 }
@@ -60,12 +70,18 @@ export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus>
   return restartDesktopRuntimeBridge();
 }
 
+export async function setRuntimeBridgeConfig(configJson: string): Promise<RuntimeBridgeConfigSetResult> {
+  return setDesktopRuntimeBridgeConfig(configJson);
+}
+
 export const desktopBridge = {
   hasTauriInvoke,
   getRuntimeBridgeStatus,
+  getRuntimeBridgeConfig,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,
+  setRuntimeBridgeConfig,
   getRuntimeDefaults,
   proxyHttp,
   openExternalUrl,

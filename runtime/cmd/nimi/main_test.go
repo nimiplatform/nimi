@@ -236,6 +236,33 @@ func TestBuildRuntimeHealthChanges(t *testing.T) {
 	}
 }
 
+func TestNormalizeRootArgsStripsLeadingDoubleDash(t *testing.T) {
+	input := []string{"nimi", "--", "config", "init", "--json"}
+	got := normalizeRootArgs(input)
+	want := []string{"nimi", "config", "init", "--json"}
+	if len(got) != len(want) {
+		t.Fatalf("normalized args length mismatch: got=%d want=%d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("normalized arg[%d] mismatch: got=%q want=%q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestNormalizeRootArgsLeavesRegularArgsUntouched(t *testing.T) {
+	input := []string{"nimi", "config", "init", "--json"}
+	got := normalizeRootArgs(input)
+	if len(got) != len(input) {
+		t.Fatalf("args length mismatch: got=%d want=%d", len(got), len(input))
+	}
+	for i := range input {
+		if got[i] != input[i] {
+			t.Fatalf("arg[%d] mismatch: got=%q want=%q", i, got[i], input[i])
+		}
+	}
+}
+
 func TestParseRoutePolicy(t *testing.T) {
 	tests := []struct {
 		name    string

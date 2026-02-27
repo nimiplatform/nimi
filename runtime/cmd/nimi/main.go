@@ -16,92 +16,94 @@ import (
 )
 
 func main() {
-	if len(os.Args) >= 3 && os.Args[1] == "worker" {
-		if err := workerentry.Run(os.Args[2]); err != nil {
+	args := normalizeRootArgs(os.Args)
+
+	if len(args) >= 3 && args[1] == "worker" {
+		if err := workerentry.Run(args[2]); err != nil {
 			fmt.Fprintf(os.Stderr, "worker failed: %v\n", err)
 			os.Exit(1)
 		}
 		return
 	}
 
-	if len(os.Args) < 2 {
+	if len(args) < 2 {
 		printUsage()
 		os.Exit(2)
 	}
 
-	switch os.Args[1] {
+	switch args[1] {
 	case "serve":
-		if err := entrypoint.RunDaemonFromArgs("nimi serve", os.Args[2:]); err != nil {
+		if err := entrypoint.RunDaemonFromArgs("nimi serve", args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "serve failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "status":
-		if err := runRuntimeHealth(os.Args[2:]); err != nil {
+		if err := runRuntimeHealth(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "status failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "run", "chat":
-		if err := runTopLevelRun(os.Args[2:]); err != nil {
-			fmt.Fprintf(os.Stderr, "%s failed: %v\n", os.Args[1], err)
+		if err := runTopLevelRun(args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "%s failed: %v\n", args[1], err)
 			os.Exit(1)
 		}
 	case "ai":
-		if err := runRuntimeAI(os.Args[2:]); err != nil {
+		if err := runRuntimeAI(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "ai failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "model":
-		if err := runRuntimeModel(os.Args[2:]); err != nil {
+		if err := runRuntimeModel(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "model failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "mod":
-		if err := runRuntimeMod(os.Args[2:]); err != nil {
+		if err := runRuntimeMod(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "mod failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "auth":
-		if err := runRuntimeAuth(os.Args[2:]); err != nil {
+		if err := runRuntimeAuth(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "auth failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "app-auth":
-		if err := runRuntimeAppAuth(os.Args[2:]); err != nil {
+		if err := runRuntimeAppAuth(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "app-auth failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "knowledge":
-		if err := runRuntimeKnowledge(os.Args[2:]); err != nil {
+		if err := runRuntimeKnowledge(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "knowledge failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "app":
-		if err := runRuntimeApp(os.Args[2:]); err != nil {
+		if err := runRuntimeApp(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "app failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "audit":
-		if err := runRuntimeAudit(os.Args[2:]); err != nil {
+		if err := runRuntimeAudit(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "audit failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "workflow":
-		if err := runRuntimeWorkflow(os.Args[2:]); err != nil {
+		if err := runRuntimeWorkflow(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "workflow failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "health":
-		if err := runRuntimeHealth(os.Args[2:]); err != nil {
+		if err := runRuntimeHealth(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "health failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "providers":
-		if err := runRuntimeProviders(os.Args[2:]); err != nil {
+		if err := runRuntimeProviders(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "providers failed: %v\n", err)
 			os.Exit(1)
 		}
 	case "config":
-		if err := runRuntimeConfig(os.Args[2:]); err != nil {
+		if err := runRuntimeConfig(args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "config failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -109,6 +111,16 @@ func main() {
 		printUsage()
 		os.Exit(2)
 	}
+}
+
+func normalizeRootArgs(args []string) []string {
+	if len(args) > 1 && args[1] == "--" {
+		normalized := make([]string, 0, len(args)-1)
+		normalized = append(normalized, args[0])
+		normalized = append(normalized, args[2:]...)
+		return normalized
+	}
+	return args
 }
 
 func runTopLevelRun(args []string) error {

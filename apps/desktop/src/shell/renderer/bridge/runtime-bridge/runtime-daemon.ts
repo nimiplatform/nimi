@@ -13,6 +13,7 @@ function tauriUnavailableStatus(): RuntimeBridgeDaemonStatus {
   return {
     running: false,
     managed: false,
+    launchMode: 'INVALID',
     grpcAddr: '127.0.0.1:46371',
     lastError: 'TAURI_RUNTIME_UNAVAILABLE',
   };
