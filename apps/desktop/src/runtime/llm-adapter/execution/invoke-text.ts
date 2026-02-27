@@ -10,6 +10,7 @@ import {
 import type { InvokeModLlmInput, InvokeModLlmOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { buildLocalId, formatProviderError } from './utils';
+import { emitRuntimeLog } from '../../telemetry/logger';
 
 export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
   const runtimeCall = resolveRuntimeAiCall({
@@ -55,6 +56,21 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
     const text = extractTextFromGenerateOutput((response as { output?: unknown }).output);
     if (!text) {
       throw new Error('LOCAL_AI_CAPABILITY_MISSING: provider returned empty content');
+    }
+
+    if (String(input.modId || '').trim().startsWith('world.nimi.')) {
+      emitRuntimeLog({
+        level: 'info',
+        area: 'mods-test-diag',
+        message: '[MODS-TEST-DIAG] llm raw text output',
+        details: {
+          modId: input.modId,
+          source,
+          modelId: runtimeCall.modelId,
+          textLength: text.length,
+          text,
+        },
+      });
     }
 
     return {

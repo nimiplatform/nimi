@@ -44,7 +44,9 @@ export type { ConnectOnboardingResponseDto } from './generated/models/ConnectOnb
 export type { ConsensusMetricDetailDto } from './generated/models/ConsensusMetricDetailDto';
 export { ContentRatingString } from './generated/models/ContentRatingString';
 export type { CreateAgentDto } from './generated/models/CreateAgentDto';
+export type { CreateAgentLorebookDto } from './generated/models/CreateAgentLorebookDto';
 export type { CreateAgentResponseDto } from './generated/models/CreateAgentResponseDto';
+export type { CreateAgentRulesDto } from './generated/models/CreateAgentRulesDto';
 export type { CreateApiKeyDto } from './generated/models/CreateApiKeyDto';
 export type { CreateBranchDto } from './generated/models/CreateBranchDto';
 export type { CreateConnectOnboardingDto } from './generated/models/CreateConnectOnboardingDto';

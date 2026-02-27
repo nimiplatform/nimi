@@ -4334,7 +4334,11 @@ export type components = {
         /** @enum {string} */
         ContentRatingString: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
         CreateAgentDto: {
+            agentLorebooks?: components["schemas"]["CreateAgentLorebookDto"][];
+            alternateGreetings?: string[];
             concept: string;
+            description?: string;
+            displayName?: string;
             /** @description Pre-built AgentDna JSON. When provided, skips LLM DNA generation. */
             dna?: {
                 [key: string]: unknown;
@@ -4343,13 +4347,32 @@ export type components = {
             dnaPrimary?: components["schemas"]["DnaPrimaryType"];
             /** @description Secondary DNA traits (max 3 recommended) */
             dnaSecondary?: components["schemas"]["DnaSecondaryTrait"][];
+            exampleDialogue?: string;
+            greeting?: string;
             handle: string;
             /** @description Ownership mode: MASTER_OWNED (default) or WORLD_OWNED */
             ownershipType?: components["schemas"]["AgentOwnershipType"];
+            postHistoryInstructions?: string;
             referenceImageUrl?: string;
+            rules?: components["schemas"]["CreateAgentRulesDto"];
+            scenario?: string;
+            systemPromptBase?: string;
             wakeStrategy?: components["schemas"]["AgentWakeStrategy"];
             /** @description Required when ownershipType is WORLD_OWNED */
             worldId?: string;
+        };
+        CreateAgentLorebookDto: {
+            constant?: boolean;
+            /** @description Lorebook content. Empty content entries are ignored by create pipeline. */
+            content: string;
+            enabled?: boolean;
+            insertionOrder?: number;
+            keywords?: string[];
+            name?: string;
+            priority?: number;
+            secondaryKeys?: string[];
+            selective?: boolean;
+            source?: string;
         };
         CreateAgentResponseDto: {
             dna: {
@@ -4358,6 +4381,26 @@ export type components = {
             id: string;
             state: components["schemas"]["AgentState"];
             user: components["schemas"]["UserLiteDto"];
+        };
+        CreateAgentRulesDto: {
+            /**
+             * @description Canonical Agent rules format. Must be rule-lines-v1.
+             * @example rule-lines-v1
+             */
+            format: string;
+            /**
+             * @description Structured rule lines.
+             * @example [
+             *       "Verify facts before conclusions",
+             *       "Avoid exaggerated claims"
+             *     ]
+             */
+            lines: string[];
+            /**
+             * @description Text form injected into prompt and used for replay/audit.
+             * @example Verify facts before conclusions\nAvoid exaggerated claims
+             */
+            text: string;
         };
         CreateApiKeyDto: {
             /**
