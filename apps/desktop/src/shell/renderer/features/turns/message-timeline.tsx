@@ -27,23 +27,83 @@ function toMessageTimestamp(message: MessageViewDto): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatDateSeparator(input: {
-  isoString: string;
-  todayLabel: string;
-  yesterdayLabel: string;
-}): string {
-  const date = new Date(input.isoString);
+/**
+ * Format timestamp according to WeChat-style rules:
+ * - Same day: "12:20" (24h format)
+ * - Yesterday: "Yesterday 12:07"
+ * - Within 7 days: "Monday 13:48" (weekday)
+ * - Within current year: "Feb 14, 10:30" (month + day)
+ * - Previous years: "Dec 25, 2025, 18:00" (full date with year)
+ */
+function formatDateSeparator(isoString: string): string {
+  const date = new Date(isoString);
   if (isNaN(date.getTime())) return '';
+  
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
-  if (diffDays === 0) return input.todayLabel;
-  if (diffDays === 1) return input.yesterdayLabel;
-  if (diffDays < 7) {
-    return formatLocaleDate(date, { weekday: 'long' });
+  const sameYear = date.getFullYear() === now.getFullYear();
+  
+  // Format time in 24h format
+  const timeStr = date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    hour12: false 
+  });
+  
+  if (diffDays === 0) {
+    // Same day: "12:20"
+    return timeStr;
   }
-  return formatLocaleDate(date, { month: 'short', day: 'numeric', year: diffDays > 365 ? 'numeric' : undefined });
+  
+  if (diffDays === 1) {
+    // Yesterday: "Yesterday 12:07"
+    return `Yesterday ${timeStr}`;
+  }
+  
+  if (diffDays < 7) {
+    // Within 7 days: "Monday 13:48"
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    return `${weekday} ${timeStr}`;
+  }
+  
+  if (sameYear) {
+    // Within current year: "Feb 14, 10:30"
+    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${monthDay}, ${timeStr}`;
+  }
+  
+  // Previous years: "Dec 25, 2025, 18:00"
+  const fullDate = date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+  return `${fullDate}, ${timeStr}`;
+}
+
+/**
+ * Check if we should show a timestamp between two messages.
+ * Returns true if:
+ * 1. It's the first message (prevMessage is null)
+ * 2. Date changed between messages
+ * 3. Time gap is more than 5 minutes (300 seconds)
+ */
+function shouldShowTimestamp(currentMessage: MessageViewDto, prevMessage: MessageViewDto | null): boolean {
+  if (!prevMessage) return true;
+  
+  const currentTime = toMessageTimestamp(currentMessage);
+  const prevTime = toMessageTimestamp(prevMessage);
+  
+  // Check if date changed
+  const currentDateKey = getDateKey(currentMessage.createdAt);
+  const prevDateKey = getDateKey(prevMessage.createdAt);
+  if (currentDateKey !== prevDateKey) return true;
+  
+  // Check if time gap is more than 5 minutes (300 seconds = 300000 ms)
+  const timeGap = currentTime - prevTime;
+  return timeGap > 300000;
 }
 
 function getDateKey(isoString: string): string {
@@ -301,34 +361,22 @@ export function MessageTimeline() {
     <section className="flex h-full min-w-0">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Chat header */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6">
+        <header className="flex h-14 shrink-0 items-center border-b border-gray-100 bg-white px-4">
           {/* Name - clickable to open profile panel */}
           <button
             type="button"
             onClick={() => toggleProfilePanel('other')}
-            className="text-lg font-medium tracking-tight text-[#2f3f33] hover:text-mint-600 transition-colors"
+            className="text-[15px] font-semibold text-gray-900 hover:text-gray-700 transition-colors"
             aria-label={profilePanelTarget === 'other'
               ? t('ChatTimeline.collapseUserProfile')
               : t('ChatTimeline.viewUserProfile')}
           >
             {contactName}
           </button>
-          {/* Menu button - also opens profile panel */}
-          <button 
-            type="button" 
-            onClick={() => toggleProfilePanel('other')}
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] text-gray-400 hover:bg-gray-50"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="5" r="1.5" />
-              <circle cx="12" cy="12" r="1.5" />
-              <circle cx="12" cy="19" r="1.5" />
-            </svg>
-          </button>
         </header>
 
         {/* Messages */}
-        <div className="flex-1 space-y-4 overflow-y-auto bg-white px-5 py-4">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-white px-4 py-4">
           {messages.length === 0 ? (
             <p className="text-center text-sm text-gray-500">{t('Chat.noMessages')}</p>
           ) : (
@@ -336,16 +384,8 @@ export function MessageTimeline() {
               const isMe = message.senderId === currentUserId;
               const senderName = isMe ? t('ChatTimeline.you') : contactName;
               const messageProfileTarget: Exclude<ProfilePanelTarget, null> = isMe ? 'self' : 'other';
-              const currentDateKey = getDateKey(message.createdAt);
-              const prevDateKey = index > 0 ? getDateKey(messages[index - 1]!.createdAt) : null;
-              const showDateSeparator = currentDateKey !== prevDateKey && currentDateKey !== '';
-              const dateLabel = showDateSeparator
-                ? formatDateSeparator({
-                  isoString: message.createdAt,
-                  todayLabel: t('Chat.today'),
-                  yesterdayLabel: t('Chat.yesterday'),
-                })
-                : '';
+              const showTimestamp = shouldShowTimestamp(message, index > 0 ? (messages[index - 1] ?? null) : null);
+              const timestampLabel = showTimestamp ? formatDateSeparator(message.createdAt) : '';
               const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
               const diagnostics = extractMessageDiagnostics(message);
               const hasDiagnosticData = Boolean(
@@ -357,67 +397,57 @@ export function MessageTimeline() {
               const diagnosticsExpanded = expandedDiagnosticsMessageId === message.id;
               return (
                 <div key={message.id}>
-                  {showDateSeparator && dateLabel ? (
-                    <div className="my-3 flex items-center justify-center gap-3">
-                      <div className="h-px w-24 bg-gray-100" />
-                      <span className="text-[11px] font-medium text-gray-400">{dateLabel}</span>
-                      <div className="h-px w-24 bg-gray-100" />
+                  {showTimestamp && timestampLabel ? (
+                    <div className="my-6 flex items-center justify-center">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-500">{timestampLabel}</span>
                     </div>
                   ) : null}
-                <div className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                   {/* Avatar */}
                   {isMe && currentUserAvatarUrl ? (
                     <button
                       type="button"
                       onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className="shrink-0 rounded-full transition hover:opacity-90"
+                      className="mt-1 shrink-0 rounded-full"
                       aria-label={profilePanelTarget === messageProfileTarget
                         ? t('ChatTimeline.collapseMyProfile')
                         : t('ChatTimeline.viewMyProfile')}
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d8deea] bg-white p-0.5">
-                        <img src={currentUserAvatarUrl} alt="You" className="h-8 w-8 rounded-full object-cover" />
-                      </div>
+                      <img src={currentUserAvatarUrl} alt="You" className="h-8 w-8 rounded-full object-cover" />
                     </button>
                   ) : !isMe && contactAvatarUrl ? (
                     <button
                       type="button"
                       onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className="shrink-0 rounded-full transition hover:opacity-90"
+                      className="mt-1 shrink-0 rounded-full"
                       aria-label={profilePanelTarget === messageProfileTarget
                         ? t('ChatTimeline.collapseUserProfile')
                         : t('ChatTimeline.viewUserProfile')}
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dce4d8] bg-white p-0.5">
-                        <img src={contactAvatarUrl} alt={contactName} className="h-8 w-8 rounded-full object-cover" />
-                      </div>
+                      <img src={contactAvatarUrl} alt={contactName} className="h-8 w-8 rounded-full object-cover" />
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className="shrink-0 rounded-full transition hover:opacity-90"
+                      className="mt-1 shrink-0 rounded-full"
                       aria-label={profilePanelTarget === messageProfileTarget
                         ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
                         : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
                     >
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-full border bg-white p-0.5 ${
-                        isMe ? 'border-[#d8deea]' : 'border-[#dce4d8]'
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
+                        isMe ? 'bg-[#0066CC] text-white' : 'bg-gray-200 text-gray-600'
                       }`}>
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
-                          isMe ? 'bg-[#ece9f8] text-[#7a7f9e]' : 'bg-[#e5ece1] text-[#6e7f69]'
-                        }`}>
-                          {getInitial(senderName)}
-                        </div>
+                        {getInitial(senderName)}
                       </div>
                     </button>
                   )}
                   {/* Bubble */}
-                  <div className={`max-w-[70%] ${isMe ? 'text-right' : ''}`}>
-                    <div className={`rounded-[16px] px-4 py-2.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] ${
+                  <div className={`max-w-[75%] ${isMe ? 'text-right' : ''}`}>
+                    <div className={`inline-block rounded-[18px] px-4 py-2.5 text-[15px] leading-snug ${
                       isMe
-                        ? 'bg-[#ece9f8] text-[#7a7f9e]'
-                        : 'bg-[#e5ece1] text-[#6d7d6f]'
+                        ? 'bg-[#0066CC] text-white'
+                        : 'bg-[#F2F2F7] text-gray-900'
                     }`}>
                       {diagnostics.interactionKind && (
                         <div className={`mb-1 inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
@@ -470,9 +500,6 @@ export function MessageTimeline() {
                         </div>
                       )}
                     </div>
-                    <p className={`mt-1 text-[10px] text-[#97a392] ${isMe ? 'text-right' : ''}`}>
-                      {formatLocaleDate(message.createdAt, { hour: '2-digit', minute: '2-digit' })}
-                    </p>
                   </div>
                 </div>
                 </div>

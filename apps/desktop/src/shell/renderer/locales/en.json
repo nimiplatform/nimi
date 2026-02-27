@@ -544,10 +544,14 @@
     "selectChatFirst": "Please select a chat first",
     "inputMessageRequired": "Please enter a message",
     "sendFailed": "Failed to send message",
+    "typeMessage": "Type a message...",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
     "emoji": "Emoji",
     "components": "Components",
     "files": "Files",
-    "moreTools": "More tools"
+    "moreTools": "More tools",
+    "send": "Send"
   },
   "ChatTimeline": {
     "emptyMessage": "(Empty message)",

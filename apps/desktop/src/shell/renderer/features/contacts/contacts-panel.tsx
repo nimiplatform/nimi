@@ -108,11 +108,10 @@ export function ContactsPanel() {
   );
 
   const humans = useMemo(() => allFriends.filter((contact) => !contact.isAgent), [allFriends]);
-  const agents = useMemo(() => allFriends.filter((contact) => contact.isAgent), [allFriends]);
-  const myAgents = useMemo(
-    () => devAgents.filter((agent) => agent.agentOwnershipType !== 'WORLD_OWNED'),
-    [devAgents],
-  );
+  // Agents: 所有是我的好友的 Agent（我不是 Owner）
+  const agents = useMemo(() => allFriends.filter((contact) => contact.isAgent && contact.agentOwnershipType !== 'MASTER_OWNED'), [allFriends]);
+  // My Agents: 我是 Owner 的 Agent（来自好友列表）
+  const myAgents = useMemo(() => allFriends.filter((contact) => contact.isAgent && contact.agentOwnershipType === 'MASTER_OWNED'), [allFriends]);
 
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const pendingReceived = useMemo(
@@ -389,6 +388,7 @@ export function ContactsPanel() {
         requestsCount={pendingRequests.length}
         blocksCount={blockedContacts.length}
         agentLimit={agentLimitQuery.data || null}
+        allFriends={allFriends}
         filteredContacts={filteredContacts}
         filteredRequests={filteredRequests}
         loading={contactsQuery.isPending}

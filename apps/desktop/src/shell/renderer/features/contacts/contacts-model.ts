@@ -90,6 +90,15 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
   const handle = String(item.handle || '');
   const isAgent = item.isAgent === true || handle.startsWith('~');
   
+  // Parse agent ownership type
+  const agentProfile = item.agentProfile && typeof item.agentProfile === 'object'
+    ? item.agentProfile as Record<string, unknown>
+    : null;
+  const ownershipRaw = String(item.ownershipType || agentProfile?.ownershipType || '').trim();
+  const agentOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
+    ? ownershipRaw
+    : null;
+  
   // Parse tags from various possible formats
   let tags: string[] | undefined;
   if (Array.isArray(item.tags)) {
@@ -121,6 +130,7 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
     avatarUrl: typeof item.avatarUrl === 'string' ? item.avatarUrl : null,
     bio: typeof item.bio === 'string' ? item.bio : null,
     isAgent,
+    agentOwnershipType,
     friendsSince: typeof item.friendsSince === 'string' ? item.friendsSince : null,
     age,
     gender,

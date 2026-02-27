@@ -621,7 +621,10 @@ fn runtime_defaults() -> RuntimeDefaults {
                 "http://127.0.0.1:1234/v1",
             ),
             local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", "local-model"),
-            local_open_ai_endpoint: env_value("NIMI_LOCAL_OPENAI_ENDPOINT", "http://127.0.0.1:1234/v1"),
+            local_open_ai_endpoint: env_value(
+                "NIMI_LOCAL_OPENAI_ENDPOINT",
+                "http://127.0.0.1:1234/v1",
+            ),
             local_open_ai_api_key: env_value("NIMI_LOCAL_OPENAI_API_KEY", ""),
             target_type: env_value("NIMI_TARGET_TYPE", "AGENT"),
             target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),

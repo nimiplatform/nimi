@@ -544,10 +544,14 @@
     "selectChatFirst": "请先选择会话",
     "inputMessageRequired": "请输入消息内容",
     "sendFailed": "发送失败",
+    "typeMessage": "输入消息...",
+    "previousPage": "上一页",
+    "nextPage": "下一页",
     "emoji": "表情",
     "components": "组件",
     "files": "文件",
-    "moreTools": "更多工具"
+    "moreTools": "更多工具",
+    "send": "发送"
   },
   "ChatTimeline": {
     "emptyMessage": "(空消息)",
