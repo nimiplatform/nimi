@@ -74,7 +74,7 @@ export async function* invokeModLlmStream(
       routePolicy: runtimeCall.routePolicy,
       fallback: runtimeCall.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-    }, buildRuntimeStreamOptions({
+    }, await buildRuntimeStreamOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       signal: scopedAbort.signal,

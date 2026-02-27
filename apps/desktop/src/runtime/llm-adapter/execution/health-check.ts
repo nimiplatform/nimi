@@ -19,7 +19,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
     };
   }
   try {
-    const apiKey = resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
+    const apiKey = await resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
     const adapter = buildAdapter(plan, localFetch, apiKey);
     const health = await adapter.healthCheck(plan.model);
     return {

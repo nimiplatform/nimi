@@ -75,7 +75,7 @@ async function resolveSpeechRoute(
       providerType: 'OPENAI_COMPATIBLE',
       endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
       credentialRefId: resolved.credentialRefId,
-      apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId) || undefined,
+      apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId)) || undefined,
       model,
     };
   }
@@ -91,7 +91,7 @@ async function resolveSpeechRoute(
     providerType,
     endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
     credentialRefId: resolved.credentialRefId,
-    apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
+    apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
     model,
   };
 }

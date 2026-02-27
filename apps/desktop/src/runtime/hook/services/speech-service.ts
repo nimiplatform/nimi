@@ -98,7 +98,7 @@ export class HookRuntimeSpeechService {
         providerType: 'OPENAI_COMPATIBLE',
         endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
         credentialRefId: resolved.credentialRefId,
-        apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId) || undefined,
+        apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId)) || undefined,
         model,
       };
     }
@@ -115,7 +115,7 @@ export class HookRuntimeSpeechService {
       providerType: inferProviderTypeFromPrefix(prefix),
       endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
       credentialRefId: resolved.credentialRefId,
-      apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
+      apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
       model,
     };
   }

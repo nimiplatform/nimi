@@ -2,7 +2,7 @@ import { getPlatformClient } from '@runtime/platform-client';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
 import { resolveProviderExecutionPlan } from './provider-plan';
 import type { FetchImpl, LocalAiProviderHints, ProviderPlan } from './types';
-import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
+import { TauriCredentialVault } from '../credential-vault.js';
 
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 const ROUTE_POLICY_TOKEN_API = 2;
@@ -89,25 +89,16 @@ export function getRuntimeClient() {
   return runtime;
 }
 
-function loadRuntimeConfigForCredentialLookup() {
-  return loadRuntimeConfigStateV11({
-    provider: '',
-    runtimeModelType: 'chat',
-    localProviderEndpoint: '',
-    localProviderModel: '',
-    localOpenAiEndpoint: '',
-    credentialRefId: '',
-  });
-}
+const credentialVault = new TauriCredentialVault();
 
-export function resolveProviderApiKeyFromCredentialRef(credentialRefId: string | undefined): string {
-  const normalizedRef = String(credentialRefId || '').trim();
-  if (!normalizedRef) {
+export async function resolveProviderApiKeyFromCredentialRef(credentialRefId: string | undefined): Promise<string> {
+  const ref = String(credentialRefId || '').trim();
+  if (!ref) return '';
+  try {
+    return await credentialVault.getCredentialSecret(ref);
+  } catch {
     return '';
   }
-  const state = loadRuntimeConfigForCredentialLookup();
-  const connector = state.connectors.find((item) => item.id === normalizedRef);
-  return String(connector?.tokenApiKey || '').trim();
 }
 
 export function resolveRuntimeAiCall(input: {
@@ -164,21 +155,21 @@ function resolveCaller(modId: string): {
   };
 }
 
-function resolveCredentialMetadata(input: {
+async function resolveCredentialMetadata(input: {
   source: InferenceRouteSource;
   credentialRefId?: string;
   providerEndpoint?: string;
-}): {
+}): Promise<{
   credentialSource: 'runtime-config' | 'request-injected';
   providerEndpoint?: string;
   providerApiKey?: string;
-} {
+}> {
   if (input.source !== 'token-api') {
     return {
       credentialSource: 'runtime-config',
     };
   }
-  const providerApiKey = resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
+  const providerApiKey = await resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
   if (!providerApiKey) {
     return {
       credentialSource: 'runtime-config',
@@ -191,12 +182,12 @@ function resolveCredentialMetadata(input: {
   };
 }
 
-export function buildRuntimeRequestMetadata(input: {
+export async function buildRuntimeRequestMetadata(input: {
   source: InferenceRouteSource;
   credentialRefId?: string;
   providerEndpoint?: string;
-}): Record<string, string> {
-  const resolved = resolveCredentialMetadata(input);
+}): Promise<Record<string, string>> {
+  const resolved = await resolveCredentialMetadata(input);
   const metadata: Record<string, string> = {
     credentialSource: resolved.credentialSource,
   };
@@ -209,13 +200,13 @@ export function buildRuntimeRequestMetadata(input: {
   return metadata;
 }
 
-export function buildRuntimeCallOptions(input: {
+export async function buildRuntimeCallOptions(input: {
   modId: string;
   timeoutMs: number;
   source: InferenceRouteSource;
   credentialRefId?: string;
   providerEndpoint?: string;
-}): {
+}): Promise<{
   timeoutMs: number;
   metadata: {
     callerKind: 'desktop-core' | 'desktop-mod';
@@ -225,9 +216,9 @@ export function buildRuntimeCallOptions(input: {
     providerEndpoint?: string;
     providerApiKey?: string;
   };
-} {
+}> {
   const caller = resolveCaller(input.modId);
-  const credentialMetadata = resolveCredentialMetadata({
+  const credentialMetadata = await resolveCredentialMetadata({
     source: input.source,
     credentialRefId: input.credentialRefId,
     providerEndpoint: input.providerEndpoint,
@@ -245,7 +236,7 @@ export function buildRuntimeCallOptions(input: {
   };
 }
 
-export function buildRuntimeStreamOptions(
+export async function buildRuntimeStreamOptions(
   input: {
     modId: string;
     timeoutMs: number;
@@ -254,7 +245,7 @@ export function buildRuntimeStreamOptions(
     credentialRefId?: string;
     providerEndpoint?: string;
   },
-): {
+): Promise<{
   timeoutMs: number;
   signal?: AbortSignal;
   metadata: {
@@ -265,9 +256,9 @@ export function buildRuntimeStreamOptions(
     providerEndpoint?: string;
     providerApiKey?: string;
   };
-} {
+}> {
   const caller = resolveCaller(input.modId);
-  const credentialMetadata = resolveCredentialMetadata({
+  const credentialMetadata = await resolveCredentialMetadata({
     source: input.source,
     credentialRefId: input.credentialRefId,
     providerEndpoint: input.providerEndpoint,

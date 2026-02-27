@@ -41,7 +41,7 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       size: String(input.size || '').trim() || undefined,
       n: typeof input.n === 'number' ? input.n : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      metadata: buildRuntimeRequestMetadata({
+      metadata: await buildRuntimeRequestMetadata({
         source,
         credentialRefId: input.credentialRefId,
         providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,

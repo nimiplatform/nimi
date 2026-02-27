@@ -51,7 +51,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       route: source,
       fallback: 'deny',
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      metadata: buildRuntimeRequestMetadata({
+      metadata: await buildRuntimeRequestMetadata({
         source,
         credentialRefId: input.credentialRefId,
         providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,

@@ -40,7 +40,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       fallback: 'deny',
       durationSec: typeof input.durationSeconds === 'number' ? input.durationSeconds : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      metadata: buildRuntimeRequestMetadata({
+      metadata: await buildRuntimeRequestMetadata({
         source,
         credentialRefId: input.credentialRefId,
         providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
