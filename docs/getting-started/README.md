@@ -7,7 +7,7 @@ This guide gets `nimi-runtime` running and verifies a full request path in a few
 - Go `1.24+`
 - A terminal with access to this repository
 - For SDK examples: Node.js `24+` and pnpm `10+`
-- Optional: cloud provider endpoint (OpenAI-compatible via LiteLLM/adapters)
+- Optional: cloud provider endpoint (OpenAI-compatible via NimiLLM/adapters)
 
 ## 1. Start the Runtime
 
@@ -214,7 +214,7 @@ go run ./cmd/nimi app send \
 | `NIMI_RUNTIME_HTTP_ADDR` | `127.0.0.1:46372` | HTTP health/metrics listen |
 | `NIMI_RUNTIME_SHUTDOWN_TIMEOUT` | `10s` | Graceful shutdown timeout |
 | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | — | Local AI provider endpoint |
-| `NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL` | — | Cloud LiteLLM endpoint |
+| `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | — | Cloud NimiLLM endpoint |
 | `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` (when Gemini key is present) | Gemini adapter endpoint |
 | `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` | fallback from `GEMINI_API_KEY` | Gemini adapter key |
 | `NIMI_RUNTIME_AI_HEALTH_INTERVAL` | `8s` | Provider health probe interval |

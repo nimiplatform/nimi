@@ -10,7 +10,7 @@ It exposes:
 ## AI Provider Inventory
 
 - Current runtime AI support matrix (providers, compatibility, transport, runnable demos): [AI Provider Support Matrix](./ai-provider-support-matrix.md)
-- End-user provider tutorials (`localai/litellm/bytedance/gemini/minimax/glm/kimi`): [Provider Tutorials](../examples/providers/README.md)
+- End-user provider tutorials (`localai/nimillm/bytedance/gemini/minimax/glm/kimi`): [Provider Tutorials](../examples/providers/README.md)
 
 ## Run the Daemon
 

@@ -14,7 +14,7 @@
  * - NIMI_APP_ID=example.providers.deepseek
  * - NIMI_SUBJECT_USER_ID=local-user
  * - NIMI_DEEPSEEK_ENDPOINT=https://api.deepseek.com
- * - NIMI_DEEPSEEK_CHAT_MODEL=litellm/deepseek-chat
+ * - NIMI_DEEPSEEK_CHAT_MODEL=nimillm/deepseek-chat
  * - NIMI_DEEPSEEK_CHAT_PROMPT="Explain runtime credential flow"
  */
 
@@ -118,7 +118,7 @@ async function main(): Promise<void> {
   const endpoint = env('NIMI_RUNTIME_GRPC_ENDPOINT', '127.0.0.1:46371');
   const appId = env('NIMI_APP_ID', 'example.providers.deepseek');
   const subjectUserId = env('NIMI_SUBJECT_USER_ID', 'local-user');
-  const model = env('NIMI_DEEPSEEK_CHAT_MODEL', 'litellm/deepseek-chat');
+  const model = env('NIMI_DEEPSEEK_CHAT_MODEL', 'nimillm/deepseek-chat');
   const prompt = env('NIMI_DEEPSEEK_CHAT_PROMPT', 'Give me a concise 3-line intro to Nimi runtime.');
 
   const connectorId = saveDeepseekConnector({

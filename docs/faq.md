@@ -45,7 +45,7 @@ go build -o nimi ./cmd/nimi
 ### What AI models are supported?
 
 - **Local**: Any model supported by LocalAI or Nexa (GGUF, ONNX, etc.)
-- **Cloud**: Any OpenAI-compatible API via LiteLLM, plus custom adapters for Alibaba, Bytedance, etc.
+- **Cloud**: Any OpenAI-compatible API via NimiLLM, plus custom adapters for Alibaba, Bytedance, etc.
 
 ### What's the difference between `local-runtime` and `token-api`?
 

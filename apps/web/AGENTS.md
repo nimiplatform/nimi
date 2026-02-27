@@ -53,7 +53,7 @@ Optional:
 - `VITE_NIMI_LOCAL_PROVIDER_ENDPOINT`
 - `VITE_NIMI_LOCAL_PROVIDER_MODEL`
 - `VITE_NIMI_LOCAL_OPENAI_ENDPOINT`
-- `VITE_NIMI_LOCAL_OPENAI_API_KEY`
+- `VITE_NIMI_CREDENTIAL_REF_ID`
 
 Web API base URL policy is same-origin. Do not add hardcoded API host overrides in web-shell flows.
 

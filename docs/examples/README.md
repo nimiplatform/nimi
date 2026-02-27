@@ -10,7 +10,7 @@ Runnable TypeScript/Go examples for the current Nimi public APIs.
 | [ai-inference.ts](./ai-inference.ts) | Text, embedding, image/video/TTS/STT calls against runtime |
 | [ai-streaming.ts](./ai-streaming.ts) | `streamGenerate` event handling (`payload.oneofKind`) |
 | [ai-provider.ts](./ai-provider.ts) | Vercel AI SDK v6 integration via `@nimiplatform/sdk/ai-provider` |
-| [providers/*.ts](./providers/README.md) | Provider tutorials for real runtime usage (`localai/litellm/bytedance/gemini/minimax/glm/kimi`) |
+| [providers/*.ts](./providers/README.md) | Provider tutorials for real runtime usage (`localai/nimillm/bytedance/gemini/minimax/glm/kimi`) |
 | [app-auth.ts](./app-auth.ts) | ExternalPrincipal register/authorize/validate/delegate/revoke |
 | [workflow-dag.ts](./workflow-dag.ts) | Workflow submit + event subscription with workflow-builder helpers |
 | [mod-basic.ts](./mod-basic.ts) | Mod SDK V2 usage (`createHookClient`, `createAiClient`) |

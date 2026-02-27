@@ -25,7 +25,7 @@ go run ./cmd/nimi serve
 |---|---|
 | [localai.ts](./localai.ts) | local text + image |
 | [nexa.ts](./nexa.ts) | local text + tts + optional stt |
-| [litellm.ts](./litellm.ts) | cloud text + embedding (+ optional image) |
+| [nimillm.ts](./nimillm.ts) | cloud text + embedding (+ optional image) |
 | [deepseek-chat.ts](./deepseek-chat.ts) | cloud chat (DeepSeek via OpenAI-compatible endpoint) |
 | [bytedance-tts.ts](./bytedance-tts.ts) | cloud tts (Bytedance OpenSpeech only) |
 | [bytedance-openspeech.ts](./bytedance-openspeech.ts) | cloud tts + stt |
@@ -39,7 +39,7 @@ go run ./cmd/nimi serve
 ```bash
 npx tsx docs/examples/providers/localai.ts
 npx tsx docs/examples/providers/nexa.ts
-npx tsx docs/examples/providers/litellm.ts
+npx tsx docs/examples/providers/nimillm.ts
 npx tsx docs/examples/providers/deepseek-chat.ts
 npx tsx docs/examples/providers/bytedance-tts.ts
 npx tsx docs/examples/providers/bytedance-openspeech.ts

@@ -41,7 +41,7 @@ Optional:
 - `VITE_NIMI_LOCAL_PROVIDER_ENDPOINT=...`
 - `VITE_NIMI_LOCAL_PROVIDER_MODEL=...`
 - `VITE_NIMI_LOCAL_OPENAI_ENDPOINT=...`
-- `VITE_NIMI_LOCAL_OPENAI_API_KEY=...`
+- `VITE_NIMI_CREDENTIAL_REF_ID=...`
 
 Runtime wallet login is available in web mode when wallet providers are injected into `window`
 (MetaMask / OKX / Binance Wallet).

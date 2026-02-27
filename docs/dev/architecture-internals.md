@@ -35,7 +35,7 @@ nimi (daemon)
 ├── Process Manager
 │   ├── LocalAI subprocess
 │   ├── Nexa subprocess
-│   └── LiteLLM subprocess
+│   └── NimiLLM subprocess
 ├── Model Registry (JSON file)
 ├── GPU Arbiter
 ├── Audit Logger
@@ -46,7 +46,7 @@ AI inference flow:
 1. App calls `RuntimeAiService.Generate` via gRPC
 2. Service resolves `routePolicy` → local or cloud
 3. Local: forwards to subprocess via gRPC-over-UDS
-4. Cloud: forwards to LiteLLM/adapter via HTTPS
+4. Cloud: forwards to NimiLLM/adapter via HTTPS
 5. Response wrapped with audit metadata and returned
 
 ## SDK Package Architecture

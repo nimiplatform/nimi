@@ -54,7 +54,7 @@ An independent local daemon providing AI compute and infrastructure. Written in 
 
 **Execution stack (V1):**
 - Local models: LocalAI + Nexa
-- Cloud providers: LiteLLM + custom adapters (Alibaba, Bytedance, etc.)
+- Cloud providers: NimiLLM + custom adapters (Alibaba, Bytedance, etc.)
 - Schema toolchain: Buf CLI
 
 **Lifecycle:** Auto-starts on first app connection, graceful shutdown when idle. Similar to Ollama / Docker Daemon.
