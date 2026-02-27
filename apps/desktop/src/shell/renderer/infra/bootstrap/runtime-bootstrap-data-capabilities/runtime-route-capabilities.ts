@@ -2,6 +2,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { resolveRuntimeCapabilityConfigFromStateV11 } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
 import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
 import {
+  type RuntimeConfigStateV11,
   normalizeCapabilityV11,
   normalizeSourceV11,
 } from '@renderer/features/runtime-config/state/v11/types';
@@ -57,6 +58,35 @@ function mergeLocalRuntimeModels(input: {
   return [...byId.values()].filter((item) => item.status !== 'removed');
 }
 
+function fallbackRuntimeRouteSelection(
+  state: RuntimeConfigStateV11,
+  capability: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding',
+) {
+  if (state.selectedSource === 'token-api') {
+    const connector = state.connectors.find((item) => item.id === state.selectedConnectorId)
+      || state.connectors[0]
+      || null;
+    return {
+      source: 'token-api' as const,
+      connectorId: String(connector?.id || ''),
+      model: String(connector?.models[0] || ''),
+      localModelId: '',
+      engine: '',
+    };
+  }
+
+  const localModel = state.localRuntime.models.find((item) => item.capabilities.includes(capability))
+    || state.localRuntime.models[0]
+    || null;
+  return {
+    source: 'local-runtime' as const,
+    connectorId: '',
+    model: String(localModel?.model || ''),
+    localModelId: String(localModel?.localModelId || ''),
+    engine: String(localModel?.engine || ''),
+  };
+}
+
 export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.runtimeRouteOptions, async (query) => {
     const payload = toRecord(query);
@@ -72,8 +102,18 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       localOpenAiApiKey: runtime.localOpenAiApiKey,
     };
     const state = loadRuntimeConfigStateV11(seed);
-    const resolved = resolveRuntimeCapabilityConfigFromStateV11(state, seed, capability, { modId: modId || undefined });
-    const localSnapshot = await localAiRuntime.pollSnapshot();
+    const resolved = (() => {
+      try {
+        return resolveRuntimeCapabilityConfigFromStateV11(state, seed, capability, { modId: modId || undefined });
+      } catch {
+        return fallbackRuntimeRouteSelection(state, capability);
+      }
+    })();
+    const localSnapshot = await localAiRuntime.pollSnapshot().catch(() => ({
+      models: [],
+      health: [],
+      generatedAt: new Date().toISOString(),
+    }));
 
     const selected = {
       source: normalizeSourceV11(resolved.source),

@@ -59,6 +59,11 @@ pub async fn invoke_unary(
         request.set_timeout(std::time::Duration::from_millis(timeout_ms.max(1)));
     }
 
+    grpc.ready().await.map_err(|error| {
+        let message = format!("transport error: {}", error);
+        bridge_error("RUNTIME_BRIDGE_TRANSPORT_UNAVAILABLE", message.as_str())
+    })?;
+
     let response = grpc
         .unary(request, path, RawBytesCodec)
         .await
