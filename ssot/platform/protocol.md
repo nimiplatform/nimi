@@ -46,7 +46,7 @@ rules:
 本文件不覆盖：
 
 1. realm 业务域的完整 API（由 realm-domain 文档与 OpenAPI 合同定义）。
-2. runtime RPC 细节（由 `runtime/service-contract.md` 与 `sdk/design.md` 定义）。
+2. runtime RPC 细节（由 `ssot/runtime/service-contract.md` 与 `ssot/sdk/design.md` 定义）。
 3. 任意单个 World 的剧情、UI、玩法实现细节。
 
 ### 1.3 参与方分类（V0.1）
@@ -223,7 +223,7 @@ Runtime profile（运行时访问层）：
 
 本节是授权语义规范真相源（normative source）。
 
-说明：本节是 `L1 Runtime Access` 的跨文档最小锚点，完整 RPC 细节以 `runtime/service-contract.md` 为准；SDK 细节以 `ssot/sdk/*` 为唯一真相源。
+说明：本节是 `L1 Runtime Access` 的跨文档最小锚点，完整 RPC 细节以 `ssot/runtime/service-contract.md` 为准；SDK 细节以 `ssot/sdk/*` 为唯一真相源。
 
 职责补充：
 1. SDK 维护 scope catalog 与 preset 映射，作为授权请求构造层的唯一发布面。

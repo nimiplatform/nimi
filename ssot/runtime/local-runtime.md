@@ -2,7 +2,7 @@
 title: Nimi Local AI Runtime SSOT
 status: ACTIVE
 version: v1.4
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 rules:
   - local-ai-runtime 的 owner 固定为 desktop execution-plane，禁止将第三方推理主执行链迁回 nimi-realm。
   - Local AI Runtime 依赖抽象固定为 `model -> service -> node`；用户主路径不开放任意节点画布编辑。
@@ -182,6 +182,8 @@ Local AI Runtime 域目标：
 2. `capability = chat | image | video | tts | stt | embedding`
 3. 默认策略：`local-first`（由 Mod 在本域能力边界内决策）
 4. 全局 Runtime 不维护“跨 Mod 统一路由表”。
+5. desktop/mod 的 `token-api` 路径必须使用请求期凭证注入，不得依赖 runtime 启动时全局 API key。
+6. host 侧逻辑连接器对应 secret 的轮换应按请求生效；不得把“重启 runtime”作为用户主路径。
 
 ### 6.2 回退规则
 

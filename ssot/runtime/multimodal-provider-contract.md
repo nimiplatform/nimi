@@ -2,7 +2,7 @@
 title: Nimi Runtime Multimodal Provider Contract
 status: ACTIVE
 created_at: 2026-02-26
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: proto-contract.md
 references:
   - ssot/runtime/service-contract.md
@@ -31,10 +31,9 @@ rules:
 
 1. LocalAI
 2. Nexa
-3. LiteLLM（OpenAI-compatible 统一入口）
-4. Alibaba adapter
-5. Bytedance adapter
-6. 未来新增第三方 provider adapter
+3. nimiLLM（统一云推理网关）
+4. 通过 nimiLLM 接入的核心云 provider（OpenAI-compatible / Alibaba / Bytedance / Gemini / MiniMax / Kimi / GLM）
+5. 未来新增云 provider（必须先纳入 nimiLLM 覆盖清单）
 
 覆盖模态：
 
@@ -62,7 +61,7 @@ rules:
 4. `Artifact Store + Metadata Layer`
 5. `Workflow External-Async Bridge`
 
-每个 provider adapter 必须实现：
+每个 provider connector（本地 adapter 或 nimiLLM 云连接器）必须实现：
 
 1. `toProviderRequest(canonical, provider_options)`
 2. `fromProviderResponse(raw) -> canonical status/artifacts`
@@ -191,37 +190,32 @@ rules:
 2. 必须支持 URL artifact 和 inline bytes 双模式。
 3. 必须支持后续 workflow 节点按 metadata 判定能力。
 
-## 7. Provider 适配规则（MUST）
+## 7. Cloud Provider 接入规则（MUST）
 
-### 7.1 OpenAI-compatible 路径
+### 7.1 nimiLLM 统一入口
 
-1. LocalAI
-2. LiteLLM
-3. Alibaba adapter（兼容层）
-4. Bytedance ARK adapter（兼容层）
+1. `token-api` 云路由必须统一经由 `nimiLLM`，不得按 provider 暴露 runtime 内部多分支。
+2. `nimiLLM` 必须覆盖已声明核心 provider 的 `text/embed/image/video/tts/stt` 能力，并输出统一 `reasonCode` 口径。
+3. 路由显式可见（`routeDecision + backendName`）。
+4. provider 不可用时不得伪造成功响应。
+5. SSE 不支持时可降级到非流，但必须写审计并暴露降级事实。
+6. `provider_options` 只作为扩展，不替代 canonical 必填字段。
+7. 不可表达能力必须 fail-close，返回 `AI_ROUTE_UNSUPPORTED` + `action_hint`。
 
-要求：
+### 7.2 核心 provider 覆盖集（V1 冻结）
 
-1. 路由显式可见（`routeDecision + backendName`）。
-2. provider 不可用时不得伪造成功响应。
-3. SSE 不支持时可降级到非流，但必须写审计并暴露降级事实。
+1. OpenAI-compatible（通过 nimiLLM）
+2. Alibaba
+3. Bytedance（ARK + OpenSpeech）
+4. Gemini
+5. MiniMax
+6. Kimi
+7. GLM
 
-### 7.2 非兼容/半兼容路径（custom adapter）
+约束：
 
-必须支持“非 OpenAI 形态”的 provider 专有协议：
-
-1. Bytedance OpenSpeech（HTTP + WS）
-2. Gemini generateContent / operation 任务语义
-3. MiniMax image/video 任务语义
-4. Kimi 图像多模态输出语义
-5. 其他未来 provider 的 task/WS 协议
-
-要求：
-
-1. `provider_options` 只作为扩展，不替代 canonical 必填字段。
-2. 非兼容协议必须在 adapter 层封装，不污染统一 service 入口。
-3. 不可表达能力必须 fail-close，返回 `AI_ROUTE_UNSUPPORTED` + `action_hint`。
-4. 具体交付进度与轮次状态必须记录在 `dev/report/*.md`，不得内嵌到本合同。
+1. 核心 provider 覆盖集变更必须先更新本合同，再更新测试矩阵与交付门禁证据。
+2. 具体交付进度与轮次状态必须记录在 `dev/report/*.md`，不得内嵌到本合同。
 
 ## 8. Local Provider 合同（MUST）
 
@@ -293,7 +287,7 @@ rules:
 
 1. `RuntimeAiService` 语句覆盖率 `>= 70%`
 2. 媒体核心路径函数覆盖率 `>= 80%`（image/video/tts/stt/async job）
-3. provider adapter 合同测试覆盖所有已声明 provider
+3. provider 合同测试覆盖所有已声明 provider（本地 provider + nimiLLM 核心云 provider）
 4. 至少一组端到端 workflow external-async 测试通过
 
 ## 12. 完成定义（DoD）
@@ -302,7 +296,7 @@ rules:
 
 1. Proto 提供 canonical media + async job 合同。
 2. SDK 暴露对应字段，不再只暴露 prompt/text/audioBytes。
-3. Runtime 具备 LocalAI/Nexa/LiteLLM + custom adapter 的真实执行链路。
+3. Runtime 具备 LocalAI/Nexa/nimiLLM（核心 provider 全量模型能力）的真实执行链路。
 4. Workflow 支持 external async 编排闭环。
 5. 测试矩阵与覆盖率达到本文件门槛。
 6. 发布门禁文件（`ssot/runtime/multimodal-delivery-gates.md`）全部通过。

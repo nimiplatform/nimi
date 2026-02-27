@@ -86,7 +86,7 @@ rules:
 
 | Provider 场景 | Text | Embedding | Image | Video | TTS | STT | 备注 |
 |---|---|---|---|---|---|---|---|
-| LiteLLM (`provider_cloud_test.ts`) | Yes | Yes | Yes | Yes | Yes | Yes | 包含 `/v1/video` -> `/v1/videos` fallback 场景 |
+| nimiLLM (`provider_cloud_test.ts`) | Yes | Yes | Yes | Yes | Yes | Yes | 包含 `/v1/video` -> `/v1/videos` fallback 场景 |
 | Nexa (`provider_local_test.ts`) | Yes | Yes | Yes | Fail-Close | Yes | Yes | video 预期失败并返回结构化错误 |
 | OpenAI-compatible (`provider_openai_test.ts`) | Yes | - | - | Yes/Fail-Close | - | - | 覆盖 video endpoint fallback + stream fallback |
 | Gemini (`provider_gemini_test.ts`) | - | - | Yes | Yes | - | - | operation 轮询语义 |
@@ -104,7 +104,7 @@ rules:
 当前场景：
 
 1. local provider 真实服务文本生成
-2. litellm 真实服务文本生成
+2. nimiLLM 真实服务文本生成
 
 ## 5. 已知测试边界
 

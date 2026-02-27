@@ -24,12 +24,13 @@ rules:
 - 当前状态：`DRAFT`
 - 用途：补齐 workflow proto 中缺失的数据流、节点类型、脚本执行能力
 - 非目标：不定义可视化图编辑器、不做 custom node 开放生态
+- NON-NORMATIVE 声明：本文第 3/5 节中的 proto 风格片段仅用于设计讨论，不构成 wire schema；字段真相始终以 `proto/runtime/v1/*.proto` 为准。
 
 ## 1. 问题诊断
 
 ### 1.1 当前合同的缺陷
 
-`runtime/proto-contract.md` 中 `WorkflowNode` 的现有定义：
+`proto/runtime/v1/workflow.proto` 中 `WorkflowNode` 的现有定义：
 
 ```protobuf
 message WorkflowNode {
@@ -432,19 +433,17 @@ runtime daemon (`nimi serve`)
 
 Script Worker Protocol 与语言解耦。任何遵守 `ScriptWorkerService` 协议的进程都可以注册为 worker：
 
-```yaml
-# ~/.nimi/config.yaml
-script_workers:
-  # 内置 worker（编译进二进制，零依赖）
-  - runtime: starlark
-  - runtime: expr
-  # 外部 worker（独立进程，需要用户环境支持）
-  - runtime: python
-    command: python3 -m nimi_script_worker
-    socket: /tmp/nimi-script-python.sock
-  - runtime: node
-    command: node ./nimi-script-worker.mjs
-    socket: /tmp/nimi-script-node.sock
+`~/.nimi/config.json` 示意：
+
+```json
+{
+  "scriptWorkers": [
+    { "runtime": "starlark" },
+    { "runtime": "expr" },
+    { "runtime": "python", "command": "python3 -m nimi_script_worker", "socket": "/tmp/nimi-script-python.sock" },
+    { "runtime": "node", "command": "node ./nimi-script-worker.mjs", "socket": "/tmp/nimi-script-node.sock" }
+  ]
+}
 ```
 
 Workflow 节点通过 `ScriptNodeConfig.runtime` 字段指定使用哪个 worker。
@@ -647,8 +646,8 @@ executor 收到 node
 | `ssot/runtime/service-contract.md §7` | DAG 约束章节需要补充 edge 校验规则和节点类型注册语义 |
 | `ssot/runtime/multimodal-provider-contract.md` | 外部任务型媒体（video/image/tts/stt）需要补齐 external-async 节点语义 |
 | `ssot/runtime/multimodal-delivery-gates.md` | workflow 外部任务编排能力需要纳入 G4/G5/G7 验收 |
-| `sdk/design.md §5` | `@nimiplatform/sdk/runtime` 的 `workflow.*` 接口需要映射新的 WorkflowDefinition 结构 |
-| `platform/architecture.md §2.2` | Workflow DAG 描述需要补充"标准化内置节点 + Script Worker"定位 |
+| `ssot/sdk/design.md §5` | `@nimiplatform/sdk/runtime` 的 `workflow.*` 接口需要映射新的 WorkflowDefinition 结构 |
+| `ssot/platform/architecture.md §2.2` | Workflow DAG 描述需要补充"标准化内置节点 + Script Worker"定位 |
 
 ## 10. 发布门槛（补充 runtime/service-contract.md §11）
 

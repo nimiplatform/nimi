@@ -2,7 +2,7 @@
 title: Nimi Runtime Multimodal Delivery Gates
 status: ACTIVE
 created_at: 2026-02-26
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: service-contract.md
 references:
   - ssot/runtime/multimodal-provider-contract.md
@@ -41,8 +41,8 @@ rules:
 | MM-REQ-004 | Artifact 元数据扩展 | `multimodal-provider-contract.md` | artifact contract test |
 | MM-REQ-005 | LocalAI 完整 adapter + matrix | `local-runtime.md` | localruntime test + health test |
 | MM-REQ-006 | Nexa 真实运行链路与门控 | `local-runtime.md` + `providers/nexa.md` | integration test |
-| MM-REQ-007 | LiteLLM 稳定路由与健康回退 | `service-contract.md` | ai/provider tests |
-| MM-REQ-008 | 非兼容 provider custom adapter | `multimodal-provider-contract.md` | adapter contract tests |
+| MM-REQ-007 | nimiLLM 稳定路由与健康回退 | `service-contract.md` | ai/provider tests |
+| MM-REQ-008 | nimiLLM 核心 provider 覆盖完整 | `multimodal-provider-contract.md` | provider contract tests |
 | MM-REQ-009 | Workflow external async 节点语义 | `workflow-dag.md` | workflow e2e |
 | MM-REQ-010 | 跨 provider x modality 测试矩阵 | `multimodal-provider-contract.md` | matrix report |
 | MM-REQ-011 | 覆盖率门禁升级 | 本文件 | CI gate |
@@ -55,7 +55,7 @@ rules:
 | G0 | SSOT 冻结 | 合同文档可执行且互相引用一致 |
 | G1 | Proto 完整表达 | 新 proto 字段/RPC + buf 校验通过 |
 | G2 | SDK 完整映射 | SDK 输入模型与 proto 对齐 |
-| G3 | Runtime provider 适配 | LocalAI/Nexa/LiteLLM/custom adapter 全链路可调用 |
+| G3 | Runtime provider 适配 | LocalAI/Nexa/nimiLLM（核心 provider）全链路可调用 |
 | G4 | Workflow async 编排 | external async DAG 闭环可运行 |
 | G5 | 测试矩阵达标 | provider x modality 矩阵测试报告 |
 | G6 | 可观测与可靠性达标 | 审计、健康、超时、降级语义完整 |
@@ -139,20 +139,20 @@ rules:
 
 1. `runtime/internal/services/ai/*`
 2. `runtime/internal/services/localruntime/*`
-3. provider-specific adapter 代码
+3. nimiLLM provider 覆盖与连接器实现代码
 
 必须满足：
 
 1. LocalAI 完整链路可运行（非仅配置）。
 2. Nexa 完整链路可运行（非仅 proto hints）。
-3. LiteLLM 路由、健康、回退语义稳定。
-4. 非兼容 provider 通过 custom adapter 接入。
+3. nimiLLM 路由、健康、回退语义稳定。
+4. 核心云 provider 通过 nimiLLM 统一接入。
 5. 不可支持能力 fail-close。
 
 验证命令：
 
 1. `cd runtime && go test ./internal/services/ai ./internal/services/localruntime ./internal/daemon ./internal/httpserver`
-2. provider adapter 合同测试（新增）
+2. provider 合同测试（含 nimiLLM 核心 provider 覆盖）
 3. 健康探针与 route.auto_switch 审计测试
 
 退出条件：

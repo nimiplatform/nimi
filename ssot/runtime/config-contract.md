@@ -5,7 +5,7 @@ updated_at: 2026-02-27
 rules:
   - Runtime Config 是 runtime 启动、provider 连接、CLI/desktop 配置交互的唯一配置真相。
   - 配置写入主权固定由 nimi-cli 持有；desktop 仅通过 tauri bridge 调用 CLI。
-  - 配置变更采用 restart required 语义；禁止运行中热加载。
+  - `daemon-config plane` 的配置变更采用 restart required 语义；禁止运行中热加载。
 ---
 
 # Runtime Config SSOT（全链路）
@@ -46,7 +46,7 @@ rules:
 ### 3.2 Priority and Effect Semantics
 
 1. `MUST`：优先级固定为 `CLI flags > ENV > config file > built-in defaults`。
-2. `MUST`：配置修改后必须重启 runtime 生效（`restart required`）。
+2. `MUST`：`daemon-config plane` 配置修改后必须重启 runtime 生效（`restart required`）。
 3. `MUST NOT`：runtime 不得 watch 配置文件并进行热加载。
 
 ### 3.3 Schema and Defaults
@@ -83,6 +83,17 @@ rules:
 2. `MUST`：写入路径执行文件锁，冲突时返回 `CONFIG_WRITE_LOCKED`。
 3. `MUST`：写入执行顺序固定为 `parse -> validate -> atomic write`。
 4. `MUST`：desktop 写入通过 tauri command 调 CLI，不直接写配置文件。
+
+### 3.7 Credential Planes and Host-Bound Request Credentials
+
+1. `MUST`：区分两类凭证平面，且语义不可混用：
+   1. `daemon-config plane`：由 `ai.providers.*.apiKeyEnv` 驱动，服务于 runtime 进程配置读取与 CLI/headless 调用。
+   2. `request-credential plane`：由受信宿主在请求期注入 provider secret，服务于 desktop/mod token-api 调用。
+2. `MUST`：`restart required` 仅适用于 `daemon-config plane` 的配置变更，不适用于 `request-credential plane` 的密钥轮换。
+3. `MUST`：同一逻辑连接器对应的密钥更新必须在下一次请求生效，不得要求 runtime 重启。
+4. `MUST`：当请求显式携带请求期凭证时，执行面必须优先使用该凭证，不得静默回落到 daemon 启动时凭证。
+5. `MUST NOT`：Runtime Config 文件持久化明文请求期 secret。
+6. `SHOULD`：`connectorId -> secret` 解析由 desktop/host 侧负责，runtime 仅消费请求中已注入的 provider secret 与 endpoint 参数。
 
 ## 4. Failure Semantics (`reasonCode` / `actionHint`)
 

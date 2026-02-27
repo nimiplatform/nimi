@@ -98,6 +98,8 @@ rules:
 2. AI `fallback` 未指定时默认改写为 `DENY`。
 3. `appAuth.authorizeExternalPrincipal` 对关键字段有强校验（domain/appId/consent/decisionAt/policy/scopeCatalogVersion 等）。
 4. 写方法自动注入 `idempotencyKey`；读方法不注入。
+5. `token-api` 的 `credentialSource` 属于 transport profile 安全上下文，不通过 runtime `.proto` body 字段表达。
+6. `@nimiplatform/sdk/runtime` 不暴露 `connectorId` 或明文 secret 字段到 runtime 请求体。
 
 ## 6. metadata 合同
 

@@ -50,6 +50,7 @@ rules:
 
 1. `text.doGenerate/doStream` -> `runtime.ai.generate/streamGenerate`
 2. `embedding.doEmbed` -> `runtime.ai.embed`
+3. `ai-provider` 仅映射 runtime 请求体字段；`token-api` 的 `credentialSource` 由 transport profile 安全上下文承载，不在 provider 入参中表达。
 
 ### 3.2 媒体任务（image/video/tts/stt）
 
@@ -89,7 +90,7 @@ rules:
 
 ### 6.2 runtime 合同测试（按 provider）
 
-1. LiteLLM：`provider_cloud_test.ts`（text/embed/image/video/tts/stt）
+1. nimiLLM：`provider_cloud_test.ts`（text/embed/image/video/tts/stt）
 2. Nexa：`provider_local_test.ts`（text/embed/image/tts/stt + video fail-close）
 3. OpenAI-compatible：`provider_openai_test.ts`（video endpoint fallback、stream fallback、unsupported fail-close）
 4. Gemini：`provider_gemini_test.ts`（operation image/video）
@@ -100,5 +101,5 @@ rules:
 
 ### 6.3 live smoke
 
-1. `nimi-sdk-ai-provider-live-smoke.test.ts`（local + litellm 真实环境）
+1. `nimi-sdk-ai-provider-live-smoke.test.ts`（local + nimiLLM 真实环境）
 2. `pnpm check:sdk-vnext-matrix`（固定包含 `sdk/test/ai-provider/provider.test.ts`）

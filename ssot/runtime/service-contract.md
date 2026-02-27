@@ -60,7 +60,7 @@ rules:
 
 执行平面分层：
 - `local-plane`：`LocalAI + Nexa`（本地模型推理覆盖）。
-- `cloud-plane`：`LiteLLM + custom adapters`（阿里/字节/其他远程 provider 统一接入）。
+- `cloud-plane`：`nimiLLM`（统一云推理网关，覆盖核心 provider 全量模型能力）。
 - `orchestrator-plane`：`workflow-worker`（多模型 DAG 编排与异步任务治理）。
 
 冻结规则：
@@ -212,7 +212,7 @@ ExternalPrincipal：
 
 ### 5.2 凭证策略
 
-- 用户凭证存储在 OS keychain（句柄引用，不回传明文）
+- 用户凭证由受信宿主持久化在受控 secret 存储（如 OS keychain 或等效机制，句柄引用，不回传明文）
 - 访问凭证必须走授权检查
 - 凭证轮转与吊销必须写审计
 - FUTURE（local broker 启用时）：broker 路径不得接收、存储或转发云端 provider 凭证（`apiKey/token/providerSecret`）。
@@ -260,12 +260,13 @@ ExternalPrincipal：
 - `x-nimi-surface-id` -> `surfaceId`（可选：页面/模块/入口标识）
 
 `MUST`：`callerKind/callerId/surfaceId` 仅用于审计与统计归因，不得用于授予额外权限或绕过 scope 校验。
+`MUST`：`token-api` 路由必须通过 transport profile 的等效安全上下文显式传递 `credentialSource`，不得依赖推断；该约束不要求新增 L0 envelope 字段。
 
 ### 6.1.2 Schema 真相源（必填）
 
-- `runtime/proto-contract.md`：字段级合同与 `.proto` 骨架真相（service/message/enum）。
+- `ssot/runtime/proto-contract.md`：字段级合同与 `.proto` 骨架真相（service/message/enum）。
 - 本文：执行语义与治理约束真相（状态机/错误语义/审计/默认超时）。
-- 变更规则：涉及字段变更先改 `runtime/proto-contract.md`，涉及语义变更先改本文对应章节。
+- 变更规则：涉及字段变更先改 `ssot/runtime/proto-contract.md`，涉及语义变更先改本文对应章节。
 
 ### 6.1.3 Runtime Transport Profile（V1 + FUTURE）
 
@@ -280,7 +281,7 @@ ExternalPrincipal：
 
 ### 6.2 最小 RPC 面（V1 最小集合）
 
-说明：`runtime/proto-contract.md` 已覆盖本节 8 个 service 的 message/service 骨架；本文件继续承担执行语义与治理规则真相。
+说明：`ssot/runtime/proto-contract.md` 已覆盖本节 8 个 service 的 message/service 骨架；本文件继续承担执行语义与治理规则真相。
 
 | Service | RPC（最小集合） |
 |--------|----------------|
@@ -390,7 +391,7 @@ App 授权链路 reasonCode 最小集合：
 
 目标：把 AI 推理路径提升到“可直接编码 + 可直接测试”的合同精度。
 
-> REF-ERRATA (2026-02-26): 本节定义的是 V1 baseline。多厂商多模态 canonical 字段、async job、一等 artifact metadata、provider custom adapter 规则，以 `ssot/runtime/multimodal-provider-contract.md` 为准。
+> REF-ERRATA (2026-02-26): 本节定义的是 V1 baseline。多厂商多模态 canonical 字段、async job、一等 artifact metadata、provider coverage 规则，以 `ssot/runtime/multimodal-provider-contract.md` 为准。
 
 #### 6.4.1 `Generate`（unary）
 
@@ -444,6 +445,10 @@ App 授权链路 reasonCode 最小集合：
 - `AI_OUTPUT_INVALID`
 - `AI_STREAM_BROKEN`
 - `AI_CONTENT_FILTER_BLOCKED`
+- `AI_REQUEST_CREDENTIAL_REQUIRED`
+- `AI_REQUEST_CREDENTIAL_MISSING`
+- `AI_REQUEST_CREDENTIAL_INVALID`
+- `AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN`
 
 #### 6.4.4 超时默认值（V1 固定）
 
@@ -463,6 +468,23 @@ App 授权链路 reasonCode 最小集合：
 4. `MUST`：当调用方声明 `fallback=deny` 时，回退请求必须拒绝（`AI_ROUTE_FALLBACK_DENIED`）。
 5. `MUST`：`token-api` 路由必须校验凭证可用性与配额。
 6. `MUST`：`RuntimeAiService` 只处理单模型调用；跨节点编排请求必须拒绝并引导走 workflow 接口（`AI_ROUTE_UNSUPPORTED` + actionHint）。
+
+#### 6.4.6 Token-API 请求期凭证合同（MUST）
+
+1. `MUST`：`token-api` 调用必须绑定显式凭证来源，允许值：
+   1. `credentialSource=request-injected`（受信宿主在请求期注入 provider secret；例如 desktop 先解析 `connectorId` 再注入）
+   2. `credentialSource=runtime-config`（runtime/cli/headless 使用进程配置凭证）
+2. `MUST`：`credentialSource` 属于 transport profile 字段（metadata 或 profile 等效安全上下文），不是 `.proto` body 中的明文字段。
+3. `MUST`：desktop/mod 执行面默认使用 `credentialSource=request-injected`；缺少请求期凭证时必须拒绝，不得静默降级到进程级凭证。
+4. `MUST`：runtime 执行面不得要求调用方提供 `connectorId`，也不得承担 `connectorId -> secret` 解析职责。
+5. `MUST`：请求期 secret 轮换必须在下一次请求生效，不得要求 runtime 重启。
+6. `MUST`：当 `credentialSource=request-injected` 时，不得回退到 daemon 启动时读取的 provider API key。
+7. `MUST`：审计事件必须记录凭证来源与请求凭证引用指纹（不可逆），用于排查“配置凭证”与“请求凭证”漂移。
+8. `MUST`：以下失败语义必须可识别并 fail-close：
+   1. `AI_REQUEST_CREDENTIAL_REQUIRED`
+   2. `AI_REQUEST_CREDENTIAL_MISSING`
+   3. `AI_REQUEST_CREDENTIAL_INVALID`
+   4. `AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN`
 
 ### 6.5 RuntimeModelService 合同（必填）
 

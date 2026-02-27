@@ -2,7 +2,7 @@
 title: Nimi Platform Architecture Overview
 status: FROZEN
 created_at: 2026-02-24
-updated_at: 2026-02-24
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
@@ -114,7 +114,7 @@ Worldview 补充：
 |------|------|
 | AI 推理 | chat / tts / stt / t2i / i2i / t2v / i2v / embedding — 全模态标准化 |
 | AI 路由 | local-runtime / token-api 双源路由，统一接口屏蔽 provider 差异 |
-| AI 后端 | 本地：LocalAI / Nexa 等开源方案；云端：LiteLLM 统一适配 + 自研 Adapter（阿里/火山等） |
+| AI 后端 | 本地：LocalAI / Nexa 等开源方案；云端：nimiLLM 统一网关（覆盖核心 provider） |
 | 进程管理 | 子进程生命周期（按需启动/健康检查/崩溃重启/优雅关闭） |
 | 模型管理 | 本地模型下载/安装/卸载/健康检查，云端 provider 配置 |
 | Workflow DAG | 架构级多模型编排引擎。Runtime 提供 DAG 执行/调度/进度推送，App/Mod 提交 workflow 定义。例：图片生成 = prompt→embedding→VAE 多模型流水线 |
@@ -122,7 +122,7 @@ Worldview 补充：
 | GPU 仲裁 | 多 App 并发推理时的资源调度、排队和配额 |
 | 本地数据层 | realm-cache（agent/memory/world 本地缓存）+ per-app-user 分区存储（`appId + subjectUserId/authId`）+ 跨 App 授权访问 |
 | 知识库引擎 | 向量索引 / embedding / 检索（索引来源：realm-cache + app 数据 + 用户授权内容） |
-| User Credential | 用户自己的 API key 加密存储（OS keychain），非 per-app 隔离 |
+| Credential Plane | 进程配置凭证（daemon-config）+ 请求期凭证（host 注入）双平面；secret 持久化由受信宿主负责（如 OS keychain 或等效机制） |
 | MCP Server | 标准 MCP 协议，供外部 AI 工具接入 |
 | 审计 (本地) | AI 调用记录、per-app 用量统计，可选上报到 realm |
 | App 间通信 | 跨 App 消息传递和数据共享通道 |
@@ -130,8 +130,9 @@ Worldview 补充：
 
 **V1 执行栈冻结**：
 - 本地模型面：`LocalAI + Nexa`。
-- 远程模型面：`LiteLLM + Custom Adapter`（阿里/字节/其他 provider）。
+- 远程模型面：`nimiLLM`（统一覆盖 OpenAI-compatible + Alibaba + Bytedance + Gemini + MiniMax + Kimi + GLM）。
 - 路由面：`local-runtime | token-api` 显式路由，不允许静默 fallback。
+- 凭证面：`token-api` 默认走请求期凭证注入；runtime 不承担 `connectorId -> secret` 解析。
 - 编排面：`Workflow DAG` 作为独立运行时能力，不并入单次模型调用接口。
 
 **通信协议**：gRPC（unary + server streaming + bidirectional streaming）
@@ -160,7 +161,7 @@ Worldview 补充：
 - Mod 加载/治理（属于 desktop）
 - 持久世界状态（身份/社交/经济，属于 nimi-realm）
 - App 级沙箱（App 是独立进程，安全性由 OS 负责）
-- App 自己的 API key 管理（App 走自己的云端服务）
+- `connectorId -> secret` 解析与长期密钥持久化策略（属于受信宿主，如 desktop/cli）
 
 **对应当前代码**：从 `apps/desktop/src/runtime/llm-adapter/` 提升而来
 
@@ -197,8 +198,8 @@ runtime/cmd/
 | | `nimi mod publish` | 发布到 Mod Circle（触发 PR） |
 | **Workflow** | `nimi workflow run <def>` | 提交 DAG workflow |
 | | `nimi workflow status <id>` | 查询 workflow 进度 |
-| **Key 管理** | `nimi key set <provider>` | 设置 API key（存 OS keychain） |
-| | `nimi key list` | 列出已配置 provider |
+| **Key 管理** | `nimi key set <provider>` | 设置 provider secret 引用（写入受控 secret 存储，如 OS keychain/等效机制） |
+| | `nimi key list` | 列出已配置 provider 引用 |
 
 **设计要点**：
 - 单二进制：`nimi` 二进制同时包含 daemon 和 CLI 逻辑，`nimi serve` 启动 daemon，其他命令作为 gRPC client
@@ -220,7 +221,7 @@ runtime/cmd/
 
 ### 2.2.2 ExternalPrincipal -> App 授权链路（runtime 域）
 
-规范来源：授权语义真相以 `platform/protocol.md §3.4` 为准；本节仅保留架构路径摘要。
+规范来源：授权语义真相以 `ssot/platform/protocol.md §3.4` 为准；本节仅保留架构路径摘要。
 
 这个链路和 realm 登录态解耦，属于 App 可访问性授权域：
 
@@ -287,10 +288,10 @@ runtime/cmd/
 │   └── realtime.*             Socket.IO 事件（手写类型或 AsyncAPI codegen 补充）
 │
 ├── runtime                    → nimi-runtime（V1: direct gRPC）
-│   ├── ai                     基于 Vercel AI SDK v6 + Custom Provider
+│   ├── ai                     基于 Vercel AI SDK v6 + Nimi Provider Bridge
 │   │   │
 │   │   │  采用 AI SDK v6 类型系统和调用范式（LanguageModelV3 / EmbeddingModelV3 / ImageModelV3）
-│   │   │  @nimiplatform/sdk/ai-provider 作为 custom provider，doGenerate/doStream 转为 gRPC 调用
+│   │   │  @nimiplatform/sdk/ai-provider 作为 provider bridge，doGenerate/doStream 转为 gRPC 调用
 │   │   │  开发者直接用 generateText / streamText / generateObject / embed 等 AI SDK 原语
 │   │   │  当前 ModAiClient 是此方案的手写前身，按单次切换直接替换
 │   │   │  边界：ai.* 只承载单次/流式模型调用，不承载 DAG 编排
@@ -452,9 +453,9 @@ nimi-realm ←→ 数据库/缓存         : PostgreSQL / Redis / OpenSearch
 
 以下主题已完成文档层讨论并进入 `FROZEN`，当前重点是实现与验收：
 
-1. **nimi-runtime gRPC API 定义** — 完整 proto 合同（→ runtime/proto-contract.md）
-2. **nimi-sdk 分层细节** — `@nimiplatform/sdk/realm` / `@nimiplatform/sdk/runtime` API 设计（→ sdk/design.md）
-3. **Desktop Runtime Contract** — 代码归属与切换边界（→ desktop/runtime-contract.md）
-4. **Platform Protocol** — L0 封装 + L1 app-auth 锚点 + L2 Realm 六原语画像（→ platform/protocol.md）
-5. **ExternalPrincipal 授权细化** — preset/custom、委托深度与撤销语义（→ runtime/service-contract.md / sdk/design.md / platform/protocol.md）
-6. **Realm 六原语实现映射** — 现有 nimi-realm 到协议合同的差距清单（→ economy/realm-interop-mapping.md）
+1. **nimi-runtime gRPC API 定义** — 完整 proto 合同（→ ssot/runtime/proto-contract.md）
+2. **nimi-sdk 分层细节** — `@nimiplatform/sdk/realm` / `@nimiplatform/sdk/runtime` API 设计（→ ssot/sdk/design.md）
+3. **Desktop Runtime Contract** — 代码归属与切换边界（→ ssot/desktop/runtime-contract.md）
+4. **Platform Protocol** — L0 封装 + L1 app-auth 锚点 + L2 Realm 六原语画像（→ ssot/platform/protocol.md）
+5. **ExternalPrincipal 授权细化** — preset/custom、委托深度与撤销语义（→ ssot/runtime/service-contract.md / ssot/sdk/design.md / ssot/platform/protocol.md）
+6. **Realm 六原语实现映射** — 现有 nimi-realm 到协议合同的差距清单（→ ssot/economy/realm-interop-mapping.md）

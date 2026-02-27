@@ -57,6 +57,10 @@ rules:
 - 任何可被复制粘贴成 `.proto` 的结构定义
 - 用文档字段替代 `.proto` 字段的并行定义
 
+例外（仅 `status=DRAFT` 设计稿）：
+- 可包含“NON-NORMATIVE”示意片段用于讨论协议方向，但不得作为 wire schema 真相被引用。
+- 设计稿升格为 `ACTIVE/FROZEN` 前，必须移除示意片段并把字段真相收敛到 `proto/runtime/v1/*.proto`。
+
 ## 3. 兼容性与演进规则
 
 `MUST`：协议演进遵循 Buf 与语义版本双重约束。
