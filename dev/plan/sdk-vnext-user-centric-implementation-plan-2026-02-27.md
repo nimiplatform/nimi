@@ -276,7 +276,8 @@ class NimiError extends Error {
 ### Slice C：跨域编排范式
 
 1. 提供官方“应用编排 recipe”（代码模板，不是客户端对象）。
-2. 提供 helper types（如 `RuntimeAuthMaterial`）。
+2. `DONE` 提供 helper types 与 pure helpers（`RuntimeAuthMaterial`、`RuntimeRealmBridgeContext`、`RuntimeRealmBridgeHelpers`、`buildRuntimeAuthMetadata`、`linkRuntimeTraceToRealmWrite`）。
+导出路径：`sdk/src/runtime/vnext-types.ts`、`sdk/src/runtime/runtime-realm-bridge.ts`、`sdk/src/runtime/index.ts`。
 3. 完成 runtime+realm 场景 E2E。
 
 ### Slice D：文档与门禁切换

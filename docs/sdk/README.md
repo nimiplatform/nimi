@@ -41,6 +41,17 @@ const runtime = new Runtime({
 
 SDK keeps `Runtime` and `Realm` independent. Cross-system flow is composed explicitly in app code.
 
+Helper types and pure helpers are available for explicit bridging:
+
+```ts
+import {
+  type RuntimeAuthMaterial,
+  type RuntimeRealmBridgeContext,
+  buildRuntimeAuthMetadata,
+  linkRuntimeTraceToRealmWrite,
+} from '@nimiplatform/sdk';
+```
+
 ### Pattern A: Realm -> Runtime
 
 ```ts
@@ -53,10 +64,10 @@ const grant = await realm.raw.request<{ token: string; version: string }>({
 const out = await runtime.ai.text.generate({
   model: 'chat/default',
   input: 'hello',
-  metadata: {
-    realmGrantToken: grant.token,
-    realmGrantVersion: grant.version,
-  },
+  metadata: buildRuntimeAuthMetadata({
+    grantToken: grant.token,
+    grantVersion: grant.version,
+  }),
 });
 ```
 
@@ -111,16 +122,18 @@ const grant = await realm.raw.request<{ token: string; version: string }>({
 const out = await runtime.ai.text.generate({
   model: 'chat/default',
   input: 'hello',
-  metadata: {
-    realmGrantToken: grant.token,
-    realmGrantVersion: grant.version,
-  },
+  metadata: buildRuntimeAuthMetadata({
+    grantToken: grant.token,
+    grantVersion: grant.version,
+  }),
 });
 
-await realm.posts.create({
-  content: out.text,
-  traceId: out.trace.traceId,
-});
+await realm.posts.create(
+  linkRuntimeTraceToRealmWrite({
+    runtimeTraceId: out.trace.traceId,
+    realmPayload: { content: out.text },
+  }),
+);
 
 await runtime.close();
 await realm.close();

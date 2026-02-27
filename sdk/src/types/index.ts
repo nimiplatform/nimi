@@ -311,6 +311,8 @@ export const ReasonCode = {
   WORLD_STUDIO_TOKEN_ROUTE_INCOMPLETE: 'WORLD_STUDIO_TOKEN_ROUTE_INCOMPLETE',
 } as const;
 
+export type NimiErrorCode = keyof typeof ReasonCode;
+
 export type ReasonCodeValue = typeof ReasonCode[keyof typeof ReasonCode];
 
 const RETRYABLE_REASON_CODES: ReadonlySet<string> = new Set([

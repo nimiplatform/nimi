@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -30,6 +31,11 @@ type configCommandError struct {
 	actionHint string
 	cause      error
 }
+
+var (
+	configWriteLockHookMu sync.RWMutex
+	configWriteLockHook   func(lockPath string)
+)
 
 func (e *configCommandError) Error() string {
 	if e == nil {
@@ -600,6 +606,7 @@ func acquireConfigWriteLock(configPath string) (func(), error) {
 		}
 		return nil, newConfigCommandError(configReasonWriteLocked, "ensure config lock can be created", err)
 	}
+	invokeConfigWriteLockHook(lockPath)
 
 	released := false
 	release := func() {
@@ -611,6 +618,27 @@ func acquireConfigWriteLock(configPath string) (func(), error) {
 		_ = os.Remove(lockPath)
 	}
 	return release, nil
+}
+
+func setConfigWriteLockHookForTest(hook func(lockPath string)) func() {
+	configWriteLockHookMu.Lock()
+	prev := configWriteLockHook
+	configWriteLockHook = hook
+	configWriteLockHookMu.Unlock()
+	return func() {
+		configWriteLockHookMu.Lock()
+		configWriteLockHook = prev
+		configWriteLockHookMu.Unlock()
+	}
+}
+
+func invokeConfigWriteLockHook(lockPath string) {
+	configWriteLockHookMu.RLock()
+	hook := configWriteLockHook
+	configWriteLockHookMu.RUnlock()
+	if hook != nil {
+		hook(lockPath)
+	}
 }
 
 func isSecretPolicyViolation(err error) bool {

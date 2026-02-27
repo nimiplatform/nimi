@@ -204,6 +204,7 @@ export type RuntimeRealmBridgeHelpers = {
 
 1. 跨域流程由应用自行编排。
 2. SDK 可提供 helper types / pure helpers，不提供第三客户端对象。
+3. `DONE` helper types / pure helpers 已落地：`sdk/src/runtime/vnext-types.ts`、`sdk/src/runtime/runtime-realm-bridge.ts`（含导出与测试）。
 
 ## 5. Runtime / Realm 模块面（补齐）
 

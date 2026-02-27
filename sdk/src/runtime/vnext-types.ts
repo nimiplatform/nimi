@@ -38,6 +38,8 @@ import type {
   ScopeManifest,
   NimiError,
 } from '../types/index.js';
+import type { Realm } from '../realm/client.js';
+import type { Runtime } from './runtime.js';
 
 export type RuntimeConnectionMode = 'auto' | 'manual';
 
@@ -88,6 +90,35 @@ export type RuntimeOptions = {
     enabled?: boolean;
     onEvent?: (event: RuntimeTelemetryEvent) => void;
   };
+};
+
+export type RuntimeAuthMaterial = {
+  grantToken: string;
+  grantVersion: string;
+};
+
+export type RuntimeRealmBridgeContext = {
+  appId: string;
+  runtime: Runtime;
+  realm: Realm;
+};
+
+export type RuntimeRealmBridgeHelpers = {
+  fetchRealmGrant(input: {
+    appId?: string;
+    subjectUserId: string;
+    scopes: string[];
+    path?: string;
+  }): Promise<{
+    token: string;
+    version: string;
+    expiresAt?: string;
+  }>;
+  buildRuntimeAuthMetadata(input: RuntimeAuthMaterial): Record<string, string>;
+  linkRuntimeTraceToRealmWrite(input: {
+    runtimeTraceId?: string;
+    realmPayload: Record<string, unknown>;
+  }): Record<string, unknown>;
 };
 
 export type NimiRoutePolicy = 'local-runtime' | 'token-api';

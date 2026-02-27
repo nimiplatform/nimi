@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -181,6 +182,70 @@ func TestRunRuntimeConfigSetReturnsWriteLocked(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), configReasonWriteLocked) {
 		t.Fatalf("expected %s, got %v", configReasonWriteLocked, err)
+	}
+}
+
+func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	lockAcquired := make(chan struct{})
+	releaseLock := make(chan struct{})
+	var blockOnce sync.Once
+	restoreHook := setConfigWriteLockHookForTest(func(_ string) {
+		blockOnce.Do(func() {
+			close(lockAcquired)
+			<-releaseLock
+		})
+	})
+	defer restoreHook()
+
+	firstErrCh := make(chan error, 1)
+	go func() {
+		firstErrCh <- runRuntimeConfig([]string{
+			"set",
+			"--set", "runtime.grpcAddr=127.0.0.1:50101",
+			"--json",
+		})
+	}()
+
+	<-lockAcquired
+
+	secondErr := runRuntimeConfig([]string{
+		"set",
+		"--set", "runtime.grpcAddr=127.0.0.1:50102",
+		"--json",
+	})
+	if secondErr == nil {
+		t.Fatalf("expected concurrent write lock error")
+	}
+	if !strings.Contains(secondErr.Error(), configReasonWriteLocked) {
+		t.Fatalf("expected %s, got %v", configReasonWriteLocked, secondErr)
+	}
+
+	close(releaseLock)
+
+	firstErr := <-firstErrCh
+	if firstErr != nil {
+		t.Fatalf("first set should succeed, got: %v", firstErr)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	fileCfg, err := config.LoadFileConfig(cfgPath)
+	if err != nil {
+		t.Fatalf("LoadFileConfig after concurrent set: %v", err)
+	}
+	if fileCfg.SchemaVersion != config.DefaultSchemaVersion {
+		t.Fatalf("schema version mismatch: got=%d want=%d", fileCfg.SchemaVersion, config.DefaultSchemaVersion)
+	}
+	if fileCfg.Runtime.GRPCAddr != "127.0.0.1:50101" {
+		t.Fatalf("grpc addr mismatch after concurrent set: %q", fileCfg.Runtime.GRPCAddr)
 	}
 }
 
