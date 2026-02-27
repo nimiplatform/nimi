@@ -26,7 +26,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }) => input.runtime.generateModText({
         modId: input.modId,
         provider,
@@ -41,7 +41,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }),
       stream: async function* ({
         provider,
@@ -56,7 +56,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }) {
         for await (const event of input.runtime.streamModText({
           modId: input.modId,
@@ -72,7 +72,7 @@ export function createLlmClient(input: {
           localProviderEndpoint,
           localProviderModel,
           localOpenAiEndpoint,
-          localOpenAiApiKey,
+          credentialRefId,
         })) {
           yield event;
         }
@@ -88,7 +88,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }) => input.runtime.generateModImage({
         modId: input.modId,
         provider,
@@ -99,7 +99,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }),
     },
     video: {
@@ -111,7 +111,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }) => input.runtime.generateModVideo({
         modId: input.modId,
         provider,
@@ -121,7 +121,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }),
     },
     embedding: {
@@ -132,7 +132,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }) => input.runtime.generateModEmbedding({
         modId: input.modId,
         provider,
@@ -141,7 +141,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }),
     },
     checkHealth: async (payload) => input.runtimeHost.checkLocalLlmHealth(payload),
@@ -198,7 +198,7 @@ export function createLlmClient(input: {
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
-        localOpenAiApiKey,
+        credentialRefId,
       }) => {
         return input.runtime.transcribeModSpeech({
           modId: input.modId,
@@ -210,7 +210,7 @@ export function createLlmClient(input: {
           localProviderEndpoint,
           localProviderModel,
           localOpenAiEndpoint,
-          localOpenAiApiKey,
+          credentialRefId,
         });
       },
       stream: {

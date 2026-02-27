@@ -7,13 +7,9 @@ import {
   FallbackPolicy,
   RoutePolicy,
   type EmbedRequest,
-  type GenerateImageRequest,
   type GenerateRequest,
-  type GenerateVideoRequest,
   type SubmitMediaJobRequest,
   type StreamGenerateRequest,
-  type SynthesizeSpeechRequest,
-  type TranscribeAudioRequest,
 } from '../generated/runtime/v1/ai';
 import {
   AuthorizationPreset,
@@ -110,6 +106,48 @@ function withAiRouteValidation<Request extends RuntimeAiRouteRequest>(
   }
 
   return request;
+}
+
+function validateAiCredentialMetadata(
+  methodId: string,
+  request: RuntimeAiRouteRequest,
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+): void {
+  const source = normalizeText(options?.metadata?.credentialSource).toLowerCase();
+  const apiKey = normalizeText(options?.metadata?.providerApiKey);
+
+  if (source && source !== 'runtime-config' && source !== 'request-injected') {
+    throwValidationError(
+      'SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID',
+      `${methodId} metadata.credentialSource is invalid`,
+      'set_credential_source_runtime_config_or_request_injected',
+    );
+  }
+
+  if (request.routePolicy === RoutePolicy.TOKEN_API) {
+    if (!source) {
+      throwValidationError(
+        'SDK_RUNTIME_AI_CREDENTIAL_SOURCE_REQUIRED',
+        `${methodId} token-api route requires metadata.credentialSource`,
+        'set_credential_source',
+      );
+    }
+    if (source === 'request-injected' && !apiKey) {
+      throwValidationError(
+        'SDK_RUNTIME_AI_CREDENTIAL_MISSING',
+        `${methodId} request-injected source requires metadata.providerApiKey`,
+        'set_provider_api_key',
+      );
+    }
+  }
+
+  if (request.routePolicy === RoutePolicy.LOCAL_RUNTIME && source === 'request-injected') {
+    throwValidationError(
+      'SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN',
+      `${methodId} local-runtime route does not allow request-injected credentialSource`,
+      'use_runtime_config_credential_source',
+    );
+  }
 }
 
 function hasDecisionAtValue(
@@ -240,24 +278,23 @@ function validateAuthorizeExternalPrincipalRequest(
   return request;
 }
 
-function normalizeRequestForMethod<Request>(methodId: string, request: Request): Request {
+function normalizeRequestForMethod<Request>(
+  methodId: string,
+  request: Request,
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+): Request {
   switch (methodId) {
     case RuntimeMethodIds.ai.generate:
-      return withAiRouteValidation(methodId, request as unknown as GenerateRequest) as Request;
     case RuntimeMethodIds.ai.streamGenerate:
-      return withAiRouteValidation(methodId, request as unknown as StreamGenerateRequest) as Request;
     case RuntimeMethodIds.ai.embed:
-      return withAiRouteValidation(methodId, request as unknown as EmbedRequest) as Request;
-    case RuntimeMethodIds.ai.submitMediaJob:
-      return withAiRouteValidation(methodId, request as unknown as SubmitMediaJobRequest) as Request;
-    case RuntimeMethodIds.ai.generateImage:
-      return withAiRouteValidation(methodId, request as unknown as GenerateImageRequest) as Request;
-    case RuntimeMethodIds.ai.generateVideo:
-      return withAiRouteValidation(methodId, request as unknown as GenerateVideoRequest) as Request;
-    case RuntimeMethodIds.ai.synthesizeSpeech:
-      return withAiRouteValidation(methodId, request as unknown as SynthesizeSpeechRequest) as Request;
-    case RuntimeMethodIds.ai.transcribeAudio:
-      return withAiRouteValidation(methodId, request as unknown as TranscribeAudioRequest) as Request;
+    case RuntimeMethodIds.ai.submitMediaJob: {
+      const normalized = withAiRouteValidation(
+        methodId,
+        request as unknown as RuntimeAiRouteRequest,
+      ) as unknown as RuntimeAiRouteRequest;
+      validateAiCredentialMetadata(methodId, normalized, options);
+      return normalized as Request;
+    }
     case RuntimeMethodIds.appAuth.authorizeExternalPrincipal:
       return validateAuthorizeExternalPrincipalRequest(
         request as unknown as AuthorizeExternalPrincipalRequest,
@@ -408,7 +445,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       });
     }
 
-    const normalizedRequest = normalizeRequestForMethod(methodId, request);
+    const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
     const wireResponse = await transport.invokeUnary(
       toUnaryCall(config, methodId, wireRequest, options),
@@ -432,7 +469,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       });
     }
 
-    const normalizedRequest = normalizeRequestForMethod(methodId, request);
+    const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
     const wireStream = await transport.openStream(
       toStreamCall(config, methodId, wireRequest, options),
@@ -479,10 +516,6 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       cancelMediaJob: unary(RuntimeMethodIds.ai.cancelMediaJob),
       subscribeMediaJobEvents: stream(RuntimeMethodIds.ai.subscribeMediaJobEvents),
       getMediaArtifacts: unary(RuntimeMethodIds.ai.getMediaArtifacts),
-      generateImage: stream(RuntimeMethodIds.ai.generateImage),
-      generateVideo: stream(RuntimeMethodIds.ai.generateVideo),
-      synthesizeSpeech: stream(RuntimeMethodIds.ai.synthesizeSpeech),
-      transcribeAudio: unary(RuntimeMethodIds.ai.transcribeAudio),
     },
     workflow: {
       submit: unary(RuntimeMethodIds.workflow.submit),

@@ -67,10 +67,6 @@ type RuntimeAiBridge = Pick<Runtime['ai'],
   | 'cancelMediaJob'
   | 'subscribeMediaJobEvents'
   | 'getMediaArtifacts'
-  | 'generateImage'
-  | 'generateVideo'
-  | 'synthesizeSpeech'
-  | 'transcribeAudio'
 >;
 
 type RuntimeForAiProvider = {

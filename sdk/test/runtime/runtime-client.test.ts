@@ -146,6 +146,18 @@ function installTauriRuntime(runtime: TauriRuntime): () => void {
   };
 }
 
+function unwrapTauriInvokePayload(payload: unknown): Record<string, unknown> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return {};
+  }
+  const root = payload as Record<string, unknown>;
+  const nested = root.payload;
+  if (!nested || typeof nested !== 'object' || Array.isArray(nested)) {
+    return {};
+  }
+  return nested as Record<string, unknown>;
+}
+
 test('createRuntimeClient injects idempotency key for write unary methods', async () => {
   let captured: RuntimeUnaryCall<RuntimeWireMessage> | null = null;
   installNodeGrpcBridge({
@@ -618,7 +630,7 @@ test('node-grpc and tauri-ipc cover runtime.localRuntime unary contract surface'
         if (command !== 'runtime_bridge_unary') {
           throw new Error(`unexpected tauri command: ${command}`);
         }
-        const call = (payload || {}) as Record<string, unknown>;
+        const call = unwrapTauriInvokePayload(payload);
         tauriCalls.push(call);
         const methodId = String(call.methodId || '').trim();
         const codec = RuntimeUnaryMethodCodecs[methodId as keyof typeof RuntimeUnaryMethodCodecs];
@@ -686,7 +698,7 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
     core: {
       invoke: async (command: string, payload?: unknown) => {
         if (command === 'runtime_bridge_unary') {
-          capturedPayload = (payload || {}) as Record<string, unknown>;
+          capturedPayload = unwrapTauriInvokePayload(payload);
           return {
             responseBytesBase64: Buffer.from(
               GenerateResponse.toBinary(
@@ -811,9 +823,10 @@ test('tauri-ipc does not retry with legacy payload when invoke reports invalid a
     assert.ok(captured);
     assert.equal(captured.reasonCode, 'SDK_RUNTIME_TAURI_UNARY_FAILED');
     assert.equal(invokedCalls.length, 1);
-    const firstPayload = (invokedCalls[0]?.payload || {}) as Record<string, unknown>;
+    const firstArgs = (invokedCalls[0]?.payload || {}) as Record<string, unknown>;
+    const firstPayload = unwrapTauriInvokePayload(invokedCalls[0]?.payload);
     assert.equal(typeof firstPayload.methodId, 'string');
-    assert.equal(firstPayload.payload, undefined);
+    assert.equal(firstArgs.methodId, undefined);
   } finally {
     restoreTauri();
   }
@@ -928,7 +941,7 @@ test('tauri-ipc stream errors surface as NimiError and close remote stream', asy
         }
 
         if (command === 'runtime_bridge_stream_close') {
-          const value = (payload || {}) as { streamId?: string };
+          const value = unwrapTauriInvokePayload(payload) as { streamId?: string };
           closeRequests.push(String(value.streamId || ''));
           return {};
         }
@@ -1019,7 +1032,7 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
         }
 
         if (command === 'runtime_bridge_stream_close') {
-          const value = (payload || {}) as { streamId?: string };
+          const value = unwrapTauriInvokePayload(payload) as { streamId?: string };
           closeRequests.push(String(value.streamId || ''));
           return {};
         }
@@ -1071,7 +1084,7 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
     core: {
       invoke: async (command: string, payload?: unknown) => {
         if (command === 'runtime_bridge_stream_open') {
-          streamOpenPayload = (payload || {}) as Record<string, unknown>;
+          streamOpenPayload = unwrapTauriInvokePayload(payload);
           const streamId = 'stream-tauri-event-namespace';
           setTimeout(() => {
             const handler = listeners.get('custom_events:stream:stream-tauri-event-namespace');
@@ -1137,7 +1150,7 @@ test('tauri-ipc stream abort signal triggers remote close', async () => {
         }
 
         if (command === 'runtime_bridge_stream_close') {
-          const value = (payload || {}) as { streamId?: string };
+          const value = unwrapTauriInvokePayload(payload) as { streamId?: string };
           closeRequests.push(String(value.streamId || ''));
           return {};
         }

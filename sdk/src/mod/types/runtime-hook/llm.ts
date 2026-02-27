@@ -31,7 +31,7 @@ export type RuntimeHookLlmFacade = {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
     providerHints?: LocalAiProviderHints;
   }) => Promise<{ text: string; promptTraceId: string }>;
   streamModText: (input: {
@@ -49,7 +49,7 @@ export type RuntimeHookLlmFacade = {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
     providerHints?: LocalAiProviderHints;
   }) => AsyncIterable<HookLlmTextStreamEvent>;
   generateModImage: (input: {
@@ -63,7 +63,7 @@ export type RuntimeHookLlmFacade = {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
     providerHints?: LocalAiProviderHints;
   }) => Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }>;
   generateModVideo: (input: {
@@ -76,7 +76,7 @@ export type RuntimeHookLlmFacade = {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
     providerHints?: LocalAiProviderHints;
   }) => Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }>;
   generateModEmbedding: (input: {
@@ -88,7 +88,7 @@ export type RuntimeHookLlmFacade = {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
     providerHints?: LocalAiProviderHints;
   }) => Promise<{ embeddings: number[][] }>;
   transcribeModSpeech: (input: {
@@ -102,7 +102,7 @@ export type RuntimeHookLlmFacade = {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
     providerHints?: LocalAiProviderHints;
   }) => Promise<{ text: string }>;
   listSpeechProviders: (input: {
@@ -178,7 +178,7 @@ export type HookLlmClient = {
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;
-      localOpenAiApiKey?: string;
+      credentialRefId?: string;
       providerHints?: LocalAiProviderHints;
     }) => Promise<{ text: string; promptTraceId: string }>;
     stream: (input: {
@@ -194,7 +194,7 @@ export type HookLlmClient = {
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;
-      localOpenAiApiKey?: string;
+      credentialRefId?: string;
       providerHints?: LocalAiProviderHints;
     }) => AsyncIterable<HookLlmTextStreamEvent>;
   };
@@ -208,7 +208,7 @@ export type HookLlmClient = {
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;
-      localOpenAiApiKey?: string;
+      credentialRefId?: string;
       providerHints?: LocalAiProviderHints;
     }) => Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }>;
   };
@@ -221,7 +221,7 @@ export type HookLlmClient = {
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;
-      localOpenAiApiKey?: string;
+      credentialRefId?: string;
       providerHints?: LocalAiProviderHints;
     }) => Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }>;
   };
@@ -233,7 +233,7 @@ export type HookLlmClient = {
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;
-      localOpenAiApiKey?: string;
+      credentialRefId?: string;
       providerHints?: LocalAiProviderHints;
     }) => Promise<{ embeddings: number[][] }>;
   };
@@ -266,7 +266,7 @@ export type HookLlmClient = {
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;
-      localOpenAiApiKey?: string;
+      credentialRefId?: string;
       providerHints?: LocalAiProviderHints;
     }) => Promise<{ text: string }>;
     stream: {

@@ -10,6 +10,14 @@ function normalize(value: unknown): string | undefined {
   return text.length > 0 ? text : undefined;
 }
 
+function normalizeCredentialSource(value: unknown): 'request-injected' | 'runtime-config' | undefined {
+  const text = String(value || '').trim().toLowerCase();
+  if (text === 'request-injected' || text === 'runtime-config') {
+    return text;
+  }
+  return undefined;
+}
+
 export function mergeRuntimeMetadata(
   config: RuntimeClientConfig,
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
@@ -28,6 +36,9 @@ export function mergeRuntimeMetadata(
     callerKind: metadata.callerKind || defaults.callerKind || 'third-party-app',
     callerId: normalize(metadata.callerId || defaults.callerId || config.appId),
     surfaceId: normalize(metadata.surfaceId || defaults.surfaceId),
+    credentialSource: normalizeCredentialSource(metadata.credentialSource),
+    providerEndpoint: normalize(metadata.providerEndpoint),
+    providerApiKey: normalize(metadata.providerApiKey),
     extra: metadata.extra || undefined,
   };
 }

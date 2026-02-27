@@ -4,10 +4,8 @@ import type {
   CancelMediaJobResponse,
   EmbedRequest,
   EmbedResponse,
-  GenerateImageRequest,
   GenerateRequest,
   GenerateResponse,
-  GenerateVideoRequest,
   GetMediaArtifactsRequest,
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
@@ -20,9 +18,6 @@ import type {
   SubmitMediaJobRequest,
   SubmitMediaJobResponse,
   SubscribeMediaJobEventsRequest,
-  SynthesizeSpeechRequest,
-  TranscribeAudioRequest,
-  TranscribeAudioResponse,
 } from './generated/runtime/v1/ai';
 import type {
   RuntimeCallOptions,
@@ -218,6 +213,7 @@ export type ImageGenerateInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
@@ -241,6 +237,7 @@ export type VideoGenerateInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
@@ -263,6 +260,7 @@ export type SpeechSynthesizeInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
@@ -287,6 +285,7 @@ export type SpeechTranscribeInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
@@ -355,22 +354,6 @@ export type RuntimeAiModule = {
     request: GetMediaArtifactsRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetMediaArtifactsResponse>;
-  generateImage(
-    request: GenerateImageRequest,
-    options?: RuntimeStreamCallOptions,
-  ): Promise<AsyncIterable<ArtifactChunk>>;
-  generateVideo(
-    request: GenerateVideoRequest,
-    options?: RuntimeStreamCallOptions,
-  ): Promise<AsyncIterable<ArtifactChunk>>;
-  synthesizeSpeech(
-    request: SynthesizeSpeechRequest,
-    options?: RuntimeStreamCallOptions,
-  ): Promise<AsyncIterable<ArtifactChunk>>;
-  transcribeAudio(
-    request: TranscribeAudioRequest,
-    options?: RuntimeCallOptions,
-  ): Promise<TranscribeAudioResponse>;
   text: {
     generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     stream(input: TextStreamInput): Promise<TextStreamOutput>;

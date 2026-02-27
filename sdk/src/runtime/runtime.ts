@@ -10,16 +10,12 @@ import {
   RoutePolicy,
   type ArtifactChunk,
   type CancelMediaJobRequest,
-  type GenerateImageRequest,
   type GenerateRequest,
   type GenerateResponse,
-  type GenerateVideoRequest,
   type GetMediaArtifactsResponse,
   type MediaJob,
   type StreamGenerateEvent,
   type SubmitMediaJobRequest,
-  type SynthesizeSpeechRequest,
-  type TranscribeAudioResponse,
 } from './generated/runtime/v1/ai';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit';
 import { Struct } from './generated/google/protobuf/struct.js';
@@ -565,18 +561,6 @@ export class Runtime {
       getMediaArtifacts: async (request, optionsValue) => this.#invokeWithClient(
         async (client) => client.ai.getMediaArtifacts(request, optionsValue),
       ),
-      generateImage: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.generateImage(request, optionsValue),
-      ),
-      generateVideo: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.generateVideo(request, optionsValue),
-      ),
-      synthesizeSpeech: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.synthesizeSpeech(request, optionsValue),
-      ),
-      transcribeAudio: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.transcribeAudio(request, optionsValue),
-      ),
       text: {
         generate: async (input) => this.#generateText(input),
         stream: async (input) => this.#streamText(input),
@@ -1020,10 +1004,37 @@ export class Runtime {
       ? input.timeoutMs
       : this.#options.timeoutMs;
 
-    const metadataExtra = input.metadata || {};
-    const metadata = Object.keys(metadataExtra).length > 0
-      ? { extra: metadataExtra }
+    const metadataInput = input.metadata || {};
+    const credentialSource = normalizeText(
+      metadataInput['x-nimi-credential-source'] || metadataInput.credentialSource,
+    ).toLowerCase() || 'runtime-config';
+    const providerEndpoint = normalizeText(
+      metadataInput['x-nimi-provider-endpoint'] || metadataInput.providerEndpoint,
+    ) || undefined;
+    const providerApiKey = normalizeText(
+      metadataInput['x-nimi-provider-api-key'] || metadataInput.providerApiKey,
+    ) || undefined;
+
+    const metadataExtraEntries = Object.entries(metadataInput)
+      .filter(([key]) => {
+        const normalizedKey = normalizeText(key).toLowerCase();
+        return normalizedKey !== 'x-nimi-credential-source'
+          && normalizedKey !== 'credentialsource'
+          && normalizedKey !== 'x-nimi-provider-endpoint'
+          && normalizedKey !== 'providerendpoint'
+          && normalizedKey !== 'x-nimi-provider-api-key'
+          && normalizedKey !== 'providerapikey';
+      });
+    const metadataExtra = metadataExtraEntries.length > 0
+      ? Object.fromEntries(metadataExtraEntries)
       : undefined;
+
+    const metadata = {
+      credentialSource: credentialSource as 'runtime-config' | 'request-injected',
+      providerEndpoint,
+      providerApiKey,
+      extra: metadataExtra,
+    };
 
     return {
       timeoutMs,
@@ -1313,12 +1324,14 @@ export class Runtime {
 
   async #submitMediaJob(input: MediaJobSubmitInput): Promise<MediaJob> {
     const request = await this.#buildSubmitMediaJobRequest(input);
+    const metadata = input.input.metadata;
 
     const response = await this.#invokeWithClient(async (client) => client.ai.submitMediaJob(
       request,
       this.#resolveRuntimeCallOptions({
         timeoutMs: request.timeoutMs,
         idempotencyKey: request.idempotencyKey,
+        metadata,
       }),
     ));
 
@@ -1724,66 +1737,96 @@ export class Runtime {
   }
 
   async #streamImage(input: ImageGenerateInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const request: GenerateImageRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      prompt: normalizeText(input.prompt),
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-    };
-
-    return this.#invokeWithClient(async (client) => client.ai.generateImage(
-      request,
-      this.#resolveRuntimeStreamOptions({
-        timeoutMs: input.timeoutMs,
-        signal: input.signal,
-      }),
-    ));
+    const output = await this.#generateImage(input);
+    return this.#streamArtifactsFromMediaOutput(output);
   }
 
   async #streamVideo(input: VideoGenerateInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const request: GenerateVideoRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      prompt: normalizeText(input.prompt),
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-    };
-
-    return this.#invokeWithClient(async (client) => client.ai.generateVideo(
-      request,
-      this.#resolveRuntimeStreamOptions({
-        timeoutMs: input.timeoutMs,
-        signal: input.signal,
-      }),
-    ));
+    const output = await this.#generateVideo(input);
+    return this.#streamArtifactsFromMediaOutput(output);
   }
 
   async #streamSpeech(input: SpeechSynthesizeInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const request: SynthesizeSpeechRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      text: normalizeText(input.text),
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-    };
+    const output = await this.#synthesizeSpeech(input);
+    return this.#streamArtifactsFromMediaOutput(output);
+  }
 
-    return this.#invokeWithClient(async (client) => client.ai.synthesizeSpeech(
-      request,
-      this.#resolveRuntimeStreamOptions({
-        timeoutMs: input.timeoutMs,
-        signal: input.signal,
-      }),
-    ));
+  #streamArtifactsFromMediaOutput(
+    output: {
+      job: MediaJob;
+      artifacts: Array<{
+        artifactId: string;
+        mimeType: string;
+        bytes: Uint8Array;
+      }>;
+      trace: NimiTraceInfo;
+    },
+  ): AsyncIterable<ArtifactChunk> {
+    const chunkSize = 64 * 1024;
+    const routeDecision = output.job.routeDecision || RoutePolicy.UNSPECIFIED;
+    const modelResolved = normalizeText(output.job.modelResolved);
+    const traceId = normalizeText(output.trace.traceId || output.job.traceId);
+    const usage = output.job.usage;
+    const fallbackArtifactId = normalizeText(output.job.jobId);
+    const fallbackMimeType = 'application/octet-stream';
+
+    const sourceArtifacts = output.artifacts.length > 0
+      ? output.artifacts
+      : [
+          {
+            artifactId: fallbackArtifactId,
+            mimeType: fallbackMimeType,
+            bytes: new Uint8Array(0),
+          },
+        ];
+
+    const items = sourceArtifacts.flatMap((artifact) => {
+      const artifactId = normalizeText(artifact.artifactId) || fallbackArtifactId;
+      const mimeType = normalizeText(artifact.mimeType) || fallbackMimeType;
+      const bytes = artifact.bytes ?? new Uint8Array(0);
+      if (bytes.length === 0) {
+        return [{
+          artifactId,
+          mimeType,
+          chunk: new Uint8Array(0),
+        }];
+      }
+
+      const parts: Array<{
+        artifactId: string;
+        mimeType: string;
+        chunk: Uint8Array;
+      }> = [];
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        parts.push({
+          artifactId,
+          mimeType,
+          chunk: bytes.slice(offset, Math.min(bytes.length, offset + chunkSize)),
+        });
+      }
+      return parts;
+    });
+
+    return (async function* (): AsyncIterable<ArtifactChunk> {
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index];
+        if (!item) {
+          continue;
+        }
+        const isLastChunk = index === items.length - 1;
+        yield {
+          artifactId: item.artifactId,
+          mimeType: item.mimeType,
+          sequence: String(index),
+          chunk: item.chunk,
+          eof: isLastChunk,
+          usage: isLastChunk ? usage : undefined,
+          routeDecision,
+          modelResolved,
+          traceId,
+        };
+      }
+    }());
   }
 
   #decodeUtf8(input: Uint8Array): string {

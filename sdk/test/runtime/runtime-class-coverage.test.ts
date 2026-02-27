@@ -33,7 +33,6 @@ import {
   FinishReason,
   GenerateRequest,
   GenerateResponse,
-  GenerateVideoRequest,
   GetMediaArtifactsRequest,
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
@@ -48,8 +47,6 @@ import {
   StreamGenerateEvent,
   SubmitMediaJobRequest,
   SubmitMediaJobResponse,
-  SynthesizeSpeechRequest,
-  TranscribeAudioResponse,
 } from '../../src/runtime/generated/runtime/v1/ai.js';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs.js';
 import {
@@ -431,18 +428,6 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
             traceId: `trace-${request.jobId}`,
           }));
         }
-        case RuntimeMethodIds.ai.transcribeAudio:
-          return TranscribeAudioResponse.toBinary(TranscribeAudioResponse.create({
-            text: 'legacy-transcription',
-            usage: {
-              inputTokens: '0',
-              outputTokens: '0',
-              computeMs: '3',
-            },
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
-            modelResolved: 'stt-legacy',
-            traceId: 'trace-transcribe-legacy',
-          }));
         case RuntimeMethodIds.model.list:
           return encodeUnary(input.methodId, {
             models: [{ modelId: 'model-1' }],
@@ -763,64 +748,6 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
       mediaEventCount += 1;
     }
     assert.equal(mediaEventCount, 1);
-
-    // Legacy low-level compatibility methods on runtime.ai
-    const lowLevelImageStream = await runtime.ai.generateImage(GenerateVideoRequest.create({
-      appId: APP_ID,
-      subjectUserId: 'subject-1',
-      modelId: 'image-model',
-      prompt: 'legacy image',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 1000,
-    }) as unknown as GenerateVideoRequest);
-    let lowLevelImageCount = 0;
-    for await (const _chunk of lowLevelImageStream) {
-      lowLevelImageCount += 1;
-    }
-    assert.equal(lowLevelImageCount, 1);
-
-    const lowLevelVideoStream = await runtime.ai.generateVideo(GenerateVideoRequest.create({
-      appId: APP_ID,
-      subjectUserId: 'subject-1',
-      modelId: 'video-model',
-      prompt: 'legacy video',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 1000,
-    }));
-    let lowLevelVideoCount = 0;
-    for await (const _chunk of lowLevelVideoStream) {
-      lowLevelVideoCount += 1;
-    }
-    assert.equal(lowLevelVideoCount, 1);
-
-    const lowLevelSpeechStream = await runtime.ai.synthesizeSpeech(SynthesizeSpeechRequest.create({
-      appId: APP_ID,
-      subjectUserId: 'subject-1',
-      modelId: 'tts-model',
-      text: 'legacy speech',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 1000,
-    }));
-    let lowLevelSpeechCount = 0;
-    for await (const _chunk of lowLevelSpeechStream) {
-      lowLevelSpeechCount += 1;
-    }
-    assert.equal(lowLevelSpeechCount, 1);
-
-    const lowLevelTranscribe = await runtime.ai.transcribeAudio({
-      appId: APP_ID,
-      subjectUserId: 'subject-1',
-      modelId: 'stt-legacy',
-      audioBytes: new Uint8Array([1, 2]),
-      mimeType: 'audio/wav',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 1000,
-    });
-    assert.equal(lowLevelTranscribe.text, 'legacy-transcription');
 
     const oneSubmitRequest = submitted[0];
     assert.ok(oneSubmitRequest);

@@ -91,6 +91,21 @@ function toGrpcMetadata(
   grpc: GrpcModule,
   metadata: RuntimeUnaryCall<RuntimeWireMessage>['metadata'],
 ): Metadata {
+  const reservedTypedKeys = new Set([
+    'x-nimi-protocol-version',
+    'x-nimi-participant-protocol-version',
+    'x-nimi-participant-id',
+    'x-nimi-domain',
+    'x-nimi-app-id',
+    'x-nimi-trace-id',
+    'x-nimi-idempotency-key',
+    'x-nimi-caller-kind',
+    'x-nimi-caller-id',
+    'x-nimi-surface-id',
+    'x-nimi-credential-source',
+    'x-nimi-provider-endpoint',
+    'x-nimi-provider-api-key',
+  ]);
   const value = new grpc.Metadata();
   const append = (key: string, input: unknown) => {
     const text = String(input || '').trim();
@@ -109,11 +124,17 @@ function toGrpcMetadata(
   append('x-nimi-caller-kind', metadata.callerKind);
   append('x-nimi-caller-id', metadata.callerId);
   append('x-nimi-surface-id', metadata.surfaceId);
+  append('x-nimi-credential-source', metadata.credentialSource);
+  append('x-nimi-provider-endpoint', metadata.providerEndpoint);
+  append('x-nimi-provider-api-key', metadata.providerApiKey);
 
   const extra = metadata.extra || {};
   for (const [key, extraValue] of Object.entries(extra)) {
     const normalizedKey = key.trim().toLowerCase();
     if (!normalizedKey.startsWith('x-nimi-')) {
+      continue;
+    }
+    if (reservedTypedKeys.has(normalizedKey)) {
       continue;
     }
     append(normalizedKey, extraValue);

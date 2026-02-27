@@ -53,7 +53,7 @@ export type RuntimeKernelTurnInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   extra?: Record<string, unknown>;
 };
 

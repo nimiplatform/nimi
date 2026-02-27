@@ -138,7 +138,7 @@ async function invokeCommand(
 ): Promise<unknown> {
   const command = createCommandName(config, suffix);
   try {
-    return await invoke(command, payload);
+    return await invoke(command, { payload });
   } catch (error) {
     const defaultCommand = createDefaultCommandName(suffix);
     if (
@@ -147,7 +147,7 @@ async function invokeCommand(
     ) {
       throw error;
     }
-    return invoke(defaultCommand, payload);
+    return invoke(defaultCommand, { payload });
   }
 }
 

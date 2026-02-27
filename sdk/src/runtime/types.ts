@@ -26,7 +26,6 @@ import type {
   ValidateAppAccessTokenResponse,
 } from './generated/runtime/v1/grant';
 import type {
-  ArtifactChunk,
   CancelMediaJobRequest,
   CancelMediaJobResponse,
   EmbedRequest,
@@ -35,19 +34,14 @@ import type {
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
   GetMediaJobResponse,
-  GenerateImageRequest,
   GenerateRequest,
   GenerateResponse,
-  GenerateVideoRequest,
   MediaJobEvent,
   SubmitMediaJobRequest,
   SubmitMediaJobResponse,
   StreamGenerateEvent,
   StreamGenerateRequest,
   SubscribeMediaJobEventsRequest,
-  SynthesizeSpeechRequest,
-  TranscribeAudioRequest,
-  TranscribeAudioResponse,
 } from './generated/runtime/v1/ai';
 import type {
   CancelWorkflowRequest,
@@ -163,6 +157,9 @@ export type RuntimeMetadata = {
   callerKind?: RuntimeCallerKind;
   callerId?: string;
   surfaceId?: string;
+  credentialSource?: 'request-injected' | 'runtime-config';
+  providerEndpoint?: string;
+  providerApiKey?: string;
   extra?: Record<string, string>;
 };
 
@@ -263,10 +260,6 @@ export type RuntimeAiClient = {
   cancelMediaJob(request: CancelMediaJobRequest, options?: RuntimeCallOptions): Promise<CancelMediaJobResponse>;
   subscribeMediaJobEvents(request: SubscribeMediaJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<MediaJobEvent>>;
   getMediaArtifacts(request: GetMediaArtifactsRequest, options?: RuntimeCallOptions): Promise<GetMediaArtifactsResponse>;
-  generateImage(request: GenerateImageRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
-  generateVideo(request: GenerateVideoRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
-  synthesizeSpeech(request: SynthesizeSpeechRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
-  transcribeAudio(request: TranscribeAudioRequest, options?: RuntimeCallOptions): Promise<TranscribeAudioResponse>;
 };
 
 export type RuntimeWorkflowClient = {
