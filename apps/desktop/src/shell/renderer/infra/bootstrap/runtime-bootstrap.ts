@@ -77,15 +77,15 @@ export function bootstrapRuntime(): Promise<void> {
 
     const defaults = await desktopBridge.getRuntimeDefaults();
     await initializePlatformClient({
-      apiBaseUrl: defaults.apiBaseUrl,
-      accessToken: defaults.accessToken,
+      realmBaseUrl: defaults.realm.realmBaseUrl,
+      accessToken: defaults.realm.accessToken,
     });
     const proxyFetch = createProxyFetch();
     useAppStore.getState().setRuntimeDefaults(defaults);
 
     dataSync.initApi({
-      apiBaseUrl: defaults.apiBaseUrl,
-      accessToken: defaults.accessToken,
+      realmBaseUrl: defaults.realm.realmBaseUrl,
+      accessToken: defaults.realm.accessToken,
       fetchImpl: proxyFetch,
     });
 
@@ -95,9 +95,9 @@ export function bootstrapRuntime(): Promise<void> {
     if (flags.enableRuntimeBootstrap) {
       setRuntimeHttpContextProvider(() => {
         const store = useAppStore.getState();
-        const token = String(store.auth.token || '').trim() || defaults.accessToken;
+        const token = String(store.auth.token || '').trim() || defaults.realm.accessToken;
         return {
-          apiBaseUrl: defaults.apiBaseUrl,
+          realmBaseUrl: defaults.realm.realmBaseUrl,
           accessToken: token,
           fetchImpl: proxyFetch,
         };
@@ -107,7 +107,7 @@ export function bootstrapRuntime(): Promise<void> {
         checkLocalLlmHealth,
         executeLocalKernelTurn,
         withOpenApiContextLock: async <T>(
-          context: { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
+          context: { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
           task: () => Promise<T>,
         ) => withOpenApiContextLock<T>(context, task),
         getRuntimeHookRuntime: () => getRuntimeHookRuntime(),
@@ -158,7 +158,7 @@ export function bootstrapRuntime(): Promise<void> {
 
     await bootstrapAuthSession({
       flowId,
-      accessToken: defaults.accessToken,
+      accessToken: defaults.realm.accessToken,
     });
 
     useAppStore.getState().setBootstrapReady(true);

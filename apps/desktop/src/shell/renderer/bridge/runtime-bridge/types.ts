@@ -14,10 +14,13 @@ export type RendererLogPayload = {
   details?: Record<string, unknown>;
 };
 
-export type RuntimeDefaults = {
-  apiBaseUrl: string;
+export type RealmDefaults = {
+  realmBaseUrl: string;
   realtimeUrl: string;
   accessToken: string;
+};
+
+export type RuntimeExecutionDefaults = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
@@ -28,6 +31,11 @@ export type RuntimeDefaults = {
   worldId: string;
   provider: string;
   userConfirmedUpload: boolean;
+};
+
+export type RuntimeDefaults = {
+  realm: RealmDefaults;
+  runtime: RuntimeExecutionDefaults;
 };
 
 export type RuntimeBridgeDaemonStatus = {
@@ -382,20 +390,42 @@ function parseOptionalNumber(value: unknown): number | undefined {
 
 export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
   const record = assertRecord(value, 'runtime_defaults returned invalid payload');
+  const realmRecord = assertRecord(record.realm, 'runtime_defaults realm payload is invalid');
+  const runtimeRecord = assertRecord(record.runtime, 'runtime_defaults runtime payload is invalid');
   return {
-    apiBaseUrl: parseRequiredString(record.apiBaseUrl, 'apiBaseUrl', 'runtime_defaults'),
-    realtimeUrl: String(record.realtimeUrl || '').trim(),
-    accessToken: String(record.accessToken || '').trim(),
-    localProviderEndpoint: parseRequiredString(record.localProviderEndpoint, 'localProviderEndpoint', 'runtime_defaults'),
-    localProviderModel: parseRequiredString(record.localProviderModel, 'localProviderModel', 'runtime_defaults'),
-    localOpenAiEndpoint: parseRequiredString(record.localOpenAiEndpoint, 'localOpenAiEndpoint', 'runtime_defaults'),
-    localOpenAiApiKey: String(record.localOpenAiApiKey || '').trim(),
-    targetType: parseRequiredString(record.targetType, 'targetType', 'runtime_defaults'),
-    targetAccountId: String(record.targetAccountId || '').trim(),
-    agentId: String(record.agentId || '').trim(),
-    worldId: String(record.worldId || '').trim(),
-    provider: String(record.provider || '').trim(),
-    userConfirmedUpload: Boolean(record.userConfirmedUpload),
+    realm: {
+      realmBaseUrl: parseRequiredString(
+        realmRecord.realmBaseUrl,
+        'realm.realmBaseUrl',
+        'runtime_defaults',
+      ),
+      realtimeUrl: String(realmRecord.realtimeUrl || '').trim(),
+      accessToken: String(realmRecord.accessToken || '').trim(),
+    },
+    runtime: {
+      localProviderEndpoint: parseRequiredString(
+        runtimeRecord.localProviderEndpoint,
+        'runtime.localProviderEndpoint',
+        'runtime_defaults',
+      ),
+      localProviderModel: parseRequiredString(
+        runtimeRecord.localProviderModel,
+        'runtime.localProviderModel',
+        'runtime_defaults',
+      ),
+      localOpenAiEndpoint: parseRequiredString(
+        runtimeRecord.localOpenAiEndpoint,
+        'runtime.localOpenAiEndpoint',
+        'runtime_defaults',
+      ),
+      localOpenAiApiKey: String(runtimeRecord.localOpenAiApiKey || '').trim(),
+      targetType: parseRequiredString(runtimeRecord.targetType, 'runtime.targetType', 'runtime_defaults'),
+      targetAccountId: String(runtimeRecord.targetAccountId || '').trim(),
+      agentId: String(runtimeRecord.agentId || '').trim(),
+      worldId: String(runtimeRecord.worldId || '').trim(),
+      provider: String(runtimeRecord.provider || '').trim(),
+      userConfirmedUpload: Boolean(runtimeRecord.userConfirmedUpload),
+    },
   };
 }
 

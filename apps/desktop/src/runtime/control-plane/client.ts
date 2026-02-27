@@ -46,7 +46,7 @@ export type RuntimeControlAuditRecordInput = {
 };
 
 type RuntimeControlClientOptions = {
-  apiBaseUrl?: string;
+  controlPlaneBaseUrl?: string;
   accessToken?: string;
   fetchImpl?: ControlPlaneFetchImpl;
 };
@@ -58,7 +58,7 @@ export class RuntimeControlPlaneClient {
 
   constructor(options: RuntimeControlClientOptions = {}) {
     const runtimeConfig = resolveControlPlaneRuntimeConfig({
-      apiBaseUrl: options.apiBaseUrl,
+      controlPlaneBaseUrl: options.controlPlaneBaseUrl,
       accessToken: options.accessToken,
     });
     this.baseUrl = runtimeConfig.baseUrl;

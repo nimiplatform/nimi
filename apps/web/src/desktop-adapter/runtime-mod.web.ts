@@ -56,12 +56,12 @@ export function listRegisteredRuntimeModIds(): string[] {
 }
 
 export function getRuntimeHttpContext(): {
-  apiBaseUrl: string;
+  realmBaseUrl: string;
   accessToken: string;
   fetchImpl: typeof fetch | null;
 } {
   return {
-    apiBaseUrl: '',
+    realmBaseUrl: '',
     accessToken: '',
     fetchImpl: null,
   };

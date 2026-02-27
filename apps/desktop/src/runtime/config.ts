@@ -6,7 +6,7 @@ import {
 import { emitRuntimeLog, type RuntimeLogMessage } from '@runtime/telemetry/logger';
 
 export type RuntimeConfig = {
-  apiBaseUrl: string;
+  realmBaseUrl: string;
   accessToken: string;
   targetType: DesktopChatRouteRequestDto.targetType;
   targetAccountId: string;
@@ -64,7 +64,7 @@ export function getRuntimeConfig() {
   );
 
   const config = {
-    apiBaseUrl: getRuntimeEnv('NIMI_REALM_URL') || 'http://localhost:3002',
+    realmBaseUrl: getRuntimeEnv('NIMI_REALM_URL') || 'http://localhost:3002',
     accessToken: getRuntimeEnv('NIMI_ACCESS_TOKEN') || '',
     targetType,
     targetAccountId: getRuntimeEnv('NIMI_TARGET_ACCOUNT_ID') || '',

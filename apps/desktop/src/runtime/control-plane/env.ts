@@ -1,4 +1,4 @@
-const DEFAULT_CONTROL_PLANE_API_BASE_URL = 'http://localhost';
+const DEFAULT_CONTROL_PLANE_BASE_URL = 'http://localhost';
 
 type RuntimeEnvMap = Record<string, string | undefined>;
 
@@ -17,18 +17,20 @@ function getRuntimeEnv(name: string): string | undefined {
 }
 
 export function resolveControlPlaneRuntimeConfig(input: {
-  apiBaseUrl?: string;
+  controlPlaneBaseUrl?: string;
   accessToken?: string;
 }): {
   baseUrl: string;
   accessToken: string;
 } {
-  const runtimeApiBaseUrl = getRuntimeEnv('NIMI_REALM_URL');
+  const runtimeControlPlaneBaseUrl = getRuntimeEnv('NIMI_CONTROL_PLANE_URL');
   const runtimeAccessToken = getRuntimeEnv('NIMI_ACCESS_TOKEN');
   return {
-    baseUrl: String(input.apiBaseUrl || runtimeApiBaseUrl || DEFAULT_CONTROL_PLANE_API_BASE_URL),
+    baseUrl: String(
+      input.controlPlaneBaseUrl || runtimeControlPlaneBaseUrl || DEFAULT_CONTROL_PLANE_BASE_URL,
+    ),
     accessToken: String(input.accessToken || runtimeAccessToken || ''),
   };
 }
 
-export { DEFAULT_CONTROL_PLANE_API_BASE_URL };
+export { DEFAULT_CONTROL_PLANE_BASE_URL };

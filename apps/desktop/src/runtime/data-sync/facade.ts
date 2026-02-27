@@ -17,7 +17,7 @@ import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { WorldLevelAuditEventDto } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import type { DataSyncApiConfig, FetchImpl } from './api-core';
-import { normalizeApiBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
+import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { DataSyncPollingManager } from './polling-manager';
 import { isFriendInContacts } from './flows/social-flow';
@@ -38,7 +38,7 @@ import { createDataSyncActions } from './facade-actions';
 
 const DATA_SYNC_HOT_STATE_KEY = '__NIMI_DATA_SYNC_API_CONFIG__' as const;
 type DataSyncHotState = {
-  apiBaseUrl: string;
+  realmBaseUrl: string;
   accessToken: string;
   fetchImpl: FetchImpl | null;
 };
@@ -51,12 +51,12 @@ function readDataSyncHotState(): DataSyncHotState | null {
   if (!snapshot || typeof snapshot !== 'object') {
     return null;
   }
-  const apiBaseUrl = normalizeApiBaseUrl(snapshot.apiBaseUrl);
-  if (!apiBaseUrl) {
+  const realmBaseUrl = normalizeRealmBaseUrl(snapshot.realmBaseUrl);
+  if (!realmBaseUrl) {
     return null;
   }
   return {
-    apiBaseUrl,
+    realmBaseUrl,
     accessToken: String(snapshot.accessToken || ''),
     fetchImpl: typeof snapshot.fetchImpl === 'function' ? snapshot.fetchImpl : null,
   };
@@ -65,14 +65,14 @@ function readDataSyncHotState(): DataSyncHotState | null {
 function writeDataSyncHotState(state: DataSyncHotState) {
   const globalRef = globalThis as DataSyncGlobalRef;
   globalRef[DATA_SYNC_HOT_STATE_KEY] = {
-    apiBaseUrl: state.apiBaseUrl,
+    realmBaseUrl: state.realmBaseUrl,
     accessToken: state.accessToken,
     fetchImpl: state.fetchImpl,
   };
 }
 
 export class DataSync {
-  private apiBaseUrl = '';
+  private realmBaseUrl = '';
   private accessToken = '';
   private fetchImpl: FetchImpl | null = null;
   private readonly polling = new DataSyncPollingManager();
@@ -102,25 +102,25 @@ export class DataSync {
     if (!hotState) {
       return false;
     }
-    this.apiBaseUrl = hotState.apiBaseUrl;
+    this.realmBaseUrl = hotState.realmBaseUrl;
     this.accessToken = hotState.accessToken;
     this.fetchImpl = hotState.fetchImpl;
     return true;
   }
 
   private persistApiToHotState() {
-    if (!this.apiBaseUrl) {
+    if (!this.realmBaseUrl) {
       return;
     }
     writeDataSyncHotState({
-      apiBaseUrl: this.apiBaseUrl,
+      realmBaseUrl: this.realmBaseUrl,
       accessToken: this.accessToken,
       fetchImpl: this.fetchImpl,
     });
   }
 
   initApi(config?: DataSyncApiConfig) {
-    this.apiBaseUrl = normalizeApiBaseUrl(config?.apiBaseUrl);
+    this.realmBaseUrl = normalizeRealmBaseUrl(config?.realmBaseUrl);
     this.accessToken = String(config?.accessToken || '');
     this.fetchImpl = typeof config?.fetchImpl === 'function' ? config.fetchImpl : null;
     this.persistApiToHotState();
@@ -133,10 +133,10 @@ export class DataSync {
   }
 
   assertApiConfigured() {
-    if (!this.apiBaseUrl) {
+    if (!this.realmBaseUrl) {
       this.hydrateApiFromHotState();
     }
-    if (!this.apiBaseUrl) throw new Error('API not initialized');
+    if (!this.realmBaseUrl) throw new Error('API not initialized');
   }
 
   async callApi(task: (realm: Realm) => Promise<any>, fallbackMessage?: string): Promise<any> {
@@ -144,7 +144,7 @@ export class DataSync {
     try {
       const result = await withOpenApiContextLock(
         {
-          apiBaseUrl: this.apiBaseUrl,
+          realmBaseUrl: this.realmBaseUrl,
           accessToken: this.accessToken,
           fetchImpl: this.fetchImpl,
         },
@@ -371,7 +371,7 @@ export class DataSync {
 
   destroy() {
     this.stopAllPolling();
-    this.apiBaseUrl = '';
+    this.realmBaseUrl = '';
     this.accessToken = '';
     this.fetchImpl = null;
   }

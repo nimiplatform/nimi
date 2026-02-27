@@ -1,7 +1,7 @@
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export type RuntimeHttpContext = {
-  apiBaseUrl: string;
+  realmBaseUrl: string;
   accessToken?: string;
   fetchImpl?: FetchImpl;
 };

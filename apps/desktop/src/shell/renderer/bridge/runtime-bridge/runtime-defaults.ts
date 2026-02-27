@@ -29,7 +29,7 @@ function resolveBrowserOrigin(): string {
   return String(window.location?.origin || '').trim();
 }
 
-function resolveApiBaseUrlFallback(): string {
+function resolveRealmBaseUrlFallback(): string {
   const browserOrigin = resolveBrowserOrigin();
   // Web shell must always use same-origin API routing (nginx/reverse-proxy friendly).
   if (resolveShellMode() === 'web') {
@@ -39,7 +39,7 @@ function resolveApiBaseUrlFallback(): string {
 }
 
 function readRuntimeDefaultsFallback(): RuntimeDefaults {
-  const apiBaseUrl = resolveApiBaseUrlFallback();
+  const realmBaseUrl = resolveRealmBaseUrlFallback();
   const realtimeUrl = readEnv('NIMI_REALTIME_URL');
   const accessToken = readEnv('NIMI_ACCESS_TOKEN');
   const localProviderEndpoint = readEnv('NIMI_LOCAL_PROVIDER_ENDPOINT') || 'http://127.0.0.1:1234/v1';
@@ -53,19 +53,23 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
   const provider = readEnv('NIMI_PROVIDER');
   const userConfirmedUpload = readEnv('NIMI_USER_CONFIRMED_UPLOAD') === '1';
   return {
-    apiBaseUrl,
-    realtimeUrl,
-    accessToken,
-    localProviderEndpoint,
-    localProviderModel,
-    localOpenAiEndpoint,
-    localOpenAiApiKey,
-    targetType,
-    targetAccountId,
-    agentId,
-    worldId,
-    provider,
-    userConfirmedUpload,
+    realm: {
+      realmBaseUrl,
+      realtimeUrl,
+      accessToken,
+    },
+    runtime: {
+      localProviderEndpoint,
+      localProviderModel,
+      localOpenAiEndpoint,
+      localOpenAiApiKey,
+      targetType,
+      targetAccountId,
+      agentId,
+      worldId,
+      provider,
+      userConfirmedUpload,
+    },
   };
 }
 

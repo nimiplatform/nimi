@@ -17,10 +17,15 @@ mod runtime_mod;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct RuntimeDefaults {
-    api_base_url: String,
+struct RealmDefaults {
+    realm_base_url: String,
     realtime_url: String,
     access_token: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeExecutionDefaults {
     local_provider_endpoint: String,
     local_provider_model: String,
     local_open_ai_endpoint: String,
@@ -31,6 +36,13 @@ struct RuntimeDefaults {
     world_id: String,
     provider: String,
     user_confirmed_upload: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeDefaults {
+    realm: RealmDefaults,
+    runtime: RuntimeExecutionDefaults,
 }
 
 #[derive(Debug, Deserialize)]
@@ -598,29 +610,33 @@ fn redact_body_preview(input: &str, max_bytes: usize) -> String {
 #[tauri::command]
 fn runtime_defaults() -> RuntimeDefaults {
     let defaults = RuntimeDefaults {
-        api_base_url: env_value("NIMI_REALM_URL", "http://localhost:3002"),
-        realtime_url: env_value("NIMI_REALTIME_URL", ""),
-        access_token: env_value("NIMI_ACCESS_TOKEN", ""),
-        local_provider_endpoint: env_value(
-            "NIMI_LOCAL_PROVIDER_ENDPOINT",
-            "http://127.0.0.1:1234/v1",
-        ),
-        local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", "local-model"),
-        local_open_ai_endpoint: env_value("NIMI_LOCAL_OPENAI_ENDPOINT", "http://127.0.0.1:1234/v1"),
-        local_open_ai_api_key: env_value("NIMI_LOCAL_OPENAI_API_KEY", ""),
-        target_type: env_value("NIMI_TARGET_TYPE", "AGENT"),
-        target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),
-        agent_id: env_value("NIMI_AGENT_ID", ""),
-        world_id: env_value("NIMI_WORLD_ID", ""),
-        provider: env_value("NIMI_PROVIDER", ""),
-        user_confirmed_upload: env_value("NIMI_USER_CONFIRMED_UPLOAD", "") == "1",
+        realm: RealmDefaults {
+            realm_base_url: env_value("NIMI_REALM_URL", "http://localhost:3002"),
+            realtime_url: env_value("NIMI_REALTIME_URL", ""),
+            access_token: env_value("NIMI_ACCESS_TOKEN", ""),
+        },
+        runtime: RuntimeExecutionDefaults {
+            local_provider_endpoint: env_value(
+                "NIMI_LOCAL_PROVIDER_ENDPOINT",
+                "http://127.0.0.1:1234/v1",
+            ),
+            local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", "local-model"),
+            local_open_ai_endpoint: env_value("NIMI_LOCAL_OPENAI_ENDPOINT", "http://127.0.0.1:1234/v1"),
+            local_open_ai_api_key: env_value("NIMI_LOCAL_OPENAI_API_KEY", ""),
+            target_type: env_value("NIMI_TARGET_TYPE", "AGENT"),
+            target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),
+            agent_id: env_value("NIMI_AGENT_ID", ""),
+            world_id: env_value("NIMI_WORLD_ID", ""),
+            provider: env_value("NIMI_PROVIDER", ""),
+            user_confirmed_upload: env_value("NIMI_USER_CONFIRMED_UPLOAD", "") == "1",
+        },
     };
 
     #[cfg(debug_assertions)]
     eprintln!(
-        "[desktop] runtime_defaults loaded: api_base_url={}, access_token_len={}",
-        defaults.api_base_url,
-        defaults.access_token.len()
+        "[desktop] runtime_defaults loaded: realm_base_url={}, access_token_len={}",
+        defaults.realm.realm_base_url,
+        defaults.realm.access_token.len()
     );
 
     defaults

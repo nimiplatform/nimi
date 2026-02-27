@@ -13,7 +13,7 @@ import { tryParseJsonLike } from '@runtime/net/json';
 type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 type DesktopApiClientOptions = {
-  apiBaseUrl: string;
+  realmBaseUrl: string;
   accessToken: string;
   fetchImpl?: FetchImpl;
   retryOptions?: Partial<RetryOptions>;
@@ -28,15 +28,15 @@ function defaultSleepImpl(ms: number): Promise<void> {
 }
 
 export class DesktopApiClient {
-  private apiBaseUrl: string;
+  private realmBaseUrl: string;
   private accessToken: string;
   private fetchImpl: FetchImpl;
   private sleepImpl: (ms: number) => Promise<void>;
   private onRetryEvent: ((event: RetryEvent) => void) | null;
   private retryOptions: RetryOptions;
 
-  constructor({ apiBaseUrl, accessToken, fetchImpl, retryOptions, sleepImpl, onRetryEvent }: DesktopApiClientOptions) {
-    this.apiBaseUrl = String(apiBaseUrl || '').replace(/\/$/, '');
+  constructor({ realmBaseUrl, accessToken, fetchImpl, retryOptions, sleepImpl, onRetryEvent }: DesktopApiClientOptions) {
+    this.realmBaseUrl = String(realmBaseUrl || '').replace(/\/$/, '');
     this.accessToken = accessToken;
     this.fetchImpl = fetchImpl || fetch;
     this.sleepImpl = sleepImpl || defaultSleepImpl;
@@ -52,7 +52,7 @@ export class DesktopApiClient {
   async withOpenApiContext<T>(task: () => Promise<T>): Promise<T> {
     const result = await withOpenApiContextLock(
       {
-        apiBaseUrl: this.apiBaseUrl,
+        realmBaseUrl: this.realmBaseUrl,
         accessToken: this.accessToken,
         fetchImpl: this.fetchImpl,
       },
@@ -76,7 +76,7 @@ export class DesktopApiClient {
     try {
       const payload = await requestWithRetry({
         executor: async () => {
-          const response = await this.fetchImpl(`${this.apiBaseUrl}/api/desktop/chat/route`, {
+          const response = await this.fetchImpl(`${this.realmBaseUrl}/api/desktop/chat/route`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${this.accessToken}`,

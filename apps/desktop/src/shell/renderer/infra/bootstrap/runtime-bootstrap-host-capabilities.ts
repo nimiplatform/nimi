@@ -28,7 +28,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 type HostCapabilityInput = {
   checkLocalLlmHealth: (input: CheckLlmHealthInput) => Promise<ProviderHealth>;
   executeLocalKernelTurn: (input: ExecuteLocalKernelTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
-  withOpenApiContextLock: <T>(context: { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch }, task: () => Promise<T>) => Promise<T>;
+  withOpenApiContextLock: <T>(context: { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch }, task: () => Promise<T>) => Promise<T>;
   getRuntimeHookRuntime: () => DesktopHookRuntimeService;
 };
 
@@ -583,7 +583,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
         return input.executeLocalKernelTurn(resolvedInput);
       },
       withOpenApiContextLock: <T>(
-        context: { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
+        context: { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
         task: () => Promise<T>,
       ) => input.withOpenApiContextLock<T>(context, task),
       getRuntimeHookRuntime: () => hookRuntime,

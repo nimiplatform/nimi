@@ -325,10 +325,10 @@ export function useChatRealtimeSync(): void {
 
   const realtimeBaseUrl = useMemo(
     () => resolveRealtimeUrl({
-      apiBaseUrl: runtimeDefaults?.apiBaseUrl,
-      realtimeUrl: runtimeDefaults?.realtimeUrl,
+      realmBaseUrl: runtimeDefaults?.realm.realmBaseUrl,
+      realtimeUrl: runtimeDefaults?.realm.realtimeUrl,
     }),
-    [runtimeDefaults?.apiBaseUrl, runtimeDefaults?.realtimeUrl],
+    [runtimeDefaults?.realm.realmBaseUrl, runtimeDefaults?.realm.realtimeUrl],
   );
 
   useEffect(() => {
@@ -340,7 +340,7 @@ export function useChatRealtimeSync(): void {
   }, [currentUserId]);
 
   useEffect(() => {
-    const normalizedToken = String(authToken || runtimeDefaults?.accessToken || '').trim();
+    const normalizedToken = String(authToken || runtimeDefaults?.realm.accessToken || '').trim();
     if (authStatus !== 'authenticated' || !normalizedToken || !realtimeBaseUrl) {
       return undefined;
     }
@@ -482,7 +482,7 @@ export function useChatRealtimeSync(): void {
       seenEventsRef.current.clear();
       sessionRef.current = null;
     };
-  }, [authStatus, authToken, realtimeBaseUrl, runtimeDefaults?.accessToken]);
+  }, [authStatus, authToken, realtimeBaseUrl, runtimeDefaults?.realm.accessToken]);
 
   useEffect(() => {
     openChatSession(socketRef.current, sessionRef.current, selectedChatId);

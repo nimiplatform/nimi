@@ -3,7 +3,7 @@ import type { NimiError } from '@nimiplatform/sdk/types';
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export type DataSyncApiConfig = {
-  apiBaseUrl?: string;
+  realmBaseUrl?: string;
   accessToken?: string;
   fetchImpl?: FetchImpl;
 };
@@ -62,7 +62,7 @@ export function tryParseJsonLike<T>(value: T): T {
   return value;
 }
 
-export function normalizeApiBaseUrl(rawValue: unknown): string {
+export function normalizeRealmBaseUrl(rawValue: unknown): string {
   const value = String(rawValue || '').trim();
   if (!value) {
     return '';

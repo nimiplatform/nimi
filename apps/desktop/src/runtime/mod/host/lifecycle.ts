@@ -30,7 +30,7 @@ export function unregisterRuntimeModLifecycle(input: {
   registeredMods: Map<string, RuntimeModRegistration>;
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
-  getHttpContext: () => { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
+  getHttpContext: () => { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
   sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
 }): { removed: boolean; defaultPrivateExecutionModId: string } {
@@ -77,7 +77,7 @@ export async function registerRuntimeModLifecycle(input: {
   registeredMods: Map<string, RuntimeModRegistration>;
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
-  getHttpContext: () => { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
+  getHttpContext: () => { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
   sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
   unregisterRuntimeMod: (modId: string) => boolean;

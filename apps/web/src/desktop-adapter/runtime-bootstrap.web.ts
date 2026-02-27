@@ -172,12 +172,12 @@ export function bootstrapRuntime(): Promise<void> {
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
     const fallbackToken = deps.loadPersistedAccessToken();
-    const accessToken = fallbackToken || String(defaults.accessToken || '').trim();
+    const accessToken = fallbackToken || String(defaults.realm.accessToken || '').trim();
     const proxyFetch = deps.createProxyFetch();
     deps.useAppStore.getState().setRuntimeDefaults(defaults);
 
     deps.dataSync.initApi({
-      apiBaseUrl: defaults.apiBaseUrl,
+      realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken,
       fetchImpl: proxyFetch,
     });

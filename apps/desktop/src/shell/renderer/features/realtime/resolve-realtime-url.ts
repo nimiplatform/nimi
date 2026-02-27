@@ -14,7 +14,7 @@ function toOrigin(input: string): string {
 }
 
 export function resolveRealtimeUrl(input: {
-  apiBaseUrl?: string | null;
+  realmBaseUrl?: string | null;
   realtimeUrl?: string | null;
 }): string {
   const explicitRealtimeOrigin = toOrigin(String(input.realtimeUrl || ''));
@@ -22,7 +22,7 @@ export function resolveRealtimeUrl(input: {
     return explicitRealtimeOrigin;
   }
 
-  const apiOrigin = toOrigin(String(input.apiBaseUrl || ''));
+  const apiOrigin = toOrigin(String(input.realmBaseUrl || ''));
   if (!apiOrigin) {
     return '';
   }

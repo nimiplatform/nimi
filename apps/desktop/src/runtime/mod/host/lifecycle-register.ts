@@ -17,7 +17,7 @@ export async function registerRuntimeModState(input: {
   registeredMods: Map<string, RuntimeModRegistration>;
   hookRuntime: DesktopHookRuntimeService;
   kernel: DesktopExecutionKernelService;
-  getHttpContext: () => { apiBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
+  getHttpContext: () => { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch };
   sdkRuntimeContext: ModRuntimeContext;
   defaultPrivateExecutionModId: string;
 }): Promise<{ defaultPrivateExecutionModId: string }> {

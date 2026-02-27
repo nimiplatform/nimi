@@ -6,7 +6,7 @@ import type {
 import type { ModRuntimeContext } from '@nimiplatform/sdk/mod/types';
 
 let runtimeHttpContextProvider: RuntimeHttpContextProvider = () => ({
-  apiBaseUrl: '',
+  realmBaseUrl: '',
 });
 let runtimeModSdkContextProvider: RuntimeModSdkContextProvider | null = null;
 

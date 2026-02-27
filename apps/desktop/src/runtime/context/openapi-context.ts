@@ -4,7 +4,7 @@ import { emitRuntimeLog, type RuntimeLogMessage } from '@runtime/telemetry/logge
 type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 type OpenApiContextInput = {
-  apiBaseUrl: string;
+  realmBaseUrl: string;
   accessToken?: string;
   fetchImpl?: FetchImpl | null;
 };
@@ -41,7 +41,7 @@ function emitContextLog(payload: {
 
 function toRealm(input: OpenApiContextInput): Realm {
   return new Realm({
-    baseUrl: input.apiBaseUrl,
+    baseUrl: input.realmBaseUrl,
     auth: {
       accessToken: async () => String(input.accessToken || ''),
     },
@@ -71,7 +71,7 @@ async function executeWithRealmContext<T>(
       pendingAtEnqueue: scope.pendingAtEnqueue,
       hasAccessToken: Boolean(String(input.accessToken || '').trim()),
       hasFetchImpl: Boolean(input.fetchImpl),
-      apiBaseUrl: String(input.apiBaseUrl || ''),
+      realmBaseUrl: String(input.realmBaseUrl || ''),
     },
   });
 
@@ -124,7 +124,7 @@ export async function withOpenApiContextLock<T>(
       pendingCount: contextPendingCount,
       hasAccessToken: Boolean(String(input.accessToken || '').trim()),
       hasFetchImpl: Boolean(input.fetchImpl),
-      apiBaseUrl: String(input.apiBaseUrl || ''),
+      realmBaseUrl: String(input.realmBaseUrl || ''),
     },
   });
 
