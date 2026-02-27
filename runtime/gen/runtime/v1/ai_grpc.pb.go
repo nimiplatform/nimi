@@ -27,10 +27,6 @@ const (
 	RuntimeAiService_CancelMediaJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob"
 	RuntimeAiService_SubscribeMediaJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents"
 	RuntimeAiService_GetMediaArtifacts_FullMethodName       = "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts"
-	RuntimeAiService_GenerateImage_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/GenerateImage"
-	RuntimeAiService_GenerateVideo_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/GenerateVideo"
-	RuntimeAiService_SynthesizeSpeech_FullMethodName        = "/nimi.runtime.v1.RuntimeAiService/SynthesizeSpeech"
-	RuntimeAiService_TranscribeAudio_FullMethodName         = "/nimi.runtime.v1.RuntimeAiService/TranscribeAudio"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
@@ -45,18 +41,6 @@ type RuntimeAiServiceClient interface {
 	CancelMediaJob(ctx context.Context, in *CancelMediaJobRequest, opts ...grpc.CallOption) (*CancelMediaJobResponse, error)
 	SubscribeMediaJobEvents(ctx context.Context, in *SubscribeMediaJobEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MediaJobEvent], error)
 	GetMediaArtifacts(ctx context.Context, in *GetMediaArtifactsRequest, opts ...grpc.CallOption) (*GetMediaArtifactsResponse, error)
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	GenerateVideo(ctx context.Context, in *GenerateVideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	SynthesizeSpeech(ctx context.Context, in *SynthesizeSpeechRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	TranscribeAudio(ctx context.Context, in *TranscribeAudioRequest, opts ...grpc.CallOption) (*TranscribeAudioResponse, error)
 }
 
 type runtimeAiServiceClient struct {
@@ -165,77 +149,6 @@ func (c *runtimeAiServiceClient) GetMediaArtifacts(ctx context.Context, in *GetM
 	return out, nil
 }
 
-// Deprecated: Do not use.
-func (c *runtimeAiServiceClient) GenerateImage(ctx context.Context, in *GenerateImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[2], RuntimeAiService_GenerateImage_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GenerateImageRequest, ArtifactChunk]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAiService_GenerateImageClient = grpc.ServerStreamingClient[ArtifactChunk]
-
-// Deprecated: Do not use.
-func (c *runtimeAiServiceClient) GenerateVideo(ctx context.Context, in *GenerateVideoRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[3], RuntimeAiService_GenerateVideo_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GenerateVideoRequest, ArtifactChunk]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAiService_GenerateVideoClient = grpc.ServerStreamingClient[ArtifactChunk]
-
-// Deprecated: Do not use.
-func (c *runtimeAiServiceClient) SynthesizeSpeech(ctx context.Context, in *SynthesizeSpeechRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAiService_ServiceDesc.Streams[4], RuntimeAiService_SynthesizeSpeech_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SynthesizeSpeechRequest, ArtifactChunk]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAiService_SynthesizeSpeechClient = grpc.ServerStreamingClient[ArtifactChunk]
-
-// Deprecated: Do not use.
-func (c *runtimeAiServiceClient) TranscribeAudio(ctx context.Context, in *TranscribeAudioRequest, opts ...grpc.CallOption) (*TranscribeAudioResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(TranscribeAudioResponse)
-	err := c.cc.Invoke(ctx, RuntimeAiService_TranscribeAudio_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RuntimeAiServiceServer is the server API for RuntimeAiService service.
 // All implementations should embed UnimplementedRuntimeAiServiceServer
 // for forward compatibility.
@@ -248,18 +161,6 @@ type RuntimeAiServiceServer interface {
 	CancelMediaJob(context.Context, *CancelMediaJobRequest) (*CancelMediaJobResponse, error)
 	SubscribeMediaJobEvents(*SubscribeMediaJobEventsRequest, grpc.ServerStreamingServer[MediaJobEvent]) error
 	GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error)
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	GenerateImage(*GenerateImageRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	GenerateVideo(*GenerateVideoRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	SynthesizeSpeech(*SynthesizeSpeechRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
-	// Deprecated: Do not use.
-	// Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-	TranscribeAudio(context.Context, *TranscribeAudioRequest) (*TranscribeAudioResponse, error)
 }
 
 // UnimplementedRuntimeAiServiceServer should be embedded to have
@@ -292,18 +193,6 @@ func (UnimplementedRuntimeAiServiceServer) SubscribeMediaJobEvents(*SubscribeMed
 }
 func (UnimplementedRuntimeAiServiceServer) GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMediaArtifacts not implemented")
-}
-func (UnimplementedRuntimeAiServiceServer) GenerateImage(*GenerateImageRequest, grpc.ServerStreamingServer[ArtifactChunk]) error {
-	return status.Error(codes.Unimplemented, "method GenerateImage not implemented")
-}
-func (UnimplementedRuntimeAiServiceServer) GenerateVideo(*GenerateVideoRequest, grpc.ServerStreamingServer[ArtifactChunk]) error {
-	return status.Error(codes.Unimplemented, "method GenerateVideo not implemented")
-}
-func (UnimplementedRuntimeAiServiceServer) SynthesizeSpeech(*SynthesizeSpeechRequest, grpc.ServerStreamingServer[ArtifactChunk]) error {
-	return status.Error(codes.Unimplemented, "method SynthesizeSpeech not implemented")
-}
-func (UnimplementedRuntimeAiServiceServer) TranscribeAudio(context.Context, *TranscribeAudioRequest) (*TranscribeAudioResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method TranscribeAudio not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) testEmbeddedByValue() {}
 
@@ -455,57 +344,6 @@ func _RuntimeAiService_GetMediaArtifacts_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAiService_GenerateImage_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GenerateImageRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAiServiceServer).GenerateImage(m, &grpc.GenericServerStream[GenerateImageRequest, ArtifactChunk]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAiService_GenerateImageServer = grpc.ServerStreamingServer[ArtifactChunk]
-
-func _RuntimeAiService_GenerateVideo_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GenerateVideoRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAiServiceServer).GenerateVideo(m, &grpc.GenericServerStream[GenerateVideoRequest, ArtifactChunk]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAiService_GenerateVideoServer = grpc.ServerStreamingServer[ArtifactChunk]
-
-func _RuntimeAiService_SynthesizeSpeech_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SynthesizeSpeechRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAiServiceServer).SynthesizeSpeech(m, &grpc.GenericServerStream[SynthesizeSpeechRequest, ArtifactChunk]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAiService_SynthesizeSpeechServer = grpc.ServerStreamingServer[ArtifactChunk]
-
-func _RuntimeAiService_TranscribeAudio_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TranscribeAudioRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAiServiceServer).TranscribeAudio(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAiService_TranscribeAudio_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAiServiceServer).TranscribeAudio(ctx, req.(*TranscribeAudioRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RuntimeAiService_ServiceDesc is the grpc.ServiceDesc for RuntimeAiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -537,10 +375,6 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetMediaArtifacts",
 			Handler:    _RuntimeAiService_GetMediaArtifacts_Handler,
 		},
-		{
-			MethodName: "TranscribeAudio",
-			Handler:    _RuntimeAiService_TranscribeAudio_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -551,21 +385,6 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeMediaJobEvents",
 			Handler:       _RuntimeAiService_SubscribeMediaJobEvents_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GenerateImage",
-			Handler:       _RuntimeAiService_GenerateImage_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GenerateVideo",
-			Handler:       _RuntimeAiService_GenerateVideo_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "SynthesizeSpeech",
-			Handler:       _RuntimeAiService_SynthesizeSpeech_Handler,
 			ServerStreams: true,
 		},
 	},

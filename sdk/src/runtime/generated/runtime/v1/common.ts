@@ -257,7 +257,23 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_CONTENT_FILTER_BLOCKED = 209;
      */
-    AI_CONTENT_FILTER_BLOCKED = 209
+    AI_CONTENT_FILTER_BLOCKED = 209,
+    /**
+     * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_REQUIRED = 210;
+     */
+    AI_REQUEST_CREDENTIAL_REQUIRED = 210,
+    /**
+     * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_MISSING = 211;
+     */
+    AI_REQUEST_CREDENTIAL_MISSING = 211,
+    /**
+     * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_INVALID = 212;
+     */
+    AI_REQUEST_CREDENTIAL_INVALID = 212,
+    /**
+     * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN = 213;
+     */
+    AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN = 213
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

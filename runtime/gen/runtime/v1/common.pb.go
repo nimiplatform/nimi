@@ -24,44 +24,48 @@ const (
 type ReasonCode int32
 
 const (
-	ReasonCode_REASON_CODE_UNSPECIFIED           ReasonCode = 0
-	ReasonCode_ACTION_EXECUTED                   ReasonCode = 1
-	ReasonCode_PROTOCOL_ENVELOPE_INVALID         ReasonCode = 2
-	ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT    ReasonCode = 3
-	ReasonCode_CAPABILITY_CATALOG_MISMATCH       ReasonCode = 4
-	ReasonCode_APP_NOT_REGISTERED                ReasonCode = 5
-	ReasonCode_EXTERNAL_PRINCIPAL_NOT_REGISTERED ReasonCode = 6
-	ReasonCode_SESSION_EXPIRED                   ReasonCode = 7
-	ReasonCode_PRINCIPAL_UNAUTHORIZED            ReasonCode = 8
-	ReasonCode_APP_AUTHORIZATION_DENIED          ReasonCode = 100
-	ReasonCode_APP_GRANT_INVALID                 ReasonCode = 101
-	ReasonCode_APP_TOKEN_EXPIRED                 ReasonCode = 102
-	ReasonCode_APP_TOKEN_REVOKED                 ReasonCode = 103
-	ReasonCode_APP_SCOPE_FORBIDDEN               ReasonCode = 104
-	ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED     ReasonCode = 105
-	ReasonCode_APP_SCOPE_REVOKED                 ReasonCode = 106
-	ReasonCode_APP_DELEGATION_FORBIDDEN          ReasonCode = 107
-	ReasonCode_APP_DELEGATION_DEPTH_EXCEEDED     ReasonCode = 108
-	ReasonCode_APP_RESOURCE_SELECTOR_INVALID     ReasonCode = 109
-	ReasonCode_APP_RESOURCE_OUT_OF_SCOPE         ReasonCode = 110
-	ReasonCode_APP_CONSENT_MISSING               ReasonCode = 111
-	ReasonCode_APP_CONSENT_INVALID               ReasonCode = 112
-	ReasonCode_EXTERNAL_PRINCIPAL_PROOF_MISSING  ReasonCode = 113
-	ReasonCode_EXTERNAL_PRINCIPAL_PROOF_INVALID  ReasonCode = 114
-	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN         ReasonCode = 115
-	ReasonCode_APP_MODE_SCOPE_FORBIDDEN          ReasonCode = 116
-	ReasonCode_APP_MODE_WORLD_RELATION_FORBIDDEN ReasonCode = 117
-	ReasonCode_APP_MODE_MANIFEST_INVALID         ReasonCode = 118
-	ReasonCode_AI_MODEL_NOT_FOUND                ReasonCode = 200
-	ReasonCode_AI_MODEL_NOT_READY                ReasonCode = 201
-	ReasonCode_AI_PROVIDER_UNAVAILABLE           ReasonCode = 202
-	ReasonCode_AI_PROVIDER_TIMEOUT               ReasonCode = 203
-	ReasonCode_AI_ROUTE_UNSUPPORTED              ReasonCode = 204
-	ReasonCode_AI_ROUTE_FALLBACK_DENIED          ReasonCode = 205
-	ReasonCode_AI_INPUT_INVALID                  ReasonCode = 206
-	ReasonCode_AI_OUTPUT_INVALID                 ReasonCode = 207
-	ReasonCode_AI_STREAM_BROKEN                  ReasonCode = 208
-	ReasonCode_AI_CONTENT_FILTER_BLOCKED         ReasonCode = 209
+	ReasonCode_REASON_CODE_UNSPECIFIED               ReasonCode = 0
+	ReasonCode_ACTION_EXECUTED                       ReasonCode = 1
+	ReasonCode_PROTOCOL_ENVELOPE_INVALID             ReasonCode = 2
+	ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT        ReasonCode = 3
+	ReasonCode_CAPABILITY_CATALOG_MISMATCH           ReasonCode = 4
+	ReasonCode_APP_NOT_REGISTERED                    ReasonCode = 5
+	ReasonCode_EXTERNAL_PRINCIPAL_NOT_REGISTERED     ReasonCode = 6
+	ReasonCode_SESSION_EXPIRED                       ReasonCode = 7
+	ReasonCode_PRINCIPAL_UNAUTHORIZED                ReasonCode = 8
+	ReasonCode_APP_AUTHORIZATION_DENIED              ReasonCode = 100
+	ReasonCode_APP_GRANT_INVALID                     ReasonCode = 101
+	ReasonCode_APP_TOKEN_EXPIRED                     ReasonCode = 102
+	ReasonCode_APP_TOKEN_REVOKED                     ReasonCode = 103
+	ReasonCode_APP_SCOPE_FORBIDDEN                   ReasonCode = 104
+	ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED         ReasonCode = 105
+	ReasonCode_APP_SCOPE_REVOKED                     ReasonCode = 106
+	ReasonCode_APP_DELEGATION_FORBIDDEN              ReasonCode = 107
+	ReasonCode_APP_DELEGATION_DEPTH_EXCEEDED         ReasonCode = 108
+	ReasonCode_APP_RESOURCE_SELECTOR_INVALID         ReasonCode = 109
+	ReasonCode_APP_RESOURCE_OUT_OF_SCOPE             ReasonCode = 110
+	ReasonCode_APP_CONSENT_MISSING                   ReasonCode = 111
+	ReasonCode_APP_CONSENT_INVALID                   ReasonCode = 112
+	ReasonCode_EXTERNAL_PRINCIPAL_PROOF_MISSING      ReasonCode = 113
+	ReasonCode_EXTERNAL_PRINCIPAL_PROOF_INVALID      ReasonCode = 114
+	ReasonCode_APP_MODE_DOMAIN_FORBIDDEN             ReasonCode = 115
+	ReasonCode_APP_MODE_SCOPE_FORBIDDEN              ReasonCode = 116
+	ReasonCode_APP_MODE_WORLD_RELATION_FORBIDDEN     ReasonCode = 117
+	ReasonCode_APP_MODE_MANIFEST_INVALID             ReasonCode = 118
+	ReasonCode_AI_MODEL_NOT_FOUND                    ReasonCode = 200
+	ReasonCode_AI_MODEL_NOT_READY                    ReasonCode = 201
+	ReasonCode_AI_PROVIDER_UNAVAILABLE               ReasonCode = 202
+	ReasonCode_AI_PROVIDER_TIMEOUT                   ReasonCode = 203
+	ReasonCode_AI_ROUTE_UNSUPPORTED                  ReasonCode = 204
+	ReasonCode_AI_ROUTE_FALLBACK_DENIED              ReasonCode = 205
+	ReasonCode_AI_INPUT_INVALID                      ReasonCode = 206
+	ReasonCode_AI_OUTPUT_INVALID                     ReasonCode = 207
+	ReasonCode_AI_STREAM_BROKEN                      ReasonCode = 208
+	ReasonCode_AI_CONTENT_FILTER_BLOCKED             ReasonCode = 209
+	ReasonCode_AI_REQUEST_CREDENTIAL_REQUIRED        ReasonCode = 210
+	ReasonCode_AI_REQUEST_CREDENTIAL_MISSING         ReasonCode = 211
+	ReasonCode_AI_REQUEST_CREDENTIAL_INVALID         ReasonCode = 212
+	ReasonCode_AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN ReasonCode = 213
 )
 
 // Enum value maps for ReasonCode.
@@ -105,46 +109,54 @@ var (
 		207: "AI_OUTPUT_INVALID",
 		208: "AI_STREAM_BROKEN",
 		209: "AI_CONTENT_FILTER_BLOCKED",
+		210: "AI_REQUEST_CREDENTIAL_REQUIRED",
+		211: "AI_REQUEST_CREDENTIAL_MISSING",
+		212: "AI_REQUEST_CREDENTIAL_INVALID",
+		213: "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN",
 	}
 	ReasonCode_value = map[string]int32{
-		"REASON_CODE_UNSPECIFIED":           0,
-		"ACTION_EXECUTED":                   1,
-		"PROTOCOL_ENVELOPE_INVALID":         2,
-		"PROTOCOL_DOMAIN_FIELD_CONFLICT":    3,
-		"CAPABILITY_CATALOG_MISMATCH":       4,
-		"APP_NOT_REGISTERED":                5,
-		"EXTERNAL_PRINCIPAL_NOT_REGISTERED": 6,
-		"SESSION_EXPIRED":                   7,
-		"PRINCIPAL_UNAUTHORIZED":            8,
-		"APP_AUTHORIZATION_DENIED":          100,
-		"APP_GRANT_INVALID":                 101,
-		"APP_TOKEN_EXPIRED":                 102,
-		"APP_TOKEN_REVOKED":                 103,
-		"APP_SCOPE_FORBIDDEN":               104,
-		"APP_SCOPE_CATALOG_UNPUBLISHED":     105,
-		"APP_SCOPE_REVOKED":                 106,
-		"APP_DELEGATION_FORBIDDEN":          107,
-		"APP_DELEGATION_DEPTH_EXCEEDED":     108,
-		"APP_RESOURCE_SELECTOR_INVALID":     109,
-		"APP_RESOURCE_OUT_OF_SCOPE":         110,
-		"APP_CONSENT_MISSING":               111,
-		"APP_CONSENT_INVALID":               112,
-		"EXTERNAL_PRINCIPAL_PROOF_MISSING":  113,
-		"EXTERNAL_PRINCIPAL_PROOF_INVALID":  114,
-		"APP_MODE_DOMAIN_FORBIDDEN":         115,
-		"APP_MODE_SCOPE_FORBIDDEN":          116,
-		"APP_MODE_WORLD_RELATION_FORBIDDEN": 117,
-		"APP_MODE_MANIFEST_INVALID":         118,
-		"AI_MODEL_NOT_FOUND":                200,
-		"AI_MODEL_NOT_READY":                201,
-		"AI_PROVIDER_UNAVAILABLE":           202,
-		"AI_PROVIDER_TIMEOUT":               203,
-		"AI_ROUTE_UNSUPPORTED":              204,
-		"AI_ROUTE_FALLBACK_DENIED":          205,
-		"AI_INPUT_INVALID":                  206,
-		"AI_OUTPUT_INVALID":                 207,
-		"AI_STREAM_BROKEN":                  208,
-		"AI_CONTENT_FILTER_BLOCKED":         209,
+		"REASON_CODE_UNSPECIFIED":               0,
+		"ACTION_EXECUTED":                       1,
+		"PROTOCOL_ENVELOPE_INVALID":             2,
+		"PROTOCOL_DOMAIN_FIELD_CONFLICT":        3,
+		"CAPABILITY_CATALOG_MISMATCH":           4,
+		"APP_NOT_REGISTERED":                    5,
+		"EXTERNAL_PRINCIPAL_NOT_REGISTERED":     6,
+		"SESSION_EXPIRED":                       7,
+		"PRINCIPAL_UNAUTHORIZED":                8,
+		"APP_AUTHORIZATION_DENIED":              100,
+		"APP_GRANT_INVALID":                     101,
+		"APP_TOKEN_EXPIRED":                     102,
+		"APP_TOKEN_REVOKED":                     103,
+		"APP_SCOPE_FORBIDDEN":                   104,
+		"APP_SCOPE_CATALOG_UNPUBLISHED":         105,
+		"APP_SCOPE_REVOKED":                     106,
+		"APP_DELEGATION_FORBIDDEN":              107,
+		"APP_DELEGATION_DEPTH_EXCEEDED":         108,
+		"APP_RESOURCE_SELECTOR_INVALID":         109,
+		"APP_RESOURCE_OUT_OF_SCOPE":             110,
+		"APP_CONSENT_MISSING":                   111,
+		"APP_CONSENT_INVALID":                   112,
+		"EXTERNAL_PRINCIPAL_PROOF_MISSING":      113,
+		"EXTERNAL_PRINCIPAL_PROOF_INVALID":      114,
+		"APP_MODE_DOMAIN_FORBIDDEN":             115,
+		"APP_MODE_SCOPE_FORBIDDEN":              116,
+		"APP_MODE_WORLD_RELATION_FORBIDDEN":     117,
+		"APP_MODE_MANIFEST_INVALID":             118,
+		"AI_MODEL_NOT_FOUND":                    200,
+		"AI_MODEL_NOT_READY":                    201,
+		"AI_PROVIDER_UNAVAILABLE":               202,
+		"AI_PROVIDER_TIMEOUT":                   203,
+		"AI_ROUTE_UNSUPPORTED":                  204,
+		"AI_ROUTE_FALLBACK_DENIED":              205,
+		"AI_INPUT_INVALID":                      206,
+		"AI_OUTPUT_INVALID":                     207,
+		"AI_STREAM_BROKEN":                      208,
+		"AI_CONTENT_FILTER_BLOCKED":             209,
+		"AI_REQUEST_CREDENTIAL_REQUIRED":        210,
+		"AI_REQUEST_CREDENTIAL_MISSING":         211,
+		"AI_REQUEST_CREDENTIAL_INVALID":         212,
+		"AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN": 213,
 	}
 )
 
@@ -628,7 +640,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xd6\b\n" +
+	"actionHint*\xef\t\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -668,7 +680,11 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x10AI_INPUT_INVALID\x10\xce\x01\x12\x16\n" +
 	"\x11AI_OUTPUT_INVALID\x10\xcf\x01\x12\x15\n" +
 	"\x10AI_STREAM_BROKEN\x10\xd0\x01\x12\x1e\n" +
-	"\x19AI_CONTENT_FILTER_BLOCKED\x10\xd1\x01*\xa9\x01\n" +
+	"\x19AI_CONTENT_FILTER_BLOCKED\x10\xd1\x01\x12#\n" +
+	"\x1eAI_REQUEST_CREDENTIAL_REQUIRED\x10\xd2\x01\x12\"\n" +
+	"\x1dAI_REQUEST_CREDENTIAL_MISSING\x10\xd3\x01\x12\"\n" +
+	"\x1dAI_REQUEST_CREDENTIAL_INVALID\x10\xd4\x01\x12*\n" +
+	"%AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN\x10\xd5\x01*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

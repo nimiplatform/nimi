@@ -355,36 +355,6 @@ message GetMediaArtifactsResponse {
   string trace_id = 3;
 }
 
-message GenerateImageRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string model_id = 3;
-  string prompt = 4;
-  RoutePolicy route_policy = 5;
-  FallbackPolicy fallback = 6;
-  int32 timeout_ms = 7;
-}
-
-message GenerateVideoRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string model_id = 3;
-  string prompt = 4;
-  RoutePolicy route_policy = 5;
-  FallbackPolicy fallback = 6;
-  int32 timeout_ms = 7;
-}
-
-message SynthesizeSpeechRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string model_id = 3;
-  string text = 4;
-  RoutePolicy route_policy = 5;
-  FallbackPolicy fallback = 6;
-  int32 timeout_ms = 7;
-}
-
 message ArtifactChunk {
   string artifact_id = 1;
   string mime_type = 2;
@@ -397,25 +367,6 @@ message ArtifactChunk {
   string trace_id = 9;
 }
 
-message TranscribeAudioRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string model_id = 3;
-  bytes audio_bytes = 4;
-  string mime_type = 5;
-  RoutePolicy route_policy = 6;
-  FallbackPolicy fallback = 7;
-  int32 timeout_ms = 8;
-}
-
-message TranscribeAudioResponse {
-  string text = 1;
-  UsageStats usage = 2;
-  RoutePolicy route_decision = 3;
-  string model_resolved = 4;
-  string trace_id = 5;
-}
-
 service RuntimeAiService {
   rpc Generate(GenerateRequest) returns (GenerateResponse);
   rpc StreamGenerate(StreamGenerateRequest) returns (stream StreamGenerateEvent);
@@ -425,20 +376,4 @@ service RuntimeAiService {
   rpc CancelMediaJob(CancelMediaJobRequest) returns (CancelMediaJobResponse);
   rpc SubscribeMediaJobEvents(SubscribeMediaJobEventsRequest) returns (stream MediaJobEvent);
   rpc GetMediaArtifacts(GetMediaArtifactsRequest) returns (GetMediaArtifactsResponse);
-  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-  rpc GenerateImage(GenerateImageRequest) returns (stream ArtifactChunk) {
-    option deprecated = true;
-  }
-  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-  rpc GenerateVideo(GenerateVideoRequest) returns (stream ArtifactChunk) {
-    option deprecated = true;
-  }
-  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-  rpc SynthesizeSpeech(SynthesizeSpeechRequest) returns (stream ArtifactChunk) {
-    option deprecated = true;
-  }
-  // Deprecated: use SubmitMediaJob/GetMediaJob/GetMediaArtifacts.
-  rpc TranscribeAudio(TranscribeAudioRequest) returns (TranscribeAudioResponse) {
-    option deprecated = true;
-  }
 }
