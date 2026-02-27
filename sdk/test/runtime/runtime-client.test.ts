@@ -146,15 +146,6 @@ function installTauriRuntime(runtime: TauriRuntime): () => void {
   };
 }
 
-function unwrapTauriCommandPayload<T extends Record<string, unknown>>(payload: unknown): T {
-  const root = (payload || {}) as Record<string, unknown>;
-  const nested = root.payload;
-  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
-    return nested as T;
-  }
-  return root as T;
-}
-
 test('createRuntimeClient injects idempotency key for write unary methods', async () => {
   let captured: RuntimeUnaryCall<RuntimeWireMessage> | null = null;
   installNodeGrpcBridge({
@@ -617,7 +608,7 @@ test('node-grpc and tauri-ipc cover runtime.localRuntime unary contract surface'
         if (command !== 'runtime_bridge_unary') {
           throw new Error(`unexpected tauri command: ${command}`);
         }
-        const call = unwrapTauriCommandPayload<Record<string, unknown>>(payload);
+        const call = (payload || {}) as Record<string, unknown>;
         tauriCalls.push(call);
         const methodId = String(call.methodId || '').trim();
         const codec = RuntimeUnaryMethodCodecs[methodId as keyof typeof RuntimeUnaryMethodCodecs];
@@ -685,7 +676,7 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
     core: {
       invoke: async (command: string, payload?: unknown) => {
         if (command === 'runtime_bridge_unary') {
-          capturedPayload = unwrapTauriCommandPayload<Record<string, unknown>>(payload);
+          capturedPayload = (payload || {}) as Record<string, unknown>;
           return {
             responseBytesBase64: Buffer.from(
               GenerateResponse.toBinary(
@@ -882,7 +873,7 @@ test('tauri-ipc stream errors surface as NimiError and close remote stream', asy
         }
 
         if (command === 'runtime_bridge_stream_close') {
-          const value = unwrapTauriCommandPayload<{ streamId?: string }>(payload);
+          const value = (payload || {}) as { streamId?: string };
           closeRequests.push(String(value.streamId || ''));
           return {};
         }
@@ -973,7 +964,7 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
         }
 
         if (command === 'runtime_bridge_stream_close') {
-          const value = unwrapTauriCommandPayload<{ streamId?: string }>(payload);
+          const value = (payload || {}) as { streamId?: string };
           closeRequests.push(String(value.streamId || ''));
           return {};
         }
@@ -1025,7 +1016,7 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
     core: {
       invoke: async (command: string, payload?: unknown) => {
         if (command === 'runtime_bridge_stream_open') {
-          streamOpenPayload = unwrapTauriCommandPayload<Record<string, unknown>>(payload);
+          streamOpenPayload = (payload || {}) as Record<string, unknown>;
           const streamId = 'stream-tauri-event-namespace';
           setTimeout(() => {
             const handler = listeners.get('custom_events:stream:stream-tauri-event-namespace');
@@ -1091,7 +1082,7 @@ test('tauri-ipc stream abort signal triggers remote close', async () => {
         }
 
         if (command === 'runtime_bridge_stream_close') {
-          const value = unwrapTauriCommandPayload<{ streamId?: string }>(payload);
+          const value = (payload || {}) as { streamId?: string };
           closeRequests.push(String(value.streamId || ''));
           return {};
         }

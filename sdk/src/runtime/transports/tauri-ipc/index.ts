@@ -130,47 +130,15 @@ function canRetryWithDefaultCommand(error: unknown): boolean {
   );
 }
 
-function canRetryWithLegacyPayload(error: unknown): boolean {
-  const message = String((error as { message?: unknown })?.message || error || '')
-    .trim()
-    .toLowerCase();
-  if (!message) {
-    return false;
-  }
-  const mentionsInvalidArgs = message.includes('invalid args');
-  const mentionsMissingRequired = message.includes('missing required key');
-  if (!mentionsInvalidArgs || !mentionsMissingRequired) {
-    return false;
-  }
-  return (
-    message.includes('methodid')
-    || message.includes('requestbytesbase64')
-    || message.includes('streamid')
-    || message.includes('eventnamespace')
-    || message.includes('timeoutms')
-    || message.includes('metadata')
-  );
-}
-
 async function invokeCommand(
   invoke: TauriInvoke,
   config: RuntimeTauriIpcTransportConfig,
   suffix: string,
   payload: Record<string, unknown>,
 ): Promise<unknown> {
-  const invokeWithPayload = async (commandName: string): Promise<unknown> => {
-    try {
-      return await invoke(commandName, { payload });
-    } catch (error) {
-      if (!canRetryWithLegacyPayload(error)) {
-        throw error;
-      }
-      return invoke(commandName, payload);
-    }
-  };
   const command = createCommandName(config, suffix);
   try {
-    return await invokeWithPayload(command);
+    return await invoke(command, payload);
   } catch (error) {
     const defaultCommand = createDefaultCommandName(suffix);
     if (
@@ -179,7 +147,7 @@ async function invokeCommand(
     ) {
       throw error;
     }
-    return invokeWithPayload(defaultCommand);
+    return invoke(defaultCommand, payload);
   }
 }
 
