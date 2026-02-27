@@ -21,7 +21,7 @@ type TokenApiConnectorsPageProps = {
   onSelectConnector: (connectorId: string) => void;
   onRenameSelectedConnector: (label: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
-  onChangeConnectorToken: (tokenApiKey: string) => void;
+  onChangeConnectorToken: (secret: string) => void;
   onChangeConnectorTokenEnv: (tokenApiKeyEnv: string) => void;
   onChangeConnectorVendor: (vendor: string) => void;
   onTestSelectedConnector: () => Promise<void>;
@@ -128,10 +128,10 @@ export function TokenApiConnectorsPage({
 
             <Input
               label="Session API Key"
-              value={selectedConnector.tokenApiKey}
+              value=""
               onChange={onChangeConnectorToken}
               type={showTokenApiKey ? 'text' : 'password'}
-              placeholder="sk-..."
+              placeholder={selectedConnector.status === 'healthy' ? '(stored in vault)' : 'sk-...'}
             />
 
             <Input

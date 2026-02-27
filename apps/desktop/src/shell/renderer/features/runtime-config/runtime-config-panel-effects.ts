@@ -20,6 +20,7 @@ type RuntimeConfigPanelEffectsInput = {
   setStatusBanner: (banner: StatusBanner | null) => void;
   credentialVault: { listCredentialEntries: (providerType: string) => Promise<Array<Record<string, unknown>>> };
   setVaultEntryCount: (count: number) => void;
+  vaultVersion: number;
   discoverLocalRuntimeModels: () => Promise<void>;
 };
 
@@ -73,6 +74,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     state: input.state,
     credentialVault: input.credentialVault,
     setVaultEntryCount: input.setVaultEntryCount,
+    vaultVersion: input.vaultVersion,
   });
 
   useRuntimeConfigRouteInitEffect({

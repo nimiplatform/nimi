@@ -2,6 +2,7 @@ import { addConnector, inferVendorFromEndpoint, removeSelectedConnector, updateC
 import { ProviderConnectorsPanelView } from './provider-connectors/view';
 import type { ProviderConnectorsPanelProps } from './provider-connectors/types';
 import { applyProviderConnectorRoutePatch } from '../domain/provider-connectors/route-patch';
+import { TauriCredentialVault, createCredential } from '@runtime/llm-adapter/credential-vault.js';
 
 export function ProviderConnectorsPanel({
   stateModel,
@@ -15,7 +16,15 @@ export function ProviderConnectorsPanel({
     updateState((prev) => addConnector(prev));
   };
 
-  const onRemoveSelectedConnector = () => {
+  const onRemoveSelectedConnector = async () => {
+    if (selectedConnectorId) {
+      const vault = new TauriCredentialVault();
+      try {
+        await vault.deleteCredentialEntry(selectedConnectorId);
+        await vault.deleteCredentialSecret(selectedConnectorId);
+      } catch { /* vault cleanup best-effort */ }
+      commandModel.onVaultChanged();
+    }
     updateState((prev) => removeSelectedConnector(prev, selectedConnectorId));
   };
 
@@ -49,8 +58,16 @@ export function ProviderConnectorsPanel({
     });
   };
 
-  const onChangeConnectorToken = (tokenApiKey: string) => {
-    updateState((prev) => updateConnectorField(prev, selectedConnectorId, { tokenApiKey }));
+  const onChangeConnectorToken = async (secret: string) => {
+    if (!selectedConnectorId) return;
+    const vault = new TauriCredentialVault();
+    await createCredential(vault, {
+      provider: 'OPENAI_COMPATIBLE',
+      refId: selectedConnectorId,
+      label: `connector:${selectedConnectorId}`,
+      secret,
+    });
+    commandModel.onVaultChanged();
   };
 
   const onChangeConnectorTokenEnv = (tokenApiKeyEnv: string) => {

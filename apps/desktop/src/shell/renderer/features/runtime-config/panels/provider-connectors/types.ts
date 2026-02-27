@@ -63,6 +63,8 @@ export type ProviderConnectorsCommandModel = {
   stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
   restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
   removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
+  onVaultChanged: () => void;
+  vaultEntryCount: number;
 };
 
 export type ProviderConnectorsPanelProps = {
@@ -78,7 +80,7 @@ export type ProviderConnectorsPanelViewProps = ProviderConnectorsPanelProps & {
   onChangeLocalRuntimeEndpoint: (endpoint: string) => void;
   onRenameSelectedConnector: (label: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
-  onChangeConnectorToken: (tokenApiKey: string) => void;
+  onChangeConnectorToken: (secret: string) => void;
   onChangeConnectorTokenEnv: (tokenApiKeyEnv: string) => void;
   onChangeConnectorVendor: (vendor: string) => void;
 };

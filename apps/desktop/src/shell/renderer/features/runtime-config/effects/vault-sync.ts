@@ -5,6 +5,7 @@ type VaultSyncEffectInput = {
   state: RuntimeConfigStateV11 | null;
   credentialVault: { listCredentialEntries: (providerType: string) => Promise<Array<Record<string, unknown>>> };
   setVaultEntryCount: (count: number) => void;
+  vaultVersion: number;
 };
 
 export function useRuntimeConfigVaultSyncEffect(input: VaultSyncEffectInput) {
@@ -24,5 +25,5 @@ export function useRuntimeConfigVaultSyncEffect(input: VaultSyncEffectInput) {
     return () => {
       cancelled = true;
     };
-  }, [input.credentialVault, input.setVaultEntryCount, input.state]);
+  }, [input.credentialVault, input.setVaultEntryCount, input.state, input.vaultVersion]);
 }

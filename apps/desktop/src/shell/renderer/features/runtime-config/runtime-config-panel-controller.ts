@@ -59,7 +59,9 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const runtimeBridgeProjectionRef = useRef('');
   const runtimeBridgeFailedProjectionRef = useRef('');
   const runtimeBridgeLoadStartedRef = useRef(false);
+  const [bridgeRetryCount, setBridgeRetryCount] = useState(0);
   const runtimeBridgeReadyRef = useRef(false);
+  const runtimeBridgeReadSucceededRef = useRef(false);
   const runtimeBridgeRestartHintShownRef = useRef(false);
 
   const commandInput = useMemo(() => ({
@@ -273,6 +275,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     }
   }, [refreshLocalRuntimeSnapshot, resolveRuntimeDependencies, setStatusBanner]);
 
+  const onVaultChanged = useCallback(() => {
+    panelState.setVaultVersion((v) => v + 1);
+  }, [panelState.setVaultVersion]);
+
   const onChangeSetupPage = useCallback((pageId: RuntimeSetupPageIdV11) => {
     panelState.updateState((prev) => ({
       ...prev,
@@ -461,6 +467,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setStatusBanner,
     credentialVault,
     setVaultEntryCount: panelState.setVaultEntryCount,
+    vaultVersion: panelState.vaultVersion,
     discoverLocalRuntimeModels: commands.discoverLocalRuntimeModels,
   });
 
@@ -495,6 +502,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         const result = await desktopBridge.getRuntimeBridgeConfig();
         if (cancelled) return;
         runtimeBridgeConfigRef.current = asRecord(result.config);
+        runtimeBridgeReadSucceededRef.current = true;
         panelState.setState((previous) => {
           if (!previous) return previous;
           const next = applyRuntimeBridgeConfigToState(previous, runtimeBridgeConfigRef.current);
@@ -508,6 +516,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         setStatusBanner({
           kind: 'warning',
           message: `Runtime config read failed, keep local view: ${message}`,
+          actionLabel: 'Retry',
+          onAction: () => {
+            runtimeBridgeLoadStartedRef.current = false;
+            setStatusBanner(null);
+            setBridgeRetryCount((c) => c + 1);
+          },
         });
       } finally {
         if (!cancelled) {
@@ -520,12 +534,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     return () => {
       cancelled = true;
     };
-  }, [panelState.hydrated, panelState.setState, setStatusBanner]);
+  }, [panelState.hydrated, panelState.setState, setStatusBanner, bridgeRetryCount]);
 
   useEffect(() => {
     const stateSnapshot = panelState.state;
     if (!panelState.hydrated || !stateSnapshot) return;
-    if (!runtimeBridgeReadyRef.current) return;
+    if (!runtimeBridgeReadSucceededRef.current) return;
     if (!desktopBridge.hasTauriInvoke()) return;
 
     const nextProjection = serializeRuntimeBridgeProjection(stateSnapshot);
@@ -618,5 +632,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     startRuntimeDaemon,
     restartRuntimeDaemon,
     stopRuntimeDaemon,
+    onVaultChanged,
   };
 }

@@ -46,7 +46,7 @@ function deriveCapabilityStatuses(state: RuntimeConfigStateV11): CapabilityStatu
       (model) => model.status === 'active' && model.capabilities.includes(capability),
     );
     const cloudAvailable = state.connectors.some(
-      (connector) => connector.tokenApiKey.trim() && connector.status !== 'unreachable',
+      (connector) => connector.status === 'healthy',
     );
     return {
       capability,

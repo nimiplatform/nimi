@@ -80,7 +80,7 @@ export function ProviderConnectorsPanelView({
               state={state}
               runtimeDependencyTargets={runtimeDependencyTargets}
               registeredRuntimeModIds={runtimeDependencyTargets.map((target) => target.modId)}
-              vaultEntryCount={orderedConnectors.filter((connector) => connector.tokenApiKey.trim()).length}
+              vaultEntryCount={commandModel.vaultEntryCount}
               discovering={discovering}
               checkingHealth={checkingHealth}
               runtimeDaemonStatus={runtimeDaemonStatus}

@@ -202,6 +202,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                   stopLocalRuntimeModel: model.stopLocalRuntimeModel,
                   restartLocalRuntimeModel: model.restartLocalRuntimeModel,
                   removeLocalRuntimeModel: model.removeLocalRuntimeModel,
+                  onVaultChanged: model.onVaultChanged,
+                  vaultEntryCount: model.vaultEntryCount,
                 }}
               />
             ) : null}

@@ -25,7 +25,7 @@ export function ProvidersPage({ state, onNavigate }: ProvidersPageProps) {
       );
       const localAvailable = Boolean(localNode) || hasLocalModel;
       const cloudAvailable = state.connectors.some(
-        (connector) => connector.tokenApiKey.trim() && connector.status !== 'unreachable',
+        (connector) => connector.status === 'healthy',
       );
       return {
         capability,
