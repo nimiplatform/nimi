@@ -200,8 +200,9 @@ go run ./cmd/runtime-compliance --gate
 ## Build
 
 ```bash
-cd runtime
-go build -o nimi ./cmd/nimi
+pnpm build:runtime
+# or:
+cd runtime && go build -o ../dist/nimi ./cmd/nimi
 ```
 
 ## Configuration

@@ -19,7 +19,7 @@ Nimi is an AI-native open world platform. This is the open-source monorepo.
 ```bash
 pnpm install              # Install all dependencies
 pnpm build                # Build SDK + Desktop + Web
-cd runtime && go build ./cmd/nimi   # Build runtime
+pnpm build:runtime        # Build runtime to dist/nimi
 ```
 
 ## Per-Component Conventions

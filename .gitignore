@@ -28,6 +28,8 @@ nimi-mods/
 
 # tauri/rust
 **/target/
+/runtime/nimi
+/runtime/nimi.exe
 
 # local caches
 .vscode/

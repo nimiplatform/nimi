@@ -10,6 +10,7 @@
     "build": "pnpm build:sdk && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm check:bundle-size",
     "build:all": "pnpm -r build",
     "build:sdk": "pnpm --filter @nimiplatform/sdk build",
+    "build:runtime": "node scripts/build-runtime.mjs",
     "runtime:cmd": "cd runtime && go run ./cmd/nimi",
     "runtime:serve": "pnpm runtime:cmd -- serve",
     "runtime:health": "pnpm runtime:cmd -- health --source grpc",
