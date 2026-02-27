@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -75,10 +76,10 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 	defer server.Close()
 
 	p := &localProvider{
-		nexa: newOpenAIBackend("nexa", server.URL, "", 3*time.Second),
+		nexa: nimillm.NewBackend("nexa", server.URL, "", 3*time.Second),
 	}
 
-	text, _, finishReason, err := p.generateText(context.Background(), "nexa/qwen", &runtimev1.GenerateRequest{
+	text, _, finishReason, err := p.GenerateText(context.Background(), "nexa/qwen", &runtimev1.GenerateRequest{
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},
@@ -90,7 +91,7 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa text mismatch: text=%s finish=%v", text, finishReason)
 	}
 
-	vectors, _, err := p.embed(context.Background(), "nexa/embed", []string{"embed me"})
+	vectors, _, err := p.Embed(context.Background(), "nexa/embed", []string{"embed me"})
 	if err != nil {
 		t.Fatalf("nexa embed: %v", err)
 	}
@@ -98,7 +99,7 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa embed mismatch")
 	}
 
-	imagePayload, _, err := p.generateImage(context.Background(), "nexa/image", &runtimev1.ImageGenerationSpec{
+	imagePayload, _, err := p.GenerateImage(context.Background(), "nexa/image", &runtimev1.ImageGenerationSpec{
 		Prompt: "draw mountain",
 	})
 	if err != nil {
@@ -108,7 +109,7 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa image payload mismatch")
 	}
 
-	speechPayload, _, err := p.synthesizeSpeech(context.Background(), "nexa/tts", &runtimev1.SpeechSynthesisSpec{
+	speechPayload, _, err := p.SynthesizeSpeech(context.Background(), "nexa/tts", &runtimev1.SpeechSynthesisSpec{
 		Text: "hello",
 	})
 	if err != nil {
@@ -118,7 +119,7 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa speech payload mismatch")
 	}
 
-	transcribedText, _, err := p.transcribe(context.Background(), "nexa/stt", &runtimev1.SpeechTranscriptionSpec{
+	transcribedText, _, err := p.Transcribe(context.Background(), "nexa/stt", &runtimev1.SpeechTranscriptionSpec{
 		MimeType: "audio/wav",
 	}, []byte("audio"), "audio/wav")
 	if err != nil {
@@ -128,7 +129,7 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa transcribe mismatch: %s", transcribedText)
 	}
 
-	_, _, err = p.generateVideo(context.Background(), "nexa/video", &runtimev1.VideoGenerationSpec{
+	_, _, err = p.GenerateVideo(context.Background(), "nexa/video", &runtimev1.VideoGenerationSpec{
 		Prompt: "unsupported",
 	})
 	if status.Code(err) != codes.FailedPrecondition {
@@ -139,7 +140,7 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 func TestLocalProviderFailCloseWithoutBackend(t *testing.T) {
 	p := &localProvider{}
 
-	if _, _, _, err := p.generateText(context.Background(), "local/qwen2.5", &runtimev1.GenerateRequest{
+	if _, _, _, err := p.GenerateText(context.Background(), "local/qwen2.5", &runtimev1.GenerateRequest{
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},
@@ -147,7 +148,7 @@ func TestLocalProviderFailCloseWithoutBackend(t *testing.T) {
 		t.Fatalf("generateText should fail-close: %v", status.Code(err))
 	}
 
-	_, finishReason, err := p.streamGenerateText(context.Background(), "local/qwen2.5", &runtimev1.StreamGenerateRequest{
+	_, finishReason, err := p.StreamGenerateText(context.Background(), "local/qwen2.5", &runtimev1.StreamGenerateRequest{
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},

@@ -46,14 +46,14 @@ func TestLiveSmokeLocalGenerateText(t *testing.T) {
 	}
 }
 
-func TestLiveSmokeLiteLLMGenerateText(t *testing.T) {
-	baseURL := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_BASE_URL")
-	modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_MODEL_ID")
-	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LITELLM_API_KEY"))
+func TestLiveSmokeNimiLLMGenerateText(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_BASE_URL")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_MODEL_ID")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_NIMILLM_API_KEY"))
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudLiteLLMBaseURL: baseURL,
-		CloudLiteLLMAPIKey:  apiKey,
+		CloudNimiLLMBaseURL: baseURL,
+		CloudNimiLLMAPIKey:  apiKey,
 	})
 
 	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
@@ -62,19 +62,19 @@ func TestLiveSmokeLiteLLMGenerateText(t *testing.T) {
 		ModelId:       modelID,
 		Modal:         runtimev1.Modal_MODAL_TEXT,
 		Input: []*runtimev1.ChatMessage{
-			{Role: "user", Content: "Say hello from Nimi LiteLLM live smoke test."},
+			{Role: "user", Content: "Say hello from Nimi NimiLLM live smoke test."},
 		},
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		TimeoutMs:   45_000,
 	})
 	if err != nil {
-		t.Fatalf("live litellm generate failed: %v", err)
+		t.Fatalf("live nimillm generate failed: %v", err)
 	}
 
 	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
 	if text == "" {
-		t.Fatalf("live litellm generate returned empty text output")
+		t.Fatalf("live nimillm generate returned empty text output")
 	}
 }
 
@@ -177,9 +177,9 @@ func TestLiveSmokeLocalSubmitMediaJobModalities(t *testing.T) {
 	})
 }
 
-func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
-	baseURL := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_BASE_URL")
-	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LITELLM_API_KEY"))
+func TestLiveSmokeNimiLLMSubmitMediaJobModalities(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_BASE_URL")
+	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_NIMILLM_API_KEY"))
 	audioURI := requiredLiveEnv(t, "NIMI_LIVE_STT_AUDIO_URI")
 	audioMIME := strings.TrimSpace(os.Getenv("NIMI_LIVE_STT_MIME_TYPE"))
 	if audioMIME == "" {
@@ -187,12 +187,12 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudLiteLLMBaseURL: baseURL,
-		CloudLiteLLMAPIKey:  apiKey,
+		CloudNimiLLMBaseURL: baseURL,
+		CloudNimiLLMAPIKey:  apiKey,
 	})
 
 	t.Run("image", func(t *testing.T) {
-		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_IMAGE_MODEL_ID")
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_IMAGE_MODEL_ID")
 		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
 			AppId:         "nimi.live-smoke",
 			SubjectUserId: "smoke-user",
@@ -203,7 +203,7 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 			TimeoutMs:     120_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
 				ImageSpec: &runtimev1.ImageGenerationSpec{
-					Prompt:         "Nimi LiteLLM live smoke image: skyline at sunset",
+					Prompt:         "Nimi NimiLLM live smoke image: skyline at sunset",
 					ResponseFormat: "png",
 				},
 			},
@@ -212,7 +212,7 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 	})
 
 	t.Run("video", func(t *testing.T) {
-		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_VIDEO_MODEL_ID")
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_VIDEO_MODEL_ID")
 		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
 			AppId:         "nimi.live-smoke",
 			SubjectUserId: "smoke-user",
@@ -223,7 +223,7 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
 				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi LiteLLM live smoke short video: city lights with gentle pan",
+					Prompt:      "Nimi NimiLLM live smoke short video: city lights with gentle pan",
 					DurationSec: 4,
 				},
 			},
@@ -232,7 +232,7 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 	})
 
 	t.Run("tts", func(t *testing.T) {
-		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_TTS_MODEL_ID")
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_TTS_MODEL_ID")
 		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
 			AppId:         "nimi.live-smoke",
 			SubjectUserId: "smoke-user",
@@ -243,7 +243,7 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 			TimeoutMs:     120_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
 				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
-					Text:        "This is Nimi LiteLLM live smoke TTS.",
+					Text:        "This is Nimi NimiLLM live smoke TTS.",
 					AudioFormat: "mp3",
 				},
 			},
@@ -252,7 +252,7 @@ func TestLiveSmokeLiteLLMSubmitMediaJobModalities(t *testing.T) {
 	})
 
 	t.Run("stt", func(t *testing.T) {
-		modelID := requiredLiveEnv(t, "NIMI_LIVE_LITELLM_STT_MODEL_ID")
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_STT_MODEL_ID")
 		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
 			AppId:         "nimi.live-smoke",
 			SubjectUserId: "smoke-user",

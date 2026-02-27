@@ -416,9 +416,9 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 }
 
 func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
-	liteCalls := int32(0)
-	liteServer := newChatServer(t, "from-litellm", &liteCalls)
-	defer liteServer.Close()
+	nimiCalls := int32(0)
+	nimiServer := newChatServer(t, "from-nimillm", &nimiCalls)
+	defer nimiServer.Close()
 
 	registry := modelregistry.New()
 	registry.Upsert(modelregistry.Entry{
@@ -430,7 +430,7 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 	})
 
 	healthTracker := providerhealth.New()
-	healthTracker.Mark("cloud-litellm", true, "")
+	healthTracker.Mark("cloud-nimillm", true, "")
 	healthTracker.Mark("cloud-alibaba", false, "timeout")
 
 	auditStore := auditlog.New(128, 128)
@@ -440,7 +440,7 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 		healthTracker,
 		auditStore,
 		Config{
-			CloudLiteLLMBaseURL: liteServer.URL,
+			CloudNimiLLMBaseURL: nimiServer.URL,
 		},
 	)
 	registryPath := filepath.Join(t.TempDir(), "model-registry.json")
@@ -464,16 +464,16 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 	if resp.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API {
 		t.Fatalf("unexpected route decision: %v", resp.GetRouteDecision())
 	}
-	if got := atomic.LoadInt32(&liteCalls); got != 1 {
-		t.Fatalf("litellm calls mismatch: got=%d want=1", got)
+	if got := atomic.LoadInt32(&nimiCalls); got != 1 {
+		t.Fatalf("nimillm calls mismatch: got=%d want=1", got)
 	}
 
 	updated, exists := registry.Get("qwen-max")
 	if !exists {
 		t.Fatalf("registry entry qwen-max must exist")
 	}
-	if updated.ProviderHint != modelregistry.ProviderHintLiteLLM {
-		t.Fatalf("provider hint should auto-switch to litellm, got=%s", updated.ProviderHint)
+	if updated.ProviderHint != modelregistry.ProviderHintNimiLLM {
+		t.Fatalf("provider hint should auto-switch to nimillm, got=%s", updated.ProviderHint)
 	}
 	reloaded, err := modelregistry.NewFromFile(registryPath)
 	if err != nil {
@@ -483,7 +483,7 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 	if !ok {
 		t.Fatalf("reloaded registry entry qwen-max must exist")
 	}
-	if reloadedEntry.ProviderHint != modelregistry.ProviderHintLiteLLM {
+	if reloadedEntry.ProviderHint != modelregistry.ProviderHintNimiLLM {
 		t.Fatalf("reloaded provider hint mismatch: %s", reloadedEntry.ProviderHint)
 	}
 
@@ -506,7 +506,7 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 		if got := event.GetPayload().GetFields()["hintFrom"].GetStringValue(); got != string(modelregistry.ProviderHintAlibaba) {
 			t.Fatalf("hintFrom mismatch: got=%s", got)
 		}
-		if got := event.GetPayload().GetFields()["hintTo"].GetStringValue(); got != string(modelregistry.ProviderHintLiteLLM) {
+		if got := event.GetPayload().GetFields()["hintTo"].GetStringValue(); got != string(modelregistry.ProviderHintNimiLLM) {
 			t.Fatalf("hintTo mismatch: got=%s", got)
 		}
 	}

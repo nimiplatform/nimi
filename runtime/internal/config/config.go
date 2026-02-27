@@ -456,10 +456,10 @@ func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
 			baseURLKey: "NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
 		}, true
-	case "litellm", "cloudlitellm", "cloudai":
+	case "nimillm", "cloudnimillm":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_LITELLM_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
 		}, true
 	case "alibaba", "aliyun", "cloudalibaba":
 		return providerEnvBinding{

@@ -2,18 +2,20 @@ package ai
 
 import (
 	"context"
+	"strings"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
 )
 
-func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, routeDecisionInfo, error) {
+func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
 	preferred := preferredRoute(rawModel)
 
 	target := s.local
-	decision := routeDecisionInfo{BackendName: "local"}
+	decision := nimillm.RouteDecisionInfo{BackendName: "local"}
 	if preferred == runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API {
 		target = s.cloud
 		decision.BackendName = "cloud"
@@ -26,13 +28,13 @@ func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1
 		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, err
 	}
 
-	modelResolved := target.resolveModelID(rawModel)
-	if err := target.checkModelAvailability(modelResolved); err != nil {
+	modelResolved := target.ResolveModelID(rawModel)
+	if err := target.CheckModelAvailability(modelResolved); err != nil {
 		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, err
 	}
 
-	if cloud, ok := target.(*cloudProvider); ok {
-		if info, found := cloud.getDecisionInfo(modelResolved); found {
+	if cloud, ok := target.(nimillm.DecisionInfoProvider); ok {
+		if info, found := cloud.GetDecisionInfo(modelResolved); found {
 			if info.BackendName != "" {
 				decision.BackendName = info.BackendName
 			}
@@ -41,5 +43,5 @@ func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1
 			decision.HintTo = info.HintTo
 		}
 	}
-	return target, target.route(), modelResolved, decision, nil
+	return target, target.Route(), modelResolved, decision, nil
 }

@@ -5,6 +5,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
@@ -99,13 +100,13 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
 
 	traceID := ulid.Make().String()
-	inputText := composeInputText(req.GetSystemPrompt(), req.GetInput())
-	outputText, usage, finishReason, err := selectedProvider.generateText(requestCtx, modelResolved, req, inputText)
+	inputText := nimillm.ComposeInputText(req.GetSystemPrompt(), req.GetInput())
+	outputText, usage, finishReason, err := selectedProvider.GenerateText(requestCtx, modelResolved, req, inputText)
 	if err != nil {
 		return nil, err
 	}
 	if usage == nil {
-		usage = estimateUsage(inputText, outputText)
+		usage = nimillm.EstimateUsage(inputText, outputText)
 	}
 
 	output, err := structpb.NewStruct(map[string]any{
@@ -206,13 +207,13 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		return err
 	}
 
-	inputText := composeInputText(req.GetSystemPrompt(), req.GetInput())
+	inputText := nimillm.ComposeInputText(req.GetSystemPrompt(), req.GetInput())
 	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	var outputBuilder strings.Builder
 
 	if streamer, ok := selectedProvider.(streamingTextProvider); ok {
-		usage, finishReason, err = streamer.streamGenerateText(requestCtx, modelResolved, req, func(part string) error {
+		usage, finishReason, err = streamer.StreamGenerateText(requestCtx, modelResolved, req, func(part string) error {
 			firstPacketSeen.Store(true)
 			outputBuilder.WriteString(part)
 			return send(&runtimev1.StreamGenerateEvent{
@@ -226,13 +227,13 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 			return failAndStop(err)
 		}
 	} else {
-		outputText, streamUsage, streamFinish, generateErr := selectedProvider.generateText(requestCtx, modelResolved, streamToGenerateRequest(req), inputText)
+		outputText, streamUsage, streamFinish, generateErr := selectedProvider.GenerateText(requestCtx, modelResolved, streamToGenerateRequest(req), inputText)
 		if generateErr != nil {
 			return failAndStop(generateErr)
 		}
 		usage = streamUsage
 		finishReason = streamFinish
-		parts := splitText(outputText, 24)
+		parts := nimillm.SplitText(outputText, 24)
 		for _, part := range parts {
 			firstPacketSeen.Store(true)
 			outputBuilder.WriteString(part)
@@ -249,7 +250,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 
 	outputText := outputBuilder.String()
 	if usage == nil {
-		usage = estimateUsage(inputText, outputText)
+		usage = nimillm.EstimateUsage(inputText, outputText)
 	}
 
 	if len(req.GetTools()) > 0 {

@@ -2366,12 +2366,12 @@ func TestSubmitMediaJobLocalAIModalities(t *testing.T) {
 	}
 }
 
-func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
-	imagePayload := []byte("litellm-image-bytes")
+func TestSubmitMediaJobNimiLLMModalities(t *testing.T) {
+	imagePayload := []byte("nimillm-image-bytes")
 	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
-	videoPayload := []byte("litellm-video-bytes")
+	videoPayload := []byte("nimillm-video-bytes")
 	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
-	audioPayload := []byte("litellm-tts-audio")
+	audioPayload := []byte("nimillm-tts-audio")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations":
@@ -2397,7 +2397,7 @@ func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
 			return
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"text": "litellm stt text",
+				"text": "nimillm stt text",
 			})
 			return
 		default:
@@ -2407,24 +2407,24 @@ func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudLiteLLMBaseURL: server.URL,
+		CloudNimiLLMBaseURL: server.URL,
 	})
 
 	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "litellm/image-1",
+		ModelId:       "nimillm/image-1",
 		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
 			ImageSpec: &runtimev1.ImageGenerationSpec{
-				Prompt: "litellm image",
+				Prompt: "nimillm image",
 			},
 		},
 	})
 	if err != nil {
-		t.Fatalf("submit litellm image job: %v", err)
+		t.Fatalf("submit nimillm image job: %v", err)
 	}
 	imageJob := waitMediaJobTerminal(t, svc, imageResp.GetJob().GetJobId(), 3*time.Second)
 	if imageJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
@@ -2437,18 +2437,18 @@ func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
 	videoResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "litellm/video-1",
+		ModelId:       "nimillm/video-1",
 		Modal:         runtimev1.Modal_MODAL_VIDEO,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
 			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "litellm video",
+				Prompt: "nimillm video",
 			},
 		},
 	})
 	if err != nil {
-		t.Fatalf("submit litellm video job: %v", err)
+		t.Fatalf("submit nimillm video job: %v", err)
 	}
 	videoJob := waitMediaJobTerminal(t, svc, videoResp.GetJob().GetJobId(), 3*time.Second)
 	if videoJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
@@ -2461,18 +2461,18 @@ func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
 	ttsResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "litellm/tts-1",
+		ModelId:       "nimillm/tts-1",
 		Modal:         runtimev1.Modal_MODAL_TTS,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
 			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
-				Text: "litellm tts",
+				Text: "nimillm tts",
 			},
 		},
 	})
 	if err != nil {
-		t.Fatalf("submit litellm tts job: %v", err)
+		t.Fatalf("submit nimillm tts job: %v", err)
 	}
 	ttsJob := waitMediaJobTerminal(t, svc, ttsResp.GetJob().GetJobId(), 3*time.Second)
 	if ttsJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
@@ -2485,7 +2485,7 @@ func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
 	sttResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "litellm/stt-1",
+		ModelId:       "nimillm/stt-1",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -2497,18 +2497,18 @@ func TestSubmitMediaJobLiteLLMModalities(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("submit litellm stt job: %v", err)
+		t.Fatalf("submit nimillm stt job: %v", err)
 	}
 	sttJob := waitMediaJobTerminal(t, svc, sttResp.GetJob().GetJobId(), 3*time.Second)
 	if sttJob.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
 		t.Fatalf("stt job status mismatch: %v", sttJob.GetStatus())
 	}
-	if got := string(sttJob.GetArtifacts()[0].GetBytes()); got != "litellm stt text" {
+	if got := string(sttJob.GetArtifacts()[0].GetBytes()); got != "nimillm stt text" {
 		t.Fatalf("stt text mismatch: got=%q", got)
 	}
 }
 
-func TestSubmitMediaJobLiteLLMImageUnavailableMapsProviderUnavailable(t *testing.T) {
+func TestSubmitMediaJobNimiLLMImageUnavailableMapsProviderUnavailable(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -2524,12 +2524,12 @@ func TestSubmitMediaJobLiteLLMImageUnavailableMapsProviderUnavailable(t *testing
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudLiteLLMBaseURL: server.URL,
+		CloudNimiLLMBaseURL: server.URL,
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "litellm/image-1",
+		ModelId:       "nimillm/image-1",
 		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -2540,7 +2540,7 @@ func TestSubmitMediaJobLiteLLMImageUnavailableMapsProviderUnavailable(t *testing
 		},
 	})
 	if err != nil {
-		t.Fatalf("submit litellm unavailable job: %v", err)
+		t.Fatalf("submit nimillm unavailable job: %v", err)
 	}
 	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
@@ -2551,7 +2551,7 @@ func TestSubmitMediaJobLiteLLMImageUnavailableMapsProviderUnavailable(t *testing
 	}
 }
 
-func TestSubmitMediaJobLiteLLMSTTTimeoutMapsProviderTimeout(t *testing.T) {
+func TestSubmitMediaJobNimiLLMSTTTimeoutMapsProviderTimeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions" {
 			time.Sleep(300 * time.Millisecond)
@@ -2565,12 +2565,12 @@ func TestSubmitMediaJobLiteLLMSTTTimeoutMapsProviderTimeout(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudLiteLLMBaseURL: server.URL,
+		CloudNimiLLMBaseURL: server.URL,
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "litellm/stt-1",
+		ModelId:       "nimillm/stt-1",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -2583,7 +2583,7 @@ func TestSubmitMediaJobLiteLLMSTTTimeoutMapsProviderTimeout(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("submit litellm stt timeout job: %v", err)
+		t.Fatalf("submit nimillm stt timeout job: %v", err)
 	}
 	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
 	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT {

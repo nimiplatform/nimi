@@ -1,26 +1,27 @@
-package ai
+package nimillm
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"net/http"
 )
 
-func (b *openAIBackend) postJSON(ctx context.Context, path string, requestBody any, responseBody any) error {
+func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, responseBody any) error {
 	payload, err := json.Marshal(requestBody)
 	if err != nil {
-		return mapProviderRequestError(err)
+		return MapProviderRequestError(err)
 	}
 
 	endpoint := b.baseURL + path
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return mapProviderRequestError(err)
+		return MapProviderRequestError(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if b.apiKey != "" {
@@ -29,23 +30,23 @@ func (b *openAIBackend) postJSON(ctx context.Context, path string, requestBody a
 
 	response, err := b.client.Do(request)
 	if err != nil {
-		return mapProviderRequestError(err)
+		return MapProviderRequestError(err)
 	}
 	defer response.Body.Close()
 
-	return decodeResponseJSON(response, responseBody)
+	return DecodeResponseJSON(response, responseBody)
 }
 
-func (b *openAIBackend) postRaw(ctx context.Context, path string, requestBody any) ([]byte, error) {
+func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]byte, error) {
 	payload, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, mapProviderRequestError(err)
+		return nil, MapProviderRequestError(err)
 	}
 
 	endpoint := b.baseURL + path
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return nil, mapProviderRequestError(err)
+		return nil, MapProviderRequestError(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if b.apiKey != "" {
@@ -54,14 +55,14 @@ func (b *openAIBackend) postRaw(ctx context.Context, path string, requestBody an
 
 	response, err := b.client.Do(request)
 	if err != nil {
-		return nil, mapProviderRequestError(err)
+		return nil, MapProviderRequestError(err)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&payload)
-		return nil, mapProviderHTTPError(response.StatusCode, payload)
+		return nil, MapProviderHTTPError(response.StatusCode, payload)
 	}
 
 	body, err := io.ReadAll(response.Body)
@@ -74,11 +75,12 @@ func (b *openAIBackend) postRaw(ctx context.Context, path string, requestBody an
 	return body, nil
 }
 
-func decodeResponseJSON(response *http.Response, target any) error {
+// DecodeResponseJSON decodes a JSON HTTP response, mapping errors to gRPC status.
+func DecodeResponseJSON(response *http.Response, target any) error {
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&payload)
-		return mapProviderHTTPError(response.StatusCode, payload)
+		return MapProviderHTTPError(response.StatusCode, payload)
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
 		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())

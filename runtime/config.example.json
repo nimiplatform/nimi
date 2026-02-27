@@ -18,9 +18,9 @@
         "baseUrl": "http://127.0.0.1:18181",
         "apiKeyEnv": "NEXA_API_KEY"
       },
-      "litellm": {
+      "nimillm": {
         "baseUrl": "http://127.0.0.1:4000",
-        "apiKeyEnv": "LITELLM_MASTER_KEY"
+        "apiKeyEnv": "NIMILLM_API_KEY"
       },
       "alibaba": {
         "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode",

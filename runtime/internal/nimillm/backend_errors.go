@@ -1,17 +1,19 @@
-package ai
+package nimillm
 
 import (
 	"context"
 	"errors"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"net"
 	"net/http"
 	"strings"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func mapProviderRequestError(err error) error {
+// MapProviderRequestError maps a network/request error to gRPC status.
+func MapProviderRequestError(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -24,9 +26,10 @@ func mapProviderRequestError(err error) error {
 	return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func mapProviderHTTPError(statusCode int, payload map[string]any) error {
-	message := strings.ToLower(strings.TrimSpace(providerErrorMessage(payload)))
-	if isContentFilterMessage(message) {
+// MapProviderHTTPError maps an HTTP status code to gRPC status.
+func MapProviderHTTPError(statusCode int, payload map[string]any) error {
+	message := strings.ToLower(strings.TrimSpace(ProviderErrorMessage(payload)))
+	if IsContentFilterMessage(message) {
 		return status.Error(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED.String())
 	}
 	switch statusCode {
@@ -45,7 +48,8 @@ func mapProviderHTTPError(statusCode int, payload map[string]any) error {
 	}
 }
 
-func isContentFilterMessage(message string) bool {
+// IsContentFilterMessage checks if an error message indicates content filtering.
+func IsContentFilterMessage(message string) bool {
 	if message == "" {
 		return false
 	}
@@ -55,12 +59,13 @@ func isContentFilterMessage(message string) bool {
 		strings.Contains(message, "blocked")
 }
 
-func isStreamUnsupported(statusCode int, payload map[string]any) bool {
+// IsStreamUnsupported checks if the response indicates streaming is not supported.
+func IsStreamUnsupported(statusCode int, payload map[string]any) bool {
 	switch statusCode {
 	case http.StatusNotFound, http.StatusMethodNotAllowed, http.StatusNotImplemented:
 		return true
 	}
-	message := strings.ToLower(strings.TrimSpace(providerErrorMessage(payload)))
+	message := strings.ToLower(strings.TrimSpace(ProviderErrorMessage(payload)))
 	if message == "" {
 		return false
 	}
@@ -73,7 +78,8 @@ func isStreamUnsupported(statusCode int, payload map[string]any) bool {
 	return false
 }
 
-func providerErrorMessage(payload map[string]any) string {
+// ProviderErrorMessage extracts an error message from a provider response payload.
+func ProviderErrorMessage(payload map[string]any) string {
 	if payload == nil {
 		return ""
 	}
@@ -95,7 +101,8 @@ func providerErrorMessage(payload map[string]any) string {
 	return ""
 }
 
-func mapOpenAIFinishReason(value string) runtimev1.FinishReason {
+// MapOpenAIFinishReason maps an OpenAI finish_reason string to proto enum.
+func MapOpenAIFinishReason(value string) runtimev1.FinishReason {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "stop":
 		return runtimev1.FinishReason_FINISH_REASON_STOP

@@ -19,7 +19,7 @@ func TestExtractProviders(t *testing.T) {
 				"last_checked_at":      "2026-02-24T12:00:01Z",
 			},
 			map[string]any{
-				"name":                 "cloud-litellm",
+				"name":                 "cloud-nimillm",
 				"state":                "healthy",
 				"reason":               "",
 				"consecutive_failures": float64(0),
@@ -47,7 +47,7 @@ func TestExtractProviders(t *testing.T) {
 func TestProvidersSignatureIgnoresTimestamps(t *testing.T) {
 	first := []providerSnapshot{
 		{
-			Name:                "cloud-litellm",
+			Name:                "cloud-nimillm",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -57,7 +57,7 @@ func TestProvidersSignatureIgnoresTimestamps(t *testing.T) {
 	}
 	second := []providerSnapshot{
 		{
-			Name:                "cloud-litellm",
+			Name:                "cloud-nimillm",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -86,7 +86,7 @@ func TestFetchProviderSnapshotsInvalidSource(t *testing.T) {
 func TestProvidersSignatureAndDiffIgnoresTimestamps(t *testing.T) {
 	previous := []providerSnapshot{
 		{
-			Name:                "cloud-litellm",
+			Name:                "cloud-nimillm",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -96,7 +96,7 @@ func TestProvidersSignatureAndDiffIgnoresTimestamps(t *testing.T) {
 	}
 	current := []providerSnapshot{
 		{
-			Name:                "cloud-litellm",
+			Name:                "cloud-nimillm",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -123,7 +123,7 @@ func TestBuildProviderDiff(t *testing.T) {
 			ConsecutiveFailures: 0,
 		},
 		{
-			Name:                "cloud-litellm",
+			Name:                "cloud-nimillm",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -154,7 +154,7 @@ func TestBuildProviderDiff(t *testing.T) {
 	if changes[1].Name != "cloud-bytedance" || changes[1].Type != "added" {
 		t.Fatalf("second change mismatch: %#v", changes[1])
 	}
-	if changes[2].Name != "cloud-litellm" || changes[2].Type != "removed" {
+	if changes[2].Name != "cloud-nimillm" || changes[2].Type != "removed" {
 		t.Fatalf("third change mismatch: %#v", changes[2])
 	}
 }

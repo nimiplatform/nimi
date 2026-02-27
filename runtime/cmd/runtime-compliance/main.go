@@ -437,5 +437,24 @@ func runtimeChecklist() []checklistItemSpec {
 				{Package: pkgAI, Name: "TestGenerateSuccess"},
 			},
 		},
+		{
+			ID:          "RS-11-24",
+			Requirement: "cloud-nimillm naming unified (no cloud-litellm or legacy alias)",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestCloudProviderPickBackend"},
+				{Package: pkgAI, Name: "TestCloudProviderRoutesByPrefix"},
+			},
+		},
+		{
+			ID:          "RS-11-25",
+			Requirement: "no legacy litellm references in runtime source (zero-legacy static scan)",
+			Commands: []commandCheckSpec{
+				{
+					Name:   "litellm-residual-scan",
+					Binary: "sh",
+					Args:   []string{"-c", "! grep -rn --include='*.go' 'litellm\\|LiteLLM\\|LITELLM\\|CloudAIBaseURL\\|CloudAIAPIKey' ./internal/ ./cmd/"},
+				},
+			},
+		},
 	}
 }

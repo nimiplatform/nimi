@@ -89,7 +89,7 @@ func (s *Service) Generate(ctx context.Context, req *pb.GenerateRequest) (*pb.Ge
 
 ## Key Patterns
 
-- **AI routing**: `local-runtime` → LocalAI/Nexa subprocess, `token-api` → LiteLLM/cloud adapter
+- **AI routing**: `local-runtime` → LocalAI/Nexa subprocess, `token-api` → NimiLLM/cloud adapter
 - **Provider health**: Tracked in `providerhealth/`, propagated to `health/` for gRPC health service
 - **Model registry**: JSON-backed model state in `~/.nimi/runtime/model-registry.json` (or `NIMI_RUNTIME_MODEL_REGISTRY_PATH`)
 - **Audit**: All service calls emit audit events via `auditlog/`
@@ -215,7 +215,7 @@ cd runtime && go build -o ../dist/nimi ./cmd/nimi
 | `NIMI_RUNTIME_AI_HEALTH_INTERVAL` | `8s` | Provider probe interval |
 | `NIMI_RUNTIME_AI_HTTP_TIMEOUT` | `30s` | Provider probe timeout |
 | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | — | Local provider endpoint |
-| `NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL` | — | Cloud LiteLLM endpoint |
+| `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | — | Cloud NimiLLM endpoint |
 | `NIMI_RUNTIME_ENABLE_WORKERS` | `false` | Enable worker subprocesses |
 | `NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH` | `~/.nimi/runtime/local-runtime-state.json` | Local runtime model/service/audit state persistence path |
 

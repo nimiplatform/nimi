@@ -27,11 +27,10 @@ Current implementation scope:
   - AI service emits model-hint auto-switch events (`runtime.ai` / `route.auto_switch`)
 - OpenAI-compatible provider bridge:
   - local-plane: set `NIMI_RUNTIME_LOCAL_AI_BASE_URL` (optional `NIMI_RUNTIME_LOCAL_AI_API_KEY`)
-  - cloud-plane (LiteLLM + adapters):
-    - LiteLLM: `NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL` / `NIMI_RUNTIME_CLOUD_LITELLM_API_KEY`
+  - cloud-plane (NimiLLM + adapters):
+    - NimiLLM: `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` / `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY`
     - Alibaba adapter: `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL` / `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY`
     - Bytedance adapter: `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL` / `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY`
-    - alias: `NIMI_RUNTIME_CLOUD_AI_BASE_URL` / `NIMI_RUNTIME_CLOUD_AI_API_KEY` (maps to LiteLLM when dedicated vars are absent)
     - Gemini key alias: if `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` is empty, runtime falls back to `GEMINI_API_KEY`
     - Gemini base default: if Gemini key is present and base URL is empty, runtime uses `https://generativelanguage.googleapis.com/v1beta/openai`
   - unified config file: `~/.nimi/config.json` (override with `NIMI_RUNTIME_CONFIG_PATH`)
@@ -44,10 +43,10 @@ Current implementation scope:
     - default: `~/.nimi/runtime/local-runtime-state.json`
     - runtime boot restores local model/service/audit state; local runtime writes state atomically on lifecycle/audit updates
   - model routing examples:
-    - `cloud/litellm/gpt-4o`
+    - `cloud/nimillm/gpt-4o`
     - `cloud/aliyun/qwen-max`
     - `cloud/bytedance/deepseek-v3`
-    - `cloud/gpt-4o-mini` (default cloud backend priority: LiteLLM -> Alibaba -> Bytedance)
+    - `cloud/gpt-4o-mini` (default cloud backend priority: NimiLLM -> Alibaba -> Bytedance)
   - dynamic routing with model registry:
     - `RuntimeModelService.PullModel` writes `providerHint` into shared model registry
     - cloud default route (`cloud/<model>`) prefers registry hint over static fallback order

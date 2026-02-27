@@ -19,6 +19,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc"
@@ -283,7 +284,7 @@ func executeProviderSyncMedia(
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
-		payload, usage, err := selectedProvider.generateImage(ctx, modelResolved, spec)
+		payload, usage, err := selectedProvider.GenerateImage(ctx, modelResolved, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -308,7 +309,7 @@ func executeProviderSyncMedia(
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
-		payload, usage, err := selectedProvider.generateVideo(ctx, modelResolved, spec)
+		payload, usage, err := selectedProvider.GenerateVideo(ctx, modelResolved, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -333,7 +334,7 @@ func executeProviderSyncMedia(
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
-		payload, usage, err := selectedProvider.synthesizeSpeech(ctx, modelResolved, spec)
+		payload, usage, err := selectedProvider.SynthesizeSpeech(ctx, modelResolved, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -356,7 +357,7 @@ func executeProviderSyncMedia(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text, usage, err := selectedProvider.transcribe(ctx, modelResolved, spec, audioBytes, mimeType)
+		text, usage, err := selectedProvider.Transcribe(ctx, modelResolved, spec, audioBytes, mimeType)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -3639,5 +3640,5 @@ func firstNonNil(values ...any) any {
 }
 
 func firstNonEmptyString(values ...string) string {
-	return firstNonEmpty(values...)
+	return nimillm.FirstNonEmpty(values...)
 }

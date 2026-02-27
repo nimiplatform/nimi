@@ -33,7 +33,7 @@ func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 	}
 	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
 
-	vectors, usage, err := selectedProvider.embed(requestCtx, modelResolved, req.GetInputs())
+	vectors, usage, err := selectedProvider.Embed(requestCtx, modelResolved, req.GetInputs())
 	if err != nil {
 		return nil, err
 	}

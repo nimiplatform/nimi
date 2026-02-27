@@ -1,4 +1,4 @@
-package ai
+package nimillm
 
 import (
 	"bufio"
@@ -6,31 +6,37 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"net/http"
 	"strings"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type openAIBackend struct {
-	name    string
+const defaultHTTPTimeout = 30 * time.Second
+
+// Backend is an OpenAI-compatible HTTP backend for AI inference.
+type Backend struct {
+	Name    string
 	baseURL string
 	apiKey  string
 	client  *http.Client
 }
 
-func newOpenAIBackend(name string, baseURL string, apiKey string, timeout time.Duration) *openAIBackend {
+// NewBackend creates a new OpenAI-compatible backend.
+// Returns nil if baseURL is empty.
+func NewBackend(name string, baseURL string, apiKey string, timeout time.Duration) *Backend {
 	trimmed := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
 	if trimmed == "" {
 		return nil
 	}
 	if timeout <= 0 {
-		timeout = defaultAIHTTPTimeout
+		timeout = defaultHTTPTimeout
 	}
-	return &openAIBackend{
-		name:    name,
+	return &Backend{
+		Name:    name,
 		baseURL: trimmed,
 		apiKey:  strings.TrimSpace(apiKey),
 		client: &http.Client{
@@ -39,7 +45,8 @@ func newOpenAIBackend(name string, baseURL string, apiKey string, timeout time.D
 	}
 }
 
-func (b *openAIBackend) withRequestOverrides(endpoint string, apiKey string) *openAIBackend {
+// WithRequestOverrides returns a shallow clone with overridden endpoint and API key.
+func (b *Backend) WithRequestOverrides(endpoint string, apiKey string) *Backend {
 	if b == nil {
 		return nil
 	}
@@ -57,7 +64,8 @@ func (b *openAIBackend) withRequestOverrides(endpoint string, apiKey string) *op
 	return &clone
 }
 
-func (b *openAIBackend) generateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+// GenerateText sends a non-streaming chat completion request.
+func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	type openAIMessage struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
@@ -137,17 +145,18 @@ func (b *openAIBackend) generateText(ctx context.Context, modelID string, input 
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 	}
 	usage := &runtimev1.UsageStats{
-		InputTokens:  maxInt64(0, respBody.Usage.PromptTokens),
-		OutputTokens: maxInt64(0, respBody.Usage.CompletionTokens),
+		InputTokens:  MaxInt64(0, respBody.Usage.PromptTokens),
+		OutputTokens: MaxInt64(0, respBody.Usage.CompletionTokens),
 		ComputeMs:    0,
 	}
 	if usage.GetInputTokens() == 0 && usage.GetOutputTokens() == 0 {
-		usage = estimateUsage(composeInputText(systemPrompt, input), text)
+		usage = EstimateUsage(ComposeInputText(systemPrompt, input), text)
 	}
-	return text, usage, mapOpenAIFinishReason(respBody.Choices[0].FinishReason), nil
+	return text, usage, MapOpenAIFinishReason(respBody.Choices[0].FinishReason), nil
 }
 
-func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+// StreamGenerateText sends a streaming chat completion request.
+func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	type openAIMessage struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
@@ -225,12 +234,12 @@ func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, 
 
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mapProviderRequestError(err)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
 	endpoint := b.baseURL + "/v1/chat/completions"
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mapProviderRequestError(err)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "text/event-stream")
@@ -240,18 +249,18 @@ func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, 
 
 	response, err := b.client.Do(request)
 	if err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mapProviderRequestError(err)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var errPayload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
 		response.Body.Close()
-		if isStreamUnsupported(response.StatusCode, errPayload) {
-			text, usage, finish, fallbackErr := b.generateText(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+		if IsStreamUnsupported(response.StatusCode, errPayload) {
+			text, usage, finish, fallbackErr := b.GenerateText(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
 			if fallbackErr != nil {
 				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, fallbackErr
 			}
-			for _, part := range splitText(text, 24) {
+			for _, part := range SplitText(text, 24) {
 				if onDelta != nil {
 					if err := onDelta(part); err != nil {
 						return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
@@ -260,7 +269,7 @@ func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, 
 			}
 			return usage, finish, nil
 		}
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mapProviderHTTPError(response.StatusCode, errPayload)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
 	}
 	defer response.Body.Close()
 
@@ -300,7 +309,7 @@ func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, 
 				}
 			}
 			if rawFinish := strings.TrimSpace(chunk.Choices[0].FinishReason); rawFinish != "" {
-				finish = mapOpenAIFinishReason(rawFinish)
+				finish = MapOpenAIFinishReason(rawFinish)
 			}
 		}
 		if chunk.Usage.PromptTokens > 0 || chunk.Usage.CompletionTokens > 0 || chunk.Usage.TotalTokens > 0 {
@@ -309,8 +318,8 @@ func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, 
 				outTokens = chunk.Usage.TotalTokens - chunk.Usage.PromptTokens
 			}
 			usage = &runtimev1.UsageStats{
-				InputTokens:  maxInt64(0, chunk.Usage.PromptTokens),
-				OutputTokens: maxInt64(0, outTokens),
+				InputTokens:  MaxInt64(0, chunk.Usage.PromptTokens),
+				OutputTokens: MaxInt64(0, outTokens),
 				ComputeMs:    0,
 			}
 		}
@@ -324,7 +333,7 @@ func (b *openAIBackend) streamGenerateText(ctx context.Context, modelID string, 
 
 	outputText := outputBuilder.String()
 	if usage == nil {
-		usage = estimateUsage(composeInputText(systemPrompt, input), outputText)
+		usage = EstimateUsage(ComposeInputText(systemPrompt, input), outputText)
 	}
 	return usage, finish, nil
 }

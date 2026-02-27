@@ -18,7 +18,7 @@ import (
 func TestListAIProviderHealth(t *testing.T) {
 	state := health.NewState()
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-litellm", true, "")
+	tracker.Mark("cloud-nimillm", true, "")
 	tracker.Mark("cloud-alibaba", false, "timeout")
 
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
@@ -35,7 +35,7 @@ func TestListAIProviderHealth(t *testing.T) {
 	if resp.GetProviders()[0].GetState() != "unhealthy" {
 		t.Fatalf("first state mismatch: %s", resp.GetProviders()[0].GetState())
 	}
-	if resp.GetProviders()[1].GetProviderName() != "cloud-litellm" {
+	if resp.GetProviders()[1].GetProviderName() != "cloud-nimillm" {
 		t.Fatalf("second provider mismatch: %s", resp.GetProviders()[1].GetProviderName())
 	}
 	if resp.GetProviders()[1].GetState() != "healthy" {
@@ -58,7 +58,7 @@ func TestListAIProviderHealthEmptyWhenNoTracker(t *testing.T) {
 func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 	state := health.NewState()
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-litellm", true, "")
+	tracker.Mark("cloud-nimillm", true, "")
 
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 
@@ -74,14 +74,14 @@ func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 		t.Fatalf("expected baseline provider event")
 	}
 	first := stream.eventAt(0)
-	if first.GetProviderName() != "cloud-litellm" {
+	if first.GetProviderName() != "cloud-nimillm" {
 		t.Fatalf("baseline provider mismatch: %s", first.GetProviderName())
 	}
 	if first.GetState() != "healthy" {
 		t.Fatalf("baseline state mismatch: %s", first.GetState())
 	}
 
-	tracker.Mark("cloud-litellm", false, "timeout")
+	tracker.Mark("cloud-nimillm", false, "timeout")
 	if !waitForProviderEvents(stream, 2, 300*time.Millisecond) {
 		t.Fatalf("expected update provider event")
 	}

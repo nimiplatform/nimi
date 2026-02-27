@@ -13,6 +13,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -41,12 +42,12 @@ func TestOpenAIBackendImageAndSpeech(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newOpenAIBackend("test", server.URL, "", 3*time.Second)
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
-	gotImage, usage, err := backend.generateImage(context.Background(), "img-model", &runtimev1.ImageGenerationSpec{
+	gotImage, usage, err := backend.GenerateImage(context.Background(), "img-model", &runtimev1.ImageGenerationSpec{
 		Prompt: "draw a cat",
 	})
 	if err != nil {
@@ -59,7 +60,7 @@ func TestOpenAIBackendImageAndSpeech(t *testing.T) {
 		t.Fatalf("image usage must be set")
 	}
 
-	gotSpeech, speechUsage, err := backend.synthesizeSpeech(context.Background(), "tts-model", &runtimev1.SpeechSynthesisSpec{
+	gotSpeech, speechUsage, err := backend.SynthesizeSpeech(context.Background(), "tts-model", &runtimev1.SpeechSynthesisSpec{
 		Text: "hello world",
 	})
 	if err != nil {
@@ -95,12 +96,12 @@ func TestOpenAIBackendVideoFallbackPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newOpenAIBackend("test", server.URL, "", 3*time.Second)
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
-	gotVideo, usage, err := backend.generateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
+	gotVideo, usage, err := backend.GenerateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
 		Prompt: "drive on mars",
 	})
 	if err != nil {
@@ -120,12 +121,12 @@ func TestOpenAIBackendVideoUnsupported(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newOpenAIBackend("test", server.URL, "", 3*time.Second)
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
-	_, _, err := backend.generateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
+	_, _, err := backend.GenerateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
 		Prompt: "prompt",
 	})
 	if err == nil {
@@ -147,12 +148,12 @@ func TestDecodeMediaViaURL(t *testing.T) {
 	}))
 	defer assetServer.Close()
 
-	backend := newOpenAIBackend("test", "http://example.com", "", 3*time.Second)
+	backend := nimillm.NewBackend("test", "http://example.com", "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
-	got, err := backend.decodeMedia("", assetServer.URL)
+	got, err := backend.DecodeMedia("", assetServer.URL)
 	if err != nil {
 		t.Fatalf("decode media by url: %v", err)
 	}
@@ -184,13 +185,13 @@ func TestOpenAIBackendStreamGenerateText(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newOpenAIBackend("test", server.URL, "", 3*time.Second)
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
 	deltas := make([]string, 0, 2)
-	usage, finish, err := backend.streamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
+	usage, finish, err := backend.StreamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
 		{Role: "user", Content: "say hello"},
 	}, "", 0, 0, 0, func(chunk string) error {
 		deltas = append(deltas, chunk)
@@ -248,13 +249,13 @@ func TestOpenAIBackendStreamGenerateFallsBackWhenUnsupported(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newOpenAIBackend("test", server.URL, "", 3*time.Second)
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
 	deltas := make([]string, 0, 2)
-	usage, finish, err := backend.streamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
+	usage, finish, err := backend.StreamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
 		{Role: "user", Content: "hello"},
 	}, "", 0, 0, 0, func(chunk string) error {
 		deltas = append(deltas, chunk)
@@ -275,7 +276,7 @@ func TestOpenAIBackendStreamGenerateFallsBackWhenUnsupported(t *testing.T) {
 }
 
 func TestMapProviderHTTPErrorContentFilter(t *testing.T) {
-	err := mapProviderHTTPError(http.StatusBadRequest, map[string]any{
+	err := nimillm.MapProviderHTTPError(http.StatusBadRequest, map[string]any{
 		"error": map[string]any{
 			"message": "request blocked by content policy",
 		},
@@ -296,7 +297,7 @@ func TestMapProviderHTTPErrorContentFilter(t *testing.T) {
 }
 
 func TestMapProviderHTTPErrorBadRequest(t *testing.T) {
-	err := mapProviderHTTPError(http.StatusBadRequest, map[string]any{
+	err := nimillm.MapProviderHTTPError(http.StatusBadRequest, map[string]any{
 		"error": map[string]any{
 			"message": "invalid request body",
 		},
@@ -331,12 +332,12 @@ func TestOpenAIBackendStreamGenerateBrokenChunk(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := newOpenAIBackend("test", server.URL, "", 3*time.Second)
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
 	if backend == nil {
 		t.Fatalf("backend must not be nil")
 	}
 
-	_, _, err := backend.streamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
+	_, _, err := backend.StreamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
 		{Role: "user", Content: "hello"},
 	}, "", 0, 0, 0, nil)
 	if err == nil {

@@ -2,23 +2,25 @@ package ai
 
 import (
 	"context"
+	"strings"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
-	"strings"
 )
 
 type localProvider struct {
-	localai *openAIBackend
-	nexa    *openAIBackend
+	localai *nimillm.Backend
+	nexa    *nimillm.Backend
 }
 
-func (p *localProvider) route() runtimev1.RoutePolicy {
+func (p *localProvider) Route() runtimev1.RoutePolicy {
 	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
 }
 
-func (p *localProvider) resolveModelID(raw string) string {
+func (p *localProvider) ResolveModelID(raw string) string {
 	modelID := strings.TrimSpace(raw)
 	if strings.HasPrefix(modelID, "local/") {
 		modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "local/"))
@@ -35,8 +37,8 @@ func (p *localProvider) resolveModelID(raw string) string {
 	return modelID
 }
 
-func (p *localProvider) checkModelAvailability(modelID string) error {
-	if err := checkModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME); err != nil {
+func (p *localProvider) CheckModelAvailability(modelID string) error {
+	if err := nimillm.CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME); err != nil {
 		return err
 	}
 	_, _, explicit, ok, _ := p.pickBackend(modelID)
@@ -46,13 +48,13 @@ func (p *localProvider) checkModelAvailability(modelID string) error {
 	return nil
 }
 
-func (p *localProvider) generateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (p *localProvider) GenerateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
-		text, usage, finish, err := backend.generateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
+		text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
 		if err != nil {
 			return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 		}
@@ -61,29 +63,29 @@ func (p *localProvider) generateText(ctx context.Context, modelID string, req *r
 	return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *localProvider) embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+func (p *localProvider) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
-		return backend.embed(ctx, resolvedModelID, inputs)
+		return backend.Embed(ctx, resolvedModelID, inputs)
 	}
-	return fallbackEmbed(inputs), nil, nil
+	return nimillm.FallbackEmbed(inputs), nil, nil
 }
 
-func (p *localProvider) generateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (p *localProvider) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
-		return backend.generateImage(ctx, resolvedModelID, spec)
+		return backend.GenerateImage(ctx, resolvedModelID, spec)
 	}
 	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *localProvider) generateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (p *localProvider) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok, usingNexa := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -92,45 +94,45 @@ func (p *localProvider) generateVideo(ctx context.Context, modelID string, spec 
 		return nil, nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 	}
 	if backend != nil {
-		return backend.generateVideo(ctx, resolvedModelID, spec)
+		return backend.GenerateVideo(ctx, resolvedModelID, spec)
 	}
 	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *localProvider) synthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (p *localProvider) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
-		return backend.synthesizeSpeech(ctx, resolvedModelID, spec)
+		return backend.SynthesizeSpeech(ctx, resolvedModelID, spec)
 	}
 	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *localProvider) transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
+func (p *localProvider) Transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
-		return backend.transcribe(ctx, resolvedModelID, spec, audio, mimeType)
+		return backend.Transcribe(ctx, resolvedModelID, spec, audio, mimeType)
 	}
 	return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *localProvider) streamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (p *localProvider) StreamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	if backend != nil {
-		return backend.streamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
+		return backend.StreamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
 	}
 	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *localProvider) pickBackend(modelID string) (*openAIBackend, string, bool, bool, bool) {
+func (p *localProvider) pickBackend(modelID string) (*nimillm.Backend, string, bool, bool, bool) {
 	id := strings.TrimSpace(modelID)
 	if id == "" {
 		if p.localai != nil {

@@ -11,16 +11,16 @@ import (
 func TestAppendProviderHealthAuditOnTransition(t *testing.T) {
 	store := auditlog.New(32, 32)
 	before := providerhealth.Snapshot{
-		Name:  "cloud-litellm",
+		Name:  "cloud-nimillm",
 		State: providerhealth.StateHealthy,
 	}
 	after := providerhealth.Snapshot{
-		Name:       "cloud-litellm",
+		Name:       "cloud-nimillm",
 		State:      providerhealth.StateUnhealthy,
 		LastReason: "timeout",
 	}
 
-	appendProviderHealthAudit(store, "cloud-litellm", before, after)
+	appendProviderHealthAudit(store, "cloud-nimillm", before, after)
 	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.ai",
 	})
@@ -37,7 +37,7 @@ func TestAppendProviderHealthAuditOnTransition(t *testing.T) {
 	if event.GetPayload() == nil {
 		t.Fatalf("payload must not be nil")
 	}
-	if got := event.GetPayload().GetFields()["providerName"].GetStringValue(); got != "cloud-litellm" {
+	if got := event.GetPayload().GetFields()["providerName"].GetStringValue(); got != "cloud-nimillm" {
 		t.Fatalf("providerName mismatch: %s", got)
 	}
 	if got := event.GetPayload().GetFields()["current"].GetStructValue().GetFields()["state"].GetStringValue(); got != string(providerhealth.StateUnhealthy) {
@@ -48,15 +48,15 @@ func TestAppendProviderHealthAuditOnTransition(t *testing.T) {
 func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
 	store := auditlog.New(32, 32)
 	before := providerhealth.Snapshot{
-		Name:  "cloud-litellm",
+		Name:  "cloud-nimillm",
 		State: providerhealth.StateHealthy,
 	}
 	after := providerhealth.Snapshot{
-		Name:  "cloud-litellm",
+		Name:  "cloud-nimillm",
 		State: providerhealth.StateHealthy,
 	}
 
-	appendProviderHealthAudit(store, "cloud-litellm", before, after)
+	appendProviderHealthAudit(store, "cloud-nimillm", before, after)
 	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.ai",
 	})
@@ -68,7 +68,7 @@ func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
 func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL", "http://127.0.0.1:1234/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL", "http://127.0.0.1:2234/v1")
-	t.Setenv("NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL", "http://127.0.0.1:3234/v1")
+	t.Setenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "http://127.0.0.1:3234/v1")
 	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
 	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", "http://127.0.0.1:5234")
 	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL", "http://127.0.0.1:6234")
@@ -83,7 +83,7 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	required := []string{
 		"local",
 		"local-nexa",
-		"cloud-litellm",
+		"cloud-nimillm",
 		"cloud-bytedance-openspeech",
 		"cloud-gemini",
 		"cloud-minimax",

@@ -16,7 +16,7 @@ type ProviderHint string
 const (
 	ProviderHintUnknown   ProviderHint = "unknown"
 	ProviderHintLocal     ProviderHint = "local"
-	ProviderHintLiteLLM   ProviderHint = "litellm"
+	ProviderHintNimiLLM   ProviderHint = "nimillm"
 	ProviderHintAlibaba   ProviderHint = "alibaba"
 	ProviderHintBytedance ProviderHint = "bytedance"
 	ProviderHintGemini    ProviderHint = "gemini"
@@ -146,8 +146,8 @@ func inferProviderHint(modelID string, source string) ProviderHint {
 	switch {
 	case strings.HasPrefix(id, "local/"), src == "local":
 		return ProviderHintLocal
-	case strings.HasPrefix(id, "litellm/"), src == "litellm":
-		return ProviderHintLiteLLM
+	case strings.HasPrefix(id, "nimillm/"), src == "nimillm":
+		return ProviderHintNimiLLM
 	case strings.HasPrefix(id, "aliyun/"), strings.HasPrefix(id, "alibaba/"), src == "aliyun", src == "alibaba":
 		return ProviderHintAlibaba
 	case strings.HasPrefix(id, "bytedance/"), strings.HasPrefix(id, "byte/"), src == "bytedance", src == "byte":

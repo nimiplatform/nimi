@@ -1,47 +1,68 @@
-package ai
+package nimillm
 
 import (
 	"context"
+	"strings"
+	"sync"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
-	"strings"
-	"sync"
 )
 
-type cloudProvider struct {
-	litellm   *openAIBackend
-	alibaba   *openAIBackend
-	bytedance *openAIBackend
-	gemini    *openAIBackend
-	minimax   *openAIBackend
-	kimi      *openAIBackend
-	glm       *openAIBackend
+// CloudProvider routes AI requests across multiple cloud backends.
+type CloudProvider struct {
+	nimiLLM   *Backend
+	alibaba   *Backend
+	bytedance *Backend
+	gemini    *Backend
+	minimax   *Backend
+	kimi      *Backend
+	glm       *Backend
 	registry  *modelregistry.Registry
 	health    *providerhealth.Tracker
 	lastMu    sync.RWMutex
-	lastRoute map[string]routeDecisionInfo
+	lastRoute map[string]RouteDecisionInfo
 }
 
-func (p *cloudProvider) backendWithRequestCredentials(ctx context.Context, backend *openAIBackend) *openAIBackend {
+// NewCloudProvider creates a CloudProvider from the given config.
+func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health *providerhealth.Tracker) *CloudProvider {
+	return &CloudProvider{
+		nimiLLM:   NewBackend("cloud-nimillm", cfg.NimiLLMBaseURL, cfg.NimiLLMAPIKey, cfg.HTTPTimeout),
+		alibaba:   NewBackend("cloud-alibaba", cfg.AlibabaBaseURL, cfg.AlibabaAPIKey, cfg.HTTPTimeout),
+		bytedance: NewBackend("cloud-bytedance", cfg.BytedanceBaseURL, cfg.BytedanceAPIKey, cfg.HTTPTimeout),
+		gemini:    NewBackend("cloud-gemini", cfg.GeminiBaseURL, cfg.GeminiAPIKey, cfg.HTTPTimeout),
+		minimax:   NewBackend("cloud-minimax", cfg.MiniMaxBaseURL, cfg.MiniMaxAPIKey, cfg.HTTPTimeout),
+		kimi:      NewBackend("cloud-kimi", cfg.KimiBaseURL, cfg.KimiAPIKey, cfg.HTTPTimeout),
+		glm:       NewBackend("cloud-glm", cfg.GLMBaseURL, cfg.GLMAPIKey, cfg.HTTPTimeout),
+		registry:  registry,
+		health:    health,
+	}
+}
+
+// BackendWithRequestCredentials returns a backend with overridden credentials from explicit endpoint+apiKey.
+func (p *CloudProvider) BackendWithRequestCredentials(backend *Backend, endpoint string, apiKey string) *Backend {
 	if backend == nil {
 		return nil
 	}
-	apiKey, endpoint, ok := requestInjectedCredentials(ctx)
-	if !ok {
+	endpoint = strings.TrimSpace(endpoint)
+	apiKey = strings.TrimSpace(apiKey)
+	if endpoint == "" && apiKey == "" {
 		return backend
 	}
-	return backend.withRequestOverrides(endpoint, apiKey)
+	return backend.WithRequestOverrides(endpoint, apiKey)
 }
 
-func (p *cloudProvider) route() runtimev1.RoutePolicy {
+// Route returns the route policy for cloud.
+func (p *CloudProvider) Route() runtimev1.RoutePolicy {
 	return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
 }
 
-func (p *cloudProvider) resolveModelID(raw string) string {
+// ResolveModelID resolves a raw model ID for cloud routing.
+func (p *CloudProvider) ResolveModelID(raw string) string {
 	modelID := strings.TrimSpace(strings.TrimPrefix(raw, "cloud/"))
 	modelID = strings.TrimSpace(strings.TrimPrefix(modelID, "token/"))
 	if modelID == "" {
@@ -50,26 +71,28 @@ func (p *cloudProvider) resolveModelID(raw string) string {
 	return modelID
 }
 
-func (p *cloudProvider) checkModelAvailability(modelID string) error {
-	if err := checkModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API); err != nil {
+// CheckModelAvailability checks if a model is available via cloud providers.
+func (p *CloudProvider) CheckModelAvailability(modelID string) error {
+	if err := CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API); err != nil {
 		return err
 	}
-	_, _, explicit, ok := p.pickBackend(modelID)
+	_, _, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 	return nil
 }
 
-func (p *cloudProvider) generateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// GenerateText routes a text generation request to the appropriate backend.
+func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		text, usage, finish, err := backend.generateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
+		p.rememberDecision(modelID, backend.Name)
+		text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
 		if err != nil {
 			return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 		}
@@ -78,89 +101,97 @@ func (p *cloudProvider) generateText(ctx context.Context, modelID string, req *r
 	return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// Embed routes an embedding request to the appropriate backend.
+func (p *CloudProvider) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		return backend.embed(ctx, resolvedModelID, inputs)
+		p.rememberDecision(modelID, backend.Name)
+		return backend.Embed(ctx, resolvedModelID, inputs)
 	}
-	return fallbackEmbed(inputs), nil, nil
+	return FallbackEmbed(inputs), nil, nil
 }
 
-func (p *cloudProvider) generateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// GenerateImage routes an image generation request.
+func (p *CloudProvider) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		return backend.generateImage(ctx, resolvedModelID, spec)
+		p.rememberDecision(modelID, backend.Name)
+		return backend.GenerateImage(ctx, resolvedModelID, spec)
 	}
 	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) generateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// GenerateVideo routes a video generation request.
+func (p *CloudProvider) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		return backend.generateVideo(ctx, resolvedModelID, spec)
+		p.rememberDecision(modelID, backend.Name)
+		return backend.GenerateVideo(ctx, resolvedModelID, spec)
 	}
 	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) synthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// SynthesizeSpeech routes a speech synthesis request.
+func (p *CloudProvider) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		return backend.synthesizeSpeech(ctx, resolvedModelID, spec)
+		p.rememberDecision(modelID, backend.Name)
+		return backend.SynthesizeSpeech(ctx, resolvedModelID, spec)
 	}
 	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// Transcribe routes a transcription request.
+func (p *CloudProvider) Transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		return backend.transcribe(ctx, resolvedModelID, spec, audio, mimeType)
+		p.rememberDecision(modelID, backend.Name)
+		return backend.Transcribe(ctx, resolvedModelID, spec, audio, mimeType)
 	}
 	return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) streamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	backend, resolvedModelID, explicit, ok := p.pickBackend(modelID)
+// StreamGenerateText routes a streaming text generation request.
+func (p *CloudProvider) StreamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
-	backend = p.backendWithRequestCredentials(ctx, backend)
+	backend = p.applyRequestCredentials(ctx, backend)
 	if backend != nil {
-		p.rememberDecision(modelID, backend.name)
-		return backend.streamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
+		p.rememberDecision(modelID, backend.Name)
+		return backend.StreamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
 	}
 	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
-func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, bool, bool) {
+// PickBackend selects the appropriate backend for a model ID.
+// Returns (backend, resolvedModelID, isExplicit, isAvailable).
+func (p *CloudProvider) PickBackend(modelID string) (*Backend, string, bool, bool) {
 	id := strings.TrimSpace(modelID)
 	if id == "" {
-		if p.litellm != nil {
-			return p.litellm, "cloud-default", false, true
+		if p.nimiLLM != nil {
+			return p.nimiLLM, "cloud-default", false, true
 		}
 		return nil, "cloud-default", false, false
 	}
@@ -174,11 +205,11 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 		}
 
 		switch prefix {
-		case "litellm":
-			if p.litellm == nil || !p.isBackendHealthy("cloud-litellm") {
+		case "nimillm":
+			if p.nimiLLM == nil || !p.isBackendHealthy("cloud-nimillm") {
 				return nil, rest, true, false
 			}
-			return p.litellm, rest, true, true
+			return p.nimiLLM, rest, true, true
 		case "aliyun", "alibaba":
 			if p.alibaba == nil || !p.isBackendHealthy("cloud-alibaba") {
 				return nil, rest, true, false
@@ -216,10 +247,10 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 		if item, exists := p.registry.Get(id); exists {
 			hintFrom := string(item.ProviderHint)
 			switch item.ProviderHint {
-			case modelregistry.ProviderHintLiteLLM:
-				if p.litellm != nil && p.isBackendHealthy("cloud-litellm") {
-					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintLiteLLM), false)
-					return p.litellm, id, false, true
+			case modelregistry.ProviderHintNimiLLM:
+				if p.nimiLLM != nil && p.isBackendHealthy("cloud-nimillm") {
+					p.rememberHintDecision(id, hintFrom, string(modelregistry.ProviderHintNimiLLM), false)
+					return p.nimiLLM, id, false, true
 				}
 			case modelregistry.ProviderHintAlibaba:
 				if p.alibaba != nil && p.isBackendHealthy("cloud-alibaba") {
@@ -272,10 +303,10 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 		}
 	}
 
-	if p.litellm != nil {
-		if p.isBackendHealthy("cloud-litellm") {
-			p.rememberHintDecision(id, "", string(modelregistry.ProviderHintLiteLLM), false)
-			return p.litellm, id, false, true
+	if p.nimiLLM != nil {
+		if p.isBackendHealthy("cloud-nimillm") {
+			p.rememberHintDecision(id, "", string(modelregistry.ProviderHintNimiLLM), false)
+			return p.nimiLLM, id, false, true
 		}
 	}
 	if p.alibaba != nil {
@@ -316,9 +347,9 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 	}
 
 	// No healthy backend, return first configured backend so caller gets concrete provider error path.
-	if p.litellm != nil {
-		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintLiteLLM), false)
-		return p.litellm, id, false, true
+	if p.nimiLLM != nil {
+		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintNimiLLM), false)
+		return p.nimiLLM, id, false, true
 	}
 	if p.alibaba != nil {
 		p.rememberHintDecision(id, "", string(modelregistry.ProviderHintAlibaba), false)
@@ -347,16 +378,16 @@ func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, boo
 	return nil, id, false, false
 }
 
-func (p *cloudProvider) isBackendHealthy(name string) bool {
+func (p *CloudProvider) isBackendHealthy(name string) bool {
 	if p.health == nil {
 		return true
 	}
 	return p.health.IsHealthy(name)
 }
 
-func (p *cloudProvider) firstHealthyHint() modelregistry.ProviderHint {
-	if p.litellm != nil && p.isBackendHealthy("cloud-litellm") {
-		return modelregistry.ProviderHintLiteLLM
+func (p *CloudProvider) firstHealthyHint() modelregistry.ProviderHint {
+	if p.nimiLLM != nil && p.isBackendHealthy("cloud-nimillm") {
+		return modelregistry.ProviderHintNimiLLM
 	}
 	if p.alibaba != nil && p.isBackendHealthy("cloud-alibaba") {
 		return modelregistry.ProviderHintAlibaba
@@ -379,29 +410,29 @@ func (p *cloudProvider) firstHealthyHint() modelregistry.ProviderHint {
 	return modelregistry.ProviderHintUnknown
 }
 
-func (p *cloudProvider) rememberDecision(modelID string, backendName string) {
+func (p *CloudProvider) rememberDecision(modelID string, backendName string) {
 	key := strings.TrimSpace(modelID)
 	if key == "" {
 		return
 	}
-	info, _ := p.getDecisionInfo(key)
+	info, _ := p.GetDecisionInfo(key)
 	info.BackendName = backendName
 	p.lastMu.Lock()
 	if p.lastRoute == nil {
-		p.lastRoute = make(map[string]routeDecisionInfo)
+		p.lastRoute = make(map[string]RouteDecisionInfo)
 	}
 	p.lastRoute[key] = info
 	p.lastMu.Unlock()
 }
 
-func (p *cloudProvider) rememberHintDecision(modelID string, hintFrom string, hintTo string, switched bool) {
+func (p *CloudProvider) rememberHintDecision(modelID string, hintFrom string, hintTo string, switched bool) {
 	key := strings.TrimSpace(modelID)
 	if key == "" {
 		return
 	}
 	p.lastMu.Lock()
 	if p.lastRoute == nil {
-		p.lastRoute = make(map[string]routeDecisionInfo)
+		p.lastRoute = make(map[string]RouteDecisionInfo)
 	}
 	item := p.lastRoute[key]
 	item.HintFrom = hintFrom
@@ -411,10 +442,11 @@ func (p *cloudProvider) rememberHintDecision(modelID string, hintFrom string, hi
 	p.lastMu.Unlock()
 }
 
-func (p *cloudProvider) getDecisionInfo(modelID string) (routeDecisionInfo, bool) {
+// GetDecisionInfo retrieves the routing decision info for a model.
+func (p *CloudProvider) GetDecisionInfo(modelID string) (RouteDecisionInfo, bool) {
 	key := strings.TrimSpace(modelID)
 	if key == "" {
-		return routeDecisionInfo{}, false
+		return RouteDecisionInfo{}, false
 	}
 	p.lastMu.RLock()
 	item, exists := p.lastRoute[key]
@@ -422,11 +454,11 @@ func (p *cloudProvider) getDecisionInfo(modelID string) (routeDecisionInfo, bool
 	return item, exists
 }
 
-func (p *cloudProvider) backendForHint(hint modelregistry.ProviderHint) (*openAIBackend, bool) {
+func (p *CloudProvider) backendForHint(hint modelregistry.ProviderHint) (*Backend, bool) {
 	switch hint {
-	case modelregistry.ProviderHintLiteLLM:
-		if p.litellm != nil && p.isBackendHealthy("cloud-litellm") {
-			return p.litellm, true
+	case modelregistry.ProviderHintNimiLLM:
+		if p.nimiLLM != nil && p.isBackendHealthy("cloud-nimillm") {
+			return p.nimiLLM, true
 		}
 	case modelregistry.ProviderHintAlibaba:
 		if p.alibaba != nil && p.isBackendHealthy("cloud-alibaba") {
@@ -454,4 +486,26 @@ func (p *cloudProvider) backendForHint(hint modelregistry.ProviderHint) (*openAI
 		}
 	}
 	return nil, false
+}
+
+// applyRequestCredentials extracts gRPC metadata credentials and applies overrides.
+// The gRPC metadata extraction stays in services/ai layer, but when called from
+// there with extracted endpoint+apiKey, we use BackendWithRequestCredentials.
+func (p *CloudProvider) applyRequestCredentials(ctx context.Context, backend *Backend) *Backend {
+	if backend == nil {
+		return nil
+	}
+	apiKey, endpoint, ok := RequestInjectedCredentials(ctx)
+	if !ok {
+		return backend
+	}
+	return backend.WithRequestOverrides(endpoint, apiKey)
+}
+
+// RequestInjectedCredentials extracts provider credentials from gRPC metadata.
+// This is a convenience re-export; the actual extraction logic uses gRPC metadata.
+var RequestInjectedCredentials = defaultRequestInjectedCredentials
+
+func defaultRequestInjectedCredentials(_ context.Context) (apiKey string, endpoint string, ok bool) {
+	return "", "", false
 }

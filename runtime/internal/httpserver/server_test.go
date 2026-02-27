@@ -27,7 +27,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 
 	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-litellm", true, "")
+	tracker.Mark("cloud-nimillm", true, "")
 	tracker.Mark("cloud-alibaba", false, "timeout")
 	server.SetAIHealthTracker(tracker)
 
@@ -65,7 +65,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	if !ok {
 		t.Fatalf("second provider shape invalid")
 	}
-	if second["name"] != "cloud-litellm" {
+	if second["name"] != "cloud-nimillm" {
 		t.Fatalf("second provider name mismatch: %v", second["name"])
 	}
 	if second["state"] != "healthy" {

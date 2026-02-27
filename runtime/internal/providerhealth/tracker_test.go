@@ -10,11 +10,11 @@ func TestSubscribeReceivesStateTransitions(t *testing.T) {
 	updates, cancel := tracker.Subscribe(4)
 	defer cancel()
 
-	tracker.Mark("cloud-litellm", true, "")
+	tracker.Mark("cloud-nimillm", true, "")
 
 	select {
 	case item := <-updates:
-		if item.Name != "cloud-litellm" {
+		if item.Name != "cloud-nimillm" {
 			t.Fatalf("unexpected provider name: %s", item.Name)
 		}
 		if item.State != StateHealthy {
@@ -25,14 +25,14 @@ func TestSubscribeReceivesStateTransitions(t *testing.T) {
 	}
 
 	// Same healthy status should not emit extra events.
-	tracker.Mark("cloud-litellm", true, "")
+	tracker.Mark("cloud-nimillm", true, "")
 	select {
 	case <-updates:
 		t.Fatalf("unexpected update for unchanged healthy state")
 	case <-time.After(80 * time.Millisecond):
 	}
 
-	tracker.Mark("cloud-litellm", false, "timeout")
+	tracker.Mark("cloud-nimillm", false, "timeout")
 	select {
 	case item := <-updates:
 		if item.State != StateUnhealthy {
