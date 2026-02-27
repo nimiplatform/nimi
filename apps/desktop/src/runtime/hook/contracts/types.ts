@@ -14,7 +14,7 @@ export type SpeechRouteResolution = {
   engine?: string;
   localProviderEndpoint: string;
   localOpenAiEndpoint: string;
-  localOpenAiApiKey: string;
+  credentialRefId: string;
   model: string;
 };
 

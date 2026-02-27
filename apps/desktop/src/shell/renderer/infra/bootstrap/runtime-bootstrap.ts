@@ -95,10 +95,12 @@ export function bootstrapRuntime(): Promise<void> {
     if (flags.enableRuntimeBootstrap) {
       setRuntimeHttpContextProvider(() => {
         const store = useAppStore.getState();
+        const runtimeDefaultsRealmBaseUrl = String(store.runtimeDefaults?.realm?.realmBaseUrl || '').trim();
+        const runtimeDefaultsAccessToken = String(store.runtimeDefaults?.realm?.accessToken || '').trim();
         const token = String(store.auth.token || '').trim() || defaults.realm.accessToken;
         return {
-          realmBaseUrl: defaults.realm.realmBaseUrl,
-          accessToken: token,
+          realmBaseUrl: runtimeDefaultsRealmBaseUrl || defaults.realm.realmBaseUrl,
+          accessToken: token || runtimeDefaultsAccessToken || defaults.realm.accessToken,
           fetchImpl: proxyFetch,
         };
       });
@@ -129,7 +131,7 @@ export function bootstrapRuntime(): Promise<void> {
             localProviderEndpoint: runtime.localProviderEndpoint,
             localProviderModel: runtime.localProviderModel,
             localOpenAiEndpoint: runtime.localOpenAiEndpoint,
-            localOpenAiApiKey: runtime.localOpenAiApiKey,
+            credentialRefId: runtime.credentialRefId,
           };
         }),
       );

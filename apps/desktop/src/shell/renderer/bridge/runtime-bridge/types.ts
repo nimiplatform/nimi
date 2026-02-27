@@ -24,7 +24,7 @@ export type RuntimeExecutionDefaults = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  localOpenAiApiKey: string;
+  credentialRefId: string;
   targetType: string;
   targetAccountId: string;
   agentId: string;
@@ -418,7 +418,7 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
         'runtime.localOpenAiEndpoint',
         'runtime_defaults',
       ),
-      localOpenAiApiKey: String(runtimeRecord.localOpenAiApiKey || '').trim(),
+      credentialRefId: String(runtimeRecord.credentialRefId || '').trim(),
       targetType: parseRequiredString(runtimeRecord.targetType, 'runtime.targetType', 'runtime_defaults'),
       targetAccountId: String(runtimeRecord.targetAccountId || '').trim(),
       agentId: String(runtimeRecord.agentId || '').trim(),

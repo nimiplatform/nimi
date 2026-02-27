@@ -340,7 +340,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ text: string; promptTraceId: string }> {
     return this.llmService.generateModText(input);
   }
@@ -356,7 +356,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): AsyncIterable<HookLlmStreamEvent> {
     return this.llmService.streamModText(input);
   }
@@ -371,7 +371,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }> {
     return this.llmService.generateModImage(input);
   }
@@ -385,7 +385,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }> {
     return this.llmService.generateModVideo(input);
   }
@@ -398,7 +398,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ embeddings: number[][] }> {
     return this.llmService.generateModEmbedding(input);
   }
@@ -515,7 +515,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ text: string }> {
     return this.llmService.transcribeModSpeech(input);
   }

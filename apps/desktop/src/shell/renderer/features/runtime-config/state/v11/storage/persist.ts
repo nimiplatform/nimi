@@ -1,8 +1,7 @@
-import { loadStorageJsonFrom, removeLocalStorageKey, saveStorageJsonTo } from '@nimiplatform/sdk/mod/utils';
+import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/mod/utils';
 import { type RuntimeConfigStateV11 } from '../types';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
-  clearStaleKeysV11,
   createDefaultStateV11,
   type RuntimeConfigSeedV11,
   type StoredStateV11,
@@ -16,12 +15,10 @@ export function loadRuntimeConfigStateV11(seed: RuntimeConfigSeedV11): RuntimeCo
   if (parsedUnknown && typeof parsedUnknown === 'object') {
     const parsed = parsedUnknown as StoredStateV11;
     if (parsed.version === 11) {
-      clearStaleKeysV11(removeLocalStorageKey);
       return normalizeStoredStateV11(seed, parsed);
     }
   }
 
-  clearStaleKeysV11(removeLocalStorageKey);
   return createDefaultStateV11(seed);
 }
 
@@ -45,8 +42,6 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     RUNTIME_CONFIG_STORAGE_KEY_V11,
     payload,
   );
-
-  clearStaleKeysV11(removeLocalStorageKey);
 }
 
 export function setInitializedByV11(state: RuntimeConfigStateV11): RuntimeConfigStateV11 {
@@ -54,18 +49,4 @@ export function setInitializedByV11(state: RuntimeConfigStateV11): RuntimeConfig
     ...state,
     initializedByV11: true,
   };
-}
-
-export function resetSettingsSelectionIfDeprecatedV11(): void {
-  const storage = typeof globalThis !== 'undefined'
-    ? (globalThis.localStorage as Storage | undefined)
-    : undefined;
-  if (!storage) return;
-  try {
-    if (storage.getItem('nimi.settings.selected') === 'model-library') {
-      storage.setItem('nimi.settings.selected', 'profile');
-    }
-  } catch {
-    // ignore
-  }
 }

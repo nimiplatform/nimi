@@ -26,7 +26,7 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
           localProviderEndpoint: String(defaults.runtime.localProviderEndpoint || ''),
           localProviderModel: String(defaults.runtime.localProviderModel || ''),
           localOpenAiEndpoint: String(defaults.runtime.localOpenAiEndpoint || ''),
-          localOpenAiApiKey: String(defaults.runtime.localOpenAiApiKey || ''),
+          credentialRefId: String(defaults.runtime.credentialRefId || ''),
           mode: 'STORY',
           turnIndex: 1,
           userConfirmedUpload: Boolean(defaults.runtime.userConfirmedUpload),

@@ -1,6 +1,6 @@
 import { emitInferenceAudit, parseReasonCode } from './inference-audit';
 import {
-  buildRuntimeCallOptions,
+  buildRuntimeRequestMetadata,
   getRuntimeClient,
   resolveRuntimeAiCall,
   resolveTranscribeAudio,
@@ -39,16 +39,25 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
     });
 
     const runtime = getRuntimeClient();
-    const response = await runtime.ai.transcribeAudio({
-      appId: runtime.appId,
+    const response = await runtime.media.stt.transcribe({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      modelId: runtimeCall.modelId,
-      audioBytes: audio.audioBytes,
+      model: runtimeCall.modelId,
+      audio: {
+        kind: 'bytes',
+        bytes: audio.audioBytes,
+      },
       mimeType: audio.mimeType,
-      routePolicy: runtimeCall.routePolicy,
-      fallback: runtimeCall.fallbackPolicy,
+      language: String(input.language || '').trim() || undefined,
+      route: source,
+      fallback: 'deny',
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-    }, buildRuntimeCallOptions(input.modId, PRIVATE_PROVIDER_TIMEOUT_MS));
+      metadata: buildRuntimeRequestMetadata({
+        source,
+        credentialRefId: input.credentialRefId,
+        providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+      }),
+      signal: input.abortSignal,
+    });
 
     return {
       text: String((response as { text?: unknown }).text || '').trim(),

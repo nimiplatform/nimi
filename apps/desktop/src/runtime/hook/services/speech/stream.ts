@@ -7,6 +7,7 @@ import {
   normalizeLocalRuntimeProviderRef,
   normalizeSpeechAdapter,
 } from './types.js';
+import { resolveProviderApiKeyFromCredentialRef } from '../../../llm-adapter/execution/runtime-ai-bridge';
 import type {
   ResolvedRoute,
   SpeechServiceInput,
@@ -73,7 +74,8 @@ async function resolveSpeechRoute(
       adapter,
       providerType: 'OPENAI_COMPATIBLE',
       endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
-      apiKey: String(resolved.localOpenAiApiKey || '').trim() || undefined,
+      credentialRefId: resolved.credentialRefId,
+      apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId) || undefined,
       model,
     };
   }
@@ -88,7 +90,8 @@ async function resolveSpeechRoute(
     adapter: normalizeSpeechAdapter(resolved.adapter),
     providerType,
     endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
-    apiKey: String(resolved.localOpenAiApiKey || '').trim(),
+    credentialRefId: resolved.credentialRefId,
+    apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
     model,
   };
 }

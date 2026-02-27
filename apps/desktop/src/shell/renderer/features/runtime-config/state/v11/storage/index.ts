@@ -7,7 +7,6 @@ export { normalizeStoredStateV11 } from './normalize';
 export {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
-  resetSettingsSelectionIfDeprecatedV11,
   setInitializedByV11,
 } from './persist';
 export {

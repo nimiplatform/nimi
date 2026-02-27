@@ -29,7 +29,7 @@ type ResolvedRuntimeCapabilityConfigBaseV11 = {
   providerHints?: RuntimeConfigStateV11['localRuntime']['nodeMatrix'][number]['providerHints'];
   policyGate?: string;
   localOpenAiEndpoint: string;
-  localOpenAiApiKey: string;
+  credentialRefId: string;
   localProviderEndpoint: string;
   localProviderModel: string;
 };
@@ -113,9 +113,16 @@ function resolvePreferredSource(
   state: RuntimeConfigStateV11,
   capability: CapabilityV11,
   overrideSource?: SourceIdV11,
+  overrideConnectorId?: string,
 ): SourceIdV11 {
   if (overrideSource === 'token-api' || overrideSource === 'local-runtime') {
     return overrideSource;
+  }
+  if (String(overrideConnectorId || '').trim()) {
+    return 'token-api';
+  }
+  if (state.selectedSource === 'token-api' || state.selectedSource === 'local-runtime') {
+    return state.selectedSource;
   }
   return hasLocalCapabilityModel(state, capability) ? 'local-runtime' : 'token-api';
 }
@@ -238,7 +245,7 @@ function resolveLocalRuntimeCapabilityConfig(input: {
     connectorId: '',
     endpoint: localProviderEndpoint,
     localOpenAiEndpoint,
-    localOpenAiApiKey: String(connector?.tokenApiKey || input.seed.localOpenAiApiKey || '').trim(),
+    credentialRefId: '',
     localProviderEndpoint,
     localProviderModel: model,
     localModelId: String(modelEntry.localModelId || ''),
@@ -265,6 +272,12 @@ function resolveTokenApiCapabilityConfig(input: {
   }
 
   const token = String(connector.tokenApiKey || '').trim();
+  if (!token) {
+    throwRouteError(
+      'RUNTIME_ROUTE_CONNECTOR_TOKEN_MISSING',
+      `Token API connector credential is missing for capability: ${input.capability}`,
+    );
+  }
 
   const connectorModels = connector.models
     .map((item) => String(item || '').trim())
@@ -311,7 +324,7 @@ function resolveTokenApiCapabilityConfig(input: {
     connectorId: connector.id,
     endpoint: String(connector.endpoint || '').trim(),
     localOpenAiEndpoint: String(connector.endpoint || '').trim(),
-    localOpenAiApiKey: token,
+    credentialRefId: connector.id,
     localProviderEndpoint,
     localProviderModel,
   };
@@ -342,7 +355,7 @@ export function resolveRuntimeCapabilityConfigFromStateV11(
     engine: String(options?.routeOverride?.engine || '').trim() || undefined,
   };
 
-  const preferredSource = resolvePreferredSource(state, capability, override.source);
+  const preferredSource = resolvePreferredSource(state, capability, override.source, override.connectorId);
   if (preferredSource === 'local-runtime') {
     return resolveLocalRuntimeCapabilityConfig({
       state,

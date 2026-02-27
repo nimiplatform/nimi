@@ -510,7 +510,7 @@ function getRuntimeFieldsFromStore() {
     localProviderEndpoint: runtime.localProviderEndpoint,
     localProviderModel: runtime.localProviderModel,
     localOpenAiEndpoint: runtime.localOpenAiEndpoint,
-    localOpenAiApiKey: runtime.localOpenAiApiKey,
+    credentialRefId: runtime.credentialRefId,
   };
 }
 
@@ -529,7 +529,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
       localProviderEndpoint: payload.localProviderEndpoint || runtime.localProviderEndpoint,
       localProviderModel: payload.localProviderModel || runtime.localProviderModel,
       localOpenAiEndpoint: payload.localOpenAiEndpoint || runtime.localOpenAiEndpoint,
-      localOpenAiApiKey: payload.localOpenAiApiKey || runtime.localOpenAiApiKey,
+      credentialRefId: payload.credentialRefId || runtime.credentialRefId,
     };
   };
 
@@ -555,7 +555,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
       localProviderEndpoint: payload.localProviderEndpoint || runtime.localProviderEndpoint,
       localProviderModel: payload.localProviderModel || runtime.localProviderModel,
       localOpenAiEndpoint: payload.localOpenAiEndpoint || runtime.localOpenAiEndpoint,
-      localOpenAiApiKey: payload.localOpenAiApiKey || runtime.localOpenAiApiKey,
+      credentialRefId: payload.credentialRefId || runtime.credentialRefId,
     };
   };
 

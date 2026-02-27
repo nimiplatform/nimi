@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { resetSettingsSelectionIfDeprecatedV11 } from '@renderer/features/runtime-config/state/v11/storage';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { SidebarNav } from './settings-layout-components';
 import { renderSettingsPage } from './settings-pages';
@@ -13,7 +12,6 @@ export function SettingsPanelBody() {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const [selectedId, setSelectedId] = useState(() => {
-    resetSettingsSelectionIfDeprecatedV11();
     const stored = loadStoredSettingsSelected('profile');
     if (!flags.enableSettingsExtensions && stored === 'extensions') {
       persistStoredSettingsSelected('profile');

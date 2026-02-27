@@ -28,6 +28,21 @@ fn normalize_reason_code(value: &str) -> String {
     normalized.to_ascii_uppercase()
 }
 
+fn sanitize_error_message(message: &str) -> String {
+    let trimmed = message.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let lowered = trimmed.to_ascii_lowercase();
+    if lowered.contains("x-nimi-provider-api-key")
+        || lowered.contains("provider_api_key")
+        || lowered.contains("\"providerapikey\"")
+    {
+        return "[REDACTED_PROVIDER_API_KEY]".to_string();
+    }
+    trimmed.to_string()
+}
+
 #[derive(Debug, Clone, Default)]
 struct StructuredStatusPayload {
     reason_code: String,
@@ -87,8 +102,8 @@ fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayl
         .get("message")
         .and_then(|value| value.as_str())
         .unwrap_or(trimmed)
-        .trim()
-        .to_string();
+        .trim();
+    let normalized_message = sanitize_error_message(normalized_message.as_ref());
 
     if reason_code.is_empty()
         && action_hint.is_empty()
@@ -231,7 +246,7 @@ pub fn bridge_status_error(status: Status) -> String {
         .as_ref()
         .map(|value| value.message.trim().to_string())
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| status.message().to_string());
+        .unwrap_or_else(|| sanitize_error_message(status.message()));
 
     encode(RuntimeBridgeErrorPayload {
         reason_code: normalized_reason_code,
@@ -358,6 +373,18 @@ mod tests {
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
             Some("RUNTIME_GRPC_UNAVAILABLE")
+        );
+    }
+
+    #[test]
+    fn bridge_status_error_redacts_provider_api_key_in_message() {
+        let payload = parse_json(bridge_status_error(Status::new(
+            Code::InvalidArgument,
+            "{\"reasonCode\":\"AI_INPUT_INVALID\",\"message\":\"x-nimi-provider-api-key=sk-test-secret\"}",
+        )));
+        assert_eq!(
+            payload.get("message").and_then(Value::as_str),
+            Some("[REDACTED_PROVIDER_API_KEY]")
         );
     }
 }

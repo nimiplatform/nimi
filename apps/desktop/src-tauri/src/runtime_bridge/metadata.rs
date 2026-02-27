@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -22,9 +23,12 @@ const RESERVED_METADATA_KEYS: &[&str] = &[
     "x-nimi-app-id",
     "x-nimi-trace-id",
     "x-nimi-surface-id",
+    "x-nimi-credential-source",
+    "x-nimi-provider-endpoint",
+    "x-nimi-provider-api-key",
 ];
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeMetadata {
     pub protocol_version: Option<String>,
@@ -37,7 +41,61 @@ pub struct RuntimeBridgeMetadata {
     pub caller_kind: Option<String>,
     pub caller_id: Option<String>,
     pub surface_id: Option<String>,
+    pub credential_source: Option<String>,
+    pub provider_endpoint: Option<String>,
+    pub provider_api_key: Option<String>,
     pub extra: Option<HashMap<String, String>>,
+}
+
+fn redact_secret(value: &str) -> String {
+    if value.trim().is_empty() {
+        String::new()
+    } else {
+        "***REDACTED***".to_string()
+    }
+}
+
+impl fmt::Debug for RuntimeBridgeMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_struct("RuntimeBridgeMetadata");
+        debug
+            .field("protocol_version", &self.protocol_version)
+            .field(
+                "participant_protocol_version",
+                &self.participant_protocol_version,
+            )
+            .field("participant_id", &self.participant_id)
+            .field("domain", &self.domain)
+            .field("app_id", &self.app_id)
+            .field("trace_id", &self.trace_id)
+            .field("idempotency_key", &self.idempotency_key)
+            .field("caller_kind", &self.caller_kind)
+            .field("caller_id", &self.caller_id)
+            .field("surface_id", &self.surface_id)
+            .field("credential_source", &self.credential_source)
+            .field("provider_endpoint", &self.provider_endpoint)
+            .field(
+                "provider_api_key",
+                &self
+                    .provider_api_key
+                    .as_ref()
+                    .map(|value| redact_secret(value.as_str())),
+            );
+
+        let redacted_extra = self.extra.as_ref().map(|extra| {
+            extra
+                .iter()
+                .map(|(key, value)| {
+                    if key.trim().eq_ignore_ascii_case("x-nimi-provider-api-key") {
+                        (key.clone(), redact_secret(value.as_str()))
+                    } else {
+                        (key.clone(), value.clone())
+                    }
+                })
+                .collect::<HashMap<String, String>>()
+        });
+        debug.field("extra", &redacted_extra).finish()
+    }
 }
 
 fn normalize(value: Option<&str>) -> Option<String> {
@@ -152,6 +210,21 @@ pub fn apply_metadata(
         "x-nimi-surface-id",
         normalize(value.surface_id.as_deref()),
     )?;
+    insert_metadata_value(
+        request,
+        "x-nimi-credential-source",
+        normalize(value.credential_source.as_deref()),
+    )?;
+    insert_metadata_value(
+        request,
+        "x-nimi-provider-endpoint",
+        normalize(value.provider_endpoint.as_deref()),
+    )?;
+    insert_metadata_value(
+        request,
+        "x-nimi-provider-api-key",
+        normalize(value.provider_api_key.as_deref()),
+    )?;
 
     if let Some(extra) = value.extra {
         for (key, extra_value) in extra {
@@ -247,6 +320,9 @@ mod tests {
             caller_kind: Some("desktop-core".to_string()),
             caller_id: Some("renderer".to_string()),
             surface_id: Some("settings".to_string()),
+            credential_source: Some("request-injected".to_string()),
+            provider_endpoint: Some("https://api.example.com/v1".to_string()),
+            provider_api_key: Some("secret-token".to_string()),
             extra: Some(extra),
         };
 
@@ -297,6 +373,18 @@ mod tests {
         assert_eq!(
             read_metadata(&request, "x-nimi-surface-id").as_deref(),
             Some("settings")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-credential-source").as_deref(),
+            Some("request-injected")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-provider-endpoint").as_deref(),
+            Some("https://api.example.com/v1")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-provider-api-key").as_deref(),
+            Some("secret-token")
         );
         assert_eq!(
             read_metadata(&request, "x-nimi-extra").as_deref(),
@@ -363,5 +451,24 @@ mod tests {
         .expect_err("reserved metadata key override should fail");
 
         assert!(error.contains("RUNTIME_BRIDGE_METADATA_RESERVED_KEY"));
+    }
+
+    #[test]
+    fn runtime_bridge_metadata_debug_redacts_provider_api_key() {
+        let mut extra = HashMap::new();
+        extra.insert(
+            "x-nimi-provider-api-key".to_string(),
+            "top-secret-value".to_string(),
+        );
+
+        let metadata = RuntimeBridgeMetadata {
+            provider_api_key: Some("top-secret-value".to_string()),
+            extra: Some(extra),
+            ..RuntimeBridgeMetadata::default()
+        };
+
+        let debug = format!("{:?}", metadata);
+        assert!(!debug.contains("top-secret-value"));
+        assert!(debug.contains("***REDACTED***"));
     }
 }

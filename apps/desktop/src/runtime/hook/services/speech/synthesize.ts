@@ -1,7 +1,3 @@
-import type {
-  SpeechSynthesizeRequest,
-  SpeechSynthesizeResult,
-} from '../../../llm-adapter/speech/types.js';
 import { emitInferenceAudit, parseReasonCode } from '../../../llm-adapter/execution/inference-audit';
 import { createHookError } from '../../contracts/errors.js';
 import { createHookRecord } from '../utils.js';
@@ -10,6 +6,11 @@ import {
   normalizeLocalRuntimeProviderRef,
   normalizeSpeechAdapter,
 } from './types.js';
+import {
+  buildRuntimeRequestMetadata,
+  getRuntimeClient,
+  resolveProviderApiKeyFromCredentialRef,
+} from '../../../llm-adapter/execution/runtime-ai-bridge';
 import type {
   ResolvedRoute,
   SpeechServiceInput,
@@ -59,7 +60,8 @@ async function resolveSpeechRoute(
       adapter,
       providerType: 'OPENAI_COMPATIBLE',
       endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
-      apiKey: String(resolved.localOpenAiApiKey || '').trim() || undefined,
+      credentialRefId: resolved.credentialRefId,
+      apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId) || undefined,
       model,
     };
   }
@@ -74,9 +76,24 @@ async function resolveSpeechRoute(
     adapter: normalizeSpeechAdapter(resolved.adapter),
     providerType,
     endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
-    apiKey: String(resolved.localOpenAiApiKey || '').trim(),
+    credentialRefId: resolved.credentialRefId,
+    apiKey: resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
     model,
   };
+}
+
+function toBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64');
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i] || 0);
+  }
+  if (typeof btoa === 'function') {
+    return btoa(binary);
+  }
+  return '';
 }
 
 export async function synthesizeModSpeech(
@@ -111,16 +128,6 @@ export async function synthesizeModSpeech(
   if (String(input.stylePrompt || '').trim()) {
     providerParams.instruct = String(input.stylePrompt || '').trim();
   }
-  const request: SpeechSynthesizeRequest = {
-    model: route.model,
-    text: input.text,
-    voice: input.voiceId,
-    format: input.format,
-    speed: input.speakingRate,
-    sampleRateHz: input.sampleRateHz,
-    providerParams,
-  };
-
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
@@ -132,14 +139,39 @@ export async function synthesizeModSpeech(
     endpoint: route.endpoint,
   });
 
-  let result: SpeechSynthesizeResult;
+  const runtime = getRuntimeClient();
+  let audioUri = '';
+  let mimeType = 'audio/mpeg';
+  let providerTraceId = '';
   try {
-    result = await context.speechEngine.synthesize({
-      providerType: route.providerType,
-      endpoint: route.endpoint,
-      apiKey: route.apiKey,
-      request,
+    const generated = await runtime.media.tts.synthesize({
+      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
+      model: route.model,
+      text: input.text,
+      voice: input.voiceId,
+      audioFormat: input.format,
+      sampleRateHz: input.sampleRateHz,
+      speed: input.speakingRate,
+      pitch: input.pitch,
+      language: input.language,
+      route: route.source,
+      fallback: 'deny',
+      timeoutMs: 60000,
+      metadata: buildRuntimeRequestMetadata({
+        source: route.source,
+        credentialRefId: route.credentialRefId,
+        providerEndpoint: route.endpoint,
+      }),
+      providerOptions: providerParams,
     });
+    const artifact = generated.artifacts[0];
+    if (!artifact || !(artifact.bytes instanceof Uint8Array)) {
+      throw new Error('speech provider returned empty artifact');
+    }
+    mimeType = String(artifact.mimeType || '').trim() || 'audio/mpeg';
+    const base64 = toBase64(artifact.bytes);
+    audioUri = base64 ? `data:${mimeType};base64,${base64}` : '';
+    providerTraceId = String(generated.trace.traceId || '').trim();
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error || '');
     emitInferenceAudit({
@@ -157,7 +189,7 @@ export async function synthesizeModSpeech(
     throw error;
   }
 
-  if (!String(result.audioUri || '').trim()) {
+  if (!String(audioUri || '').trim()) {
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -187,11 +219,11 @@ export async function synthesizeModSpeech(
   }));
 
   return {
-    audioUri: result.audioUri,
-    mimeType: result.mimeType,
-    durationMs: result.durationMs,
-    sampleRateHz: result.sampleRateHz,
-    providerTraceId: `speech:${Date.now().toString(36)}`,
+    audioUri,
+    mimeType,
+    durationMs: undefined,
+    sampleRateHz: input.sampleRateHz,
+    providerTraceId: providerTraceId || `speech:${Date.now().toString(36)}`,
     cacheKey: undefined,
   };
 }

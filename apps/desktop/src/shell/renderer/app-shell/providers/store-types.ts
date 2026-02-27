@@ -33,7 +33,7 @@ export type RuntimeFieldMap = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  localOpenAiApiKey: string;
+  credentialRefId: string;
   mode: 'STORY' | 'SCENE_TURN';
   turnIndex: number;
   userConfirmedUpload: boolean;
@@ -119,7 +119,7 @@ export const INITIAL_RUNTIME_FIELDS: RuntimeFieldMap = {
   localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   localProviderModel: 'local-model',
   localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-  localOpenAiApiKey: '',
+  credentialRefId: '',
   mode: 'STORY',
   turnIndex: 1,
   userConfirmedUpload: false,

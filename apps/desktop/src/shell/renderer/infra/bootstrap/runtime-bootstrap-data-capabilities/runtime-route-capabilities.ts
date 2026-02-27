@@ -1,12 +1,15 @@
+import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { resolveRuntimeCapabilityConfigFromStateV11 } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
-import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
+import { createDefaultStateV11 } from '@renderer/features/runtime-config/state/v11/storage/defaults';
 import {
   type RuntimeConfigStateV11,
   normalizeCapabilityV11,
   normalizeSourceV11,
 } from '@renderer/features/runtime-config/state/v11/types';
+import { applyRuntimeBridgeConfigToState } from '@renderer/features/runtime-config/runtime-bridge-config';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { logRendererEvent } from '@nimiplatform/sdk/mod/logging';
 import {
   WORLD_DATA_API_CAPABILITIES,
   hydrateModelProfilesByTemplate,
@@ -14,6 +17,14 @@ import {
   toRecord,
 } from '../runtime-bootstrap-utils';
 import { registerCoreDataCapability } from './shared';
+
+function safeLogRuntimeRouteOptionsQuery(payload: Parameters<typeof logRendererEvent>[0]): void {
+  try {
+    logRendererEvent(payload);
+  } catch {
+    // Diagnostics logging must not affect runtime-route options response.
+  }
+}
 
 function normalizeCapability(value: unknown): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | null {
   const normalized = String(value || '').trim();
@@ -28,6 +39,49 @@ function normalizeCapability(value: unknown): 'chat' | 'image' | 'video' | 'tts'
     return normalized;
   }
   return null;
+}
+
+type HydratedConnectorModels = Awaited<ReturnType<typeof hydrateConnectorModels>>;
+
+function toHydrationFallbackPayload(models: string[]): HydratedConnectorModels {
+  const uniqueModels = Array.from(new Set(models.map((item) => String(item || '').trim()).filter(Boolean)));
+  return {
+    models: uniqueModels,
+    modelProfiles: hydrateModelProfilesByTemplate(uniqueModels),
+  };
+}
+
+async function hydrateConnectorModelsWithTimeout(input: {
+  connectorId: string;
+  vendor: string;
+  endpoint: string;
+  tokenApiKey: string;
+  models: string[];
+}, timeoutMs: number): Promise<{ payload: HydratedConnectorModels; timedOut: boolean }> {
+  const fallback = toHydrationFallbackPayload(input.models);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    const winner = await Promise.race<{ payload: HydratedConnectorModels; timedOut: boolean }>([
+      (async () => {
+        try {
+          const payload = await hydrateConnectorModels(input);
+          return { payload, timedOut: false };
+        } catch {
+          return { payload: fallback, timedOut: false };
+        }
+      })(),
+      new Promise<{ payload: HydratedConnectorModels; timedOut: boolean }>((resolve) => {
+        timer = setTimeout(() => {
+          resolve({ payload: fallback, timedOut: true });
+        }, timeoutMs);
+      }),
+    ]);
+    return winner;
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 function mergeLocalRuntimeModels(input: {
@@ -58,33 +112,77 @@ function mergeLocalRuntimeModels(input: {
   return [...byId.values()].filter((item) => item.status !== 'removed');
 }
 
-function fallbackRuntimeRouteSelection(
+const BRIDGE_CONFIG_QUERY_TIMEOUT_MS = 1200;
+const LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS = 1200;
+
+async function mergeRuntimeBridgeConfigIntoState(
   state: RuntimeConfigStateV11,
-  capability: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding',
-) {
-  if (state.selectedSource === 'token-api') {
-    const connector = state.connectors.find((item) => item.id === state.selectedConnectorId)
-      || state.connectors[0]
-      || null;
+): Promise<{ state: RuntimeConfigStateV11; merged: boolean; error: string | null }> {
+  if (!desktopBridge.hasTauriInvoke()) {
+    return { state, merged: false, error: null };
+  }
+  try {
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const result = await Promise.race([
+      desktopBridge.getRuntimeBridgeConfig(),
+      new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error(`runtime bridge config get timeout (${BRIDGE_CONFIG_QUERY_TIMEOUT_MS}ms)`));
+        }, BRIDGE_CONFIG_QUERY_TIMEOUT_MS);
+      }),
+    ]).finally(() => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+    });
+    const config = toRecord(toRecord(result).config);
     return {
-      source: 'token-api' as const,
-      connectorId: String(connector?.id || ''),
-      model: String(connector?.models[0] || ''),
-      localModelId: '',
-      engine: '',
+      state: applyRuntimeBridgeConfigToState(state, config),
+      merged: true,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      state,
+      merged: false,
+      error: error instanceof Error ? error.message : String(error || ''),
     };
   }
+}
 
-  const localModel = state.localRuntime.models.find((item) => item.capabilities.includes(capability))
-    || state.localRuntime.models[0]
-    || null;
-  return {
-    source: 'local-runtime' as const,
-    connectorId: '',
-    model: String(localModel?.model || ''),
-    localModelId: String(localModel?.localModelId || ''),
-    engine: String(localModel?.engine || ''),
+async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
+  models: Array<{
+    localModelId: string;
+    engine: string;
+    modelId: string;
+    endpoint: string;
+    capabilities: string[];
+    status: 'installed' | 'active' | 'unhealthy' | 'removed';
+  }>;
+  health: Array<unknown>;
+  generatedAt: string;
+}> {
+  const fallback = {
+    models: [],
+    health: [],
+    generatedAt: new Date().toISOString(),
   };
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  try {
+    const result = await Promise.race([
+      localAiRuntime.pollSnapshot().catch(() => fallback),
+      new Promise<typeof fallback>((resolve) => {
+        timeoutHandle = setTimeout(() => {
+          resolve(fallback);
+        }, LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS);
+      }),
+    ]);
+    return result;
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
@@ -99,21 +197,15 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       localProviderEndpoint: runtime.localProviderEndpoint,
       localProviderModel: runtime.localProviderModel,
       localOpenAiEndpoint: runtime.localOpenAiEndpoint,
-      localOpenAiApiKey: runtime.localOpenAiApiKey,
+      credentialRefId: runtime.credentialRefId,
     };
-    const state = loadRuntimeConfigStateV11(seed);
-    const resolved = (() => {
-      try {
-        return resolveRuntimeCapabilityConfigFromStateV11(state, seed, capability, { modId: modId || undefined });
-      } catch {
-        return fallbackRuntimeRouteSelection(state, capability);
-      }
-    })();
-    const localSnapshot = await localAiRuntime.pollSnapshot().catch(() => ({
-      models: [],
-      health: [],
-      generatedAt: new Date().toISOString(),
-    }));
+    const bridgeMergedState = await mergeRuntimeBridgeConfigIntoState(createDefaultStateV11(seed));
+    if (!bridgeMergedState.merged) {
+      throw new Error(bridgeMergedState.error || 'runtime bridge config unavailable');
+    }
+    const state = bridgeMergedState.state;
+    const resolved = resolveRuntimeCapabilityConfigFromStateV11(state, seed, capability, { modId: modId || undefined });
+    const localSnapshot = await pollLocalRuntimeSnapshotWithTimeout();
 
     const selected = {
       source: normalizeSourceV11(resolved.source),
@@ -124,20 +216,58 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
     };
     const resolvedDefault = { ...selected };
 
-    const connectors = await Promise.all(state.connectors.map(async (connector) => ({
-      id: connector.id,
-      label: connector.label,
-      vendor: connector.vendor,
-      endpoint: connector.endpoint,
-      ...(await hydrateConnectorModels({
+    safeLogRuntimeRouteOptionsQuery({
+      level: 'info',
+      area: 'renderer-bootstrap',
+      message: 'action:runtime-route-options:query:start',
+      details: {
+        capability,
+        modId: modId || null,
+        selectedSource: selected.source,
+        selectedConnectorId: selected.connectorId || null,
+        selectedModel: selected.model || null,
+        bridgeConfigMerged: bridgeMergedState.merged,
+        bridgeConfigMergeError: bridgeMergedState.error,
+        stateConnectorsCount: state.connectors.length,
+        stateConnectorIds: state.connectors.map((item) => String(item.id || '')),
+      },
+    });
+
+    const hydratedConnectors = await Promise.all(state.connectors.map(async (connector) => {
+      const hydrated = await hydrateConnectorModelsWithTimeout({
         connectorId: connector.id,
         vendor: String(connector.vendor || ''),
         endpoint: connector.endpoint,
         tokenApiKey: connector.tokenApiKey,
         models: [...connector.models],
-      })),
-      status: connector.status,
-    })));
+      }, 1800);
+
+      if (hydrated.timedOut) {
+        safeLogRuntimeRouteOptionsQuery({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'action:runtime-route-options:connector-hydration-timeout',
+          details: {
+            capability,
+            modId: modId || null,
+            connectorId: connector.id,
+            vendor: connector.vendor,
+            endpoint: connector.endpoint,
+            fallbackModelsCount: hydrated.payload.models.length,
+          },
+        });
+      }
+
+      return {
+        id: connector.id,
+        label: connector.label,
+        vendor: connector.vendor,
+        endpoint: connector.endpoint,
+        ...hydrated.payload,
+        status: connector.status,
+      };
+    }));
+    const connectors = hydratedConnectors;
 
     const snapshotModels = localSnapshot.models.map((item) => ({
       localModelId: item.localModelId,
@@ -154,7 +284,7 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       snapshotModels,
     });
 
-    return {
+    const response = {
       capability,
       modId: modId || null,
       selected,
@@ -168,5 +298,20 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       },
       connectors,
     };
+    safeLogRuntimeRouteOptionsQuery({
+      level: 'info',
+      area: 'renderer-bootstrap',
+      message: 'action:runtime-route-options:query:done',
+      details: {
+        capability,
+        modId: modId || null,
+        selectedSource: selected.source,
+        selectedConnectorId: selected.connectorId || null,
+        selectedModel: selected.model || null,
+        connectorsCount: connectors.length,
+        connectorIds: connectors.map((item) => String(item.id || '')),
+      },
+    });
+    return response;
   });
 }

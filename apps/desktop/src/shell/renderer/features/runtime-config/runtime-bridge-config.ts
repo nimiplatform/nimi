@@ -206,6 +206,30 @@ function findConnectorTokenEnvByProvider(
   return sameProvider ? readString(sameProvider.tokenApiKeyEnv) : '';
 }
 
+function findExistingConnectorByProvider(
+  connectors: RuntimeConfigStateV11['connectors'],
+  providerKey: UiManagedCloudProviderKey,
+  endpoint: string,
+): RuntimeConfigStateV11['connectors'][number] | null {
+  const normalizedEndpoint = normalizeEndpointV11(endpoint, endpoint);
+  const exact = connectors.find((connector) => (
+    providerKeyFromConnector(connector) === providerKey
+    && normalizeEndpointV11(connector.endpoint, connector.endpoint) === normalizedEndpoint
+  ));
+  if (exact) {
+    return exact;
+  }
+  return connectors.find((connector) => providerKeyFromConnector(connector) === providerKey) || null;
+}
+
+function connectorStableKey(
+  connector: RuntimeConfigStateV11['connectors'][number],
+): string {
+  const providerKey = providerKeyFromConnector(connector);
+  const endpoint = normalizeEndpointV11(connector.endpoint, connector.endpoint);
+  return `${providerKey}::${endpoint}`;
+}
+
 function sortProviderEntries(providers: Record<string, RuntimeBridgeProviderConfig>): Record<string, RuntimeBridgeProviderConfig> {
   const sortedKeys = Object.keys(providers).sort((left, right) => left.localeCompare(right));
   const output: Record<string, RuntimeBridgeProviderConfig> = {};
@@ -250,6 +274,14 @@ export function applyRuntimeBridgeConfigToState(
         return null;
       }
       const connector = connectorFromProvider(providerKey, provider);
+      const existing = findExistingConnectorByProvider(state.connectors, providerKey, connector.endpoint);
+      if (existing) {
+        // Keep stable connector identity and user-facing name across bridge resync.
+        connector.id = existing.id;
+        if (readString(existing.label)) {
+          connector.label = existing.label;
+        }
+      }
       connector.tokenApiKey = findConnectorTokenByProvider(state.connectors, providerKey, connector.endpoint);
       if (!connector.tokenApiKeyEnv) {
         connector.tokenApiKeyEnv = findConnectorTokenEnvByProvider(state.connectors, providerKey)
@@ -264,14 +296,26 @@ export function applyRuntimeBridgeConfigToState(
       || connectorsFromConfig[0]?.id
       || state.selectedConnectorId)
     : (connectorsFromConfig[0]?.id || state.selectedConnectorId);
+
+  const configuredKeys = new Set(connectorsFromConfig.map((connector) => connectorStableKey(connector)));
+  const preservedConnectors = state.connectors.filter((connector) => !configuredKeys.has(connectorStableKey(connector)));
+  const nextConnectors = connectorsFromConfig.length > 0
+    ? [...connectorsFromConfig, ...preservedConnectors]
+    : state.connectors;
+  const nextSelectedConnectorId = nextConnectors.some((connector) => connector.id === state.selectedConnectorId)
+    ? state.selectedConnectorId
+    : nextConnectors.some((connector) => connector.id === selectedConnectorId)
+      ? selectedConnectorId
+      : (nextConnectors[0]?.id || state.selectedConnectorId);
+
   return {
     ...state,
     localRuntime: {
       ...state.localRuntime,
       endpoint: nextLocalEndpoint,
     },
-    connectors: connectorsFromConfig.length > 0 ? connectorsFromConfig : state.connectors,
-    selectedConnectorId,
+    connectors: nextConnectors,
+    selectedConnectorId: nextSelectedConnectorId,
   };
 }
 

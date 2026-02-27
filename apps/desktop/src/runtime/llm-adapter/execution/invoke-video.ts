@@ -1,8 +1,7 @@
 import { emitInferenceAudit, parseReasonCode } from './inference-audit';
 import {
   base64FromBytes,
-  buildRuntimeStreamOptions,
-  collectRuntimeArtifacts,
+  buildRuntimeRequestMetadata,
   getRuntimeClient,
   resolveRuntimeAiCall,
   toLocalAiReasonCode,
@@ -33,17 +32,26 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
 
   try {
     const runtime = getRuntimeClient();
-    const stream = await runtime.ai.generateVideo({
-      appId: runtime.appId,
+    const generated = await runtime.media.video.generate({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      modelId: runtimeCall.modelId,
+      model: runtimeCall.modelId,
       prompt: String(input.prompt || '').trim(),
-      routePolicy: runtimeCall.routePolicy,
-      fallback: runtimeCall.fallbackPolicy,
+      route: source,
+      fallback: 'deny',
+      durationSec: typeof input.durationSeconds === 'number' ? input.durationSeconds : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-    }, buildRuntimeStreamOptions(input.modId, PRIVATE_PROVIDER_TIMEOUT_MS, input.abortSignal));
+      metadata: buildRuntimeRequestMetadata({
+        source,
+        credentialRefId: input.credentialRefId,
+        providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+      }),
+      signal: input.abortSignal,
+    });
 
-    const artifacts = await collectRuntimeArtifacts(stream, source);
+    const artifacts = generated.artifacts.map((artifact) => ({
+      mimeType: String(artifact.mimeType || '').trim(),
+      bytes: artifact.bytes instanceof Uint8Array ? artifact.bytes : new Uint8Array(0),
+    }));
     if (artifacts.length === 0) {
       throw new Error('LOCAL_AI_CAPABILITY_MISSING: video response missing data');
     }

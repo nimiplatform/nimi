@@ -17,7 +17,6 @@ import type {
 } from '@nimiplatform/sdk/mod/types';
 import { RuntimeRouteResolutionError } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type RuntimeFields = {
   provider: string;
@@ -25,7 +24,7 @@ type RuntimeFields = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  localOpenAiApiKey: string;
+  credentialRefId: string;
 };
 
 function normalizeRouteOverrideSource(value: unknown): SourceIdV11 | undefined {
@@ -49,7 +48,7 @@ function toResolvedRuntimeRouteBinding(
       localProviderEndpoint: resolved.localProviderEndpoint,
       localProviderModel: resolved.localProviderModel,
       localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-      localOpenAiApiKey: resolved.localOpenAiApiKey,
+      credentialRefId: resolved.credentialRefId,
       connectorId: '',
     };
   }
@@ -64,7 +63,7 @@ function toResolvedRuntimeRouteBinding(
     model: resolved.model,
     endpoint: resolved.endpoint,
     localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-    localOpenAiApiKey: resolved.localOpenAiApiKey,
+    credentialRefId: resolved.credentialRefId,
   };
 }
 
@@ -211,119 +210,21 @@ export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields)
       const reasonCode = resolveRouteReasonCode(error);
       const localAiReasonCode = mapRouteReasonToLocalAiReasonCode(reasonCode);
       const policyGate = resolveRoutePolicyGate(error);
-      const shouldFallbackToTokenApi = normalizedOverrideSource !== 'token-api'
-        && (
-          reasonCode === ReasonCode.RUNTIME_ROUTE_MODEL_MISSING
-          || reasonCode === ReasonCode.RUNTIME_ROUTE_CAPABILITY_MISSING
-        );
-
-      if (shouldFallbackToTokenApi) {
-        try {
-          const fallbackResolved = resolveRuntimeCapabilityConfigFromV11(
-            runtimeFieldsForCache,
-            capability,
-            {
-              modId,
-              routeOverride: {
-                ...(normalizedRouteOverride || {}),
-                source: 'token-api',
-                model: normalizedRouteOverride?.model || '',
-                localModelId: '',
-                engine: '',
-              },
-            },
-          );
-          const fallbackBinding = toResolvedRuntimeRouteBinding(fallbackResolved);
-          logRendererEvent({
-            level: 'warn',
-            area: 'renderer-bootstrap',
-            message: 'runtime-route:resolve:fallback-to-token-api',
-            flowId: routeFlowId,
-            details: {
-              capability,
-              modId: modId || null,
-              reasonCode,
-              localAiReasonCode,
-              policyGate: policyGate || null,
-              originalError: safeErrorMessage(error),
-              fallbackSource: 'token-api',
-              source: fallbackResolved.source,
-              connectorId: fallbackResolved.connectorId || null,
-              model: fallbackResolved.model,
-            },
-          });
-          // Audit stream marker for local-runtime -> token-api fallback.
-          logRendererEvent({
-            level: 'warn',
-            area: 'local-ai-runtime-audit',
-            message: 'fallback_to_token_api',
-            flowId: routeFlowId,
-            details: {
-              reasonCode,
-              localAiReasonCode,
-              policyGate: policyGate || null,
-              capability,
-              modId: modId || null,
-              adapter: fallbackResolved.adapter,
-              connectorId: fallbackResolved.connectorId || null,
-              model: fallbackResolved.model,
-            },
-          });
-          void localAiRuntime.appendInferenceAudit({
-            eventType: 'fallback_to_token_api',
-            modId: modId || 'core.runtime-route',
-            source: 'token-api',
-            provider: fallbackResolved.provider,
-            modality: capability,
-            adapter: fallbackResolved.adapter,
-            model: fallbackResolved.model,
-            endpoint: fallbackResolved.endpoint,
-            reasonCode: localAiReasonCode,
-            detail: safeErrorMessage(error),
-            policyGate: (typeof policyGate === 'string' || (policyGate && typeof policyGate === 'object'))
-              ? policyGate as string | Record<string, unknown>
-              : undefined,
-            extra: {
-              capability,
-              adapter: fallbackResolved.adapter,
-              connectorId: fallbackResolved.connectorId || null,
-              routeReasonCode: reasonCode,
-              fallbackSource: 'token-api',
-              policyGate: policyGate || null,
-            },
-          }).catch((auditError) => {
-            logRendererEvent({
-              level: 'warn',
-              area: 'local-ai-runtime-audit',
-              message: 'fallback_to_token_api_persist_failed',
-              flowId: routeFlowId,
-              details: {
-                reasonCode: ReasonCode.LOCAL_AI_AUDIT_WRITE_FAILED,
-                detail: safeErrorMessage(auditError),
-              },
-            });
-          });
-          runtimeRouteResolveCache.set(cacheKey, {
-            expiresAt: now + RUNTIME_ROUTE_RESOLVE_CACHE_TTL_MS,
-            value: fallbackBinding,
-          });
-          return fallbackBinding;
-        } catch (fallbackError) {
-          logRendererEvent({
-            level: 'error',
-            area: 'renderer-bootstrap',
-            message: 'runtime-route:resolve:fallback-failed',
-            flowId: routeFlowId,
-            details: {
-              capability,
-              modId: modId || null,
-              reasonCode,
-              originalError: safeErrorMessage(error),
-              fallbackError: safeErrorMessage(fallbackError),
-            },
-          });
-        }
-      }
+      void localAiRuntime.appendInferenceAudit({
+        eventType: 'inference_failed',
+        modId: modId || 'core.runtime-route',
+        source: normalizedOverrideSource === 'token-api' ? 'token-api' : 'local-runtime',
+        provider: 'runtime-route',
+        modality: capability,
+        adapter: '',
+        model: normalizedRouteOverride?.model || '',
+        endpoint: undefined,
+        reasonCode: localAiReasonCode,
+        detail: safeErrorMessage(error),
+        policyGate: (typeof policyGate === 'string' || (policyGate && typeof policyGate === 'object'))
+          ? policyGate as string | Record<string, unknown>
+          : undefined,
+      }).catch(() => {});
       logRendererEvent({
         level: 'error',
         area: 'renderer-bootstrap',
@@ -478,7 +379,7 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
       adapter: resolved.adapter,
       localProviderEndpoint: resolved.localProviderEndpoint,
       localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-      localOpenAiApiKey: resolved.localOpenAiApiKey,
+      credentialRefId: resolved.credentialRefId,
       model: resolved.model,
       engine: resolved.source === 'local-runtime' ? resolved.engine : undefined,
     };

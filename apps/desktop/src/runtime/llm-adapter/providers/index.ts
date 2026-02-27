@@ -5,6 +5,5 @@ export { FallbackAdapter } from './fallback';
 export { createProviderAdapter } from './factory';
 export { createAiSdkOpenAiCompatibleProvider } from './ai-sdk-factory';
 export { LocalAiNativeAdapter } from './localai-native';
-export { NexaNativeAdapter } from './nexa-native';
 export { OpenAICompatibleAdapter } from './openai-compatible/adapter';
 export { VolcengineCompatibleAdapter } from './volcengine-compatible';

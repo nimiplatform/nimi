@@ -2,6 +2,7 @@ import { resolveProviderExecutionPlan } from './provider-plan';
 import type { CheckLlmHealthInput, ProviderHealth } from './types';
 import { buildAdapter } from './provider-adapter';
 import { formatProviderError } from './utils';
+import { resolveProviderApiKeyFromCredentialRef } from './runtime-ai-bridge';
 
 export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<ProviderHealth> {
   const plan = resolveProviderExecutionPlan(input);
@@ -18,7 +19,8 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
     };
   }
   try {
-    const adapter = buildAdapter(plan, localFetch, input.localOpenAiApiKey);
+    const apiKey = resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
+    const adapter = buildAdapter(plan, localFetch, apiKey);
     const health = await adapter.healthCheck(plan.model);
     return {
       providerKind: plan.providerKind,

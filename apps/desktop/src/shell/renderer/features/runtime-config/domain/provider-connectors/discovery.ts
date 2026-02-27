@@ -247,7 +247,7 @@ export async function discoverConnectorModelsAndHealth(input: {
     localProviderEndpoint: normalizeEndpointV11(input.state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11),
     localProviderModel: firstModel,
     localOpenAiEndpoint: endpoint,
-    localOpenAiApiKey: token,
+    credentialRefId: input.connector.id,
   });
 
   return {

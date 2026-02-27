@@ -57,7 +57,7 @@ export type CheckLlmHealthInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
@@ -74,7 +74,7 @@ export type ExecuteLocalKernelTurnInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
@@ -95,7 +95,7 @@ export type InvokeModLlmInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
@@ -114,7 +114,7 @@ export type InvokeModEmbeddingInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
@@ -135,7 +135,7 @@ export type InvokeModTranscribeInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
@@ -151,7 +151,7 @@ export type InvokeModImageInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
@@ -170,7 +170,7 @@ export type InvokeModVideoInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  localOpenAiApiKey?: string;
+  credentialRefId?: string;
   providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };

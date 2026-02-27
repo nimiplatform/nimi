@@ -2,6 +2,7 @@ import { getPlatformClient } from '@runtime/platform-client';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
 import { resolveProviderExecutionPlan } from './provider-plan';
 import type { FetchImpl, LocalAiProviderHints, ProviderPlan } from './types';
+import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
 
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 const ROUTE_POLICY_TOKEN_API = 2;
@@ -88,6 +89,27 @@ export function getRuntimeClient() {
   return runtime;
 }
 
+function loadRuntimeConfigForCredentialLookup() {
+  return loadRuntimeConfigStateV11({
+    provider: '',
+    runtimeModelType: 'chat',
+    localProviderEndpoint: '',
+    localProviderModel: '',
+    localOpenAiEndpoint: '',
+    credentialRefId: '',
+  });
+}
+
+export function resolveProviderApiKeyFromCredentialRef(credentialRefId: string | undefined): string {
+  const normalizedRef = String(credentialRefId || '').trim();
+  if (!normalizedRef) {
+    return '';
+  }
+  const state = loadRuntimeConfigForCredentialLookup();
+  const connector = state.connectors.find((item) => item.id === normalizedRef);
+  return String(connector?.tokenApiKey || '').trim();
+}
+
 export function resolveRuntimeAiCall(input: {
   provider: string;
   modality: 'chat' | 'embedding' | 'stt' | 'tts' | 'image' | 'video';
@@ -142,29 +164,96 @@ function resolveCaller(modId: string): {
   };
 }
 
-export function buildRuntimeCallOptions(modId: string, timeoutMs: number): {
+function resolveCredentialMetadata(input: {
+  source: InferenceRouteSource;
+  credentialRefId?: string;
+  providerEndpoint?: string;
+}): {
+  credentialSource: 'runtime-config' | 'request-injected';
+  providerEndpoint?: string;
+  providerApiKey?: string;
+} {
+  if (input.source !== 'token-api') {
+    return {
+      credentialSource: 'runtime-config',
+    };
+  }
+  const providerApiKey = resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
+  if (!providerApiKey) {
+    return {
+      credentialSource: 'runtime-config',
+    };
+  }
+  return {
+    credentialSource: 'request-injected',
+    providerEndpoint: String(input.providerEndpoint || '').trim() || undefined,
+    providerApiKey,
+  };
+}
+
+export function buildRuntimeRequestMetadata(input: {
+  source: InferenceRouteSource;
+  credentialRefId?: string;
+  providerEndpoint?: string;
+}): Record<string, string> {
+  const resolved = resolveCredentialMetadata(input);
+  const metadata: Record<string, string> = {
+    credentialSource: resolved.credentialSource,
+  };
+  if (resolved.providerEndpoint) {
+    metadata.providerEndpoint = resolved.providerEndpoint;
+  }
+  if (resolved.providerApiKey) {
+    metadata.providerApiKey = resolved.providerApiKey;
+  }
+  return metadata;
+}
+
+export function buildRuntimeCallOptions(input: {
+  modId: string;
+  timeoutMs: number;
+  source: InferenceRouteSource;
+  credentialRefId?: string;
+  providerEndpoint?: string;
+}): {
   timeoutMs: number;
   metadata: {
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
+    credentialSource: 'runtime-config' | 'request-injected';
+    providerEndpoint?: string;
+    providerApiKey?: string;
   };
 } {
-  const caller = resolveCaller(modId);
+  const caller = resolveCaller(input.modId);
+  const credentialMetadata = resolveCredentialMetadata({
+    source: input.source,
+    credentialRefId: input.credentialRefId,
+    providerEndpoint: input.providerEndpoint,
+  });
   return {
-    timeoutMs,
+    timeoutMs: input.timeoutMs,
     metadata: {
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
+      credentialSource: credentialMetadata.credentialSource,
+      providerEndpoint: credentialMetadata.providerEndpoint,
+      providerApiKey: credentialMetadata.providerApiKey,
     },
   };
 }
 
 export function buildRuntimeStreamOptions(
-  modId: string,
-  timeoutMs: number,
-  signal?: AbortSignal,
+  input: {
+    modId: string;
+    timeoutMs: number;
+    signal?: AbortSignal;
+    source: InferenceRouteSource;
+    credentialRefId?: string;
+    providerEndpoint?: string;
+  },
 ): {
   timeoutMs: number;
   signal?: AbortSignal;
@@ -172,16 +261,27 @@ export function buildRuntimeStreamOptions(
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
+    credentialSource: 'runtime-config' | 'request-injected';
+    providerEndpoint?: string;
+    providerApiKey?: string;
   };
 } {
-  const caller = resolveCaller(modId);
+  const caller = resolveCaller(input.modId);
+  const credentialMetadata = resolveCredentialMetadata({
+    source: input.source,
+    credentialRefId: input.credentialRefId,
+    providerEndpoint: input.providerEndpoint,
+  });
   return {
-    timeoutMs,
-    signal,
+    timeoutMs: input.timeoutMs,
+    signal: input.signal,
     metadata: {
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
+      credentialSource: credentialMetadata.credentialSource,
+      providerEndpoint: credentialMetadata.providerEndpoint,
+      providerApiKey: credentialMetadata.providerApiKey,
     },
   };
 }

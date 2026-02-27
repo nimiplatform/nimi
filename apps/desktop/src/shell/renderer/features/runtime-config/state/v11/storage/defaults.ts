@@ -11,12 +11,6 @@ import {
 } from '../types';
 
 export const RUNTIME_CONFIG_STORAGE_KEY_V11 = 'nimi.runtime.llm-config.v11';
-const STALE_STORAGE_KEYS_V11 = [
-  'nimi.runtime.llm-config.v10',
-  'nimi.runtime.llm-config.v9',
-  'nimi.runtime.llm-config.v8',
-  'nimi.runtime.llm-config.v7',
-] as const;
 
 export type RuntimeConfigSeedV11 = {
   provider: string;
@@ -24,7 +18,7 @@ export type RuntimeConfigSeedV11 = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  localOpenAiApiKey: string;
+  credentialRefId?: string;
 };
 
 export type StoredStateV11 = Partial<{
@@ -40,12 +34,6 @@ export type StoredStateV11 = Partial<{
   selectedConnectorId: string;
   uiMode: 'simple' | 'advanced';
 }>;
-
-export function clearStaleKeysV11(removeLocalStorageKey: (key: string) => void): void {
-  for (const key of STALE_STORAGE_KEYS_V11) {
-    removeLocalStorageKey(key);
-  }
-}
 
 function parseSourceFromProvider(providerRef: string): SourceIdV11 {
   const normalized = String(providerRef || '').trim().toLowerCase();
@@ -98,8 +86,7 @@ function parseModelHint(providerRef: string): string {
 export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfigStateV11 {
   const sourceFromRuntime = parseSourceFromProvider(seed.provider);
   const modelHint = parseModelHint(seed.provider) || String(seed.localProviderModel || 'local-model');
-  const hasTokenApiKey = Boolean(String(seed.localOpenAiApiKey || '').trim());
-  const preferTokenApi = sourceFromRuntime === 'token-api' || hasTokenApiKey;
+  const preferTokenApi = sourceFromRuntime === 'token-api';
 
   const localRuntime = {
     endpoint: normalizeEndpointV11(
@@ -149,7 +136,7 @@ export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfig
   ) {
     connector.endpoint = normalizeEndpointV11(seedOpenAiEndpoint, connector.endpoint);
   }
-  connector.tokenApiKey = String(seed.localOpenAiApiKey || '');
+  connector.tokenApiKey = '';
 
   return {
     version: 11,

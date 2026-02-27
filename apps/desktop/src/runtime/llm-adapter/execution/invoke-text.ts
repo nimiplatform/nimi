@@ -51,7 +51,13 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       routePolicy: runtimeCall.routePolicy,
       fallback: runtimeCall.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-    }, buildRuntimeCallOptions(input.modId, PRIVATE_PROVIDER_TIMEOUT_MS));
+    }, buildRuntimeCallOptions({
+      modId: input.modId,
+      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      source,
+      credentialRefId: input.credentialRefId,
+      providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+    }));
 
     const text = extractTextFromGenerateOutput((response as { output?: unknown }).output);
     if (!text) {

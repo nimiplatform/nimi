@@ -200,7 +200,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ text: string; promptTraceId: string }>;
   streamModText(input: {
     modId: string;
@@ -214,7 +214,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): AsyncIterable<HookLlmStreamEvent>;
   generateModImage(input: {
     modId: string;
@@ -227,7 +227,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }>;
   generateModVideo(input: {
     modId: string;
@@ -239,7 +239,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }>;
   generateModEmbedding(input: {
     modId: string;
@@ -250,7 +250,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ embeddings: number[][] }>;
 
   listSpeechProviders(input: {
@@ -353,7 +353,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
-    localOpenAiApiKey?: string;
+    credentialRefId?: string;
   }): Promise<{ text: string }>;
 
   getAudit(filter?: {

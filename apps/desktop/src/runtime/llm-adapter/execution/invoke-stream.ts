@@ -74,7 +74,14 @@ export async function* invokeModLlmStream(
       routePolicy: runtimeCall.routePolicy,
       fallback: runtimeCall.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-    }, buildRuntimeStreamOptions(input.modId, PRIVATE_PROVIDER_TIMEOUT_MS, scopedAbort.signal));
+    }, buildRuntimeStreamOptions({
+      modId: input.modId,
+      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      signal: scopedAbort.signal,
+      source,
+      credentialRefId: input.credentialRefId,
+      providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+    }));
 
     for await (const event of stream as AsyncIterable<{
       payload?: {

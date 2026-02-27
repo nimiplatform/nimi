@@ -37,7 +37,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
       localProviderEndpoint: input.runtimeFields.localProviderEndpoint,
       localProviderModel: input.runtimeFields.localProviderModel,
       localOpenAiEndpoint: input.runtimeFields.localOpenAiEndpoint,
-      localOpenAiApiKey: input.runtimeFields.localOpenAiApiKey,
+      credentialRefId: input.runtimeFields.credentialRefId,
     });
 
     input.setState(loaded);
@@ -64,7 +64,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
   }, [
     input.bootstrapReady,
     input.hydrated,
-    input.runtimeFields.localOpenAiApiKey,
+    input.runtimeFields.credentialRefId,
     input.runtimeFields.localOpenAiEndpoint,
     input.runtimeFields.localProviderEndpoint,
     input.runtimeFields.localProviderModel,
