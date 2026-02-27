@@ -22,6 +22,7 @@ type TokenApiConnectorsPageProps = {
   onRenameSelectedConnector: (label: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
   onChangeConnectorToken: (tokenApiKey: string) => void;
+  onChangeConnectorTokenEnv: (tokenApiKeyEnv: string) => void;
   onChangeConnectorVendor: (vendor: string) => void;
   onTestSelectedConnector: () => Promise<void>;
 };
@@ -42,6 +43,7 @@ export function TokenApiConnectorsPage({
   onRenameSelectedConnector,
   onChangeConnectorEndpoint,
   onChangeConnectorToken,
+  onChangeConnectorTokenEnv,
   onChangeConnectorVendor,
   onTestSelectedConnector,
 }: TokenApiConnectorsPageProps) {
@@ -116,7 +118,7 @@ export function TokenApiConnectorsPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Input
               label="Endpoint"
               value={selectedConnector.endpoint}
@@ -125,11 +127,18 @@ export function TokenApiConnectorsPage({
             />
 
             <Input
-              label="API Key"
+              label="Session API Key"
               value={selectedConnector.tokenApiKey}
               onChange={onChangeConnectorToken}
               type={showTokenApiKey ? 'text' : 'password'}
               placeholder="sk-..."
+            />
+
+            <Input
+              label="API Key Env"
+              value={selectedConnector.tokenApiKeyEnv}
+              onChange={onChangeConnectorTokenEnv}
+              placeholder="GEMINI_API_KEY"
             />
           </div>
 

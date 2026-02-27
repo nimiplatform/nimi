@@ -100,6 +100,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "providers failed: %v\n", err)
 			os.Exit(1)
 		}
+	case "config":
+		if err := runRuntimeConfig(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "config failed: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		printUsage()
 		os.Exit(2)

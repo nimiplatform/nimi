@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TauriCredentialVault } from '@runtime/llm-adapter';
 import {
   localAiRuntime,
@@ -10,7 +10,7 @@ import {
 } from '@runtime/local-ai-runtime';
 import { desktopBridge, type RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { CapabilityV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { CapabilityV11, RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -18,6 +18,11 @@ import { createRuntimeConfigPanelCommands } from './runtime-config-panel-command
 import { useRuntimeConfigPanelDerived } from './runtime-config-panel-derived';
 import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
 import { applyRuntimeDaemonStatusToConfigState } from './runtime-daemon-state';
+import {
+  applyRuntimeBridgeConfigToState,
+  buildRuntimeBridgeConfigFromState,
+  serializeRuntimeBridgeProjection,
+} from './runtime-bridge-config';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -50,6 +55,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const [runtimeDaemonBusyAction, setRuntimeDaemonBusyAction] = useState<RuntimeDaemonAction | null>(null);
   const [runtimeDaemonError, setRuntimeDaemonError] = useState('');
   const [runtimeDaemonUpdatedAt, setRuntimeDaemonUpdatedAt] = useState<string | null>(null);
+  const runtimeBridgeConfigRef = useRef<Record<string, unknown>>({});
+  const runtimeBridgeProjectionRef = useRef('');
+  const runtimeBridgeFailedProjectionRef = useRef('');
+  const runtimeBridgeLoadStartedRef = useRef(false);
+  const runtimeBridgeReadyRef = useRef(false);
+  const runtimeBridgeRestartHintShownRef = useRef(false);
 
   const commandInput = useMemo(() => ({
     guard: {
@@ -465,9 +476,104 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   }, [panelState.hydrated, refreshRuntimeDaemonStatus]);
 
   useEffect(() => {
-    if (!panelState.state) return;
+    if (!panelState.hydrated || !panelState.state) return;
     persistRuntimeConfigStateV11(panelState.state);
-  }, [panelState.state]);
+  }, [panelState.hydrated, panelState.state]);
+
+  useEffect(() => {
+    if (!panelState.hydrated || runtimeBridgeLoadStartedRef.current) return;
+    runtimeBridgeLoadStartedRef.current = true;
+
+    if (!desktopBridge.hasTauriInvoke()) {
+      runtimeBridgeReadyRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    const loadBridgeConfig = async () => {
+      try {
+        const result = await desktopBridge.getRuntimeBridgeConfig();
+        if (cancelled) return;
+        runtimeBridgeConfigRef.current = asRecord(result.config);
+        panelState.setState((previous) => {
+          if (!previous) return previous;
+          const next = applyRuntimeBridgeConfigToState(previous, runtimeBridgeConfigRef.current);
+          runtimeBridgeProjectionRef.current = serializeRuntimeBridgeProjection(next);
+          runtimeBridgeFailedProjectionRef.current = '';
+          return next;
+        });
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : String(error || 'runtime config bridge load failed');
+        setStatusBanner({
+          kind: 'warning',
+          message: `Runtime config read failed, keep local view: ${message}`,
+        });
+      } finally {
+        if (!cancelled) {
+          runtimeBridgeReadyRef.current = true;
+        }
+      }
+    };
+
+    void loadBridgeConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, [panelState.hydrated, panelState.setState, setStatusBanner]);
+
+  useEffect(() => {
+    const stateSnapshot = panelState.state;
+    if (!panelState.hydrated || !stateSnapshot) return;
+    if (!runtimeBridgeReadyRef.current) return;
+    if (!desktopBridge.hasTauriInvoke()) return;
+
+    const nextProjection = serializeRuntimeBridgeProjection(stateSnapshot);
+    if (nextProjection === runtimeBridgeProjectionRef.current) return;
+    if (nextProjection === runtimeBridgeFailedProjectionRef.current) return;
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const persist = async (currentState: RuntimeConfigStateV11, projection: string) => {
+        try {
+          const nextConfig = buildRuntimeBridgeConfigFromState(currentState, runtimeBridgeConfigRef.current);
+          const result = await desktopBridge.setRuntimeBridgeConfig(JSON.stringify(nextConfig));
+          if (cancelled) return;
+
+          runtimeBridgeConfigRef.current = asRecord(result.config);
+          runtimeBridgeProjectionRef.current = projection;
+          runtimeBridgeFailedProjectionRef.current = '';
+
+          if (
+            result.reasonCode === 'CONFIG_RESTART_REQUIRED'
+            && !runtimeBridgeRestartHintShownRef.current
+          ) {
+            runtimeBridgeRestartHintShownRef.current = true;
+            const hint = String(result.actionHint || '').trim();
+            setStatusBanner({
+              kind: 'info',
+              message: hint || 'Runtime config saved. Restart runtime to apply changes.',
+            });
+          }
+        } catch (error) {
+          if (cancelled) return;
+          runtimeBridgeFailedProjectionRef.current = projection;
+          const message = error instanceof Error ? error.message : String(error || 'runtime config bridge save failed');
+          setStatusBanner({
+            kind: 'error',
+            message: `Runtime config save failed: ${message}`,
+          });
+        }
+      };
+
+      void persist(stateSnapshot, nextProjection);
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [panelState.hydrated, panelState.state, setStatusBanner]);
 
   return {
     state: panelState.state,

@@ -265,12 +265,6 @@ function resolveTokenApiCapabilityConfig(input: {
   }
 
   const token = String(connector.tokenApiKey || '').trim();
-  if (!token) {
-    throwRouteError(
-      'RUNTIME_ROUTE_CONNECTOR_TOKEN_MISSING',
-      `token_api_key is missing for connector: ${connector.id}`,
-    );
-  }
 
   const connectorModels = connector.models
     .map((item) => String(item || '').trim())

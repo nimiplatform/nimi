@@ -2,7 +2,7 @@
 title: Nimi Runtime Service Skeleton
 status: FROZEN
 created_at: 2026-02-24
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - This SSOT is maintained in @nimiplatform/nimi and follows no-legacy mode.
@@ -19,6 +19,7 @@ rules:
 - 当前状态：`FROZEN`
 - 用途：runtime 独立实现前的接口与治理冻结草案
 - 非目标：不覆盖 Desktop UI 与 World 业务规则
+- Runtime Config 合同：`ssot/runtime/config-contract.md`
 - 多模态补充合同：`ssot/runtime/multimodal-provider-contract.md`
 - 多模态交付门禁：`ssot/runtime/multimodal-delivery-gates.md`
 

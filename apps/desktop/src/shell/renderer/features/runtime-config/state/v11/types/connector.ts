@@ -70,6 +70,7 @@ export type ApiConnector = {
   vendor: ApiVendor;
   endpoint: string;
   tokenApiKey: string;
+  tokenApiKeyEnv: string;
   models: string[];
   status: ProviderStatusV11;
   lastCheckedAt: string | null;
@@ -235,6 +236,7 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
     vendor,
     endpoint: catalog.defaultEndpoint,
     tokenApiKey: '',
+    tokenApiKeyEnv: '',
     models: catalogModelsV11(vendor),
     status: 'idle',
     lastCheckedAt: null,
@@ -275,6 +277,7 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
     vendor,
     endpoint: normalizeEndpointV11(String(raw.endpoint || catalog.defaultEndpoint), catalog.defaultEndpoint),
     tokenApiKey: String(raw.tokenApiKey || ''),
+    tokenApiKeyEnv: String(raw.tokenApiKeyEnv || ''),
     models: normalizeConnectorModelsV11(vendor, raw.models),
     status: normalizeStatusV11(raw.status),
     lastCheckedAt: raw.lastCheckedAt || null,

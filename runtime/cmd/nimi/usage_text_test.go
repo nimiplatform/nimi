@@ -39,6 +39,9 @@ func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
 	if !strings.Contains(output, "mod") {
 		t.Fatalf("usage should include mod command group: %q", output)
 	}
+	if !strings.Contains(output, "config") {
+		t.Fatalf("usage should include config command group: %q", output)
+	}
 	if strings.Contains(output, "|grant|") {
 		t.Fatalf("usage should not include legacy grant command: %q", output)
 	}
@@ -70,6 +73,22 @@ func TestPrintRuntimeModUsageIncludesSixCommands(t *testing.T) {
 	for _, command := range required {
 		if !strings.Contains(output, command) {
 			t.Fatalf("runtime mod usage missing %s: %q", command, output)
+		}
+	}
+}
+
+func TestPrintRuntimeConfigUsageIncludesSubcommands(t *testing.T) {
+	output := captureStderrOutput(t, printRuntimeConfigUsage)
+	required := []string{
+		"nimi config init",
+		"nimi config get",
+		"nimi config set",
+		"nimi config validate",
+		"nimi config migrate",
+	}
+	for _, command := range required {
+		if !strings.Contains(output, command) {
+			t.Fatalf("runtime config usage missing %s: %q", command, output)
 		}
 	}
 }

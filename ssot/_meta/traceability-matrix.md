@@ -1,7 +1,7 @@
 ---
 title: SSOT Traceability Matrix
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 rules:
   - 每个 public SSOT 文档都必须在本矩阵登记，包含来源与提升状态。
   - 矩阵中的 target 路径必须可解析到现存文件。
@@ -20,6 +20,7 @@ rules:
 | `boundaries/agent.md` | `realm-closed-source boundary (public stub)` | 2026-02-25 | boundary-stub |
 | `boundaries/social.md` | `realm-closed-source boundary (public stub)` | 2026-02-25 | boundary-stub |
 | `runtime/local-runtime.md` | `ssot/runtime/local-runtime.md` | 2026-02-25 | promoted |
+| `runtime/config-contract.md` | `ssot/runtime/config-contract.md` | 2026-02-27 | canonicalized |
 | `runtime/multimodal-provider-contract.md` | `ssot/runtime/multimodal-provider-contract.md` | 2026-02-26 | canonicalized |
 | `runtime/multimodal-delivery-gates.md` | `ssot/runtime/multimodal-delivery-gates.md` | 2026-02-26 | canonicalized |
 | `runtime/service-contract.md` | `ssot/runtime/service-contract.md` | 2026-02-25 | canonicalized |

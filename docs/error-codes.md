@@ -4,11 +4,13 @@ Nimi SDK and runtime return structured errors with stable `reasonCode` values.
 
 ```ts
 type NimiError = Error & {
+  code: string;
   reasonCode: string;
   actionHint: string;
   traceId: string;
   retryable: boolean;
   source: 'realm' | 'runtime' | 'sdk';
+  details?: Record<string, unknown>;
 };
 ```
 
@@ -38,6 +40,7 @@ Retryability below follows `@nimiplatform/sdk/types` `isRetryableReasonCode()`.
 | `APP_DELEGATION_DEPTH_EXCEEDED` | Delegation depth exceeded | No |
 | `APP_RESOURCE_SELECTOR_INVALID` | Resource selector format invalid | No |
 | `APP_RESOURCE_OUT_OF_SCOPE` | Resource selection out of granted scope | No |
+| `AUTH_CONTEXT_MISSING` | Runtime call missing auth context subject user id | No |
 | `APP_CONSENT_MISSING` | Consent reference missing | No |
 | `APP_CONSENT_INVALID` | Consent reference invalid | No |
 | `EXTERNAL_PRINCIPAL_PROOF_MISSING` | Proof missing for external principal session | No |
@@ -57,6 +60,27 @@ Retryability below follows `@nimiplatform/sdk/types` `isRetryableReasonCode()`.
 | `AI_STREAM_BROKEN` | Stream interrupted/broken | Yes |
 | `AI_CONTENT_FILTER_BLOCKED` | Content blocked by policy/filter | No |
 
+## Runtime Config Reason Codes
+
+These are emitted by `nimi config *` commands and desktop runtime-config bridge paths.
+
+| Code | Description | Retryable |
+|------|-------------|-----------|
+| `CONFIG_PARSE_FAILED` | Runtime config JSON parsing failed or mutation payload invalid | No |
+| `CONFIG_SCHEMA_INVALID` | Runtime config schema or field validation failed | No |
+| `CONFIG_MIGRATION_FAILED` | Legacy config migration to new path failed | No |
+| `CONFIG_WRITE_LOCKED` | Config write lock already held by another writer | Yes |
+| `CONFIG_SECRET_POLICY_VIOLATION` | Plaintext `apiKey` detected; must use `apiKeyEnv` / `secretRef` | No |
+| `CONFIG_RESTART_REQUIRED` | Config write succeeded; runtime restart required to apply | No |
+
+Desktop bridge-specific wrappers:
+
+| Code | Description |
+|------|-------------|
+| `RUNTIME_BRIDGE_CONFIG_PARSE_FAILED` | Desktop bridge failed to parse `nimi config --json` output |
+| `RUNTIME_BRIDGE_CONFIG_CLI_START_FAILED` | Desktop bridge failed to spawn `nimi config` process |
+| `RUNTIME_BRIDGE_CONFIG_CLI_FAILED` | `nimi config` process exited non-zero from desktop bridge |
+
 ## SDK-Level Reason Codes
 
 These are emitted before runtime execution or by SDK transport layers.
@@ -65,10 +89,11 @@ These are emitted before runtime execution or by SDK transport layers.
 
 | Code | Description |
 |------|-------------|
-| `SDK_APP_ID_REQUIRED` | `createNimiClient` missing `appId` |
-| `SDK_TARGET_REQUIRED` | `createNimiClient` requires at least one of `realm` / `runtime` |
-| `SDK_REALM_BASE_URL_REQUIRED` | `realm.baseUrl` is required when realm config is provided |
-| `PROTOCOL_VERSION_MISMATCH` | `createNimiClient({ protocolVersion })` does not match SDK version |
+| `SDK_APP_ID_REQUIRED` | Runtime client missing required `appId` |
+| `SDK_TARGET_REQUIRED` | Reserved legacy code (removed single-entry client initializer) |
+| `SDK_REALM_BASE_URL_REQUIRED` | Realm client missing required `baseUrl` |
+| `CONFIG_INVALID` | Realm request/config invalid (default mapping for HTTP 400/422) |
+| `PROTOCOL_VERSION_MISMATCH` | Reserved legacy code (removed initializer protocol guard) |
 | `SDK_RUNTIME_APP_ID_REQUIRED` | `createRuntimeClient` missing `appId` |
 | `SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED` | AI request missing explicit `routePolicy` |
 
@@ -129,16 +154,20 @@ Current retryable set:
 ```ts
 import type { NimiError } from '@nimiplatform/sdk/types';
 import { isRetryableReasonCode } from '@nimiplatform/sdk/types';
+import { Runtime } from '@nimiplatform/sdk';
+
+const runtime = new Runtime({
+  appId: 'my_app',
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+});
 
 try {
-  await client.runtime!.ai.generate({
-    appId: 'my_app',
+  await runtime.ai.text.generate({
+    model: 'local/qwen2.5',
     subjectUserId: 'local-user',
-    modelId: 'local/qwen2.5',
-    modal: Modal.TEXT,
-    input: [{ role: 'user', content: 'hello' }],
-    routePolicy: RoutePolicy.LOCAL_RUNTIME,
-    fallback: FallbackPolicy.DENY,
+    input: 'hello',
+    route: 'local-runtime',
+    fallback: 'deny',
   });
 } catch (error) {
   const nimiError = error as NimiError;
@@ -152,13 +181,12 @@ try {
 
 ## Streaming Failure Events
 
-For `ai.streamGenerate`, failures are emitted in stream events:
+For `ai.text.stream`, failures are emitted as stream parts:
 
 ```ts
-for await (const event of stream) {
-  if (event.payload.oneofKind === 'failed') {
-    const { reasonCode, actionHint } = event.payload.failed;
-    console.error(reasonCode, actionHint);
+for await (const part of streamResult.stream) {
+  if (part.type === 'error') {
+    console.error(part.error.reasonCode, part.error.actionHint);
   }
 }
 ```

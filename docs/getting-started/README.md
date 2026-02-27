@@ -16,6 +16,22 @@ cd runtime
 go run ./cmd/nimi serve
 ```
 
+Recommended: create a single runtime config file once, then use the same start command every time:
+
+```bash
+cd runtime
+go run ./cmd/nimi config init --json
+go run ./cmd/nimi config validate --json
+```
+
+Then set only the key you need (Gemini example):
+
+```bash
+export GEMINI_API_KEY="<your-gemini-key>"
+cd runtime
+go run ./cmd/nimi serve
+```
+
 Default endpoints:
 
 - gRPC: `127.0.0.1:46371`
@@ -37,6 +53,7 @@ In a new terminal:
 cd runtime
 go run ./cmd/nimi health --source grpc
 go run ./cmd/nimi providers --source grpc
+go run ./cmd/nimi config get --json
 go run ./cmd/nimi audit events --page-size 10 --json
 ```
 
@@ -74,33 +91,23 @@ pnpm add @nimiplatform/sdk
 Run a quick test:
 
 ```ts
-import { createNimiClient } from '@nimiplatform/sdk';
-import { FallbackPolicy, Modal, RoutePolicy } from '@nimiplatform/sdk/runtime';
+import { Runtime } from '@nimiplatform/sdk';
 
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: 'my_app',
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
-const result = await client.runtime!.ai.generate(
-  {
-    appId: 'my_app',
-    subjectUserId: 'local-user',
-    modelId: 'local/qwen2.5',
-    modal: Modal.TEXT,
-    input: [{ role: 'user', content: 'Hello from SDK!' }],
-    routePolicy: RoutePolicy.LOCAL_RUNTIME,
-    fallback: FallbackPolicy.DENY,
-    timeoutMs: 30000,
-  },
-  {
-    idempotencyKey: crypto.randomUUID(),
-  },
-);
+const result = await runtime.ai.text.generate({
+  model: 'local/qwen2.5',
+  subjectUserId: 'local-user',
+  input: 'Hello from SDK!',
+  route: 'local-runtime',
+  fallback: 'deny',
+  timeoutMs: 30000,
+});
 
-console.log(JSON.stringify(result.output, null, 2));
+console.log(result.text);
 ```
 
 ### Via Vercel AI SDK
@@ -112,19 +119,17 @@ pnpm add @nimiplatform/sdk @nimiplatform/sdk/ai-provider ai
 ```
 
 ```ts
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { generateText } from 'ai';
 
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: 'my_app',
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
 const nimi = createNimiAiProvider({
-  runtime: client.runtime!,
+  runtime,
   appId: 'my_app',
   subjectUserId: 'local-user',
   routePolicy: 'local-runtime',
@@ -204,15 +209,22 @@ go run ./cmd/nimi app send \
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
+| `NIMI_RUNTIME_CONFIG_PATH` | `~/.nimi/config.json` | Unified runtime config file path |
 | `NIMI_RUNTIME_GRPC_ADDR` | `127.0.0.1:46371` | gRPC listen address |
 | `NIMI_RUNTIME_HTTP_ADDR` | `127.0.0.1:46372` | HTTP health/metrics listen |
 | `NIMI_RUNTIME_SHUTDOWN_TIMEOUT` | `10s` | Graceful shutdown timeout |
 | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | — | Local AI provider endpoint |
 | `NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL` | — | Cloud LiteLLM endpoint |
+| `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` (when Gemini key is present) | Gemini adapter endpoint |
+| `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` | fallback from `GEMINI_API_KEY` | Gemini adapter key |
 | `NIMI_RUNTIME_AI_HEALTH_INTERVAL` | `8s` | Provider health probe interval |
 | `NIMI_RUNTIME_AI_HTTP_TIMEOUT` | `30s` | Provider probe timeout |
 | `NIMI_RUNTIME_MODEL_REGISTRY_PATH` | `~/.nimi/runtime/model-registry.json` | Model registry persistence path |
 | `NIMI_RUNTIME_ENABLE_WORKERS` | `false` | Enable worker subprocesses |
+
+Runtime Config SSOT: [`../../ssot/runtime/config-contract.md`](../../ssot/runtime/config-contract.md)
+
+`nimi config set` changes require `restart runtime` to take effect.
 
 ## Next
 

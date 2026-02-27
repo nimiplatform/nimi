@@ -53,6 +53,10 @@ export function ProviderConnectorsPanel({
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, { tokenApiKey }));
   };
 
+  const onChangeConnectorTokenEnv = (tokenApiKeyEnv: string) => {
+    updateState((prev) => updateConnectorField(prev, selectedConnectorId, { tokenApiKeyEnv }));
+  };
+
   const onChangeConnectorVendor = (vendor: string) => {
     updateState((prev) => applyProviderConnectorRoutePatch(prev, selectedConnectorId, vendor));
   };
@@ -66,6 +70,7 @@ export function ProviderConnectorsPanel({
       onRenameSelectedConnector={onRenameSelectedConnector}
       onChangeConnectorEndpoint={onChangeConnectorEndpoint}
       onChangeConnectorToken={onChangeConnectorToken}
+      onChangeConnectorTokenEnv={onChangeConnectorTokenEnv}
       onChangeConnectorVendor={onChangeConnectorVendor}
       stateModel={stateModel}
       viewModel={viewModel}

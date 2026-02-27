@@ -1,7 +1,11 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
+  parseRuntimeBridgeConfigGetResult,
+  parseRuntimeBridgeConfigSetResult,
   parseRuntimeBridgeDaemonStatus,
+  type RuntimeBridgeConfigGetResult,
+  type RuntimeBridgeConfigSetResult,
   type RuntimeBridgeDaemonStatus,
 } from './types';
 
@@ -40,4 +44,22 @@ export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus>
     throw new Error('runtime_bridge_restart requires Tauri runtime');
   }
   return invokeChecked('runtime_bridge_restart', {}, parseRuntimeBridgeDaemonStatus);
+}
+
+export async function getRuntimeBridgeConfig(): Promise<RuntimeBridgeConfigGetResult> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_bridge_config_get requires Tauri runtime');
+  }
+  return invokeChecked('runtime_bridge_config_get', {}, parseRuntimeBridgeConfigGetResult);
+}
+
+export async function setRuntimeBridgeConfig(configJson: string): Promise<RuntimeBridgeConfigSetResult> {
+  if (!hasTauriInvoke()) {
+    throw new Error('runtime_bridge_config_set requires Tauri runtime');
+  }
+  return invokeChecked(
+    'runtime_bridge_config_set',
+    { payload: { configJson } },
+    parseRuntimeBridgeConfigSetResult,
+  );
 }

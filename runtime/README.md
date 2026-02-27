@@ -3,7 +3,7 @@
 `nimi-runtime` is now bootstrapped with executable Go entries:
 
 - `cmd/nimi` unified entry (`serve` daemon + full CLI)
-- `cmd/nimi` command surface: `serve`, `status`, `run/chat`, `ai ...`, `model ...`, `mod ...`, `auth ...`, `app-auth ...`, `knowledge ...`, `app ...`, `audit ...`, `workflow ...`, `health`, `providers`
+- `cmd/nimi` command surface: `serve`, `status`, `run/chat`, `ai ...`, `model ...`, `mod ...`, `auth ...`, `app-auth ...`, `knowledge ...`, `app ...`, `audit ...`, `workflow ...`, `health`, `providers`, `config ...`
 - `internal/` runtime boot, health state, gRPC/HTTP servers
 
 Current implementation scope:
@@ -32,6 +32,9 @@ Current implementation scope:
     - Alibaba adapter: `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL` / `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY`
     - Bytedance adapter: `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL` / `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY`
     - alias: `NIMI_RUNTIME_CLOUD_AI_BASE_URL` / `NIMI_RUNTIME_CLOUD_AI_API_KEY` (maps to LiteLLM when dedicated vars are absent)
+    - Gemini key alias: if `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` is empty, runtime falls back to `GEMINI_API_KEY`
+    - Gemini base default: if Gemini key is present and base URL is empty, runtime uses `https://generativelanguage.googleapis.com/v1beta/openai`
+  - unified config file: `~/.nimi/config.json` (override with `NIMI_RUNTIME_CONFIG_PATH`)
   - timeout: `NIMI_RUNTIME_AI_HTTP_TIMEOUT` (default `30s`)
   - provider probe interval: `NIMI_RUNTIME_AI_HEALTH_INTERVAL` (default `8s`)
   - model registry persistence path: `NIMI_RUNTIME_MODEL_REGISTRY_PATH`
@@ -78,6 +81,7 @@ Proto contract:
 
 - Contract source: `../ssot/runtime/proto-contract.md`
 - Concrete proto files: `../proto/runtime/v1/*.proto`
+- Runtime config contract: `../ssot/runtime/config-contract.md`
 
 ## Quick Start
 
@@ -85,6 +89,19 @@ Proto contract:
 cd runtime
 go run ./cmd/nimi serve
 ```
+
+Recommended (one-time setup):
+
+```bash
+go run ./cmd/nimi config init --json
+export GEMINI_API_KEY="<your-gemini-key>"
+go run ./cmd/nimi config validate --json
+go run ./cmd/nimi serve
+```
+
+Config precedence: CLI flags > environment variables > config file > built-in defaults.
+
+`nimi config set` writes are restart-required; runtime does not hot-reload config.
 
 In another terminal:
 
@@ -94,6 +111,10 @@ go run ./cmd/nimi health
 go run ./cmd/nimi health --source grpc
 go run ./cmd/nimi health --watch --changes-only --interval 5s
 go run ./cmd/nimi health --source grpc --watch --changes-only
+go run ./cmd/nimi config get --json
+go run ./cmd/nimi config set --set ai.providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
+go run ./cmd/nimi config set --set ai.providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai --json
+go run ./cmd/nimi config migrate --json
 go run ./cmd/nimi providers
 go run ./cmd/nimi providers --source grpc
 go run ./cmd/nimi providers --watch --changes-only --interval 5s

@@ -6,7 +6,7 @@ import (
 )
 
 func printUsage() {
-	fmt.Fprintln(os.Stderr, "Usage: nimi <serve|status|run|chat|ai|model|mod|auth|app-auth|knowledge|app|audit|workflow|health|providers>")
+	fmt.Fprintln(os.Stderr, "Usage: nimi <serve|status|run|chat|ai|model|mod|auth|app-auth|knowledge|app|audit|workflow|health|providers|config>")
 }
 
 func printRuntimeAIUsage() {
@@ -43,4 +43,8 @@ func printRuntimeAuditUsage() {
 
 func printRuntimeWorkflowUsage() {
 	fmt.Fprintln(os.Stderr, "Usage:\n  nimi workflow submit [--grpc-addr --timeout --app-id --subject-user-id --definition-file --timeout-ms --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi workflow get [--grpc-addr --timeout --app-id --task-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi workflow cancel [--grpc-addr --timeout --app-id --task-id --json --caller-kind --caller-id --surface-id --trace-id]\n  nimi workflow watch [--grpc-addr --timeout --app-id --task-id --json --caller-kind --caller-id --surface-id --trace-id]")
+}
+
+func printRuntimeConfigUsage() {
+	fmt.Fprintln(os.Stderr, "Usage:\n  nimi config init [--force --json]\n  nimi config get [--json]\n  nimi config set [--stdin|--file PATH] [--set key=value ...] [--unset key ...] [--json]\n  nimi config validate [--json]\n  nimi config migrate [--json]")
 }

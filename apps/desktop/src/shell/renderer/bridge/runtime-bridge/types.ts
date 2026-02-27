@@ -38,6 +38,18 @@ export type RuntimeBridgeDaemonStatus = {
   lastError?: string;
 };
 
+export type RuntimeBridgeConfigGetResult = {
+  path: string;
+  config: Record<string, unknown>;
+};
+
+export type RuntimeBridgeConfigSetResult = {
+  path: string;
+  reasonCode?: string;
+  actionHint?: string;
+  config: Record<string, unknown>;
+};
+
 export type RuntimeLocalManifestSummary = {
   path: string;
   id: string;
@@ -394,6 +406,26 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
     grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'runtime_bridge_status'),
     pid: parseOptionalNumber(record.pid),
     lastError: parseOptionalString(record.lastError),
+  };
+}
+
+export function parseRuntimeBridgeConfigGetResult(value: unknown): RuntimeBridgeConfigGetResult {
+  const record = assertRecord(value, 'runtime_bridge_config_get returned invalid payload');
+  const config = assertRecord(record.config, 'runtime_bridge_config_get config payload is invalid');
+  return {
+    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_get'),
+    config,
+  };
+}
+
+export function parseRuntimeBridgeConfigSetResult(value: unknown): RuntimeBridgeConfigSetResult {
+  const record = assertRecord(value, 'runtime_bridge_config_set returned invalid payload');
+  const config = assertRecord(record.config, 'runtime_bridge_config_set config payload is invalid');
+  return {
+    path: parseRequiredString(record.path, 'path', 'runtime_bridge_config_set'),
+    reasonCode: parseOptionalString(record.reasonCode),
+    actionHint: parseOptionalString(record.actionHint),
+    config,
   };
 }
 

@@ -7,6 +7,7 @@ mod stream;
 mod unary;
 
 use serde::Deserialize;
+use serde_json::Value;
 use tauri::AppHandle;
 
 pub use daemon_manager::RuntimeBridgeDaemonStatus;
@@ -48,6 +49,12 @@ pub struct RuntimeBridgeStreamOpenPayload {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeStreamClosePayload {
     pub stream_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeBridgeConfigSetPayload {
+    pub config_json: String,
 }
 
 pub fn stream_event_name_with_namespace(namespace: &str, stream_id: &str) -> String {
@@ -116,6 +123,16 @@ pub fn runtime_bridge_restart() -> Result<RuntimeBridgeDaemonStatus, String> {
         channel_pool::invalidate_channel();
     }
     result
+}
+
+#[tauri::command]
+pub fn runtime_bridge_config_get() -> Result<Value, String> {
+    daemon_manager::config_get()
+}
+
+#[tauri::command]
+pub fn runtime_bridge_config_set(payload: RuntimeBridgeConfigSetPayload) -> Result<Value, String> {
+    daemon_manager::config_set(payload.config_json.as_str())
 }
 
 #[cfg(test)]

@@ -16,6 +16,7 @@ Public platform SSOT is maintained under `@nimiplatform/nimi/ssot`.
 ## Runtime
 
 - [`../../ssot/runtime/local-runtime.md`](../../ssot/runtime/local-runtime.md)
+- [`../../ssot/runtime/config-contract.md`](../../ssot/runtime/config-contract.md)
 - [`../../ssot/runtime/service-contract.md`](../../ssot/runtime/service-contract.md)
 - [`../../ssot/runtime/proto-contract.md`](../../ssot/runtime/proto-contract.md)
 - [`../../ssot/runtime/workflow-dag.md`](../../ssot/runtime/workflow-dag.md)

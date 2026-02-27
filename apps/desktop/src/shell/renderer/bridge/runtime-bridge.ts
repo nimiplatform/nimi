@@ -1,8 +1,10 @@
 import { hasTauriInvoke } from './runtime-bridge/env';
 import { logRendererEvent, toRendererLogMessage } from './runtime-bridge/logging';
 import {
+  getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
   restartRuntimeBridge,
+  setRuntimeBridgeConfig,
   startRuntimeBridge,
   stopRuntimeBridge,
 } from './runtime-bridge/runtime-daemon';
@@ -189,6 +191,8 @@ export type {
   RendererLogLevel,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
+  RuntimeBridgeConfigGetResult,
+  RuntimeBridgeConfigSetResult,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
   OpenExternalUrlResult,
@@ -225,9 +229,11 @@ export {
   logRendererEvent,
   toRendererLogMessage,
   getRuntimeBridgeStatus,
+  getRuntimeBridgeConfig,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,
+  setRuntimeBridgeConfig,
   proxyHttp,
   getRuntimeDefaults,
   oauthListenForCode,
@@ -243,9 +249,11 @@ export const desktopBridge = {
   hasTauriInvoke,
   logRendererEvent,
   getRuntimeBridgeStatus,
+  getRuntimeBridgeConfig,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,
+  setRuntimeBridgeConfig,
   getRuntimeDefaults,
   startWindowDrag,
   proxyHttp,
