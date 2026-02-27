@@ -16,7 +16,7 @@ function createBaseState(): RuntimeConfigStateV11 {
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
     localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-    localOpenAiApiKey: '',
+    credentialRefId: '',
   });
 }
 

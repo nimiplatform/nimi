@@ -2,6 +2,7 @@ import { createProviderAdapter } from '@runtime/llm-adapter';
 import { DEFAULT_TEMPLATES } from '@runtime/llm-adapter/registry/templates';
 import type { ModelProfile } from '@runtime/llm-adapter/types';
 import type { ResolvedRuntimeRouteBinding } from '@nimiplatform/sdk/mod/types';
+import { TauriCredentialVault } from '@runtime/llm-adapter/credential-vault.js';
 import {
   dedupeStringsV11,
   normalizeEndpointV11,
@@ -123,14 +124,14 @@ function buildConnectorModelCacheKey(input: {
   connectorId: string;
   vendor: string;
   endpoint: string;
-  tokenApiKey: string;
+  credentialRefId: string;
 }): string {
-  const token = String(input.tokenApiKey || '').trim();
+  const ref = String(input.credentialRefId || '').trim();
   return JSON.stringify({
     connectorId: input.connectorId,
     vendor: String(input.vendor || '').trim(),
     endpoint: String(input.endpoint || '').trim(),
-    tokenHint: token ? `${token.length}:${token.slice(-8)}` : 'none',
+    credentialRef: ref || 'none',
   });
 }
 
@@ -297,7 +298,7 @@ export async function hydrateConnectorModels(input: {
   connectorId: string;
   vendor: string;
   endpoint: string;
-  tokenApiKey: string;
+  credentialRefId: string;
   models: string[];
 }): Promise<RuntimeRouteHydratedModelsPayload> {
   const current = dedupeStringsV11([...(Array.isArray(input.models) ? input.models : [])]);
@@ -305,8 +306,8 @@ export async function hydrateConnectorModels(input: {
   const vendor = String(input.vendor || '').trim();
   if (vendor !== 'openrouter') return currentPayload;
 
-  const tokenApiKey = String(input.tokenApiKey || '').trim();
-  if (!tokenApiKey) return currentPayload;
+  const credentialRefId = String(input.credentialRefId || '').trim();
+  if (!credentialRefId) return currentPayload;
 
   const endpoint = normalizeEndpointV11(String(input.endpoint || '').trim(), '');
   if (!endpoint) return currentPayload;
@@ -315,7 +316,7 @@ export async function hydrateConnectorModels(input: {
     connectorId: input.connectorId,
     vendor,
     endpoint,
-    tokenApiKey,
+    credentialRefId,
   });
   const now = Date.now();
   const cached = runtimeRouteConnectorModelCache.get(cacheKey);
@@ -331,11 +332,15 @@ export async function hydrateConnectorModels(input: {
 
   const task = (async () => {
     try {
+      const vault = new TauriCredentialVault();
+      let secret = '';
+      try { secret = await vault.getCredentialSecret(credentialRefId); } catch { /* no secret */ }
+      if (!secret) return currentPayload;
       const adapter = createProviderAdapter('OPENAI_COMPATIBLE', {
         name: `runtime-route-options:${input.connectorId}`,
         endpoint,
         headers: {
-          Authorization: `Bearer ${tokenApiKey}`,
+          Authorization: `Bearer ${secret}`,
         },
       });
       const listed = await adapter.listModels();

@@ -65,7 +65,7 @@ Environment variables:
 - `NIMI_LOCAL_PROVIDER_ENDPOINT` (default: `http://127.0.0.1:1234/v1`)
 - `NIMI_LOCAL_PROVIDER_MODEL` (default: `local-model`, or override by explicit route config)
 - `NIMI_LOCAL_OPENAI_ENDPOINT` (default: `http://127.0.0.1:1234/v1`, for LM Studio/OpenAI-compatible provider)
-- `NIMI_LOCAL_OPENAI_API_KEY` (optional API key for OpenAI-compatible local endpoint)
+- `NIMI_CREDENTIAL_REF_ID` (optional credential reference ID for vault-based secret lookup)
 
 Provider format examples:
 
