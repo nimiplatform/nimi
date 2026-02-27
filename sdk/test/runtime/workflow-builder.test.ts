@@ -78,7 +78,7 @@ test('workflow builder covers node factories and base defaults/overrides', () =>
     resumeStrategy: WorkflowResumeStrategy.MANUAL,
     callbackRef: ' callback://demo ',
     config: {
-      modelId: 'cloud/litellm',
+      modelId: 'cloud/nimillm',
       modal: 1,
       systemPrompt: '',
       tools: [],

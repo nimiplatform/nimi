@@ -14,10 +14,10 @@ type FakeServer = {
   close: () => Promise<void>;
 };
 
-function startFakeLiteLLMServer(): Promise<FakeServer> {
-  const imageBytes = Buffer.from('litellm-image-bytes', 'utf8');
-  const videoBytes = Buffer.from('litellm-video-bytes', 'utf8');
-  const audioBytes = Buffer.from('litellm-audio-bytes', 'utf8');
+function startFakeNimiLLMServer(): Promise<FakeServer> {
+  const imageBytes = Buffer.from('nimillm-image-bytes', 'utf8');
+  const videoBytes = Buffer.from('nimillm-video-bytes', 'utf8');
+  const audioBytes = Buffer.from('nimillm-audio-bytes', 'utf8');
 
   const server = http.createServer((req, res) => {
     const path = req.url || '';
@@ -42,7 +42,7 @@ function startFakeLiteLLMServer(): Promise<FakeServer> {
         choices: [{
           finish_reason: 'stop',
           message: {
-            content: 'litellm text',
+            content: 'nimillm text',
           },
         }],
         usage: {
@@ -107,7 +107,7 @@ function startFakeLiteLLMServer(): Promise<FakeServer> {
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify({
-        text: 'litellm stt text',
+        text: 'nimillm stt text',
       }));
       return;
     }
@@ -120,7 +120,7 @@ function startFakeLiteLLMServer(): Promise<FakeServer> {
     server.listen(0, '127.0.0.1', () => {
       const address = server.address();
       if (!address || typeof address === 'string') {
-        reject(new Error('fake litellm server listen failed'));
+        reject(new Error('fake nimillm server listen failed'));
         return;
       }
       resolvePromise({
@@ -152,20 +152,20 @@ function promptFromText(text: string) {
   }];
 }
 
-test('provider_cloud_test.ts: litellm modalities via nimi-sdk', {
+test('provider_cloud_test.ts: nimillm modalities via nimi-sdk', {
   skip: process.env.NIMI_RUNTIME_CONTRACT !== '1',
   timeout: 120_000,
 }, async () => {
-  const fakeServer = await startFakeLiteLLMServer();
-  const expectedImage = Buffer.from('litellm-image-bytes', 'utf8');
-  const expectedVideo = Buffer.from('litellm-video-bytes', 'utf8');
-  const expectedAudio = Buffer.from('litellm-audio-bytes', 'utf8');
+  const fakeServer = await startFakeNimiLLMServer();
+  const expectedImage = Buffer.from('nimillm-image-bytes', 'utf8');
+  const expectedVideo = Buffer.from('nimillm-video-bytes', 'utf8');
+  const expectedAudio = Buffer.from('nimillm-audio-bytes', 'utf8');
 
   try {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({
@@ -189,8 +189,8 @@ test('provider_cloud_test.ts: litellm modalities via nimi-sdk', {
           timeoutMs: 30_000,
         });
 
-        const textResult = await provider.text('litellm/gpt-4o-mini').doGenerate({
-          prompt: promptFromText('hello litellm'),
+        const textResult = await provider.text('nimillm/gpt-4o-mini').doGenerate({
+          prompt: promptFromText('hello nimillm'),
           providerOptions: {},
         });
         const generatedText = textResult.content
@@ -198,15 +198,15 @@ test('provider_cloud_test.ts: litellm modalities via nimi-sdk', {
           .map((item) => item.text)
           .join('')
           .trim();
-        assert.equal(generatedText, 'litellm text');
+        assert.equal(generatedText, 'nimillm text');
 
-        const embeddingResult = await provider.embedding('litellm/text-embedding-3').doEmbed({
+        const embeddingResult = await provider.embedding('nimillm/text-embedding-3').doEmbed({
           values: ['embed me'],
           providerOptions: {},
         });
         assert.deepEqual(embeddingResult.embeddings, [[0.1, 0.2]]);
 
-        const imageResult = await provider.image('litellm/image-1').doGenerate({
+        const imageResult = await provider.image('nimillm/image-1').doGenerate({
           prompt: 'skyline',
           n: 1,
           size: undefined,
@@ -219,7 +219,7 @@ test('provider_cloud_test.ts: litellm modalities via nimi-sdk', {
         assert.equal(imageResult.images.length, 1);
         assert.equal(imageResult.images[0], expectedImage.toString('base64'));
 
-        const videoResult = await provider.video('litellm/video-1').generate({
+        const videoResult = await provider.video('nimillm/video-1').generate({
           prompt: 'ocean',
         });
         assert.equal(videoResult.artifacts.length, 1);
@@ -228,7 +228,7 @@ test('provider_cloud_test.ts: litellm modalities via nimi-sdk', {
           expectedVideo.toString('utf8'),
         );
 
-        const speechResult = await provider.tts('litellm/tts-1').synthesize({
+        const speechResult = await provider.tts('nimillm/tts-1').synthesize({
           text: 'speak',
         });
         assert.equal(speechResult.artifacts.length, 1);
@@ -237,11 +237,11 @@ test('provider_cloud_test.ts: litellm modalities via nimi-sdk', {
           expectedAudio.toString('utf8'),
         );
 
-        const transcription = await provider.stt('litellm/stt-1').transcribe({
+        const transcription = await provider.stt('nimillm/stt-1').transcribe({
           audioBytes: Uint8Array.from([1, 2, 3]),
           mimeType: 'audio/wav',
         });
-        assert.equal(transcription.text, 'litellm stt text');
+        assert.equal(transcription.text, 'nimillm stt text');
       },
     });
   } finally {

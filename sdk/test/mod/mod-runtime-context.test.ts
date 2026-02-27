@@ -20,7 +20,7 @@ const LOCAL_ROUTE: ResolvedRuntimeRouteBinding = {
   localProviderEndpoint: 'http://127.0.0.1:11434/v1',
   localProviderModel: 'qwen2.5',
   localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
-  localOpenAiApiKey: '',
+  credentialRefId: '',
   connectorId: '',
 };
 

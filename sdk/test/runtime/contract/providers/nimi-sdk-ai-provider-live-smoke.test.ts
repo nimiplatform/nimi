@@ -243,27 +243,27 @@ test('nimi sdk ai-provider live smoke: local provider generate text', {
   }
 });
 
-test('nimi sdk ai-provider live smoke: litellm generate text', {
+test('nimi sdk ai-provider live smoke: nimillm generate text', {
   skip: process.env.NIMI_SDK_LIVE !== '1',
   timeout: 180_000,
 }, async (t) => {
-  const baseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_LITELLM_BASE_URL');
-  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_LITELLM_MODEL_ID');
+  const baseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_NIMILLM_BASE_URL');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_NIMILLM_MODEL_ID');
   if (!baseURL || !modelID) {
     return;
   }
-  const apiKey = String(process.env.NIMI_LIVE_LITELLM_API_KEY || '').trim();
+  const apiKey = String(process.env.NIMI_LIVE_NIMILLM_API_KEY || '').trim();
 
   let outputText = '';
 
   try {
     await withRuntimeDaemon({
-      NIMI_RUNTIME_CLOUD_LITELLM_BASE_URL: baseURL,
-      ...(apiKey ? { NIMI_RUNTIME_CLOUD_LITELLM_API_KEY: apiKey } : {}),
+      NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL: baseURL,
+      ...(apiKey ? { NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY: apiKey } : {}),
     }, async (endpoint) => {
       const model = createSdkTextModel(endpoint, 'token-api', modelID);
       const generated = await model.doGenerate({
-        prompt: promptFromText('Say hello from Nimi SDK LiteLLM live smoke.'),
+        prompt: promptFromText('Say hello from Nimi SDK NimiLLM live smoke.'),
         providerOptions: {},
       });
       outputText = generated.content
@@ -271,10 +271,10 @@ test('nimi sdk ai-provider live smoke: litellm generate text', {
         .map((item) => item.text)
         .join('')
         .trim();
-      assert.ok(outputText.length > 0, 'litellm live smoke output should not be empty');
+      assert.ok(outputText.length > 0, 'nimillm live smoke output should not be empty');
     });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error || '');
-    throw new Error(`sdk litellm live smoke failed: ${detail}; output=${outputText}`);
+    throw new Error(`sdk nimillm live smoke failed: ${detail}; output=${outputText}`);
   }
 });
