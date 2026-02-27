@@ -80,6 +80,10 @@ Desktop bridge-specific wrappers:
 | `RUNTIME_BRIDGE_CONFIG_PARSE_FAILED` | Desktop bridge failed to parse `nimi config --json` output |
 | `RUNTIME_BRIDGE_CONFIG_CLI_START_FAILED` | Desktop bridge failed to spawn `nimi config` process |
 | `RUNTIME_BRIDGE_CONFIG_CLI_FAILED` | `nimi config` process exited non-zero from desktop bridge |
+| `RUNTIME_BRIDGE_MODE_INVALID` | Desktop bridge mode is invalid; expected `RUNTIME` or `RELEASE` |
+| `RUNTIME_BRIDGE_RUNTIME_GO_NOT_FOUND` | Desktop bridge runtime mode requires `go` in `PATH` |
+| `RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND` | Desktop bridge runtime mode cannot locate workspace `runtime/` directory |
+| `RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND` | Desktop bridge release mode requires `nimi` binary (or `NIMI_RUNTIME_BINARY`) |
 
 ## SDK-Level Reason Codes
 

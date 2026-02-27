@@ -28,7 +28,7 @@ Renderer tech stack:
 Mock fixture quick-start (after `pnpm reset`):
 
 ```bash
-export NIMI_API_BASE_URL=http://localhost:3002
+export NIMI_REALM_URL=http://localhost:3002
 export NIMI_WORLD_ID=01JKFANREN00000000000001
 
 # PRIVATE route (owned by test-primary)
@@ -48,7 +48,7 @@ Linux runtime prerequisites (for Tauri/WebKit runtime):
 
 Environment variables:
 
-- `NIMI_API_BASE_URL` (default: `http://localhost:3002`)
+- `NIMI_REALM_URL` (default: `http://localhost:3002`)
 - `NIMI_ACCESS_TOKEN` (required)
 - `NIMI_USER_CONFIRMED_UPLOAD` (`1` to allow PRIVATE turn upload in play demo)
 - `NIMI_TARGET_TYPE` (`AGENT` default, also supports `CONTACT` / `FRIEND`)

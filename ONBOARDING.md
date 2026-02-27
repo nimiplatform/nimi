@@ -44,15 +44,36 @@ node -v
 pnpm -v
 ```
 
-## 3. 首次初始化
+## 3. 首次初始化（先配 `.env`）
 
-在仓库根目录执行：
+在执行任何 `build` 前，先完成 desktop/mods 环境变量配置。
+
+统一在仓库根目录 `nimi/.env` 创建环境文件：
+
+```bash
+# nimi/.env
+NIMI_MODS_ROOT=/Users/<you>/nimi-realm/nimi/nimi-mods
+NIMI_RUNTIME_MODS_DIR=/Users/<you>/nimi-realm/nimi/nimi-mods
+NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
+NIMI_REALM_URL=http://localhost:3002
+```
+
+说明：
+
+1. `NIMI_MODS_ROOT` 与 `NIMI_RUNTIME_MODS_DIR` 必须是存在的绝对路径。
+2. Desktop 构建与运行统一只读取仓库根 `.env`（`nimi/.env`）。
+3. 显式 `export` 的 shell 环境变量优先级最高。
+4. 常见错误是仍保留占位值 `/ABS/PATH/TO/nimi-mods`，会导致 `pnpm build` 失败。
+5. `NIMI_RUNTIME_BRIDGE_MODE` 仅允许 `RUNTIME`/`RELEASE`；本地开发应使用 `RUNTIME`，发布环境使用 `RELEASE`。
+6. 开源仓库只允许提交 `.env*.example` 模板；`*.env` 与 `*.env.*` 本地文件禁止提交。
+
+完成 `.env` 后，在仓库根目录执行：
 
 ```bash
 pnpm install
 ```
 
-可选构建检查：
+可选构建检查（需要上面的 `.env` 已配置）：
 
 ```bash
 pnpm build
@@ -137,6 +158,8 @@ const realm = new Realm({
 ## 6. Desktop 与 Web 开发
 
 ### 6.1 Desktop（含 mods 联调）
+
+`.env` 配置规则见第 3 节。也可以临时用 shell 导出：
 
 ```bash
 export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods

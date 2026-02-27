@@ -49,12 +49,12 @@ Runtime wallet login is available in web mode when wallet providers are injected
 API base URL policy in web mode:
 
 - `@nimiplatform/web` always uses same-origin API routing from current page origin.
-- `NIMI_API_BASE_URL` is ignored for web-shell API requests to avoid accidental `localhost` lock-in on LAN access.
+- `NIMI_REALM_URL` is ignored for web-shell API requests to avoid accidental `localhost` lock-in on LAN access.
 
 Desktop browser authorization note:
 
-- `desktop` now uses `NIMI_API_BASE_URL` as the only launch base for browser auth.
-- Example: `NIMI_API_BASE_URL=http://localhost` (login hash path is auto-appended as `#/login`).
+- `desktop` now uses `NIMI_REALM_URL` as the only launch base for browser auth.
+- Example: `NIMI_REALM_URL=http://localhost` (login hash path is auto-appended as `#/login`).
 - `localhost` and `localhost:3000` are different localStorage scopes.
 
 ## Commands
