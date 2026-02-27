@@ -53,8 +53,8 @@ API base URL policy in web mode:
 
 Desktop browser authorization note:
 
-- `desktop` now uses `NIMI_REALM_URL` as the only launch base for browser auth.
-- Example: `NIMI_REALM_URL=http://localhost` (login hash path is auto-appended as `#/login`).
+- `desktop` uses `NIMI_WEB_URL` as browser-auth launch base.
+- Example: `NIMI_WEB_URL=http://localhost` (login hash path is auto-appended as `#/login`).
 - `localhost` and `localhost:3000` are different localStorage scopes.
 
 ## Commands

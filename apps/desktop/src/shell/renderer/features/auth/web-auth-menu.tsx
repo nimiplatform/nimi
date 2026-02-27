@@ -231,10 +231,7 @@ function normalizeWebAuthLaunchPath(input: URL): URL {
 }
 
 function resolveDesktopWebAuthLaunchBaseUrl(inputBaseUrl?: string): string {
-  const baseUrl = String(inputBaseUrl || readEnv('NIMI_REALM_URL')).trim();
-  if (!baseUrl) {
-    throw new Error('缺少 NIMI_REALM_URL');
-  }
+  const baseUrl = String(inputBaseUrl || readEnv('NIMI_WEB_URL') || 'http://localhost').trim();
 
   try {
     const parsed = normalizeWebAuthLaunchPath(new URL(baseUrl));
@@ -245,7 +242,7 @@ function resolveDesktopWebAuthLaunchBaseUrl(inputBaseUrl?: string): string {
     return parsed.toString();
   } catch (error) {
     throw new Error(
-      `无效的 NIMI_REALM_URL：${toErrorMessage(error, '配置解析失败')}`,
+      `无效的 NIMI_WEB_URL：${toErrorMessage(error, '配置解析失败')}`,
     );
   }
 }
@@ -1890,11 +1887,9 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
 
         const callbackUrl = createDesktopCallbackRedirectUri();
         const callbackState = createDesktopCallbackState();
-        const runtimeDefaults = await desktopBridge.getRuntimeDefaults();
         const launchUrl = buildDesktopWebAuthLaunchUrl({
           callbackUrl,
           state: callbackState,
-          baseUrl: String(runtimeDefaults.apiBaseUrl || ''),
         });
 
         listenTask = desktopBridge.oauthListenForCode({

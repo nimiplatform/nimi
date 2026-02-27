@@ -56,6 +56,8 @@ NIMI_MODS_ROOT=/Users/<you>/nimi-realm/nimi/nimi-mods
 NIMI_RUNTIME_MODS_DIR=/Users/<you>/nimi-realm/nimi/nimi-mods
 NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
 NIMI_REALM_URL=http://localhost:3002
+NIMI_CONTROL_PLANE_URL=http://localhost
+NIMI_WEB_URL=http://localhost
 ```
 
 说明：
@@ -66,6 +68,7 @@ NIMI_REALM_URL=http://localhost:3002
 4. 常见错误是仍保留占位值 `/ABS/PATH/TO/nimi-mods`，会导致 `pnpm build` 失败。
 5. `NIMI_RUNTIME_BRIDGE_MODE` 仅允许 `RUNTIME`/`RELEASE`；本地开发应使用 `RUNTIME`，发布环境使用 `RELEASE`。
 6. 开源仓库只允许提交 `.env*.example` 模板；`*.env` 与 `*.env.*` 本地文件禁止提交。
+7. `NIMI_REALM_URL` 是 Realm API 地址；`NIMI_CONTROL_PLANE_URL` 是 Runtime 控制面地址；`NIMI_WEB_URL` 是桌面网页登录入口地址（不要混用）。
 
 完成 `.env` 后，在仓库根目录执行：
 
@@ -77,7 +80,7 @@ pnpm install
 
 ```bash
 pnpm build
-cd runtime && go build ./cmd/nimi
+pnpm build:runtime
 ```
 
 ## 4. Runtime 快速启动（推荐先做）
