@@ -34,6 +34,22 @@ function resolveOptionalAbsoluteDir(raw: string | undefined, envName: string): s
   return resolved;
 }
 
+function loadDesktopBuildEnvFiles(): void {
+  if (typeof process.loadEnvFile !== 'function') {
+    return;
+  }
+
+  const rootEnvPath = path.resolve(__dirname, '..', '..', '.env');
+  if (!fs.existsSync(rootEnvPath)) {
+    return;
+  }
+  try {
+    process.loadEnvFile(rootEnvPath);
+  } catch {
+    // Keep current process env when optional env file is invalid/unreadable.
+  }
+}
+
 function resolveFsAllowList(env: Record<string, string>): string[] {
   const desktopRoot = path.resolve(__dirname);
   const workspaceRoot = path.resolve(searchForWorkspaceRoot(process.cwd()));
@@ -58,6 +74,7 @@ function resolveFsAllowList(env: Record<string, string>): string[] {
 }
 
 export default defineConfig(({ mode }) => {
+  loadDesktopBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
   const fsAllowList = resolveFsAllowList(env);
 
@@ -99,20 +116,8 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'sdk-runtime-generated';
             }
-            if (
-              normalizedId.includes('/sdk/src/runtime/core/')
-              || normalizedId.includes('/sdk/src/runtime/transports/')
-              || normalizedId.includes('/sdk/src/runtime/errors.ts')
-              || normalizedId.includes('/sdk/src/runtime/method-ids.ts')
-              || normalizedId.includes('/sdk/src/runtime/workflow-builder.ts')
-            ) {
-              return 'sdk-runtime-core';
-            }
             if (normalizedId.includes('/sdk/src/')) {
               return 'sdk-client';
-            }
-            if (normalizedId.includes('/sdk/src/types/')) {
-              return 'sdk-types';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
               return 'runtime-data-sync';

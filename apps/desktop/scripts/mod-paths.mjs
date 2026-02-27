@@ -1,8 +1,34 @@
 /* global process */
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.resolve(__dirname, '..', '..', '..');
+const rootEnvPath = path.resolve(workspaceRoot, '.env');
+let envLoaded = false;
+
+function loadDesktopEnvFiles() {
+  if (envLoaded) {
+    return;
+  }
+  envLoaded = true;
+  if (typeof process.loadEnvFile !== 'function') {
+    return;
+  }
+
+  if (!existsSync(rootEnvPath)) {
+    return;
+  }
+  try {
+    process.loadEnvFile(rootEnvPath);
+  } catch {
+    // Ignore malformed/unreadable optional env files and continue with explicit env.
+  }
+}
 
 function ensureAbsoluteDir(envName, rawValue, options = {}) {
+  loadDesktopEnvFiles();
   const { required = true, mustExist = true } = options;
   const normalized = String(rawValue || '').trim();
 
@@ -31,10 +57,12 @@ function ensureAbsoluteDir(envName, rawValue, options = {}) {
 }
 
 export function resolveModsRoot(options = {}) {
+  loadDesktopEnvFiles();
   return ensureAbsoluteDir('NIMI_MODS_ROOT', process.env.NIMI_MODS_ROOT, options);
 }
 
 export function resolveRuntimeModsDir(options = {}) {
+  loadDesktopEnvFiles();
   return ensureAbsoluteDir('NIMI_RUNTIME_MODS_DIR', process.env.NIMI_RUNTIME_MODS_DIR, options);
 }
 

@@ -77,6 +77,24 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          const normalizedId = id.split(path.sep).join('/');
+          if (normalizedId.includes('/sdk/src/runtime/generated/')) {
+            return 'vendor-sdk-runtime-generated';
+          }
+          if (normalizedId.includes('/sdk/src/')) {
+            return 'vendor-sdk-client';
+          }
+          if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
+            return 'vendor-runtime-data-sync';
+          }
+          if (
+            normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
+            || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts')
+            || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge.ts')
+          ) {
+            return 'vendor-runtime-bridge-core';
+          }
+
           if (!id.includes('node_modules')) {
             return undefined;
           }

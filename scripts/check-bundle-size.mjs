@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const baselinePath = path.join(scriptDir, 'bundle-size-baseline.json');
+const TARGET_DIR_CANDIDATES = {
+  desktop: ['apps/desktop', 'desktop'],
+  web: ['apps/web', 'web'],
+};
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) {
@@ -31,7 +35,7 @@ function parseEntryScriptPath(indexHtml) {
 }
 
 async function readEntryChunkSize(targetName) {
-  const distDir = path.join(repoRoot, targetName, 'dist');
+  const distDir = await resolveTargetDistDir(targetName);
   const indexPath = path.join(distDir, 'index.html');
   const html = await fs.readFile(indexPath, 'utf8');
   const entryScript = parseEntryScriptPath(html);
@@ -46,7 +50,8 @@ async function readEntryChunkSize(targetName) {
 }
 
 async function readLargestAppChunk(targetName) {
-  const distAssetsDir = path.join(repoRoot, targetName, 'dist', 'assets');
+  const distDir = await resolveTargetDistDir(targetName);
+  const distAssetsDir = path.join(distDir, 'assets');
   const entries = await fs.readdir(distAssetsDir, { withFileTypes: true });
   const jsFiles = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith('.js'))
@@ -73,6 +78,22 @@ async function readLargestAppChunk(targetName) {
   }
 
   return largest;
+}
+
+async function resolveTargetDistDir(targetName) {
+  const candidates = TARGET_DIR_CANDIDATES[targetName] || [targetName];
+  for (const relativeDir of candidates) {
+    const distDir = path.join(repoRoot, relativeDir, 'dist');
+    try {
+      const stat = await fs.stat(distDir);
+      if (stat.isDirectory()) {
+        return distDir;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+  throw new Error(`dist directory not found for target "${targetName}"`);
 }
 
 async function main() {
