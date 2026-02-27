@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   resolveRuntimeCapabilityConfigFromStateV11,
 } from '../src/shell/renderer/features/runtime-config/state/runtime-route-resolver-v11';
-import { RuntimeRouteResolutionError } from '../src/shell/renderer/features/runtime-config/state/routing/errors';
 import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/state/v11/storage/defaults';
 import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/state/v11/types';
 
@@ -17,30 +16,24 @@ const seed = {
   credentialRefId: '',
 };
 
-test('token-api route resolution fails close when connector token is missing', () => {
+test('token-api route resolution succeeds when connector has a valid id (credential ref)', () => {
   const state = createDefaultStateV11(seed);
   const connector = createConnectorV11('gemini', 'Gemini');
   connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
   connector.models = ['gemini-2.5-flash'];
-  connector.tokenApiKey = '';
 
   state.selectedSource = 'token-api';
   state.connectors = [connector];
   state.selectedConnectorId = connector.id;
 
-  assert.throws(
-    () => {
-      resolveRuntimeCapabilityConfigFromStateV11(state, seed, 'chat', {
-        routeOverride: {
-          source: 'token-api',
-          connectorId: connector.id,
-        },
-      });
+  const resolved = resolveRuntimeCapabilityConfigFromStateV11(state, seed, 'chat', {
+    routeOverride: {
+      source: 'token-api',
+      connectorId: connector.id,
     },
-    (error) => {
-      assert(error instanceof RuntimeRouteResolutionError);
-      assert.equal(error.code, 'RUNTIME_ROUTE_CONNECTOR_TOKEN_MISSING');
-      return true;
-    },
-  );
+  });
+
+  assert.equal(resolved.source, 'token-api');
+  assert.equal(resolved.credentialRefId, connector.id);
+  assert.equal(resolved.connectorId, connector.id);
 });

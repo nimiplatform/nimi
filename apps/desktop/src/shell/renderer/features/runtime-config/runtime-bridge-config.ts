@@ -28,7 +28,7 @@ const DEFAULT_RUNTIME_CONFIG = {
 const DEFAULT_PROVIDER_BASE_URL: Record<string, string> = {
   local: DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
   'local-nexa': 'http://127.0.0.1:18181',
-  litellm: 'http://127.0.0.1:4000',
+  nimillm: 'http://127.0.0.1:4000',
   alibaba: 'https://dashscope.aliyuncs.com/compatible-mode',
   bytedance: 'https://ark.cn-beijing.volces.com',
   'bytedance-openspeech': 'https://openspeech.bytedance.com',
@@ -41,7 +41,7 @@ const DEFAULT_PROVIDER_BASE_URL: Record<string, string> = {
 const DEFAULT_PROVIDER_API_KEY_ENV: Record<string, string> = {
   local: 'LOCALAI_API_KEY',
   'local-nexa': 'NEXA_API_KEY',
-  litellm: 'LITELLM_MASTER_KEY',
+  nimillm: 'NIMILLM_API_KEY',
   alibaba: 'DASHSCOPE_API_KEY',
   bytedance: 'ARK_API_KEY',
   'bytedance-openspeech': 'OPENSPEECH_API_KEY',
@@ -51,7 +51,7 @@ const DEFAULT_PROVIDER_API_KEY_ENV: Record<string, string> = {
   glm: 'ZAI_API_KEY',
 };
 
-const UI_MANAGED_CLOUD_PROVIDER_KEYS = ['litellm', 'alibaba', 'bytedance', 'gemini', 'minimax', 'kimi', 'glm'] as const;
+const UI_MANAGED_CLOUD_PROVIDER_KEYS = ['nimillm', 'alibaba', 'bytedance', 'gemini', 'minimax', 'kimi', 'glm'] as const;
 const UI_UNMANAGED_PROVIDER_KEYS = ['local-nexa', 'bytedance-openspeech'] as const;
 
 type UiManagedCloudProviderKey = (typeof UI_MANAGED_CLOUD_PROVIDER_KEYS)[number];
@@ -75,7 +75,7 @@ function canonicalProviderKey(raw: string): string {
   const token = trimmed.replace(/[^a-z0-9]/g, '');
   if (token === 'local') return 'local';
   if (token === 'localnexa' || token === 'nexa') return 'local-nexa';
-  if (token === 'litellm' || token === 'cloudlitellm' || token === 'cloudai') return 'litellm';
+  if (token === 'nimillm' || token === 'cloudnimillm') return 'nimillm';
   if (token === 'alibaba' || token === 'aliyun' || token === 'cloudalibaba' || token === 'dashscope') return 'alibaba';
   if (token === 'bytedance' || token === 'byte' || token === 'cloudbytedance' || token === 'volcengine') return 'bytedance';
   if (token === 'bytedanceopenspeech' || token === 'openspeech' || token === 'cloudbytedanceopenspeech') return 'bytedance-openspeech';
@@ -118,7 +118,7 @@ function connectorLabelFromProvider(providerKey: string): string {
   if (providerKey === 'kimi') return 'Kimi Connector';
   if (providerKey === 'minimax') return 'MiniMax Connector';
   if (providerKey === 'glm') return 'GLM Connector';
-  if (providerKey === 'litellm') return 'LiteLLM Connector';
+  if (providerKey === 'nimillm') return 'NimiLLM Connector';
   return `Connector ${providerKey}`;
 }
 
@@ -161,7 +161,7 @@ function providerKeyFromConnector(connector: RuntimeConfigStateV11['connectors']
     return 'glm';
   }
 
-  return 'litellm';
+  return 'nimillm';
 }
 
 function connectorFromProvider(
@@ -175,27 +175,8 @@ function connectorFromProvider(
   const vendor = vendorFromProviderKey(providerKey, endpoint);
   const connector = createConnectorV11(vendor, connectorLabelFromProvider(providerKey));
   connector.endpoint = endpoint;
-  // Runtime Config stores env refs only. Do not hydrate this into a plaintext key field.
-  connector.tokenApiKey = '';
   connector.tokenApiKeyEnv = readString(providerConfig.apiKeyEnv);
   return connector;
-}
-
-function findConnectorTokenByProvider(
-  connectors: RuntimeConfigStateV11['connectors'],
-  providerKey: UiManagedCloudProviderKey,
-  endpoint: string,
-): string {
-  const normalizedEndpoint = normalizeEndpointV11(endpoint, endpoint);
-  const exact = connectors.find((connector) => (
-    providerKeyFromConnector(connector) === providerKey
-    && normalizeEndpointV11(connector.endpoint, connector.endpoint) === normalizedEndpoint
-  ));
-  if (exact) {
-    return readString(exact.tokenApiKey);
-  }
-  const sameProvider = connectors.find((connector) => providerKeyFromConnector(connector) === providerKey);
-  return sameProvider ? readString(sameProvider.tokenApiKey) : '';
 }
 
 function findConnectorTokenEnvByProvider(
@@ -282,7 +263,6 @@ export function applyRuntimeBridgeConfigToState(
           connector.label = existing.label;
         }
       }
-      connector.tokenApiKey = findConnectorTokenByProvider(state.connectors, providerKey, connector.endpoint);
       if (!connector.tokenApiKeyEnv) {
         connector.tokenApiKeyEnv = findConnectorTokenEnvByProvider(state.connectors, providerKey)
           || defaultApiKeyEnvForProvider(providerKey);

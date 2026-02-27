@@ -5,6 +5,7 @@ import {
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { getPlatformClient } from '@runtime/platform-client';
 import { desktopBridge } from '@renderer/bridge';
+import { TauriCredentialVault } from '@runtime/llm-adapter/credential-vault.js';
 import {
   DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
   VENDOR_CATALOGS_V11,
@@ -215,7 +216,10 @@ export async function discoverConnectorModelsAndHealth(input: {
   state: RuntimeConfigStateV11;
   connector: RuntimeConfigStateV11['connectors'][number];
 }) {
-  const token = String(input.connector.tokenApiKey || '').trim();
+  const vault = new TauriCredentialVault();
+  let token = '';
+  try { token = (await vault.getCredentialSecret(input.connector.id)).trim(); }
+  catch { token = ''; }
   if (!token) {
     throw new Error('token_api_key is required');
   }

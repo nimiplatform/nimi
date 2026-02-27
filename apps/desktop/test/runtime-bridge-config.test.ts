@@ -23,7 +23,7 @@ function createBaseState(): RuntimeConfigStateV11 {
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
     localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-    localOpenAiApiKey: '',
+    credentialRefId: '',
   });
 }
 
@@ -60,13 +60,11 @@ test('applyRuntimeBridgeConfigToState maps provider endpoints into runtime setup
   const geminiConnector = next.connectors.find((connector) => connector.vendor === 'gemini');
   assert.ok(geminiConnector);
   assert.equal(geminiConnector.endpoint, 'https://generativelanguage.googleapis.com/v1beta/openai');
-  assert.equal(geminiConnector.tokenApiKey, '');
   assert.equal(geminiConnector.tokenApiKeyEnv, 'GEMINI_API_KEY');
 
   const dashscopeConnector = next.connectors.find((connector) => connector.vendor === 'dashscope');
   assert.ok(dashscopeConnector);
   assert.equal(dashscopeConnector.endpoint, 'https://dashscope.aliyuncs.com/compatible-mode/v1');
-  assert.equal(dashscopeConnector.tokenApiKey, '');
   assert.equal(dashscopeConnector.tokenApiKeyEnv, 'DASHSCOPE_API_KEY');
 });
 
@@ -158,7 +156,6 @@ test('applyRuntimeBridgeConfigToState preserves existing in-memory connector tok
   const previous = createBaseState();
   const connector = createConnectorV11('gemini', 'Gemini');
   connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
-  connector.tokenApiKey = 'session-token';
   previous.connectors = [connector];
   previous.selectedConnectorId = connector.id;
 
@@ -175,6 +172,5 @@ test('applyRuntimeBridgeConfigToState preserves existing in-memory connector tok
   });
 
   assert.equal(next.connectors.length, 1);
-  assert.equal(next.connectors[0]?.tokenApiKey, 'session-token');
   assert.equal(next.connectors[0]?.tokenApiKeyEnv, 'GEMINI_API_KEY');
 });

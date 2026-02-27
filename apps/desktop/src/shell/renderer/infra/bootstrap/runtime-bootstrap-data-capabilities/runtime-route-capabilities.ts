@@ -55,7 +55,7 @@ async function hydrateConnectorModelsWithTimeout(input: {
   connectorId: string;
   vendor: string;
   endpoint: string;
-  tokenApiKey: string;
+  credentialRefId: string;
   models: string[];
 }, timeoutMs: number): Promise<{ payload: HydratedConnectorModels; timedOut: boolean }> {
   const fallback = toHydrationFallbackPayload(input.models);
@@ -238,7 +238,7 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
         connectorId: connector.id,
         vendor: String(connector.vendor || ''),
         endpoint: connector.endpoint,
-        tokenApiKey: connector.tokenApiKey,
+        credentialRefId: connector.id,
         models: [...connector.models],
       }, 1800);
 
