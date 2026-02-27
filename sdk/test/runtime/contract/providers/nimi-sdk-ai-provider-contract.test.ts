@@ -8,8 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
-import { createNimiClient } from '../../../../src/client.js';
-import { createRuntimeClient } from '../../../../src/runtime/index.js';
+import { Runtime, createRuntimeClient } from '../../../../src/runtime/index.js';
 
 const APP_ID = 'nimi.desktop.sdk.ai.contract';
 const SUBJECT_USER_ID = 'user-sdk-contract';
@@ -161,24 +160,20 @@ test('nimi sdk ai-provider can generate and stream text against runtime daemon',
       throw new Error(`runtime daemon failed before ready: ${readyOrError.message}`);
     }
 
-    const client = createNimiClient({
-      appId: APP_ID,
-      runtime: {
-        transport: {
-          type: 'node-grpc',
-          endpoint,
-        },
-        defaults: {
-          callerKind: 'desktop-core',
-          callerId: 'sdk-ai-provider-contract',
-        },
-      },
-    });
-
-    assert.ok(client.runtime, 'runtime client must be configured');
+    const runtime = new Runtime({
+          appId: APP_ID,
+          transport: {
+            type: 'node-grpc',
+            endpoint,
+          },
+          defaults: {
+            callerKind: 'desktop-core',
+            callerId: 'sdk-ai-provider-contract',
+          },
+        });
 
     const provider = createNimiAiProvider({
-      runtime: client.runtime!,
+      runtime,
       appId: APP_ID,
       subjectUserId: SUBJECT_USER_ID,
       routePolicy: 'local-runtime',

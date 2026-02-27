@@ -1,9 +1,10 @@
 import type { RuntimeRouteHint, RuntimeRouteOverride } from '../types';
 import {
   checkResolvedRouteHealth,
-  getHookRuntimeFacade,
+  resolveModRuntimeContext,
   resolveModRouteBinding,
 } from '../internal/runtime-access';
+import type { ModRuntimeContextInput } from '../types/runtime-mod';
 import { modalityFromRouteHint } from './provider';
 import type {
   AiGenerateEmbeddingRequest,
@@ -59,11 +60,13 @@ function routeRuntimePayload(route: Awaited<ReturnType<typeof resolveModRouteBin
   };
 }
 
-export function createAiClient(modId: string): ModAiClient {
+export function createAiClient(modId: string, context?: ModRuntimeContextInput): ModAiClient {
   const normalizedModId = String(modId || '').trim();
   if (!normalizedModId) {
     throw new Error('AI_CLIENT_MOD_ID_REQUIRED');
   }
+  const runtimeContext = resolveModRuntimeContext(context);
+  const runtime = runtimeContext.runtime;
 
   const client: ModAiClient = {
     resolveRoute: async (input) => {
@@ -72,7 +75,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
+      }, runtimeContext);
     },
     checkRouteHealth: async (input) => {
       const routeInput = toRouteInput(input);
@@ -80,8 +83,8 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      return checkResolvedRouteHealth(resolved);
+      }, runtimeContext);
+      return checkResolvedRouteHealth(resolved, runtimeContext);
     },
     generateText: async (input: AiTextRequest) => {
       const routeInput = toRouteInput(input);
@@ -89,8 +92,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const payload = routeRuntimePayload(route);
       const result = await runtime.generateModText({
         modId: normalizedModId,
@@ -116,8 +118,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const payload = routeRuntimePayload(route);
       let doneEmitted = false;
       for await (const event of runtime.streamModText({
@@ -179,8 +180,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const payload = routeRuntimePayload(route);
       const result = await runtime.generateModImage({
         modId: normalizedModId,
@@ -201,8 +201,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const payload = routeRuntimePayload(route);
       const result = await runtime.generateModVideo({
         modId: normalizedModId,
@@ -222,8 +221,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const payload = routeRuntimePayload(route);
       const result = await runtime.transcribeModSpeech({
         modId: normalizedModId,
@@ -244,8 +242,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const payload = routeRuntimePayload(route);
       const result = await runtime.generateModEmbedding({
         modId: normalizedModId,
@@ -264,8 +261,7 @@ export function createAiClient(modId: string): ModAiClient {
         routeHint: routeInput.routeHint,
         modId: normalizedModId,
         routeOverride: routeInput.routeOverride,
-      });
-      const runtime = getHookRuntimeFacade();
+      }, runtimeContext);
       const result = await runtime.synthesizeModSpeech({
         modId: normalizedModId,
         text: input.text,

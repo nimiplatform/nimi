@@ -8,10 +8,11 @@ import { createUiClient } from './ui-client';
 import { createInterModClient } from './inter-mod-client';
 import { createLlmClient } from './llm-client';
 import { getHookRuntimes, normalizeHookModId } from './shared';
+import type { ModRuntimeContextInput } from '../types/runtime-mod';
 
-export function createHookClient(modId: string): HookClient {
+export function createHookClient(modId: string, context?: ModRuntimeContextInput): HookClient {
   const normalizedModId = normalizeHookModId(modId);
-  const { runtimeHost, runtime } = getHookRuntimes();
+  const { runtimeHost, runtime } = getHookRuntimes(context);
 
   return {
     action: createActionClient({

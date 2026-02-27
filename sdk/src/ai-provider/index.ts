@@ -18,8 +18,8 @@ import type {
 import {
   asNimiError,
   createNimiError,
+  Runtime,
   type RuntimeCallOptions,
-  type RuntimeClient,
   type RuntimeStreamCallOptions,
 } from '../runtime/index.js';
 import { Struct } from '../runtime/generated/google/protobuf/struct.js';
@@ -49,13 +49,32 @@ type RuntimeDefaults = {
 };
 
 export type NimiAiProviderConfig = {
-  runtime: RuntimeClient;
+  runtime: Runtime;
   appId: string;
   subjectUserId: string;
   routePolicy?: AiRoutePolicy;
   fallback?: AiFallbackPolicy;
   timeoutMs?: number;
   metadata?: RuntimeCallOptions['metadata'];
+};
+
+type RuntimeAiBridge = Pick<Runtime['ai'],
+  | 'generate'
+  | 'streamGenerate'
+  | 'embed'
+  | 'submitMediaJob'
+  | 'getMediaJob'
+  | 'cancelMediaJob'
+  | 'subscribeMediaJobEvents'
+  | 'getMediaArtifacts'
+  | 'generateImage'
+  | 'generateVideo'
+  | 'synthesizeSpeech'
+  | 'transcribeAudio'
+>;
+
+type RuntimeForAiProvider = {
+  ai: RuntimeAiBridge;
 };
 
 export type NimiRuntimeVideoModel = {
@@ -416,7 +435,7 @@ type MediaJobExecution = {
 };
 
 async function executeMediaJob(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   request: Record<string, unknown>,
   timeoutMs: number,
@@ -528,14 +547,23 @@ async function executeMediaJob(
 }
 
 function ensureRuntime(config: NimiAiProviderConfig): {
-  runtime: RuntimeClient;
+  runtime: RuntimeForAiProvider;
   defaults: RuntimeDefaults;
 } {
-  if (!config.runtime || !config.runtime.ai) {
+  if (!config.runtime) {
     throw createNimiError({
-      message: 'createNimiAiProvider requires runtime client',
+      message: 'createNimiAiProvider requires runtime instance',
       reasonCode: ReasonCode.SDK_AI_PROVIDER_RUNTIME_REQUIRED,
-      actionHint: 'provide_runtime_client',
+      actionHint: 'provide_runtime_instance',
+      source: 'sdk',
+    });
+  }
+
+  if (!(config.runtime instanceof Runtime)) {
+    throw createNimiError({
+      message: 'runtime must be Runtime class instance',
+      reasonCode: ReasonCode.SDK_AI_PROVIDER_RUNTIME_REQUIRED,
+      actionHint: 'construct_runtime_with_new_runtime',
       source: 'sdk',
     });
   }
@@ -694,7 +722,7 @@ function normalizeProviderError(error: unknown) {
 }
 
 function createLanguageModel(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   modelId: string,
 ): LanguageModelV3 {
@@ -881,7 +909,7 @@ function createLanguageModel(
 }
 
 function createEmbeddingModel(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   modelId: string,
 ): EmbeddingModelV3 {
@@ -926,7 +954,7 @@ function createEmbeddingModel(
 }
 
 function createImageModel(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   modelId: string,
 ): ImageModelV3 {
@@ -999,7 +1027,7 @@ function createImageModel(
 }
 
 function createVideoModel(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   modelId: string,
 ): NimiRuntimeVideoModel {
@@ -1048,7 +1076,7 @@ function createVideoModel(
 }
 
 function createSpeechModel(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   modelId: string,
 ): NimiRuntimeSpeechModel {
@@ -1096,7 +1124,7 @@ function createSpeechModel(
 }
 
 function createTranscriptionModel(
-  runtime: RuntimeClient,
+  runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   modelId: string,
 ): NimiRuntimeTranscriptionModel {

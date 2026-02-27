@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
 
-import { asNimiError, type RuntimeClient } from '../../src/runtime/index.js';
+import { asNimiError, Runtime } from '../../src/runtime/index.js';
 
 import { createNimiAiProvider } from '../../src/ai-provider/index.js';
 
@@ -13,9 +13,24 @@ async function* emptyAsyncIterable<T>(): AsyncIterable<T> {
   // no-op
 }
 
+type RuntimeAiCore = Pick<Runtime['ai'],
+  | 'generate'
+  | 'streamGenerate'
+  | 'embed'
+  | 'submitMediaJob'
+  | 'getMediaJob'
+  | 'cancelMediaJob'
+  | 'subscribeMediaJobEvents'
+  | 'getMediaArtifacts'
+  | 'generateImage'
+  | 'generateVideo'
+  | 'synthesizeSpeech'
+  | 'transcribeAudio'
+>;
+
 function createRuntimeStub(
-  aiOverrides: Partial<RuntimeClient['ai']>,
-): RuntimeClient {
+  aiOverrides: Partial<RuntimeAiCore>,
+): Runtime {
   const mediaJobs = new Map<string, {
     job: {
       jobId: string;
@@ -32,7 +47,7 @@ function createRuntimeStub(
   }>();
   let mediaJobCounter = 0;
 
-  const ai = {
+  const ai: RuntimeAiCore = {
     generate: async () => ({
       output: {
         fields: {
@@ -121,26 +136,31 @@ function createRuntimeStub(
       modelResolved: 'stt/default',
       traceId: 'trace-stt',
     }),
-    ...aiOverrides,
+    ...(aiOverrides as RuntimeAiCore),
   };
 
-  return {
-    appId: APP_ID,
-    transport: {
-      type: 'node-grpc',
-      endpoint: '127.0.0.1:46371',
-    },
-    auth: {} as RuntimeClient['auth'],
-    appAuth: {} as RuntimeClient['appAuth'],
-    ai: ai as RuntimeClient['ai'],
-    workflow: {} as RuntimeClient['workflow'],
-    model: {} as RuntimeClient['model'],
-    knowledge: {} as RuntimeClient['knowledge'],
-    app: {} as RuntimeClient['app'],
-    audit: {} as RuntimeClient['audit'],
-    closeStream: async () => {},
-  };
+  const runtime = Object.create(Runtime.prototype) as Runtime;
+  (runtime as unknown as { ai: Runtime['ai'] }).ai = ai as Runtime['ai'];
+  return runtime;
 }
+
+test('createNimiAiProvider requires Runtime class instance', () => {
+  let thrown: unknown = null;
+
+  try {
+    createNimiAiProvider({
+      runtime: { ai: {} } as unknown as Runtime,
+      appId: APP_ID,
+      subjectUserId: SUBJECT_USER_ID,
+    });
+  } catch (error) {
+    thrown = error;
+  }
+
+  assert.ok(thrown);
+  const nimiError = asNimiError(thrown, { source: 'sdk' });
+  assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_PROVIDER_RUNTIME_REQUIRED);
+});
 
 test('createNimiAiProvider text model maps runtime generate response', async () => {
   let capturedRequest: Record<string, unknown> | null = null;
@@ -261,6 +281,117 @@ test('createNimiAiProvider text streaming maps delta and finish events', async (
   assert.ok(parts.some((part) => part.type === 'text-delta' && part.delta === 'he'));
   assert.ok(parts.some((part) => part.type === 'text-delta' && part.delta === 'llo'));
   assert.ok(parts.some((part) => part.type === 'finish' && part.finishReason?.unified === 'stop'));
+});
+
+test('createNimiAiProvider stream interruption requires explicit resubscribe', async () => {
+  let streamGenerateCalls = 0;
+  const runtime = createRuntimeStub({
+    streamGenerate: async function* () {
+      streamGenerateCalls += 1;
+      if (streamGenerateCalls === 1) {
+        yield {
+          payload: {
+            oneofKind: 'failed',
+            failed: {
+              reasonCode: ReasonCode.AI_STREAM_BROKEN,
+              actionHint: 'retry',
+            },
+          },
+        };
+        return;
+      }
+
+      yield {
+        payload: {
+          oneofKind: 'delta',
+          delta: {
+            text: 'retry-ok',
+          },
+        },
+      };
+      yield {
+        payload: {
+          oneofKind: 'completed',
+          completed: {
+            finishReason: 1,
+          },
+        },
+      };
+    },
+  });
+
+  const model = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  })('chat/default');
+
+  const first = await model.doStream({
+    prompt: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: 'first-attempt',
+      }],
+    }],
+    providerOptions: {},
+  });
+  const firstReader = first.stream.getReader();
+  const firstParts: Array<{
+    type?: string;
+    delta?: string;
+    error?: { reasonCode?: string };
+    finishReason?: { unified?: string };
+  }> = [];
+  while (true) {
+    const next = await firstReader.read();
+    if (next.done) {
+      break;
+    }
+    firstParts.push(next.value as {
+      type?: string;
+      delta?: string;
+      error?: { reasonCode?: string };
+      finishReason?: { unified?: string };
+    });
+  }
+
+  assert.ok(firstParts.some((part) => part.type === 'error'));
+  assert.ok(!firstParts.some((part) => part.type === 'finish'));
+
+  const second = await model.doStream({
+    prompt: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: 'second-attempt',
+      }],
+    }],
+    providerOptions: {},
+  });
+  const secondReader = second.stream.getReader();
+  const secondParts: Array<{
+    type?: string;
+    delta?: string;
+    error?: { reasonCode?: string };
+    finishReason?: { unified?: string };
+  }> = [];
+  while (true) {
+    const next = await secondReader.read();
+    if (next.done) {
+      break;
+    }
+    secondParts.push(next.value as {
+      type?: string;
+      delta?: string;
+      error?: { reasonCode?: string };
+      finishReason?: { unified?: string };
+    });
+  }
+
+  assert.equal(streamGenerateCalls, 2);
+  assert.ok(secondParts.some((part) => part.type === 'text-delta' && part.delta === 'retry-ok'));
+  assert.ok(secondParts.some((part) => part.type === 'finish' && part.finishReason?.unified === 'stop'));
 });
 
 test('createNimiAiProvider embedding and image models map runtime responses', async () => {

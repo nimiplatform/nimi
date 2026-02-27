@@ -1,14 +1,14 @@
 import type { HookLlmClient } from '../types';
 import type { RuntimeHookRuntimeFacade } from '../types/runtime-hook/runtime-facade';
-import type { RuntimeLlmHealthInput, RuntimeLlmHealthResult } from '../types/llm';
 import {
   checkResolvedRouteHealth,
   resolveModRouteBinding,
 } from '../internal/runtime-access';
+import type { ModRuntimeHost } from '../types/runtime-mod';
 
 export function createLlmClient(input: {
   modId: string;
-  runtimeHost: { checkLocalLlmHealth: (payload: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult> };
+  runtimeHost: ModRuntimeHost;
   runtime: RuntimeHookRuntimeFacade;
 }): HookLlmClient {
   return {
@@ -260,8 +260,14 @@ export function createLlmClient(input: {
         routeHint,
         modId: input.modId,
         routeOverride,
+      }, {
+        runtimeHost: input.runtimeHost,
+        runtime: input.runtime,
       });
-      return checkResolvedRouteHealth(resolved);
+      return checkResolvedRouteHealth(resolved, {
+        runtimeHost: input.runtimeHost,
+        runtime: input.runtime,
+      });
     },
   };
 }

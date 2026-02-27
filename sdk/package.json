@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "license": "Apache-2.0",
   "private": false,
   "publishConfig": {
@@ -87,6 +87,7 @@
     "@protobuf-ts/runtime": "2.11.1",
     "@protobuf-ts/runtime-rpc": "2.11.1",
     "i18next": "^25.8.11",
+    "openapi-fetch": "^0.15.0",
     "react-i18next": "^16.5.4"
   },
   "peerDependencies": {

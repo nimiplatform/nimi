@@ -7,23 +7,47 @@ import type {
   RuntimeRouteHint,
   RuntimeRouteOverride,
 } from '../types';
-import type { AiRuntimeDependencySnapshot } from '../ai/types';
 import type { RuntimeHookRuntimeFacade } from '../types/runtime-hook/runtime-facade';
+import type { AiRuntimeDependencySnapshot } from '../ai/types';
+import type {
+  ModRuntimeContext,
+  ModRuntimeContextInput,
+  ModRuntimeHost,
+} from '../types/runtime-mod';
 
-export function getRuntimeHost() {
+export function getRuntimeHost(): ModRuntimeHost {
   return getModSdkHost().runtime;
 }
 
-export function getHookRuntimeFacade(): RuntimeHookRuntimeFacade {
-  return getRuntimeHost().getRuntimeHookRuntime();
+function resolveRuntimeHost(input?: ModRuntimeContextInput): ModRuntimeHost {
+  return input?.runtimeHost || getRuntimeHost();
+}
+
+export function getHookRuntimeFacade(input?: ModRuntimeContextInput): RuntimeHookRuntimeFacade {
+  if (input?.runtime) {
+    return input.runtime;
+  }
+  return resolveRuntimeHost(input).getRuntimeHookRuntime();
+}
+
+export function resolveModRuntimeContext(input?: ModRuntimeContextInput): ModRuntimeContext {
+  const runtimeHost = resolveRuntimeHost(input);
+  const runtime = getHookRuntimeFacade({
+    runtimeHost,
+    runtime: input?.runtime,
+  });
+  return {
+    runtimeHost,
+    runtime,
+  };
 }
 
 export async function resolveModRouteBinding(input: {
   modId: string;
   routeHint: RuntimeRouteHint;
   routeOverride?: RuntimeRouteOverride;
-}): Promise<ResolvedRuntimeRouteBinding> {
-  return getRuntimeHost().resolveRouteBinding({
+}, context?: ModRuntimeContextInput): Promise<ResolvedRuntimeRouteBinding> {
+  return resolveRuntimeHost(context).resolveRouteBinding({
     routeHint: input.routeHint,
     modId: input.modId,
     routeOverride: input.routeOverride,
@@ -51,9 +75,10 @@ function toRuntimeHealthInput(route: ResolvedRuntimeRouteBinding): RuntimeLlmHea
 
 export async function checkResolvedRouteHealth(
   route: ResolvedRuntimeRouteBinding,
+  context?: ModRuntimeContextInput,
 ): Promise<RuntimeRouteHealthResult> {
   const payload = toRuntimeHealthInput(route);
-  const result = await getRuntimeHost().checkLocalLlmHealth(payload);
+  const result = await resolveRuntimeHost(context).checkLocalLlmHealth(payload);
   const provider = typeof result.provider === 'string' ? result.provider : route.provider;
   const status = String(result.status || '').trim().toLowerCase();
   const reasonCode = status === 'healthy'
@@ -80,8 +105,8 @@ export async function getModAiDependencySnapshot(input: {
   modId: string;
   capability?: string;
   routeSourceHint?: 'token-api' | 'local-runtime';
-}): Promise<AiRuntimeDependencySnapshot> {
-  return getRuntimeHost().getModAiDependencySnapshot({
+}, context?: ModRuntimeContextInput): Promise<AiRuntimeDependencySnapshot> {
+  return resolveRuntimeHost(context).getModAiDependencySnapshot({
     modId: String(input.modId || '').trim(),
     capability: String(input.capability || '').trim() || undefined,
     routeSourceHint: input.routeSourceHint,

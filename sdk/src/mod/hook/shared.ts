@@ -1,7 +1,7 @@
 import {
-  getHookRuntimeFacade,
-  getRuntimeHost,
+  resolveModRuntimeContext,
 } from '../internal/runtime-access';
+import type { ModRuntimeContextInput } from '../types/runtime-mod';
 
 export function normalizeHookModId(modId: string): string {
   const normalizedModId = String(modId || '').trim();
@@ -11,9 +11,6 @@ export function normalizeHookModId(modId: string): string {
   return normalizedModId;
 }
 
-export function getHookRuntimes() {
-  return {
-    runtimeHost: getRuntimeHost(),
-    runtime: getHookRuntimeFacade(),
-  };
+export function getHookRuntimes(input?: ModRuntimeContextInput) {
+  return resolveModRuntimeContext(input);
 }

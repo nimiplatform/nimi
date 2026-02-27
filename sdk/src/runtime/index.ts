@@ -12,3 +12,5 @@ export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './gene
 export { createRuntimeClient } from './core/client';
 export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from './transports/node-grpc/index';
 export { createTauriIpcTransport } from './transports/tauri-ipc/index';
+export { Runtime } from './runtime.js';
+export type * from './vnext-types.js';

@@ -3,8 +3,8 @@ import http from 'node:http';
 import { test } from 'node:test';
 
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
-import { createNimiClient } from '../../../../src/client.js';
-import { asNimiError } from '../../../../src/runtime/index.js';
+import { Runtime, asNimiError } from '../../../../src/runtime/index.js';
+import { ReasonCode } from '../../../../src/types/index.js';
 
 import { withRuntimeDaemon } from '../helpers/runtime-daemon.js';
 
@@ -170,24 +170,20 @@ test('provider_openai_test.ts: video uses /v1/videos/generations fallback path',
         NIMI_RUNTIME_LOCAL_AI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
-        const client = createNimiClient({
+        const runtime = new Runtime({
           appId: APP_ID,
-          runtime: {
-            transport: {
-              type: 'node-grpc',
-              endpoint,
-            },
-            defaults: {
-              callerKind: 'desktop-core',
-              callerId: 'sdk-provider-openai-video-fallback',
-            },
+          transport: {
+            type: 'node-grpc',
+            endpoint,
+          },
+          defaults: {
+            callerKind: 'desktop-core',
+            callerId: 'sdk-provider-openai-contract',
           },
         });
 
-        assert.ok(client.runtime, 'runtime client must exist');
-
         const provider = createNimiAiProvider({
-          runtime: client.runtime!,
+          runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
           routePolicy: 'local-runtime',
@@ -227,24 +223,20 @@ test('provider_openai_test.ts: video unsupported returns strict fail-close', {
         NIMI_RUNTIME_LOCAL_AI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
-        const client = createNimiClient({
+        const runtime = new Runtime({
           appId: APP_ID,
-          runtime: {
-            transport: {
-              type: 'node-grpc',
-              endpoint,
-            },
-            defaults: {
-              callerKind: 'desktop-core',
-              callerId: 'sdk-provider-openai-video-unsupported',
-            },
+          transport: {
+            type: 'node-grpc',
+            endpoint,
+          },
+          defaults: {
+            callerKind: 'desktop-core',
+            callerId: 'sdk-provider-openai-contract',
           },
         });
 
-        assert.ok(client.runtime, 'runtime client must exist');
-
         const provider = createNimiAiProvider({
-          runtime: client.runtime!,
+          runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
           routePolicy: 'local-runtime',
@@ -264,7 +256,7 @@ test('provider_openai_test.ts: video unsupported returns strict fail-close', {
         assert.ok(thrown, 'video should fail when both endpoints are unsupported');
         const normalized = asNimiError(thrown, { source: 'runtime' });
         assert.ok(
-          normalized.reasonCode === 'AI_ROUTE_UNSUPPORTED' || normalized.reasonCode === '204',
+          normalized.reasonCode === ReasonCode.AI_ROUTE_UNSUPPORTED || normalized.reasonCode === '204',
           `unexpected reasonCode: ${normalized.reasonCode}`,
         );
       },
@@ -290,24 +282,20 @@ test('provider_openai_test.ts: stream falls back to non-stream generate when str
         NIMI_RUNTIME_LOCAL_AI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
-        const client = createNimiClient({
+        const runtime = new Runtime({
           appId: APP_ID,
-          runtime: {
-            transport: {
-              type: 'node-grpc',
-              endpoint,
-            },
-            defaults: {
-              callerKind: 'desktop-core',
-              callerId: 'sdk-provider-openai-stream-fallback',
-            },
+          transport: {
+            type: 'node-grpc',
+            endpoint,
+          },
+          defaults: {
+            callerKind: 'desktop-core',
+            callerId: 'sdk-provider-openai-contract',
           },
         });
 
-        assert.ok(client.runtime, 'runtime client must exist');
-
         const provider = createNimiAiProvider({
-          runtime: client.runtime!,
+          runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
           routePolicy: 'local-runtime',

@@ -8,8 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
-import { createNimiClient } from '../../../../src/client.js';
-import { createRuntimeClient } from '../../../../src/runtime/index.js';
+import { Runtime, createRuntimeClient } from '../../../../src/runtime/index.js';
 
 const APP_ID = 'nimi.desktop.sdk.ai.live';
 const SUBJECT_USER_ID = 'user-sdk-live';
@@ -184,26 +183,20 @@ async function withRuntimeDaemon(
 }
 
 function createSdkTextModel(endpoint: string, routePolicy: 'local-runtime' | 'token-api', modelId: string) {
-  const client = createNimiClient({
+  const runtime = new Runtime({
     appId: APP_ID,
-    runtime: {
-      transport: {
-        type: 'node-grpc',
-        endpoint,
-      },
-      defaults: {
-        callerKind: 'desktop-core',
-        callerId: 'sdk-ai-live-smoke',
-      },
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
+    defaults: {
+      callerKind: 'desktop-core',
+      callerId: 'sdk-ai-live-smoke',
     },
   });
 
-  if (!client.runtime) {
-    throw new Error('runtime client not configured');
-  }
-
   const provider = createNimiAiProvider({
-    runtime: client.runtime,
+    runtime,
     appId: APP_ID,
     subjectUserId: SUBJECT_USER_ID,
     routePolicy,

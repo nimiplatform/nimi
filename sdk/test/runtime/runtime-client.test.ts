@@ -483,16 +483,25 @@ test('asNimiError parses embedded runtime JSON payload', () => {
       traceId: 'trace-json',
       retryable: true,
       message: 'provider timeout',
+      details: {
+        provider: 'localai',
+        rawReasonCode: 'UPSTREAM_504',
+      },
     }),
     { source: 'runtime' },
   );
 
   assert.equal(error.reasonCode, 'AI_PROVIDER_TIMEOUT');
+  assert.equal(error.code, 'AI_PROVIDER_TIMEOUT');
   assert.equal(error.actionHint, 'retry');
   assert.equal(error.traceId, 'trace-json');
   assert.equal(error.retryable, true);
   assert.equal(error.source, 'runtime');
   assert.equal(error.message, 'provider timeout');
+  assert.deepEqual(error.details, {
+    provider: 'localai',
+    rawReasonCode: 'UPSTREAM_504',
+  });
 });
 
 test('asNimiError keeps provided defaults for plain Error objects', () => {
@@ -503,6 +512,7 @@ test('asNimiError keeps provided defaults for plain Error objects', () => {
   });
 
   assert.equal(error.reasonCode, 'RUNTIME_GRPC_PERMISSION_DENIED');
+  assert.equal(error.code, 'RUNTIME_GRPC_PERMISSION_DENIED');
   assert.equal(error.actionHint, 'check_request_and_app_auth');
   assert.equal(error.source, 'runtime');
   assert.equal(error.message, 'permission denied');
@@ -759,6 +769,51 @@ test('tauri-ipc falls back to runtime_bridge command namespace when custom comma
     const result = await client.model.list({});
     assert.deepEqual(result.models, []);
     assert.deepEqual(invokedCommands, ['custom_bridge_unary', 'runtime_bridge_unary']);
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc does not retry with legacy payload when invoke reports invalid args', async () => {
+  const invokedCalls: Array<{ command: string; payload: unknown }> = [];
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        invokedCalls.push({ command, payload });
+        if (command === 'runtime_bridge_unary') {
+          throw new Error('invalid args `payload`: missing required key methodId');
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+    });
+
+    let captured: ReturnType<typeof asNimiError> | null = null;
+    try {
+      await client.model.list({});
+    } catch (error) {
+      captured = asNimiError(error, { source: 'runtime' });
+    }
+
+    assert.ok(captured);
+    assert.equal(captured.reasonCode, 'SDK_RUNTIME_TAURI_UNARY_FAILED');
+    assert.equal(invokedCalls.length, 1);
+    const firstPayload = (invokedCalls[0]?.payload || {}) as Record<string, unknown>;
+    assert.equal(typeof firstPayload.methodId, 'string');
+    assert.equal(firstPayload.payload, undefined);
   } finally {
     restoreTauri();
   }

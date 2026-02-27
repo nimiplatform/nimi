@@ -14,7 +14,6 @@ const coverageChecks = [
     label: '@nimiplatform/sdk coverage',
     include: [
       'sdk/src/ai-provider/**/*.ts',
-      'sdk/src/client.ts',
       'sdk/src/realm/index.ts',
       'sdk/src/runtime/**/*.ts',
       'sdk/src/scope/**/*.ts',

@@ -1,4 +1,3 @@
-export * from './client.js';
 export * from './realm/index.js';
 export * from './runtime/index.js';
 export * from './scope/index.js';

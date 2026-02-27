@@ -69,9 +69,8 @@ async function writeConsumerPackageJson(appDir, sdkTarballPath) {
 
 async function writeSmokeEntry(appDir) {
   const source = [
-    "import { createNimiClient } from '@nimiplatform/sdk';",
+    "import { Runtime, Realm } from '@nimiplatform/sdk';",
     "import { Modal } from '@nimiplatform/sdk/runtime';",
-    "import { OpenAPI, openApiRequest } from '@nimiplatform/sdk/realm';",
     "import { ReasonCode } from '@nimiplatform/sdk/types';",
     "import { createScopeModule } from '@nimiplatform/sdk/scope';",
     "import { createAiClient } from '@nimiplatform/sdk/mod/ai';",
@@ -87,7 +86,8 @@ async function writeSmokeEntry(appDir) {
     "import { clearModSdkHost } from '@nimiplatform/sdk/mod/host';",
     "import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';",
     '',
-    "if (typeof createNimiClient !== 'function') throw new Error('sdk export invalid');",
+    "if (typeof Runtime !== 'function') throw new Error('runtime class export invalid');",
+    "if (typeof Realm !== 'function') throw new Error('realm class export invalid');",
     "if (typeof createNimiAiProvider !== 'function') throw new Error('ai-provider export invalid');",
     "if (typeof createAiClient !== 'function') throw new Error('mod ai export invalid');",
     "if (typeof createHookClient !== 'function') throw new Error('mod hook export invalid');",
@@ -100,9 +100,10 @@ async function writeSmokeEntry(appDir) {
     "if (typeof filterModelOptions !== 'function') throw new Error('mod model-options export invalid');",
     "if (typeof normalizeRuntimeRouteSource !== 'function') throw new Error('mod runtime-route export invalid');",
     "if (typeof clearModSdkHost !== 'function') throw new Error('mod host export invalid');",
-    "if (typeof OpenAPI !== 'object') throw new Error('realm export invalid');",
     "if (typeof Modal !== 'object') throw new Error('runtime export invalid');",
-    "if (typeof openApiRequest !== 'function') throw new Error('openApiRequest export invalid');",
+    "const realm = new Realm({ baseUrl: 'https://realm.nimi.local' });",
+    "if (typeof realm.raw?.request !== 'function') throw new Error('realm raw request export invalid');",
+    "if (typeof realm.connect !== 'function') throw new Error('realm connect export invalid');",
     "if (typeof ReasonCode !== 'object') throw new Error('types export invalid');",
     "if (typeof createScopeModule !== 'function') throw new Error('scope export invalid');",
     "if (normalizeRuntimeRouteSource('token-api') !== 'token-api') throw new Error('mod runtime-route call invalid');",
@@ -122,6 +123,9 @@ async function main() {
   const appDir = path.join(tempRoot, 'app');
   await fs.mkdir(packDir, { recursive: true });
   await fs.mkdir(appDir, { recursive: true });
+
+  // Always build before packing so smoke validates current sources, not stale dist artifacts.
+  runCommand('pnpm', ['--filter', PACKAGE.name, 'build'], repoRoot);
 
   const version = await readPackageVersion(PACKAGE.dir);
   const tarball = await packSdk(packDir, version);

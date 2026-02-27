@@ -8,7 +8,14 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const runtimeProtoDir = path.join(repoRoot, 'proto', 'runtime', 'v1');
-const realmServicesDir = path.join(repoRoot, 'sdk', 'src', 'realm', 'generated', 'services');
+const realmOperationMapPath = path.join(
+  repoRoot,
+  'sdk',
+  'src',
+  'realm',
+  'generated',
+  'operation-map.ts',
+);
 const outputPath = path.join(repoRoot, 'sdk', 'src', 'scope', 'generated', 'catalog.ts');
 
 const READ_PREFIXES = ['get', 'list', 'search', 'check', 'validate', 'subscribe'];
@@ -32,6 +39,13 @@ function deriveRealmDomain(serviceName) {
   return toSnakeCase(normalized);
 }
 
+function countBraceDelta(line) {
+  const source = String(line || '').split('//')[0] || '';
+  const opened = (source.match(/\{/g) || []).length;
+  const closed = (source.match(/}/g) || []).length;
+  return opened - closed;
+}
+
 async function collectRuntimeScopes() {
   const scopes = new Set();
 
@@ -43,10 +57,16 @@ async function collectRuntimeScopes() {
     const source = await fs.readFile(path.join(runtimeProtoDir, entry.name), 'utf8');
     const lines = source.split('\n');
     let currentService = '';
+    let currentServiceDepth = 0;
     for (const line of lines) {
       const serviceMatch = /^\s*service\s+([A-Za-z][A-Za-z0-9_]*)\s*\{/.exec(line);
       if (serviceMatch) {
         currentService = serviceMatch[1] || '';
+        currentServiceDepth = countBraceDelta(line);
+        if (currentServiceDepth <= 0) {
+          currentService = '';
+          currentServiceDepth = 0;
+        }
         continue;
       }
       if (!currentService) {
@@ -66,10 +86,12 @@ async function collectRuntimeScopes() {
         if (service === 'app' && method.startsWith('send')) {
           scopes.add('runtime.app.message');
         }
-        continue;
       }
-      if (/^\s*}\s*$/.test(line)) {
+
+      currentServiceDepth += countBraceDelta(line);
+      if (currentServiceDepth <= 0) {
         currentService = '';
+        currentServiceDepth = 0;
       }
     }
   }
@@ -90,14 +112,16 @@ function deriveRuntimeDomain(serviceName) {
 }
 
 async function collectRealmScopes() {
-  const entries = await fs.readdir(realmServicesDir, { withFileTypes: true });
   const scopes = new Set();
+  const source = await fs.readFile(realmOperationMapPath, 'utf8');
+  const serviceNames = new Set(
+    Array.from(source.matchAll(/"service"\s*:\s*"([A-Za-z0-9_]+Service)"/g)).map(
+      (match) => String(match[1] || '').trim(),
+    ).filter(Boolean),
+  );
 
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith('Service.ts')) {
-      continue;
-    }
-    const domain = deriveRealmDomain(entry.name.replace(/\.ts$/, ''));
+  for (const serviceName of serviceNames) {
+    const domain = deriveRealmDomain(serviceName);
     if (!domain) {
       continue;
     }

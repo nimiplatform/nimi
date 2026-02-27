@@ -3,8 +3,8 @@ import http from 'node:http';
 import { test } from 'node:test';
 
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
-import { createNimiClient } from '../../../../src/client.js';
-import { asNimiError } from '../../../../src/runtime/index.js';
+import { Runtime, asNimiError } from '../../../../src/runtime/index.js';
+import { ReasonCode } from '../../../../src/types/index.js';
 
 import { withRuntimeDaemon } from '../helpers/runtime-daemon.js';
 
@@ -111,24 +111,20 @@ async function runKimiImageScenario(input: { invalidOutput: boolean }): Promise<
         NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
-        const client = createNimiClient({
+        const runtime = new Runtime({
           appId: APP_ID,
-          runtime: {
-            transport: {
-              type: 'node-grpc',
-              endpoint,
-            },
-            defaults: {
-              callerKind: 'desktop-core',
-              callerId: 'sdk-provider-kimi-contract',
-            },
+          transport: {
+            type: 'node-grpc',
+            endpoint,
+          },
+          defaults: {
+            callerKind: 'desktop-core',
+            callerId: 'sdk-provider-kimi-contract',
           },
         });
 
-        assert.ok(client.runtime, 'runtime client must exist');
-
         const provider = createNimiAiProvider({
-          runtime: client.runtime!,
+          runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
           routePolicy: 'token-api',
@@ -177,9 +173,9 @@ test('provider_kimi_test.ts: kimi invalid output returns AI_OUTPUT_INVALID', {
   assert.notEqual(error, null);
   const normalized = asNimiError(error, { source: 'runtime' });
   assert.ok(
-    normalized.reasonCode === 'AI_OUTPUT_INVALID'
+    normalized.reasonCode === ReasonCode.AI_OUTPUT_INVALID
       || normalized.reasonCode === '206'
-      || normalized.reasonCode === 'RUNTIME_CALL_FAILED',
+      || normalized.reasonCode === ReasonCode.RUNTIME_CALL_FAILED,
     `unexpected reasonCode: ${normalized.reasonCode}`,
   );
 });

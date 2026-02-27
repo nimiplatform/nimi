@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { test } from 'node:test';
-
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
-import { createNimiClient } from '../../../../src/client.js';
+import { Runtime } from '../../../../src/runtime/index.js';
 
 import { withRuntimeDaemon } from '../helpers/runtime-daemon.js';
 
@@ -151,24 +150,20 @@ test('provider_gemini_test.ts: gemini operation image/video via nimi-sdk', {
         NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
-        const client = createNimiClient({
+        const runtime = new Runtime({
           appId: APP_ID,
-          runtime: {
-            transport: {
-              type: 'node-grpc',
-              endpoint,
-            },
-            defaults: {
-              callerKind: 'desktop-core',
-              callerId: 'sdk-provider-gemini-contract',
-            },
+          transport: {
+            type: 'node-grpc',
+            endpoint,
+          },
+          defaults: {
+            callerKind: 'desktop-core',
+            callerId: 'sdk-provider-gemini-contract',
           },
         });
 
-        assert.ok(client.runtime, 'runtime client must exist');
-
         const provider = createNimiAiProvider({
-          runtime: client.runtime!,
+          runtime,
           appId: APP_ID,
           subjectUserId: SUBJECT_USER_ID,
           routePolicy: 'token-api',

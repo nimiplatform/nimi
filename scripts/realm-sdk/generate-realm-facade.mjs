@@ -1,0 +1,58 @@
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { REALM_FACADE_RELATIVE_PATH, REALM_GENERATED_RELATIVE_PATH } from './constants.mjs';
+import { classifyModelExport } from './model-utils.mjs';
+
+export function writeRealmFacade(repoRoot) {
+  const generatedModelsDir = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH, 'models');
+  if (!existsSync(generatedModelsDir) || !statSync(generatedModelsDir).isDirectory()) {
+    throw new Error(`generated models directory not found: ${generatedModelsDir}`);
+  }
+
+  const modelFiles = readdirSync(generatedModelsDir)
+    .filter((entry) => entry.endsWith('.ts'))
+    .sort((left, right) => left.localeCompare(right));
+
+  const lines = [];
+  lines.push('/* eslint-disable */');
+  lines.push('// AUTO-GENERATED FACADE from realm/generated/models/*.ts. DO NOT EDIT BY HAND.');
+  lines.push('');
+  const legacyFacadeSymbols = new Set([
+    'Auth2faVerifyDto',
+    'Me2faVerifyDto',
+    'Me2faPrepareResponseDto',
+  ]);
+
+  for (const fileName of modelFiles) {
+    const symbol = fileName.replace(/\.ts$/, '');
+    if (legacyFacadeSymbols.has(symbol)) {
+      continue;
+    }
+    const source = readFileSync(path.join(generatedModelsDir, fileName), 'utf8');
+    const exportKind = classifyModelExport(source);
+    if (exportKind === 'value') {
+      lines.push(`export { ${symbol} } from './generated/models/${symbol}';`);
+      continue;
+    }
+    if (exportKind === 'type') {
+      lines.push(`export type { ${symbol} } from './generated/models/${symbol}';`);
+      continue;
+    }
+    lines.push(`export type { ${symbol} } from './generated/models/${symbol}';`);
+  }
+
+  lines.push('');
+  lines.push('// Naming-normalized facade exports (do not expose legacy names).');
+  lines.push("export type { Auth2faVerifyDto as AuthTwoFactorVerifyInput } from './generated/models/Auth2faVerifyDto';");
+  lines.push("export type { Me2faVerifyDto as MeTwoFactorVerifyInput } from './generated/models/Me2faVerifyDto';");
+  lines.push("export type { Me2faPrepareResponseDto as MeTwoFactorPrepareOutput } from './generated/models/Me2faPrepareResponseDto';");
+  lines.push("export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';");
+  lines.push('');
+  lines.push('// vNext realm client exports.');
+  lines.push("export { Realm } from './client.js';");
+  lines.push("export type * from './client-types.js';");
+  lines.push("export * from './generated/property-enums.js';");
+  lines.push('');
+
+  writeFileSync(path.join(repoRoot, REALM_FACADE_RELATIVE_PATH), lines.join('\n'), 'utf8');
+}
