@@ -6,6 +6,26 @@ coverage/
 .DS_Store
 pnpm-lock.yaml
 
+# local environment files (keep templates only)
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
+# common local secrets/certs
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# external local repo root (not committed in nimi monorepo)
+nimi-mods/
+
 # tauri/rust
 **/target/
 
