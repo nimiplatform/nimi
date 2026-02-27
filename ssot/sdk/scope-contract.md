@@ -1,12 +1,13 @@
 ---
 title: Nimi SDK Scope Subpath Contract
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - scope 模块必须绑定 appId，并强制 `app.<appId>.*` 命名空间约束。
   - scope catalog 只允许 `draft/published/revoked` 状态流转。
   - appAuth 授权必须依赖已发布且未撤销的 scopeCatalogVersion。
+  - 与 appAuth 联动的行为规范仅以本文件与 `runtime-contract.md` 为准。
 ---
 
 # scope 子路径合同
@@ -57,12 +58,13 @@ rules:
 2. 指定版本未发布时拒绝
 3. 版本已 revoked 时拒绝 `APP_SCOPE_REVOKED`
 
-## 4. 与 client/runtime 联动
+## 4. 与 Runtime 联动
 
-`createNimiClient` 会在 `runtime.appAuth.authorizeExternalPrincipal` 前调用 `scope.resolvePublishedCatalogVersion`，确保授权请求不会使用未发布版本。
+`Runtime` 会在 `appAuth.authorizeExternalPrincipal` 前调用 `scope.resolvePublishedCatalogVersion`，确保授权请求不会使用未发布版本。
 
 ## 5. 验收门禁
 
 1. `sdk/test/scope/module.test.ts`
-2. `sdk/test/client.test.ts`（scope + appAuth 绑定路径）
+2. `sdk/test/runtime/runtime-class.test.ts`（scope + appAuth 绑定路径）
 3. `pnpm check:scope-catalog-drift`
+4. `pnpm check:sdk-vnext-matrix`

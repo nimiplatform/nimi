@@ -1,65 +1,54 @@
 ---
-title: Nimi SDK Client Init Contract
+title: Nimi SDK Runtime/Realm Init Contract
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
-  - `createNimiClient` 是 SDK 的统一初始化入口。
+  - SDK 不提供 `createNimiClient`；初始化入口固定为 `Runtime` 与 `Realm` 两个 class。
   - 初始化失败必须返回结构化 `NimiError`，不得暴露裸字符串错误给调用方。
-  - SDK scope 模块必须与 runtime appAuth 授权流程保持一致。
+  - `Runtime` 内置 scope 与 appAuth 的 catalog-version 绑定约束必须保持开启。
+  - Runtime 身份上下文优先级固定为 `per-call > authContext.subjectUserId > authContext.getSubjectUserId()`。
 ---
 
-# createNimiClient 接入合同
+# Runtime/Realm 初始化合同
 
-## 1. 输入与输出（事实）
+## 1. 初始化入口（事实）
 
-来源：`sdk/src/client.ts`。
+来源：`sdk/src/runtime/runtime.ts`、`sdk/src/realm/client.ts`。
 
-输入：
+入口：
 
-1. `appId: string`（必填）
-2. `protocolVersion?: string`
-3. `realm?: { baseUrl: string; accessToken?: string }`
-4. `runtime?: Omit<RuntimeClientConfig, 'appId'>`
+1. `new Runtime(options)`
+2. `new Realm(options)`
 
-输出：
+无聚合入口；应用侧按需分别创建并编排两个客户端。
 
-1. `appId`
-2. `realm?`：realm facade（已注入 `OpenAPI.BASE/TOKEN`）
-3. `runtime?`：runtime client（appId 已补齐）
-4. `scope`：`createScopeModule({ appId })` 结果
+## 2. Runtime 初始化约束
 
-## 2. 初始化约束
+1. `appId` 必填，空值拒绝。
+2. `transport` 必填，且必须显式声明 `node-grpc` 或 `tauri-ipc`。
+3. `connection.mode` 支持 `auto`（默认）与 `manual`。
+4. `manual` 模式下未 `connect()` 调用 API 必须抛 `RUNTIME_UNAVAILABLE`。
+5. `subjectUserId` 解析顺序固定为：
+`per-call > authContext.subjectUserId > authContext.getSubjectUserId()`；
+三层都缺失时必须抛 `AUTH_CONTEXT_MISSING`。
 
-1. `appId` 为空时抛 `SDK_APP_ID_REQUIRED`。
-2. `realm` 与 `runtime` 同时缺失时抛 `SDK_TARGET_REQUIRED`。
-3. 传 `realm` 但 `baseUrl` 为空时抛 `SDK_REALM_BASE_URL_REQUIRED`。
-4. 若指定 `protocolVersion` 且不等于 SDK 当前协议版本（`1`），抛 `PROTOCOL_VERSION_MISMATCH`。
+## 3. Realm 初始化约束
 
-## 3. realm 注入行为
+1. `baseUrl` 必填，空值拒绝。
+2. `auth`/`headers` 支持静态值或 provider。
+3. 配置必须实例隔离，不允许全局单例污染。
 
-当传入 `realm` 配置时：
+## 4. Runtime + Scope 绑定行为
 
-1. 写入 `realm.OpenAPI.BASE`
-2. 写入 `realm.OpenAPI.TOKEN`
+`Runtime.appAuth.authorizeExternalPrincipal` 必须在发起授权前调用 `scope.resolvePublishedCatalogVersion`：
 
-说明：这是全局可变配置（OpenAPI 单例），属于当前实现事实。
-
-## 4. runtime + scope 绑定行为
-
-`createNimiClient` 会包装 `runtime.appAuth.authorizeExternalPrincipal`：
-
-1. 调用前通过 `scope.resolvePublishedCatalogVersion(...)` 解析版本。
-2. 强制把请求里的 `scopeCatalogVersion` 替换为已发布版本。
-3. 若 runtime 回包里的 `issuedScopeCatalogVersion` 与请求版本不一致，会 `console.warn` 提示。
+1. 保障请求中 `scopeCatalogVersion` 必为已发布版本。
+2. 若 runtime 回包 `issuedScopeCatalogVersion` 与请求版本不一致，应发出 telemetry 事件。
 
 ## 5. 验收门禁
 
-测试文件：`sdk/test/client.test.ts`。
-
-覆盖点：
-
-1. realm/runtime 初始化路径
-2. appId/target/baseUrl 校验错误
-3. scope 注册/发布/撤销链路
-4. scope 与 appAuth 授权绑定行为
+1. `sdk/test/runtime/runtime-class.test.ts`
+2. `sdk/test/realm/realm-client.test.ts`
+3. `pnpm --filter @nimiplatform/sdk lint`
+4. `pnpm --filter @nimiplatform/sdk test`

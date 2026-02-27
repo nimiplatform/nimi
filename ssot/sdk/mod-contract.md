@@ -1,12 +1,13 @@
 ---
 title: Nimi SDK Mod Subpaths Contract
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - mod 能力必须经 `@nimiplatform/sdk/mod/*` 子路径暴露，不允许访问 internal host 私有实现。
   - mod 运行时 host 注入是显式依赖，host 未就绪时必须 fail-close。
   - mod AI 路由必须显式可追踪（route hint / route binding / health）。
+  - 本文件是 `@nimiplatform/sdk/mod/*` 规范真相源；其他 SSOT 文档仅可引用。
 ---
 
 # mod 子路径合同
@@ -80,3 +81,4 @@ rules:
 1. `pnpm check:sdk-consumer-smoke`（覆盖所有 mod 子路径 import/call）
 2. SDK 主测试集（`pnpm --filter @nimiplatform/sdk test`）
 3. mods 侧边界门禁：`pnpm check:mods-no-runtime-sdk`
+4. `pnpm check:sdk-vnext-matrix`（固定包含 `sdk/test/mod/mod-runtime-context.test.ts`）

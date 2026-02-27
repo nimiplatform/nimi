@@ -165,6 +165,18 @@ jobs:
       - name: Build SDK surfaces
         run: pnpm build:sdk
 
+      - name: Enforce no createNimiClient legacy entry
+        run: pnpm check:no-create-nimi-client
+
+      - name: Enforce no global OpenAPI singleton config
+        run: pnpm check:no-global-openapi-config
+
+      - name: Enforce no OpenAPI singleton import
+        run: pnpm check:no-openapi-singleton-import
+
+      - name: SDK vNext matrix gate
+        run: pnpm check:sdk-vnext-matrix
+
       - name: Verify sdk version matrix
         run: pnpm check:sdk-version-matrix
 

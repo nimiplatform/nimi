@@ -4,7 +4,7 @@
  * Run: npx tsx docs/examples/app-auth.ts
  */
 
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk';
 import {
   AppMode,
   ExternalPrincipalType,
@@ -19,14 +19,10 @@ const APP_ID = 'example.auth';
 const PRINCIPAL_ID = 'agent-assistant-1';
 const SUBJECT_USER_ID = 'local-user';
 
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: APP_ID,
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
-
-const runtime = client.runtime!;
 
 function nowTimestamp() {
   const now = Date.now();

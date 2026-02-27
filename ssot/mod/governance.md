@@ -25,6 +25,7 @@ rules:
   - Action 写操作缺失 `idempotencyKey` 必须拒绝执行。
   - Action `commit` 必须落持久 execution ledger（`accepted -> executing -> committed|failed|replayed`）；持久化不确定性默认 fail-close 且同 key 重试不得重复副作用。
   - Core 能力判定唯一标准是"脱离 mod 后是否仍为必需产品能力"，不得因 runtime 重构而误删。
+  - 涉及 `@nimiplatform/sdk/*` 的接口规范仅以 `ssot/sdk/*` 为真相源；本文件对 SDK 的描述属于 Mod 侧治理投影。
   - TTS（Speech）规范唯一归属本文件；业务 Mod 只能引用，不得在各自 SSOT 重复定义 provider 协议细节。
   - 本地 AI Runtime 的模型来源、路由来源、能力维度与审计策略以 `ssot/runtime/local-runtime.md` 为唯一来源；本文件仅定义 Mod 接入边界。
   - Speech 类能力必须通过 `llm.speech.*`（llm-adapter 语义）承载；调用方 Mod 不得绕过 capability 直连 provider。
@@ -182,6 +183,8 @@ Mod AI 调用规范（冻结）：
 4. 具体模型来源、路由来源与能力维度约束统一由 `ssot/runtime/local-runtime.md` 定义。
 
 `mod-sdk` 公共面约束（冻结）：
+
+说明：本段是 Mod 侧调用约束投影；SDK 规范定义请以 `ssot/sdk/mod-contract.md` 与 `ssot/sdk/package-surface.md` 为准。
 
 1. Mod 层只允许从 `@nimiplatform/sdk/mod/ai`、`@nimiplatform/sdk/mod/hook`、`@nimiplatform/sdk/mod/types`、`@nimiplatform/sdk/mod/ui`、`@nimiplatform/sdk/mod/logging`、`@nimiplatform/sdk/mod/utils` 导入。
 2. `@nimiplatform/sdk/mod` root import 视为违规；`@nimiplatform/sdk/mod/runtime`、`@nimiplatform/sdk/mod/host`、`@nimiplatform/sdk/mod/internal/*` 属于运行时装配细节，不作为 Mod 稳定接口。

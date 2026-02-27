@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
 export type ProviderRoute = 'local-runtime' | 'token-api';
@@ -64,26 +64,20 @@ export function createProviderContext(input: {
 }): ProviderContext {
   const endpoint = env('NIMI_RUNTIME_GRPC_ENDPOINT', '127.0.0.1:46371');
 
-  const client = createNimiClient({
+  const runtime = new Runtime({
     appId: input.appId,
-    runtime: {
-      transport: {
-        type: 'node-grpc',
-        endpoint,
-      },
-      defaults: {
-        callerKind: 'desktop-core',
-        callerId: 'docs-example-provider',
-      },
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
+    defaults: {
+      callerKind: 'desktop-core',
+      callerId: 'docs-example-provider',
     },
   });
 
-  if (!client.runtime) {
-    throw new Error('runtime client not configured');
-  }
-
   const provider = createNimiAiProvider({
-    runtime: client.runtime,
+    runtime,
     appId: input.appId,
     subjectUserId: input.subjectUserId,
     routePolicy: input.routePolicy,

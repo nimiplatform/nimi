@@ -1,9 +1,10 @@
 ---
 title: Nimi SDK SSOT Index
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 rules:
   - 本目录以 `sdk/package.json` 的 exports 与 `sdk/src/*` 当前实现为事实来源。
+  - SDK 语义规则只允许在 `ssot/sdk/*` 定义；其他 SSOT 文档仅可引用本目录，不得重复定义 SDK 规范条款。
   - 未在代码中落地的能力不得写成已实现；必须标注 `FUTURE`。
   - SDK 接口变更必须同步更新本目录分类文档与测试门禁文档。
 ---
@@ -20,7 +21,7 @@ rules:
 
 1. `design.md`：SDK 总体边界与全局不变量
 2. `package-surface.md`：包导出面与导入边界
-3. `client-init.md`：`createNimiClient` 接入体验
+3. `client-init.md`：`Runtime/Realm` 初始化体验
 4. `runtime-contract.md`：`@nimiplatform/sdk/runtime` 合同
 5. `realm-contract.md`：`@nimiplatform/sdk/realm` 合同
 6. `scope-contract.md`：`@nimiplatform/sdk/scope` 合同
@@ -43,3 +44,4 @@ rules:
 1. 任何 SDK 对外签名变更，先改本目录对应分类文档，再改实现。
 2. 新增子路径时，必须新增分类文档并补齐 `testing-gates.md` 对应验收条目。
 3. `design.md` 只保留全局不变量，不再承载各模块细节。
+4. 其他 SSOT 文档若需提及 SDK 行为，必须链接到本目录对应合同文件，不得在外部文件新增 SDK 规范真相源。

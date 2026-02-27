@@ -58,9 +58,13 @@ pnpm test
 ```ts
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Runtime } from '@nimiplatform/sdk';
 
-test('createNimiClient requires appId', () => {
-  assert.throws(() => createNimiClient({} as never));
+test('Runtime constructor requires appId', () => {
+  assert.throws(() => new Runtime({
+    appId: '',
+    transport: { type: 'tauri-ipc' },
+  }));
 });
 ```
 

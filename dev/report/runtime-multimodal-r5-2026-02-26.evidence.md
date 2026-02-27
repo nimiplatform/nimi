@@ -39,4 +39,3 @@
 ## 5. 合规门禁
 
 1. `cd runtime && go run ./cmd/runtime-compliance --gate`：PASS（23/23）
-

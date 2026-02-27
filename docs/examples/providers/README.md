@@ -1,7 +1,7 @@
 # Provider Tutorials
 
 `docs/examples/providers/*.ts` are end-user tutorials (not mock tests).
-Each script uses `createNimiClient` + `createNimiAiProvider` to call real runtime AI APIs.
+Each script uses `new Runtime(...)` + `createNimiAiProvider(...)` to call real runtime AI APIs.
 
 ## Core Rule
 

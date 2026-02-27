@@ -223,7 +223,7 @@ Runtime profile（运行时访问层）：
 
 本节是授权语义规范真相源（normative source）。
 
-说明：本节是 `L1 Runtime Access` 的跨文档最小锚点，完整 RPC/SDK 细节以 `runtime/service-contract.md` 与 `sdk/design.md` 为准。
+说明：本节是 `L1 Runtime Access` 的跨文档最小锚点，完整 RPC 细节以 `runtime/service-contract.md` 为准；SDK 细节以 `ssot/sdk/*` 为唯一真相源。
 
 职责补充：
 1. SDK 维护 scope catalog 与 preset 映射，作为授权请求构造层的唯一发布面。

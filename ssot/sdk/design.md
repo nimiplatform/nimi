@@ -2,12 +2,13 @@
 title: Nimi SDK Design Contract
 status: ACTIVE
 created_at: 2026-02-24
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - SDK 采用单包模型：只发布 `@nimiplatform/sdk`，能力通过稳定子路径暴露。
+  - SDK 规范条款只在 `ssot/sdk/*` 维护；其他 SSOT 文档提及 SDK 时仅允许引用。
   - SDK 文档必须反映当前实现与测试事实，不接受“文档先行但实现缺失”。
-  - SDK 对外失败语义固定为 `reasonCode + actionHint + source` 结构化错误。
+  - SDK 对外失败语义固定为 `code + reasonCode + actionHint + source + details` 结构化错误。
 ---
 
 # SDK 设计总合同（分类版）
@@ -25,7 +26,7 @@ rules:
 ## 2. 全局不变量
 
 1. 单包发布不变量：`@nimiplatform/sdk` + 稳定子路径。
-2. 初始化不变量：`createNimiClient` 必须要求 `appId` 且 `realm/runtime` 至少配置一个。
+2. 初始化不变量：SDK 主入口为 `new Runtime(...)` / `new Realm(...)`，不提供单入口聚合初始化器。
 3. 传输不变量：runtime transport 必须显式声明（`node-grpc` 或 `tauri-ipc`）。
 4. 错误不变量：统一 `NimiError` 结构，不抛裸字符串作为最终对外错误。
 5. 兼容性不变量：多模态能力以 runtime 合同为准，SDK 只做严格映射，不做静默降级。

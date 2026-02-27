@@ -59,12 +59,9 @@ Every AI call must specify which route to use. There's no silent fallback by def
 Yes. Set up the SDK with only a runtime endpoint:
 
 ```ts
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: 'my_app',
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
-  // no realm config — runtime-only mode
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 ```
 

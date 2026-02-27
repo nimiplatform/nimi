@@ -1,12 +1,13 @@
 ---
 title: Nimi SDK Testing Gates
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - 文档中声明的“已支持”能力必须有对应测试文件或门禁命令。
   - 覆盖率门禁与契约门禁必须可在仓库内复现。
   - provider 兼容性结论必须区分 fake-server contract 与 live smoke。
+  - vNext 收口能力必须通过固定矩阵门禁验证，不允许只靠局部测试证明。
 ---
 
 # SDK 测试与验收门禁
@@ -23,7 +24,9 @@ rules:
 2. runtime transport / metadata / 错误归一化 / method parity
 3. workflow builder
 4. ai-provider 映射与多模态封装
-5. realm facade 命名规范
+5. realm facade 命名规范 + Realm 实例隔离 + 错误映射
+6. mod 注入路径（无全局 host 依赖）
+7. runtime + realm 编排范式（A/B/C/D）
 
 ### 1.2 覆盖率门禁
 
@@ -45,6 +48,27 @@ rules:
 6. `pnpm check:runtime-bridge-method-drift`
 7. `pnpm check:sdk-version-matrix`
 8. `pnpm check:sdk-consumer-smoke`
+9. `pnpm check:no-create-nimi-client`
+10. `pnpm check:no-global-openapi-config`
+11. `pnpm check:no-openapi-singleton-import`
+
+### 1.4 vNext 固定矩阵门禁
+
+命令：`pnpm check:sdk-vnext-matrix`
+
+固定测试集：
+
+1. `sdk/test/runtime/runtime-bridge-method-parity.test.ts`
+2. `sdk/test/realm/realm-client.test.ts`
+3. `sdk/test/scope/module.test.ts`
+4. `sdk/test/ai-provider/provider.test.ts`
+5. `sdk/test/mod/mod-runtime-context.test.ts`
+6. `sdk/test/integration/runtime-realm-orchestration.test.ts`
+
+### 1.5 PR/Release 同级门禁要求
+
+1. PR CI 必须执行 legacy/OpenAPI 禁令与 `sdk-vnext-matrix`。
+2. SDK release workflow 必须在 publish 前执行同级检查，不得降级或绕过。
 
 ## 2. runtime 契约测试
 
@@ -84,5 +108,5 @@ rules:
 
 ## 5. 已知测试边界
 
-1. realm 当前主要是 facade 命名与导出面校验，未覆盖完整 API 行为契约。
-2. provider contract 多数为 fake server + runtime daemon 组合，live smoke 覆盖面相对更小。
+1. realm 已覆盖实例隔离与关键错误映射，但未覆盖每一个 realm endpoint 的行为契约。
+2. provider contract 主要由 fake server + runtime daemon 组合验证，live smoke 仍是抽样覆盖。

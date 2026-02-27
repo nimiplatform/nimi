@@ -42,6 +42,14 @@ cd runtime
 go run ./cmd/nimi serve
 ```
 
+Optional one-time setup (recommended):
+
+```bash
+mkdir -p ~/.nimi/runtime
+cp runtime/config.example.json ~/.nimi/runtime/config.json
+export GEMINI_API_KEY="<your-gemini-key>"
+```
+
 In another terminal:
 
 ```bash
@@ -72,14 +80,13 @@ pnpm add @nimiplatform/sdk
 ```
 
 ```ts
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Realm } from '@nimiplatform/sdk';
 
-const client = createNimiClient({
-  appId: 'my_app',
-  realm: { baseUrl: 'https://api.nimi.xyz' },
+const realm = new Realm({
+  baseUrl: 'https://api.nimi.xyz',
 });
 
-const profile = await client.realm.auth.getProfile();
+const profile = await realm.auth.getProfile();
 console.log(profile.userId);
 ```
 

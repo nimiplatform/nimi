@@ -4,22 +4,19 @@
  * Run: npx tsx docs/examples/ai-provider.ts
  */
 
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { embed, generateText, streamText } from 'ai';
-import { FallbackPolicy, RoutePolicy } from '@nimiplatform/sdk/runtime';
 
 const APP_ID = 'example.ai-provider';
 
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: APP_ID,
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
 const nimi = createNimiAiProvider({
-  runtime: client.runtime!,
+  runtime,
   appId: APP_ID,
   subjectUserId: 'local-user',
   routePolicy: 'local-runtime',
@@ -61,17 +58,15 @@ async function embeddingExample() {
 }
 
 async function imageGenerationViaRuntime() {
-  const stream = await client.runtime!.ai.generateImage(
+  const stream = await runtime.media.image.stream(
     {
-      appId: APP_ID,
+      model: 'local/sd1.5',
       subjectUserId: 'local-user',
-      modelId: 'local/sd1.5',
       prompt: 'A digital painting of an AI agent in a virtual world',
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
+      route: 'local-runtime',
+      fallback: 'deny',
       timeoutMs: 120000,
     },
-    { idempotencyKey: crypto.randomUUID() },
   );
 
   let totalBytes = 0;
@@ -85,7 +80,7 @@ async function imageGenerationViaRuntime() {
 
 async function routePolicySwitch() {
   const cloudProvider = createNimiAiProvider({
-    runtime: client.runtime!,
+    runtime,
     appId: APP_ID,
     subjectUserId: 'local-user',
     routePolicy: 'token-api',

@@ -157,7 +157,12 @@ Mod Codegen 的核心价值仍是三大支柱：
 - `capabilities` 必须是 `manifest.capabilities` 子集
 - `setup` 只通过 `@nimiplatform/sdk/mod/*` 暴露的稳定导入面调用 host 能力
 
-## 6. API 约束（对齐当前 SDK）
+## 6. API 约束（SDK 投影，非 SDK 规范真相源）
+
+说明：
+1. 本节仅描述 Mod 打包与运行时生成代码对 SDK 的消费约束。
+2. `@nimiplatform/sdk/*` 的规范真相源固定为 `ssot/sdk/*`（特别是 `ssot/sdk/mod-contract.md` 与 `ssot/sdk/package-surface.md`）。
+3. 若本节与 `ssot/sdk/*` 冲突，以 `ssot/sdk/*` 为准。
 
 ### 6.1 允许导入（V1）
 

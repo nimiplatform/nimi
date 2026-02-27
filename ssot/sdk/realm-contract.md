@@ -1,12 +1,14 @@
 ---
 title: Nimi SDK Realm Subpath Contract
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - `@nimiplatform/sdk/realm` 只暴露 facade，不允许调用方依赖 generated 深层路径。
   - realm 公开命名必须走规范化 alias，禁止 legacy 命名泄漏。
   - realm facade 由脚本生成，禁止手工修改生成区。
+  - Realm 配置必须实例隔离，禁止写入或依赖全局 `OpenAPI` 单例状态。
+  - HTTP 默认错误映射固定为 `404/409/429 -> REALM_NOT_FOUND/REALM_CONFLICT/REALM_RATE_LIMITED`（无服务端 reasonCode 时）。
 ---
 
 # realm 子路径合同
@@ -18,21 +20,43 @@ rules:
 特点：
 
 1. 文件由 `scripts/generate-realm-sdk.mjs` 生成。
-2. 对外 re-export `generated/core/models/services`，并附加命名规范 alias。
-3. `openApiRequest` 作为底层请求能力公开入口。
+2. 对外暴露 `Realm` class、稳定 facade、命名规范 alias、`client-types` 与 `property-enums`。
+3. 底层请求能力仅通过 `new Realm(...).raw.request(...)` 暴露。
 
-## 2. OpenAPI 全局配置
+## 2. Realm 实例配置
 
-公开对象：`OpenAPI`。
+主入口：`new Realm({ baseUrl, auth, headers, timeoutMs })`。
 
-常见用法：由 `createNimiClient` 写入：
+约束：
 
-1. `OpenAPI.BASE`
-2. `OpenAPI.TOKEN`
+1. 每个 Realm 实例必须持有独立配置。
+2. 调用不得依赖或写入全局 `OpenAPI` 单例状态。
+3. `services` facade 必须把实例配置透传到 generated service 请求层。
 
-说明：这是全局单例配置，属于 realm facade 当前实现。
+## 3. 错误与取消语义
 
-## 3. 公共命名规范
+来源：`sdk/src/realm/client.ts`。
+
+### 3.1 默认 HTTP 映射（无 reasonCode）
+
+1. `401/403 -> AUTH_DENIED`
+2. `404 -> REALM_NOT_FOUND`
+3. `409 -> REALM_CONFLICT`
+4. `429 -> REALM_RATE_LIMITED`
+5. `400/422 -> CONFIG_INVALID`
+6. `5xx -> REALM_UNAVAILABLE`
+
+### 3.2 reasonCode/actionHint 解析优先级
+
+1. 优先读取服务端 body/header 中的 `reasonCode/actionHint/traceId`。
+2. 缺失时回退到 HTTP 默认映射。
+
+### 3.3 timeout/abort 语义
+
+1. timeout 触发映射为 `REALM_UNAVAILABLE`（可重试）。
+2. 外部 `AbortSignal` 取消映射为 `OPERATION_ABORTED`。
+
+## 4. 公共命名规范
 
 必须公开的规范名：
 
@@ -52,14 +76,18 @@ rules:
 5. `SocialV1DefaultVisibilityService`
 6. `SocialFourDimensionalAttributesService`
 
-## 4. 导入边界
+## 5. 导入边界
 
 允许：`@nimiplatform/sdk/realm`
 
 禁止：`@nimiplatform/sdk/realm/core|models|services|generated/*`
 
-## 5. 验收门禁
+## 6. 验收门禁
 
 1. `sdk/test/realm/realm-facade-naming.test.ts`
-2. `pnpm check:sdk-public-naming`
-3. `pnpm generate:realm-sdk`（变更后重生）
+2. `sdk/test/realm/realm-client.test.ts`
+3. `pnpm check:sdk-public-naming`
+4. `pnpm check:no-global-openapi-config`
+5. `pnpm check:no-openapi-singleton-import`
+6. `pnpm check:sdk-vnext-matrix`
+7. `pnpm generate:realm-sdk`（变更后重生）

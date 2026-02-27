@@ -36,10 +36,11 @@ types → nothing
 
 ```ts
 // Client initialization
-createNimiClient({ appId, realm?, runtime? })
+new Runtime({ appId, transport, ... })
+new Realm({ baseUrl, auth?, ... })
 
 // Error type (all errors)
-NimiError { reasonCode, actionHint, traceId, retryable, source }
+NimiError { code, reasonCode, actionHint, traceId, retryable, source, details? }
 
 // AI routing
 routePolicy: 'local-runtime' | 'token-api'

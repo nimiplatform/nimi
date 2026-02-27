@@ -4,86 +4,46 @@
  * Run: npx tsx docs/examples/ai-streaming.ts
  */
 
-import { createNimiClient } from '@nimiplatform/sdk';
-import {
-  FallbackPolicy,
-  Modal,
-  RuntimeReasonCode,
-  RoutePolicy,
-  StreamEventType,
-} from '@nimiplatform/sdk/runtime';
+import { Runtime } from '@nimiplatform/sdk';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const APP_ID = 'example.stream';
 
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: APP_ID,
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
-const runtime = client.runtime!;
-
 async function basicStream() {
-  const stream = await runtime.ai.streamGenerate(
-    {
-      appId: APP_ID,
-      subjectUserId: 'local-user',
-      modelId: 'local/qwen2.5',
-      modal: Modal.TEXT,
-      input: [{ role: 'user', name: 'user', content: 'Write a short haiku about open source.' }],
-      systemPrompt: '',
-      tools: [],
-      temperature: 0,
-      topP: 1,
-      maxTokens: 128,
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 120000,
-    },
-    { idempotencyKey: crypto.randomUUID() },
-  );
+  const streamResult = await runtime.ai.text.stream({
+    model: 'local/qwen2.5',
+    subjectUserId: 'local-user',
+    input: 'Write a short haiku about open source.',
+    maxTokens: 128,
+    route: 'local-runtime',
+    fallback: 'deny',
+    timeoutMs: 120000,
+  });
 
   let fullText = '';
 
-  for await (const event of stream) {
-    switch (event.eventType) {
-      case StreamEventType.STREAM_EVENT_STARTED:
-        if (event.payload.oneofKind === 'started') {
-          console.log('Started model:', event.payload.started.modelResolved);
-        }
-        break;
-
-      case StreamEventType.STREAM_EVENT_DELTA:
-        if (event.payload.oneofKind === 'delta') {
-          const text = event.payload.delta.text;
-          fullText += text;
-          process.stdout.write(text);
-        }
-        break;
-
-      case StreamEventType.STREAM_EVENT_USAGE:
-        if (event.payload.oneofKind === 'usage') {
-          console.log('\nUsage:', event.payload.usage);
-        }
-        break;
-
-      case StreamEventType.STREAM_EVENT_COMPLETED:
-        console.log('\nCompleted.');
-        break;
-
-      case StreamEventType.STREAM_EVENT_FAILED:
-        if (event.payload.oneofKind === 'failed') {
-          console.error(
-            '\nFailed:',
-            RuntimeReasonCode[event.payload.failed.reasonCode],
-            event.payload.failed.actionHint,
-          );
-        }
-        break;
-
-      default:
-        break;
+  for await (const part of streamResult.stream) {
+    if (part.type === 'start') {
+      console.log('Started.');
+      continue;
+    }
+    if (part.type === 'delta') {
+      fullText += part.text;
+      process.stdout.write(part.text);
+      continue;
+    }
+    if (part.type === 'finish') {
+      console.log('\nUsage:', part.usage);
+      console.log('Completed. finishReason:', part.finishReason);
+      continue;
+    }
+    if (part.type === 'error') {
+      console.error('\nFailed:', part.error.reasonCode, part.error.actionHint);
     }
   }
 
@@ -91,33 +51,21 @@ async function basicStream() {
 }
 
 async function streamFailureCase() {
-  const stream = await runtime.ai.streamGenerate(
-    {
-      appId: APP_ID,
-      subjectUserId: 'local-user',
-      modelId: 'nonexistent-model',
-      modal: Modal.TEXT,
-      input: [{ role: 'user', name: 'user', content: 'test' }],
-      systemPrompt: '',
-      tools: [],
-      temperature: 0,
-      topP: 1,
-      maxTokens: 64,
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 20000,
-    },
-    { idempotencyKey: crypto.randomUUID() },
-  );
+  const streamResult = await runtime.ai.text.stream({
+    model: 'nonexistent-model',
+    subjectUserId: 'local-user',
+    input: 'test',
+    maxTokens: 64,
+    route: 'local-runtime',
+    fallback: 'deny',
+    timeoutMs: 20000,
+  });
 
-  for await (const event of stream) {
-    if (
-      event.eventType === StreamEventType.STREAM_EVENT_FAILED
-      && event.payload.oneofKind === 'failed'
-    ) {
-      const reason = event.payload.failed.reasonCode;
-      console.error('Failure reason:', RuntimeReasonCode[reason]);
-      if (reason === RuntimeReasonCode.AI_PROVIDER_TIMEOUT) {
+  for await (const part of streamResult.stream) {
+    if (part.type === 'error') {
+      const reason = part.error.reasonCode;
+      console.error('Failure reason:', reason);
+      if (reason === ReasonCode.AI_PROVIDER_TIMEOUT) {
         console.error('This reason is retryable.');
       }
       return;

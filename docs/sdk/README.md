@@ -21,28 +21,118 @@ pnpm add @nimiplatform/sdk
 ## Quick Start
 
 ```ts
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Realm, Runtime } from '@nimiplatform/sdk';
 
-const client = createNimiClient({
+const realm = new Realm({
+  baseUrl: 'https://api.nimi.xyz',
+});
+
+const runtime = new Runtime({
   appId: 'my_app',
-  realm: { baseUrl: 'https://api.nimi.xyz' },     // optional
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  }, // optional
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 ```
 
-- `appId` is required.
-- `realm` and `runtime` — at least one must be provided.
-- Initialization failure returns a structured `NimiError`, never a raw string.
+- `Runtime` requires `appId` and `transport`.
+- `Realm` requires `baseUrl`.
+- Construction and call failures return structured `NimiError` values.
+
+## Runtime + Realm Orchestration Recipes (A/B/C/D)
+
+SDK keeps `Runtime` and `Realm` independent. Cross-system flow is composed explicitly in app code.
+
+### Pattern A: Realm -> Runtime
+
+```ts
+const grant = await realm.raw.request<{ token: string; version: string }>({
+  method: 'POST',
+  path: '/api/creator/mods/control/grants/issue',
+  body: { appId, subjectUserId, scopes },
+});
+
+const out = await runtime.ai.text.generate({
+  model: 'chat/default',
+  input: 'hello',
+  metadata: {
+    realmGrantToken: grant.token,
+    realmGrantVersion: grant.version,
+  },
+});
+```
+
+### Pattern B: Runtime -> Realm
+
+```ts
+const media = await runtime.media.video.generate({
+  model: 'video/default',
+  prompt: 'short teaser',
+});
+
+await realm.posts.create({
+  content: 'new clip',
+  attachments: media.artifacts.map((artifact) => ({
+    uri: artifact.uri,
+    mimeType: artifact.mimeType,
+  })),
+  traceId: media.trace.traceId,
+});
+```
+
+### Pattern C: Dual Preflight
+
+```ts
+const [policy, health] = await Promise.all([
+  realm.raw.request<{ allowed: boolean }>({
+    method: 'POST',
+    path: '/api/auth/policy/check',
+    body: { appId, subjectUserId, action: 'ai.generate' },
+  }),
+  runtime.health(),
+]);
+
+if (!policy.allowed) throw new Error('AUTH_DENIED');
+if (health.status !== 'healthy') throw new Error('RUNTIME_UNAVAILABLE');
+```
+
+### Pattern D: Independent Lifecycle + Explicit Bridge
+
+```ts
+await runtime.connect();
+await runtime.ready();
+await realm.connect();
+await realm.ready();
+
+const grant = await realm.raw.request<{ token: string; version: string }>({
+  method: 'POST',
+  path: '/api/creator/mods/control/grants/issue',
+  body: { appId, subjectUserId, scopes },
+});
+
+const out = await runtime.ai.text.generate({
+  model: 'chat/default',
+  input: 'hello',
+  metadata: {
+    realmGrantToken: grant.token,
+    realmGrantVersion: grant.version,
+  },
+});
+
+await realm.posts.create({
+  content: out.text,
+  traceId: out.trace.traceId,
+});
+
+await runtime.close();
+await realm.close();
+```
 
 ## Import Conventions
 
 **Recommended:**
 
 ```ts
-// Aggregated entry (quick start)
-import { createNimiClient } from '@nimiplatform/sdk';
+// Aggregated entry
+import { Runtime, Realm } from '@nimiplatform/sdk';
 
 // Sub-path imports (production, cleaner dependency boundaries)
 import { ... } from '@nimiplatform/sdk/realm';
@@ -64,29 +154,28 @@ import { ... } from '@nimiplatform/sdk/generated/...';
 
 ```ts
 // Unary
-const result = await client.runtime.ai.generate({
-  appId: 'my_app',
+const result = await runtime.ai.text.generate({
+  model: 'chat/default',
   subjectUserId: 'usr_1',
-  modelId: 'chat/default',
-  modal: 'text',
-  input: [{ role: 'user', content: 'hello' }],
-  routePolicy: 'local-runtime',
+  input: 'hello',
+  route: 'local-runtime',
+  fallback: 'deny',
   timeoutMs: 30000,
-  idempotencyKey: crypto.randomUUID(),
 });
 
 // Streaming
-const stream = client.runtime.ai.streamGenerate({
-  appId: 'my_app',
+const streamResult = await runtime.ai.text.stream({
+  model: 'chat/default',
   subjectUserId: 'usr_1',
-  modelId: 'chat/default',
-  modal: 'text',
-  input: [{ role: 'user', content: 'tell me a joke' }],
-  routePolicy: 'token-api',
+  input: 'tell me a joke',
+  route: 'token-api',
   fallback: 'deny',
   timeoutMs: 120000,
-  idempotencyKey: crypto.randomUUID(),
 });
+
+for await (const part of streamResult.stream) {
+  if (part.type === 'delta') process.stdout.write(part.text);
+}
 ```
 
 Route policies: `local-runtime` | `token-api`. Fallback is `deny` by default.
@@ -103,7 +192,7 @@ import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { generateText, streamText, embed } from 'ai';
 
 const nimi = createNimiAiProvider({
-  runtime: client.runtime,
+  runtime,
   appId: 'my_app',
   subjectUserId: 'usr_1',
 });
@@ -132,32 +221,32 @@ const { embedding } = await embed({
 For multi-model pipelines — don't chain `ai.generate` calls manually:
 
 ```ts
-const task = await client.runtime.workflow.submit({
+const task = await runtime.workflow.submit({
   appId: 'my_app',
   subjectUserId: 'usr_1',
   definition: workflowDef,
   idempotencyKey: crypto.randomUUID(),
 });
 
-const status = await client.runtime.workflow.get({ taskId: task.taskId });
-await client.runtime.workflow.cancel({ taskId: task.taskId });
+const status = await runtime.workflow.get({ taskId: task.taskId });
+await runtime.workflow.cancel({ taskId: task.taskId });
 
 // Subscribe to progress events
-const stream = client.runtime.workflow.subscribeEvents({ taskId: task.taskId });
+const stream = runtime.workflow.subscribeEvents({ taskId: task.taskId });
 ```
 
 ### Model Management
 
 ```ts
-const models = await client.runtime.model.list();
-await client.runtime.model.pull({ modelId: 'llama3' });
+const models = await runtime.model.list();
+await runtime.model.pull({ modelId: 'llama3' });
 ```
 
 ### App Authorization
 
 ```ts
 // Authorize an external principal
-await client.runtime.appAuth.authorizeExternalPrincipal({
+await runtime.appAuth.authorizeExternalPrincipal({
   domain: 'app-auth',
   appId: 'app_a',
   externalPrincipalId: 'ext_principal_1',
@@ -181,20 +270,35 @@ Presets: `readOnly` | `full` | `delegate`
 
 ## Realm APIs
 
-Realm APIs are generated from OpenAPI spec:
+`Realm` keeps a stable high-frequency facade and still exposes full generated services:
+
+- Facade: `auth/users/posts/worlds/notifications/media/search/transits`
+- Generated services: `realm.services.*`
 
 ```ts
-// Authentication
-await client.realm.auth.login({ ... });
+await realm.auth.passwordLogin({
+  email: 'user@nimi.local',
+  password: 'secret',
+});
 
-// Social
-const friends = await client.realm.social.getFriends({ userId });
+const me = await realm.users.me();
 
-// Economy
-await client.realm.economy.sendGift({ ... });
+await realm.posts.create({
+  content: 'hello realm',
+});
 
-// Real-time events
-client.realm.realtime.on('message', (event) => { ... });
+// Full generated surface remains available
+await realm.services.AuthService.passwordLogin({
+  email: 'user@nimi.local',
+  password: 'secret',
+});
+
+// Escape hatch for endpoints not wrapped by facade
+const grant = await realm.raw.request<{ token: string }>({
+  method: 'POST',
+  path: '/api/creator/mods/control/grants/issue',
+  body: { appId: 'my_app' },
+});
 ```
 
 ## Error Handling
@@ -203,11 +307,13 @@ All errors are structured:
 
 ```ts
 type NimiError = {
+  code: string;
   reasonCode: string;
   actionHint: string;
   traceId: string;
   retryable: boolean;
   source: 'realm' | 'runtime' | 'sdk';
+  details?: Record<string, unknown>;
 };
 ```
 

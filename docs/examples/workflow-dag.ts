@@ -4,7 +4,7 @@
  * Run: npx tsx docs/examples/workflow-dag.ts
  */
 
-import { createNimiClient } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk';
 import {
   aiGenerateNode,
   FallbackPolicy,
@@ -19,14 +19,10 @@ import {
 
 const APP_ID = 'example.workflow';
 
-const client = createNimiClient({
+const runtime = new Runtime({
   appId: APP_ID,
-  runtime: {
-    transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  },
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
-
-const runtime = client.runtime!;
 
 function buildDefinition() {
   return workflowDefinition({

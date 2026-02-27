@@ -1,12 +1,13 @@
 ---
 title: Nimi SDK AI Provider Contract
 status: ACTIVE
-updated_at: 2026-02-26
+updated_at: 2026-02-27
 parent: INDEX.md
 rules:
   - `@nimiplatform/sdk/ai-provider` 只做 SDK <-> Runtime 协议映射，不做静默语义降级。
   - 多模态任务走 runtime media job 合同；失败必须结构化、可追踪、可取消。
   - routePolicy/fallback 必须显式进入 runtime 请求，不允许隐藏路由决策。
+  - 流式中断后不得隐式重连续流；调用方必须显式二次订阅。
 ---
 
 # ai-provider 子路径合同
@@ -19,7 +20,7 @@ rules:
 
 必填配置：
 
-1. `runtime`
+1. `runtime`（必须是 `new Runtime(...)` 实例）
 2. `appId`
 3. `subjectUserId`
 
@@ -67,6 +68,8 @@ rules:
 2. AbortSignal 触发时会尝试 `cancelMediaJob`，然后抛错。
 3. SDK 超时同样会发起远端 cancel。
 4. 非兼容能力必须 fail-close，不得伪造成功。
+5. 流式失败事件只终止当前流，不触发 SDK 自动重订阅。
+6. 若调用方需要继续，必须显式再次调用 `doStream`。
 
 ## 5. provider metadata 约定
 
@@ -82,7 +85,7 @@ rules:
 
 1. `sdk/test/ai-provider/provider.test.ts`
 
-覆盖：文本/流式/embedding/image/video/tts/stt 映射、失败归一化、abort cancel、idempotency 元数据透传。
+覆盖：文本/流式/embedding/image/video/tts/stt 映射、失败归一化、abort cancel、idempotency 元数据透传、流中断显式重订阅。
 
 ### 6.2 runtime 合同测试（按 provider）
 
@@ -98,3 +101,4 @@ rules:
 ### 6.3 live smoke
 
 1. `nimi-sdk-ai-provider-live-smoke.test.ts`（local + litellm 真实环境）
+2. `pnpm check:sdk-vnext-matrix`（固定包含 `sdk/test/ai-provider/provider.test.ts`）
