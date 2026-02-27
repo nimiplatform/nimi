@@ -72,45 +72,17 @@ func EmbedGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.EmbedReque
 	return resp, nil
 }
 
-// TranscribeAudioGRPC calls RuntimeAiService.TranscribeAudio over gRPC.
-func TranscribeAudioGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.TranscribeAudioRequest, metadataOverride ...*ClientMetadata) (*runtimev1.TranscribeAudioResponse, error) {
+// SubmitMediaJobAndCollectGRPC submits a media job, polls until completion, and returns the first artifact payload.
+func SubmitMediaJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.SubmitMediaJobRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {
 	addr := strings.TrimSpace(grpcAddr)
 	if addr == "" {
 		return nil, errors.New("grpc address is required")
 	}
 	if req == nil {
-		return nil, errors.New("transcribe request is required")
+		return nil, errors.New("submit media job request is required")
 	}
-	if timeout <= 0 {
-		timeout = 15 * time.Second
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-	defer conn.Close()
-
-	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	resp, err := client.TranscribeAudio(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("runtime ai transcribe: %w", err)
-	}
-	return resp, nil
-}
-
-// GenerateImageGRPC calls RuntimeAiService.GenerateImage and collects chunk payload.
-func GenerateImageGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.GenerateImageRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, errors.New("grpc address is required")
-	}
-	if req == nil {
-		return nil, errors.New("generate image request is required")
+	if strings.TrimSpace(req.GetAppId()) == "" {
+		return nil, errors.New("app_id is required")
 	}
 	if timeout <= 0 {
 		timeout = 2 * time.Minute
@@ -127,73 +99,80 @@ func GenerateImageGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Ge
 	defer conn.Close()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	stream, err := client.GenerateImage(ctx, req)
+	submitResp, err := client.SubmitMediaJob(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("runtime ai generate image: %w", err)
+		return nil, fmt.Errorf("runtime ai submit media job: %w", err)
 	}
-	return collectArtifactStream(stream)
+	job := submitResp.GetJob()
+	if job == nil || strings.TrimSpace(job.GetJobId()) == "" {
+		return nil, errors.New("runtime ai submit media job returned empty job")
+	}
+
+	jobID := strings.TrimSpace(job.GetJobId())
+	for {
+		switch job.GetStatus() {
+		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
+			return collectMediaArtifactResult(ctx, client, job)
+		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
+			time.Sleep(250 * time.Millisecond)
+			pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
+				JobId: jobID,
+			})
+			if pollErr != nil {
+				return nil, fmt.Errorf("runtime ai get media job: %w", pollErr)
+			}
+			if pollResp.GetJob() == nil {
+				return nil, errors.New("runtime ai get media job returned empty job")
+			}
+			job = pollResp.GetJob()
+		default:
+			reason := strings.TrimSpace(job.GetReasonDetail())
+			if reason == "" {
+				reason = strings.TrimSpace(job.GetReasonCode().String())
+			}
+			if reason == "" {
+				reason = "unknown media job failure"
+			}
+			return nil, fmt.Errorf("runtime ai media job failed: %s", reason)
+		}
+	}
 }
 
-// GenerateVideoGRPC calls RuntimeAiService.GenerateVideo and collects chunk payload.
-func GenerateVideoGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.GenerateVideoRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, errors.New("grpc address is required")
+func collectMediaArtifactResult(ctx context.Context, client runtimev1.RuntimeAiServiceClient, job *runtimev1.MediaJob) (*ArtifactResult, error) {
+	if job == nil || strings.TrimSpace(job.GetJobId()) == "" {
+		return nil, errors.New("media job is required")
 	}
-	if req == nil {
-		return nil, errors.New("generate video request is required")
+	jobID := strings.TrimSpace(job.GetJobId())
+	artifacts := job.GetArtifacts()
+	traceID := strings.TrimSpace(job.GetTraceId())
+	if len(artifacts) == 0 {
+		artifactsResp, artifactsErr := client.GetMediaArtifacts(ctx, &runtimev1.GetMediaArtifactsRequest{
+			JobId: jobID,
+		})
+		if artifactsErr != nil {
+			return nil, fmt.Errorf("runtime ai get media artifacts: %w", artifactsErr)
+		}
+		artifacts = artifactsResp.GetArtifacts()
+		if traceID == "" {
+			traceID = strings.TrimSpace(artifactsResp.GetTraceId())
+		}
 	}
-	if timeout <= 0 {
-		timeout = 5 * time.Minute
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-	defer conn.Close()
-
-	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	stream, err := client.GenerateVideo(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("runtime ai generate video: %w", err)
-	}
-	return collectArtifactStream(stream)
-}
-
-// SynthesizeSpeechGRPC calls RuntimeAiService.SynthesizeSpeech and collects chunk payload.
-func SynthesizeSpeechGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.SynthesizeSpeechRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, errors.New("grpc address is required")
-	}
-	if req == nil {
-		return nil, errors.New("synthesize speech request is required")
-	}
-	if timeout <= 0 {
-		timeout = 60 * time.Second
+	if len(artifacts) == 0 {
+		return nil, errors.New("media job completed without artifacts")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-	defer conn.Close()
-
-	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	stream, err := client.SynthesizeSpeech(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("runtime ai synthesize speech: %w", err)
-	}
-	return collectArtifactStream(stream)
+	first := artifacts[0]
+	return &ArtifactResult{
+		ArtifactID:    first.GetArtifactId(),
+		MimeType:      first.GetMimeType(),
+		RouteDecision: job.GetRouteDecision(),
+		ModelResolved: job.GetModelResolved(),
+		TraceID:       traceID,
+		Usage:         job.GetUsage(),
+		Payload:       append([]byte(nil), first.GetBytes()...),
+	}, nil
 }
 
 // ListModelsGRPC calls RuntimeModelService.ListModels over gRPC.

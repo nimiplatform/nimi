@@ -147,6 +147,9 @@ type ClientMetadata struct {
 	CallerID                   string
 	SurfaceID                  string
 	TraceID                    string
+	CredentialSource           string
+	ProviderEndpoint           string
+	ProviderAPIKey             string
 	AccessTokenID              string
 	AccessTokenSecret          string
 }

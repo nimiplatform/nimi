@@ -79,30 +79,36 @@ func runRuntimeAISTT(args []string) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
-	resp, err := entrypoint.TranscribeAudioGRPC(*grpcAddr, timeout, &runtimev1.TranscribeAudioRequest{
+	artifact, err := entrypoint.SubmitMediaJobAndCollectGRPC(*grpcAddr, timeout, &runtimev1.SubmitMediaJobRequest{
 		AppId:         strings.TrimSpace(*appID),
 		SubjectUserId: strings.TrimSpace(*subjectUserID),
 		ModelId:       strings.TrimSpace(*modelID),
-		AudioBytes:    audioBytes,
-		MimeType:      strings.TrimSpace(*mimeType),
+		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   routePolicy,
 		Fallback:      fallbackPolicy,
 		TimeoutMs:     int32(*timeoutMS),
+		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
+				AudioBytes: audioBytes,
+				MimeType:   strings.TrimSpace(*mimeType),
+			},
+		},
 	}, callerMeta)
 	if err != nil {
 		return err
 	}
+	text := strings.TrimSpace(string(artifact.Payload))
 
 	if *jsonOutput {
 		out, err := json.MarshalIndent(map[string]any{
-			"text":           resp.GetText(),
-			"route_decision": resp.GetRouteDecision().String(),
-			"model_resolved": resp.GetModelResolved(),
-			"trace_id":       resp.GetTraceId(),
+			"text":           text,
+			"route_decision": artifact.RouteDecision.String(),
+			"model_resolved": artifact.ModelResolved,
+			"trace_id":       artifact.TraceID,
 			"usage": map[string]any{
-				"input_tokens":  resp.GetUsage().GetInputTokens(),
-				"output_tokens": resp.GetUsage().GetOutputTokens(),
-				"compute_ms":    resp.GetUsage().GetComputeMs(),
+				"input_tokens":  artifact.Usage.GetInputTokens(),
+				"output_tokens": artifact.Usage.GetOutputTokens(),
+				"compute_ms":    artifact.Usage.GetComputeMs(),
 			},
 		}, "", "  ")
 		if err != nil {
@@ -112,14 +118,14 @@ func runRuntimeAISTT(args []string) error {
 		return nil
 	}
 
-	fmt.Println(resp.GetText())
+	fmt.Println(text)
 	fmt.Printf("trace=%s model=%s route=%s usage(in=%d,out=%d,ms=%d)\n",
-		resp.GetTraceId(),
-		resp.GetModelResolved(),
-		resp.GetRouteDecision().String(),
-		resp.GetUsage().GetInputTokens(),
-		resp.GetUsage().GetOutputTokens(),
-		resp.GetUsage().GetComputeMs(),
+		artifact.TraceID,
+		artifact.ModelResolved,
+		artifact.RouteDecision.String(),
+		artifact.Usage.GetInputTokens(),
+		artifact.Usage.GetOutputTokens(),
+		artifact.Usage.GetComputeMs(),
 	)
 	return nil
 }
@@ -191,41 +197,40 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
-	var artifact *entrypoint.ArtifactResult
+	submitReq := &runtimev1.SubmitMediaJobRequest{
+		AppId:         strings.TrimSpace(*appID),
+		SubjectUserId: strings.TrimSpace(*subjectUserID),
+		ModelId:       strings.TrimSpace(*modelID),
+		RoutePolicy:   routePolicy,
+		Fallback:      fallbackPolicy,
+		TimeoutMs:     int32(*timeoutMS),
+	}
 	switch mode {
 	case runtimeAIArtifactModeImage:
-		artifact, err = entrypoint.GenerateImageGRPC(*grpcAddr, timeout, &runtimev1.GenerateImageRequest{
-			AppId:         strings.TrimSpace(*appID),
-			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			Prompt:        content,
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
-		}, callerMeta)
+		submitReq.Modal = runtimev1.Modal_MODAL_IMAGE
+		submitReq.Spec = &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: content,
+			},
+		}
 	case runtimeAIArtifactModeVideo:
-		artifact, err = entrypoint.GenerateVideoGRPC(*grpcAddr, timeout, &runtimev1.GenerateVideoRequest{
-			AppId:         strings.TrimSpace(*appID),
-			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			Prompt:        content,
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
-		}, callerMeta)
+		submitReq.Modal = runtimev1.Modal_MODAL_VIDEO
+		submitReq.Spec = &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: &runtimev1.VideoGenerationSpec{
+				Prompt: content,
+			},
+		}
 	case runtimeAIArtifactModeTTS:
-		artifact, err = entrypoint.SynthesizeSpeechGRPC(*grpcAddr, timeout, &runtimev1.SynthesizeSpeechRequest{
-			AppId:         strings.TrimSpace(*appID),
-			SubjectUserId: strings.TrimSpace(*subjectUserID),
-			ModelId:       strings.TrimSpace(*modelID),
-			Text:          content,
-			RoutePolicy:   routePolicy,
-			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
-		}, callerMeta)
+		submitReq.Modal = runtimev1.Modal_MODAL_TTS
+		submitReq.Spec = &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text: content,
+			},
+		}
 	default:
 		return fmt.Errorf("unsupported mode %q", mode)
 	}
+	artifact, err := entrypoint.SubmitMediaJobAndCollectGRPC(*grpcAddr, timeout, submitReq, callerMeta)
 	if err != nil {
 		return err
 	}

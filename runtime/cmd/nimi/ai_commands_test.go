@@ -15,6 +15,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -384,17 +385,7 @@ func TestRunRuntimeAITTSJSON(t *testing.T) {
 
 func TestRunRuntimeAISTTJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
-		transcribeResponse: &runtimev1.TranscribeAudioResponse{
-			Text:          "transcribed text",
-			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-			ModelResolved: "whisper-1",
-			TraceId:       "trace-stt-1",
-			Usage: &runtimev1.UsageStats{
-				InputTokens:  10,
-				OutputTokens: 3,
-				ComputeMs:    9,
-			},
-		},
+		sttText: "transcribed text",
 	}
 	addr, shutdown := startCmdTestRuntimeAIServer(t, service)
 	defer shutdown()
@@ -421,8 +412,15 @@ func TestRunRuntimeAISTTJSON(t *testing.T) {
 	if asString(payload["text"]) != "transcribed text" {
 		t.Fatalf("stt text mismatch: %v", payload["text"])
 	}
-	req := service.lastTranscribeRequest()
-	if string(req.GetAudioBytes()) != "fake wav bytes" {
+	req := service.lastSTTSubmitRequest()
+	if req == nil {
+		t.Fatalf("stt submit request not captured")
+	}
+	spec, ok := req.GetSpec().(*runtimev1.SubmitMediaJobRequest_TranscriptionSpec)
+	if !ok {
+		t.Fatalf("stt transcription spec missing")
+	}
+	if string(spec.TranscriptionSpec.GetAudioBytes()) != "fake wav bytes" {
 		t.Fatalf("audio bytes mismatch")
 	}
 }
@@ -450,13 +448,13 @@ type cmdTestRuntimeAIService struct {
 
 	mu sync.Mutex
 
-	generateMD   metadata.MD
-	streamMD     metadata.MD
-	imageMD      metadata.MD
-	videoMD      metadata.MD
-	ttsMD        metadata.MD
-	embedRequest *runtimev1.EmbedRequest
-	sttRequest   *runtimev1.TranscribeAudioRequest
+	generateMD      metadata.MD
+	streamMD        metadata.MD
+	mediaSubmitMD   metadata.MD
+	embedRequest    *runtimev1.EmbedRequest
+	lastMediaReq    *runtimev1.SubmitMediaJobRequest
+	lastMediaJob    *runtimev1.MediaJob
+	lastMediaRecord []*runtimev1.MediaArtifact
 
 	generateResponse   *runtimev1.GenerateResponse
 	embedResponse      *runtimev1.EmbedResponse
@@ -464,7 +462,7 @@ type cmdTestRuntimeAIService struct {
 	imageChunks        []*runtimev1.ArtifactChunk
 	videoChunks        []*runtimev1.ArtifactChunk
 	ttsChunks          []*runtimev1.ArtifactChunk
-	transcribeResponse *runtimev1.TranscribeAudioResponse
+	sttText            string
 }
 
 func (s *cmdTestRuntimeAIService) Generate(ctx context.Context, _ *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {
@@ -505,63 +503,83 @@ func (s *cmdTestRuntimeAIService) Embed(ctx context.Context, req *runtimev1.Embe
 	return nil, errors.New("embed response not configured")
 }
 
-func (s *cmdTestRuntimeAIService) GenerateImage(_ *runtimev1.GenerateImageRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	s.mu.Lock()
-	s.imageMD = cloneIncomingMetadata(stream.Context())
-	chunks := append([]*runtimev1.ArtifactChunk(nil), s.imageChunks...)
-	s.mu.Unlock()
-	for _, chunk := range chunks {
-		if chunk == nil {
-			continue
-		}
-		if err := stream.Send(chunk); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *cmdTestRuntimeAIService) GenerateVideo(_ *runtimev1.GenerateVideoRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	s.mu.Lock()
-	s.videoMD = cloneIncomingMetadata(stream.Context())
-	chunks := append([]*runtimev1.ArtifactChunk(nil), s.videoChunks...)
-	s.mu.Unlock()
-	for _, chunk := range chunks {
-		if chunk == nil {
-			continue
-		}
-		if err := stream.Send(chunk); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *cmdTestRuntimeAIService) SynthesizeSpeech(_ *runtimev1.SynthesizeSpeechRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	s.mu.Lock()
-	s.ttsMD = cloneIncomingMetadata(stream.Context())
-	chunks := append([]*runtimev1.ArtifactChunk(nil), s.ttsChunks...)
-	s.mu.Unlock()
-	for _, chunk := range chunks {
-		if chunk == nil {
-			continue
-		}
-		if err := stream.Send(chunk); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *cmdTestRuntimeAIService) TranscribeAudio(ctx context.Context, req *runtimev1.TranscribeAudioRequest) (*runtimev1.TranscribeAudioResponse, error) {
+func (s *cmdTestRuntimeAIService) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.sttRequest = req
-	_ = cloneIncomingMetadata(ctx)
-	if s.transcribeResponse != nil {
-		return s.transcribeResponse, nil
+
+	s.mediaSubmitMD = cloneIncomingMetadata(ctx)
+	s.lastMediaReq = req
+
+	var chunks []*runtimev1.ArtifactChunk
+	switch req.GetModal() {
+	case runtimev1.Modal_MODAL_IMAGE:
+		chunks = append([]*runtimev1.ArtifactChunk(nil), s.imageChunks...)
+	case runtimev1.Modal_MODAL_VIDEO:
+		chunks = append([]*runtimev1.ArtifactChunk(nil), s.videoChunks...)
+	case runtimev1.Modal_MODAL_TTS:
+		chunks = append([]*runtimev1.ArtifactChunk(nil), s.ttsChunks...)
+	case runtimev1.Modal_MODAL_STT:
+		chunks = []*runtimev1.ArtifactChunk{
+			{
+				ArtifactId:    "stt-1",
+				MimeType:      "text/plain",
+				Chunk:         []byte(s.sttText),
+				Eof:           true,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				ModelResolved: req.GetModelId(),
+				TraceId:       "trace-stt-1",
+			},
+		}
+	default:
+		return nil, errors.New("unsupported media modal in test service")
 	}
-	return nil, errors.New("transcribe response not configured")
+
+	artifact, routeDecision, modelResolved, traceID, usage := assembleArtifactFromChunks(chunks)
+	job := &runtimev1.MediaJob{
+		JobId:         "job-1",
+		Status:        runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
+		RouteDecision: routeDecision,
+		ModelResolved: modelResolved,
+		TraceId:       traceID,
+		Usage:         usage,
+		Artifacts:     []*runtimev1.MediaArtifact{artifact},
+	}
+
+	s.lastMediaJob = job
+	s.lastMediaRecord = []*runtimev1.MediaArtifact{artifact}
+	return &runtimev1.SubmitMediaJobResponse{Job: job}, nil
+}
+
+func (s *cmdTestRuntimeAIService) GetMediaJob(context.Context, *runtimev1.GetMediaJobRequest) (*runtimev1.GetMediaJobResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.lastMediaJob == nil {
+		return &runtimev1.GetMediaJobResponse{
+			Job: &runtimev1.MediaJob{
+				JobId:      "job-1",
+				Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED,
+				ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+			},
+		}, nil
+	}
+	return &runtimev1.GetMediaJobResponse{
+		Job: cloneMediaJob(s.lastMediaJob),
+	}, nil
+}
+
+func (s *cmdTestRuntimeAIService) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaArtifactsRequest) (*runtimev1.GetMediaArtifactsResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	artifacts := append([]*runtimev1.MediaArtifact(nil), s.lastMediaRecord...)
+	traceID := ""
+	if s.lastMediaJob != nil {
+		traceID = s.lastMediaJob.GetTraceId()
+	}
+	return &runtimev1.GetMediaArtifactsResponse{
+		JobId:     req.GetJobId(),
+		Artifacts: artifacts,
+		TraceId:   traceID,
+	}, nil
 }
 
 func (s *cmdTestRuntimeAIService) lastGenerateMetadata() metadata.MD {
@@ -585,13 +603,67 @@ func (s *cmdTestRuntimeAIService) lastEmbedRequest() *runtimev1.EmbedRequest {
 	return s.embedRequest
 }
 
-func (s *cmdTestRuntimeAIService) lastTranscribeRequest() *runtimev1.TranscribeAudioRequest {
+func (s *cmdTestRuntimeAIService) lastSTTSubmitRequest() *runtimev1.SubmitMediaJobRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.sttRequest == nil {
-		return &runtimev1.TranscribeAudioRequest{}
+	if s.lastMediaReq == nil || s.lastMediaReq.GetModal() != runtimev1.Modal_MODAL_STT {
+		return nil
 	}
-	return s.sttRequest
+	return s.lastMediaReq
+}
+
+func assembleArtifactFromChunks(chunks []*runtimev1.ArtifactChunk) (*runtimev1.MediaArtifact, runtimev1.RoutePolicy, string, string, *runtimev1.UsageStats) {
+	artifactID := "artifact-1"
+	mimeType := "application/octet-stream"
+	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+	modelResolved := ""
+	traceID := ""
+	var usage *runtimev1.UsageStats
+	payload := make([]byte, 0)
+
+	for _, chunk := range chunks {
+		if chunk == nil {
+			continue
+		}
+		if chunk.GetArtifactId() != "" {
+			artifactID = chunk.GetArtifactId()
+		}
+		if chunk.GetMimeType() != "" {
+			mimeType = chunk.GetMimeType()
+		}
+		if len(chunk.GetChunk()) > 0 {
+			payload = append(payload, chunk.GetChunk()...)
+		}
+		if chunk.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+			routeDecision = chunk.GetRouteDecision()
+		}
+		if chunk.GetModelResolved() != "" {
+			modelResolved = chunk.GetModelResolved()
+		}
+		if chunk.GetTraceId() != "" {
+			traceID = chunk.GetTraceId()
+		}
+		if chunk.GetUsage() != nil {
+			usage = chunk.GetUsage()
+		}
+	}
+
+	return &runtimev1.MediaArtifact{
+		ArtifactId: artifactID,
+		MimeType:   mimeType,
+		Bytes:      payload,
+	}, routeDecision, modelResolved, traceID, usage
+}
+
+func cloneMediaJob(job *runtimev1.MediaJob) *runtimev1.MediaJob {
+	if job == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(job).(*runtimev1.MediaJob)
+	if !ok {
+		return nil
+	}
+	return cloned
 }
 
 func captureStdoutFromRun(run func() error) (string, error) {

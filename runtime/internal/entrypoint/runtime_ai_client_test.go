@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -181,46 +182,44 @@ func TestStreamGenerateTextGRPC_MetadataAndEvents(t *testing.T) {
 	}
 }
 
-func TestGenerateImageGRPCCollectsChunks(t *testing.T) {
+func TestSubmitMediaJobAndCollectGRPC(t *testing.T) {
 	service := &testRuntimeAIService{
-		imageChunks: []*runtimev1.ArtifactChunk{
-			{
-				ArtifactId:    "artifact-1",
-				MimeType:      "image/png",
-				Sequence:      1,
-				Chunk:         []byte("hel"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-				ModelResolved: "sd3",
-				TraceId:       "trace-img-1",
+		mediaJob: &runtimev1.MediaJob{
+			JobId:         "job-1",
+			Status:        runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
+			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			ModelResolved: "sd3",
+			TraceId:       "trace-img-1",
+			Usage: &runtimev1.UsageStats{
+				InputTokens:  9,
+				OutputTokens: 5,
+				ComputeMs:    15,
 			},
+		},
+		mediaArtifacts: []*runtimev1.MediaArtifact{
 			{
-				ArtifactId:    "artifact-1",
-				MimeType:      "image/png",
-				Sequence:      2,
-				Chunk:         []byte("lo"),
-				Eof:           true,
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-				ModelResolved: "sd3",
-				TraceId:       "trace-img-1",
-				Usage: &runtimev1.UsageStats{
-					InputTokens:  9,
-					OutputTokens: 5,
-					ComputeMs:    15,
-				},
+				ArtifactId: "artifact-1",
+				MimeType:   "image/png",
+				Bytes:      []byte("hello"),
 			},
 		},
 	}
 	addr, shutdown := startTestRuntimeAIServer(t, service)
 	defer shutdown()
 
-	result, err := GenerateImageGRPC(addr, 3*time.Second, &runtimev1.GenerateImageRequest{
+	result, err := SubmitMediaJobAndCollectGRPC(addr, 3*time.Second, &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		ModelId:       "local/sd3",
-		Prompt:        "a cat",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		TimeoutMs:     120000,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "a cat",
+			},
+		},
 	}, &ClientMetadata{
 		CallerKind: "third-party-app",
 		CallerID:   "app:editor",
@@ -228,7 +227,7 @@ func TestGenerateImageGRPCCollectsChunks(t *testing.T) {
 		TraceID:    "trace-image-md",
 	})
 	if err != nil {
-		t.Fatalf("GenerateImageGRPC: %v", err)
+		t.Fatalf("SubmitMediaJobAndCollectGRPC: %v", err)
 	}
 	if string(result.Payload) != "hello" {
 		t.Fatalf("payload mismatch: %q", string(result.Payload))
@@ -237,7 +236,7 @@ func TestGenerateImageGRPCCollectsChunks(t *testing.T) {
 		t.Fatalf("usage mismatch: in=%d out=%d", result.Usage.GetInputTokens(), result.Usage.GetOutputTokens())
 	}
 
-	md := service.lastImageMetadata()
+	md := service.lastMediaSubmitMetadata()
 	if got := firstMetadataValue(md, "x-nimi-caller-id"); got != "app:editor" {
 		t.Fatalf("caller-id mismatch: %q", got)
 	}
@@ -269,13 +268,14 @@ type testRuntimeAIService struct {
 
 	mu sync.Mutex
 
-	generateMD metadata.MD
-	streamMD   metadata.MD
-	imageMD    metadata.MD
+	generateMD    metadata.MD
+	streamMD      metadata.MD
+	mediaSubmitMD metadata.MD
 
 	generateResponse *runtimev1.GenerateResponse
 	streamEvents     []*runtimev1.StreamGenerateEvent
-	imageChunks      []*runtimev1.ArtifactChunk
+	mediaJob         *runtimev1.MediaJob
+	mediaArtifacts   []*runtimev1.MediaArtifact
 }
 
 func (s *testRuntimeAIService) Generate(ctx context.Context, _ *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {
@@ -321,32 +321,60 @@ func (s *testRuntimeAIService) Embed(context.Context, *runtimev1.EmbedRequest) (
 	return nil, errors.New("not implemented in test service")
 }
 
-func (s *testRuntimeAIService) GenerateImage(_ *runtimev1.GenerateImageRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
+func (s *testRuntimeAIService) SubmitMediaJob(ctx context.Context, _ *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
 	s.mu.Lock()
-	s.imageMD = cloneMetadata(stream.Context())
-	chunks := append([]*runtimev1.ArtifactChunk(nil), s.imageChunks...)
+	s.mediaSubmitMD = cloneMetadata(ctx)
+	job := protoCloneMediaJob(s.mediaJob)
 	s.mu.Unlock()
-	for _, chunk := range chunks {
-		if chunk == nil {
-			continue
-		}
-		if err := stream.Send(chunk); err != nil {
-			return err
+	if job == nil {
+		job = &runtimev1.MediaJob{
+			JobId:  "job-default",
+			Status: runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
 		}
 	}
-	return nil
+	return &runtimev1.SubmitMediaJobResponse{Job: job}, nil
 }
 
-func (s *testRuntimeAIService) GenerateVideo(*runtimev1.GenerateVideoRequest, grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
+func (s *testRuntimeAIService) GetMediaJob(context.Context, *runtimev1.GetMediaJobRequest) (*runtimev1.GetMediaJobResponse, error) {
+	s.mu.Lock()
+	job := protoCloneMediaJob(s.mediaJob)
+	s.mu.Unlock()
+	if job == nil {
+		job = &runtimev1.MediaJob{
+			JobId:      "job-default",
+			Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED,
+			ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		}
+	}
+	return &runtimev1.GetMediaJobResponse{Job: job}, nil
+}
+
+func (s *testRuntimeAIService) CancelMediaJob(context.Context, *runtimev1.CancelMediaJobRequest) (*runtimev1.CancelMediaJobResponse, error) {
+	return &runtimev1.CancelMediaJobResponse{
+		Job: &runtimev1.MediaJob{
+			JobId:  "job-default",
+			Status: runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_CANCELED,
+		},
+	}, nil
+}
+
+func (s *testRuntimeAIService) SubscribeMediaJobEvents(*runtimev1.SubscribeMediaJobEventsRequest, grpc.ServerStreamingServer[runtimev1.MediaJobEvent]) error {
 	return errors.New("not implemented in test service")
 }
 
-func (s *testRuntimeAIService) SynthesizeSpeech(*runtimev1.SynthesizeSpeechRequest, grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	return errors.New("not implemented in test service")
-}
-
-func (s *testRuntimeAIService) TranscribeAudio(context.Context, *runtimev1.TranscribeAudioRequest) (*runtimev1.TranscribeAudioResponse, error) {
-	return nil, errors.New("not implemented in test service")
+func (s *testRuntimeAIService) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaArtifactsRequest) (*runtimev1.GetMediaArtifactsResponse, error) {
+	s.mu.Lock()
+	artifacts := append([]*runtimev1.MediaArtifact(nil), s.mediaArtifacts...)
+	traceID := ""
+	if s.mediaJob != nil {
+		traceID = s.mediaJob.GetTraceId()
+	}
+	s.mu.Unlock()
+	return &runtimev1.GetMediaArtifactsResponse{
+		JobId:     req.GetJobId(),
+		Artifacts: artifacts,
+		TraceId:   traceID,
+	}, nil
 }
 
 func (s *testRuntimeAIService) lastGenerateMetadata() metadata.MD {
@@ -361,10 +389,21 @@ func (s *testRuntimeAIService) lastStreamMetadata() metadata.MD {
 	return s.streamMD.Copy()
 }
 
-func (s *testRuntimeAIService) lastImageMetadata() metadata.MD {
+func (s *testRuntimeAIService) lastMediaSubmitMetadata() metadata.MD {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.imageMD.Copy()
+	return s.mediaSubmitMD.Copy()
+}
+
+func protoCloneMediaJob(job *runtimev1.MediaJob) *runtimev1.MediaJob {
+	if job == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(job).(*runtimev1.MediaJob)
+	if !ok {
+		return nil
+	}
+	return cloned
 }
 
 func cloneMetadata(ctx context.Context) metadata.MD {

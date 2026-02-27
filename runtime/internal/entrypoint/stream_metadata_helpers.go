@@ -84,6 +84,15 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 		if value := strings.TrimSpace(metadataOverride.TraceID); value != "" {
 			metadataValue.TraceID = value
 		}
+		if value := strings.ToLower(strings.TrimSpace(metadataOverride.CredentialSource)); value != "" {
+			metadataValue.CredentialSource = value
+		}
+		if value := strings.TrimSpace(metadataOverride.ProviderEndpoint); value != "" {
+			metadataValue.ProviderEndpoint = value
+		}
+		if value := strings.TrimSpace(metadataOverride.ProviderAPIKey); value != "" {
+			metadataValue.ProviderAPIKey = value
+		}
 		if value := strings.TrimSpace(metadataOverride.ProtocolVersion); value != "" {
 			metadataValue.ProtocolVersion = value
 		}
@@ -122,6 +131,15 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 	if metadataValue.TraceID != "" {
 		pairs = append(pairs, "x-nimi-trace-id", metadataValue.TraceID)
 	}
+	if source := strings.ToLower(strings.TrimSpace(metadataValue.CredentialSource)); source != "" {
+		pairs = append(pairs, "x-nimi-credential-source", source)
+	}
+	if endpoint := strings.TrimSpace(metadataValue.ProviderEndpoint); endpoint != "" {
+		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)
+	}
+	if apiKey := strings.TrimSpace(metadataValue.ProviderAPIKey); apiKey != "" {
+		pairs = append(pairs, "x-nimi-provider-api-key", apiKey)
+	}
 	if appID != "" {
 		pairs = append(pairs, "x-nimi-app-id", appID)
 	}
@@ -152,6 +170,7 @@ func defaultClientMetadata() ClientMetadata {
 		CallerID:                   cliCallerID,
 		SurfaceID:                  cliSurfaceID,
 		TraceID:                    "",
+		CredentialSource:           "runtime-config",
 	}
 }
 
