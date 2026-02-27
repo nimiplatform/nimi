@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import logoImage from '../../assets/logo.png';
+import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import type { UiExtensionEntry } from '@runtime/hook/contracts/types';
