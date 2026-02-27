@@ -1,7 +1,6 @@
 package workflow
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -725,27 +724,19 @@ func (s *Service) executeAIImageNode(ctx context.Context, record *taskRecord, no
 	content := []byte(prompt)
 	mimeType := "image/png"
 	if client := s.runtimeAIClient(); client != nil {
-		stream, err := client.GenerateImage(ctx, &runtimev1.GenerateImageRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			Prompt:        prompt,
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
-		})
-		if err != nil {
-			return nil, err
+		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		if runErr != nil {
+			return nil, runErr
 		}
-		payload, receivedMime, readErr := readArtifactChunks(stream)
-		if readErr != nil {
-			return nil, readErr
+		first := firstMediaArtifact(artifacts)
+		if first == nil {
+			return nil, fmt.Errorf("image artifacts are empty")
 		}
-		if len(payload) > 0 {
-			content = payload
+		if len(first.GetBytes()) > 0 {
+			content = first.GetBytes()
 		}
-		if strings.TrimSpace(receivedMime) != "" {
-			mimeType = receivedMime
+		if strings.TrimSpace(first.GetMimeType()) != "" {
+			mimeType = first.GetMimeType()
 		}
 	}
 	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, content)
@@ -768,27 +759,19 @@ func (s *Service) executeAIVideoNode(ctx context.Context, record *taskRecord, no
 	content := []byte(prompt)
 	mimeType := "video/mp4"
 	if client := s.runtimeAIClient(); client != nil {
-		stream, err := client.GenerateVideo(ctx, &runtimev1.GenerateVideoRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			Prompt:        prompt,
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
-		})
-		if err != nil {
-			return nil, err
+		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		if runErr != nil {
+			return nil, runErr
 		}
-		payload, receivedMime, readErr := readArtifactChunks(stream)
-		if readErr != nil {
-			return nil, readErr
+		first := firstMediaArtifact(artifacts)
+		if first == nil {
+			return nil, fmt.Errorf("video artifacts are empty")
 		}
-		if len(payload) > 0 {
-			content = payload
+		if len(first.GetBytes()) > 0 {
+			content = first.GetBytes()
 		}
-		if strings.TrimSpace(receivedMime) != "" {
-			mimeType = receivedMime
+		if strings.TrimSpace(first.GetMimeType()) != "" {
+			mimeType = first.GetMimeType()
 		}
 	}
 	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, content)
@@ -811,27 +794,19 @@ func (s *Service) executeAITTSNode(ctx context.Context, record *taskRecord, node
 	content := []byte(text)
 	mimeType := "audio/wav"
 	if client := s.runtimeAIClient(); client != nil {
-		stream, err := client.SynthesizeSpeech(ctx, &runtimev1.SynthesizeSpeechRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			Text:          text,
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
-		})
-		if err != nil {
-			return nil, err
+		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		if runErr != nil {
+			return nil, runErr
 		}
-		payload, receivedMime, readErr := readArtifactChunks(stream)
-		if readErr != nil {
-			return nil, readErr
+		first := firstMediaArtifact(artifacts)
+		if first == nil {
+			return nil, fmt.Errorf("tts artifacts are empty")
 		}
-		if len(payload) > 0 {
-			content = payload
+		if len(first.GetBytes()) > 0 {
+			content = first.GetBytes()
 		}
-		if strings.TrimSpace(receivedMime) != "" {
-			mimeType = receivedMime
+		if strings.TrimSpace(first.GetMimeType()) != "" {
+			mimeType = first.GetMimeType()
 		}
 	}
 	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, content)
@@ -853,27 +828,117 @@ func (s *Service) executeAISTTNode(ctx context.Context, record *taskRecord, node
 	}
 	text := "transcribed"
 	if client := s.runtimeAIClient(); client != nil {
-		resp, err := client.TranscribeAudio(ctx, &runtimev1.TranscribeAudioRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			AudioBytes:    audio,
-			MimeType:      cfg.GetMimeType(),
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
-		})
-		if err != nil {
-			return nil, err
+		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		if runErr != nil {
+			return nil, runErr
 		}
-		if strings.TrimSpace(resp.GetText()) != "" {
-			text = resp.GetText()
+		first := firstMediaArtifact(artifacts)
+		if first != nil {
+			value := strings.TrimSpace(string(first.GetBytes()))
+			if value == "" && first.GetProviderRaw() != nil {
+				if rawText, ok := first.GetProviderRaw().AsMap()["text"].(string); ok {
+					value = strings.TrimSpace(rawText)
+				}
+			}
+			if value != "" {
+				text = value
+			}
 		}
 	}
 	return map[string]*structpb.Struct{
 		"output": structFromMap(map[string]any{"text": text}),
 		"text":   structFromMap(map[string]any{"value": text}),
 	}, nil
+}
+
+func (s *Service) runMediaJobSync(
+	ctx context.Context,
+	client runtimev1.RuntimeAiServiceClient,
+	record *taskRecord,
+	node *runtimev1.WorkflowNode,
+	inputs map[string]*structpb.Struct,
+) (*runtimev1.MediaJob, []*runtimev1.MediaArtifact, error) {
+	submitReq, err := buildSubmitMediaJobRequest(record, node, inputs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	submitResp, err := client.SubmitMediaJob(ctx, submitReq)
+	if err != nil {
+		return nil, nil, err
+	}
+	job := submitResp.GetJob()
+	if job == nil || strings.TrimSpace(job.GetJobId()) == "" {
+		return nil, nil, fmt.Errorf("media submit returned empty job")
+	}
+
+	jobID := strings.TrimSpace(job.GetJobId())
+	cancelForwarded := false
+	forwardCancel := func(reason string) {
+		if cancelForwarded || jobID == "" {
+			return
+		}
+		cancelForwarded = true
+		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_, _ = client.CancelMediaJob(cancelCtx, &runtimev1.CancelMediaJobRequest{
+			JobId:  jobID,
+			Reason: strings.TrimSpace(reason),
+		})
+	}
+
+	for {
+		if ctx.Err() != nil {
+			forwardCancel(ctx.Err().Error())
+			return nil, nil, ctx.Err()
+		}
+
+		switch job.GetStatus() {
+		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
+			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
+			time.Sleep(250 * time.Millisecond)
+			pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
+				JobId: jobID,
+			})
+			if pollErr != nil {
+				return nil, nil, pollErr
+			}
+			if pollResp.GetJob() == nil {
+				return nil, nil, fmt.Errorf("media poll returned empty job")
+			}
+			job = pollResp.GetJob()
+			continue
+		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
+			artifacts := job.GetArtifacts()
+			if len(artifacts) == 0 {
+				artifactsResp, artifactsErr := client.GetMediaArtifacts(ctx, &runtimev1.GetMediaArtifactsRequest{
+					JobId: jobID,
+				})
+				if artifactsErr != nil {
+					return nil, nil, artifactsErr
+				}
+				artifacts = artifactsResp.GetArtifacts()
+			}
+			return job, artifacts, nil
+		default:
+			reason := strings.TrimSpace(job.GetReasonDetail())
+			if reason == "" {
+				reason = strings.TrimSpace(job.GetReasonCode().String())
+			}
+			if reason == "" {
+				reason = "unknown media job failure"
+			}
+			return nil, nil, fmt.Errorf("media job failed: %s", reason)
+		}
+	}
+}
+
+func firstMediaArtifact(artifacts []*runtimev1.MediaArtifact) *runtimev1.MediaArtifact {
+	if len(artifacts) == 0 {
+		return nil
+	}
+	return artifacts[0]
 }
 
 func (s *Service) executeExtractNode(node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {
@@ -1183,32 +1248,6 @@ func (s *Service) runtimeScriptClient() runtimev1.ScriptWorkerServiceClient {
 		return nil
 	}
 	return runtimev1.NewScriptWorkerServiceClient(conn)
-}
-
-func readArtifactChunks(stream interface {
-	Recv() (*runtimev1.ArtifactChunk, error)
-}) ([]byte, string, error) {
-	var payload bytes.Buffer
-	mimeType := ""
-	for {
-		chunk, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, "", err
-		}
-		if mimeType == "" {
-			mimeType = chunk.GetMimeType()
-		}
-		if len(chunk.GetChunk()) > 0 {
-			_, _ = payload.Write(chunk.GetChunk())
-		}
-		if chunk.GetEof() {
-			break
-		}
-	}
-	return payload.Bytes(), mimeType, nil
 }
 
 func promptAsMessages(prompt string) []*runtimev1.ChatMessage {

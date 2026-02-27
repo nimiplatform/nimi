@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log/slog"
@@ -25,7 +24,19 @@ import (
 )
 
 func TestGenerateSuccess(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"hello from provider"},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":4}}`))
+	}))
+	defer server.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL: server.URL,
+	})
 
 	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
 		AppId:         "nimi.desktop",
@@ -127,7 +138,31 @@ func TestGenerateHonorsRequestTimeout(t *testing.T) {
 }
 
 func TestStreamGenerateSequence(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	streamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, _ := w.(http.Flusher)
+		fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{\"content\":\"hello \"}}]}\n\n")
+		if flusher != nil {
+			flusher.Flush()
+		}
+		fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{\"content\":\"world\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":2}}\n\n")
+		if flusher != nil {
+			flusher.Flush()
+		}
+		fmt.Fprintf(w, "data: [DONE]\n\n")
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}))
+	defer streamServer.Close()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalAIBaseURL: streamServer.URL,
+	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
 	err := svc.StreamGenerate(&runtimev1.StreamGenerateRequest{
@@ -380,47 +415,6 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 	}
 }
 
-func TestGenerateImageChunked(t *testing.T) {
-	imagePayload := []byte("image-chunked")
-	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"data":[{"b64_json":"` + imageB64 + `","mime_type":"image/png"}]}`))
-			return
-		}
-		http.NotFound(w, r)
-	}))
-	defer server.Close()
-
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
-	})
-	stream := &artifactCollector{ctx: context.Background()}
-
-	err := svc.GenerateImage(&runtimev1.GenerateImageRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/sd3",
-		Prompt:        "a blue car on mars",
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-	}, stream)
-	if err != nil {
-		t.Fatalf("generate image: %v", err)
-	}
-	if len(stream.chunks) == 0 {
-		t.Fatalf("expected at least one chunk")
-	}
-	last := stream.chunks[len(stream.chunks)-1]
-	if !last.GetEof() {
-		t.Fatalf("last chunk must be eof")
-	}
-	if last.GetUsage() == nil {
-		t.Fatalf("last chunk must include usage")
-	}
-}
-
 func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 	liteCalls := int32(0)
 	liteServer := newChatServer(t, "from-litellm", &liteCalls)
@@ -542,25 +536,3 @@ func (s *streamGenerateCollector) SetTrailer(metadata.MD)       {}
 func (s *streamGenerateCollector) Context() context.Context     { return s.ctx }
 func (s *streamGenerateCollector) SendMsg(any) error            { return nil }
 func (s *streamGenerateCollector) RecvMsg(any) error            { return nil }
-
-type artifactCollector struct {
-	ctx    context.Context
-	chunks []*runtimev1.ArtifactChunk
-}
-
-func (s *artifactCollector) Send(chunk *runtimev1.ArtifactChunk) error {
-	cloned := proto.Clone(chunk)
-	copy, ok := cloned.(*runtimev1.ArtifactChunk)
-	if !ok {
-		copy = &runtimev1.ArtifactChunk{}
-	}
-	s.chunks = append(s.chunks, copy)
-	return nil
-}
-
-func (s *artifactCollector) SetHeader(metadata.MD) error  { return nil }
-func (s *artifactCollector) SendHeader(metadata.MD) error { return nil }
-func (s *artifactCollector) SetTrailer(metadata.MD)       {}
-func (s *artifactCollector) Context() context.Context     { return s.ctx }
-func (s *artifactCollector) SendMsg(any) error            { return nil }
-func (s *artifactCollector) RecvMsg(any) error            { return nil }

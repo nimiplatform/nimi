@@ -28,6 +28,7 @@ func (s *AIProxy) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
+	ctx = forwardIncomingMetadata(ctx)
 	var trailer metadata.MD
 	resp, err := client.Generate(ctx, req, grpc.Trailer(&trailer))
 	s.applyQueueWaitFromTrailer(ctx, trailer)
@@ -42,7 +43,7 @@ func (s *AIProxy) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	if err != nil {
 		return unavailableAI(err)
 	}
-	remote, err := client.StreamGenerate(stream.Context(), req)
+	remote, err := client.StreamGenerate(forwardIncomingMetadata(stream.Context()), req)
 	if err != nil {
 		return mapAIError(err)
 	}
@@ -59,6 +60,7 @@ func (s *AIProxy) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
+	ctx = forwardIncomingMetadata(ctx)
 	var trailer metadata.MD
 	resp, err := client.Embed(ctx, req, grpc.Trailer(&trailer))
 	s.applyQueueWaitFromTrailer(ctx, trailer)
@@ -73,6 +75,7 @@ func (s *AIProxy) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
+	ctx = forwardIncomingMetadata(ctx)
 	var trailer metadata.MD
 	resp, err := client.SubmitMediaJob(ctx, req, grpc.Trailer(&trailer))
 	s.applyQueueWaitFromTrailer(ctx, trailer)
@@ -87,6 +90,7 @@ func (s *AIProxy) GetMediaJob(ctx context.Context, req *runtimev1.GetMediaJobReq
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
+	ctx = forwardIncomingMetadata(ctx)
 	resp, err := client.GetMediaJob(ctx, req)
 	if err != nil {
 		return nil, mapAIError(err)
@@ -99,6 +103,7 @@ func (s *AIProxy) CancelMediaJob(ctx context.Context, req *runtimev1.CancelMedia
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
+	ctx = forwardIncomingMetadata(ctx)
 	resp, err := client.CancelMediaJob(ctx, req)
 	if err != nil {
 		return nil, mapAIError(err)
@@ -111,7 +116,7 @@ func (s *AIProxy) SubscribeMediaJobEvents(req *runtimev1.SubscribeMediaJobEvents
 	if err != nil {
 		return unavailableAI(err)
 	}
-	remote, err := client.SubscribeMediaJobEvents(stream.Context(), req)
+	remote, err := client.SubscribeMediaJobEvents(forwardIncomingMetadata(stream.Context()), req)
 	if err != nil {
 		return mapAIError(err)
 	}
@@ -127,72 +132,8 @@ func (s *AIProxy) GetMediaArtifacts(ctx context.Context, req *runtimev1.GetMedia
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
+	ctx = forwardIncomingMetadata(ctx)
 	resp, err := client.GetMediaArtifacts(ctx, req)
-	if err != nil {
-		return nil, mapAIError(err)
-	}
-	return resp, nil
-}
-
-func (s *AIProxy) GenerateImage(req *runtimev1.GenerateImageRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	client, err := s.client()
-	if err != nil {
-		return unavailableAI(err)
-	}
-	remote, err := client.GenerateImage(stream.Context(), req)
-	if err != nil {
-		return mapAIError(err)
-	}
-	forwardErr := forwardServerStream(remote.Recv, stream.Send)
-	s.applyQueueWaitFromTrailer(stream.Context(), remote.Trailer())
-	if forwardErr != nil {
-		return mapAIError(forwardErr)
-	}
-	return nil
-}
-
-func (s *AIProxy) GenerateVideo(req *runtimev1.GenerateVideoRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	client, err := s.client()
-	if err != nil {
-		return unavailableAI(err)
-	}
-	remote, err := client.GenerateVideo(stream.Context(), req)
-	if err != nil {
-		return mapAIError(err)
-	}
-	forwardErr := forwardServerStream(remote.Recv, stream.Send)
-	s.applyQueueWaitFromTrailer(stream.Context(), remote.Trailer())
-	if forwardErr != nil {
-		return mapAIError(forwardErr)
-	}
-	return nil
-}
-
-func (s *AIProxy) SynthesizeSpeech(req *runtimev1.SynthesizeSpeechRequest, stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk]) error {
-	client, err := s.client()
-	if err != nil {
-		return unavailableAI(err)
-	}
-	remote, err := client.SynthesizeSpeech(stream.Context(), req)
-	if err != nil {
-		return mapAIError(err)
-	}
-	forwardErr := forwardServerStream(remote.Recv, stream.Send)
-	s.applyQueueWaitFromTrailer(stream.Context(), remote.Trailer())
-	if forwardErr != nil {
-		return mapAIError(forwardErr)
-	}
-	return nil
-}
-
-func (s *AIProxy) TranscribeAudio(ctx context.Context, req *runtimev1.TranscribeAudioRequest) (*runtimev1.TranscribeAudioResponse, error) {
-	client, err := s.client()
-	if err != nil {
-		return nil, unavailableAI(err)
-	}
-	var trailer metadata.MD
-	resp, err := client.TranscribeAudio(ctx, req, grpc.Trailer(&trailer))
-	s.applyQueueWaitFromTrailer(ctx, trailer)
 	if err != nil {
 		return nil, mapAIError(err)
 	}
@@ -231,4 +172,12 @@ func (s *AIProxy) applyQueueWaitFromTrailer(ctx context.Context, trailer metadat
 		return
 	}
 	usagemetrics.SetQueueWaitMS(ctx, waitMs)
+}
+
+func forwardIncomingMetadata(ctx context.Context) context.Context {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok || len(md) == 0 {
+		return ctx
+	}
+	return metadata.NewOutgoingContext(ctx, md.Copy())
 }

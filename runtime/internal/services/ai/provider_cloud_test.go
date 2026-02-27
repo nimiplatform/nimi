@@ -125,8 +125,16 @@ func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 	}
 }
 
-func TestCloudProviderFailCloseMediaAndFallbackStream(t *testing.T) {
+func TestCloudProviderFailCloseWithoutBackend(t *testing.T) {
 	p := &cloudProvider{}
+
+	if _, _, _, err := p.generateText(context.Background(), "fallback-text", &runtimev1.GenerateRequest{
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}, "hello"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("generateText should fail-close: %v", status.Code(err))
+	}
 
 	vectors, usage, err := p.embed(context.Background(), "fallback-embed", []string{"hello", "world"})
 	if err != nil {
@@ -163,27 +171,17 @@ func TestCloudProviderFailCloseMediaAndFallbackStream(t *testing.T) {
 		t.Fatalf("transcribe should fail-close: %v", status.Code(err))
 	}
 
-	deltas := make([]string, 0, 4)
-	streamUsage, finishReason, err := p.streamGenerateText(context.Background(), "fallback-text", &runtimev1.StreamGenerateRequest{
+	_, finishReason, err := p.streamGenerateText(context.Background(), "fallback-text", &runtimev1.StreamGenerateRequest{
 		SystemPrompt: "system",
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},
-	}, func(delta string) error {
-		deltas = append(deltas, delta)
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("streamGenerateText fallback: %v", err)
+	}, nil)
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("streamGenerateText should fail-close: %v", status.Code(err))
 	}
-	if finishReason != runtimev1.FinishReason_FINISH_REASON_STOP {
+	if finishReason != runtimev1.FinishReason_FINISH_REASON_ERROR {
 		t.Fatalf("stream finish reason mismatch: %v", finishReason)
-	}
-	if len(deltas) == 0 {
-		t.Fatalf("stream fallback expected deltas")
-	}
-	if streamUsage == nil || streamUsage.GetInputTokens() == 0 {
-		t.Fatalf("stream fallback usage missing")
 	}
 }
 

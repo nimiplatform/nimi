@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -25,6 +24,17 @@ type cloudProvider struct {
 	health    *providerhealth.Tracker
 	lastMu    sync.RWMutex
 	lastRoute map[string]routeDecisionInfo
+}
+
+func (p *cloudProvider) backendWithRequestCredentials(ctx context.Context, backend *openAIBackend) *openAIBackend {
+	if backend == nil {
+		return nil
+	}
+	apiKey, endpoint, ok := requestInjectedCredentials(ctx)
+	if !ok {
+		return backend
+	}
+	return backend.withRequestOverrides(endpoint, apiKey)
 }
 
 func (p *cloudProvider) route() runtimev1.RoutePolicy {
@@ -56,6 +66,7 @@ func (p *cloudProvider) generateText(ctx context.Context, modelID string, req *r
 	if explicit && !ok {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		text, usage, finish, err := backend.generateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
@@ -64,8 +75,7 @@ func (p *cloudProvider) generateText(ctx context.Context, modelID string, req *r
 		}
 		return text, usage, finish, nil
 	}
-	text := fmt.Sprintf("[cloud:%s] %s", modelID, normalizeFallbackText(inputText))
-	return text, estimateUsage(inputText, text), runtimev1.FinishReason_FINISH_REASON_STOP, nil
+	return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
 func (p *cloudProvider) embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
@@ -73,6 +83,7 @@ func (p *cloudProvider) embed(ctx context.Context, modelID string, inputs []stri
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		return backend.embed(ctx, resolvedModelID, inputs)
@@ -85,6 +96,7 @@ func (p *cloudProvider) generateImage(ctx context.Context, modelID string, spec 
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		return backend.generateImage(ctx, resolvedModelID, spec)
@@ -97,6 +109,7 @@ func (p *cloudProvider) generateVideo(ctx context.Context, modelID string, spec 
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		return backend.generateVideo(ctx, resolvedModelID, spec)
@@ -109,6 +122,7 @@ func (p *cloudProvider) synthesizeSpeech(ctx context.Context, modelID string, sp
 	if explicit && !ok {
 		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		return backend.synthesizeSpeech(ctx, resolvedModelID, spec)
@@ -121,6 +135,7 @@ func (p *cloudProvider) transcribe(ctx context.Context, modelID string, spec *ru
 	if explicit && !ok {
 		return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		return backend.transcribe(ctx, resolvedModelID, spec, audio, mimeType)
@@ -133,21 +148,12 @@ func (p *cloudProvider) streamGenerateText(ctx context.Context, modelID string, 
 	if explicit && !ok {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend = p.backendWithRequestCredentials(ctx, backend)
 	if backend != nil {
 		p.rememberDecision(modelID, backend.name)
 		return backend.streamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
 	}
-
-	inputText := composeInputText(req.GetSystemPrompt(), req.GetInput())
-	outputText := fmt.Sprintf("[cloud:%s] %s", modelID, normalizeFallbackText(inputText))
-	for _, chunk := range splitText(outputText, 24) {
-		if onDelta != nil {
-			if err := onDelta(chunk); err != nil {
-				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
-			}
-		}
-	}
-	return estimateUsage(inputText, outputText), runtimev1.FinishReason_FINISH_REASON_STOP, nil
+	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
 func (p *cloudProvider) pickBackend(modelID string) (*openAIBackend, string, bool, bool) {

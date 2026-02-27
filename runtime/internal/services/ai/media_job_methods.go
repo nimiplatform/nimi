@@ -46,6 +46,9 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	if err := validateSubmitMediaJobRequest(req); err != nil {
 		return nil, err
 	}
+	if err := validateCredentialSourceAtRequestBoundary(ctx, req.GetRoutePolicy()); err != nil {
+		return nil, err
+	}
 	idempotencyScope, err := buildMediaJobIdempotencyScope(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
@@ -63,7 +66,7 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("submit_media_job", req.GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package ai
 import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -109,19 +108,6 @@ func validatePromptRequest(appID string, subjectUserID string, modelID string, p
 	return nil
 }
 
-func validateTranscribeRequest(req *runtimev1.TranscribeAudioRequest) error {
-	if req == nil {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
-	}
-	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
-		return err
-	}
-	if len(req.GetAudioBytes()) == 0 || strings.TrimSpace(req.GetMimeType()) == "" {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
-	}
-	return nil
-}
-
 func validateBaseRequest(appID string, subjectUserID string, modelID string, route runtimev1.RoutePolicy) error {
 	if strings.TrimSpace(appID) == "" || strings.TrimSpace(subjectUserID) == "" || strings.TrimSpace(modelID) == "" {
 		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
@@ -131,43 +117,6 @@ func validateBaseRequest(appID string, subjectUserID string, modelID string, rou
 	}
 	if isMultiModel(strings.TrimSpace(modelID)) {
 		return status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
-	}
-	return nil
-}
-
-func streamArtifact(stream grpc.ServerStreamingServer[runtimev1.ArtifactChunk], mimeType string, routeDecision runtimev1.RoutePolicy, modelResolved string, payload []byte, usage *runtimev1.UsageStats) error {
-	traceID := ulid.Make().String()
-	artifactID := ulid.Make().String()
-	if len(payload) == 0 {
-		payload = []byte("artifact")
-	}
-	if usage == nil {
-		usage = &runtimev1.UsageStats{
-			InputTokens:  0,
-			OutputTokens: estimateTokens(string(payload)),
-			ComputeMs:    0,
-		}
-	}
-	parts := splitBytes(payload, defaultChunkSize)
-
-	for i, part := range parts {
-		eof := i == len(parts)-1
-		chunk := &runtimev1.ArtifactChunk{
-			ArtifactId:    artifactID,
-			MimeType:      mimeType,
-			Sequence:      uint64(i + 1),
-			Chunk:         part,
-			Eof:           eof,
-			RouteDecision: routeDecision,
-			ModelResolved: modelResolved,
-			TraceId:       traceID,
-		}
-		if eof {
-			chunk.Usage = usage
-		}
-		if err := stream.Send(chunk); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -203,25 +152,6 @@ func splitText(text string, chunkSize int) []string {
 			end = len(runes)
 		}
 		parts = append(parts, string(runes[start:end]))
-	}
-	return parts
-}
-
-func splitBytes(data []byte, chunkSize int) [][]byte {
-	if chunkSize <= 0 {
-		chunkSize = len(data)
-	}
-	if len(data) == 0 {
-		return [][]byte{{}}
-	}
-	parts := make([][]byte, 0, (len(data)+chunkSize-1)/chunkSize)
-	for start := 0; start < len(data); start += chunkSize {
-		end := start + chunkSize
-		if end > len(data) {
-			end = len(data)
-		}
-		part := append([]byte(nil), data[start:end]...)
-		parts = append(parts, part)
 	}
 	return parts
 }

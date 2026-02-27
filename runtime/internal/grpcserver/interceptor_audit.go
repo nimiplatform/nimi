@@ -29,6 +29,7 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 		domain, operation, capability := methodDescriptor(info.FullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(req)
 		callerKind, callerID, surfaceID, traceID := readCallerMetadata(ctx)
+		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(ctx)
 		tokenID := accessTokenIDFromMetadata(ctx)
 		grantDetails := inferGrantAuditDetails(req, resp)
 		if tokenID == "" && grantDetails.TokenID != "" {
@@ -70,10 +71,13 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			PrincipalID:           principalID(callerID, tokenID),
 			PrincipalType:         principalType(callerKind, tokenID),
 			Payload: map[string]any{
-				"grpc_method": info.FullMethod,
-				"model_id":    modelID,
-				"success":     success,
-				"kind":        "unary",
+				"grpc_method":                  info.FullMethod,
+				"model_id":                     modelID,
+				"success":                      success,
+				"kind":                         "unary",
+				"credential_source":            credentialSource,
+				"provider_endpoint":            providerEndpoint,
+				"provider_api_key_fingerprint": providerAPIKeyFingerprint,
 			},
 		})
 		store.RecordUsage(auditlog.UsageInput{
@@ -109,6 +113,7 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			modelID = wrapped.modelResolved
 		}
 		callerKind, callerID, surfaceID, traceID := readCallerMetadata(ss.Context())
+		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(ss.Context())
 		tokenID := accessTokenIDFromMetadata(ss.Context())
 		if wrapped.traceID != "" {
 			traceID = wrapped.traceID
@@ -132,10 +137,13 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			PrincipalID:   principalID(callerID, tokenID),
 			PrincipalType: principalType(callerKind, tokenID),
 			Payload: map[string]any{
-				"grpc_method": info.FullMethod,
-				"model_id":    modelID,
-				"success":     success,
-				"kind":        "stream",
+				"grpc_method":                  info.FullMethod,
+				"model_id":                     modelID,
+				"success":                      success,
+				"kind":                         "stream",
+				"credential_source":            credentialSource,
+				"provider_endpoint":            providerEndpoint,
+				"provider_api_key_fingerprint": providerAPIKeyFingerprint,
 			},
 		})
 		store.RecordUsage(auditlog.UsageInput{
@@ -204,16 +212,6 @@ func (s *auditStream) SendMsg(m any) error {
 			s.traceID = msg.GetTraceId()
 		}
 	case *runtimev1.ArtifactChunk:
-		if usage := msg.GetUsage(); usage != nil {
-			s.usage = cloneUsage(usage)
-		}
-		if msg.GetModelResolved() != "" {
-			s.modelResolved = msg.GetModelResolved()
-		}
-		if msg.GetTraceId() != "" {
-			s.traceID = msg.GetTraceId()
-		}
-	case *runtimev1.TranscribeAudioResponse:
 		if usage := msg.GetUsage(); usage != nil {
 			s.usage = cloneUsage(usage)
 		}

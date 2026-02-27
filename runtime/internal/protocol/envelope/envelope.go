@@ -27,6 +27,9 @@ type Metadata struct {
 	CallerKind                 string
 	CallerID                   string
 	SurfaceID                  string
+	CredentialSource           string
+	ProviderEndpoint           string
+	ProviderAPIKey             string
 }
 
 func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, error) {
@@ -46,6 +49,9 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 		CallerKind:                 first(md, "x-nimi-caller-kind"),
 		CallerID:                   first(md, "x-nimi-caller-id"),
 		SurfaceID:                  first(md, "x-nimi-surface-id"),
+		CredentialSource:           strings.ToLower(first(md, "x-nimi-credential-source")),
+		ProviderEndpoint:           first(md, "x-nimi-provider-endpoint"),
+		ProviderAPIKey:             first(md, "x-nimi-provider-api-key"),
 	}
 
 	if meta.ProtocolVersion == "" || meta.ParticipantProtocolVersion == "" || meta.ParticipantID == "" || meta.Domain == "" {
@@ -159,6 +165,15 @@ func HeaderPairs(meta Metadata) []string {
 	if traceID := strings.TrimSpace(meta.TraceID); traceID != "" {
 		pairs = append(pairs, "x-nimi-trace-id", traceID)
 	}
+	if source := strings.TrimSpace(meta.CredentialSource); source != "" {
+		pairs = append(pairs, "x-nimi-credential-source", source)
+	}
+	if endpoint := strings.TrimSpace(meta.ProviderEndpoint); endpoint != "" {
+		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)
+	}
+	if apiKey := strings.TrimSpace(meta.ProviderAPIKey); apiKey != "" {
+		pairs = append(pairs, "x-nimi-provider-api-key", apiKey)
+	}
 	return pairs
 }
 
@@ -194,4 +209,15 @@ func ParseAccessTokenFromContext(ctx context.Context) (string, string, error) {
 	tokenID := first(md, "x-nimi-access-token-id")
 	secret := first(md, "x-nimi-access-token-secret")
 	return tokenID, secret, nil
+}
+
+func ParseCredentialMetadataFromContext(ctx context.Context) (string, string, string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", "", "", fmt.Errorf("metadata missing")
+	}
+	source := strings.ToLower(first(md, "x-nimi-credential-source"))
+	endpoint := first(md, "x-nimi-provider-endpoint")
+	apiKey := first(md, "x-nimi-provider-api-key")
+	return source, endpoint, apiKey, nil
 }

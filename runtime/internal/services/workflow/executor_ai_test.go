@@ -91,8 +91,13 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai image: %v", err)
 	}
-	if client.imageReq == nil || client.imageReq.GetPrompt() != "image-prompt" {
-		t.Fatalf("image request mapping mismatch: %+v", client.imageReq)
+	imageReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_IMAGE)
+	if imageReq == nil {
+		t.Fatalf("image media request not captured")
+	}
+	imageSpec, ok := imageReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_ImageSpec)
+	if !ok || imageSpec.ImageSpec.GetPrompt() != "image-prompt" {
+		t.Fatalf("image request mapping mismatch: %+v", imageReq)
 	}
 	if imageOutputs["artifact"] == nil {
 		t.Fatalf("image artifact output missing")
@@ -110,8 +115,13 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai video: %v", err)
 	}
-	if client.videoReq == nil || client.videoReq.GetPrompt() != "video-prompt" {
-		t.Fatalf("video request mapping mismatch: %+v", client.videoReq)
+	videoReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_VIDEO)
+	if videoReq == nil {
+		t.Fatalf("video media request not captured")
+	}
+	videoSpec, ok := videoReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_VideoSpec)
+	if !ok || videoSpec.VideoSpec.GetPrompt() != "video-prompt" {
+		t.Fatalf("video request mapping mismatch: %+v", videoReq)
 	}
 	if videoOutputs["artifact"] == nil {
 		t.Fatalf("video artifact output missing")
@@ -129,8 +139,13 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai tts: %v", err)
 	}
-	if client.ttsReq == nil || client.ttsReq.GetText() != "tts-input" {
-		t.Fatalf("tts request mapping mismatch: %+v", client.ttsReq)
+	ttsReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_TTS)
+	if ttsReq == nil {
+		t.Fatalf("tts media request not captured")
+	}
+	speechSpec, ok := ttsReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_SpeechSpec)
+	if !ok || speechSpec.SpeechSpec.GetText() != "tts-input" {
+		t.Fatalf("tts request mapping mismatch: %+v", ttsReq)
 	}
 	if ttsOutputs["artifact"] == nil {
 		t.Fatalf("tts artifact output missing")
@@ -150,8 +165,13 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai stt: %v", err)
 	}
-	if client.sttReq == nil || client.sttReq.GetModelId() != "m-stt" || client.sttReq.GetMimeType() != "audio/wav" {
-		t.Fatalf("stt request mapping mismatch: %+v", client.sttReq)
+	sttReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_STT)
+	if sttReq == nil {
+		t.Fatalf("stt media request not captured")
+	}
+	transcriptionSpec, ok := sttReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_TranscriptionSpec)
+	if sttReq.GetModelId() != "m-stt" || !ok || transcriptionSpec.TranscriptionSpec.GetMimeType() != "audio/wav" {
+		t.Fatalf("stt request mapping mismatch: %+v", sttReq)
 	}
 	if sttOutputs["text"].AsMap()["value"] != "transcribed-audio" {
 		t.Fatalf("stt output mapping mismatch: %v", sttOutputs["text"].AsMap())
@@ -329,11 +349,8 @@ type recordingRuntimeAIClient struct {
 	generateReq       *runtimev1.GenerateRequest
 	streamReq         *runtimev1.StreamGenerateRequest
 	embedReq          *runtimev1.EmbedRequest
-	imageReq          *runtimev1.GenerateImageRequest
-	videoReq          *runtimev1.GenerateVideoRequest
-	ttsReq            *runtimev1.SynthesizeSpeechRequest
-	sttReq            *runtimev1.TranscribeAudioRequest
 	mediaReq          *runtimev1.SubmitMediaJobRequest
+	mediaReqs         []*runtimev1.SubmitMediaJobRequest
 	mediaJobs         map[string]*runtimev1.MediaJob
 	mediaPollStatuses []runtimev1.MediaJobStatus
 	mediaPollIndex    int
@@ -377,58 +394,9 @@ func (c *recordingRuntimeAIClient) Embed(_ context.Context, req *runtimev1.Embed
 	}, nil
 }
 
-func (c *recordingRuntimeAIClient) GenerateImage(ctx context.Context, req *runtimev1.GenerateImageRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
-	c.imageReq = cloneGenerateImageRequest(req)
-	return &fakeArtifactChunkClient{
-		ctx: ctx,
-		chunks: []*runtimev1.ArtifactChunk{
-			{
-				ArtifactId: "image-1",
-				MimeType:   "image/png",
-				Chunk:      []byte("image-content"),
-				Eof:        true,
-			},
-		},
-	}, nil
-}
-
-func (c *recordingRuntimeAIClient) GenerateVideo(ctx context.Context, req *runtimev1.GenerateVideoRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
-	c.videoReq = cloneGenerateVideoRequest(req)
-	return &fakeArtifactChunkClient{
-		ctx: ctx,
-		chunks: []*runtimev1.ArtifactChunk{
-			{
-				ArtifactId: "video-1",
-				MimeType:   "video/mp4",
-				Chunk:      []byte("video-content"),
-				Eof:        true,
-			},
-		},
-	}, nil
-}
-
-func (c *recordingRuntimeAIClient) SynthesizeSpeech(ctx context.Context, req *runtimev1.SynthesizeSpeechRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
-	c.ttsReq = cloneSynthesizeSpeechRequest(req)
-	return &fakeArtifactChunkClient{
-		ctx: ctx,
-		chunks: []*runtimev1.ArtifactChunk{
-			{
-				ArtifactId: "tts-1",
-				MimeType:   "audio/wav",
-				Chunk:      []byte("audio-content"),
-				Eof:        true,
-			},
-		},
-	}, nil
-}
-
-func (c *recordingRuntimeAIClient) TranscribeAudio(_ context.Context, req *runtimev1.TranscribeAudioRequest, _ ...grpc.CallOption) (*runtimev1.TranscribeAudioResponse, error) {
-	c.sttReq = cloneTranscribeAudioRequest(req)
-	return &runtimev1.TranscribeAudioResponse{Text: "transcribed-audio"}, nil
-}
-
 func (c *recordingRuntimeAIClient) SubmitMediaJob(_ context.Context, req *runtimev1.SubmitMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.SubmitMediaJobResponse, error) {
 	c.mediaReq = cloneSubmitMediaJobRequest(req)
+	c.mediaReqs = append(c.mediaReqs, cloneSubmitMediaJobRequest(req))
 	if c.mediaJobs == nil {
 		c.mediaJobs = make(map[string]*runtimev1.MediaJob)
 	}
@@ -533,6 +501,15 @@ func (c *recordingRuntimeAIClient) GetMediaArtifacts(_ context.Context, req *run
 	}, nil
 }
 
+func (c *recordingRuntimeAIClient) findMediaReqByModal(modal runtimev1.Modal) *runtimev1.SubmitMediaJobRequest {
+	for _, req := range c.mediaReqs {
+		if req.GetModal() == modal {
+			return req
+		}
+	}
+	return nil
+}
+
 type fakeStreamGenerateClient struct {
 	ctx    context.Context
 	events []*runtimev1.StreamGenerateEvent
@@ -554,28 +531,6 @@ func (f *fakeStreamGenerateClient) CloseSend() error             { return nil }
 func (f *fakeStreamGenerateClient) Context() context.Context     { return f.ctx }
 func (f *fakeStreamGenerateClient) SendMsg(any) error            { return nil }
 func (f *fakeStreamGenerateClient) RecvMsg(any) error            { return nil }
-
-type fakeArtifactChunkClient struct {
-	ctx    context.Context
-	chunks []*runtimev1.ArtifactChunk
-	index  int
-}
-
-func (f *fakeArtifactChunkClient) Recv() (*runtimev1.ArtifactChunk, error) {
-	if f.index >= len(f.chunks) {
-		return nil, io.EOF
-	}
-	chunk := f.chunks[f.index]
-	f.index++
-	return chunk, nil
-}
-
-func (f *fakeArtifactChunkClient) Header() (metadata.MD, error) { return metadata.MD{}, nil }
-func (f *fakeArtifactChunkClient) Trailer() metadata.MD         { return metadata.MD{} }
-func (f *fakeArtifactChunkClient) CloseSend() error             { return nil }
-func (f *fakeArtifactChunkClient) Context() context.Context     { return f.ctx }
-func (f *fakeArtifactChunkClient) SendMsg(any) error            { return nil }
-func (f *fakeArtifactChunkClient) RecvMsg(any) error            { return nil }
 
 type fakeMediaJobEventClient struct {
 	ctx    context.Context
@@ -622,42 +577,6 @@ func cloneEmbedRequest(req *runtimev1.EmbedRequest) *runtimev1.EmbedRequest {
 	copied, ok := cloned.(*runtimev1.EmbedRequest)
 	if !ok {
 		return &runtimev1.EmbedRequest{}
-	}
-	return copied
-}
-
-func cloneGenerateImageRequest(req *runtimev1.GenerateImageRequest) *runtimev1.GenerateImageRequest {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.GenerateImageRequest)
-	if !ok {
-		return &runtimev1.GenerateImageRequest{}
-	}
-	return copied
-}
-
-func cloneGenerateVideoRequest(req *runtimev1.GenerateVideoRequest) *runtimev1.GenerateVideoRequest {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.GenerateVideoRequest)
-	if !ok {
-		return &runtimev1.GenerateVideoRequest{}
-	}
-	return copied
-}
-
-func cloneSynthesizeSpeechRequest(req *runtimev1.SynthesizeSpeechRequest) *runtimev1.SynthesizeSpeechRequest {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.SynthesizeSpeechRequest)
-	if !ok {
-		return &runtimev1.SynthesizeSpeechRequest{}
-	}
-	return copied
-}
-
-func cloneTranscribeAudioRequest(req *runtimev1.TranscribeAudioRequest) *runtimev1.TranscribeAudioRequest {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.TranscribeAudioRequest)
-	if !ok {
-		return &runtimev1.TranscribeAudioRequest{}
 	}
 	return copied
 }

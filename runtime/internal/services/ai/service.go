@@ -79,6 +79,9 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	if err := validateGenerateRequest(req); err != nil {
 		return nil, err
 	}
+	if err := validateCredentialSourceAtRequestBoundary(ctx, req.GetRoutePolicy()); err != nil {
+		return nil, err
+	}
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
 	if acquireErr != nil {
 		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -89,7 +92,7 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	requestCtx, cancel := withTimeout(ctx, req.GetTimeoutMs(), defaultGenerateTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +131,9 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	if err := validateStreamGenerateRequest(req); err != nil {
 		return err
 	}
+	if err := validateCredentialSourceAtRequestBoundary(stream.Context(), req.GetRoutePolicy()); err != nil {
+		return err
+	}
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
 	if acquireErr != nil {
 		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -157,7 +163,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		})
 	}
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(stream.Context(), req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
 	if err != nil {
 		return err
 	}

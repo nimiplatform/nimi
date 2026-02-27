@@ -629,22 +629,6 @@ func (f *fakeRuntimeAIClient) Embed(context.Context, *runtimev1.EmbedRequest, ..
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) GenerateImage(context.Context, *runtimev1.GenerateImageRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
-	return nil, status.Error(12, "unimplemented")
-}
-
-func (f *fakeRuntimeAIClient) GenerateVideo(context.Context, *runtimev1.GenerateVideoRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
-	return nil, status.Error(12, "unimplemented")
-}
-
-func (f *fakeRuntimeAIClient) SynthesizeSpeech(context.Context, *runtimev1.SynthesizeSpeechRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
-	return nil, status.Error(12, "unimplemented")
-}
-
-func (f *fakeRuntimeAIClient) TranscribeAudio(context.Context, *runtimev1.TranscribeAudioRequest, ...grpc.CallOption) (*runtimev1.TranscribeAudioResponse, error) {
-	return nil, status.Error(12, "unimplemented")
-}
-
 func (f *fakeRuntimeAIClient) SubmitMediaJob(context.Context, *runtimev1.SubmitMediaJobRequest, ...grpc.CallOption) (*runtimev1.SubmitMediaJobResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }

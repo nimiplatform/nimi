@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,8 +58,7 @@ func (p *localProvider) generateText(ctx context.Context, modelID string, req *r
 		}
 		return text, usage, finish, nil
 	}
-	text := fmt.Sprintf("[local:%s] %s", modelID, normalizeFallbackText(inputText))
-	return text, estimateUsage(inputText, text), runtimev1.FinishReason_FINISH_REASON_STOP, nil
+	return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
 func (p *localProvider) embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
@@ -129,16 +127,7 @@ func (p *localProvider) streamGenerateText(ctx context.Context, modelID string, 
 	if backend != nil {
 		return backend.streamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
 	}
-	inputText := composeInputText(req.GetSystemPrompt(), req.GetInput())
-	outputText := fmt.Sprintf("[local:%s] %s", modelID, normalizeFallbackText(inputText))
-	for _, chunk := range splitText(outputText, 24) {
-		if onDelta != nil {
-			if err := onDelta(chunk); err != nil {
-				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
-			}
-		}
-	}
-	return estimateUsage(inputText, outputText), runtimev1.FinishReason_FINISH_REASON_STOP, nil
+	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 }
 
 func (p *localProvider) pickBackend(modelID string) (*openAIBackend, string, bool, bool, bool) {

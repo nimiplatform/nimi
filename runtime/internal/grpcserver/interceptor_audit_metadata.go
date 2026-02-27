@@ -2,6 +2,8 @@ package grpcserver
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -84,6 +86,26 @@ func accessTokenIDFromMetadata(ctx context.Context) string {
 		return ""
 	}
 	return firstMetadata(md, "x-nimi-access-token-id")
+}
+
+func providerCredentialMetadata(ctx context.Context) (string, string, string) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", "", ""
+	}
+	source := strings.ToLower(firstMetadata(md, "x-nimi-credential-source"))
+	endpoint := firstMetadata(md, "x-nimi-provider-endpoint")
+	apiKey := firstMetadata(md, "x-nimi-provider-api-key")
+	return source, endpoint, secretFingerprint(apiKey)
+}
+
+func secretFingerprint(value string) string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(normalized))
+	return hex.EncodeToString(sum[:8])
 }
 
 func appIDFromRequest(req any) string {

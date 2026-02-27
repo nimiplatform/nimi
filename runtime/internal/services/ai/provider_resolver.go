@@ -1,13 +1,14 @@
 package ai
 
 import (
+	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"strings"
 )
 
-func (s *routeSelector) resolveProvider(requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, routeDecisionInfo, error) {
+func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, routeDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
 	preferred := preferredRoute(rawModel)
 
@@ -20,6 +21,9 @@ func (s *routeSelector) resolveProvider(requested runtimev1.RoutePolicy, fallbac
 
 	if requested != preferred && fallback != runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW {
 		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED.String())
+	}
+	if err := validateCredentialSourceAtResolvedRoute(ctx, preferred); err != nil {
+		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, err
 	}
 
 	modelResolved := target.resolveModelID(rawModel)

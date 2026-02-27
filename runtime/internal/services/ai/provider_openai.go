@@ -39,6 +39,24 @@ func newOpenAIBackend(name string, baseURL string, apiKey string, timeout time.D
 	}
 }
 
+func (b *openAIBackend) withRequestOverrides(endpoint string, apiKey string) *openAIBackend {
+	if b == nil {
+		return nil
+	}
+	normalizedEndpoint := strings.TrimSuffix(strings.TrimSpace(endpoint), "/")
+	if normalizedEndpoint == "" {
+		normalizedEndpoint = b.baseURL
+	}
+	normalizedAPIKey := strings.TrimSpace(apiKey)
+	if normalizedEndpoint == b.baseURL && normalizedAPIKey == b.apiKey {
+		return b
+	}
+	clone := *b
+	clone.baseURL = normalizedEndpoint
+	clone.apiKey = normalizedAPIKey
+	return &clone
+}
+
 func (b *openAIBackend) generateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	type openAIMessage struct {
 		Role    string `json:"role"`

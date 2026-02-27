@@ -135,3 +135,27 @@ func TestLocalProviderNexaModalitiesAndFailCloseVideo(t *testing.T) {
 		t.Fatalf("nexa video should fail-close with failed-precondition, got=%v", status.Code(err))
 	}
 }
+
+func TestLocalProviderFailCloseWithoutBackend(t *testing.T) {
+	p := &localProvider{}
+
+	if _, _, _, err := p.generateText(context.Background(), "local/qwen2.5", &runtimev1.GenerateRequest{
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}, "hello"); status.Code(err) != codes.Unavailable {
+		t.Fatalf("generateText should fail-close: %v", status.Code(err))
+	}
+
+	_, finishReason, err := p.streamGenerateText(context.Background(), "local/qwen2.5", &runtimev1.StreamGenerateRequest{
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}, nil)
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("streamGenerateText should fail-close: %v", status.Code(err))
+	}
+	if finishReason != runtimev1.FinishReason_FINISH_REASON_ERROR {
+		t.Fatalf("stream finish reason mismatch: %v", finishReason)
+	}
+}
