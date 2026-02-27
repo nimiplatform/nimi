@@ -41,7 +41,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
       localProviderEndpoint: 'http://127.0.0.1:1234/v1',
       localProviderModel: 'local-model',
       localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-      localOpenAiApiKey: 'api-key',
+      credentialRefId: 'test-ref',
       targetType: 'AGENT',
       targetAccountId: 'account-1',
       agentId: 'agent-1',

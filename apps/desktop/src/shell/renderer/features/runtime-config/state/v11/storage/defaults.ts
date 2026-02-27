@@ -136,8 +136,6 @@ export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfig
   ) {
     connector.endpoint = normalizeEndpointV11(seedOpenAiEndpoint, connector.endpoint);
   }
-  connector.tokenApiKey = '';
-
   return {
     version: 11,
     initializedByV11: false,

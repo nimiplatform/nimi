@@ -33,7 +33,11 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     selectedSource: state.selectedSource,
     activeCapability: state.activeCapability,
     localRuntime: state.localRuntime,
-    connectors: state.connectors,
+    connectors: state.connectors.map((connector) => {
+      const { tokenApiKey, ...safe } = connector as Record<string, unknown> & typeof connector;
+      void tokenApiKey;
+      return safe;
+    }) as typeof state.connectors,
     selectedConnectorId: state.selectedConnectorId,
   };
 

@@ -14,6 +14,8 @@ export type RuntimeConfigPanelStateModel = {
   setConnectorModelQuery: Dispatch<SetStateAction<string>>;
   vaultEntryCount: number;
   setVaultEntryCount: Dispatch<SetStateAction<number>>;
+  vaultVersion: number;
+  setVaultVersion: Dispatch<SetStateAction<number>>;
   discovering: boolean;
   setDiscovering: Dispatch<SetStateAction<boolean>>;
   testingConnector: boolean;
@@ -32,6 +34,7 @@ export function useRuntimeConfigPanelState(): RuntimeConfigPanelStateModel {
   const [localRuntimeModelQuery, setLocalRuntimeModelQuery] = useState('');
   const [connectorModelQuery, setConnectorModelQuery] = useState('');
   const [vaultEntryCount, setVaultEntryCount] = useState(0);
+  const [vaultVersion, setVaultVersion] = useState(0);
   const [discovering, setDiscovering] = useState(false);
   const [testingConnector, setTestingConnector] = useState(false);
   const [checkingHealth, setCheckingHealth] = useState(false);
@@ -54,6 +57,8 @@ export function useRuntimeConfigPanelState(): RuntimeConfigPanelStateModel {
     setConnectorModelQuery,
     vaultEntryCount,
     setVaultEntryCount,
+    vaultVersion,
+    setVaultVersion,
     discovering,
     setDiscovering,
     testingConnector,

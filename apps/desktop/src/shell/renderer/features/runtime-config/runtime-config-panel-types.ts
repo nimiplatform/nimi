@@ -65,4 +65,5 @@ export type RuntimeConfigPanelControllerModel = {
   startRuntimeDaemon: () => Promise<void>;
   restartRuntimeDaemon: () => Promise<void>;
   stopRuntimeDaemon: () => Promise<void>;
+  onVaultChanged: () => void;
 };
