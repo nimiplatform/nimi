@@ -8,9 +8,23 @@ type RuntimeDaemonStatusDetail = {
   stoppedDetail: string;
 };
 
+function formatLaunchModeSuffix(status: RuntimeBridgeDaemonStatus): string {
+  const launchMode = String((status as { launchMode?: unknown }).launchMode || '')
+    .trim()
+    .toUpperCase();
+  if (!launchMode) {
+    return '';
+  }
+  if (launchMode === 'RUNTIME' || launchMode === 'RELEASE' || launchMode === 'INVALID') {
+    return ` · mode=${launchMode}`;
+  }
+  return '';
+}
+
 function buildRuntimeDaemonStatusDetail(status: RuntimeBridgeDaemonStatus): RuntimeDaemonStatusDetail {
-  const runningDetail = `runtime daemon running (${status.grpcAddr}) · mode=${status.launchMode}`;
-  const stoppedDetail = `runtime daemon stopped (${status.grpcAddr}) · mode=${status.launchMode}${status.lastError ? `: ${status.lastError}` : ''}`;
+  const modeSuffix = formatLaunchModeSuffix(status);
+  const runningDetail = `runtime daemon running (${status.grpcAddr})${modeSuffix}`;
+  const stoppedDetail = `runtime daemon stopped (${status.grpcAddr})${modeSuffix}${status.lastError ? `: ${status.lastError}` : ''}`;
   return {
     runningDetail,
     stoppedDetail,

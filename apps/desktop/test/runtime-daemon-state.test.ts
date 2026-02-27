@@ -115,3 +115,23 @@ test('action mode enforces running detail refresh even when already idle', () =>
   assert.equal(next.localRuntime.lastCheckedAt, CHECKED_AT);
   assert.equal(next.localRuntime.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
 });
+
+test('running detail includes launch mode when provided', () => {
+  const previous = createBaseState();
+  previous.localRuntime.status = 'unreachable';
+  previous.localRuntime.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
+
+  const next = applyRuntimeDaemonStatusToConfigState(
+    previous,
+    createDaemonStatus({
+      running: true,
+      managed: true,
+      pid: 9530,
+      launchMode: 'RUNTIME',
+    }),
+    'poll',
+    CHECKED_AT,
+  );
+
+  assert.equal(next.localRuntime.lastDetail, 'runtime daemon running (127.0.0.1:46371) · mode=RUNTIME');
+});
