@@ -2,7 +2,7 @@
 
 > Status: Draft
 > Date: 2026-02-28
-> Scope: Runtime 核心跨域契约（Connector / Remote Execution / Local Execution 共享规则）。
+> Scope: Runtime AI 执行平面 + Auth Core 跨域契约（Connector / Remote / Local / AuthN / AuthService / GrantService）。
 
 ## 1. 目标
 
@@ -18,9 +18,9 @@
 ## 3. Rule ID 规范
 
 - 格式：`K-<DOMAIN>-NNN`
-- 示例：`K-AUTH-003`、`K-STREAM-007`
+- 示例：`K-AUTH-003`、`K-AUTHN-002`、`K-STREAM-003`
 - 规则：
-  - `DOMAIN` 固定枚举：`RPC` `AUTH` `KEYSRC` `JOB` `LOCAL` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
+  - `DOMAIN` 固定枚举：`RPC` `AUTH` `AUTHN` `AUTHSVC` `GRANT` `KEYSRC` `JOB` `LOCAL` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -29,6 +29,9 @@
 |---|---|---|
 | `rpc-surface.md` | `K-RPC-*` | Runtime 对外 RPC 面与命名权威 |
 | `authz-ownership.md` | `K-AUTH-*` | JWT、owner、信息隐藏、访问门禁 |
+| `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
+| `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
+| `grant-service.md` | `K-GRANT-*` | RuntimeGrantService 契约与 delegated token 约束 |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
 | `media-job-lifecycle.md` | `K-JOB-*` | MediaJob 生命周期与 owner/credential 快照 |
 | `local-category-capability.md` | `K-LOCAL-*` | `LocalConnectorCategory` 与 capability 权威映射 |
@@ -43,8 +46,11 @@
 `tables/` 目录中的 YAML 是后续自动生成表格与 lint 的事实源：
 
 - `tables/rpc-methods.yaml`
+- `tables/rpc-migration-map.yaml`
 - `tables/reason-codes.yaml`
+- `tables/error-mapping-matrix.yaml`
 - `tables/metadata-keys.yaml`
+- `tables/key-source-truth-table.yaml`
 - `tables/provider-catalog.yaml`
 - `tables/provider-capabilities.yaml`
 - `tables/connector-rpc-field-rules.yaml`
@@ -56,3 +62,13 @@
 - `connector-auth.md`：仅保留 Connector 领域增量规则，导入 kernel。
 - `nimillm.md`：仅保留 remote 执行模块增量规则，导入 kernel。
 - `local-model.md`：仅保留 local 执行模块增量规则，导入 kernel。
+
+## 7. Scope 与 Deferred
+
+本目录当前不覆盖 Runtime proto 全量服务。以下服务仍处于 deferred：
+
+- `RuntimeWorkflowService`
+- `RuntimeModelService`
+- `RuntimeKnowledgeService`
+- `RuntimeAppService`
+- `RuntimeAuditService`（仅保留 `K-AUDIT-*` 最小字段，不等价完整服务契约）

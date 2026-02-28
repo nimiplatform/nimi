@@ -67,43 +67,43 @@ machines:
       - from: installed
         to: active
         trigger: start_or_health_recovered
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: active
         to: unhealthy
         trigger: health_probe_failed
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: unhealthy
         to: active
         trigger: recovery_probe_passed
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: active
         to: removed
         trigger: remove_model
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: unhealthy
         to: removed
         trigger: force_remove_model
-        source: local-model_5.1
+        source: K-LOCAL-005
   - machine: local_service_lifecycle
     states: [installed, active, unhealthy, removed]
     transitions:
       - from: installed
         to: active
         trigger: spawn_and_probe_ok
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: active
         to: unhealthy
         trigger: health_probe_failed
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: unhealthy
         to: active
         trigger: restart_and_probe_ok
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: active
         to: removed
         trigger: stop_and_cleanup
-        source: local-model_5.1
+        source: K-LOCAL-005
       - from: unhealthy
         to: removed
         trigger: force_stop_and_cleanup
-        source: local-model_5.1
+        source: K-LOCAL-005

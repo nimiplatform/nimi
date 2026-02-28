@@ -42,11 +42,11 @@ States: `installed`, `active`, `unhealthy`, `removed`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `installed` | `active` | `start_or_health_recovered` | `local-model_5.1` |
-| `active` | `unhealthy` | `health_probe_failed` | `local-model_5.1` |
-| `unhealthy` | `active` | `recovery_probe_passed` | `local-model_5.1` |
-| `active` | `removed` | `remove_model` | `local-model_5.1` |
-| `unhealthy` | `removed` | `force_remove_model` | `local-model_5.1` |
+| `installed` | `active` | `start_or_health_recovered` | `K-LOCAL-005` |
+| `active` | `unhealthy` | `health_probe_failed` | `K-LOCAL-005` |
+| `unhealthy` | `active` | `recovery_probe_passed` | `K-LOCAL-005` |
+| `active` | `removed` | `remove_model` | `K-LOCAL-005` |
+| `unhealthy` | `removed` | `force_remove_model` | `K-LOCAL-005` |
 
 ## local_service_lifecycle
 
@@ -54,8 +54,8 @@ States: `installed`, `active`, `unhealthy`, `removed`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `installed` | `active` | `spawn_and_probe_ok` | `local-model_5.1` |
-| `active` | `unhealthy` | `health_probe_failed` | `local-model_5.1` |
-| `unhealthy` | `active` | `restart_and_probe_ok` | `local-model_5.1` |
-| `active` | `removed` | `stop_and_cleanup` | `local-model_5.1` |
-| `unhealthy` | `removed` | `force_stop_and_cleanup` | `local-model_5.1` |
+| `installed` | `active` | `spawn_and_probe_ok` | `K-LOCAL-005` |
+| `active` | `unhealthy` | `health_probe_failed` | `K-LOCAL-005` |
+| `unhealthy` | `active` | `restart_and_probe_ok` | `K-LOCAL-005` |
+| `active` | `removed` | `stop_and_cleanup` | `K-LOCAL-005` |
+| `unhealthy` | `removed` | `force_stop_and_cleanup` | `K-LOCAL-005` |

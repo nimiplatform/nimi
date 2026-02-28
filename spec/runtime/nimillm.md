@@ -11,6 +11,7 @@
 
 - RPC 名称权威：`kernel/rpc-surface.md` (`K-RPC-*`)
 - 鉴权/owner/信息隐藏：`kernel/authz-ownership.md` (`K-AUTH-*`)
+- AuthN 验签/JWKS：`kernel/authn-token-validation.md` (`K-AUTHN-*`)
 - key-source 与评估顺序：`kernel/key-source-routing.md` (`K-KEYSRC-*`)
 - endpoint 安全：`kernel/endpoint-security.md` (`K-SEC-*`)
 - 流式契约：`kernel/streaming-contract.md` (`K-STREAM-*`)

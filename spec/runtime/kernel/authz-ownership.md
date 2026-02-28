@@ -8,6 +8,8 @@
 - 无 JWT：仅允许 `LOCAL_MODEL` 与 inline 路径。
 - 携带 `Authorization` 但 JWT 无效：必须 `UNAUTHENTICATED`，不降级匿名。
 
+`JWT` 的有效性判定（issuer/audience/alg/JWKS/时钟偏差）由 `K-AUTHN-*` 统一定义。
+
 ## K-AUTH-002 信息隐藏
 
 以下场景统一返回 `NOT_FOUND`：
@@ -40,3 +42,8 @@
 
 - job 创建时：有效 JWT => `owner_id=jwt.sub`；否则 `owner_id="anonymous"`。
 - `GetMediaJob/CancelMediaJob/SubscribeMediaJobEvents/GetMediaResult` 基于 job owner 校验，不依赖 connector 存续。
+
+## K-AUTH-007 AuthN 与 AuthZ 分层
+
+- AuthN（验签/会话有效性）失败统一返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`，不进入 AuthZ 评估。
+- AuthZ 规则（owner/status/credential）仅在 AuthN 通过后执行。

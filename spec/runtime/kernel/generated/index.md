@@ -5,8 +5,11 @@
 | File | Source |
 |---|---|
 | `rpc-methods.md` | `tables/rpc-methods.yaml` |
+| `rpc-migration-map.md` | `tables/rpc-migration-map.yaml` |
 | `reason-codes.md` | `tables/reason-codes.yaml` |
+| `error-mapping-matrix.md` | `tables/error-mapping-matrix.yaml` |
 | `metadata-keys.md` | `tables/metadata-keys.yaml` |
+| `key-source-truth-table.md` | `tables/key-source-truth-table.yaml` |
 | `provider-catalog.md` | `tables/provider-catalog.yaml` |
 | `provider-capabilities.md` | `tables/provider-capabilities.yaml` |
 | `connector-rpc-field-rules.md` | `tables/connector-rpc-field-rules.yaml` |

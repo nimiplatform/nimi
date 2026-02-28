@@ -18,14 +18,29 @@ const specs = [
     render: renderRpcMethods,
   },
   {
+    input: 'rpc-migration-map.yaml',
+    output: 'rpc-migration-map.md',
+    render: renderRpcMigrationMap,
+  },
+  {
     input: 'reason-codes.yaml',
     output: 'reason-codes.md',
     render: renderReasonCodes,
   },
   {
+    input: 'error-mapping-matrix.yaml',
+    output: 'error-mapping-matrix.md',
+    render: renderErrorMappingMatrix,
+  },
+  {
     input: 'metadata-keys.yaml',
     output: 'metadata-keys.md',
     render: renderMetadataKeys,
+  },
+  {
+    input: 'key-source-truth-table.yaml',
+    output: 'key-source-truth-table.md',
+    render: renderKeySourceTruthTable,
   },
   {
     input: 'provider-catalog.yaml',
@@ -96,6 +111,56 @@ function renderRpcMethods(doc, sourceName) {
   return normalizeMarkdown(out);
 }
 
+function renderRpcMigrationMap(doc, sourceName) {
+  const serviceMappings = Array.isArray(doc?.service_mappings) ? doc.service_mappings : [];
+  const methodMappings = Array.isArray(doc?.method_mappings) ? doc.method_mappings : [];
+  const excludedProtoMethods = Array.isArray(doc?.excluded_proto_methods) ? doc.excluded_proto_methods : [];
+
+  let out = header('Generated RPC Migration Map', sourceName);
+
+  out += '## Service Mapping\n\n';
+  out += '| Design Service | Proto Service | Status | Phase | Source Rule |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of serviceMappings) {
+    const designService = String(item?.design_service || '').trim();
+    if (!designService) continue;
+    const protoService = String(item?.proto_service || '').trim() || '—';
+    const status = String(item?.mapping_status || '').trim() || 'unknown';
+    const phase = String(item?.phase || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${designService}\` | \`${protoService}\` | \`${status}\` | \`${phase}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  out += '## Method Mapping\n\n';
+  out += '| Design Service | Design Method | Proto Service | Proto Method | Status |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of methodMappings) {
+    const designService = String(item?.design_service || '').trim();
+    const designMethod = String(item?.design_method || '').trim();
+    if (!designService || !designMethod) continue;
+    const protoService = String(item?.proto_service || '').trim() || '—';
+    const protoMethod = String(item?.proto_method || '').trim() || '—';
+    const status = String(item?.mapping_status || '').trim() || 'unknown';
+    out += `| \`${designService}\` | \`${designMethod}\` | \`${protoService}\` | \`${protoMethod}\` | \`${status}\` |\n`;
+  }
+  out += '\n';
+
+  out += '## Excluded Proto Methods\n\n';
+  out += '| Proto Service | Proto Method | Reason |\n';
+  out += '|---|---|---|\n';
+  for (const item of excludedProtoMethods) {
+    const protoService = String(item?.proto_service || '').trim();
+    const protoMethod = String(item?.proto_method || '').trim();
+    const reason = String(item?.reason || '').trim();
+    if (!protoService || !protoMethod) continue;
+    out += `| \`${protoService}\` | \`${protoMethod}\` | \`${reason || '—'}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
 function renderReasonCodes(doc, sourceName) {
   const codes = Array.isArray(doc?.codes) ? doc.codes : [];
   let out = header('Generated ReasonCode Table', sourceName);
@@ -128,6 +193,30 @@ function renderMetadataKeys(doc, sourceName) {
     const requiredWhen = String(item?.required_when || '').trim() || '—';
     if (!key) continue;
     out += `| \`${key}\` | ${allowed || '—'} | ${requiredWhen} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderKeySourceTruthTable(doc, sourceName) {
+  const cases = Array.isArray(doc?.cases) ? doc.cases : [];
+  let out = header('Generated Key Source Truth Table', sourceName);
+
+  out += '| Case | key_source | connector_id | provider_type | provider_endpoint | provider_api_key | Valid | ReasonCode | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|---|---|\n';
+  for (const item of cases) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const keySource = String(item?.key_source || '').trim() || '—';
+    const connectorId = String(item?.connector_id || '').trim() || '—';
+    const providerType = String(item?.x_nimi_provider_type || '').trim() || '—';
+    const providerEndpoint = String(item?.x_nimi_provider_endpoint || '').trim() || '—';
+    const providerApiKey = String(item?.x_nimi_provider_api_key || '').trim() || '—';
+    const valid = mdBool(Boolean(item?.valid));
+    const reasonCode = String(item?.reason_code || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${keySource}\` | \`${connectorId}\` | \`${providerType}\` | \`${providerEndpoint}\` | \`${providerApiKey}\` | \`${valid}\` | \`${reasonCode}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 
@@ -207,6 +296,26 @@ function renderJobStates(doc, sourceName) {
     const state = String(item?.state || '').trim();
     if (!state) continue;
     out += `| \`${state}\` | \`${mdBool(Boolean(item?.terminal))}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderErrorMappingMatrix(doc, sourceName) {
+  const mappings = Array.isArray(doc?.mappings) ? doc.mappings : [];
+  let out = header('Generated Error Mapping Matrix', sourceName);
+
+  out += '| ReasonCode | gRPC Code | Surface | Exit Shape | Source Rule |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of mappings) {
+    const reasonCode = String(item?.reason_code || '').trim();
+    const grpcCode = String(item?.grpc_code || '').trim();
+    if (!reasonCode || !grpcCode) continue;
+    const surface = String(item?.surface || '').trim() || '—';
+    const exitShape = String(item?.exit_shape || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${reasonCode}\` | \`${grpcCode}\` | \`${surface}\` | \`${exitShape}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 

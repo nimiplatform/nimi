@@ -30,3 +30,12 @@
 ## K-LOCAL-004 category 与路由解耦
 
 connector 层是薄描述，不承载用户路由策略。具体执行路由由模型级元数据与执行模块决定。
+
+## K-LOCAL-005 Local 生命周期状态机锚点
+
+`local_model_lifecycle` 与 `local_service_lifecycle` 的状态与迁移来源由 `tables/state-transitions.yaml` 固定：
+
+- 状态集合：`installed` `active` `unhealthy` `removed`
+- 迁移触发：`start/spawn`、`health_probe_failed`、`recovery`、`remove`
+
+任何 local 生命周期文档必须引用本 Rule ID，不得使用章节号样式来源（例如 `local-model_5.1`）。

@@ -40,3 +40,17 @@ AI consume 只允许二选一路径：
 
 - 管理 RPC 的 `app_id` 仅通过 `x-nimi-app-id` 传递（必填）。
 - AI consume 的 `app_id` 在 request body 中传递（必填）。
+
+## K-KEYSRC-006 managed / inline 真值表
+
+`managed` 与 `inline` 的字段必填/禁填语义，以 `tables/key-source-truth-table.yaml` 为唯一事实源：
+
+- `key_source=managed`（或省略但提供 `connector_id`）时，`connector_id` 必须存在且非空。
+- `key_source=managed` 时，`x-nimi-provider-*` inline 凭据字段必须全部禁填。
+- `key_source=inline` 时，`connector_id` 必须禁填，且 inline 必填字段必须满足表定义。
+- 任意违反真值表的请求必须 fail-close，不允许自动修正为另一条路由。
+
+## K-KEYSRC-007 managed 缺失 connector_id 的错误语义
+
+- 显式 `key_source=managed` 且缺失/空 `connector_id`：`INVALID_ARGUMENT` + `AI_CONNECTOR_ID_REQUIRED`。
+- inline 必填字段缺失：`INVALID_ARGUMENT` + `AI_REQUEST_CREDENTIAL_MISSING`。

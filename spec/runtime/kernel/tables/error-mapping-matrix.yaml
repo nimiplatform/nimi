@@ -1,0 +1,102 @@
+version: 1
+mappings:
+  - reason_code: AUTH_TOKEN_INVALID
+    grpc_code: UNAUTHENTICATED
+    surface: authn_all
+    exit_shape: grpc_status
+    source_rule: K-AUTHN-007
+  - reason_code: AI_CONNECTOR_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: consume_remote_or_hidden_connector
+    exit_shape: grpc_status
+    source_rule: K-ERR-004
+  - reason_code: AI_CONNECTOR_DISABLED
+    grpc_code: FAILED_PRECONDITION
+    surface: consume_or_connector_probe
+    exit_shape: grpc_status
+    source_rule: K-ERR-004
+  - reason_code: AI_CONNECTOR_CREDENTIAL_MISSING
+    grpc_code: FAILED_PRECONDITION
+    surface: consume_or_list_models
+    exit_shape: grpc_status
+    source_rule: K-ERR-004
+  - reason_code: AI_CONNECTOR_CREDENTIAL_MISSING
+    grpc_code: OK
+    surface: test_connector
+    exit_shape: payload_ok_false
+    source_rule: K-ERR-004
+  - reason_code: AI_REQUEST_CREDENTIAL_CONFLICT
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_entry
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-002
+  - reason_code: AI_REQUEST_CREDENTIAL_MISSING
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_entry
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-007
+  - reason_code: AI_CONNECTOR_ID_REQUIRED
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_entry
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-007
+  - reason_code: AI_APP_ID_REQUIRED
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_or_connector_manage
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-005
+  - reason_code: AI_MODEL_ID_REQUIRED
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_entry
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-004
+  - reason_code: AI_PROVIDER_ENDPOINT_FORBIDDEN
+    grpc_code: FAILED_PRECONDITION
+    surface: consume_endpoint_validation
+    exit_shape: grpc_status
+    source_rule: K-SEC-001
+  - reason_code: AI_PROVIDER_UNAVAILABLE
+    grpc_code: UNAVAILABLE
+    surface: list_connector_models_remote
+    exit_shape: grpc_status
+    source_rule: K-ERR-005
+  - reason_code: AI_PROVIDER_AUTH_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: media_snapshot_credential_invalid
+    exit_shape: grpc_status
+    source_rule: K-JOB-006
+  - reason_code: AI_MEDIA_SPEC_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: submit_media_job
+    exit_shape: grpc_status
+    source_rule: K-JOB-001
+  - reason_code: AI_MEDIA_OPTION_UNSUPPORTED
+    grpc_code: INVALID_ARGUMENT
+    surface: submit_media_job
+    exit_shape: grpc_status
+    source_rule: K-JOB-001
+  - reason_code: AI_MEDIA_JOB_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: media_control
+    exit_shape: grpc_status
+    source_rule: K-JOB-001
+  - reason_code: AI_MEDIA_JOB_NOT_CANCELLABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: cancel_media_job
+    exit_shape: grpc_status
+    source_rule: K-JOB-001
+  - reason_code: AI_MEDIA_IDEMPOTENCY_CONFLICT
+    grpc_code: ALREADY_EXISTS
+    surface: submit_media_job
+    exit_shape: grpc_status
+    source_rule: K-ERR-007
+  - reason_code: AI_LOCAL_MODEL_PROFILE_MISSING
+    grpc_code: FAILED_PRECONDITION
+    surface: local_consume_or_probe
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-LOCAL-003
+  - reason_code: AI_LOCAL_MODEL_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: local_consume_or_probe
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: LOCAL-061

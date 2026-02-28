@@ -33,3 +33,18 @@ ReasonCode 的唯一事实源是 `tables/reason-codes.yaml`。
 ## K-ERR-005 ListConnectorModels(remote) 特殊映射
 
 Provider 上游失败（401/429/5xx/timeout）统一映射：`UNAVAILABLE` + `AI_PROVIDER_UNAVAILABLE`。
+
+## K-ERR-006 映射矩阵事实源
+
+`tables/error-mapping-matrix.yaml` 是错误映射矩阵唯一事实源，必须覆盖：
+
+- consume / connector / media 三类入口
+- 每个 `ReasonCode` 至少一个约束场景
+- 场景对应的 gRPC code 与出口语义（error status 或 `ok=false`）
+
+## K-ERR-007 Media 幂等冲突
+
+`AI_MEDIA_IDEMPOTENCY_CONFLICT` 必须有显式出口语义：
+
+- `SubmitMediaJob` 幂等键冲突：`ALREADY_EXISTS` + `AI_MEDIA_IDEMPOTENCY_CONFLICT`
+- 不允许将该冲突静默降级为普通 provider 错误或未知内部错误

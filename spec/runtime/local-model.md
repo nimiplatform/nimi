@@ -11,6 +11,7 @@
 
 - RPC 权威面：`kernel/rpc-surface.md` (`K-RPC-*`)
 - 鉴权/owner：`kernel/authz-ownership.md` (`K-AUTH-*`)
+- AuthN 验签/JWKS：`kernel/authn-token-validation.md` (`K-AUTHN-*`)
 - key-source 与评估顺序：`kernel/key-source-routing.md` (`K-KEYSRC-*`)
 - local category/capability：`kernel/local-category-capability.md` (`K-LOCAL-*`)
 - endpoint 安全：`kernel/endpoint-security.md` (`K-SEC-*`)

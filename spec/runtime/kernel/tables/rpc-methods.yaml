@@ -50,3 +50,31 @@ services:
         type: unary
       - name: CheckLocalModelHealth
         type: unary
+  - name: RuntimeAuthService
+    methods:
+      - name: RegisterApp
+        type: unary
+      - name: OpenSession
+        type: unary
+      - name: RefreshSession
+        type: unary
+      - name: RevokeSession
+        type: unary
+      - name: RegisterExternalPrincipal
+        type: unary
+      - name: OpenExternalPrincipalSession
+        type: unary
+      - name: RevokeExternalPrincipalSession
+        type: unary
+  - name: RuntimeGrantService
+    methods:
+      - name: AuthorizeExternalPrincipal
+        type: unary
+      - name: ValidateAppAccessToken
+        type: unary
+      - name: RevokeAppAccessToken
+        type: unary
+      - name: IssueDelegatedAccessToken
+        type: unary
+      - name: ListTokenChain
+        type: unary

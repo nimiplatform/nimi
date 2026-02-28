@@ -4,7 +4,7 @@
 > Source: `spec/runtime/kernel/tables/metadata-keys.yaml`
 | Key | Allowed Values | Required When |
 |---|---|---|
-| `x-nimi-key-source` | `inline`, `managed` | inline or explicit managed routing |
+| `x-nimi-key-source` | `inline`, `managed` | inline routing or explicit managed override (managed requires connector_id) |
 | `x-nimi-provider-type` | — | inline |
 | `x-nimi-provider-endpoint` | — | inline provider has no default endpoint |
 | `x-nimi-provider-api-key` | — | inline |

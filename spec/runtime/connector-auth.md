@@ -11,6 +11,8 @@
 
 - RPC 面：`kernel/rpc-surface.md`（`K-RPC-*`）
 - 鉴权/ownership：`kernel/authz-ownership.md`（`K-AUTH-*`）
+- AuthN 验签/JWKS：`kernel/authn-token-validation.md`（`K-AUTHN-*`）
+- AuthService/GrantService：`kernel/auth-service.md`（`K-AUTHSVC-*`）、`kernel/grant-service.md`（`K-GRANT-*`）
 - key-source 与请求判定：`kernel/key-source-routing.md`（`K-KEYSRC-*`）
 - MediaJob 生命周期：`kernel/media-job-lifecycle.md`（`K-JOB-*`）
 - 本地 category/capability：`kernel/local-category-capability.md`（`K-LOCAL-*`）

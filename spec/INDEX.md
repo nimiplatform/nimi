@@ -5,7 +5,10 @@
 
 ## Runtime（当前）
 
-Runtime 规范采用 kernel + domain 的两层结构：
+Runtime 规范采用 kernel + domain 的两层结构。
+当前目标是 **runtime-ai-plane + auth-core** 的 SSOT，不等同于 proto 全量服务 SSOT。
+
+Runtime SSOT（当前 in-scope）：
 
 - Kernel（唯一事实源）：`spec/runtime/kernel/`
 - Domain：
@@ -13,13 +16,24 @@ Runtime 规范采用 kernel + domain 的两层结构：
   - `spec/runtime/nimillm.md`
   - `spec/runtime/local-model.md`
 
+Runtime SSOT（deferred）：
+
+- `RuntimeWorkflowService`
+- `RuntimeModelService`
+- `RuntimeKnowledgeService`
+- `RuntimeAppService`
+- `RuntimeAuditService` 全量契约
+
 ## Task-Oriented 最短阅读路径
 
 ### 修改 Connector 鉴权 / owner / key-source
 
 1. `spec/runtime/kernel/authz-ownership.md`
-2. `spec/runtime/kernel/key-source-routing.md`
-3. `spec/runtime/connector-auth.md`
+2. `spec/runtime/kernel/authn-token-validation.md`
+3. `spec/runtime/kernel/auth-service.md`
+4. `spec/runtime/kernel/grant-service.md`
+5. `spec/runtime/kernel/key-source-routing.md`
+6. `spec/runtime/connector-auth.md`
 
 ### 修改 remote 执行行为（nimillm）
 
@@ -56,4 +70,4 @@ Runtime 规范采用 kernel + domain 的两层结构：
 
 - 规则必须先改 kernel，再改 domain。
 - domain 文档禁止复述 kernel 规则正文。
-- `spec/sdk` 暂未纳入本轮拆分。
+- `spec/sdk` 当前仅做 Runtime 契约投影，完整 SDK kernel 化拆分另行执行。

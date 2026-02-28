@@ -38,3 +38,25 @@
 | `StartLocalModel` | `unary` |
 | `StopLocalModel` | `unary` |
 | `CheckLocalModelHealth` | `unary` |
+
+## RuntimeAuthService
+
+| Method | Type |
+|---|---|
+| `RegisterApp` | `unary` |
+| `OpenSession` | `unary` |
+| `RefreshSession` | `unary` |
+| `RevokeSession` | `unary` |
+| `RegisterExternalPrincipal` | `unary` |
+| `OpenExternalPrincipalSession` | `unary` |
+| `RevokeExternalPrincipalSession` | `unary` |
+
+## RuntimeGrantService
+
+| Method | Type |
+|---|---|
+| `AuthorizeExternalPrincipal` | `unary` |
+| `ValidateAppAccessToken` | `unary` |
+| `RevokeAppAccessToken` | `unary` |
+| `IssueDelegatedAccessToken` | `unary` |
+| `ListTokenChain` | `unary` |
