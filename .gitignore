@@ -34,3 +34,5 @@ nimi-mods/
 .vscode/
 .idea/
 .cache/
+
+_external/
