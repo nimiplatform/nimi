@@ -74,6 +74,12 @@ async function pathExists(relativePath) {
 async function collectFiles(rootPath) {
   const absoluteRoot = path.join(repoRoot, rootPath);
   const files = [];
+  let rootStat;
+  try {
+    rootStat = await fs.stat(absoluteRoot);
+  } catch {
+    return files;
+  }
 
   async function walk(currentPath) {
     const entries = await fs.readdir(currentPath, { withFileTypes: true });
@@ -96,7 +102,6 @@ async function collectFiles(rootPath) {
     }
   }
 
-  const rootStat = await fs.stat(absoluteRoot);
   if (rootStat.isFile()) {
     files.push(absoluteRoot);
   } else {
