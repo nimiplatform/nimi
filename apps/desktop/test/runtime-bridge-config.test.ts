@@ -174,3 +174,39 @@ test('applyRuntimeBridgeConfigToState preserves existing in-memory connector tok
   assert.equal(next.connectors.length, 1);
   assert.equal(next.connectors[0]?.tokenApiKeyEnv, 'GEMINI_API_KEY');
 });
+
+test('applyRuntimeBridgeConfigToState rejects legacy provider keys', () => {
+  const previous = createBaseState();
+  assert.throws(
+    () => applyRuntimeBridgeConfigToState(previous, {
+      schemaVersion: 1,
+      ai: {
+        providers: {
+          litellm: {
+            baseUrl: 'https://legacy.invalid/v1',
+            apiKeyEnv: 'LEGACY_KEY',
+          },
+        },
+      },
+    }),
+    /legacy provider key is forbidden: litellm/,
+  );
+});
+
+test('buildRuntimeBridgeConfigFromState rejects legacy provider keys from base config', () => {
+  const state = createBaseState();
+  assert.throws(
+    () => buildRuntimeBridgeConfigFromState(state, {
+      schemaVersion: 1,
+      ai: {
+        providers: {
+          cloudai: {
+            baseUrl: 'https://legacy.invalid/v1',
+            apiKeyEnv: 'LEGACY_KEY',
+          },
+        },
+      },
+    }),
+    /legacy provider key is forbidden: cloudai/,
+  );
+});

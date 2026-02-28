@@ -160,25 +160,12 @@ async function resolveCredentialMetadata(input: {
   credentialRefId?: string;
   providerEndpoint?: string;
 }): Promise<{
-  credentialSource: 'runtime-config' | 'request-injected';
-  providerEndpoint?: string;
-  providerApiKey?: string;
+  credentialSource: 'runtime-config';
 }> {
-  if (input.source !== 'token-api') {
-    return {
-      credentialSource: 'runtime-config',
-    };
-  }
-  const providerApiKey = await resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
-  if (!providerApiKey) {
-    return {
-      credentialSource: 'runtime-config',
-    };
-  }
+  // Runtime inference must resolve credentials through runtime config (`apiKeyEnv`) only.
+  void input;
   return {
-    credentialSource: 'request-injected',
-    providerEndpoint: String(input.providerEndpoint || '').trim() || undefined,
-    providerApiKey,
+    credentialSource: 'runtime-config',
   };
 }
 
@@ -191,12 +178,6 @@ export async function buildRuntimeRequestMetadata(input: {
   const metadata: Record<string, string> = {
     credentialSource: resolved.credentialSource,
   };
-  if (resolved.providerEndpoint) {
-    metadata.providerEndpoint = resolved.providerEndpoint;
-  }
-  if (resolved.providerApiKey) {
-    metadata.providerApiKey = resolved.providerApiKey;
-  }
   return metadata;
 }
 
@@ -212,9 +193,7 @@ export async function buildRuntimeCallOptions(input: {
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
-    credentialSource: 'runtime-config' | 'request-injected';
-    providerEndpoint?: string;
-    providerApiKey?: string;
+    credentialSource: 'runtime-config';
   };
 }> {
   const caller = resolveCaller(input.modId);
@@ -230,8 +209,6 @@ export async function buildRuntimeCallOptions(input: {
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
       credentialSource: credentialMetadata.credentialSource,
-      providerEndpoint: credentialMetadata.providerEndpoint,
-      providerApiKey: credentialMetadata.providerApiKey,
     },
   };
 }
@@ -252,9 +229,7 @@ export async function buildRuntimeStreamOptions(
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
-    credentialSource: 'runtime-config' | 'request-injected';
-    providerEndpoint?: string;
-    providerApiKey?: string;
+    credentialSource: 'runtime-config';
   };
 }> {
   const caller = resolveCaller(input.modId);
@@ -271,8 +246,6 @@ export async function buildRuntimeStreamOptions(
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
       credentialSource: credentialMetadata.credentialSource,
-      providerEndpoint: credentialMetadata.providerEndpoint,
-      providerApiKey: credentialMetadata.providerApiKey,
     },
   };
 }

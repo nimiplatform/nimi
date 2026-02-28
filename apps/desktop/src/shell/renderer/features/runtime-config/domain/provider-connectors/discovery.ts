@@ -1,7 +1,3 @@
-import {
-  checkLocalLlmHealth,
-  createProviderAdapter,
-} from '@runtime/llm-adapter';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { getPlatformClient } from '@runtime/platform-client';
 import { desktopBridge } from '@renderer/bridge';
@@ -13,8 +9,6 @@ import {
   dedupeStringsV11,
   normalizeEndpointV11,
   normalizeStatusV11,
-  vendorToProviderPrefix,
-  vendorToProviderType,
   type NodeCapabilityV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/state/v11/types';
@@ -39,6 +33,11 @@ const RUNTIME_HEALTH_STATUS_STARTING = 2;
 const RUNTIME_HEALTH_STATUS_READY = 3;
 const RUNTIME_HEALTH_STATUS_DEGRADED = 4;
 const RUNTIME_HEALTH_STATUS_STOPPING = 5;
+const TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY = 1;
+const TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED = 2;
+const TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE = 3;
+const TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED = 4;
+const TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED = 5;
 
 function statusFromRuntimeHealth(status: number): LocalRuntimeHealthSummary['status'] {
   switch (status) {
@@ -50,6 +49,42 @@ function statusFromRuntimeHealth(status: number): LocalRuntimeHealthSummary['sta
     case RUNTIME_HEALTH_STATUS_STOPPING:
       return 'idle';
     case RUNTIME_HEALTH_STATUS_STOPPED:
+    default:
+      return 'unreachable';
+  }
+}
+
+function tokenProviderIdForVendor(vendor: RuntimeConfigStateV11['connectors'][number]['vendor']): string {
+  switch (vendor) {
+    case 'dashscope':
+      return 'alibaba';
+    case 'volcengine':
+      return 'bytedance';
+    case 'gemini':
+      return 'gemini';
+    case 'kimi':
+      return 'kimi';
+    case 'custom':
+      return 'nimillm';
+    case 'openrouter':
+    case 'gpt':
+    case 'claude':
+    case 'deepseek':
+    default:
+      return 'nimillm';
+  }
+}
+
+function statusFromTokenProviderHealth(status: number): RuntimeConfigStateV11['connectors'][number]['status'] {
+  switch (status) {
+    case TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY:
+      return 'healthy';
+    case TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED:
+      return 'degraded';
+    case TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED:
+      return 'unsupported';
+    case TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE:
+    case TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED:
     default:
       return 'unreachable';
   }
@@ -216,6 +251,7 @@ export async function discoverConnectorModelsAndHealth(input: {
   state: RuntimeConfigStateV11;
   connector: RuntimeConfigStateV11['connectors'][number];
 }) {
+  void input.state;
   const vault = new TauriCredentialVault();
   let token = '';
   try { token = (await vault.getCredentialSecret(input.connector.id)).trim(); }
@@ -228,31 +264,51 @@ export async function discoverConnectorModelsAndHealth(input: {
     input.connector.endpoint,
     VENDOR_CATALOGS_V11[input.connector.vendor].defaultEndpoint,
   );
-
-  const adapter = createProviderAdapter(vendorToProviderType(input.connector.vendor), {
-    name: `connector:${input.connector.id}`,
-    endpoint,
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const runtime = getPlatformClient().runtime;
+  const providerId = tokenProviderIdForVendor(input.connector.vendor);
+  const callOptions = {
+    timeoutMs: 5_000,
+    metadata: {
+      callerKind: 'desktop-core' as const,
+      callerId: 'runtime-config.connector-probe',
+      surfaceId: 'runtime.config',
+      credentialSource: 'request-injected' as const,
+      providerApiKey: token,
+      providerEndpoint: endpoint,
     },
-  });
+  };
 
-  const listed = await adapter.listModels();
+  const listedResponse = await runtime.ai.listTokenProviderModels({
+    appId: 'nimi.desktop',
+    subjectUserId: 'runtime-config',
+    providerId,
+    providerEndpoint: endpoint,
+    timeoutMs: 5_000,
+  }, callOptions);
+
+  const listed = (listedResponse.models || [])
+    .map((item) => String(item.modelId || '').trim())
+    .filter(Boolean);
   const discovered = dedupeStringsV11([
     ...input.connector.models,
     ...catalogModelsV11(input.connector.vendor),
-    ...listed.map((profile) => String(profile.model || '').trim()),
+    ...listed,
   ]);
   const firstModel = discovered[0] || 'model';
-  const prefix = vendorToProviderPrefix(input.connector.vendor);
-
-  const health = await checkLocalLlmHealth({
-    provider: `${prefix}:${firstModel}`,
-    localProviderEndpoint: normalizeEndpointV11(input.state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11),
-    localProviderModel: firstModel,
-    localOpenAiEndpoint: endpoint,
-    credentialRefId: input.connector.id,
-  });
+  const checkedAt = new Date().toISOString();
+  const healthResponse = await runtime.ai.checkTokenProviderHealth({
+    appId: 'nimi.desktop',
+    subjectUserId: 'runtime-config',
+    providerId,
+    providerEndpoint: endpoint,
+    modelId: firstModel,
+    timeoutMs: 5_000,
+  }, callOptions);
+  const health = {
+    status: statusFromTokenProviderHealth(Number(healthResponse.health?.status || 0)),
+    detail: String(healthResponse.health?.detail || '').trim() || 'provider health unavailable',
+    checkedAt,
+  };
 
   return {
     endpoint,

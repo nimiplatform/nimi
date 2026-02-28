@@ -1,74 +1,56 @@
-import type { ProviderType } from '../../types';
+import {
+  buildRuntimeRequestMetadata,
+  getRuntimeClient,
+} from '../../execution/runtime-ai-bridge';
 import type { SpeechVoiceDescriptor } from '../types';
-import { inferVoiceLang, isOpenAiCompatibleProvider, withV1Endpoint } from './shared';
 
 export type ListVoicesInput = {
-  providerType?: ProviderType;
-  endpoint?: string;
-  apiKey?: string;
   providerId?: string;
+  model?: string;
+  routeSource?: 'local-runtime' | 'token-api';
+  credentialRefId?: string;
+  providerEndpoint?: string;
 };
+
+const FALLBACK_VOICES: readonly SpeechVoiceDescriptor[] = Object.freeze([
+  { id: 'alloy', providerId: 'openai-compatible', name: 'Alloy', lang: 'en' },
+  { id: 'nova', providerId: 'openai-compatible', name: 'Nova', lang: 'en' },
+  { id: 'shimmer', providerId: 'openai-compatible', name: 'Shimmer', lang: 'en' },
+]);
 
 export async function listSpeechVoices(input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
   const providerId = String(input?.providerId || 'openai-compatible').trim() || 'openai-compatible';
+  const model = String(input?.model || '').trim();
 
-  if (input?.providerType === 'DASHSCOPE_COMPATIBLE') {
-    const pid = 'dashscope-compatible';
-    return [
-      { id: 'Cherry', providerId: pid, name: '芊悦 · 阳光亲切女声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Serena', providerId: pid, name: '苏瑶 · 温柔女声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Ethan', providerId: pid, name: '晨煦 · 阳光温暖男声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Chelsie', providerId: pid, name: '千雪 · 二次元女声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Momo', providerId: pid, name: '茉兔 · 撒娇搞怪女声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Vivian', providerId: pid, name: '十三 · 可爱小暴躁女声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Moon', providerId: pid, name: '月白 · 率性帅气男声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Maia', providerId: pid, name: '四月 · 知性温柔女声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Kai', providerId: pid, name: '凯 · 耳朵SPA男声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-      { id: 'Nofish', providerId: pid, name: '不吃鱼 · 设计师男声', langs: ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'ru', 'it', 'es', 'pt'] },
-    ];
+  if (!model) {
+    return FALLBACK_VOICES.map((v) => ({ ...v, providerId }));
   }
-
-  if (input?.providerType === 'VOLCENGINE_COMPATIBLE') {
-    return [
-      { id: 'BV001_streaming', providerId: 'volcengine-compatible', name: '通用女声', lang: 'zh' },
-      { id: 'BV002_streaming', providerId: 'volcengine-compatible', name: '通用男声', lang: 'zh' },
-    ];
-  }
-
-  const fallbackItems: SpeechVoiceDescriptor[] = [
-    { id: 'alloy', providerId, name: 'Alloy', lang: 'en' },
-    { id: 'nova', providerId, name: 'Nova', lang: 'en' },
-    { id: 'shimmer', providerId, name: 'Shimmer', lang: 'en' },
-  ];
-
-  if (!input?.endpoint) return fallbackItems;
-  if (input.providerType && !isOpenAiCompatibleProvider(input.providerType)) {
-    return fallbackItems;
-  }
-
-  const headers: Record<string, string> = {};
-  if (input.apiKey) headers.Authorization = `Bearer ${input.apiKey}`;
 
   try {
-    const response = await fetch(`${withV1Endpoint(input.endpoint)}/audio/voices`, {
-      method: 'GET',
-      headers,
+    const runtime = getRuntimeClient();
+    const result = await runtime.media.tts.listVoices({
+      model,
+      route: input?.routeSource || 'local-runtime',
+      fallback: 'deny',
+      metadata: await buildRuntimeRequestMetadata({
+        source: input?.routeSource || 'local-runtime',
+        credentialRefId: input?.credentialRefId,
+        providerEndpoint: input?.providerEndpoint,
+      }),
     });
-    if (!response.ok) return fallbackItems;
-    const payload = await response.json().catch(() => ({}));
-    const voices = Array.isArray((payload as { voices?: unknown[] }).voices)
-      ? ((payload as { voices?: unknown[] }).voices as unknown[])
-          .map((item) => String(item || '').trim())
-          .filter(Boolean)
-      : [];
-    if (voices.length === 0) return fallbackItems;
-    return voices.map((id) => ({
-      id,
+
+    if (result.voices.length === 0) {
+      return FALLBACK_VOICES.map((v) => ({ ...v, providerId }));
+    }
+
+    return result.voices.map((v) => ({
+      id: v.voiceId,
       providerId,
-      name: id,
-      lang: inferVoiceLang(id),
+      name: v.name,
+      lang: v.lang,
+      langs: v.supportedLangs,
     }));
   } catch {
-    return fallbackItems;
+    return FALLBACK_VOICES.map((v) => ({ ...v, providerId }));
   }
 }

@@ -86,6 +86,11 @@ function canonicalProviderKey(raw: string): string {
   return trimmed;
 }
 
+function isLegacyProviderToken(raw: string): boolean {
+  const token = readString(raw).toLowerCase().replace(/[^a-z0-9]/g, '');
+  return token === 'litellm' || token === 'cloudlitellm' || token === 'cloudai';
+}
+
 function defaultApiKeyEnvForProvider(providerKey: string): string {
   return DEFAULT_PROVIDER_API_KEY_ENV[providerKey] || '';
 }
@@ -97,6 +102,9 @@ function defaultBaseUrlForProvider(providerKey: string): string {
 function normalizeProviderConfigs(input: Record<string, unknown>): Record<string, RuntimeBridgeProviderConfig> {
   const output: Record<string, RuntimeBridgeProviderConfig> = {};
   for (const [rawKey, rawValue] of Object.entries(input)) {
+    if (isLegacyProviderToken(rawKey)) {
+      throw new Error(`legacy provider key is forbidden: ${rawKey}`);
+    }
     const key = canonicalProviderKey(rawKey);
     if (!key) continue;
     const record = asRecord(rawValue);

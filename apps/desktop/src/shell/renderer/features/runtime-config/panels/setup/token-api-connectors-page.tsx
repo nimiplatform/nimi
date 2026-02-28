@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
   DEFAULT_OPENAI_ENDPOINT_V11,
   VENDOR_CATALOGS_V11,
@@ -21,7 +22,7 @@ type TokenApiConnectorsPageProps = {
   onSelectConnector: (connectorId: string) => void;
   onRenameSelectedConnector: (label: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
-  onChangeConnectorToken: (secret: string) => void;
+  onChangeConnectorToken: (secret: string) => Promise<void>;
   onChangeConnectorTokenEnv: (tokenApiKeyEnv: string) => void;
   onChangeConnectorVendor: (vendor: string) => void;
   onTestSelectedConnector: () => Promise<void>;
@@ -47,6 +48,39 @@ export function TokenApiConnectorsPage({
   onChangeConnectorVendor,
   onTestSelectedConnector,
 }: TokenApiConnectorsPageProps) {
+  const [tokenDraft, setTokenDraft] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
+  const [tokenSaveError, setTokenSaveError] = useState('');
+  const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
+
+  const selectedConnectorId = selectedConnector?.id || '';
+  const canSaveToken = useMemo(
+    () => Boolean(selectedConnectorId) && tokenDraft.trim().length > 0 && !savingToken,
+    [savingToken, tokenDraft, selectedConnectorId],
+  );
+
+  useEffect(() => {
+    setTokenDraft('');
+    setTokenSaveError('');
+  }, [selectedConnectorId]);
+
+  const saveTokenToVault = async () => {
+    if (!selectedConnectorId) return;
+    const secret = tokenDraft.trim();
+    if (!secret) return;
+    setSavingToken(true);
+    setTokenSaveError('');
+    try {
+      await onChangeConnectorToken(secret);
+      setTokenDraft('');
+      setTokenSavedConnectorId(selectedConnectorId);
+    } catch (error) {
+      setTokenSaveError(error instanceof Error ? error.message : String(error || '保存失败'));
+    } finally {
+      setSavingToken(false);
+    }
+  };
+
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -128,10 +162,10 @@ export function TokenApiConnectorsPage({
 
             <Input
               label="Session API Key"
-              value=""
-              onChange={onChangeConnectorToken}
+              value={tokenDraft}
+              onChange={setTokenDraft}
               type={showTokenApiKey ? 'text' : 'password'}
-              placeholder={selectedConnector.status === 'healthy' ? '(stored in vault)' : 'sk-...'}
+              placeholder="sk-..."
             />
 
             <Input
@@ -143,11 +177,26 @@ export function TokenApiConnectorsPage({
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!canSaveToken}
+              onClick={() => void saveTokenToVault()}
+            >
+              {savingToken ? 'Saving...' : 'Save API Key'}
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => onSetShowTokenApiKey((value) => !value)}>
               {showTokenApiKey ? 'Hide API Key' : 'Show API Key'}
             </Button>
             <StatusBadge status={selectedConnector.status} />
           </div>
+          <p className="text-xs text-gray-500">Credential Ref: {selectedConnector.id}</p>
+          {tokenSavedConnectorId === selectedConnector.id ? (
+            <p className="text-xs text-emerald-600">API Key saved in vault.</p>
+          ) : null}
+          {tokenSaveError ? (
+            <p className="text-xs text-rose-600">Save failed: {tokenSaveError}</p>
+          ) : null}
 
           <Input
             label="Search Models"

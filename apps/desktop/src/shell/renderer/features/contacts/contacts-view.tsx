@@ -17,8 +17,8 @@ type ContactsViewProps = {
     canAdd: boolean;
     reason: string | null;
   } | null;
-  allFriends: ContactRecord[]; // 所有好友（用于分类显示）
-  filteredContacts: ContactRecord[]; // 当前选中分类的联系人
+  allFriends: ContactRecord[];
+  filteredContacts: ContactRecord[];
   filteredRequests: ContactRequestRecord[];
   loading: boolean;
   error: boolean;
@@ -45,6 +45,13 @@ const CATEGORIES = [
   { id: 'blocks' as TabFilter, label: 'Blocks', icon: '🚫', countKey: 'blocksCount' },
 ];
 
+// 记录被拉黑用户之前的分类，用于恢复
+interface BlockedUserInfo {
+  userId: string;
+  previousCategory: TabFilter;
+  timestamp: number;
+}
+
 export function ContactsView(props: ContactsViewProps) {
   const { t } = useTranslation();
   const [removingContact, setRemovingContact] = useState<ContactRecord | null>(null);
@@ -52,6 +59,10 @@ export function ContactsView(props: ContactsViewProps) {
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ContactRequestRecord | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<TabFilter | null>(null);
+  
+  // 本地状态：被拉黑的用户列表（包含之前的分类信息）
+  const [blockedUsers, setBlockedUsers] = useState<Map<string, BlockedUserInfo>>(new Map());
   
   // 跟踪展开的分类（可以同时展开多个）
   const [expandedCategories, setExpandedCategories] = useState<Set<TabFilter>>(new Set(['humans']));
@@ -72,20 +83,114 @@ export function ContactsView(props: ContactsViewProps) {
   // 获取当前选中项
   const currentContact = selectedContact;
   const currentRequest = selectedRequest;
+  
+  // 当前选中项所属的分类
+  const currentCategory = selectedCategory;
 
-  // 根据分类获取联系人 - 使用 allFriends 获取完整列表
+  // 判断用户是否被拉黑
+  const isUserBlocked = (userId: string): boolean => {
+    return blockedUsers.has(userId);
+  };
+
+  // 获取被拉黑用户的原始分类
+  const getBlockedUserPreviousCategory = (userId: string): TabFilter | null => {
+    const info = blockedUsers.get(userId);
+    return info?.previousCategory || null;
+  };
+
+  // 根据分类获取联系人 - 使用 allFriends 获取完整列表，并过滤掉被拉黑的
   const getContactsByCategory = (categoryId: TabFilter) => {
     if (categoryId === 'requests') return [];
+    if (categoryId === 'blocks') {
+      // Blocks 分类：返回所有被拉黑的用户
+      return props.allFriends.filter(c => isUserBlocked(c.id));
+    }
     
     return props.allFriends.filter(c => {
+      // 如果被拉黑了，不在任何普通分类中显示
+      if (isUserBlocked(c.id)) return false;
+      
       if (categoryId === 'humans') return !c.isAgent;
-      // Agents: 所有是我的好友的 Agent（我不是 Owner）
       if (categoryId === 'agents') return c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED';
-      // My Agents: 我是 Owner 创建的 Agent
       if (categoryId === 'myAgents') return c.isAgent && c.agentOwnershipType === 'MASTER_OWNED';
       return false;
     });
   };
+
+  // 处理拉黑用户
+  const handleBlockUser = (contact: ContactRecord) => {
+    // 记录当前分类（如果正在查看该联系人）
+    const currentCat = selectedCategory;
+    
+    const blockedInfo: BlockedUserInfo = {
+      userId: contact.id,
+      previousCategory: currentCat || 'humans', // 默认恢复到 humans
+      timestamp: Date.now(),
+    };
+    
+    setBlockedUsers(prev => {
+      const newMap = new Map(prev);
+      newMap.set(contact.id, blockedInfo);
+      return newMap;
+    });
+    
+    // 如果当前正在查看被拉黑的联系人，清空选中
+    if (selectedContact?.id === contact.id) {
+      setSelectedContact(null);
+    }
+    
+    // 展开 Blocks 分类以便用户看到
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      newSet.add('blocks');
+      return newSet;
+    });
+    
+    // 调用父组件的回调
+    props.onBlockFriend?.(contact);
+    setBlockingContact(null);
+  };
+
+  // 处理解除拉黑
+  const handleUnblockUser = (contact: ContactRecord) => {
+    const previousCategory = getBlockedUserPreviousCategory(contact.id);
+    
+    setBlockedUsers(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(contact.id);
+      return newMap;
+    });
+    
+    // 如果当前正在查看该联系人，清空选中
+    if (selectedContact?.id === contact.id) {
+      setSelectedContact(null);
+    }
+    
+    // 展开原来的分类以便用户看到恢复的用户
+    if (previousCategory && previousCategory !== 'blocks') {
+      setExpandedCategories(prev => {
+        const newSet = new Set(prev);
+        newSet.add(previousCategory);
+        return newSet;
+      });
+    }
+    
+    // 调用父组件的回调
+    props.onUnblockUser?.(contact);
+    setUnblockingContact(null);
+  };
+
+  // 更新各分类的数量（包含本地拉黑状态）
+  const getUpdatedCounts = () => {
+    const blockedCount = blockedUsers.size;
+    return {
+      ...props,
+      blocksCount: blockedCount,
+      // 其他数量可能需要调整，取决于实际需求
+    };
+  };
+
+  const counts = getUpdatedCounts();
 
   // 按字母分组联系人
   const groupContactsByLetter = (contacts: ContactRecord[]) => {
@@ -104,6 +209,14 @@ export function ContactsView(props: ContactsViewProps) {
     });
     
     return groups;
+  };
+
+  // 处理选择联系人
+  const handleSelectContact = (contact: ContactRecord, categoryId: TabFilter) => {
+    setSelectedContact(contact);
+    setSelectedRequest(null);
+    setSelectedCategory(categoryId);
+    props.onFilterChange(categoryId);
   };
 
   if (props.loading) {
@@ -161,9 +274,10 @@ export function ContactsView(props: ContactsViewProps) {
         {/* 可展开的分类列表 */}
         <div className="flex-1 overflow-y-auto">
           {CATEGORIES.map((category) => {
-            const count = props[category.countKey as keyof typeof props] as number;
+            const count = counts[category.countKey as keyof typeof counts] as number;
             const isExpanded = expandedCategories.has(category.id);
             const isRequests = category.id === 'requests';
+            const isBlocks = category.id === 'blocks';
             
             // 获取该分类下的项目
             const items = isRequests 
@@ -239,6 +353,49 @@ export function ContactsView(props: ContactsViewProps) {
                           </div>
                         </button>
                       ))
+                    ) : isBlocks ? (
+                      // Blocks 列表 - 显示拉黑的用户，带有恢复按钮
+                      (items as ContactRecord[]).length === 0 ? (
+                        <div className="px-11 py-3 text-sm text-gray-400">No blocked contacts</div>
+                      ) : (
+                        (items as ContactRecord[]).map((contact) => (
+                          <button
+                            key={contact.id}
+                            type="button"
+                            onClick={() => handleSelectContact(contact, 'blocks')}
+                            className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors pl-11 ${
+                              currentContact?.id === contact.id ? 'bg-[#E6F0FF]' : ''
+                            }`}
+                          >
+                            {contact.avatarUrl ? (
+                              <img src={contact.avatarUrl} alt={contact.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                            ) : (
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                                contact.isAgent 
+                                  ? 'bg-gradient-to-br from-purple-400 to-purple-500 text-white'
+                                  : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                              }`}>
+                                {getContactInitial(contact.displayName)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-left">
+                              <div className="text-[15px] text-gray-900 truncate">{contact.displayName}</div>
+                              <div className="text-[13px] text-gray-500 truncate">Blocked</div>
+                            </div>
+                            {/* 恢复按钮 */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setUnblockingContact(contact);
+                              }}
+                              className="px-3 py-1 text-xs font-medium text-[#0066CC] bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+                            >
+                              Restore
+                            </button>
+                          </button>
+                        ))
+                      )
                     ) : (
                       // 联系人按字母分组列表
                       sortedKeys.length === 0 ? (
@@ -255,11 +412,7 @@ export function ContactsView(props: ContactsViewProps) {
                               <button
                                 key={contact.id}
                                 type="button"
-                                onClick={() => {
-                                  setSelectedContact(contact);
-                                  setSelectedRequest(null);
-                                  props.onFilterChange(category.id);
-                                }}
+                                onClick={() => handleSelectContact(contact, category.id)}
                                 className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors pl-11 ${
                                   currentContact?.id === contact.id ? 'bg-[#E6F0FF]' : ''
                                 }`}
@@ -392,18 +545,22 @@ export function ContactsView(props: ContactsViewProps) {
 
               <div className="p-6">
                 <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => props.onMessage(selectedContact)}
-                    className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                    <span className="text-sm text-[#0066CC]">Message</span>
-                  </button>
+                  {/* 消息按钮 - 在非 Blocks 分类下显示 */}
+                  {currentCategory !== 'blocks' && (
+                    <button
+                      type="button"
+                      onClick={() => props.onMessage(selectedContact)}
+                      className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span className="text-sm text-[#0066CC]">Message</span>
+                    </button>
+                  )}
                   
-                  {!selectedContact.isAgent && (
+                  {/* Block 按钮 - 只在非 Blocks 分类且非 Agent 时显示 */}
+                  {currentCategory !== 'blocks' && !selectedContact.isAgent && (
                     <button
                       type="button"
                       onClick={() => setBlockingContact(selectedContact)}
@@ -414,6 +571,21 @@ export function ContactsView(props: ContactsViewProps) {
                         <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                       </svg>
                       <span className="text-sm text-gray-600">Block</span>
+                    </button>
+                  )}
+                  
+                  {/* Unblock/恢复按钮 - 只在 Blocks 分类下显示 */}
+                  {currentCategory === 'blocks' && (
+                    <button
+                      type="button"
+                      onClick={() => setUnblockingContact(selectedContact)}
+                      className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span className="text-sm text-[#0066CC]">Restore</span>
                     </button>
                   )}
                 </div>
@@ -436,13 +608,13 @@ export function ContactsView(props: ContactsViewProps) {
         )}
       </main>
 
-      {/* 确认对话框 */}
+      {/* Block 确认对话框 */}
       {blockingContact && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Block联系人</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Block Contact</h3>
             <p className="text-sm text-gray-500 mb-6">
-              确定要Block <span className="font-medium text-gray-700">{blockingContact.displayName}</span> 吗？
+              Are you sure you want to block <span className="font-medium text-gray-700">{blockingContact.displayName}</span>? They will be moved to Blocks.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -454,10 +626,7 @@ export function ContactsView(props: ContactsViewProps) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  props.onBlockFriend?.(blockingContact);
-                  setBlockingContact(null);
-                }}
+                onClick={() => handleBlockUser(blockingContact)}
                 className="px-5 py-2 rounded-full text-sm font-medium bg-gray-700 text-white hover:bg-gray-800 transition-colors"
               >
                 Block
@@ -467,12 +636,13 @@ export function ContactsView(props: ContactsViewProps) {
         </div>
       )}
 
+      {/* Unblock/恢复 确认对话框 */}
       {unblockingContact && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Unblock</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Restore Contact</h3>
             <p className="text-sm text-gray-500 mb-6">
-              Are you sure you want to unblock <span className="font-medium text-gray-700">{unblockingContact.displayName}</span> 的Block吗？
+              Restore <span className="font-medium text-gray-700">{unblockingContact.displayName}</span> to their previous category?
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -484,13 +654,10 @@ export function ContactsView(props: ContactsViewProps) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  props.onUnblockUser?.(unblockingContact);
-                  setUnblockingContact(null);
-                }}
+                onClick={() => handleUnblockUser(unblockingContact)}
                 className="px-5 py-2 rounded-full text-sm font-medium bg-[#0066CC] text-white hover:bg-[#0052A3] transition-colors"
               >
-                解除
+                Restore
               </button>
             </div>
           </div>

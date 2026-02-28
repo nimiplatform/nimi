@@ -4,7 +4,6 @@ import { SpeechStreamRuntime } from '../stream-runtime';
 import type {
   SpeechProviderDescriptor,
   SpeechStreamControlAction,
-  SpeechStreamOpenRequest,
   SpeechStreamOpenResult,
   SpeechSynthesizeRequest,
   SpeechSynthesizeResult,
@@ -25,6 +24,21 @@ type SynthesizeInput = {
   endpoint: string;
   apiKey?: string;
   request: SpeechSynthesizeRequest;
+};
+
+type OpenStreamInput = {
+  model: string;
+  routeSource: 'local-runtime' | 'token-api';
+  credentialRefId?: string;
+  providerEndpoint?: string;
+  request: SpeechSynthesizeRequest;
+  open: {
+    format?: 'mp3' | 'wav' | 'opus' | 'pcm';
+    sampleRateHz?: number;
+  };
+  providerType: ProviderType;
+  endpoint: string;
+  apiKey?: string;
 };
 
 export class NimiSpeechEngine {
@@ -63,19 +77,18 @@ export class NimiSpeechEngine {
     });
   }
 
-  async openStream(input: SynthesizeInput & { open: SpeechStreamOpenRequest }): Promise<SpeechStreamOpenResult> {
+  async openStream(input: OpenStreamInput): Promise<SpeechStreamOpenResult> {
     if (!this.streamRuntime) {
       throw new Error('SPEECH_STREAM_UNSUPPORTED: speech stream publisher unavailable');
     }
     return openSpeechStream({
-      providerType: input.providerType,
-      endpoint: input.endpoint,
-      apiKey: input.apiKey,
+      model: input.model,
+      routeSource: input.routeSource,
+      credentialRefId: input.credentialRefId,
+      providerEndpoint: input.providerEndpoint,
       request: input.request,
-      open: input.open,
       streamRuntime: this.streamRuntime,
-      synthesize: () => this.synthesize(input),
-      fetchImpl: this.fetchImpl,
+      open: input.open,
     });
   }
 

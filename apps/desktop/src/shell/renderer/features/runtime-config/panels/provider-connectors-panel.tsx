@@ -60,12 +60,14 @@ export function ProviderConnectorsPanel({
 
   const onChangeConnectorToken = async (secret: string) => {
     if (!selectedConnectorId) return;
+    const normalizedSecret = String(secret || '').trim();
+    if (!normalizedSecret) return;
     const vault = new TauriCredentialVault();
     await createCredential(vault, {
       provider: 'OPENAI_COMPATIBLE',
       refId: selectedConnectorId,
       label: `connector:${selectedConnectorId}`,
-      secret,
+      secret: normalizedSecret,
     });
     commandModel.onVaultChanged();
   };

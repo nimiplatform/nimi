@@ -178,10 +178,11 @@ export class HookRuntimeSpeechService {
         connectorId: input.connectorId,
       });
       const voices = await this.context.speechEngine.listVoices({
-        providerType: route.providerType,
-        endpoint: route.endpoint,
-        apiKey: route.apiKey,
         providerId: normalizeSpeechProviderId(input.providerId || route.provider || 'openai-compatible'),
+        model: route.model,
+        routeSource: route.source,
+        credentialRefId: route.credentialRefId,
+        providerEndpoint: route.endpoint,
       });
       return voices.map((voice) => this.mapVoice(voice));
     } catch {

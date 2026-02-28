@@ -1,11 +1,11 @@
 import { SpeechStreamRuntime } from '../stream-runtime';
-import type { SpeechStreamOpenRequest, SpeechStreamOpenResult, SpeechSynthesizeResult } from '../types';
+import type { SpeechStreamOpenResult, SpeechSynthesizeResult } from '../types';
 
 export async function openStreamFromSynthesizedAudio(input: {
   streamRuntime: SpeechStreamRuntime;
   streamId: string;
   eventTopic: string;
-  open: SpeechStreamOpenRequest;
+  open: { sampleRateHz?: number };
   synthesized: SpeechSynthesizeResult;
 }): Promise<SpeechStreamOpenResult> {
   const response = await fetch(input.synthesized.audioUri);

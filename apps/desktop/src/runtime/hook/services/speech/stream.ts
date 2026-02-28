@@ -141,16 +141,14 @@ export async function openSpeechStream(
       extra: { stream: true },
     });
     const result: SpeechStreamOpenResult = await context.speechEngine.openStream({
+      model: route.model,
+      routeSource: route.source,
+      credentialRefId: route.credentialRefId,
+      providerEndpoint: route.endpoint,
       providerType: route.providerType,
       endpoint: route.endpoint,
       apiKey: route.apiKey,
       open: {
-        providerType: route.providerType,
-        endpoint: route.endpoint,
-        apiKey: route.apiKey,
-        model: route.model,
-        text: input.text,
-        voice: input.voiceId,
         format: input.format,
         sampleRateHz: input.sampleRateHz,
       },

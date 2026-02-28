@@ -3,6 +3,7 @@ import type { CredentialVault } from '../credential-vault';
 import { ModelRegistry } from '../registry/model-registry';
 import type { ProviderAdapter } from '../providers';
 import { RotationManager } from '../rotation-manager';
+import { checkModelHealthWithRuntimeProbe } from './token-provider-probe';
 import type {
   CapabilityRequest,
   CredentialRef,
@@ -106,14 +107,14 @@ export class RoutingService {
   async preflightHealth() {
     const snapshots: Array<{
       modelId: string;
-      status: 'healthy' | 'unsupported' | 'unreachable';
+      status: 'healthy' | 'degraded' | 'unsupported' | 'unreachable';
       detail: string;
     }> = [];
 
     for (const binding of this.context.bindings.values()) {
       const models = this.context.modelRegistry.listByProvider(binding.adapter.type);
       for (const model of models) {
-        const health = await binding.adapter.healthCheck(model.model);
+        const health = await checkModelHealthWithRuntimeProbe(binding.adapter, model.model);
         this.context.modelRegistry.register({
           ...model,
           healthStatus: health.status,

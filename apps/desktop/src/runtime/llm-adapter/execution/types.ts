@@ -47,7 +47,7 @@ export type ProviderHealth = {
   provider: string;
   endpoint: string | null;
   model: string;
-  status: 'healthy' | 'unsupported' | 'unreachable';
+  status: 'healthy' | 'degraded' | 'unsupported' | 'unreachable';
   detail: string;
   checkedAt: string;
 };
