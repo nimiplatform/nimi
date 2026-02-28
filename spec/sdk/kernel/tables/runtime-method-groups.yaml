@@ -1,0 +1,26 @@
+version: 1
+groups:
+  - group: ai_service_projection
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - Generate
+      - StreamGenerate
+      - Embed
+      - SubmitMediaJob
+      - GetMediaJob
+      - CancelMediaJob
+      - SubscribeMediaJobEvents
+      - GetMediaResult
+      - SynthesizeSpeechStream
+    source_rule: S-SURFACE-002
+  - group: connector_service_projection
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - CreateConnector
+      - GetConnector
+      - ListConnectors
+      - UpdateConnector
+      - DeleteConnector
+      - TestConnector
+      - ListConnectorModels
+    source_rule: S-SURFACE-001

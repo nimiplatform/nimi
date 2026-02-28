@@ -1,0 +1,17 @@
+version: 1
+surfaces:
+  - path: spec/sdk/runtime.md
+    package_subpath: "@nimiplatform/sdk/runtime"
+    role: runtime_projection
+  - path: spec/sdk/ai-provider.md
+    package_subpath: "@nimiplatform/sdk/ai-provider"
+    role: ai_provider_projection
+  - path: spec/sdk/realm.md
+    package_subpath: "@nimiplatform/sdk/realm"
+    role: realm_projection
+  - path: spec/sdk/scope.md
+    package_subpath: "@nimiplatform/sdk/scope"
+    role: scope_projection
+  - path: spec/sdk/mod.md
+    package_subpath: "@nimiplatform/sdk/mod"
+    role: mod_projection

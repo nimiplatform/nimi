@@ -1,0 +1,23 @@
+version: 1
+codes:
+  - name: SDK_APP_ID_REQUIRED
+    family: SDK_CONFIG
+    source_rule: S-ERROR-003
+  - name: SDK_TRANSPORT_INVALID
+    family: SDK_CONFIG
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_ENDPOINT_REQUIRED
+    family: SDK_CONFIG
+    source_rule: S-ERROR-003
+  - name: SDK_AI_PROVIDER_RUNTIME_REQUIRED
+    family: SDK_AI_PROVIDER
+    source_rule: S-ERROR-003
+  - name: SDK_AI_PROVIDER_CONFIG_INVALID
+    family: SDK_AI_PROVIDER
+    source_rule: S-ERROR-003
+  - name: SDK_SCOPE_CATALOG_INVALID
+    family: SDK_SCOPE
+    source_rule: S-ERROR-003
+  - name: SDK_MOD_HOST_MISSING
+    family: SDK_MOD
+    source_rule: S-ERROR-003

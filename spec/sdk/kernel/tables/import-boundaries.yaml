@@ -1,0 +1,24 @@
+version: 1
+rules:
+  - surface: runtime
+    allowed:
+      - "@nimiplatform/sdk/runtime"
+      - "@nimiplatform/sdk/runtime/transports/*"
+    forbidden:
+      - "sdk/src/runtime/generated/**"
+      - "runtime/internal/**"
+    source_rule: S-BOUNDARY-001
+  - surface: realm
+    allowed:
+      - "@nimiplatform/sdk/realm"
+    forbidden:
+      - "sdk/src/realm/generated/**"
+      - "runtime/internal/**"
+    source_rule: S-BOUNDARY-002
+  - surface: mod
+    allowed:
+      - "@nimiplatform/sdk/mod"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+    source_rule: S-BOUNDARY-003

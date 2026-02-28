@@ -71,3 +71,27 @@ Runtime SSOT（deferred）：
 - 规则必须先改 kernel，再改 domain。
 - domain 文档禁止复述 kernel 规则正文。
 - `spec/sdk` 当前仅做 Runtime 契约投影，完整 SDK kernel 化拆分另行执行。
+
+## SDK（当前）
+
+SDK 规范采用 kernel + domain 的两层结构：
+
+- Kernel（唯一事实源）：`spec/sdk/kernel/`
+- Domain：
+  - `spec/sdk/runtime.md`
+  - `spec/sdk/ai-provider.md`
+  - `spec/sdk/realm.md`
+  - `spec/sdk/scope.md`
+  - `spec/sdk/mod.md`
+
+### 修改 SDK 跨域规则
+
+1. `spec/sdk/kernel/surface-contract.md`
+2. `spec/sdk/kernel/transport-contract.md`
+3. `spec/sdk/kernel/error-projection.md`
+4. `spec/sdk/kernel/boundary-contract.md`
+
+### 修改 SDK 子路径文档
+
+1. 先改 `spec/sdk/kernel/*`（必要时含 `tables/*`）
+2. 再改对应 `spec/sdk/*.md` domain 文档
