@@ -128,6 +128,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -177,6 +178,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -256,6 +258,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -296,6 +299,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: package.json
 
       - name: Setup Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
@@ -374,6 +378,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: package.json
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
@@ -431,6 +436,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: package.json
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
