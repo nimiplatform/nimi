@@ -228,14 +228,14 @@ jobs:
       - name: Enforce no OpenAPI singleton import
         run: pnpm check:no-openapi-singleton-import
 
-      - name: ReasonCode constants policy check
-        run: pnpm check:reason-code-constants
-
       - name: Runtime spec kernel consistency check
         run: pnpm check:runtime-spec-kernel-consistency
 
       - name: Runtime spec kernel generated-doc drift check
         run: pnpm check:runtime-spec-kernel-docs-drift
+
+      - name: ReasonCode constants policy check
+        run: pnpm check:reason-code-constants
 
       - name: Runtime bridge method drift check
         run: pnpm check:runtime-bridge-method-drift
