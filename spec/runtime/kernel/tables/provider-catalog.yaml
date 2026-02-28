@@ -1,0 +1,20 @@
+version: 1
+providers:
+  - provider: gemini
+    default_endpoint: https://generativelanguage.googleapis.com/v1beta/openai
+    requires_explicit_endpoint: false
+  - provider: openai
+    default_endpoint: https://api.openai.com/v1
+    requires_explicit_endpoint: false
+  - provider: anthropic
+    default_endpoint: https://api.anthropic.com
+    requires_explicit_endpoint: false
+  - provider: dashscope
+    default_endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
+    requires_explicit_endpoint: false
+  - provider: volcengine
+    default_endpoint: https://ark.cn-beijing.volces.com/api/v3
+    requires_explicit_endpoint: false
+  - provider: openai_compatible
+    default_endpoint: null
+    requires_explicit_endpoint: true

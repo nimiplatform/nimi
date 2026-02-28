@@ -21,8 +21,10 @@
     "runtime:run:hello": "pnpm runtime:cmd -- run local/qwen2.5 --prompt \"hello runtime\" --json",
     "generate:realm-sdk": "node scripts/generate-realm-sdk.mjs",
     "generate:runtime-bridge-methods": "node scripts/generate-runtime-bridge-methods.mjs",
+    "generate:runtime-spec-kernel-docs": "node scripts/generate-runtime-spec-kernel-docs.mjs",
     "generate:scope-catalog": "node scripts/generate-scope-catalog.mjs",
     "check:runtime-bridge-method-drift": "node scripts/generate-runtime-bridge-methods.mjs --check",
+    "check:runtime-spec-kernel-docs-drift": "node scripts/generate-runtime-spec-kernel-docs.mjs --check",
     "check:scope-catalog-drift": "node scripts/check-scope-catalog-drift.mjs",
     "check:sdk-import-boundary": "node scripts/check-sdk-import-boundary.mjs",
     "check:sdk-single-package-layout": "node scripts/check-sdk-single-package-layout.mjs",
@@ -62,6 +64,7 @@
     "check:markdown": "pnpm dlx markdownlint-cli2 --config .markdownlint-cli2.jsonc",
     "check:no-absolute-user-paths": "node scripts/check-no-absolute-user-paths.mjs",
     "check:no-legacy-doc-contracts": "node scripts/check-no-legacy-doc-contracts.mjs",
+    "check:runtime-spec-kernel-consistency": "node scripts/check-runtime-spec-kernel-consistency.mjs",
     "check:no-legacy-imports": "if rg -n \"@nimiplatform/core-api-client\" . | rg -v \"check:no-legacy-imports\"; then echo \"legacy import @nimiplatform/core-api-client is forbidden\" && exit 1; else exit 0; fi",
     "check:no-legacy-app-auth-cli": "if rg -n \"nimi grant|\\`grant \\\\*\\`|\\|grant\\||case \\\"grant\\\"|grant failed\" runtime docs runtime/README.md | rg -v \"runtime/cmd/nimi/usage_text_test.go\" | rg -v \"check:no-legacy-app-auth-cli\"; then echo \"legacy CLI command grant is forbidden; use app-auth\" && exit 1; else exit 0; fi",
     "check:local-chat-service-boundary": "node scripts/check-local-chat-service-boundary.mjs",
@@ -77,7 +80,7 @@
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
     "docs:build": "pnpm --filter @nimiplatform/docs build",
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",
-    "lint": "pnpm check:mods-no-runtime-sdk && pnpm check:local-chat-service-boundary && pnpm check:no-legacy-imports && pnpm check:no-legacy-app-auth-cli && pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands && pnpm check:no-legacy-mod-permissions-field && pnpm check:no-nimid-doc-invocation && pnpm check:no-nimid-source && pnpm check:desktop-token-api-runtime-only && pnpm check:no-legacy-cloud-provider-keys && pnpm check:examples && pnpm check:markdown && pnpm check:no-absolute-user-paths && pnpm check:no-legacy-doc-contracts && pnpm check:ssot-frontmatter && pnpm check:ssot-traceability && pnpm check:ssot-links && pnpm check:ssot-boundary && pnpm check:ssot-proto-first && pnpm check:runtime-bridge-method-drift && pnpm check:scope-catalog-drift && pnpm check:sdk-import-boundary && pnpm check:sdk-single-package-layout && pnpm check:sdk-public-naming && pnpm check:no-create-nimi-client && pnpm check:no-openapi-base-assignment && pnpm check:no-openapi-token-assignment && pnpm check:no-openapi-singleton-import && pnpm check:reason-code-constants && pnpm check:desktop-no-client-alias && pnpm check:package-license-matrix && pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/web lint",
+    "lint": "pnpm check:mods-no-runtime-sdk && pnpm check:local-chat-service-boundary && pnpm check:no-legacy-imports && pnpm check:no-legacy-app-auth-cli && pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands && pnpm check:no-legacy-mod-permissions-field && pnpm check:no-nimid-doc-invocation && pnpm check:no-nimid-source && pnpm check:desktop-token-api-runtime-only && pnpm check:no-legacy-cloud-provider-keys && pnpm check:examples && pnpm check:markdown && pnpm check:no-absolute-user-paths && pnpm check:no-legacy-doc-contracts && pnpm check:runtime-spec-kernel-consistency && pnpm check:runtime-spec-kernel-docs-drift && pnpm check:ssot-frontmatter && pnpm check:ssot-traceability && pnpm check:ssot-links && pnpm check:ssot-boundary && pnpm check:ssot-proto-first && pnpm check:runtime-bridge-method-drift && pnpm check:scope-catalog-drift && pnpm check:sdk-import-boundary && pnpm check:sdk-single-package-layout && pnpm check:sdk-public-naming && pnpm check:no-create-nimi-client && pnpm check:no-openapi-base-assignment && pnpm check:no-openapi-token-assignment && pnpm check:no-openapi-singleton-import && pnpm check:reason-code-constants && pnpm check:desktop-no-client-alias && pnpm check:package-license-matrix && pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/web lint",
     "test": "pnpm --filter @nimiplatform/sdk test && pnpm --filter @nimiplatform/desktop test && pnpm --filter @nimiplatform/web test"
   }
 }

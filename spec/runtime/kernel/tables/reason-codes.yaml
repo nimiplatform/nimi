@@ -1,0 +1,98 @@
+version: 1
+codes:
+  - name: AUTH_TOKEN_INVALID
+    value: 300
+    family: AUTH
+  - name: AI_CONNECTOR_NOT_FOUND
+    value: 310
+    family: CONNECTOR
+  - name: AI_CONNECTOR_DISABLED
+    value: 311
+    family: CONNECTOR
+  - name: AI_CONNECTOR_CREDENTIAL_MISSING
+    value: 312
+    family: CONNECTOR
+  - name: AI_CONNECTOR_INVALID
+    value: 313
+    family: CONNECTOR
+  - name: AI_CONNECTOR_IMMUTABLE
+    value: 314
+    family: CONNECTOR
+  - name: AI_CONNECTOR_LIMIT_EXCEEDED
+    value: 315
+    family: CONNECTOR
+  - name: AI_CONNECTOR_ID_REQUIRED
+    value: 316
+    family: CONNECTOR
+  - name: AI_REQUEST_CREDENTIAL_CONFLICT
+    value: 330
+    family: REQUEST_CREDENTIAL
+  - name: AI_REQUEST_CREDENTIAL_MISSING
+    value: 211
+    family: REQUEST_CREDENTIAL
+  - name: AI_REQUEST_CREDENTIAL_INVALID
+    value: 212
+    family: REQUEST_CREDENTIAL
+  - name: AI_APP_ID_REQUIRED
+    value: 340
+    family: APP
+  - name: AI_APP_ID_CONFLICT
+    value: 341
+    family: APP
+  - name: AI_MODEL_ID_REQUIRED
+    value: 350
+    family: MODEL
+  - name: AI_MODEL_NOT_FOUND
+    value: 200
+    family: MODEL
+  - name: AI_MODALITY_NOT_SUPPORTED
+    value: 351
+    family: MODEL
+  - name: AI_LOCAL_MODEL_UNAVAILABLE
+    value: 352
+    family: MODEL
+  - name: AI_LOCAL_MODEL_PROFILE_MISSING
+    value: 353
+    family: MODEL
+  - name: AI_FINISH_LENGTH
+    value: 370
+    family: FINISH
+  - name: AI_FINISH_CONTENT_FILTER
+    value: 371
+    family: FINISH
+  - name: AI_MODEL_PROVIDER_MISMATCH
+    value: 380
+    family: MODEL_ROUTE
+  - name: AI_PROVIDER_ENDPOINT_FORBIDDEN
+    value: 390
+    family: PROVIDER
+  - name: AI_PROVIDER_AUTH_FAILED
+    value: 391
+    family: PROVIDER
+  - name: AI_PROVIDER_UNAVAILABLE
+    value: 202
+    family: PROVIDER
+  - name: AI_PROVIDER_INTERNAL
+    value: 392
+    family: PROVIDER
+  - name: AI_PROVIDER_RATE_LIMITED
+    value: 393
+    family: PROVIDER
+  - name: AI_MEDIA_SPEC_INVALID
+    value: 410
+    family: MEDIA
+  - name: AI_MEDIA_OPTION_UNSUPPORTED
+    value: 411
+    family: MEDIA
+  - name: AI_MEDIA_JOB_NOT_FOUND
+    value: 412
+    family: MEDIA
+  - name: AI_MEDIA_JOB_NOT_CANCELLABLE
+    value: 413
+    family: MEDIA
+  - name: AI_MEDIA_IDEMPOTENCY_CONFLICT
+    value: 414
+    family: MEDIA
+  - name: AI_MODULE_CONFIG_INVALID
+    value: 430
+    family: MODULE

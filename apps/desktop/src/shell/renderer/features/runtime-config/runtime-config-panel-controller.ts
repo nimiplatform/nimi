@@ -33,6 +33,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 type RuntimeDaemonAction = 'start' | 'restart' | 'stop';
+const RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
@@ -559,7 +560,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
           runtimeBridgeFailedProjectionRef.current = '';
 
           if (
-            result.reasonCode === 'CONFIG_RESTART_REQUIRED'
+            result.reasonCode === RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED
             && !runtimeBridgeRestartHintShownRef.current
           ) {
             runtimeBridgeRestartHintShownRef.current = true;

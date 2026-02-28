@@ -9,6 +9,23 @@ type TauriInvokeCall = {
   payload: unknown;
 };
 
+type RuntimeProbeOptions = {
+  metadata?: Record<string, string>;
+};
+
+type RuntimeProbeClient = {
+  ai: {
+    listTokenProviderModels: (
+      request: unknown,
+      options?: RuntimeProbeOptions,
+    ) => Promise<{ models: Array<{ modelId: string; modelLabel: string; available: boolean }> }>;
+    checkTokenProviderHealth: (
+      request: unknown,
+      options?: RuntimeProbeOptions,
+    ) => Promise<{ health: { status: number; detail: string } }>;
+  };
+};
+
 function installMockTauriSecret(secret: string): {
   calls: TauriInvokeCall[];
   restore: () => void;
@@ -46,16 +63,16 @@ test('connector discovery uses runtime probe RPC with request-injected metadata'
   try {
     const platform = await import('../src/runtime/platform-client');
     await platform.initializePlatformClient({ realmBaseUrl: 'http://127.0.0.1:3000' });
-    const runtime = platform.getPlatformClient().runtime as any;
+    const runtime = platform.getPlatformClient().runtime as unknown as RuntimeProbeClient;
 
     const calls: Array<{ method: string; metadata: Record<string, string> | undefined }> = [];
-    runtime.ai.listTokenProviderModels = async (_request: unknown, options?: { metadata?: Record<string, string> }) => {
+    runtime.ai.listTokenProviderModels = async (_request: unknown, options?: RuntimeProbeOptions) => {
       calls.push({ method: 'listTokenProviderModels', metadata: options?.metadata });
       return {
         models: [{ modelId: 'gpt-4.1', modelLabel: 'GPT 4.1', available: true }],
       };
     };
-    runtime.ai.checkTokenProviderHealth = async (_request: unknown, options?: { metadata?: Record<string, string> }) => {
+    runtime.ai.checkTokenProviderHealth = async (_request: unknown, options?: RuntimeProbeOptions) => {
       calls.push({ method: 'checkTokenProviderHealth', metadata: options?.metadata });
       return {
         health: {
@@ -109,10 +126,10 @@ test('token-api health check path uses runtime probe RPC', async () => {
   try {
     const platform = await import('../src/runtime/platform-client');
     await platform.initializePlatformClient({ realmBaseUrl: 'http://127.0.0.1:3001' });
-    const runtime = platform.getPlatformClient().runtime as any;
+    const runtime = platform.getPlatformClient().runtime as unknown as RuntimeProbeClient;
 
     let invoked = false;
-    runtime.ai.checkTokenProviderHealth = async (_request: unknown, options?: { metadata?: Record<string, string> }) => {
+    runtime.ai.checkTokenProviderHealth = async (_request: unknown, options?: RuntimeProbeOptions) => {
       invoked = true;
       assert.equal(options?.metadata?.credentialSource, 'request-injected');
       assert.equal(options?.metadata?.providerApiKey, 'sk-health');
@@ -139,4 +156,3 @@ test('token-api health check path uses runtime probe RPC', async () => {
     tauri.restore();
   }
 });
-

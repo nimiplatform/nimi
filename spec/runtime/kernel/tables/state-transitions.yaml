@@ -1,0 +1,109 @@
+version: 1
+machines:
+  - machine: connector_status
+    states: [ACTIVE, DISABLED]
+    transitions:
+      - from: ACTIVE
+        to: DISABLED
+        trigger: UpdateConnector(status=DISABLED)
+        source: CONN-032
+      - from: DISABLED
+        to: ACTIVE
+        trigger: UpdateConnector(status=ACTIVE)
+        source: CONN-032
+  - machine: remote_connector_delete_flow
+    states: [present, delete_pending, deleted]
+    transitions:
+      - from: present
+        to: delete_pending
+        trigger: DeleteConnector_step1_mark_pending
+        source: CONN-062
+      - from: delete_pending
+        to: delete_pending
+        trigger: DeleteConnector_retry_or_startup_rescan
+        source: CONN-081
+      - from: delete_pending
+        to: deleted
+        trigger: credential_cleanup_and_registry_delete
+        source: CONN-062
+  - machine: media_job
+    states: [queued, running, completed, failed, cancelled, expired]
+    transitions:
+      - from: queued
+        to: running
+        trigger: provider_accepts_job
+        source: K-JOB-002
+      - from: queued
+        to: failed
+        trigger: terminal_error_before_run
+        source: K-JOB-002
+      - from: queued
+        to: cancelled
+        trigger: user_cancel
+        source: K-JOB-002
+      - from: queued
+        to: expired
+        trigger: ttl_expired
+        source: K-JOB-002
+      - from: running
+        to: completed
+        trigger: provider_success
+        source: K-JOB-002
+      - from: running
+        to: failed
+        trigger: provider_or_runtime_failure
+        source: K-JOB-002
+      - from: running
+        to: cancelled
+        trigger: user_cancel
+        source: K-JOB-002
+      - from: running
+        to: expired
+        trigger: ttl_expired
+        source: K-JOB-002
+  - machine: local_model_lifecycle
+    states: [installed, active, unhealthy, removed]
+    transitions:
+      - from: installed
+        to: active
+        trigger: start_or_health_recovered
+        source: local-model_5.1
+      - from: active
+        to: unhealthy
+        trigger: health_probe_failed
+        source: local-model_5.1
+      - from: unhealthy
+        to: active
+        trigger: recovery_probe_passed
+        source: local-model_5.1
+      - from: active
+        to: removed
+        trigger: remove_model
+        source: local-model_5.1
+      - from: unhealthy
+        to: removed
+        trigger: force_remove_model
+        source: local-model_5.1
+  - machine: local_service_lifecycle
+    states: [installed, active, unhealthy, removed]
+    transitions:
+      - from: installed
+        to: active
+        trigger: spawn_and_probe_ok
+        source: local-model_5.1
+      - from: active
+        to: unhealthy
+        trigger: health_probe_failed
+        source: local-model_5.1
+      - from: unhealthy
+        to: active
+        trigger: restart_and_probe_ok
+        source: local-model_5.1
+      - from: active
+        to: removed
+        trigger: stop_and_cleanup
+        source: local-model_5.1
+      - from: unhealthy
+        to: removed
+        trigger: force_stop_and_cleanup
+        source: local-model_5.1

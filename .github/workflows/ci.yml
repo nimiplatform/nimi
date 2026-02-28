@@ -229,6 +229,12 @@ jobs:
       - name: ReasonCode constants policy check
         run: pnpm check:reason-code-constants
 
+      - name: Runtime spec kernel consistency check
+        run: pnpm check:runtime-spec-kernel-consistency
+
+      - name: Runtime spec kernel generated-doc drift check
+        run: pnpm check:runtime-spec-kernel-docs-drift
+
       - name: Runtime bridge method drift check
         run: pnpm check:runtime-bridge-method-drift
 

@@ -1,0 +1,15 @@
+version: 1
+keys:
+  - key: x-nimi-key-source
+    allowed_values: [inline, managed]
+    required_when: inline or explicit managed routing
+  - key: x-nimi-provider-type
+    required_when: inline
+  - key: x-nimi-provider-endpoint
+    required_when: inline provider has no default endpoint
+  - key: x-nimi-provider-api-key
+    required_when: inline
+  - key: x-nimi-app-id
+    required_when: ConnectorService RPC
+  - key: x-nimi-client-id
+    required_when: optional audit context

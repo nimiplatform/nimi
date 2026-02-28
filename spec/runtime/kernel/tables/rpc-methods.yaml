@@ -1,0 +1,52 @@
+version: 1
+services:
+  - name: AIService
+    methods:
+      - name: Generate
+        type: unary
+      - name: StreamGenerate
+        type: server_stream
+      - name: Embed
+        type: unary
+      - name: SubmitMediaJob
+        type: unary
+      - name: GetMediaJob
+        type: unary
+      - name: CancelMediaJob
+        type: unary
+      - name: SubscribeMediaJobEvents
+        type: server_stream
+      - name: GetMediaResult
+        type: unary
+      - name: SynthesizeSpeechStream
+        type: server_stream
+  - name: ConnectorService
+    methods:
+      - name: CreateConnector
+        type: unary
+      - name: GetConnector
+        type: unary
+      - name: ListConnectors
+        type: unary
+      - name: UpdateConnector
+        type: unary
+      - name: DeleteConnector
+        type: unary
+      - name: TestConnector
+        type: unary
+      - name: ListConnectorModels
+        type: unary
+  - name: RuntimeLocalRuntimeService
+    methods:
+      - name: ListLocalModels
+        type: unary
+      - name: InstallLocalModel
+        type: unary
+      - name: RemoveLocalModel
+        type: unary
+      - name: StartLocalModel
+        type: unary
+      - name: StopLocalModel
+        type: unary
+      - name: CheckLocalModelHealth
+        type: unary

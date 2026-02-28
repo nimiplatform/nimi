@@ -24,7 +24,7 @@ test('write-back guard: state changes should not be written when bridge read fai
     throw new Error('bridge read failed');
   };
 
-  const mockSetRuntimeBridgeConfig = async (_config: string): Promise<void> => {
+  const mockSetRuntimeBridgeConfig = async (): Promise<void> => {
     setRuntimeBridgeConfigCalled = true;
   };
 

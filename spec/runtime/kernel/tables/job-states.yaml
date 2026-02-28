@@ -1,0 +1,14 @@
+version: 1
+states:
+  - state: queued
+    terminal: false
+  - state: running
+    terminal: false
+  - state: completed
+    terminal: true
+  - state: failed
+    terminal: true
+  - state: cancelled
+    terminal: true
+  - state: expired
+    terminal: true
