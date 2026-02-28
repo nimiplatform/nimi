@@ -4,7 +4,6 @@ dist/
 coverage/
 *.log
 .DS_Store
-pnpm-lock.yaml
 
 # local environment files (keep templates only)
 .env
