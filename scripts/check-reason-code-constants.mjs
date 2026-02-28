@@ -87,8 +87,13 @@ function shouldIgnoreReasonCodeLiteralMatch(source, matchIndex, literalValue) {
 }
 
 async function collectFiles(dir) {
-  const entries = await fs.readdir(dir, { withFileTypes: true });
   const files = [];
+  let entries;
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return files;
+  }
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry.name)) {
       continue;
