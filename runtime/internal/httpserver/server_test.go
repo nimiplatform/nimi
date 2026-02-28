@@ -47,28 +47,25 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	if !ok {
 		t.Fatalf("ai_providers missing or invalid")
 	}
-	if len(providersRaw) != 2 {
-		t.Fatalf("ai_providers length mismatch: got=%d want=2", len(providersRaw))
+	if len(providersRaw) != 1 {
+		t.Fatalf("ai_providers length mismatch: got=%d want=1", len(providersRaw))
 	}
 
 	first, ok := providersRaw[0].(map[string]any)
 	if !ok {
 		t.Fatalf("first provider shape invalid")
 	}
-	if first["name"] != "cloud-alibaba" {
+	if first["name"] != "cloud-nimillm" {
 		t.Fatalf("first provider name mismatch: %v", first["name"])
 	}
 	if first["state"] != "unhealthy" {
 		t.Fatalf("first provider state mismatch: %v", first["state"])
 	}
-	second, ok := providersRaw[1].(map[string]any)
+	subHealth, ok := first["sub_health"].([]any)
 	if !ok {
-		t.Fatalf("second provider shape invalid")
+		t.Fatalf("sub_health missing or invalid")
 	}
-	if second["name"] != "cloud-nimillm" {
-		t.Fatalf("second provider name mismatch: %v", second["name"])
-	}
-	if second["state"] != "healthy" {
-		t.Fatalf("second provider state mismatch: %v", second["state"])
+	if len(subHealth) != 2 {
+		t.Fatalf("sub_health length mismatch: got=%d want=2", len(subHealth))
 	}
 }

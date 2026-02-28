@@ -64,6 +64,14 @@ func (b *Backend) WithRequestOverrides(endpoint string, apiKey string) *Backend 
 	return &clone
 }
 
+// Endpoint returns the backend base URL.
+func (b *Backend) Endpoint() string {
+	if b == nil {
+		return ""
+	}
+	return b.baseURL
+}
+
 // GenerateText sends a non-streaming chat completion request.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	type openAIMessage struct {

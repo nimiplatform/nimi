@@ -332,6 +332,9 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		return fmt.Errorf("schemaVersion must be %d", DefaultSchemaVersion)
 	}
 	for providerName, providerCfg := range fileCfg.AI.Providers {
+		if isLegacyProviderName(providerName) {
+			return fmt.Errorf("provider %q is forbidden", providerName)
+		}
 		if strings.TrimSpace(providerCfg.APIKey) != "" {
 			return fmt.Errorf("provider %q apiKey is forbidden; use apiKeyEnv", providerName)
 		}
@@ -518,4 +521,13 @@ func normalizeProviderName(raw string) string {
 		}
 	}
 	return builder.String()
+}
+
+func isLegacyProviderName(raw string) bool {
+	switch normalizeProviderName(raw) {
+	case "litellm", "cloudlitellm", "cloudai":
+		return true
+	default:
+		return false
+	}
 }

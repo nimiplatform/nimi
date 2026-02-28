@@ -648,3 +648,19 @@ func (f *fakeRuntimeAIClient) SubscribeMediaJobEvents(context.Context, *runtimev
 func (f *fakeRuntimeAIClient) GetMediaArtifacts(context.Context, *runtimev1.GetMediaArtifactsRequest, ...grpc.CallOption) (*runtimev1.GetMediaArtifactsResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
+
+func (f *fakeRuntimeAIClient) GetSpeechVoices(context.Context, *runtimev1.GetSpeechVoicesRequest, ...grpc.CallOption) (*runtimev1.GetSpeechVoicesResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) StreamSpeechSynthesis(context.Context, *runtimev1.StreamSpeechSynthesisRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) ListTokenProviderModels(context.Context, *runtimev1.ListTokenProviderModelsRequest, ...grpc.CallOption) (*runtimev1.ListTokenProviderModelsResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) CheckTokenProviderHealth(context.Context, *runtimev1.CheckTokenProviderHealthRequest, ...grpc.CallOption) (*runtimev1.CheckTokenProviderHealthResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}

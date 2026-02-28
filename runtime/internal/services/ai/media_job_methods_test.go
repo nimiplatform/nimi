@@ -15,6 +15,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -226,7 +227,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWS(t *testing.T) {
 			if err := websocket.JSON.Receive(connection, &payload); err != nil {
 				return
 			}
-			switch strings.ToLower(strings.TrimSpace(valueAsString(payload["event"]))) {
+			switch strings.ToLower(strings.TrimSpace(nimillm.ValueAsString(payload["event"]))) {
 			case "start":
 				startSeen.Store(true)
 			case "audio":
@@ -302,7 +303,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSFailedMapsUnavailable(t *testing.
 			if err := websocket.JSON.Receive(connection, &payload); err != nil {
 				return
 			}
-			if strings.EqualFold(strings.TrimSpace(valueAsString(payload["event"])), "finish") {
+			if strings.EqualFold(strings.TrimSpace(nimillm.ValueAsString(payload["event"])), "finish") {
 				_ = websocket.JSON.Send(connection, map[string]any{
 					"status": "failed",
 					"error":  "provider failure",
@@ -365,7 +366,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSReadTimeoutMapsProviderTimeout(t 
 			if err := websocket.JSON.Receive(connection, &payload); err != nil {
 				return
 			}
-			if strings.EqualFold(strings.TrimSpace(valueAsString(payload["event"])), "finish") {
+			if strings.EqualFold(strings.TrimSpace(nimillm.ValueAsString(payload["event"])), "finish") {
 				time.Sleep(200 * time.Millisecond)
 				return
 			}
@@ -1072,7 +1073,7 @@ func TestSubmitMediaJobGeminiTTSOperation(t *testing.T) {
 	if got := job.GetArtifacts()[0].GetMimeType(); got != "audio/wav" {
 		t.Fatalf("artifact mime mismatch: got=%s", got)
 	}
-	if valueAsString(capturedSubmitPayload["input"]) != "hello gemini" {
+	if nimillm.ValueAsString(capturedSubmitPayload["input"]) != "hello gemini" {
 		t.Fatalf("gemini tts input mismatch: %#v", capturedSubmitPayload)
 	}
 	if _, ok := capturedSubmitPayload["provider_options"]; !ok {
@@ -1134,11 +1135,11 @@ func TestSubmitMediaJobGeminiSTTOperation(t *testing.T) {
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != "gemini stt text" {
 		t.Fatalf("stt text mismatch: got=%q", got)
 	}
-	audioBase64 := strings.TrimSpace(valueAsString(capturedSubmitPayload["audio_base64"]))
+	audioBase64 := strings.TrimSpace(nimillm.ValueAsString(capturedSubmitPayload["audio_base64"]))
 	if audioBase64 == "" {
 		t.Fatalf("gemini stt audio_base64 missing: %#v", capturedSubmitPayload)
 	}
-	if valueAsString(capturedSubmitPayload["mime_type"]) != "audio/wav" {
+	if nimillm.ValueAsString(capturedSubmitPayload["mime_type"]) != "audio/wav" {
 		t.Fatalf("gemini stt mime_type mismatch: %#v", capturedSubmitPayload)
 	}
 }
@@ -1463,7 +1464,7 @@ func TestSubmitMediaJobMiniMaxTTSTask(t *testing.T) {
 	if !ok {
 		t.Fatalf("minimax tts voice_setting missing: %#v", ttsPayload)
 	}
-	if valueAsString(voiceSetting["voice"]) != "voice-a" {
+	if nimillm.ValueAsString(voiceSetting["voice"]) != "voice-a" {
 		t.Fatalf("minimax tts voice mismatch: %#v", voiceSetting)
 	}
 }
@@ -2019,7 +2020,7 @@ func TestSubmitMediaJobKimiImageChatMultimodal(t *testing.T) {
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
 		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
 	}
-	if valueAsString(capturedPayload["model"]) != "moonshot-v1-vision" {
+	if nimillm.ValueAsString(capturedPayload["model"]) != "moonshot-v1-vision" {
 		t.Fatalf("kimi resolved model mismatch: %#v", capturedPayload)
 	}
 	responseField, ok := capturedPayload["response"].(map[string]any)
@@ -2027,10 +2028,10 @@ func TestSubmitMediaJobKimiImageChatMultimodal(t *testing.T) {
 		t.Fatalf("kimi response mapping missing: %#v", capturedPayload)
 	}
 	modalities, ok := responseField["modalities"].([]any)
-	if !ok || len(modalities) == 0 || valueAsString(modalities[0]) != "image" {
+	if !ok || len(modalities) == 0 || nimillm.ValueAsString(modalities[0]) != "image" {
 		t.Fatalf("kimi response modalities mismatch: %#v", responseField)
 	}
-	if valueAsString(responseField["output_image_format"]) != "png" {
+	if nimillm.ValueAsString(responseField["output_image_format"]) != "png" {
 		t.Fatalf("kimi output image format mismatch: %#v", responseField)
 	}
 	if _, ok := capturedPayload["provider_options"]; !ok {
@@ -2724,25 +2725,6 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 	}
 }
 
-func TestResolveGLMTaskPaths(t *testing.T) {
-	submitPath, queryPrefix := resolveGLMTaskPaths("https://open.bigmodel.cn")
-	if submitPath != "/api/paas/v4/videos/generations" || queryPrefix != "/api/paas/v4/async-result/" {
-		t.Fatalf("glm default path mismatch: submit=%s query=%s", submitPath, queryPrefix)
-	}
-	submitPath, queryPrefix = resolveGLMTaskPaths("https://open.bigmodel.cn/api/paas/v4")
-	if submitPath != "/videos/generations" || queryPrefix != "/async-result/" {
-		t.Fatalf("glm normalized path mismatch: submit=%s query=%s", submitPath, queryPrefix)
-	}
-}
-
-func TestResolveGLMAPIPath(t *testing.T) {
-	if got := resolveGLMAPIPath("https://open.bigmodel.cn", "audio/speech"); got != "/api/paas/v4/audio/speech" {
-		t.Fatalf("glm api path mismatch: got=%s", got)
-	}
-	if got := resolveGLMAPIPath("https://open.bigmodel.cn/api/paas/v4", "audio/speech"); got != "/audio/speech" {
-		t.Fatalf("glm normalized api path mismatch: got=%s", got)
-	}
-}
 
 func TestResolveMediaAdapterNameKimiImage(t *testing.T) {
 	adapter := resolveMediaAdapterName("moonshot/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE)

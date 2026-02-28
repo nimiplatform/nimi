@@ -13,8 +13,12 @@ import {
   type GenerateRequest,
   type GenerateResponse,
   type GetMediaArtifactsResponse,
+  type GetSpeechVoicesRequest,
+  type GetSpeechVoicesResponse,
   type MediaJob,
+  type SpeechVoiceDescriptor,
   type StreamGenerateEvent,
+  type StreamSpeechSynthesisRequest,
   type SubmitMediaJobRequest,
 } from './generated/runtime/v1/ai';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit';
@@ -56,6 +60,9 @@ import type {
   RuntimeOptions,
   RuntimeRawModule,
   RuntimeScopeModule,
+  SpeechListVoicesInput,
+  SpeechListVoicesOutput,
+  SpeechStreamSynthesisInput,
   SpeechSynthesizeInput,
   SpeechSynthesizeOutput,
   SpeechTranscribeInput,
@@ -561,6 +568,12 @@ export class Runtime {
       getMediaArtifacts: async (request, optionsValue) => this.#invokeWithClient(
         async (client) => client.ai.getMediaArtifacts(request, optionsValue),
       ),
+      listTokenProviderModels: async (request, optionsValue) => this.#invokeWithClient(
+        async (client) => client.ai.listTokenProviderModels(request, optionsValue),
+      ),
+      checkTokenProviderHealth: async (request, optionsValue) => this.#invokeWithClient(
+        async (client) => client.ai.checkTokenProviderHealth(request, optionsValue),
+      ),
       text: {
         generate: async (input) => this.#generateText(input),
         stream: async (input) => this.#streamText(input),
@@ -582,6 +595,8 @@ export class Runtime {
       tts: {
         synthesize: async (input) => this.#synthesizeSpeech(input),
         stream: async (input) => this.#streamSpeech(input),
+        listVoices: async (input) => this.#listSpeechVoices(input),
+        streamSynthesis: (input) => this.#streamSpeechSynthesis(input),
       },
       stt: {
         transcribe: async (input) => this.#transcribeSpeech(input),
@@ -1749,6 +1764,67 @@ export class Runtime {
   async #streamSpeech(input: SpeechSynthesizeInput): Promise<AsyncIterable<ArtifactChunk>> {
     const output = await this.#synthesizeSpeech(input);
     return this.#streamArtifactsFromMediaOutput(output);
+  }
+
+  async #listSpeechVoices(input: SpeechListVoicesInput): Promise<SpeechListVoicesOutput> {
+    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
+    const request: GetSpeechVoicesRequest = {
+      appId: this.appId,
+      subjectUserId,
+      modelId: ensureText(input.model, 'model'),
+      routePolicy: toRoutePolicy(input.route),
+      fallback: toFallbackPolicy(input.fallback),
+    };
+
+    const response = await this.#invokeWithClient(async (client) => client.ai.getSpeechVoices(
+      request,
+      this.#resolveRuntimeCallOptions({
+        metadata: input.metadata,
+      }),
+    ));
+
+    return {
+      voices: (response.voices || []).map((v: SpeechVoiceDescriptor) => ({
+        voiceId: normalizeText(v.voiceId),
+        name: normalizeText(v.name),
+        lang: normalizeText(v.lang),
+        supportedLangs: v.supportedLangs || [],
+      })),
+      modelResolved: normalizeText(response.modelResolved),
+      traceId: normalizeText(response.traceId),
+    };
+  }
+
+  async #streamSpeechSynthesis(input: SpeechStreamSynthesisInput): Promise<AsyncIterable<ArtifactChunk>> {
+    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
+    const request: StreamSpeechSynthesisRequest = {
+      appId: this.appId,
+      subjectUserId,
+      modelId: ensureText(input.model, 'model'),
+      speechSpec: {
+        text: normalizeText(input.text),
+        voice: normalizeText(input.voice),
+        language: normalizeText(input.language),
+        audioFormat: normalizeText(input.audioFormat),
+        sampleRateHz: Number(input.sampleRateHz || 0),
+        speed: Number(input.speed || 0),
+        pitch: Number(input.pitch || 0),
+        volume: Number(input.volume || 0),
+        emotion: normalizeText(input.emotion),
+        providerOptions: toProtoStruct(input.providerOptions),
+      },
+      routePolicy: toRoutePolicy(input.route),
+      fallback: toFallbackPolicy(input.fallback),
+      timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
+    };
+
+    return this.#invokeWithClient(async (client) => client.ai.streamSpeechSynthesis(
+      request,
+      this.#resolveRuntimeStreamOptions({
+        timeoutMs: input.timeoutMs,
+        metadata: input.metadata,
+      }),
+    ));
   }
 
   #streamArtifactsFromMediaOutput(

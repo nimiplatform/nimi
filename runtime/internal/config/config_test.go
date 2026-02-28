@@ -197,6 +197,65 @@ func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsLegacyProviderKey(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "ai": {
+    "providers": {
+      "cloudlitellm": {
+        "baseUrl": "https://legacy.invalid/v1",
+        "apiKeyEnv": "LEGACY_API_KEY"
+      }
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected legacy provider key violation, got nil")
+	}
+	if !strings.Contains(err.Error(), `provider "cloudlitellm" is forbidden`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadAcceptsCloudNimiLLMAlias(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "ai": {
+    "providers": {
+      "cloudnimillm": {
+        "baseUrl": "https://api.example.com/v1",
+        "apiKeyEnv": "NIMI_KEY"
+      }
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_KEY", "nimi-key")
+
+	if _, err := Load(); err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL")); got != "https://api.example.com/v1" {
+		t.Fatalf("cloudnimillm base env mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY")); got != "nimi-key" {
+		t.Fatalf("cloudnimillm key env mismatch: %q", got)
+	}
+}
+
 func TestResolveRuntimeConfigPathForLoadMigratesLegacyPath(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)

@@ -9,7 +9,9 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -499,6 +501,22 @@ func (c *recordingRuntimeAIClient) GetMediaArtifacts(_ context.Context, req *run
 		Artifacts: job.GetArtifacts(),
 		TraceId:   job.GetTraceId(),
 	}, nil
+}
+
+func (c *recordingRuntimeAIClient) GetSpeechVoices(_ context.Context, _ *runtimev1.GetSpeechVoicesRequest, _ ...grpc.CallOption) (*runtimev1.GetSpeechVoicesResponse, error) {
+	return &runtimev1.GetSpeechVoicesResponse{}, nil
+}
+
+func (c *recordingRuntimeAIClient) StreamSpeechSynthesis(_ context.Context, _ *runtimev1.StreamSpeechSynthesisRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
+	return nil, status.Error(codes.Unimplemented, "unimplemented")
+}
+
+func (c *recordingRuntimeAIClient) ListTokenProviderModels(_ context.Context, _ *runtimev1.ListTokenProviderModelsRequest, _ ...grpc.CallOption) (*runtimev1.ListTokenProviderModelsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "unimplemented")
+}
+
+func (c *recordingRuntimeAIClient) CheckTokenProviderHealth(_ context.Context, _ *runtimev1.CheckTokenProviderHealthRequest, _ ...grpc.CallOption) (*runtimev1.CheckTokenProviderHealthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
 func (c *recordingRuntimeAIClient) findMediaReqByModal(modal runtimev1.Modal) *runtimev1.SubmitMediaJobRequest {

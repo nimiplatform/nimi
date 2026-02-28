@@ -26,20 +26,17 @@ func TestListAIProviderHealth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAIProviderHealth: %v", err)
 	}
-	if len(resp.GetProviders()) != 2 {
-		t.Fatalf("providers length mismatch: got=%d want=2", len(resp.GetProviders()))
+	if len(resp.GetProviders()) != 1 {
+		t.Fatalf("providers length mismatch: got=%d want=1", len(resp.GetProviders()))
 	}
-	if resp.GetProviders()[0].GetProviderName() != "cloud-alibaba" {
+	if resp.GetProviders()[0].GetProviderName() != "cloud-nimillm" {
 		t.Fatalf("first provider mismatch: %s", resp.GetProviders()[0].GetProviderName())
 	}
 	if resp.GetProviders()[0].GetState() != "unhealthy" {
 		t.Fatalf("first state mismatch: %s", resp.GetProviders()[0].GetState())
 	}
-	if resp.GetProviders()[1].GetProviderName() != "cloud-nimillm" {
-		t.Fatalf("second provider mismatch: %s", resp.GetProviders()[1].GetProviderName())
-	}
-	if resp.GetProviders()[1].GetState() != "healthy" {
-		t.Fatalf("second state mismatch: %s", resp.GetProviders()[1].GetState())
+	if len(resp.GetProviders()[0].GetSubHealth()) != 2 {
+		t.Fatalf("sub health length mismatch: got=%d want=2", len(resp.GetProviders()[0].GetSubHealth()))
 	}
 }
 
@@ -80,6 +77,9 @@ func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 	if first.GetState() != "healthy" {
 		t.Fatalf("baseline state mismatch: %s", first.GetState())
 	}
+	if len(first.GetSubHealth()) != 1 {
+		t.Fatalf("baseline sub-health mismatch: got=%d want=1", len(first.GetSubHealth()))
+	}
 
 	tracker.Mark("cloud-nimillm", false, "timeout")
 	if !waitForProviderEvents(stream, 2, 300*time.Millisecond) {
@@ -88,6 +88,9 @@ func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 	second := stream.eventAt(1)
 	if second.GetState() != "unhealthy" {
 		t.Fatalf("update state mismatch: %s", second.GetState())
+	}
+	if len(second.GetSubHealth()) != 1 {
+		t.Fatalf("update sub-health mismatch: got=%d want=1", len(second.GetSubHealth()))
 	}
 
 	cancel()

@@ -447,12 +447,13 @@ func runtimeChecklist() []checklistItemSpec {
 		},
 		{
 			ID:          "RS-11-25",
-			Requirement: "no legacy litellm references in runtime source (zero-legacy static scan)",
+			Requirement: "no legacy litellm references outside explicit reject allowlist (zero-legacy static scan)",
 			Commands: []commandCheckSpec{
 				{
-					Name:   "litellm-residual-scan",
-					Binary: "sh",
-					Args:   []string{"-c", "! grep -rn --include='*.go' 'litellm\\|LiteLLM\\|LITELLM\\|CloudAIBaseURL\\|CloudAIAPIKey' ./internal/ ./cmd/"},
+					Name:   "legacy-cloud-provider-key-scan",
+					Dir:    "..",
+					Binary: "node",
+					Args:   []string{"scripts/check-no-legacy-cloud-provider-keys.mjs"},
 				},
 			},
 		},

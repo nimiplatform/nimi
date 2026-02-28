@@ -145,6 +145,15 @@ message RuntimeHealthEvent {
 
 message ListAIProviderHealthRequest {}
 
+message AIProviderSubHealth {
+  string provider_name = 1;
+  string state = 2;
+  string reason = 3;
+  int32 consecutive_failures = 4;
+  google.protobuf.Timestamp last_changed_at = 5;
+  google.protobuf.Timestamp last_checked_at = 6;
+}
+
 message AIProviderHealthSnapshot {
   string provider_name = 1;
   string state = 2;
@@ -152,6 +161,7 @@ message AIProviderHealthSnapshot {
   int32 consecutive_failures = 4;
   google.protobuf.Timestamp last_changed_at = 5;
   google.protobuf.Timestamp last_checked_at = 6;
+  repeated AIProviderSubHealth sub_health = 7;
 }
 
 message ListAIProviderHealthResponse {
@@ -168,6 +178,7 @@ message AIProviderHealthEvent {
   int32 consecutive_failures = 5;
   google.protobuf.Timestamp last_changed_at = 6;
   google.protobuf.Timestamp last_checked_at = 7;
+  repeated AIProviderSubHealth sub_health = 8;
 }
 
 message AuditExportChunk {

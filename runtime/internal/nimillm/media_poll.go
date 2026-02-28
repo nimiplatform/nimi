@@ -1,0 +1,88 @@
+package nimillm
+
+import (
+	"context"
+	"net/http"
+	"strings"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+// PollProviderTaskForArtifact polls a provider's async task endpoint until
+// the task completes and returns the resulting artifact.
+func PollProviderTaskForArtifact(
+	ctx context.Context,
+	updater JobStateUpdater,
+	jobID string,
+	baseURL string,
+	apiKey string,
+	adapter string,
+	providerJobID string,
+	submitPath string,
+	queryPathTemplate string,
+	defaultMIME string,
+	computeMs int64,
+	prompt string,
+	applyMetadata func(*runtimev1.MediaArtifact),
+	extraProviderRaw map[string]any,
+) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+	retryCount := int32(0)
+	for {
+		if ctx.Err() != nil {
+			return nil, nil, providerJobID, MapProviderRequestError(ctx.Err())
+		}
+		retryCount++
+		pollResp := map[string]any{}
+		pollPath := ResolveTaskQueryPath(queryPathTemplate, providerJobID)
+		if err := DoJSONRequest(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp); err != nil {
+			return nil, nil, providerJobID, err
+		}
+		statusText := ResolveAsyncTaskStatus(pollResp)
+		if IsAsyncTaskPendingStatus(statusText) {
+			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		if IsAsyncTaskFailedStatus(statusText) {
+			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
+			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		}
+		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(pollResp)
+		if len(artifactBytes) == 0 {
+			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, providerJobID, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		}
+		if strings.TrimSpace(mimeType) == "" {
+			mimeType = strings.TrimSpace(defaultMIME)
+			if mimeType == "" {
+				mimeType = strings.TrimSpace(http.DetectContentType(artifactBytes))
+			}
+		}
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+		providerRaw := map[string]any{
+			"adapter":         adapter,
+			"submit_endpoint": submitPath,
+			"query_endpoint":  queryPathTemplate,
+			"response":        pollResp,
+		}
+		for key, value := range extraProviderRaw {
+			providerRaw[key] = value
+		}
+		if artifactURI != "" {
+			providerRaw["uri"] = artifactURI
+		}
+		artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+		if applyMetadata != nil {
+			applyMetadata(artifact)
+		}
+		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
+		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+	}
+}

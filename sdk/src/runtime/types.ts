@@ -34,9 +34,17 @@ import type {
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
   GetMediaJobResponse,
+  ArtifactChunk,
+  CheckTokenProviderHealthRequest,
+  CheckTokenProviderHealthResponse,
   GenerateRequest,
   GenerateResponse,
+  GetSpeechVoicesRequest,
+  GetSpeechVoicesResponse,
+  ListTokenProviderModelsRequest,
+  ListTokenProviderModelsResponse,
   MediaJobEvent,
+  StreamSpeechSynthesisRequest,
   SubmitMediaJobRequest,
   SubmitMediaJobResponse,
   StreamGenerateEvent,
@@ -260,6 +268,10 @@ export type RuntimeAiClient = {
   cancelMediaJob(request: CancelMediaJobRequest, options?: RuntimeCallOptions): Promise<CancelMediaJobResponse>;
   subscribeMediaJobEvents(request: SubscribeMediaJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<MediaJobEvent>>;
   getMediaArtifacts(request: GetMediaArtifactsRequest, options?: RuntimeCallOptions): Promise<GetMediaArtifactsResponse>;
+  getSpeechVoices(request: GetSpeechVoicesRequest, options?: RuntimeCallOptions): Promise<GetSpeechVoicesResponse>;
+  streamSpeechSynthesis(request: StreamSpeechSynthesisRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
+  listTokenProviderModels(request: ListTokenProviderModelsRequest, options?: RuntimeCallOptions): Promise<ListTokenProviderModelsResponse>;
+  checkTokenProviderHealth(request: CheckTokenProviderHealthRequest, options?: RuntimeCallOptions): Promise<CheckTokenProviderHealthResponse>;
 };
 
 export type RuntimeWorkflowClient = {

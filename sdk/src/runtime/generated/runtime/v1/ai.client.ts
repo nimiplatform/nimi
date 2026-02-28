@@ -5,6 +5,14 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAiService } from "./ai";
+import type { CheckTokenProviderHealthResponse } from "./ai";
+import type { CheckTokenProviderHealthRequest } from "./ai";
+import type { ListTokenProviderModelsResponse } from "./ai";
+import type { ListTokenProviderModelsRequest } from "./ai";
+import type { ArtifactChunk } from "./ai";
+import type { StreamSpeechSynthesisRequest } from "./ai";
+import type { GetSpeechVoicesResponse } from "./ai";
+import type { GetSpeechVoicesRequest } from "./ai";
 import type { GetMediaArtifactsResponse } from "./ai";
 import type { GetMediaArtifactsRequest } from "./ai";
 import type { MediaJobEvent } from "./ai";
@@ -61,6 +69,22 @@ export interface IRuntimeAiServiceClient {
      * @generated from protobuf rpc: GetMediaArtifacts
      */
     getMediaArtifacts(input: GetMediaArtifactsRequest, options?: RpcOptions): UnaryCall<GetMediaArtifactsRequest, GetMediaArtifactsResponse>;
+    /**
+     * @generated from protobuf rpc: GetSpeechVoices
+     */
+    getSpeechVoices(input: GetSpeechVoicesRequest, options?: RpcOptions): UnaryCall<GetSpeechVoicesRequest, GetSpeechVoicesResponse>;
+    /**
+     * @generated from protobuf rpc: StreamSpeechSynthesis
+     */
+    streamSpeechSynthesis(input: StreamSpeechSynthesisRequest, options?: RpcOptions): ServerStreamingCall<StreamSpeechSynthesisRequest, ArtifactChunk>;
+    /**
+     * @generated from protobuf rpc: ListTokenProviderModels
+     */
+    listTokenProviderModels(input: ListTokenProviderModelsRequest, options?: RpcOptions): UnaryCall<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse>;
+    /**
+     * @generated from protobuf rpc: CheckTokenProviderHealth
+     */
+    checkTokenProviderHealth(input: CheckTokenProviderHealthRequest, options?: RpcOptions): UnaryCall<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
@@ -126,5 +150,33 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
     getMediaArtifacts(input: GetMediaArtifactsRequest, options?: RpcOptions): UnaryCall<GetMediaArtifactsRequest, GetMediaArtifactsResponse> {
         const method = this.methods[7], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetMediaArtifactsRequest, GetMediaArtifactsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetSpeechVoices
+     */
+    getSpeechVoices(input: GetSpeechVoicesRequest, options?: RpcOptions): UnaryCall<GetSpeechVoicesRequest, GetSpeechVoicesResponse> {
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetSpeechVoicesRequest, GetSpeechVoicesResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: StreamSpeechSynthesis
+     */
+    streamSpeechSynthesis(input: StreamSpeechSynthesisRequest, options?: RpcOptions): ServerStreamingCall<StreamSpeechSynthesisRequest, ArtifactChunk> {
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        return stackIntercept<StreamSpeechSynthesisRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListTokenProviderModels
+     */
+    listTokenProviderModels(input: ListTokenProviderModelsRequest, options?: RpcOptions): UnaryCall<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: CheckTokenProviderHealth
+     */
+    checkTokenProviderHealth(input: CheckTokenProviderHealthRequest, options?: RpcOptions): UnaryCall<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse> {
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        return stackIntercept<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse>("unary", this._transport, method, opt, input);
     }
 }

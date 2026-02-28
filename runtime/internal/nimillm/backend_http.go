@@ -37,6 +37,25 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 	return DecodeResponseJSON(response, responseBody)
 }
 
+func (b *Backend) getJSON(ctx context.Context, path string, responseBody any) error {
+	endpoint := b.baseURL + path
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return MapProviderRequestError(err)
+	}
+	if b.apiKey != "" {
+		request.Header.Set("Authorization", "Bearer "+b.apiKey)
+	}
+
+	response, err := b.client.Do(request)
+	if err != nil {
+		return MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+
+	return DecodeResponseJSON(response, responseBody)
+}
+
 func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]byte, error) {
 	payload, err := json.Marshal(requestBody)
 	if err != nil {

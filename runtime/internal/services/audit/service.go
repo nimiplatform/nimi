@@ -211,21 +211,9 @@ func (s *Service) ListAIProviderHealth(context.Context, *runtimev1.ListAIProvide
 		return &runtimev1.ListAIProviderHealthResponse{Providers: []*runtimev1.AIProviderHealthSnapshot{}}, nil
 	}
 	items := s.providerTrack.List()
-	providers := make([]*runtimev1.AIProviderHealthSnapshot, 0, len(items))
-	for _, item := range items {
-		record := &runtimev1.AIProviderHealthSnapshot{
-			ProviderName:        strings.TrimSpace(item.Name),
-			State:               string(item.State),
-			Reason:              strings.TrimSpace(item.LastReason),
-			ConsecutiveFailures: int32(item.ConsecutiveFailures),
-		}
-		if !item.LastChangedAt.IsZero() {
-			record.LastChangedAt = timestamppb.New(item.LastChangedAt.UTC())
-		}
-		if !item.LastCheckedAt.IsZero() {
-			record.LastCheckedAt = timestamppb.New(item.LastCheckedAt.UTC())
-		}
-		providers = append(providers, record)
+	providers := make([]*runtimev1.AIProviderHealthSnapshot, 0, len(items)+1)
+	for _, item := range projectProviderHealthSnapshots(items) {
+		providers = append(providers, providerProjectionToSnapshot(item))
 	}
 	return &runtimev1.ListAIProviderHealthResponse{Providers: providers}, nil
 }
@@ -236,10 +224,9 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 	}
 
 	var sequence uint64
-	current := s.providerTrack.List()
-	for _, item := range current {
+	for _, item := range projectProviderHealthSnapshots(s.providerTrack.List()) {
 		sequence++
-		if err := stream.Send(providerSnapshotToEvent(sequence, item)); err != nil {
+		if err := stream.Send(providerProjectionToEvent(sequence, item)); err != nil {
 			return err
 		}
 	}
@@ -258,9 +245,18 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 			if !ok {
 				return nil
 			}
-			sequence++
-			if err := stream.Send(providerSnapshotToEvent(sequence, item)); err != nil {
-				return err
+			projections := []providerHealthProjection{providerHealthProjectionFromSnapshot(item)}
+			if isCloudProviderName(item.Name) {
+				cloudProjection, hasCloud := buildCloudAggregateProjection(collectCloudSnapshots(s.providerTrack.List()))
+				if hasCloud {
+					projections = []providerHealthProjection{cloudProjection}
+				}
+			}
+			for _, projection := range projections {
+				sequence++
+				if err := stream.Send(providerProjectionToEvent(sequence, projection)); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -302,13 +298,14 @@ func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHeal
 	}
 }
 
-func providerSnapshotToEvent(sequence uint64, item providerhealth.Snapshot) *runtimev1.AIProviderHealthEvent {
+func providerProjectionToEvent(sequence uint64, item providerHealthProjection) *runtimev1.AIProviderHealthEvent {
 	event := &runtimev1.AIProviderHealthEvent{
 		Sequence:            sequence,
 		ProviderName:        strings.TrimSpace(item.Name),
-		State:               string(item.State),
-		Reason:              strings.TrimSpace(item.LastReason),
+		State:               strings.TrimSpace(item.State),
+		Reason:              strings.TrimSpace(item.Reason),
 		ConsecutiveFailures: int32(item.ConsecutiveFailures),
+		SubHealth:           providerSubHealthToProto(item.SubHealth),
 	}
 	if !item.LastChangedAt.IsZero() {
 		event.LastChangedAt = timestamppb.New(item.LastChangedAt.UTC())
@@ -317,6 +314,136 @@ func providerSnapshotToEvent(sequence uint64, item providerhealth.Snapshot) *run
 		event.LastCheckedAt = timestamppb.New(item.LastCheckedAt.UTC())
 	}
 	return event
+}
+
+func providerProjectionToSnapshot(item providerHealthProjection) *runtimev1.AIProviderHealthSnapshot {
+	record := &runtimev1.AIProviderHealthSnapshot{
+		ProviderName:        strings.TrimSpace(item.Name),
+		State:               strings.TrimSpace(item.State),
+		Reason:              strings.TrimSpace(item.Reason),
+		ConsecutiveFailures: int32(item.ConsecutiveFailures),
+		SubHealth:           providerSubHealthToProto(item.SubHealth),
+	}
+	if !item.LastChangedAt.IsZero() {
+		record.LastChangedAt = timestamppb.New(item.LastChangedAt.UTC())
+	}
+	if !item.LastCheckedAt.IsZero() {
+		record.LastCheckedAt = timestamppb.New(item.LastCheckedAt.UTC())
+	}
+	return record
+}
+
+type providerHealthProjection struct {
+	Name                string
+	State               string
+	Reason              string
+	ConsecutiveFailures int
+	LastChangedAt       time.Time
+	LastCheckedAt       time.Time
+	SubHealth           []providerhealth.Snapshot
+}
+
+func projectProviderHealthSnapshots(items []providerhealth.Snapshot) []providerHealthProjection {
+	out := make([]providerHealthProjection, 0, len(items)+1)
+	cloudItems := make([]providerhealth.Snapshot, 0, len(items))
+	for _, item := range items {
+		if isCloudProviderName(item.Name) {
+			cloudItems = append(cloudItems, item)
+			continue
+		}
+		out = append(out, providerHealthProjectionFromSnapshot(item))
+	}
+	if cloudProjection, ok := buildCloudAggregateProjection(cloudItems); ok {
+		out = append(out, cloudProjection)
+	}
+	return out
+}
+
+func buildCloudAggregateProjection(items []providerhealth.Snapshot) (providerHealthProjection, bool) {
+	if len(items) == 0 {
+		return providerHealthProjection{}, false
+	}
+
+	aggregated := providerHealthProjection{
+		Name:      "cloud-nimillm",
+		State:     string(providerhealth.StateHealthy),
+		SubHealth: append([]providerhealth.Snapshot(nil), items...),
+	}
+	for _, item := range items {
+		if item.State == providerhealth.StateUnhealthy {
+			aggregated.State = string(providerhealth.StateUnhealthy)
+			if aggregated.Reason == "" {
+				aggregated.Reason = strings.TrimSpace(item.LastReason)
+			}
+		}
+		if item.ConsecutiveFailures > aggregated.ConsecutiveFailures {
+			aggregated.ConsecutiveFailures = item.ConsecutiveFailures
+		}
+		if item.LastChangedAt.After(aggregated.LastChangedAt) {
+			aggregated.LastChangedAt = item.LastChangedAt
+		}
+		if item.LastCheckedAt.After(aggregated.LastCheckedAt) {
+			aggregated.LastCheckedAt = item.LastCheckedAt
+		}
+	}
+	if aggregated.Reason == "" {
+		for _, item := range items {
+			if reason := strings.TrimSpace(item.LastReason); reason != "" {
+				aggregated.Reason = reason
+				break
+			}
+		}
+	}
+	return aggregated, true
+}
+
+func collectCloudSnapshots(items []providerhealth.Snapshot) []providerhealth.Snapshot {
+	out := make([]providerhealth.Snapshot, 0, len(items))
+	for _, item := range items {
+		if isCloudProviderName(item.Name) {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func providerHealthProjectionFromSnapshot(item providerhealth.Snapshot) providerHealthProjection {
+	return providerHealthProjection{
+		Name:                strings.TrimSpace(item.Name),
+		State:               string(item.State),
+		Reason:              strings.TrimSpace(item.LastReason),
+		ConsecutiveFailures: item.ConsecutiveFailures,
+		LastChangedAt:       item.LastChangedAt,
+		LastCheckedAt:       item.LastCheckedAt,
+		SubHealth:           nil,
+	}
+}
+
+func providerSubHealthToProto(items []providerhealth.Snapshot) []*runtimev1.AIProviderSubHealth {
+	if len(items) == 0 {
+		return nil
+	}
+	out := make([]*runtimev1.AIProviderSubHealth, 0, len(items))
+	for _, item := range items {
+		record := &runtimev1.AIProviderSubHealth{
+			ProviderName:        strings.TrimSpace(item.Name),
+			State:               string(item.State),
+			Reason:              strings.TrimSpace(item.LastReason),
+			ConsecutiveFailures: int32(item.ConsecutiveFailures),
+		}
+		if !item.LastChangedAt.IsZero() {
+			record.LastChangedAt = timestamppb.New(item.LastChangedAt.UTC())
+		}
+		if !item.LastCheckedAt.IsZero() {
+			record.LastCheckedAt = timestamppb.New(item.LastCheckedAt.UTC())
+		}
+		out = append(out, record)
+	}
+	return out
+}
+
+func isCloudProviderName(name string) bool {
+	return strings.HasPrefix(strings.TrimSpace(strings.ToLower(name)), "cloud-")
 }
 
 func mapStatus(statusValue health.Status) runtimev1.RuntimeHealthStatus {

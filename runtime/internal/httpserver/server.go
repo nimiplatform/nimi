@@ -104,18 +104,69 @@ func providerSnapshotsPayload(tracker *providerhealth.Tracker) []map[string]any 
 		return []map[string]any{}
 	}
 	snapshots := tracker.List()
-	out := make([]map[string]any, 0, len(snapshots))
+	out := make([]map[string]any, 0, len(snapshots)+1)
+	cloudSubHealth := make([]map[string]any, 0, len(snapshots))
+	cloudState := string(providerhealth.StateHealthy)
+	cloudReason := ""
+	cloudConsecutiveFailures := 0
+	var cloudLastChangedAt time.Time
+	var cloudLastCheckedAt time.Time
 	for _, item := range snapshots {
-		out = append(out, map[string]any{
+		entry := map[string]any{
 			"name":                 strings.TrimSpace(item.Name),
 			"state":                string(item.State),
 			"reason":               item.LastReason,
 			"consecutive_failures": item.ConsecutiveFailures,
 			"last_changed_at":      formatTimestamp(item.LastChangedAt),
 			"last_checked_at":      formatTimestamp(item.LastCheckedAt),
+		}
+		if strings.HasPrefix(strings.TrimSpace(strings.ToLower(item.Name)), "cloud-") {
+			cloudSubHealth = append(cloudSubHealth, entry)
+			if item.State == providerhealth.StateUnhealthy {
+				cloudState = string(providerhealth.StateUnhealthy)
+				if cloudReason == "" {
+					cloudReason = strings.TrimSpace(item.LastReason)
+				}
+			}
+			if item.ConsecutiveFailures > cloudConsecutiveFailures {
+				cloudConsecutiveFailures = item.ConsecutiveFailures
+			}
+			if item.LastChangedAt.After(cloudLastChangedAt) {
+				cloudLastChangedAt = item.LastChangedAt
+			}
+			if item.LastCheckedAt.After(cloudLastCheckedAt) {
+				cloudLastCheckedAt = item.LastCheckedAt
+			}
+			continue
+		}
+		out = append(out, entry)
+	}
+
+	if len(cloudSubHealth) > 0 {
+		if cloudReason == "" {
+			for _, item := range cloudSubHealth {
+				reason := strings.TrimSpace(stringFromAny(item["reason"]))
+				if reason != "" {
+					cloudReason = reason
+					break
+				}
+			}
+		}
+		out = append(out, map[string]any{
+			"name":                 "cloud-nimillm",
+			"state":                cloudState,
+			"reason":               cloudReason,
+			"consecutive_failures": cloudConsecutiveFailures,
+			"last_changed_at":      formatTimestamp(cloudLastChangedAt),
+			"last_checked_at":      formatTimestamp(cloudLastCheckedAt),
+			"sub_health":           cloudSubHealth,
 		})
 	}
 	return out
+}
+
+func stringFromAny(value any) string {
+	return strings.TrimSpace(fmt.Sprint(value))
 }
 
 func formatTimestamp(value time.Time) string {

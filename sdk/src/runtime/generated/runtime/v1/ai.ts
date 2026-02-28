@@ -993,6 +993,236 @@ export interface ArtifactChunk {
     traceId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SpeechVoiceDescriptor
+ */
+export interface SpeechVoiceDescriptor {
+    /**
+     * @generated from protobuf field: string voice_id = 1
+     */
+    voiceId: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string lang = 3
+     */
+    lang: string;
+    /**
+     * @generated from protobuf field: repeated string supported_langs = 4
+     */
+    supportedLangs: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetSpeechVoicesRequest
+ */
+export interface GetSpeechVoicesRequest {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 2
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string model_id = 3
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 4
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FallbackPolicy fallback = 5
+     */
+    fallback: FallbackPolicy;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetSpeechVoicesResponse
+ */
+export interface GetSpeechVoicesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.SpeechVoiceDescriptor voices = 1
+     */
+    voices: SpeechVoiceDescriptor[];
+    /**
+     * @generated from protobuf field: string model_resolved = 2
+     */
+    modelResolved: string;
+    /**
+     * @generated from protobuf field: string trace_id = 3
+     */
+    traceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StreamSpeechSynthesisRequest
+ */
+export interface StreamSpeechSynthesisRequest {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 2
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string model_id = 3
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechSynthesisSpec speech_spec = 4
+     */
+    speechSpec?: SpeechSynthesisSpec;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 5
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FallbackPolicy fallback = 6
+     */
+    fallback: FallbackPolicy;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 7
+     */
+    timeoutMs: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListTokenProviderModelsRequest
+ */
+export interface ListTokenProviderModelsRequest {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 2
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string provider_id = 3
+     */
+    providerId: string;
+    /**
+     * @generated from protobuf field: string provider_endpoint = 4
+     */
+    providerEndpoint: string;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 5
+     */
+    timeoutMs: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TokenProviderModelDescriptor
+ */
+export interface TokenProviderModelDescriptor {
+    /**
+     * @generated from protobuf field: string model_id = 1
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string model_label = 2
+     */
+    modelLabel: string;
+    /**
+     * @generated from protobuf field: bool available = 3
+     */
+    available: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListTokenProviderModelsResponse
+ */
+export interface ListTokenProviderModelsResponse {
+    /**
+     * @generated from protobuf field: string provider_id = 1
+     */
+    providerId: string;
+    /**
+     * @generated from protobuf field: string provider_endpoint = 2
+     */
+    providerEndpoint: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TokenProviderModelDescriptor models = 3
+     */
+    models: TokenProviderModelDescriptor[];
+    /**
+     * @generated from protobuf field: string trace_id = 4
+     */
+    traceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CheckTokenProviderHealthRequest
+ */
+export interface CheckTokenProviderHealthRequest {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 2
+     */
+    subjectUserId: string;
+    /**
+     * @generated from protobuf field: string provider_id = 3
+     */
+    providerId: string;
+    /**
+     * @generated from protobuf field: string provider_endpoint = 4
+     */
+    providerEndpoint: string;
+    /**
+     * @generated from protobuf field: string model_id = 5
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 6
+     */
+    timeoutMs: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TokenProviderHealthSnapshot
+ */
+export interface TokenProviderHealthSnapshot {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TokenProviderHealthStatus status = 1
+     */
+    status: TokenProviderHealthStatus;
+    /**
+     * @generated from protobuf field: string detail = 2
+     */
+    detail: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp checked_at = 3
+     */
+    checkedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string provider_id = 4
+     */
+    providerId: string;
+    /**
+     * @generated from protobuf field: string provider_endpoint = 5
+     */
+    providerEndpoint: string;
+    /**
+     * @generated from protobuf field: string model_id = 6
+     */
+    modelId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CheckTokenProviderHealthResponse
+ */
+export interface CheckTokenProviderHealthResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TokenProviderHealthSnapshot health = 1
+     */
+    health?: TokenProviderHealthSnapshot;
+    /**
+     * @generated from protobuf field: string trace_id = 2
+     */
+    traceId: string;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.Modal
  */
 export enum Modal {
@@ -1087,6 +1317,35 @@ export enum FinishReason {
      * @generated from protobuf enum value: FINISH_REASON_ERROR = 5;
      */
     ERROR = 5
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.TokenProviderHealthStatus
+ */
+export enum TokenProviderHealthStatus {
+    /**
+     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY = 1;
+     */
+    HEALTHY = 1,
+    /**
+     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED = 2;
+     */
+    DEGRADED = 2,
+    /**
+     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE = 3;
+     */
+    UNREACHABLE = 3,
+    /**
+     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED = 4;
+     */
+    UNAUTHORIZED = 4,
+    /**
+     * @generated from protobuf enum value: TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED = 5;
+     */
+    UNSUPPORTED = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.StreamEventType
@@ -4029,6 +4288,753 @@ class ArtifactChunk$Type extends MessageType<ArtifactChunk> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ArtifactChunk
  */
 export const ArtifactChunk = new ArtifactChunk$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechVoiceDescriptor$Type extends MessageType<SpeechVoiceDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechVoiceDescriptor", [
+            { no: 1, name: "voice_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "lang", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "supported_langs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechVoiceDescriptor>): SpeechVoiceDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceId = "";
+        message.name = "";
+        message.lang = "";
+        message.supportedLangs = [];
+        if (value !== undefined)
+            reflectionMergePartial<SpeechVoiceDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechVoiceDescriptor): SpeechVoiceDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string voice_id */ 1:
+                    message.voiceId = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* string lang */ 3:
+                    message.lang = reader.string();
+                    break;
+                case /* repeated string supported_langs */ 4:
+                    message.supportedLangs.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechVoiceDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string voice_id = 1; */
+        if (message.voiceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.voiceId);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* string lang = 3; */
+        if (message.lang !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lang);
+        /* repeated string supported_langs = 4; */
+        for (let i = 0; i < message.supportedLangs.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.supportedLangs[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechVoiceDescriptor
+ */
+export const SpeechVoiceDescriptor = new SpeechVoiceDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetSpeechVoicesRequest$Type extends MessageType<GetSpeechVoicesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetSpeechVoicesRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 5, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] }
+        ]);
+    }
+    create(value?: PartialMessage<GetSpeechVoicesRequest>): GetSpeechVoicesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.subjectUserId = "";
+        message.modelId = "";
+        message.routePolicy = 0;
+        message.fallback = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetSpeechVoicesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetSpeechVoicesRequest): GetSpeechVoicesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 2:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string model_id */ 3:
+                    message.modelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 4:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.FallbackPolicy fallback */ 5:
+                    message.fallback = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetSpeechVoicesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 2; */
+        if (message.subjectUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string model_id = 3; */
+        if (message.modelId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.modelId);
+        /* nimi.runtime.v1.RoutePolicy route_policy = 4; */
+        if (message.routePolicy !== 0)
+            writer.tag(4, WireType.Varint).int32(message.routePolicy);
+        /* nimi.runtime.v1.FallbackPolicy fallback = 5; */
+        if (message.fallback !== 0)
+            writer.tag(5, WireType.Varint).int32(message.fallback);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetSpeechVoicesRequest
+ */
+export const GetSpeechVoicesRequest = new GetSpeechVoicesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetSpeechVoicesResponse$Type extends MessageType<GetSpeechVoicesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetSpeechVoicesResponse", [
+            { no: 1, name: "voices", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SpeechVoiceDescriptor },
+            { no: 2, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetSpeechVoicesResponse>): GetSpeechVoicesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voices = [];
+        message.modelResolved = "";
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetSpeechVoicesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetSpeechVoicesResponse): GetSpeechVoicesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.SpeechVoiceDescriptor voices */ 1:
+                    message.voices.push(SpeechVoiceDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string model_resolved */ 2:
+                    message.modelResolved = reader.string();
+                    break;
+                case /* string trace_id */ 3:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetSpeechVoicesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.SpeechVoiceDescriptor voices = 1; */
+        for (let i = 0; i < message.voices.length; i++)
+            SpeechVoiceDescriptor.internalBinaryWrite(message.voices[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string model_resolved = 2; */
+        if (message.modelResolved !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelResolved);
+        /* string trace_id = 3; */
+        if (message.traceId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetSpeechVoicesResponse
+ */
+export const GetSpeechVoicesResponse = new GetSpeechVoicesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StreamSpeechSynthesisRequest$Type extends MessageType<StreamSpeechSynthesisRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StreamSpeechSynthesisRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "speech_spec", kind: "message", T: () => SpeechSynthesisSpec },
+            { no: 5, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 6, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
+            { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StreamSpeechSynthesisRequest>): StreamSpeechSynthesisRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.subjectUserId = "";
+        message.modelId = "";
+        message.routePolicy = 0;
+        message.fallback = 0;
+        message.timeoutMs = 0;
+        if (value !== undefined)
+            reflectionMergePartial<StreamSpeechSynthesisRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StreamSpeechSynthesisRequest): StreamSpeechSynthesisRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 2:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string model_id */ 3:
+                    message.modelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.SpeechSynthesisSpec speech_spec */ 4:
+                    message.speechSpec = SpeechSynthesisSpec.internalBinaryRead(reader, reader.uint32(), options, message.speechSpec);
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 5:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.FallbackPolicy fallback */ 6:
+                    message.fallback = reader.int32();
+                    break;
+                case /* int32 timeout_ms */ 7:
+                    message.timeoutMs = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StreamSpeechSynthesisRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 2; */
+        if (message.subjectUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string model_id = 3; */
+        if (message.modelId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.modelId);
+        /* nimi.runtime.v1.SpeechSynthesisSpec speech_spec = 4; */
+        if (message.speechSpec)
+            SpeechSynthesisSpec.internalBinaryWrite(message.speechSpec, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RoutePolicy route_policy = 5; */
+        if (message.routePolicy !== 0)
+            writer.tag(5, WireType.Varint).int32(message.routePolicy);
+        /* nimi.runtime.v1.FallbackPolicy fallback = 6; */
+        if (message.fallback !== 0)
+            writer.tag(6, WireType.Varint).int32(message.fallback);
+        /* int32 timeout_ms = 7; */
+        if (message.timeoutMs !== 0)
+            writer.tag(7, WireType.Varint).int32(message.timeoutMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StreamSpeechSynthesisRequest
+ */
+export const StreamSpeechSynthesisRequest = new StreamSpeechSynthesisRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListTokenProviderModelsRequest$Type extends MessageType<ListTokenProviderModelsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListTokenProviderModelsRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "provider_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "provider_endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListTokenProviderModelsRequest>): ListTokenProviderModelsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.subjectUserId = "";
+        message.providerId = "";
+        message.providerEndpoint = "";
+        message.timeoutMs = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListTokenProviderModelsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListTokenProviderModelsRequest): ListTokenProviderModelsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 2:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string provider_id */ 3:
+                    message.providerId = reader.string();
+                    break;
+                case /* string provider_endpoint */ 4:
+                    message.providerEndpoint = reader.string();
+                    break;
+                case /* int32 timeout_ms */ 5:
+                    message.timeoutMs = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListTokenProviderModelsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 2; */
+        if (message.subjectUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string provider_id = 3; */
+        if (message.providerId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.providerId);
+        /* string provider_endpoint = 4; */
+        if (message.providerEndpoint !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.providerEndpoint);
+        /* int32 timeout_ms = 5; */
+        if (message.timeoutMs !== 0)
+            writer.tag(5, WireType.Varint).int32(message.timeoutMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListTokenProviderModelsRequest
+ */
+export const ListTokenProviderModelsRequest = new ListTokenProviderModelsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TokenProviderModelDescriptor$Type extends MessageType<TokenProviderModelDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.TokenProviderModelDescriptor", [
+            { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TokenProviderModelDescriptor>): TokenProviderModelDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.modelId = "";
+        message.modelLabel = "";
+        message.available = false;
+        if (value !== undefined)
+            reflectionMergePartial<TokenProviderModelDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TokenProviderModelDescriptor): TokenProviderModelDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string model_id */ 1:
+                    message.modelId = reader.string();
+                    break;
+                case /* string model_label */ 2:
+                    message.modelLabel = reader.string();
+                    break;
+                case /* bool available */ 3:
+                    message.available = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TokenProviderModelDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model_id = 1; */
+        if (message.modelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelId);
+        /* string model_label = 2; */
+        if (message.modelLabel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelLabel);
+        /* bool available = 3; */
+        if (message.available !== false)
+            writer.tag(3, WireType.Varint).bool(message.available);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TokenProviderModelDescriptor
+ */
+export const TokenProviderModelDescriptor = new TokenProviderModelDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListTokenProviderModelsResponse$Type extends MessageType<ListTokenProviderModelsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListTokenProviderModelsResponse", [
+            { no: 1, name: "provider_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "provider_endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TokenProviderModelDescriptor },
+            { no: 4, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListTokenProviderModelsResponse>): ListTokenProviderModelsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.providerId = "";
+        message.providerEndpoint = "";
+        message.models = [];
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListTokenProviderModelsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListTokenProviderModelsResponse): ListTokenProviderModelsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider_id */ 1:
+                    message.providerId = reader.string();
+                    break;
+                case /* string provider_endpoint */ 2:
+                    message.providerEndpoint = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.TokenProviderModelDescriptor models */ 3:
+                    message.models.push(TokenProviderModelDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string trace_id */ 4:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListTokenProviderModelsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider_id = 1; */
+        if (message.providerId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.providerId);
+        /* string provider_endpoint = 2; */
+        if (message.providerEndpoint !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.providerEndpoint);
+        /* repeated nimi.runtime.v1.TokenProviderModelDescriptor models = 3; */
+        for (let i = 0; i < message.models.length; i++)
+            TokenProviderModelDescriptor.internalBinaryWrite(message.models[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 4; */
+        if (message.traceId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListTokenProviderModelsResponse
+ */
+export const ListTokenProviderModelsResponse = new ListTokenProviderModelsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CheckTokenProviderHealthRequest$Type extends MessageType<CheckTokenProviderHealthRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CheckTokenProviderHealthRequest", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "provider_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "provider_endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CheckTokenProviderHealthRequest>): CheckTokenProviderHealthRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.subjectUserId = "";
+        message.providerId = "";
+        message.providerEndpoint = "";
+        message.modelId = "";
+        message.timeoutMs = 0;
+        if (value !== undefined)
+            reflectionMergePartial<CheckTokenProviderHealthRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CheckTokenProviderHealthRequest): CheckTokenProviderHealthRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 2:
+                    message.subjectUserId = reader.string();
+                    break;
+                case /* string provider_id */ 3:
+                    message.providerId = reader.string();
+                    break;
+                case /* string provider_endpoint */ 4:
+                    message.providerEndpoint = reader.string();
+                    break;
+                case /* string model_id */ 5:
+                    message.modelId = reader.string();
+                    break;
+                case /* int32 timeout_ms */ 6:
+                    message.timeoutMs = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CheckTokenProviderHealthRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 2; */
+        if (message.subjectUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* string provider_id = 3; */
+        if (message.providerId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.providerId);
+        /* string provider_endpoint = 4; */
+        if (message.providerEndpoint !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.providerEndpoint);
+        /* string model_id = 5; */
+        if (message.modelId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.modelId);
+        /* int32 timeout_ms = 6; */
+        if (message.timeoutMs !== 0)
+            writer.tag(6, WireType.Varint).int32(message.timeoutMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CheckTokenProviderHealthRequest
+ */
+export const CheckTokenProviderHealthRequest = new CheckTokenProviderHealthRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TokenProviderHealthSnapshot$Type extends MessageType<TokenProviderHealthSnapshot> {
+    constructor() {
+        super("nimi.runtime.v1.TokenProviderHealthSnapshot", [
+            { no: 1, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.TokenProviderHealthStatus", TokenProviderHealthStatus, "TOKEN_PROVIDER_HEALTH_STATUS_"] },
+            { no: 2, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "checked_at", kind: "message", T: () => Timestamp },
+            { no: 4, name: "provider_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "provider_endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TokenProviderHealthSnapshot>): TokenProviderHealthSnapshot {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.status = 0;
+        message.detail = "";
+        message.providerId = "";
+        message.providerEndpoint = "";
+        message.modelId = "";
+        if (value !== undefined)
+            reflectionMergePartial<TokenProviderHealthSnapshot>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TokenProviderHealthSnapshot): TokenProviderHealthSnapshot {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TokenProviderHealthStatus status */ 1:
+                    message.status = reader.int32();
+                    break;
+                case /* string detail */ 2:
+                    message.detail = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp checked_at */ 3:
+                    message.checkedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.checkedAt);
+                    break;
+                case /* string provider_id */ 4:
+                    message.providerId = reader.string();
+                    break;
+                case /* string provider_endpoint */ 5:
+                    message.providerEndpoint = reader.string();
+                    break;
+                case /* string model_id */ 6:
+                    message.modelId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TokenProviderHealthSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TokenProviderHealthStatus status = 1; */
+        if (message.status !== 0)
+            writer.tag(1, WireType.Varint).int32(message.status);
+        /* string detail = 2; */
+        if (message.detail !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.detail);
+        /* google.protobuf.Timestamp checked_at = 3; */
+        if (message.checkedAt)
+            Timestamp.internalBinaryWrite(message.checkedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string provider_id = 4; */
+        if (message.providerId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.providerId);
+        /* string provider_endpoint = 5; */
+        if (message.providerEndpoint !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.providerEndpoint);
+        /* string model_id = 6; */
+        if (message.modelId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.modelId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TokenProviderHealthSnapshot
+ */
+export const TokenProviderHealthSnapshot = new TokenProviderHealthSnapshot$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CheckTokenProviderHealthResponse$Type extends MessageType<CheckTokenProviderHealthResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CheckTokenProviderHealthResponse", [
+            { no: 1, name: "health", kind: "message", T: () => TokenProviderHealthSnapshot },
+            { no: 2, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CheckTokenProviderHealthResponse>): CheckTokenProviderHealthResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<CheckTokenProviderHealthResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CheckTokenProviderHealthResponse): CheckTokenProviderHealthResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TokenProviderHealthSnapshot health */ 1:
+                    message.health = TokenProviderHealthSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.health);
+                    break;
+                case /* string trace_id */ 2:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CheckTokenProviderHealthResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TokenProviderHealthSnapshot health = 1; */
+        if (message.health)
+            TokenProviderHealthSnapshot.internalBinaryWrite(message.health, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 2; */
+        if (message.traceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CheckTokenProviderHealthResponse
+ */
+export const CheckTokenProviderHealthResponse = new CheckTokenProviderHealthResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -4040,5 +5046,9 @@ export const RuntimeAiService = new ServiceType("nimi.runtime.v1.RuntimeAiServic
     { name: "GetMediaJob", options: {}, I: GetMediaJobRequest, O: GetMediaJobResponse },
     { name: "CancelMediaJob", options: {}, I: CancelMediaJobRequest, O: CancelMediaJobResponse },
     { name: "SubscribeMediaJobEvents", serverStreaming: true, options: {}, I: SubscribeMediaJobEventsRequest, O: MediaJobEvent },
-    { name: "GetMediaArtifacts", options: {}, I: GetMediaArtifactsRequest, O: GetMediaArtifactsResponse }
+    { name: "GetMediaArtifacts", options: {}, I: GetMediaArtifactsRequest, O: GetMediaArtifactsResponse },
+    { name: "GetSpeechVoices", options: {}, I: GetSpeechVoicesRequest, O: GetSpeechVoicesResponse },
+    { name: "StreamSpeechSynthesis", serverStreaming: true, options: {}, I: StreamSpeechSynthesisRequest, O: ArtifactChunk },
+    { name: "ListTokenProviderModels", options: {}, I: ListTokenProviderModelsRequest, O: ListTokenProviderModelsResponse },
+    { name: "CheckTokenProviderHealth", options: {}, I: CheckTokenProviderHealthRequest, O: CheckTokenProviderHealthResponse }
 ]);

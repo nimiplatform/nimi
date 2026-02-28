@@ -39,6 +39,15 @@ enum FinishReason {
   FINISH_REASON_ERROR = 5;
 }
 
+enum TokenProviderHealthStatus {
+  TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED = 0;
+  TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY = 1;
+  TOKEN_PROVIDER_HEALTH_STATUS_DEGRADED = 2;
+  TOKEN_PROVIDER_HEALTH_STATUS_UNREACHABLE = 3;
+  TOKEN_PROVIDER_HEALTH_STATUS_UNAUTHORIZED = 4;
+  TOKEN_PROVIDER_HEALTH_STATUS_UNSUPPORTED = 5;
+}
+
 enum StreamEventType {
   STREAM_EVENT_TYPE_UNSPECIFIED = 0;
   STREAM_EVENT_STARTED = 1;
@@ -367,6 +376,81 @@ message ArtifactChunk {
   string trace_id = 9;
 }
 
+message SpeechVoiceDescriptor {
+  string voice_id = 1;
+  string name = 2;
+  string lang = 3;
+  repeated string supported_langs = 4;
+}
+
+message GetSpeechVoicesRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  RoutePolicy route_policy = 4;
+  FallbackPolicy fallback = 5;
+}
+
+message GetSpeechVoicesResponse {
+  repeated SpeechVoiceDescriptor voices = 1;
+  string model_resolved = 2;
+  string trace_id = 3;
+}
+
+message StreamSpeechSynthesisRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  SpeechSynthesisSpec speech_spec = 4;
+  RoutePolicy route_policy = 5;
+  FallbackPolicy fallback = 6;
+  int32 timeout_ms = 7;
+}
+
+message ListTokenProviderModelsRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string provider_id = 3;
+  string provider_endpoint = 4;
+  int32 timeout_ms = 5;
+}
+
+message TokenProviderModelDescriptor {
+  string model_id = 1;
+  string model_label = 2;
+  bool available = 3;
+}
+
+message ListTokenProviderModelsResponse {
+  string provider_id = 1;
+  string provider_endpoint = 2;
+  repeated TokenProviderModelDescriptor models = 3;
+  string trace_id = 4;
+}
+
+message CheckTokenProviderHealthRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string provider_id = 3;
+  string provider_endpoint = 4;
+  string model_id = 5;
+  int32 timeout_ms = 6;
+}
+
+message TokenProviderHealthSnapshot {
+  TokenProviderHealthStatus status = 1;
+  string detail = 2;
+  google.protobuf.Timestamp checked_at = 3;
+  string provider_id = 4;
+  string provider_endpoint = 5;
+  string model_id = 6;
+}
+
+message CheckTokenProviderHealthResponse {
+  TokenProviderHealthSnapshot health = 1;
+  string trace_id = 2;
+}
+
 service RuntimeAiService {
   rpc Generate(GenerateRequest) returns (GenerateResponse);
   rpc StreamGenerate(StreamGenerateRequest) returns (stream StreamGenerateEvent);
@@ -376,4 +460,8 @@ service RuntimeAiService {
   rpc CancelMediaJob(CancelMediaJobRequest) returns (CancelMediaJobResponse);
   rpc SubscribeMediaJobEvents(SubscribeMediaJobEventsRequest) returns (stream MediaJobEvent);
   rpc GetMediaArtifacts(GetMediaArtifactsRequest) returns (GetMediaArtifactsResponse);
+  rpc GetSpeechVoices(GetSpeechVoicesRequest) returns (GetSpeechVoicesResponse);
+  rpc StreamSpeechSynthesis(StreamSpeechSynthesisRequest) returns (stream ArtifactChunk);
+  rpc ListTokenProviderModels(ListTokenProviderModelsRequest) returns (ListTokenProviderModelsResponse);
+  rpc CheckTokenProviderHealth(CheckTokenProviderHealthRequest) returns (CheckTokenProviderHealthResponse);
 }

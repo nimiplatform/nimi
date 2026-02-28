@@ -4,12 +4,16 @@ import type {
   CancelMediaJobResponse,
   EmbedRequest,
   EmbedResponse,
+  CheckTokenProviderHealthRequest,
+  CheckTokenProviderHealthResponse,
   GenerateRequest,
   GenerateResponse,
   GetMediaArtifactsRequest,
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
   GetMediaJobResponse,
+  ListTokenProviderModelsRequest,
+  ListTokenProviderModelsResponse,
   MediaArtifact,
   MediaJob,
   MediaJobEvent,
@@ -317,6 +321,44 @@ export type SpeechTranscribeOutput = {
   trace: NimiTraceInfo;
 };
 
+export type SpeechListVoicesInput = {
+  model: string;
+  subjectUserId?: string;
+  route?: NimiRoutePolicy;
+  fallback?: NimiFallbackPolicy;
+  metadata?: Record<string, string>;
+};
+
+export type SpeechListVoicesOutput = {
+  voices: Array<{
+    voiceId: string;
+    name: string;
+    lang: string;
+    supportedLangs: string[];
+  }>;
+  modelResolved: string;
+  traceId: string;
+};
+
+export type SpeechStreamSynthesisInput = {
+  model: string;
+  text: string;
+  subjectUserId?: string;
+  voice?: string;
+  language?: string;
+  audioFormat?: string;
+  sampleRateHz?: number;
+  speed?: number;
+  pitch?: number;
+  volume?: number;
+  emotion?: string;
+  route?: NimiRoutePolicy;
+  fallback?: NimiFallbackPolicy;
+  timeoutMs?: number;
+  metadata?: Record<string, string>;
+  providerOptions?: Record<string, unknown>;
+};
+
 export type MediaJobSubmitInput =
   | { modal: 'image'; input: ImageGenerateInput }
   | { modal: 'video'; input: VideoGenerateInput }
@@ -354,6 +396,14 @@ export type RuntimeAiModule = {
     request: GetMediaArtifactsRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetMediaArtifactsResponse>;
+  listTokenProviderModels(
+    request: ListTokenProviderModelsRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListTokenProviderModelsResponse>;
+  checkTokenProviderHealth(
+    request: CheckTokenProviderHealthRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<CheckTokenProviderHealthResponse>;
   text: {
     generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     stream(input: TextStreamInput): Promise<TextStreamOutput>;
@@ -375,6 +425,8 @@ export type RuntimeMediaModule = {
   tts: {
     synthesize(input: SpeechSynthesizeInput): Promise<SpeechSynthesizeOutput>;
     stream(input: SpeechSynthesizeInput): Promise<AsyncIterable<ArtifactChunk>>;
+    listVoices(input: SpeechListVoicesInput): Promise<SpeechListVoicesOutput>;
+    streamSynthesis(input: SpeechStreamSynthesisInput): Promise<AsyncIterable<ArtifactChunk>>;
   };
   stt: {
     transcribe(input: SpeechTranscribeInput): Promise<SpeechTranscribeOutput>;

@@ -429,6 +429,35 @@ export interface RuntimeHealthEvent {
 export interface ListAIProviderHealthRequest {
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AIProviderSubHealth
+ */
+export interface AIProviderSubHealth {
+    /**
+     * @generated from protobuf field: string provider_name = 1
+     */
+    providerName: string;
+    /**
+     * @generated from protobuf field: string state = 2
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason = 3
+     */
+    reason: string;
+    /**
+     * @generated from protobuf field: int32 consecutive_failures = 4
+     */
+    consecutiveFailures: number;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp last_changed_at = 5
+     */
+    lastChangedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp last_checked_at = 6
+     */
+    lastCheckedAt?: Timestamp;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AIProviderHealthSnapshot
  */
 export interface AIProviderHealthSnapshot {
@@ -456,6 +485,10 @@ export interface AIProviderHealthSnapshot {
      * @generated from protobuf field: google.protobuf.Timestamp last_checked_at = 6
      */
     lastCheckedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIProviderSubHealth sub_health = 7
+     */
+    subHealth: AIProviderSubHealth[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListAIProviderHealthResponse
@@ -503,6 +536,10 @@ export interface AIProviderHealthEvent {
      * @generated from protobuf field: google.protobuf.Timestamp last_checked_at = 7
      */
     lastCheckedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AIProviderSubHealth sub_health = 8
+     */
+    subHealth: AIProviderSubHealth[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AuditExportChunk
@@ -1738,9 +1775,9 @@ class ListAIProviderHealthRequest$Type extends MessageType<ListAIProviderHealthR
  */
 export const ListAIProviderHealthRequest = new ListAIProviderHealthRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AIProviderHealthSnapshot$Type extends MessageType<AIProviderHealthSnapshot> {
+class AIProviderSubHealth$Type extends MessageType<AIProviderSubHealth> {
     constructor() {
-        super("nimi.runtime.v1.AIProviderHealthSnapshot", [
+        super("nimi.runtime.v1.AIProviderSubHealth", [
             { no: 1, name: "provider_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -1749,17 +1786,17 @@ class AIProviderHealthSnapshot$Type extends MessageType<AIProviderHealthSnapshot
             { no: 6, name: "last_checked_at", kind: "message", T: () => Timestamp }
         ]);
     }
-    create(value?: PartialMessage<AIProviderHealthSnapshot>): AIProviderHealthSnapshot {
+    create(value?: PartialMessage<AIProviderSubHealth>): AIProviderSubHealth {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.providerName = "";
         message.state = "";
         message.reason = "";
         message.consecutiveFailures = 0;
         if (value !== undefined)
-            reflectionMergePartial<AIProviderHealthSnapshot>(this, message, value);
+            reflectionMergePartial<AIProviderSubHealth>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIProviderHealthSnapshot): AIProviderHealthSnapshot {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIProviderSubHealth): AIProviderSubHealth {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -1793,6 +1830,96 @@ class AIProviderHealthSnapshot$Type extends MessageType<AIProviderHealthSnapshot
         }
         return message;
     }
+    internalBinaryWrite(message: AIProviderSubHealth, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider_name = 1; */
+        if (message.providerName !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.providerName);
+        /* string state = 2; */
+        if (message.state !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.state);
+        /* string reason = 3; */
+        if (message.reason !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reason);
+        /* int32 consecutive_failures = 4; */
+        if (message.consecutiveFailures !== 0)
+            writer.tag(4, WireType.Varint).int32(message.consecutiveFailures);
+        /* google.protobuf.Timestamp last_changed_at = 5; */
+        if (message.lastChangedAt)
+            Timestamp.internalBinaryWrite(message.lastChangedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp last_checked_at = 6; */
+        if (message.lastCheckedAt)
+            Timestamp.internalBinaryWrite(message.lastCheckedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AIProviderSubHealth
+ */
+export const AIProviderSubHealth = new AIProviderSubHealth$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AIProviderHealthSnapshot$Type extends MessageType<AIProviderHealthSnapshot> {
+    constructor() {
+        super("nimi.runtime.v1.AIProviderHealthSnapshot", [
+            { no: 1, name: "provider_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "consecutive_failures", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "last_changed_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "last_checked_at", kind: "message", T: () => Timestamp },
+            { no: 7, name: "sub_health", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIProviderSubHealth }
+        ]);
+    }
+    create(value?: PartialMessage<AIProviderHealthSnapshot>): AIProviderHealthSnapshot {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.providerName = "";
+        message.state = "";
+        message.reason = "";
+        message.consecutiveFailures = 0;
+        message.subHealth = [];
+        if (value !== undefined)
+            reflectionMergePartial<AIProviderHealthSnapshot>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AIProviderHealthSnapshot): AIProviderHealthSnapshot {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider_name */ 1:
+                    message.providerName = reader.string();
+                    break;
+                case /* string state */ 2:
+                    message.state = reader.string();
+                    break;
+                case /* string reason */ 3:
+                    message.reason = reader.string();
+                    break;
+                case /* int32 consecutive_failures */ 4:
+                    message.consecutiveFailures = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp last_changed_at */ 5:
+                    message.lastChangedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastChangedAt);
+                    break;
+                case /* google.protobuf.Timestamp last_checked_at */ 6:
+                    message.lastCheckedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastCheckedAt);
+                    break;
+                case /* repeated nimi.runtime.v1.AIProviderSubHealth sub_health */ 7:
+                    message.subHealth.push(AIProviderSubHealth.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
     internalBinaryWrite(message: AIProviderHealthSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string provider_name = 1; */
         if (message.providerName !== "")
@@ -1812,6 +1939,9 @@ class AIProviderHealthSnapshot$Type extends MessageType<AIProviderHealthSnapshot
         /* google.protobuf.Timestamp last_checked_at = 6; */
         if (message.lastCheckedAt)
             Timestamp.internalBinaryWrite(message.lastCheckedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AIProviderSubHealth sub_health = 7; */
+        for (let i = 0; i < message.subHealth.length; i++)
+            AIProviderSubHealth.internalBinaryWrite(message.subHealth[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1917,7 +2047,8 @@ class AIProviderHealthEvent$Type extends MessageType<AIProviderHealthEvent> {
             { no: 4, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "consecutive_failures", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 6, name: "last_changed_at", kind: "message", T: () => Timestamp },
-            { no: 7, name: "last_checked_at", kind: "message", T: () => Timestamp }
+            { no: 7, name: "last_checked_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "sub_health", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AIProviderSubHealth }
         ]);
     }
     create(value?: PartialMessage<AIProviderHealthEvent>): AIProviderHealthEvent {
@@ -1927,6 +2058,7 @@ class AIProviderHealthEvent$Type extends MessageType<AIProviderHealthEvent> {
         message.state = "";
         message.reason = "";
         message.consecutiveFailures = 0;
+        message.subHealth = [];
         if (value !== undefined)
             reflectionMergePartial<AIProviderHealthEvent>(this, message, value);
         return message;
@@ -1956,6 +2088,9 @@ class AIProviderHealthEvent$Type extends MessageType<AIProviderHealthEvent> {
                     break;
                 case /* google.protobuf.Timestamp last_checked_at */ 7:
                     message.lastCheckedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastCheckedAt);
+                    break;
+                case /* repeated nimi.runtime.v1.AIProviderSubHealth sub_health */ 8:
+                    message.subHealth.push(AIProviderSubHealth.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1990,6 +2125,9 @@ class AIProviderHealthEvent$Type extends MessageType<AIProviderHealthEvent> {
         /* google.protobuf.Timestamp last_checked_at = 7; */
         if (message.lastCheckedAt)
             Timestamp.internalBinaryWrite(message.lastCheckedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AIProviderSubHealth sub_health = 8; */
+        for (let i = 0; i < message.subHealth.length; i++)
+            AIProviderSubHealth.internalBinaryWrite(message.subHealth[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

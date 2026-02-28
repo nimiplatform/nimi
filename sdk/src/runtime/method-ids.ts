@@ -24,6 +24,10 @@ export const RuntimeMethodIds = {
     cancelMediaJob: '/nimi.runtime.v1.RuntimeAiService/CancelMediaJob',
     subscribeMediaJobEvents: '/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents',
     getMediaArtifacts: '/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts',
+    getSpeechVoices: '/nimi.runtime.v1.RuntimeAiService/GetSpeechVoices',
+    streamSpeechSynthesis: '/nimi.runtime.v1.RuntimeAiService/StreamSpeechSynthesis',
+    listTokenProviderModels: '/nimi.runtime.v1.RuntimeAiService/ListTokenProviderModels',
+    checkTokenProviderHealth: '/nimi.runtime.v1.RuntimeAiService/CheckTokenProviderHealth',
   },
   workflow: {
     submit: '/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow',
@@ -91,6 +95,7 @@ export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
 export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.streamGenerate,
   RuntimeMethodIds.ai.subscribeMediaJobEvents,
+  RuntimeMethodIds.ai.streamSpeechSynthesis,
   RuntimeMethodIds.workflow.subscribeEvents,
   RuntimeMethodIds.app.subscribeAppMessages,
   RuntimeMethodIds.audit.exportAuditEvents,
@@ -114,6 +119,7 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.embed,
   RuntimeMethodIds.ai.submitMediaJob,
   RuntimeMethodIds.ai.cancelMediaJob,
+  RuntimeMethodIds.ai.streamSpeechSynthesis,
   RuntimeMethodIds.workflow.submit,
   RuntimeMethodIds.workflow.cancel,
   RuntimeMethodIds.model.pull,

@@ -295,6 +295,14 @@ function normalizeRequestForMethod<Request>(
       validateAiCredentialMetadata(methodId, normalized, options);
       return normalized as Request;
     }
+    case RuntimeMethodIds.ai.listTokenProviderModels:
+    case RuntimeMethodIds.ai.checkTokenProviderHealth: {
+      validateAiCredentialMetadata(methodId, {
+        routePolicy: RoutePolicy.TOKEN_API,
+        fallback: FallbackPolicy.DENY,
+      }, options);
+      return request;
+    }
     case RuntimeMethodIds.appAuth.authorizeExternalPrincipal:
       return validateAuthorizeExternalPrincipalRequest(
         request as unknown as AuthorizeExternalPrincipalRequest,
@@ -516,6 +524,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       cancelMediaJob: unary(RuntimeMethodIds.ai.cancelMediaJob),
       subscribeMediaJobEvents: stream(RuntimeMethodIds.ai.subscribeMediaJobEvents),
       getMediaArtifacts: unary(RuntimeMethodIds.ai.getMediaArtifacts),
+      getSpeechVoices: unary(RuntimeMethodIds.ai.getSpeechVoices),
+      streamSpeechSynthesis: stream(RuntimeMethodIds.ai.streamSpeechSynthesis),
+      listTokenProviderModels: unary(RuntimeMethodIds.ai.listTokenProviderModels),
+      checkTokenProviderHealth: unary(RuntimeMethodIds.ai.checkTokenProviderHealth),
     },
     workflow: {
       submit: unary(RuntimeMethodIds.workflow.submit),
