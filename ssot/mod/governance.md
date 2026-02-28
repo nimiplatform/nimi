@@ -2,11 +2,14 @@
 title: Nimi Mod SSOT
 status: ACTIVE
 version: v2.8
-updated_at: 2026-02-25
+updated_at: 2026-02-28
 rules:
   - Mod 接入必须通过 execution-kernel + hook + llm-adapter，不得直连 core 数据平面。
   - Agent Chat 业务执行规范统一引用 `@nimiplatform/nimi-mods/local-chat/SSOT.md`；Mod 域不重复定义该业务规则。
   - World Studio 业务执行规范统一引用 `@nimiplatform/nimi-mods/world-studio/SSOT.md`；Mod 域不重复定义其阶段状态机、路由门禁与维护流程细节。
+  - Narrative 业务执行规范统一引用 `@nimiplatform/nimi-mods/narrative/SSOT.md`；Mod 域不重复定义其回合编译与事实守卫细节。
+  - TextPlay 业务执行规范统一引用 `@nimiplatform/nimi-mods/textplay/SSOT.md`；Mod 域不重复定义其表现层渲染与 POV/visibility 规则细节。
+  - World Studio -> Narrative -> Rendering 跨 mod 编排契约统一引用 `ssot/mod/worldstudio-narrative-rendering.md`；本文件不重复定义链路业务细节。
   - Kismet 业务执行规范统一引用 `@nimiplatform/nimi-mods/kismet/SSOT.md`；Mod 域不重复定义其推理与可视化业务细节。
   - Re:Life（Decision Retrospect）业务执行规范统一引用 `@nimiplatform/nimi-mods/re-life/SSOT.md`；Mod 域不重复定义其决策回顾与平行时空模拟业务细节。
   - 跨域”AI 最后一公里”总语义以 `ssot/platform/ai-last-mile.md` 为准；本域仅定义 Mod 接入边界与治理规范。

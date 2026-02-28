@@ -6084,6 +6084,8 @@ export type components = {
             createdAt: string;
             createdBy: string;
             dependsOnEventIds: string[];
+            /** @enum {string} */
+            eventHorizon: "PAST" | "ONGOING" | "FUTURE";
             evidenceRefs: components["schemas"]["WorldEventEvidenceRefDto"][];
             id: string;
             /** @enum {string} */
@@ -6136,6 +6138,8 @@ export type components = {
             characterRefs?: string[];
             confidence?: number;
             dependsOnEventIds?: string[];
+            /** @enum {string} */
+            eventHorizon?: "PAST" | "ONGOING" | "FUTURE";
             evidenceRefs?: components["schemas"]["WorldEventEvidenceRefInputDto"][];
             id?: string;
             /** @enum {string} */
