@@ -13,7 +13,6 @@ const SOURCE_ROOTS = [
   'apps',
   'sdk/src',
   'sdk/test',
-  'nimi-mods',
 ];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.mjs', '.cjs']);
 const SKIP_DIRS = new Set([

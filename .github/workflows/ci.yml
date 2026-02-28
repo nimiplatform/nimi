@@ -11,9 +11,6 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f
-
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -94,7 +91,7 @@ jobs:
             if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
             fi
-            if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ || "${file}" =~ ^nimi-mods/ ]]; then
+            if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ ]]; then
               desktop_web_changed=true
             fi
           done < /tmp/nimi_changed_files.txt
@@ -182,9 +179,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
-      - name: Enforce mod runtime sdk boundary
-        run: pnpm check:mods-no-runtime-sdk
 
       - name: Enforce no-legacy imports
         run: pnpm check:no-legacy-imports
@@ -360,14 +354,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Checkout nimi-mods (pinned external repo)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: nimiplatform/nimi-mods
-          ref: ${{ env.NIMI_MODS_REF }}
-          path: nimi-mods
-          fetch-depth: 1
-
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
@@ -387,12 +373,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
-      - name: Desktop x nimi-mods smoke check (local-chat)
-        env:
-          NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
-          NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods
-        run: pnpm check:desktop-mods-smoke:local-chat
 
       - name: Rust cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml

@@ -22,7 +22,6 @@ const SCAN_ROOTS = [
   'apps',
   'sdk/src',
   'scripts',
-  'nimi-mods',
   '.github/workflows',
   'package.json',
   'pnpm-workspace.yaml',
