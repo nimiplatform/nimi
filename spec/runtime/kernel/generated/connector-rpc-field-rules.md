@@ -4,19 +4,19 @@
 > Source: `spec/runtime/kernel/tables/connector-rpc-field-rules.yaml`
 | RPC | Field | Requirement | Source Rule |
 |---|---|---|---|
-| `CreateConnector` | `kind` | `must_be_REMOTE_MANAGED` | `CONN-040` |
-| `CreateConnector` | `api_key` | `required_non_empty` | `CONN-041` |
-| `CreateConnector` | `endpoint` | `empty_uses_provider_default` | `CONN-042` |
-| `CreateConnector` | `label` | `empty_uses_default_label` | `CONN-043` |
-| `CreateConnector` | `status/created_at/updated_at` | `initialized_to_ACTIVE_and_now` | `CONN-044` |
-| `UpdateConnector` | `mutable_fields` | `at_least_one_of_endpoint_label_api_key_status` | `CONN-050` |
-| `UpdateConnector` | `status` | `UNSPECIFIED_is_invalid` | `CONN-051` |
-| `UpdateConnector` | `api_key` | `explicit_empty_string_is_invalid` | `CONN-052` |
-| `UpdateConnector` | `label` | `explicit_empty_string_is_invalid` | `CONN-053` |
-| `UpdateConnector` | `updated_at` | `refresh_on_any_legal_mutation_request` | `CONN-054` |
-| `UpdateConnector` | `cache` | `invalidate_remote_model_cache_when_api_key_or_endpoint_changes` | `CONN-055` |
-| `DeleteConnector` | `credential` | `cascade_delete` | `CONN-060` |
-| `DeleteConnector` | `cache` | `cleanup_remote_model_cache_entry` | `CONN-061` |
-| `DeleteConnector` | `deletion_flow` | `use_delete_pending_compensation_flow` | `CONN-062` |
-| `TestConnector` | `remote_precheck` | `owner_status_credential_must_pass_before_probe` | `CONN-071` |
-| `ListConnectorModels` | `remote_cache_hit` | `no_outbound_and_no_endpoint_validation_on_cache_hit` | `CONN-072` |
+| `CreateConnector` | `kind` | `must_be_REMOTE_MANAGED` | `K-RPC-007` |
+| `CreateConnector` | `api_key` | `required_non_empty` | `K-RPC-007` |
+| `CreateConnector` | `endpoint` | `empty_uses_provider_default` | `K-RPC-007` |
+| `CreateConnector` | `label` | `empty_uses_default_label` | `K-RPC-007` |
+| `CreateConnector` | `status/created_at/updated_at` | `initialized_to_ACTIVE_and_now` | `K-RPC-007` |
+| `UpdateConnector` | `mutable_fields` | `at_least_one_of_endpoint_label_api_key_status` | `K-RPC-008` |
+| `UpdateConnector` | `status` | `UNSPECIFIED_is_invalid` | `K-RPC-008` |
+| `UpdateConnector` | `api_key` | `explicit_empty_string_is_invalid` | `K-RPC-008` |
+| `UpdateConnector` | `label` | `explicit_empty_string_is_invalid` | `K-RPC-008` |
+| `UpdateConnector` | `updated_at` | `refresh_on_any_legal_mutation_request` | `K-RPC-008` |
+| `UpdateConnector` | `cache` | `invalidate_remote_model_cache_when_api_key_or_endpoint_changes` | `K-RPC-008` |
+| `DeleteConnector` | `credential` | `cascade_delete` | `K-RPC-009` |
+| `DeleteConnector` | `cache` | `cleanup_remote_model_cache_entry` | `K-RPC-009` |
+| `DeleteConnector` | `deletion_flow` | `use_delete_pending_compensation_flow` | `K-RPC-009` |
+| `TestConnector` | `remote_precheck` | `owner_status_credential_must_pass_before_probe` | `K-RPC-010` |
+| `ListConnectorModels` | `remote_cache_hit` | `no_outbound_and_no_endpoint_validation_on_cache_hit` | `K-RPC-010` |

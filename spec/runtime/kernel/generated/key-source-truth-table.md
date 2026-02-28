@@ -9,4 +9,5 @@
 | `inline_complete_with_default_endpoint` | `inline` | `forbidden` | `required_non_empty` | `optional` | `required_non_empty` | `true` | `—` | `K-KEYSRC-006` |
 | `inline_missing_provider_type` | `inline` | `forbidden` | `missing_or_empty` | `optional` | `required_non_empty` | `false` | `AI_REQUEST_CREDENTIAL_MISSING` | `K-KEYSRC-007` |
 | `inline_missing_api_key` | `inline` | `forbidden` | `required_non_empty` | `optional` | `missing_or_empty` | `false` | `AI_REQUEST_CREDENTIAL_MISSING` | `K-KEYSRC-007` |
+| `inline_missing_required_endpoint` | `inline` | `forbidden` | `required_non_empty_requires_explicit_endpoint_provider` | `missing_or_empty` | `required_non_empty` | `false` | `AI_REQUEST_CREDENTIAL_MISSING` | `K-KEYSRC-008` |
 | `conflict_connector_and_inline` | `inline_or_managed` | `required_non_empty` | `required_non_empty` | `optional` | `required_non_empty` | `false` | `AI_REQUEST_CREDENTIAL_CONFLICT` | `K-KEYSRC-002` |

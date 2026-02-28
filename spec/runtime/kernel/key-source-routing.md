@@ -54,3 +54,10 @@ AI consume 只允许二选一路径：
 
 - 显式 `key_source=managed` 且缺失/空 `connector_id`：`INVALID_ARGUMENT` + `AI_CONNECTOR_ID_REQUIRED`。
 - inline 必填字段缺失：`INVALID_ARGUMENT` + `AI_REQUEST_CREDENTIAL_MISSING`。
+
+## K-KEYSRC-008 inline 显式 endpoint 必填规则
+
+当 inline `provider_type` 对应 provider 需要显式 endpoint（见 `tables/provider-catalog.yaml`）时：
+
+- `x-nimi-provider-endpoint` 必须非空
+- 缺失/空值必须返回 `INVALID_ARGUMENT` + `AI_REQUEST_CREDENTIAL_MISSING`

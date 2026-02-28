@@ -45,6 +45,15 @@ cases:
     valid: false
     reason_code: AI_REQUEST_CREDENTIAL_MISSING
     source_rule: K-KEYSRC-007
+  - id: inline_missing_required_endpoint
+    key_source: inline
+    connector_id: forbidden
+    x_nimi_provider_type: required_non_empty_requires_explicit_endpoint_provider
+    x_nimi_provider_endpoint: missing_or_empty
+    x_nimi_provider_api_key: required_non_empty
+    valid: false
+    reason_code: AI_REQUEST_CREDENTIAL_MISSING
+    source_rule: K-KEYSRC-008
   - id: conflict_connector_and_inline
     key_source: inline_or_managed
     connector_id: required_non_empty

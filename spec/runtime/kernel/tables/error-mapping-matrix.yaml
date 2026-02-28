@@ -20,6 +20,21 @@ mappings:
     surface: consume_or_list_models
     exit_shape: grpc_status
     source_rule: K-ERR-004
+  - reason_code: AI_CONNECTOR_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: connector_manage_input_validation
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_CONNECTOR_IMMUTABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: connector_manage_immutable_field_update
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_CONNECTOR_LIMIT_EXCEEDED
+    grpc_code: RESOURCE_EXHAUSTED
+    surface: create_connector_limit_guard
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
   - reason_code: AI_CONNECTOR_CREDENTIAL_MISSING
     grpc_code: OK
     surface: test_connector
@@ -35,6 +50,11 @@ mappings:
     surface: consume_entry
     exit_shape: grpc_status
     source_rule: K-KEYSRC-007
+  - reason_code: AI_REQUEST_CREDENTIAL_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: consume_inline_credential_validation
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
   - reason_code: AI_CONNECTOR_ID_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: consume_entry
@@ -45,11 +65,26 @@ mappings:
     surface: consume_or_connector_manage
     exit_shape: grpc_status
     source_rule: K-KEYSRC-005
+  - reason_code: AI_APP_ID_CONFLICT
+    grpc_code: INVALID_ARGUMENT
+    surface: app_id_metadata_body_conflict
+    exit_shape: grpc_status
+    source_rule: K-KEYSRC-005
   - reason_code: AI_MODEL_ID_REQUIRED
     grpc_code: INVALID_ARGUMENT
     surface: consume_entry
     exit_shape: grpc_status
     source_rule: K-KEYSRC-004
+  - reason_code: AI_MODEL_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: model_resolve
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_MODALITY_NOT_SUPPORTED
+    grpc_code: FAILED_PRECONDITION
+    surface: model_modality_capability_mismatch
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
   - reason_code: AI_PROVIDER_ENDPOINT_FORBIDDEN
     grpc_code: FAILED_PRECONDITION
     surface: consume_endpoint_validation
@@ -60,6 +95,16 @@ mappings:
     surface: list_connector_models_remote
     exit_shape: grpc_status
     source_rule: K-ERR-005
+  - reason_code: AI_PROVIDER_INTERNAL
+    grpc_code: INTERNAL
+    surface: provider_upstream_internal_failure
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
+  - reason_code: AI_PROVIDER_RATE_LIMITED
+    grpc_code: RESOURCE_EXHAUSTED
+    surface: provider_upstream_rate_limit
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
   - reason_code: AI_PROVIDER_AUTH_FAILED
     grpc_code: FAILED_PRECONDITION
     surface: media_snapshot_credential_invalid
@@ -90,6 +135,21 @@ mappings:
     surface: submit_media_job
     exit_shape: grpc_status
     source_rule: K-ERR-007
+  - reason_code: AI_FINISH_LENGTH
+    grpc_code: OK
+    surface: generate_or_stream_terminal_reason
+    exit_shape: terminal_reason_non_error
+    source_rule: K-ERR-006
+  - reason_code: AI_FINISH_CONTENT_FILTER
+    grpc_code: OK
+    surface: generate_or_stream_terminal_reason
+    exit_shape: terminal_reason_non_error
+    source_rule: K-ERR-006
+  - reason_code: AI_MODEL_PROVIDER_MISMATCH
+    grpc_code: INVALID_ARGUMENT
+    surface: model_prefix_provider_mismatch
+    exit_shape: grpc_status
+    source_rule: K-ERR-006
   - reason_code: AI_LOCAL_MODEL_PROFILE_MISSING
     grpc_code: FAILED_PRECONDITION
     surface: local_consume_or_probe
@@ -99,4 +159,9 @@ mappings:
     grpc_code: FAILED_PRECONDITION
     surface: local_consume_or_probe
     exit_shape: grpc_status_or_payload_ok_false
-    source_rule: LOCAL-061
+    source_rule: K-LOCAL-006
+  - reason_code: AI_MODULE_CONFIG_INVALID
+    grpc_code: FAILED_PRECONDITION
+    surface: runtime_module_boot_or_reload
+    exit_shape: grpc_status
+    source_rule: K-ERR-006

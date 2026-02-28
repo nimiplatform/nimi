@@ -241,7 +241,7 @@ function checkConnectorRpcFieldRulesCoverage() {
       fail('connector-rpc-field-rules: each rule must include source_rule');
       continue;
     }
-    if (!/^(K-[A-Z]+-\d{3}|[A-Z]+-\d{3})$/u.test(sourceRule)) {
+    if (!/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
       fail(`connector-rpc-field-rules invalid source_rule: ${sourceRule}`);
     }
   }
@@ -299,11 +299,11 @@ function checkStateTransitionCoverage(kernelRuleSet) {
         fail(`state-transitions ${name} transition missing source`);
         continue;
       }
-      if (!/^(K-[A-Z]+-\d{3}|[A-Z]+-\d{3})$/u.test(source)) {
+      if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
         fail(`state-transitions ${name} transition has non-formal source: ${source}`);
         continue;
       }
-      if (source.startsWith('K-') && !kernelRuleSet.has(source)) {
+      if (!kernelRuleSet.has(source)) {
         fail(`state-transitions ${name} references undefined kernel rule: ${source}`);
       }
     }
@@ -511,7 +511,7 @@ function checkKeySourceTruthTable() {
     byId.set(id, item);
 
     const sourceRule = String(item?.source_rule || '').trim();
-    if (!sourceRule || !/^(K-[A-Z]+-\d{3}|[A-Z]+-\d{3})$/u.test(sourceRule)) {
+    if (!sourceRule || !/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
       fail(`key-source-truth-table case ${id} has invalid source_rule: ${sourceRule}`);
     }
 
@@ -532,6 +532,7 @@ function checkKeySourceTruthTable() {
     'inline_complete_with_default_endpoint',
     'inline_missing_provider_type',
     'inline_missing_api_key',
+    'inline_missing_required_endpoint',
     'conflict_connector_and_inline',
   ];
   for (const id of requiredCaseIds) {
@@ -551,14 +552,6 @@ function checkErrorMappingMatrix() {
     return;
   }
 
-  const requiredReasonCodes = new Set([
-    'AUTH_TOKEN_INVALID',
-    'AI_CONNECTOR_NOT_FOUND',
-    'AI_CONNECTOR_DISABLED',
-    'AI_REQUEST_CREDENTIAL_CONFLICT',
-    'AI_PROVIDER_UNAVAILABLE',
-    'AI_MEDIA_IDEMPOTENCY_CONFLICT',
-  ]);
   const covered = new Set();
 
   for (const item of mappings) {
@@ -575,13 +568,13 @@ function checkErrorMappingMatrix() {
     if (!reasonCodes.has(reasonCode)) {
       fail(`error-mapping-matrix references unknown reason_code: ${reasonCode}`);
     }
-    if (!sourceRule || !/^(K-[A-Z]+-\d{3}|[A-Z]+-\d{3})$/u.test(sourceRule)) {
+    if (!sourceRule || !/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
       fail(`error-mapping-matrix ${reasonCode} has invalid source_rule: ${sourceRule}`);
     }
     covered.add(reasonCode);
   }
 
-  for (const code of requiredReasonCodes) {
+  for (const code of reasonCodes) {
     if (!covered.has(code)) {
       fail(`error-mapping-matrix missing required reason_code coverage: ${code}`);
     }

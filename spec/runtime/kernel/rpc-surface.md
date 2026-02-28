@@ -76,3 +76,40 @@ deferred（不在当前 kernel 全量契约范围）：
 - `SynthesizeSpeech`
 - `ListTokenProviderModels`
 - `CheckTokenProviderHealth`
+
+## K-RPC-007 CreateConnector 字段契约
+
+`CreateConnector` 必须满足：
+
+- `kind` 必须为 `REMOTE_MANAGED`
+- `api_key` 必填且非空
+- `endpoint` 为空时按 provider 默认值注入
+- `label` 为空时使用默认 label
+- 成功写入时 `status=ACTIVE`，`created_at=updated_at=now`
+
+## K-RPC-008 UpdateConnector 字段契约
+
+`UpdateConnector` 必须满足：
+
+- 至少一个可变字段（`endpoint/label/api_key/status`）
+- `status=UNSPECIFIED` 非法
+- `api_key` 与 `label` 显式空串非法
+- 合法请求一律刷新 `updated_at`
+- `api_key/endpoint` 变化时必须失效 remote model cache
+
+## K-RPC-009 DeleteConnector 补偿契约
+
+`DeleteConnector` 必须满足：
+
+- 级联删除 credential
+- 清理 remote model cache
+- 执行 `delete_pending` 补偿流程（可重试、可启动恢复）
+
+## K-RPC-010 Remote 探测/发现前置校验契约
+
+- `TestConnector(remote)` 出站前必须通过 owner/status/credential 校验
+- `ListConnectorModels(remote)` 缓存命中路径不得出站，也不得做 endpoint 校验
+
+## K-RPC-011 Connector 状态机锚点
+
+`tables/state-transitions.yaml` 中 connector 相关状态机（`connector_status` 与 `remote_connector_delete_flow`）必须以本 Rule ID 作为来源锚点。

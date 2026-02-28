@@ -6,26 +6,26 @@ machines:
       - from: ACTIVE
         to: DISABLED
         trigger: UpdateConnector(status=DISABLED)
-        source: CONN-032
+        source: K-RPC-011
       - from: DISABLED
         to: ACTIVE
         trigger: UpdateConnector(status=ACTIVE)
-        source: CONN-032
+        source: K-RPC-011
   - machine: remote_connector_delete_flow
     states: [present, delete_pending, deleted]
     transitions:
       - from: present
         to: delete_pending
         trigger: DeleteConnector_step1_mark_pending
-        source: CONN-062
+        source: K-RPC-011
       - from: delete_pending
         to: delete_pending
         trigger: DeleteConnector_retry_or_startup_rescan
-        source: CONN-081
+        source: K-RPC-011
       - from: delete_pending
         to: deleted
         trigger: credential_cleanup_and_registry_delete
-        source: CONN-062
+        source: K-RPC-011
   - machine: media_job
     states: [queued, running, completed, failed, cancelled, expired]
     transitions:

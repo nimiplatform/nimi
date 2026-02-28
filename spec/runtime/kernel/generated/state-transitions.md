@@ -8,8 +8,8 @@ States: `ACTIVE`, `DISABLED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `ACTIVE` | `DISABLED` | `UpdateConnector(status=DISABLED)` | `CONN-032` |
-| `DISABLED` | `ACTIVE` | `UpdateConnector(status=ACTIVE)` | `CONN-032` |
+| `ACTIVE` | `DISABLED` | `UpdateConnector(status=DISABLED)` | `K-RPC-011` |
+| `DISABLED` | `ACTIVE` | `UpdateConnector(status=ACTIVE)` | `K-RPC-011` |
 
 ## remote_connector_delete_flow
 
@@ -17,9 +17,9 @@ States: `present`, `delete_pending`, `deleted`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `present` | `delete_pending` | `DeleteConnector_step1_mark_pending` | `CONN-062` |
-| `delete_pending` | `delete_pending` | `DeleteConnector_retry_or_startup_rescan` | `CONN-081` |
-| `delete_pending` | `deleted` | `credential_cleanup_and_registry_delete` | `CONN-062` |
+| `present` | `delete_pending` | `DeleteConnector_step1_mark_pending` | `K-RPC-011` |
+| `delete_pending` | `delete_pending` | `DeleteConnector_retry_or_startup_rescan` | `K-RPC-011` |
+| `delete_pending` | `deleted` | `credential_cleanup_and_registry_delete` | `K-RPC-011` |
 
 ## media_job
 
