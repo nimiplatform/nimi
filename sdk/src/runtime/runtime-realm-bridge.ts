@@ -2,7 +2,7 @@ import type {
   RuntimeAuthMaterial,
   RuntimeRealmBridgeContext,
   RuntimeRealmBridgeHelpers,
-} from './vnext-types.js';
+} from './types.js';
 
 const DEFAULT_REALM_GRANT_PATH = '/api/creator/mods/control/grants/issue';
 

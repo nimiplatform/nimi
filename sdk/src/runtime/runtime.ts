@@ -74,7 +74,7 @@ import type {
   TextStreamOutput,
   VideoGenerateInput,
   VideoGenerateOutput,
-} from './vnext-types.js';
+} from './types.js';
 
 type RuntimeMethodLookupEntry = {
   moduleKey: keyof typeof RuntimeMethodIds;
@@ -951,8 +951,9 @@ export class Runtime {
 
   #computeRetryBackoffMs(baseBackoffMs: number, attempt: number): number {
     const exponent = Math.max(0, attempt - 1);
-    const computed = baseBackoffMs * (2 ** exponent);
-    return Math.min(computed, MAX_RETRY_BACKOFF_MS);
+    const exponential = baseBackoffMs * (2 ** exponent);
+    const jitter = Math.floor(Math.random() * (baseBackoffMs / 2));
+    return Math.min(exponential + jitter, MAX_RETRY_BACKOFF_MS);
   }
 
   #shouldRetryRuntimeCall(error: NimiError, attempt: number, maxAttempts: number): boolean {
@@ -1031,9 +1032,12 @@ export class Runtime {
       : this.#options.timeoutMs;
 
     const metadataInput = input.metadata || {};
-    const credentialSource = normalizeText(
-      metadataInput['x-nimi-credential-source'] || metadataInput.credentialSource,
-    ).toLowerCase() || 'runtime-config';
+    const keySource = normalizeText(
+      metadataInput['x-nimi-key-source'] || metadataInput.keySource,
+    ).toLowerCase() || 'managed';
+    const providerType = normalizeText(
+      metadataInput['x-nimi-provider-type'] || metadataInput.providerType,
+    ) || undefined;
     const providerEndpoint = normalizeText(
       metadataInput['x-nimi-provider-endpoint'] || metadataInput.providerEndpoint,
     ) || undefined;
@@ -1044,8 +1048,10 @@ export class Runtime {
     const metadataExtraEntries = Object.entries(metadataInput)
       .filter(([key]) => {
         const normalizedKey = normalizeText(key).toLowerCase();
-        return normalizedKey !== 'x-nimi-credential-source'
-          && normalizedKey !== 'credentialsource'
+        return normalizedKey !== 'x-nimi-key-source'
+          && normalizedKey !== 'keysource'
+          && normalizedKey !== 'x-nimi-provider-type'
+          && normalizedKey !== 'providertype'
           && normalizedKey !== 'x-nimi-provider-endpoint'
           && normalizedKey !== 'providerendpoint'
           && normalizedKey !== 'x-nimi-provider-api-key'
@@ -1056,7 +1062,8 @@ export class Runtime {
       : undefined;
 
     const metadata = {
-      credentialSource: credentialSource as 'runtime-config' | 'request-injected',
+      keySource: keySource as 'inline' | 'managed',
+      providerType,
       providerEndpoint,
       providerApiKey,
       extra: metadataExtra,
@@ -1125,6 +1132,7 @@ export class Runtime {
       routePolicy: toRoutePolicy(input.route),
       fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
+      connectorId: '',
     };
 
     const response = await this.#invokeWithClient(async (client) => client.ai.generate(
@@ -1174,6 +1182,7 @@ export class Runtime {
         routePolicy: toRoutePolicy(input.route),
         fallback: toFallbackPolicy(input.fallback),
         timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
+        connectorId: '',
       },
       this.#resolveRuntimeStreamOptions({
         timeoutMs: input.timeoutMs,
@@ -1281,6 +1290,7 @@ export class Runtime {
         routePolicy: toRoutePolicy(input.route),
         fallback: toFallbackPolicy(input.fallback),
         timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
+        connectorId: '',
       },
       this.#resolveRuntimeCallOptions({
         timeoutMs: input.timeoutMs,
@@ -1461,6 +1471,7 @@ export class Runtime {
       idempotencyKey: normalizeText((input.input as { idempotencyKey?: string }).idempotencyKey),
       labels: toLabels((input.input as { labels?: Record<string, string> }).labels),
       spec: { oneofKind: undefined },
+      connectorId: '',
     };
 
     if (input.modal === 'image') {
@@ -1785,6 +1796,7 @@ export class Runtime {
       modelId: ensureText(input.model, 'model'),
       routePolicy: toRoutePolicy(input.route),
       fallback: toFallbackPolicy(input.fallback),
+      connectorId: '',
     };
 
     const response = await this.#invokeWithClient(async (client) => client.ai.getSpeechVoices(
@@ -1827,6 +1839,7 @@ export class Runtime {
       routePolicy: toRoutePolicy(input.route),
       fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
+      connectorId: '',
     };
 
     return this.#invokeWithClient(async (client) => client.ai.synthesizeSpeechStream(

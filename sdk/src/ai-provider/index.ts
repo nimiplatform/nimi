@@ -763,6 +763,7 @@ function createLanguageModel(
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs: defaults.timeoutMs || 0,
+          connectorId: '',
         }, toCallOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
         }));
@@ -815,6 +816,7 @@ function createLanguageModel(
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs: defaults.timeoutMs || 0,
+          connectorId: '',
         }, toStreamOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
           signal: options.abortSignal,
@@ -935,6 +937,7 @@ function createEmbeddingModel(
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs: defaults.timeoutMs || 0,
+          connectorId: '',
         }, toCallOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
           metadata: undefined,

@@ -102,7 +102,9 @@ function toGrpcMetadata(
     'x-nimi-caller-kind',
     'x-nimi-caller-id',
     'x-nimi-surface-id',
-    'x-nimi-credential-source',
+    'x-nimi-key-source',
+    'x-nimi-provider-type',
+    'x-nimi-client-id',
     'x-nimi-provider-endpoint',
     'x-nimi-provider-api-key',
   ]);
@@ -124,7 +126,9 @@ function toGrpcMetadata(
   append('x-nimi-caller-kind', metadata.callerKind);
   append('x-nimi-caller-id', metadata.callerId);
   append('x-nimi-surface-id', metadata.surfaceId);
-  append('x-nimi-credential-source', metadata.credentialSource);
+  append('x-nimi-key-source', metadata.keySource);
+  append('x-nimi-provider-type', metadata.providerType);
+  append('x-nimi-client-id', metadata.clientId);
   append('x-nimi-provider-endpoint', metadata.providerEndpoint);
   append('x-nimi-provider-api-key', metadata.providerApiKey);
 

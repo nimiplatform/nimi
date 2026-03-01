@@ -40,7 +40,7 @@ function ensureAppId(appId: string): string {
   if (!normalized) {
     throw createNimiError({
       message: 'createRuntimeClient requires appId',
-      reasonCode: ReasonCode.SDK_RUNTIME_APP_ID_REQUIRED,
+      reasonCode: ReasonCode.SDK_APP_ID_REQUIRED,
       actionHint: 'set_app_id',
       source: 'sdk',
     });
@@ -113,14 +113,14 @@ function validateAiCredentialMetadata(
   request: RuntimeAiRouteRequest,
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
 ): void {
-  const source = normalizeText(options?.metadata?.credentialSource).toLowerCase();
+  const source = normalizeText(options?.metadata?.keySource).toLowerCase();
   const apiKey = normalizeText(options?.metadata?.providerApiKey);
 
-  if (source && source !== 'runtime-config' && source !== 'request-injected') {
+  if (source && source !== 'managed' && source !== 'inline') {
     throwValidationError(
       'SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID',
-      `${methodId} metadata.credentialSource is invalid`,
-      'set_credential_source_runtime_config_or_request_injected',
+      `${methodId} metadata.keySource is invalid`,
+      'set_key_source_managed_or_inline',
     );
   }
 
@@ -128,24 +128,24 @@ function validateAiCredentialMetadata(
     if (!source) {
       throwValidationError(
         'SDK_RUNTIME_AI_CREDENTIAL_SOURCE_REQUIRED',
-        `${methodId} token-api route requires metadata.credentialSource`,
-        'set_credential_source',
+        `${methodId} token-api route requires metadata.keySource`,
+        'set_key_source',
       );
     }
-    if (source === 'request-injected' && !apiKey) {
+    if (source === 'inline' && !apiKey) {
       throwValidationError(
         'SDK_RUNTIME_AI_CREDENTIAL_MISSING',
-        `${methodId} request-injected source requires metadata.providerApiKey`,
+        `${methodId} inline source requires metadata.providerApiKey`,
         'set_provider_api_key',
       );
     }
   }
 
-  if (request.routePolicy === RoutePolicy.LOCAL_RUNTIME && source === 'request-injected') {
+  if (request.routePolicy === RoutePolicy.LOCAL_RUNTIME && source === 'inline') {
     throwValidationError(
       'SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN',
-      `${methodId} local-runtime route does not allow request-injected credentialSource`,
-      'use_runtime_config_credential_source',
+      `${methodId} local-runtime route does not allow inline keySource`,
+      'use_managed_key_source',
     );
   }
 }

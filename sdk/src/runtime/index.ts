@@ -14,4 +14,3 @@ export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from 
 export { createTauriIpcTransport } from './transports/tauri-ipc/index';
 export { Runtime } from './runtime.js';
 export * from './runtime-realm-bridge.js';
-export type * from './vnext-types.js';

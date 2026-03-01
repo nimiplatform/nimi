@@ -33,10 +33,6 @@ codes:
   - name: SDK_REALM_ENDPOINT_REQUIRED
     family: SDK_REALM
     source_rule: S-ERROR-005
-  - name: SDK_REALM_BASE_URL_REQUIRED
-    family: SDK_REALM
-    source_rule: S-ERROR-005
-    deprecated_by: SDK_REALM_ENDPOINT_REQUIRED
   - name: SDK_REALM_TOKEN_REQUIRED
     family: SDK_REALM
     source_rule: S-ERROR-005
@@ -50,10 +46,6 @@ codes:
   - name: SDK_AI_PROVIDER_BASE64_UNAVAILABLE
     family: SDK_AI_PROVIDER
     source_rule: S-ERROR-003
-  - name: SDK_RUNTIME_APP_ID_REQUIRED
-    family: SDK_CONFIG
-    source_rule: S-ERROR-003
-    deprecated_by: SDK_APP_ID_REQUIRED
   - name: SDK_RUNTIME_BASE64_DECODER_UNAVAILABLE
     family: SDK_RUNTIME
     source_rule: S-ERROR-003

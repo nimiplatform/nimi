@@ -10,9 +10,9 @@ function normalize(value: unknown): string | undefined {
   return text.length > 0 ? text : undefined;
 }
 
-function normalizeCredentialSource(value: unknown): 'request-injected' | 'runtime-config' | undefined {
+function normalizeKeySource(value: unknown): 'inline' | 'managed' | undefined {
   const text = String(value || '').trim().toLowerCase();
-  if (text === 'request-injected' || text === 'runtime-config') {
+  if (text === 'inline' || text === 'managed') {
     return text;
   }
   return undefined;
@@ -36,7 +36,9 @@ export function mergeRuntimeMetadata(
     callerKind: metadata.callerKind || defaults.callerKind || 'third-party-app',
     callerId: normalize(metadata.callerId || defaults.callerId || config.appId),
     surfaceId: normalize(metadata.surfaceId || defaults.surfaceId),
-    credentialSource: normalizeCredentialSource(metadata.credentialSource),
+    keySource: normalizeKeySource(metadata.keySource),
+    providerType: normalize(metadata.providerType),
+    clientId: normalize(metadata.clientId),
     providerEndpoint: normalize(metadata.providerEndpoint),
     providerApiKey: normalize(metadata.providerApiKey),
     extra: metadata.extra || undefined,

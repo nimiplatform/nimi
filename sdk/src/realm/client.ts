@@ -126,28 +126,6 @@ function mapRealmStatusReasonCode(status: number): string {
   return ReasonCode.ACTION_INPUT_INVALID;
 }
 
-function mapRealmStatusCode(status: number): string {
-  if (status === 401 || status === 403) {
-    return ReasonCode.AUTH_DENIED;
-  }
-  if (status === 404) {
-    return ReasonCode.REALM_NOT_FOUND;
-  }
-  if (status === 409) {
-    return ReasonCode.REALM_CONFLICT;
-  }
-  if (status === 429) {
-    return ReasonCode.REALM_RATE_LIMITED;
-  }
-  if (status === 400 || status === 422) {
-    return ReasonCode.CONFIG_INVALID;
-  }
-  if (status >= 500) {
-    return ReasonCode.REALM_UNAVAILABLE;
-  }
-  return ReasonCode.ACTION_INPUT_INVALID;
-}
-
 function mapRealmStatusActionHint(status: number): string {
   if (status === 401 || status === 403) {
     return 'refresh_realm_token_or_reauthenticate';
@@ -226,7 +204,7 @@ function extractResponseReasonCode(
     || normalizeText(response.headers.get('x-reason-code'));
 
   const reasonCode = rawReasonCode || mapRealmStatusReasonCode(response.status);
-  const code = mapRealmStatusCode(response.status);
+  const code = mapRealmStatusReasonCode(response.status);
 
   const actionHint = pickString(body, ['actionHint', 'action_hint'])
     || pickString(nestedError, ['actionHint', 'action_hint'])
