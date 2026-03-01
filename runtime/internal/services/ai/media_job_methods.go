@@ -108,7 +108,7 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 		s.mediaJobs.bindIdempotency(idempotencyScope, jobID)
 	}
 
-	go s.executeMediaJob(jobCtx, jobID, cloneSubmitMediaJobRequest(req), selectedProvider, modelResolved)
+	go s.executeMediaJob(jobCtx, jobID, cloneSubmitMediaJobRequest(req), selectedProvider, modelResolved, remoteTarget)
 	return &runtimev1.SubmitMediaJobResponse{Job: snapshot}, nil
 }
 
@@ -201,7 +201,7 @@ func (s *Service) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaAr
 	}, nil
 }
 
-func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtimev1.SubmitMediaJobRequest, selectedProvider provider, modelResolved string) {
+func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtimev1.SubmitMediaJobRequest, selectedProvider provider, modelResolved string, remoteTarget *nimillm.RemoteTarget) {
 	_, ok := s.mediaJobs.transition(jobID, runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED, runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_QUEUED, nil)
 	if !ok {
 		return
@@ -252,7 +252,7 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
 	default:
-		artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName)
+		artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider)
 	}
 
 	if err != nil {
@@ -298,12 +298,20 @@ func executeBackendSyncMedia(
 	selectedProvider provider,
 	modelResolved string,
 	adapterName string,
+	remoteTarget *nimillm.RemoteTarget,
+	cloudProvider *nimillm.CloudProvider,
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
-	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
-	if !ok || mbp == nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	var backend *nimillm.Backend
+	var backendModelID string
+	if remoteTarget != nil && cloudProvider != nil {
+		backend, backendModelID = cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
+	} else {
+		mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
+		if !ok || mbp == nil {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		backend, backendModelID = mbp.ResolveMediaBackend(modelResolved)
 	}
-	backend, backendModelID := mbp.ResolveMediaBackend(modelResolved)
 	if backend == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}

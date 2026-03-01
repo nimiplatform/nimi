@@ -191,6 +191,12 @@ func (p *CloudProvider) ResolveMediaBackend(modelID string) (*Backend, string) {
 	return backend, resolvedModelID
 }
 
+// ResolveMediaBackendWithTarget returns a backend for sync media operations,
+// optionally using a RemoteTarget override for managed connector credentials.
+func (p *CloudProvider) ResolveMediaBackendWithTarget(modelID string, target *RemoteTarget) (*Backend, string) {
+	return p.resolveBackendForTarget(modelID, target)
+}
+
 // PickBackend selects the appropriate backend for a model ID.
 // Returns (backend, resolvedModelID, isExplicit, isAvailable).
 //

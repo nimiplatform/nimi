@@ -79,11 +79,17 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
 
 	spec := req.GetSpeechSpec()
-	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
-	if !ok || mbp == nil {
-		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	var backend *nimillm.Backend
+	var backendModelID string
+	if remoteTarget != nil && s.selector.cloudProvider != nil {
+		backend, backendModelID = s.selector.cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
+	} else {
+		mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
+		if !ok || mbp == nil {
+			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		}
+		backend, backendModelID = mbp.ResolveMediaBackend(modelResolved)
 	}
-	backend, backendModelID := mbp.ResolveMediaBackend(modelResolved)
 	if backend == nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
