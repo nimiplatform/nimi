@@ -1,2 +1,7 @@
 version: 1
-sources: []
+sources:
+- source_id: RESEARCH-OFANG-001
+  title: OpenFang 竞品深度审计报告
+  path: dev/research/openfang-competitive-audit-2026-03-01.md
+  date: '2026-03-01'
+  scope: OpenFang v0.2.3 (Rust Agent OS) 架构、代码质量、安全、功能完整性、可扩展性审计及与 Nimi 对比

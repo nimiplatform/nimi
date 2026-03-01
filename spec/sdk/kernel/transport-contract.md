@@ -41,6 +41,8 @@ SDK 与 Runtime 的版本协商必须显式可判定：
 - 方法可用性通过已知方法集合（`runtime-method-groups.yaml`）静态判定，不依赖运行时反射。
 - 降级仅限于 Phase 2 deferred 方法标记为不可用，不改变 Phase 1 方法语义。
 
+**已知 Runtime 侧差距**：截至当前版本，Runtime kernel 未定义版本 metadata 交换协议。Desktop 通过 `runtime_bridge_status` 返回的 `daemonVersion` 字段获取版本（D-IPC-002/D-IPC-009），此方案在 Tauri IPC 传输下可行。`node-grpc` 传输的独立 SDK 消费者在 Phase 1 将版本协商标记为 best-effort：版本信息不可用时假设兼容，在首次方法不可用错误时报告版本问题。Runtime 侧版本 metadata 定义为 Phase 2 工作项。
+
 **blocked vs deferred 语义区分**：
 
 - `blocked`：Phase 1 服务但 proto 依赖未就绪（如 ConnectorService，`SDKR-050`），SDK 返回 `SDK_RUNTIME_METHOD_UNAVAILABLE`。blocked 服务的方法一旦 proto 发布即可实现，不需要版本协商。

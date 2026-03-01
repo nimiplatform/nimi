@@ -4,5 +4,4 @@
 > Source: `spec/future/kernel/tables/research-sources.yaml`
 | Source ID | Title | Date | Path | Scope |
 |---|---|---|---|---|
-| `RESEARCH-MMAUD-001` | Multimodal Provider Audit | 2026-02-24 | `dev/research/multimodal-provider-audit-2026-02-24.md` | 多模态 Provider 能力审计 |
-| `RESEARCH-VOLC-001` | VolcEngine Provider Research | 2026-02-24 | `dev/research/volcengine-provider-research.md` | 火山引擎 Provider 集成研究 |
+| `RESEARCH-OFANG-001` | OpenFang 竞品深度审计报告 | 2026-03-01 | `dev/research/openfang-competitive-audit-2026-03-01.md` | OpenFang v0.2.3 (Rust Agent OS) 架构、代码质量、安全、功能完整性、可扩展性审计及与 Nimi 对比 |

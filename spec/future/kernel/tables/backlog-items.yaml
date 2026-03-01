@@ -11,11 +11,13 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: Runtime 需实现 MCP server/client 双向支持；SDK 暴露 MCP tool 注册接口； Desktop 提供 MCP 服务器管理 UI。影响 runtime gRPC 面和
-    SDK transport 层。 prompts.chat 审计补充：Runtime 同时作为 MCP Provider 暴露 Nimi 能力（模型、 知识库、工作流）供外部 AI 工具消费。prompts.chat 已验证 MCP Provider
-    模式 的可行性（暴露 search_prompts/get_prompt/improve_prompt/save_skill 等工具）。 增长策略补充（P4）：MCP 已成为标准协议，不支持将限制 Agent 能力上限。 需设计 Go
-    Runtime 与现有 gRPC 服务体系的桥接方式。 CoPaw 审计补充：CoPaw 实现了 MCP 配置热重载（2 秒轮询 config.json， 检测 MCP 配置变更后自动重连客户端，单客户端连续失败 3 次后放弃直到配置变更）。
-    Nimi MCP 实现应考虑类似的热重载机制，避免每次修改 MCP 配置都需要重启 Runtime。
+  architecture_notes: Runtime 需实现 MCP server/client 双向支持；SDK 暴露 MCP tool
+    注册接口；Desktop 提供 MCP 服务器管理 UI。影响 runtime gRPC 面和
+    SDK transport 层。Runtime 同时作为 MCP Provider 暴露 Nimi 能力（模型、
+    知识库、工作流）供外部 AI 工具消费。MCP 已成为标准协议，不支持将限制
+    Agent 能力上限。需设计 Go Runtime 与现有 gRPC 服务体系的桥接方式。
+    MCP 配置应支持热重载（轮询配置文件变更后自动重连客户端，单客户端
+    连续失败 3 次后放弃直到配置变更），避免每次修改 MCP 配置都需要重启 Runtime。
 - item_id: F-RENDER-001
   title: 富文本渲染（LaTeX、Mermaid、代码高亮）
   priority: high
@@ -26,7 +28,8 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 前端集成 KaTeX/MathJax、Mermaid 渲染器、代码高亮库。 需统一 Markdown 渲染管道，支持按需加载。
+  architecture_notes: 前端集成 KaTeX/MathJax、Mermaid 渲染器、代码高亮库。
+    需统一 Markdown 渲染管道，支持按需加载。
 - item_id: F-CODE-001
   title: 代码块增强（复制、语言检测、行号）
   priority: high
@@ -37,7 +40,8 @@ items:
   status: proposed
   source_ids: []
   complexity: small
-  architecture_notes: 扩展现有 Markdown 渲染的代码块组件，添加复制按钮、 语言自动检测、行号显示。纯前端变更。
+  architecture_notes: 扩展现有 Markdown 渲染的代码块组件，添加复制按钮、
+    语言自动检测、行号显示。纯前端变更。
 - item_id: F-SEARCH-001
   title: Web 搜索集成
   priority: high
@@ -50,7 +54,8 @@ items:
   complexity: medium
   depends_on:
   - F-MCP-001
-  architecture_notes: Runtime 新增 Web 搜索 tool 类型，支持多搜索引擎后端； SDK 暴露搜索配置接口。可复用 MCP tool 框架。
+  architecture_notes: Runtime 新增 Web 搜索 tool 类型，支持多搜索引擎后端；
+    SDK 暴露搜索配置接口。可复用 MCP tool 框架。
 - item_id: F-MARKETPLACE-001
   title: Mod 市场平台
   priority: high
@@ -61,10 +66,10 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 构建 Mod 分发市场（类似 marketplace.dify.ai），支持 Mod 搜索、安装、 评分、版本管理。是 Mod 生态增长的核心基础设施，Dify Plugin 市场已验证 社区驱动增长模式。需与
-    Mod 治理链（签名验证、审计）集成。 prompts.chat 审计补充：参考 PromptMasters 排行榜的游戏化激励机制—— 按投票/质量排名、时间维度（全部/月/周）、奖牌展示。市场应包含 创作者排行、社区评分、Change
-    Request 式协作改进等 UGC 闭环功能。 SD WebUI 审计补充：SD WebUI 扩展通过 Git URL 安装，社区扩展数以百计 （ControlNet、Regional Prompter 等），验证了"低门槛安装+丰富生态"
-    的增长飞轮。Nimi Mod 市场应提供类似的一键安装体验，同时比 SD WebUI 增加签名验证和沙箱隔离等安全保障。
+  architecture_notes: 构建 Mod 分发市场，支持 Mod 搜索、安装、评分、版本管理。
+    是 Mod 生态增长的核心基础设施。需与 Mod 治理链（签名验证、审计）集成。
+    市场应包含创作者排行、社区评分、Change Request 式协作改进等 UGC 闭环功能。
+    提供一键安装体验，同时保留签名验证和沙箱隔离等安全保障。
 - item_id: F-WEBINFER-001
   title: 浏览器端轻量推理
   priority: high
@@ -75,8 +80,11 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 通过 WebGPU / ONNX Runtime / Transformers.js 实现浏览器内轻量 AI 推理， 降低非技术用户上手门槛——浏览器打开即可体验核心功能，无需安装 Go Runtime。
-    适合 VAD（语音活动检测）、轻量 STT、小参数量文本模型等客户端场景。 浏览器端仅作补充通道，Go Runtime 仍为完整功能的主干。 SDK 需抽象 transport 层，使 web 端可选择 browser-local 或
+  architecture_notes: 通过 WebGPU / ONNX Runtime / Transformers.js 实现浏览器内
+    轻量 AI 推理，降低非技术用户上手门槛——浏览器打开即可体验核心功能，
+    无需安装 Go Runtime。适合 VAD（语音活动检测）、轻量 STT、小参数量
+    文本模型等客户端场景。浏览器端仅作补充通道，Go Runtime 仍为完整功能的
+    主干。SDK 需抽象 transport 层，使 web 端可选择 browser-local 或
     gRPC-to-runtime。
 - item_id: F-AVATAR-001
   title: 虚拟形象系统（VRM/Live2D）
@@ -90,8 +98,11 @@ items:
   complexity: large
   depends_on:
   - F-MULTIMODAL-001
-  architecture_notes: 集成虚拟形象渲染系统，支持 VRM 3D 模型或 Live2D 2D 模型，实现唇型同步 和表情驱动。一个会说话、有表情的 AI 角色远比 API 文档有说服力——30 秒内 让新用户产生 Wow 感受。依赖
-    TTS/STT 管道的低延迟保证。Desktop 可利用 现有 Three.js 渲染能力；需评估 WebView 内 3D 渲染性能开销。 是 Nimi Persona（AI 伴侣 demo app）的核心视觉组件。
+  architecture_notes: 集成虚拟形象渲染系统，支持 VRM 3D 模型或 Live2D 2D 模型，
+    实现唇型同步和表情驱动。一个会说话、有表情的 AI 角色远比 API 文档有说服力
+    ——30 秒内让新用户产生 Wow 感受。依赖 TTS/STT 管道的低延迟保证。
+    Desktop 可利用现有 Three.js 渲染能力；需评估 WebView 内 3D 渲染性能开销。
+    是 Nimi Persona（AI 伴侣 demo app）的核心视觉组件。
 - item_id: F-HEARTBEAT-001
   title: 心跳驱动的主动 Agent
   priority: high
@@ -104,10 +115,15 @@ items:
   complexity: medium
   depends_on:
   - F-WFTRIGGER-001
-  architecture_notes: Desktop/SDK 层实现周期性 Agent 自驱任务。用户可配置"心跳模板" （类似 CoPaw 的 HEARTBEAT.md），定义 Agent 定期执行的指令 （如"每天 9 点总结未读邮件"、"每
-    30 分钟检查待办"）。 CoPaw 通过 APScheduler + HEARTBEAT.md + active_hours 窗口已验证 此模式的用户价值——Agent 从被动应答变为主动助理。 Nimi 实现路径：基于 F-WFTRIGGER-001
-    的 Schedule 触发器， Desktop 提供心跳模板编辑 UI + 执行频率配置 + 活跃时段设置。 不需要 Runtime 变更——通过 SDK 定时调用 RuntimeAiService.StreamGenerate 即可实现。结果可推送到
-    Desktop 通知或指定的 IM Channel Mod。
+  architecture_notes: Desktop/SDK 层实现周期性 Agent 自驱任务。用户可配置"心跳模板"，
+    定义 Agent 定期执行的指令（如"每天 9 点总结未读邮件"、"每 30 分钟检查待办"）。
+    Agent 从被动应答变为主动助理。实现路径：基于 F-WFTRIGGER-001 的 Schedule
+    触发器，Desktop 提供心跳模板编辑 UI + 执行频率配置 + 活跃时段设置。
+    不需要 Runtime 变更——通过 SDK 定时调用 RuntimeAiService.StreamGenerate
+    即可实现。结果可推送到 Desktop 通知或指定的 IM Channel Mod。
+    进一步演化方向：将 system prompt + tool 授权 + 配置 schema + 领域知识
+    打包为独立可安装的 "Capability Pack"，通过 Mod 市场分发，实现预打包的
+    自主能力单元。与 F-MARKETPLACE-001 和 F-PERSONA-001 互补。
 - item_id: F-AIMETA-001
   title: AI 产物元数据标准
   priority: high
@@ -118,11 +134,16 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: SDK 层定义统一的 AI 产物元数据格式，所有 AI 生成内容（图像、音频、视频、文本） 嵌入生成参数元数据，支持"一键复现"。SD WebUI 将生成参数（模型名、采样器、 步数、CFG Scale、种子、提示词等）嵌入
-    PNG chunks / EXIF，用户拖拽图像到 UI 即可恢复所有参数精确复现——这是极佳的 UX 模式。 Nimi 实现路径：(1) SDK 定义 AiArtifactMetadata 类型（model_id、provider、
-    route_policy、parameters map、seed、timestamp、workflow_id 等）； (2) RuntimeAiService 返回的每个响应包含 generation_metadata 字段； (3)
-    SDK AI Provider 自动将 metadata 附着到产物；(4) Desktop 实现 拖拽/粘贴产物自动解析 metadata 并还原参数的 UX。 图像格式参考 SD WebUI：PNG text chunks 嵌入 JSON
-    化的参数； 音频/视频可使用容器格式的 metadata tag。元数据标准应版本化 （metadata_version 字段），确保向前兼容。
+  architecture_notes: SDK 层定义统一的 AI 产物元数据格式，所有 AI 生成内容
+    （图像、音频、视频、文本）嵌入生成参数元数据，支持"一键复现"。
+    实现路径：(1) SDK 定义 AiArtifactMetadata 类型（model_id、provider、
+    route_policy、parameters map、seed、timestamp、workflow_id 等）；
+    (2) RuntimeAiService 返回的每个响应包含 generation_metadata 字段；
+    (3) SDK AI Provider 自动将 metadata 附着到产物；
+    (4) Desktop 实现拖拽/粘贴产物自动解析 metadata 并还原参数的 UX。
+    图像格式：PNG text chunks 嵌入 JSON 化的参数；
+    音频/视频可使用容器格式的 metadata tag。元数据标准应版本化
+    （metadata_version 字段），确保向前兼容。
 - item_id: F-MULTIMODAL-001
   title: 多模态 AI 能力（TTS/STT/图像/视频生成）
   priority: high
@@ -134,10 +155,12 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: Runtime 扩展 AI 推理管道支持多模态输入输出：TTS（文字转语音）、STT（语音转文字）、 图像生成/理解、视频生成。SDK 暴露多模态调用接口；Desktop 提供语音交互和媒体预览 UI。
-    基于多模态 Provider 审计（MiniMax、火山引擎等）的能力矩阵，设计统一的多模态抽象层。 是虚拟形象系统（F-AVATAR-001）唇型同步和语音交互的前置能力。 SD WebUI 审计补充：SD WebUI 在图像生成单模态上的深度（25+
-    采样器、LoRA 热注入、 Highres Fix 两阶段管线、注意力权重语法 (text:1.5)、步中调度 [from:to:0.5]、 组合扩散 AND 语法）揭示了单模态专业化的巨大价值。Nimi 多模态层应为每种 模态预留足够的参数控制空间（如图像生成的采样器、步数、CFG
-    Scale 等）， 而非仅传递提示词文本。
+  architecture_notes: Runtime 扩展 AI 推理管道支持多模态输入输出：TTS（文字转语音）、
+    STT（语音转文字）、图像生成/理解、视频生成。SDK 暴露多模态调用接口；
+    Desktop 提供语音交互和媒体预览 UI。基于多模态 Provider 审计的能力矩阵，
+    设计统一的多模态抽象层。是虚拟形象系统（F-AVATAR-001）唇型同步和语音交互
+    的前置能力。多模态层应为每种模态预留足够的参数控制空间（如图像生成的
+    采样器、步数、CFG Scale 等），而非仅传递提示词文本。
 - item_id: F-RAG-001
   title: 知识库/RAG 系统
   priority: medium
@@ -151,7 +174,8 @@ items:
   complexity: large
   depends_on:
   - F-DOCPROC-001
-  architecture_notes: Runtime 需引入向量存储和检索管道；SDK 暴露知识库 CRUD； Desktop 提供文档上传和知识库管理 UI。与 RuntimeKnowledgeService 对齐。
+  architecture_notes: Runtime 需引入向量存储和检索管道；SDK 暴露知识库 CRUD；
+    Desktop 提供文档上传和知识库管理 UI。与 RuntimeKnowledgeService 对齐。
 - item_id: F-DOCPROC-001
   title: 文档处理 Pipeline
   priority: medium
@@ -161,7 +185,8 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 新增文档解析管道，支持 PDF/DOCX/HTML 提取。 作为 RAG 的前置依赖，独立于检索系统。
+  architecture_notes: Runtime 新增文档解析管道，支持 PDF/DOCX/HTML 提取。
+    作为 RAG 的前置依赖，独立于检索系统。
 - item_id: F-DEVPROBE-001
   title: 设备能力发现与报告
   priority: medium
@@ -172,11 +197,16 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 增加设备能力发现 RPC，向 SDK/App 层报告本地硬件环境信息： GPU 型号、显存容量、支持的精度（FP16/BF16/FP8）、可用计算后端 （CUDA/MPS/XPU/NPU/CPU）、当前显存占用等。
-    SD WebUI 的 devices.py 实现了 CUDA/MPS/XPU/NPU/CPU 五种后端的 统一抽象层（get_optimal_device_name → torch_gc → autocast）， /api/memory
-    端点实时报告 VRAM 使用（Active/Reserved/System）。 Nimi 实现路径：(1) RuntimeAuditService 或新增 RuntimeSystemService 增加 GetDeviceCapabilities
-    RPC；(2) Proto 定义 DeviceCapabilities 消息（gpu_name、vram_total_mb、vram_used_mb、compute_backends、 supported_dtypes、engine_status
-    map）；(3) SDK 暴露查询接口； (4) Desktop runtime-config UI 展示设备信息面板。 即使推理委托给 LocalAI/Nexa，Runtime 也应能准确报告设备能力， 帮助 Mod 和用户选择合适的模型规格。
+  architecture_notes: Runtime 增加设备能力发现 RPC，向 SDK/App 层报告本地硬件环境信息：
+    GPU 型号、显存容量、支持的精度（FP16/BF16/FP8）、可用计算后端
+    （CUDA/MPS/XPU/NPU/CPU）、当前显存占用等。实现路径：
+    (1) RuntimeAuditService 或新增 RuntimeSystemService 增加
+    GetDeviceCapabilities RPC；(2) Proto 定义 DeviceCapabilities 消息
+    （gpu_name、vram_total_mb、vram_used_mb、compute_backends、
+    supported_dtypes、engine_status map）；(3) SDK 暴露查询接口；
+    (4) Desktop runtime-config UI 展示设备信息面板。即使推理委托给
+    LocalAI/Nexa，Runtime 也应能准确报告设备能力，帮助 Mod 和用户
+    选择合适的模型规格。
 - item_id: F-TURNHOOK-001
   title: turn-hook 精细拦截点增强
   priority: medium
@@ -187,11 +217,14 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 增强 nimi-hook 的 turn-hook 子系统，增加 streaming chunk 级别和 tool call 级别的精细拦截点。当前 turn-hook 在对话级别操作， 无法在推理过程中拦截和修改
-    AI 行为。 SD WebUI 在推理管线中有 20+ callback hooks（on_cfg_denoiser、 on_cfg_denoised、on_extra_noise、on_before_image_saved 等）， 允许扩展在扩散循环的每一步拦截和修改张量。这种"推理循环内部挂钩"
-    模式是 SD WebUI 扩展生态繁荣的技术基础——ControlNet 就是通过 cfg_denoiser hook 注入控制信号。 Nimi 不需要张量级别的 hook（推理在引擎内部），但应在 SDK streaming 层提供：(1)
-    on_stream_chunk — 每个 streaming token/chunk 到达时触发， Mod 可修改或过滤内容；(2) on_tool_call — AI 发起 tool call 时触发， Mod 可拦截、修改参数或拒绝；(3)
-    on_generation_complete — 完整响应 生成后触发，Mod 可追加后处理。(4) on_before_send — 消息发送到 Runtime 前触发，Mod 可注入上下文或修改提示词。这些 hook 在 SDK ai-provider
+  architecture_notes: 增强 nimi-hook 的 turn-hook 子系统，增加 streaming chunk 级别
+    和 tool call 级别的精细拦截点。当前 turn-hook 在对话级别操作，无法在推理
+    过程中拦截和修改 AI 行为。推理管线内部的精细挂钩是扩展生态繁荣的技术基础。
+    应在 SDK streaming 层提供：(1) on_stream_chunk — 每个 streaming
+    token/chunk 到达时触发，Mod 可修改或过滤内容；(2) on_tool_call — AI 发起
+    tool call 时触发，Mod 可拦截、修改参数或拒绝；(3) on_generation_complete
+    — 完整响应生成后触发，Mod 可追加后处理；(4) on_before_send — 消息发送到
+    Runtime 前触发，Mod 可注入上下文或修改提示词。这些 hook 在 SDK ai-provider
     层实现，通过 nimi-hook event-bus 分发给订阅的 Mod。
 - item_id: F-IMGGEN-001
   title: 专业图像生成 Mod
@@ -205,11 +238,15 @@ items:
   depends_on:
   - F-MULTIMODAL-001
   - F-AIMETA-001
-  architecture_notes: 基于 nimi-hook 开发官方图像生成 Mod，封装 SD/Flux/DALL-E/Midjourney 等后端，提供类 SD WebUI 的专业参数控制体验。 核心功能参考 SD WebUI：(1)
-    采样器选择（Euler、DPM++、UniPC 等）； (2) LoRA/Adapter 浏览和激活（<lora:model:weight> 语法）； (3) Highres Fix 两阶段生成；(4) 负面提示词；(5) 图像到图像转换；
-    (6) 批量生成和种子控制；(7) 生成参数嵌入图像元数据（F-AIMETA-001）。 Mod 通过 nimi-hook 的 data-api 注册图像生成会话数据，ui-extension 注册侧边栏面板和参数控制 UI。推理通过
-    SDK RuntimeAiService.SubmitMediaJob/GetMediaResult 发送到 Runtime，Runtime 路由到 LocalAI（本地 SD 模型）或云端 API。 此 Mod 验证 Nimi 平台承载专业
-    AI 工具的能力——如果一个类 SD WebUI 的体验可以作为 Mod 运行在 Nimi 上，就证明了平台的扩展性。
+  architecture_notes: 基于 nimi-hook 开发官方图像生成 Mod，封装 SD/Flux/DALL-E/
+    Midjourney 等后端，提供专业参数控制体验。核心功能：(1) 采样器选择
+    （Euler、DPM++、UniPC 等）；(2) LoRA/Adapter 浏览和激活；
+    (3) Highres Fix 两阶段生成；(4) 负面提示词；(5) 图像到图像转换；
+    (6) 批量生成和种子控制；(7) 生成参数嵌入图像元数据（F-AIMETA-001）。
+    Mod 通过 nimi-hook 的 data-api 注册图像生成会话数据，ui-extension 注册
+    侧边栏面板和参数控制 UI。推理通过 SDK RuntimeAiService.SubmitMediaJob/
+    GetMediaResult 发送到 Runtime，Runtime 路由到本地 SD 模型或云端 API。
+    此 Mod 验证 Nimi 平台承载专业 AI 工具的能力。
 - item_id: F-MODELUI-001
   title: 多 Provider 模型路由 UI
   priority: medium
@@ -220,7 +257,8 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 前端增强模型选择器，展示多 provider 来源、模型能力、 价格信息。依赖 SDK 已有的 provider 能力查询接口。
+  architecture_notes: 前端增强模型选择器，展示多 provider 来源、模型能力、
+    价格信息。依赖 SDK 已有的 provider 能力查询接口。
 - item_id: F-OAUTH-001
   title: OAuth/OIDC 登录
   priority: medium
@@ -232,8 +270,9 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: Runtime AuthService 扩展 OAuth2/OIDC 登录流； SDK 增加 OAuth token 交换；Desktop 集成 OAuth 回调。 与 K-AUTHSVC-* 和 K-AUTHN-*
-    契约有交集。
+  architecture_notes: Runtime AuthService 扩展 OAuth2/OIDC 登录流；
+    SDK 增加 OAuth token 交换；Desktop 集成 OAuth 回调。
+    与 K-AUTHSVC-* 和 K-AUTHN-* 契约有交集。
 - item_id: F-WFVIS-001
   title: 工作流可视化 DAG 编辑器
   priority: medium
@@ -244,9 +283,11 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 前端引入 DAG 可视化编辑器（基于 React Flow 或类似库）， 支持节点拖拽、连线、配置。依赖 RuntimeWorkflowService 契约。 SD WebUI 审计补充：SD WebUI
-    的竞品 ComfyUI 以节点式工作流编辑器 在图像生成社区取得巨大成功，证明可视化 DAG 编辑对 AI 工作流的用户价值。 Nimi 的 Workflow DAG 后端已支持 14 种节点类型（7 种 AI + 3 种 Transform
-    + 3 种 Control + 1 种 Noop），相比 ComfyUI 仅覆盖图像管线，Nimi 可构建 全模态节点编辑器——同一画布中编排文本生成、图像生成、视频生成、TTS/STT、 嵌入向量等节点，形成差异化竞争力。
+  architecture_notes: 前端引入 DAG 可视化编辑器（基于 React Flow 或类似库），
+    支持节点拖拽、连线、配置。依赖 RuntimeWorkflowService 契约。
+    Nimi 的 Workflow DAG 后端已支持 14 种节点类型（7 种 AI + 3 种 Transform
+    + 3 种 Control + 1 种 Noop），可构建全模态节点编辑器——同一画布中编排
+    文本生成、图像生成、视频生成、TTS/STT、嵌入向量等节点。
 - item_id: F-HITL-001
   title: 人工介入工作流节点
   priority: medium
@@ -258,7 +299,8 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 工作流引擎增加 human-in-the-loop 节点类型； SDK 暴露审批/介入 API；Desktop 提供介入通知和操作 UI。
+  architecture_notes: Runtime 工作流引擎增加 human-in-the-loop 节点类型；
+    SDK 暴露审批/介入 API；Desktop 提供介入通知和操作 UI。
 - item_id: F-MODERATION-001
   title: 内容审核模型类型
   priority: medium
@@ -269,7 +311,8 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 新增 moderation 模型类型，支持输入/输出审核； 集成到对话管道的 pre/post 处理阶段。
+  architecture_notes: Runtime 新增 moderation 模型类型，支持输入/输出审核；
+    集成到对话管道的 pre/post 处理阶段。
 - item_id: F-RERANK-001
   title: 多检索策略 + Rerank
   priority: medium
@@ -281,7 +324,8 @@ items:
   complexity: medium
   depends_on:
   - F-RAG-001
-  architecture_notes: Runtime 检索管道支持多策略（语义、关键词、混合）和 Rerank 模型。 作为 RAG 系统的检索增强，依赖 F-RAG-001。
+  architecture_notes: Runtime 检索管道支持多策略（语义、关键词、混合）和 Rerank 模型。
+    作为 RAG 系统的检索增强，依赖 F-RAG-001。
 - item_id: F-ITER-001
   title: 工作流迭代/循环节点
   priority: medium
@@ -292,8 +336,9 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 工作流引擎增加 Iteration（并行迭代）和 Loop（顺序循环）节点类型。 Dify 的 Iteration 节点支持数组并行处理，是批量任务场景必需能力。 需扩展 RuntimeWorkflowService
-    DAG 节点类型枚举和执行器。
+  architecture_notes: Runtime 工作流引擎增加 Iteration（并行迭代）和 Loop
+    （顺序循环）节点类型，支持数组并行处理，是批量任务场景必需能力。
+    需扩展 RuntimeWorkflowService DAG 节点类型枚举和执行器。
 - item_id: F-WFTRIGGER-001
   title: 工作流触发器系统
   priority: high
@@ -304,9 +349,11 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 工作流增加触发器支持：Webhook（外部事件驱动）、Schedule（定时触发）、 Plugin/Mod（扩展触发）。当前 Nimi 仅支持 SDK 显式调用启动工作流， 缺少事件驱动的自动执行能力。需与
-    Mod event-bus 子系统对齐。 CoPaw 审计补充：CoPaw 的 HEARTBEAT.md + APScheduler 定时触发验证了 Schedule 触发器的用户价值——Agent 定期自驱执行任务（检查邮件、总结新闻），
-    是"主动 Agent"体验的基础能力。与 F-HEARTBEAT-001 互补。
+  architecture_notes: Runtime 工作流增加触发器支持：Webhook（外部事件驱动）、
+    Schedule（定时触发）、Plugin/Mod（扩展触发）。当前 Nimi 仅支持 SDK 显式调用
+    启动工作流，缺少事件驱动的自动执行能力。需与 Mod event-bus 子系统对齐。
+    Schedule 触发器是"主动 Agent"体验的基础能力——Agent 定期自驱执行任务
+    （检查邮件、总结新闻）。与 F-HEARTBEAT-001 互补。
 - item_id: F-CITATION-001
   title: RAG 引用追踪
   priority: medium
@@ -320,8 +367,9 @@ items:
   complexity: medium
   depends_on:
   - F-RAG-001
-  architecture_notes: 检索增强生成的结果标记引用来源（文档名、段落位置、相关度分数）， 前端展示引用标记并支持点击回溯到原始文档。提升 AI 回答的可信度和 可验证性。需在 Runtime 检索管道中增加 citation
-    metadata 传递。
+  architecture_notes: 检索增强生成的结果标记引用来源（文档名、段落位置、相关度分数），
+    前端展示引用标记并支持点击回溯到原始文档。提升 AI 回答的可信度和
+    可验证性。需在 Runtime 检索管道中增加 citation metadata 传递。
 - item_id: F-MULTIROUTE-001
   title: 多数据集智能路由
   priority: medium
@@ -333,8 +381,9 @@ items:
   complexity: medium
   depends_on:
   - F-RAG-001
-  architecture_notes: 当存在多个知识库时，Runtime 自动选择最相关的数据集进行检索。 Dify 使用 ReAct/Function-Call 方式让 LLM 选择数据集。 需在 RuntimeKnowledgeService
-    中增加多数据集路由策略。依赖 F-RAG-001。
+  architecture_notes: 当存在多个知识库时，Runtime 自动选择最相关的数据集进行检索。
+    可使用 ReAct/Function-Call 方式让 LLM 选择数据集。需在
+    RuntimeKnowledgeService 中增加多数据集路由策略。依赖 F-RAG-001。
 - item_id: F-CODEEDIT-001
   title: 内嵌代码编辑器
   priority: medium
@@ -345,9 +394,10 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 集成 Monaco Editor 或同类代码编辑器，用于工作流脚本节点编辑、 Mod 开发调试、配置文件编辑等场景。Dify 在工作流 Code 节点中 使用 Monaco Editor 提供完整的代码编辑体验（语法高亮、自动补全、错误提示）。
-    prompts.chat 审计补充：其 Prompt IDE 在 Monaco 基础上增加了实时代码执行、 类型推导、控制台输出捕获（line/column 映射）、安全沙箱（Function 构造器）， World Studio Mod
-    可参考此模式构建本地 Prompt/脚本开发环境。
+  architecture_notes: 集成 Monaco Editor 或同类代码编辑器，用于工作流脚本节点编辑、
+    Mod 开发调试、配置文件编辑等场景。应提供完整的代码编辑体验（语法高亮、
+    自动补全、错误提示）。可扩展为 Prompt/脚本开发环境，增加实时代码执行、
+    控制台输出捕获、安全沙箱等能力。
 - item_id: F-PROMPTVAR-001
   title: Prompt 变量模板系统
   priority: medium
@@ -358,8 +408,10 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Agent System Prompt 支持动态变量占位符，语法 ${name} 和 ${name:default}。 SDK 提供变量检测（detect）、编译（compile）、规范化（normalize）工具函数。
-    Desktop 在 Agent 配置 UI 中展示变量填充表单。prompts.chat 已验证该语法 经 143k+ Stars 社区大规模使用，支持 6 种变量格式的自动检测和统一规范化。 不影响 Runtime 层——变量替换在
+  architecture_notes: Agent System Prompt 支持动态变量占位符，语法 ${name} 和
+    ${name:default}。SDK 提供变量检测（detect）、编译（compile）、规范化
+    （normalize）工具函数。Desktop 在 Agent 配置 UI 中展示变量填充表单。
+    支持多种变量格式的自动检测和统一规范化。不影响 Runtime 层——变量替换在
     SDK/前端完成后再发送给 Runtime。
 - item_id: F-CHANGEREQ-001
   title: 社区协作贡献机制（Change Request）
@@ -371,9 +423,10 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 为 World 和 Mod 增加 PR 式社区改进提议。非作者用户可对公开 World/Mod 提交 Change Request（包含修改内容、理由说明），作者审核后决定合并或拒绝。 合并后自动生成版本记录。prompts.chat
-    的 ChangeRequest 模型（proposed → approved/rejected + reviewNote）已验证此模式在 UGC 平台的有效性。 需 Realm 层新增 ChangeRequest 实体和 API，前端增加提交/审核
-    UI。
+  architecture_notes: 为 World 和 Mod 增加 PR 式社区改进提议。非作者用户可对公开
+    World/Mod 提交 Change Request（包含修改内容、理由说明），作者审核后决定
+    合并或拒绝。合并后自动生成版本记录。状态流转：proposed → approved/rejected
+    + reviewNote。需 Realm 层新增 ChangeRequest 实体和 API，前端增加提交/审核 UI。
 - item_id: F-LEADERBOARD-001
   title: 创作者排行榜与游戏化
   priority: medium
@@ -384,8 +437,11 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Mod Circle 和 World 展示创作者排行榜，排序维度包括总投票数和人均质量 （votes/count），支持全部/月/周时间筛选。排行榜激励高质量 Mod/World 创作。 prompts.chat
-    的 PromptMasters 已验证游戏化对社区增长的驱动力。 需 Realm 层统计聚合 API，前端排行榜展示组件。纯 Realm + 前端变更， 不涉及 Runtime。
+  architecture_notes: Mod Circle 和 World 展示创作者排行榜，排序维度包括总投票数和
+    人均质量（votes/count），支持全部/月/周时间筛选。排行榜激励高质量
+    Mod/World 创作，游戏化机制对社区增长有强驱动力。
+    需 Realm 层统计聚合 API，前端排行榜展示组件。纯 Realm + 前端变更，
+    不涉及 Runtime。
 - item_id: F-PROMPTHUB-001
   title: 外部 Prompt 源集成
   priority: medium
@@ -398,9 +454,11 @@ items:
   complexity: medium
   depends_on:
   - F-MCP-001
-  architecture_notes: 通过 MCP 或 REST API 接入外部 Prompt 库（如 prompts.chat）作为上游内容源， 形成"发现 Prompt → 本地执行"闭环。初期可作为 Mod 实现（fetch prompts.chat
-    REST API），长期通过 F-MCP-001 的 MCP Client 能力接入其 MCP Server （search_prompts/get_prompt/improve_prompt 等工具）。支持变量填充后 注入 Agent
-    System Prompt 或直接通过 Runtime AI 执行。依赖 F-MCP-001 完成后获得完整 MCP 体验，但 Mod 层 REST 接入可独立先行。
+  architecture_notes: 通过 MCP 或 REST API 接入外部 Prompt 库作为上游内容源，
+    形成"发现 Prompt → 本地执行"闭环。初期可作为 Mod 实现（REST API 对接），
+    长期通过 F-MCP-001 的 MCP Client 能力接入外部 MCP Server。
+    支持变量填充后注入 Agent System Prompt 或直接通过 Runtime AI 执行。
+    依赖 F-MCP-001 完成后获得完整 MCP 体验，但 Mod 层 REST 接入可独立先行。
 - item_id: F-MOBILE-001
   title: 移动端覆盖（iOS/Android）
   priority: medium
@@ -411,8 +469,11 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 通过 Capacitor 或 Tauri Mobile 将桌面 renderer 扩展到 iOS/Android， 实现全平台覆盖（Web + Desktop + Mobile），尽可能复用单一代码库。
-    AI 伴侣场景在移动端有极强需求。Go Runtime 在移动端的可行性需验证—— 可能需要 gomobile 打包为库，或通过 REST 桥接本地 Runtime 实例。 SDK transport 层需适配移动端网络环境（弱网、后台限制）。
+  architecture_notes: 通过 Capacitor 或 Tauri Mobile 将桌面 renderer 扩展到
+    iOS/Android，实现全平台覆盖（Web + Desktop + Mobile），尽可能复用单一
+    代码库。AI 伴侣场景在移动端有极强需求。Go Runtime 在移动端的可行性需验证
+    ——可能需要 gomobile 打包为库，或通过 REST 桥接本地 Runtime 实例。
+    SDK transport 层需适配移动端网络环境（弱网、后台限制）。
 - item_id: F-SOCIALINT-001
   title: 游戏/社交平台集成
   priority: medium
@@ -423,9 +484,11 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 以 Mod 或独立 service 形式提供主流平台集成：Discord Bot、Telegram Bot、 Minecraft 插件、Bilibili 直播互动等。AI 角色可在这些平台中活跃， 利用已有用户群体实现冷启动。SDK
-    需提供 headless 模式（无 UI，纯 API）， Runtime 需支持多实例并发会话。游戏/社交 AI 体验有极强的演示效果和传播力。 CoPaw 审计补充：CoPaw 已实现 5 种 IM Channel（钉钉/飞书/QQ/Discord/iMessage），
-    基于 BaseChannel ABC 的适配器模式验证了 IM 集成的可行性和用户价值。 Nimi 应通过 Mod 而非内置实现 IM Channel，保持 Runtime 纯净性。 见 F-IMCHAN-001 作为 IM 专项条目。
+  architecture_notes: 以 Mod 或独立 service 形式提供主流平台集成：Discord Bot、
+    Telegram Bot、Minecraft 插件、Bilibili 直播互动等。AI 角色可在这些平台中
+    活跃，利用已有用户群体实现冷启动。SDK 需提供 headless 模式（无 UI，纯 API），
+    Runtime 需支持多实例并发会话。应通过 Mod 而非内置实现 IM Channel，
+    保持 Runtime 纯净性。见 F-IMCHAN-001 作为 IM 专项条目。
 - item_id: F-MULTIAGENT-001
   title: 多 Agent 群聊编排
   priority: medium
@@ -437,8 +500,10 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 支持多个 AI Agent 角色与真人用户在同一对话中交互。Runtime 需管理 多 Agent 并发推理调度（发言顺序、注意力分配、角色一致性维护）。 SDK 暴露群聊创建和 Agent 注册接口。Desktop
-    提供多角色聊天 UI。 增长策略 M3 group-chat 验证了该需求：多 AI 角色 + 真人混合聊天 超越传统 1v1 AI 聊天，是社交裂变的关键能力。
+  architecture_notes: 支持多个 AI Agent 角色与真人用户在同一对话中交互。Runtime 需管理
+    多 Agent 并发推理调度（发言顺序、注意力分配、角色一致性维护）。
+    SDK 暴露群聊创建和 Agent 注册接口。Desktop 提供多角色聊天 UI。
+    多 AI 角色 + 真人混合聊天超越传统 1v1 AI 聊天，是社交裂变的关键能力。
 - item_id: F-PERSONA-001
   title: Markdown 人格/记忆编辑系统
   priority: medium
@@ -449,10 +514,13 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Desktop Agent 配置面板提供 Markdown 编辑器，让用户以自然语言编辑 Agent 的人格描述、行为规则和用户画像。CoPaw 通过 SOUL.md（人格定义）、 AGENTS.md（行为规则）、PROFILE.md（用户画像）三个
-    Markdown 文件 实现了完全透明的 Agent 人格系统——用户无需技术知识即可定制 Agent 行为。 Nimi 实现路径：在 Desktop turns/agent-detail 特性中增加 Markdown 人格编辑面板，编辑内容存储为
-    World/Agent 实体的结构化字段， 编译后注入 System Prompt。支持版本历史和模板库。 不涉及 Runtime 变更——人格 Markdown 在 Desktop/SDK 层编译为 System Prompt 后通过
-    RuntimeAiService 发送。
+  architecture_notes: Desktop Agent 配置面板提供 Markdown 编辑器，让用户以自然语言
+    编辑 Agent 的人格描述、行为规则和用户画像。通过人格定义、行为规则、
+    用户画像三个维度实现完全透明的 Agent 人格系统——用户无需技术知识即可
+    定制 Agent 行为。实现路径：在 Desktop agent-detail 特性中增加 Markdown
+    人格编辑面板，编辑内容存储为 World/Agent 实体的结构化字段，编译后注入
+    System Prompt。支持版本历史和模板库。不涉及 Runtime 变更——人格 Markdown
+    在 Desktop/SDK 层编译为 System Prompt 后通过 RuntimeAiService 发送。
 - item_id: F-CTXCOMP-001
   title: 自动上下文压缩
   priority: medium
@@ -463,10 +531,12 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: SDK/Desktop 层实现对话上下文自动压缩。当对话 token 数接近模型 上下文窗口限制时（如 70% 阈值），自动调用 LLM 生成历史摘要， 替换旧消息，保留最近 N 轮对话的完整性。 CoPaw
-    已验证此方案：MemoryCompactionHook 在 pre_reasoning 阶段 检测 token 数 → 超阈值后用临时 ReActAgent 生成摘要 → 旧消息标记 COMPRESSED → 摘要作为合成消息注入。保留最近
-    3 轮对话完整性。 Nimi 实现路径：SDK ai-provider 适配器中增加可选的上下文管理中间件， Desktop turns 特性管理压缩状态和摘要缓存。压缩策略可配置： 阈值比例、保留轮数、摘要模型（可选用轻量模型降低成本）。
-    不涉及 Runtime 变更——压缩在客户端完成后发送精简的消息列表。
+  architecture_notes: SDK/Desktop 层实现对话上下文自动压缩。当对话 token 数接近模型
+    上下文窗口限制时（如 70% 阈值），自动调用 LLM 生成历史摘要，替换旧消息，
+    保留最近 N 轮对话的完整性。实现路径：SDK ai-provider 适配器中增加可选的
+    上下文管理中间件，Desktop turns 特性管理压缩状态和摘要缓存。
+    压缩策略可配置：阈值比例、保留轮数（默认 3 轮）、摘要模型（可选用轻量
+    模型降低成本）。不涉及 Runtime 变更——压缩在客户端完成后发送精简的消息列表。
 - item_id: F-IMCHAN-001
   title: IM Channel Mod（钉钉/飞书/Discord）
   priority: medium
@@ -479,11 +549,15 @@ items:
   complexity: medium
   depends_on:
   - F-SOCIALINT-001
-  architecture_notes: 以官方 Mod 形式提供主流 IM 平台集成，让用户在钉钉、飞书、QQ、 Discord、iMessage 等现有聊天工具中与 Nimi Agent 对话。 CoPaw 已通过 Channel 系统实现
-    5 种 IM 集成，基于 BaseChannel ABC 适配器模式（consume_one 接收消息 → _process 调用 Agent → 渲染响应）， 验证了"Agent 嵌入用户 IM"的低门槛体验价值。 Nimi 实现路径：通过
-    Mod 而非内置实现，保持 Runtime 纯净性。 Mod 使用 SDK headless 模式连接 Runtime，通过 nimi-hook event-bus 接收/发送消息。每个 IM 平台一个独立 Mod（dingtalk-channel、
-    lark-channel、discord-channel 等），通过 Mod 市场分发。 需 SDK 提供稳定的 headless 消息收发接口。与 F-SOCIALINT-001 互补—— F-SOCIALINT-001 覆盖游戏/社交平台，本条目聚焦工作
-    IM 场景。
+  architecture_notes: 以官方 Mod 形式提供主流 IM 平台集成，让用户在钉钉、飞书、QQ、
+    Discord、iMessage 等现有聊天工具中与 Nimi Agent 对话。基于适配器模式
+    （接收消息 → 调用 Agent → 渲染响应）实现"Agent 嵌入用户 IM"的低门槛
+    体验。通过 Mod 而非内置实现，保持 Runtime 纯净性。Mod 使用 SDK headless
+    模式连接 Runtime，通过 nimi-hook event-bus 接收/发送消息。每个 IM 平台
+    一个独立 Mod（dingtalk-channel、lark-channel、discord-channel 等），
+    通过 Mod 市场分发。需 SDK 提供稳定的 headless 消息收发接口。
+    与 F-SOCIALINT-001 互补——F-SOCIALINT-001 覆盖游戏/社交平台，
+    本条目聚焦工作 IM 场景。
 - item_id: F-EMBED-001
   title: 内容嵌入预览（Embed）
   priority: low
@@ -493,8 +567,10 @@ items:
   status: proposed
   source_ids: []
   complexity: small
-  architecture_notes: 支持将 World/Agent 的预览卡片通过 iframe 嵌入外部网站，用于推广和分享。 提供 Embed 设计器 UI，可配置主题（亮/暗/自动）、主色调、尺寸。 prompts.chat 的
-    Embed 系统支持丰富的 URL 参数定制（颜色/上下文/工具列表等）。 纯 Web 端变更，通过独立路由 /embed/[id] 提供嵌入页面。
+  architecture_notes: 支持将 World/Agent 的预览卡片通过 iframe 嵌入外部网站，
+    用于推广和分享。提供 Embed 设计器 UI，可配置主题（亮/暗/自动）、主色调、
+    尺寸，支持丰富的 URL 参数定制。纯 Web 端变更，通过独立路由 /embed/[id]
+    提供嵌入页面。
 - item_id: F-WEBHOOK-001
   title: Webhook 事件通知
   priority: low
@@ -505,9 +581,10 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 平台事件（Mod 安装/更新、World 发布/变更、审计告警等）通过出站 HTTP Webhook 通知外部系统。管理员配置 Webhook URL、触发事件类型、请求方法、 自定义 Header
-    和 Payload 模板。需包含 SSRF 防护（阻断私有网络 IP）。 prompts.chat 的 WebhookConfig 模型（name/url/method/headers/events/payload） 是良好参考。可基于
-    RuntimeAuditService 事件流实现，SDK 暴露配置接口。
+  architecture_notes: 平台事件（Mod 安装/更新、World 发布/变更、审计告警等）通过
+    出站 HTTP Webhook 通知外部系统。管理员配置 Webhook URL、触发事件类型、
+    请求方法、自定义 Header 和 Payload 模板。需包含 SSRF 防护（阻断私有
+    网络 IP）。可基于 RuntimeAuditService 事件流实现，SDK 暴露配置接口。
 - item_id: F-SANDBOX-001
   title: 代码执行沙箱
   priority: low
@@ -515,12 +592,24 @@ items:
   target_layers:
   - runtime
   status: proposed
-  source_ids: []
+  source_ids:
+  - RESEARCH-OFANG-001
   complexity: large
-  architecture_notes: Runtime 提供安全的代码执行环境，支持 Python/JS。 实现路径选项：(1) 容器化沙箱（Docker/nsjail）——隔离性最强但依赖 容器运行时，Desktop 场景部署成本高；(2)
-    WASM 沙箱（Wazero/Wasmtime）—— Go 原生集成，跨平台，启动快，但语言生态受限；(3) V8 isolate（用于 JS）—— 轻量但仅支持 JavaScript。推荐 WASM 优先（与 Go Runtime 集成最自然），
-    Python 通过 Pyodide-WASM 桥接。资源限制：CPU 时间上限、内存上限、 文件系统隔离（只读挂载工作目录）、网络默认禁止。 与 F-CODEEDIT-001（内嵌编辑器）有架构交叉——编辑器产出代码，沙箱执行代码。 安全性要求极高，需独立安全审计后方可进入
-    accepted 状态。
+  architecture_notes: Runtime 提供安全的代码执行环境，支持 Python/JS。
+    实现路径选项：(1) 容器化沙箱（Docker/nsjail）——隔离性最强但依赖
+    容器运行时，Desktop 场景部署成本高；(2) WASM 沙箱（Wazero/Wasmtime）
+    —— Go 原生集成，跨平台，启动快，但语言生态受限；(3) V8 isolate（用于 JS）
+    —— 轻量但仅支持 JavaScript。推荐 WASM 优先（与 Go Runtime 集成最自然），
+    Python 通过 Pyodide-WASM 桥接。资源限制：CPU 时间上限、内存上限、
+    文件系统隔离（只读挂载工作目录）、网络默认禁止。
+    与 F-CODEEDIT-001（内嵌编辑器）有架构交叉——编辑器产出代码，沙箱执行代码。
+    安全性要求极高，需独立安全审计后方可进入 accepted 状态。
+    若采用 WASM 沙箱，应实现"双计量"(dual metering) 模型——Fuel 计量
+    （CPU 指令预算，每条 WASM 指令消耗 fuel）和 Epoch 计量（wall-clock 超时，
+    通过独立 watchdog 线程中断执行）。双计量防止两类攻击：(1) CPU 密集型循环
+    （fuel 耗尽触发 trap）；(2) 阻塞等待/sleep（epoch 超时中断）。
+    线性内存应有上限（如 16MB），deny-by-default capability 在 host function
+    调用前检查。
 - item_id: F-CRDT-001
   title: 协作编辑
   priority: low
@@ -532,10 +621,15 @@ items:
   status: proposed
   source_ids: []
   complexity: large
-  architecture_notes: 基于 CRDT 的多人协作编辑。CRDT 库选型：Yjs（JS 生态最成熟， 支持 y-webrtc/y-websocket 多种 provider）或 Automerge（更纯粹的 CRDT 实现，JSON
-    友好）。推荐 Yjs——社区活跃、文档丰富、 与 ProseMirror/Monaco 等编辑器有成熟绑定。 与现有 Nimi Realtime WebSocket 服务有架构交叉——需评估是否复用 Realtime 连接作为 Yjs
-    transport provider，还是独立建立 CRDT 同步通道。 复用 Realtime 可减少连接数，但需扩展 Realtime 协议以支持 CRDT 二进制消息。 复杂度较高（large）的主要原因：冲突解决语义定义、离线编辑同步、
-    光标感知（awareness）、撤销/重做栈管理。建议作为长期储备， 待 Realtime 服务稳定后再评估毕业。
+  architecture_notes: 基于 CRDT 的多人协作编辑。CRDT 库选型：Yjs（JS 生态最成熟，
+    支持 y-webrtc/y-websocket 多种 provider）或 Automerge（更纯粹的 CRDT 实现，
+    JSON 友好）。推荐 Yjs——社区活跃、文档丰富、与 ProseMirror/Monaco 等
+    编辑器有成熟绑定。与现有 Nimi Realtime WebSocket 服务有架构交叉——需评估
+    是否复用 Realtime 连接作为 Yjs transport provider，还是独立建立 CRDT
+    同步通道。复用 Realtime 可减少连接数，但需扩展 Realtime 协议以支持 CRDT
+    二进制消息。复杂度较高（large）的主要原因：冲突解决语义定义、离线编辑同步、
+    光标感知（awareness）、撤销/重做栈管理。建议作为长期储备，待 Realtime
+    服务稳定后再评估毕业。
 - item_id: F-SCIM-001
   title: SCIM 企业用户配置
   priority: low
@@ -548,7 +642,8 @@ items:
   complexity: medium
   depends_on:
   - F-OAUTH-001
-  architecture_notes: Runtime 支持 SCIM 2.0 协议用于企业用户/组同步。 依赖 OAuth/OIDC 作为认证基础。
+  architecture_notes: Runtime 支持 SCIM 2.0 协议用于企业用户/组同步。
+    依赖 OAuth/OIDC 作为认证基础。
 - item_id: F-EMBEDCACHE-001
   title: 嵌入向量缓存
   priority: low
@@ -560,7 +655,9 @@ items:
   complexity: small
   depends_on:
   - F-RAG-001
-  architecture_notes: Runtime 缓存已计算的嵌入向量，避免重复调用 Embedding API。 Dify 通过嵌入缓存实现成本优化，对高频知识库操作场景尤为重要。 可基于内容哈希作为缓存键，本地 LRU 缓存或持久化存储。
+  architecture_notes: Runtime 缓存已计算的嵌入向量，避免重复调用 Embedding API。
+    对高频知识库操作场景尤为重要。可基于内容哈希作为缓存键，本地 LRU 缓存
+    或持久化存储。
 - item_id: F-METAFILTER-001
   title: LLM 驱动元数据过滤
   priority: low
@@ -572,7 +669,9 @@ items:
   complexity: medium
   depends_on:
   - F-RAG-001
-  architecture_notes: 在 RAG 检索前，使用 LLM 从用户查询中提取结构化过滤条件 （如时间范围、文档类型、作者等），缩小检索范围提升精度。 Dify 的 LLM 驱动过滤器生成是高级 RAG 能力。依赖 F-RAG-001。
+  architecture_notes: 在 RAG 检索前，使用 LLM 从用户查询中提取结构化过滤条件
+    （如时间范围、文档类型、作者等），缩小检索范围提升精度。
+    是高级 RAG 能力。依赖 F-RAG-001。
 - item_id: F-LITESDK-001
   title: 超轻量 AI SDK
   priority: low
@@ -582,8 +681,10 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 减少 SDK 打包体积（当前依赖 Vercel AI SDK，体积较大），支持更多 JS 运行时（Cloudflare Workers、Deno、Bun 等边缘环境）。 行业中已有体积约 Vercel
-    AI SDK 1/40 的实现。需评估与现有 AI Provider 适配器的兼容性，可能需要自研核心流式解析层替换 Vercel AI SDK。
+  architecture_notes: 减少 SDK 打包体积（当前依赖 Vercel AI SDK，体积较大），
+    支持更多 JS 运行时（Cloudflare Workers、Deno、Bun 等边缘环境）。
+    需评估与现有 AI Provider 适配器的兼容性，可能需要自研核心流式解析层
+    替换 Vercel AI SDK。
 - item_id: F-IDEEXT-001
   title: IDE 开发者扩展
   priority: low
@@ -593,10 +694,12 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: 开发 VS Code 扩展，让开发者在 IDE 中即可与 Nimi AI 交互、调试 Mod、 预览工作流。扩展通过 SDK headless 模式连接本地 Runtime，提供 代码补全（基于本地模型）、Mod
-    脚手架生成、nimi-hook API 文档内联等功能。 是 Mod 开发者生态的关键入门工具，与 F-CODEEDIT-001（内嵌编辑器）互补。
+  architecture_notes: 开发 VS Code 扩展，让开发者在 IDE 中即可与 Nimi AI 交互、
+    调试 Mod、预览工作流。扩展通过 SDK headless 模式连接本地 Runtime，提供
+    代码补全（基于本地模型）、Mod 脚手架生成、nimi-hook API 文档内联等功能。
+    是 Mod 开发者生态的关键入门工具，与 F-CODEEDIT-001（内嵌编辑器）互补。
 - item_id: F-SDENGINE-001
-  title: SD WebUI 引擎集成
+  title: Stable Diffusion 引擎集成
   priority: low
   category: integration
   target_layers:
@@ -606,12 +709,16 @@ items:
   complexity: large
   depends_on:
   - F-IMGGEN-001
-  architecture_notes: 将 SD WebUI 的 REST API 作为 Nimi Runtime 的一种 engine backend （与 LocalAI、Nexa 并列），直接复用 SD 生态的模型、LoRA、采样器。
-    SD WebUI 提供完整的 REST API（POST /api/txt2img、POST /api/img2img、 POST /api/extra-single-image 等），支持 Base64 图像传输和 Pydantic
-    自动生成的请求/响应 Schema。 Runtime 实现路径：(1) 新增 engine type "sdwebui"；(2) Runtime 通过 HTTP 调用 SD WebUI API，转换请求/响应为 RuntimeAiService.SubmitMediaJob/GetMediaResult
-    的 proto 格式；(3) 模型管理映射：SD WebUI 的 /api/sd-models 对应 RuntimeModelService 的模型列表；(4) 进度转换：SD WebUI 的 /api/progress 轮询映射为 gRPC
-    streaming 事件。 优势：直接复用 SD 社区庞大的模型/LoRA/扩展生态，无需 Nimi 自行实现 扩散推理。劣势：增加一个外部进程依赖，需要用户单独安装 SD WebUI。 适用场景：对图像生成有专业需求的高级用户。 长期考虑：AGPL-3.0
-    许可限制——Nimi 调用 SD WebUI API 不构成衍生作品 （独立进程通过网络 API 通信），但需法律确认。
+  architecture_notes: 将 Stable Diffusion 推理服务的 REST API 作为 Nimi Runtime 的
+    一种 engine backend（与 LocalAI、Nexa 并列），直接复用 SD 生态的模型、
+    LoRA、采样器。Runtime 实现路径：(1) 新增 engine type "sdwebui"；
+    (2) Runtime 通过 HTTP 调用 SD 推理 API（txt2img/img2img/extra-single-image），
+    转换请求/响应为 RuntimeAiService.SubmitMediaJob/GetMediaResult 的 proto
+    格式；(3) 模型管理映射：SD 模型列表对应 RuntimeModelService 的模型列表；
+    (4) 进度转换：轮询进度映射为 gRPC streaming 事件。
+    优势：直接复用庞大的 SD 社区模型/LoRA/扩展生态。
+    劣势：增加一个外部进程依赖。适用场景：对图像生成有专业需求的高级用户。
+    长期考虑：需确认 AGPL-3.0 许可对 API 调用方式的影响。
 - item_id: F-MODELMART-001
   title: 模型/LoRA/工作流交易市场
   priority: low
@@ -624,10 +731,15 @@ items:
   complexity: large
   depends_on:
   - F-MARKETPLACE-001
-  architecture_notes: 在 Mod 市场（F-MARKETPLACE-001）基础上扩展模型/LoRA/Workflow 交易市场， 结合 Nimi 的经济系统构建创作者经济闭环。 SD 生态中 CivitAI 是最成功的模型市场——提供模型搜索、下载、评分、
-    版本管理、创作者 profile、赞助/打赏，已成为 SD 社区的核心基础设施。 Nimi 的差异化：(1) 不限于图像模型，覆盖全模态（文本/图像/视频/TTS 模型、 LoRA、Workflow DAG 模板、Agent 人格配置）；(2)
-    内置经济系统 （gift/asset/transaction），支持付费模型和创作者分成； (3) 模型安装与 Runtime 深度集成——市场中点击"安装"直接触发 RuntimeModelService.PullModel，无需手动下载。
-    依赖 F-MARKETPLACE-001 的 Mod 市场基础设施（搜索、评分、版本管理）， 在其上增加模型/工作流特定的展示、安装、许可证管理功能。
+  architecture_notes: 在 Mod 市场（F-MARKETPLACE-001）基础上扩展模型/LoRA/Workflow
+    交易市场，结合 Nimi 的经济系统构建创作者经济闭环。Nimi 的差异化：
+    (1) 不限于图像模型，覆盖全模态（文本/图像/视频/TTS 模型、LoRA、
+    Workflow DAG 模板、Agent 人格配置）；(2) 内置经济系统
+    （gift/asset/transaction），支持付费模型和创作者分成；
+    (3) 模型安装与 Runtime 深度集成——市场中点击"安装"直接触发
+    RuntimeModelService.PullModel，无需手动下载。依赖 F-MARKETPLACE-001 的
+    Mod 市场基础设施（搜索、评分、版本管理），在其上增加模型/工作流特定的
+    展示、安装、许可证管理功能。
 - item_id: F-VRAMGOV-001
   title: 模型级显存仲裁
   priority: low
@@ -639,10 +751,13 @@ items:
   complexity: large
   depends_on:
   - F-DEVPROBE-001
-  architecture_notes: Runtime 层实现模型级显存仲裁策略，当多个模型或多个并发请求竞争 有限的 GPU 显存时，Runtime 主动管理模型的加载/卸载。 SD WebUI 的 lowvram.py 实现了精妙的 Forward
-    Pre-Hook 显存管理： 通过 PyTorch 的 register_forward_pre_hook，在模块前向传播前自动 将上一个模块从 GPU 移到 CPU、将当前模块从 CPU 移到 GPU，实现 "模块级按需加载"。三级策略：lowvram（4GB+，所有模块按需交换）、
-    medvram（8GB+，UNet 驻留其他按需）、full（24GB+，全部驻留）。 Nimi 不直接操作 PyTorch 张量（推理委托给引擎），但可在 Runtime 层 实现模型级仲裁：(1) 跟踪每个已加载模型的估计显存占用；
-    (2) 当新请求的模型显存需求超过剩余容量时，按 LRU 卸载低优先级模型； (3) 支持模型优先级配置（常用模型保持 warm，低频模型 cold start）； (4) 通过 F-DEVPROBE-001 获取的设备能力信息驱动仲裁决策。
+  architecture_notes: Runtime 层实现模型级显存仲裁策略，当多个模型或多个并发请求
+    竞争有限的 GPU 显存时，Runtime 主动管理模型的加载/卸载。
+    实现路径：(1) 跟踪每个已加载模型的估计显存占用；(2) 当新请求的模型显存
+    需求超过剩余容量时，按 LRU 卸载低优先级模型；(3) 支持模型优先级配置
+    （常用模型保持 warm，低频模型 cold start）；(4) 通过 F-DEVPROBE-001
+    获取的设备能力信息驱动仲裁决策。多级策略：lowvram（4GB+，所有模型按需
+    交换）、medvram（8GB+，主模型驻留其他按需）、full（24GB+，全部驻留）。
     此能力仅在 LocalAI/Nexa 原生显存管理不能满足需求时才需要实现。
 - item_id: F-OTEL-001
   title: OpenTelemetry 可观测性
@@ -654,4 +769,98 @@ items:
   status: proposed
   source_ids: []
   complexity: medium
-  architecture_notes: Runtime 和 SDK 集成 OpenTelemetry traces/metrics/logs。 Runtime Go 侧使用 otel-go SDK，TypeScript SDK 侧使用 @opentelemetry/api。
+  architecture_notes: Runtime 和 SDK 集成 OpenTelemetry traces/metrics/logs。
+    Runtime Go 侧使用 otel-go SDK，TypeScript SDK 侧使用 @opentelemetry/api。
+- item_id: F-MERKLE-001
+  title: Merkle 防篡改审计链
+  priority: medium
+  category: security
+  target_layers:
+  - runtime
+  - sdk
+  status: proposed
+  source_ids:
+  - RESEARCH-OFANG-001
+  complexity: medium
+  architecture_notes: Runtime 审计日志增加 Merkle hash chain 防篡改能力。当前 Nimi
+    的 RuntimeAuditService 基于事件总线记录审计事件，但日志本身可被修改或删除，
+    缺乏防篡改保证。实现路径：(1) RuntimeAuditService 每条审计事件新增
+    prev_hash 和 current_hash 字段；(2) current_hash = SHA256(prev_hash
+    + event_payload + timestamp)；(3) 新增 VerifyAuditChain RPC 验证链条
+    完整性；(4) SDK 暴露审计链验证接口。适用于合规敏感场景（经济交易、
+    权限变更、AI 决策记录）。不影响非安全关键路径的性能——仅对 audit write
+    增加一次 SHA256 计算（纳秒级）。与 F-OTEL-001 互补：OTel 负责可观测性，
+    Merkle chain 负责不可否认性。
+- item_id: F-OAICOMPAT-001
+  title: OpenAI-Compatible API 兼容层
+  priority: medium
+  category: integration
+  target_layers:
+  - runtime
+  - sdk
+  status: proposed
+  source_ids:
+  - RESEARCH-OFANG-001
+  complexity: medium
+  architecture_notes: Runtime 暴露 OpenAI-compatible REST API（/v1/chat/completions、
+    /v1/models、/v1/embeddings），作为 gRPC 之外的可选接入方式，降低开发者
+    迁移成本——任何已对接 OpenAI API 的应用无需修改代码即可切换到 Nimi
+    Runtime 后端。实现路径：(1) Runtime 新增 HTTP server（与 gRPC server 并行）
+    或在现有 gRPC-Gateway 上扩展 OpenAI 兼容路由；(2) 请求翻译层：OpenAI
+    ChatCompletion 请求 → RuntimeAiService.Generate/StreamGenerate gRPC 调用；
+    (3) 响应翻译层：gRPC 响应 → OpenAI 格式 JSON/SSE；(4) 模型映射：
+    /v1/models 返回 Runtime 已注册模型列表，模型 ID 映射到 Nimi 的
+    provider + model 组合。优势：让 Nimi Runtime 成为本地 AI 网关，
+    可被 Cursor/Continue/Aider 等 IDE 工具直接使用，极大扩展 Runtime
+    的使用场景。不需要 SDK 变更——兼容层是 Runtime 独立暴露的 HTTP 端点。
+    与 F-MCP-001 互补：MCP 面向 Agent 工具集成，OpenAI-compat 面向推理
+    API 集成。
+- item_id: F-ATA-001
+  title: Agent-to-Agent 跨实例通信协议
+  priority: low
+  category: integration
+  target_layers:
+  - runtime
+  - sdk
+  status: proposed
+  source_ids:
+  - RESEARCH-OFANG-001
+  complexity: large
+  depends_on:
+  - F-MCP-001
+  architecture_notes: 实现 Agent-to-Agent (A2A) 协议，支持不同 Nimi 实例上的
+    Agent 发现和任务委派。实现路径：(1) Runtime 暴露 AgentCard 端点
+    （/.well-known/agent.json），声明 Agent 能力、接受的任务类型、认证要求；
+    (2) 新增 A2A Task RPC（SubmitA2ATask / GetA2ATaskStatus），处理跨实例
+    任务委派；(3) SDK 增加 A2A 客户端，可发现和调用远端 Agent；
+    (4) 安全层：基于 HMAC 或 mTLS 的相互认证，防止未授权的 Agent 调用。
+    与 F-MULTIAGENT-001 的区别：F-MULTIAGENT-001 是同实例内多 Agent 群聊编排，
+    本条目是跨实例/跨网络的 Agent 发现和任务委派。依赖 F-MCP-001 作为能力
+    描述和工具暴露的基础协议。复杂度大的原因：网络发现、认证、任务状态同步、
+    错误恢复均需从头设计。建议待行业 A2A 标准成熟后再评估毕业。
+- item_id: F-MODELCAT-001
+  title: 统一模型目录与路由增强
+  priority: medium
+  category: platform
+  target_layers:
+  - runtime
+  - sdk
+  - desktop
+  status: proposed
+  source_ids:
+  - RESEARCH-OFANG-001
+  complexity: medium
+  depends_on:
+  - F-MODELUI-001
+  architecture_notes: Runtime 构建统一的模型目录（Model Catalog），集中管理所有
+    可用模型的元数据。当前 RuntimeModelService.ListModels 仅返回已安装/已配置
+    的模型列表，缺乏丰富的元数据和智能路由能力。实现路径：
+    (1) Proto 扩展 Model 消息，增加 capabilities（支持的模态列表）、
+    context_window_tokens、pricing_per_1k（input/output）、quality_tier
+    （premium/standard/economy）等字段；(2) Runtime 内置模型目录数据文件
+    （YAML/JSON），定期从远端同步更新；(3) 新增 ModelRouter 逻辑——
+    根据请求的模态、上下文长度、用户偏好自动选择最优 provider+model 组合；
+    (4) 支持 fallback chain：primary model 不可用时自动降级到 fallback model。
+    与 F-MODELUI-001 互补：F-MODELUI-001 负责前端展示，本条目负责后端
+    目录数据结构和路由逻辑。与现有 provider-health 契约对齐——
+    健康检查信息作为路由决策的输入之一。
