@@ -11,16 +11,8 @@
 
 - RPC 面：`kernel/rpc-surface.md`（`K-RPC-*`）
 - 鉴权/ownership：`kernel/authz-ownership.md`（`K-AUTH-*`）
-- AuthN 验签/JWKS：`kernel/authn-token-validation.md`（`K-AUTHN-*`）
-- AuthService/GrantService：`kernel/auth-service.md`（`K-AUTHSVC-*`）、`kernel/grant-service.md`（`K-GRANT-*`）
-- key-source 与请求判定：`kernel/key-source-routing.md`（`K-KEYSRC-*`）
-- MediaJob 生命周期：`kernel/media-job-lifecycle.md`（`K-JOB-*`）
 - 本地 category/capability：`kernel/local-category-capability.md`（`K-LOCAL-*`）
-- endpoint 安全：`kernel/endpoint-security.md`（`K-SEC-*`）
-- 流式语义：`kernel/streaming-contract.md`（`K-STREAM-*`）
 - 错误模型：`kernel/error-model.md`（`K-ERR-*`）
-- 分页与过滤：`kernel/pagination-filtering.md`（`K-PAGE-*`）
-- 审计契约：`kernel/audit-contract.md`（`K-AUDIT-*`）
 
 ## 1. 领域不变量
 
@@ -71,8 +63,9 @@ message Connector {
 
 - `CONN-030`: 每个 `realm_user_id` remote connector 上限默认 `128`。
 - `CONN-031`: Phase 1 不对 `(owner_id, provider)` 建唯一约束（同 provider 可多 connector）。
-- `CONN-032`: `DISABLED` 仅能通过显式 `UpdateConnector(status)` 改写；不做自动状态机。
-- `CONN-033`: remote connector 被 `DISABLED` 时，consume/test/list-models 语义遵循 `K-AUTH-*` + `K-ERR-*`。
+- `CONN-032`: `DISABLED` 仅由用户通过 `UpdateConnector(status=DISABLED)` 显式触发。Runtime 不自动 disable（即使连续探活失败）。
+- `CONN-033`: remote connector 被 `DISABLED` 时，consume/test/list-models 语义遵循 `K-AUTH-002`（信息隐藏）、`K-AUTH-005`（校验顺序）与 `K-ERR-004`（错误映射）。
+- `CONN-034`: 多个同 provider 的 remote connector 场景下，调用方必须显式提供 `connector_id`。未提供时不自动选择，返回 `AI_CONNECTOR_ID_REQUIRED`（`K-KEYSRC-007`）。
 
 ## 5. ConnectorService 领域增量
 
@@ -80,26 +73,21 @@ message Connector {
 
 ### 5.1 CreateConnector
 
-- `CONN-040`: `kind` 必须为 `REMOTE_MANAGED`。
-- `CONN-041`: `api_key` 必填且非空字符串。
-- `CONN-042`: `endpoint` 为空时按 provider 默认注入（见 `kernel/tables/provider-catalog.yaml`）。
-- `CONN-043`: `label` 为空时自动生成默认值。
-- `CONN-044`: 成功时 `created_at=updated_at=now`，`status=ACTIVE`。
+遵循 `K-RPC-007`，以下为 connector 领域增量：
+
+- `CONN-040`: provider 默认 endpoint 来源为 `kernel/tables/provider-catalog.yaml`。
 
 ### 5.2 UpdateConnector
 
-- `CONN-050`: 至少提供一个可变字段（`endpoint/label/api_key/status`）。
-- `CONN-051`: `status=UNSPECIFIED` 非法。
-- `CONN-052`: `api_key` 显式空字符串非法。
-- `CONN-053`: `label` 显式空字符串非法。
-- `CONN-054`: 请求合法且包含至少一个可变字段时，无论是否同值，都刷新 `updated_at`。
-- `CONN-055`: `UpdateConnector(api_key|endpoint)` 成功后必须失效 remote model cache。
+遵循 `K-RPC-008`，以下为 connector 领域增量：
+
+- `CONN-050`: 无超出 `K-RPC-008` 的领域增量。
 
 ### 5.3 DeleteConnector
 
-- `CONN-060`: 成功后必须级联删除 credential。
-- `CONN-061`: 成功后必须清理 remote model cache entry。
-- `CONN-062`: 删除流程采用补偿中间态（`delete_pending`），见第 7 节。
+遵循 `K-RPC-009`，以下为 connector 领域增量：
+
+- `CONN-060`: 删除流程采用补偿中间态（`DELETE_PENDING`），详见第 7 节。
 
 ### 5.4 TestConnector / ListConnectorModels
 
@@ -168,10 +156,10 @@ runtime 启动时：
 
 ## 8. 本文件非目标
 
-- 不定义跨域的 JWT 细节与媒体 Job owner 顺序（见 `K-AUTH-*`/`K-JOB-*`）
-- 不定义流式 done 事件契约（见 `K-STREAM-*`）
-- 不定义 ReasonCode 全值域与传递机制（见 `K-ERR-*`）
-- 不定义 endpoint 通用安全模型（见 `K-SEC-*`）
+- 不定义跨域的 JWT 细节与媒体 Job owner 顺序（见 kernel `authz-ownership` / `media-job-lifecycle`）
+- 不定义流式 done 事件契约（见 kernel `streaming-contract`）
+- 不定义 ReasonCode 全值域与传递机制（见 kernel `error-model`）
+- 不定义 endpoint 通用安全模型（见 kernel `endpoint-security`）
 
 ## 9. 变更规则
 

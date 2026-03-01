@@ -1,98 +1,217 @@
 version: 1
+numbering_note: |
+  值域 7 及 200-212 为 v0 proto 遗留编号（SESSION_EXPIRED=7,
+  AI_MODEL_NOT_FOUND=200, AI_PROVIDER_UNAVAILABLE=202,
+  AI_STREAM_BROKEN=208, AI_REQUEST_CREDENTIAL_MISSING=211,
+  AI_REQUEST_CREDENTIAL_INVALID=212）。新增码使用族对齐范围：
+  300+ AUTH, 310+ CONNECTOR, 330+ REQUEST_CREDENTIAL, 340+ APP,
+  350+ MODEL, 370+ FINISH, 380+ MODEL_ROUTE, 390+ PROVIDER,
+  410+ MEDIA, 430+ MODULE, 500+ APP_AUTH, 510+ GRANT, 520+ PAGE。
+  遗留值冻结以保持线格式兼容性，不再分配 200-299 范围的新值。
+  消费端指导：客户端应按 reason_code 名称（string）匹配，
+  而非按数值比较。遗留编号与新编号语义等价，消费端统一处理即可。
 codes:
+  - name: SESSION_EXPIRED
+    value: 7
+    family: AUTH
+    source: K-AUTHN-006
   - name: AUTH_TOKEN_INVALID
     value: 300
     family: AUTH
+    source: K-AUTHN-007
   - name: AI_CONNECTOR_NOT_FOUND
     value: 310
     family: CONNECTOR
+    source: K-ERR-004
   - name: AI_CONNECTOR_DISABLED
     value: 311
     family: CONNECTOR
+    source: K-ERR-004
   - name: AI_CONNECTOR_CREDENTIAL_MISSING
     value: 312
     family: CONNECTOR
+    source: K-ERR-004
   - name: AI_CONNECTOR_INVALID
     value: 313
     family: CONNECTOR
+    source: K-ERR-006
   - name: AI_CONNECTOR_IMMUTABLE
     value: 314
     family: CONNECTOR
+    source: K-ERR-006
   - name: AI_CONNECTOR_LIMIT_EXCEEDED
     value: 315
     family: CONNECTOR
+    source: K-ERR-006
   - name: AI_CONNECTOR_ID_REQUIRED
     value: 316
     family: CONNECTOR
+    source: K-KEYSRC-007
   - name: AI_REQUEST_CREDENTIAL_CONFLICT
     value: 330
     family: REQUEST_CREDENTIAL
+    source: K-KEYSRC-002
   - name: AI_REQUEST_CREDENTIAL_MISSING
     value: 211
     family: REQUEST_CREDENTIAL
+    source: K-KEYSRC-007
   - name: AI_REQUEST_CREDENTIAL_INVALID
     value: 212
     family: REQUEST_CREDENTIAL
+    source: K-ERR-006
   - name: AI_APP_ID_REQUIRED
     value: 340
     family: APP
+    source: K-KEYSRC-005
   - name: AI_APP_ID_CONFLICT
     value: 341
     family: APP
+    source: K-KEYSRC-005
   - name: AI_MODEL_ID_REQUIRED
     value: 350
     family: MODEL
+    source: K-KEYSRC-004
   - name: AI_MODEL_NOT_FOUND
     value: 200
     family: MODEL
+    source: K-ERR-006
   - name: AI_MODALITY_NOT_SUPPORTED
     value: 351
     family: MODEL
+    source: K-ERR-006
   - name: AI_LOCAL_MODEL_UNAVAILABLE
     value: 352
     family: MODEL
+    source: K-LOCAL-006
   - name: AI_LOCAL_MODEL_PROFILE_MISSING
     value: 353
     family: MODEL
+    source: K-LOCAL-003
+  - name: AI_LOCAL_MODEL_ALREADY_INSTALLED
+    value: 354
+    family: MODEL
+    source: K-LOCAL-009
+  - name: AI_LOCAL_ENDPOINT_REQUIRED
+    value: 355
+    family: MODEL
+    source: K-LENG-005
+  - name: AI_LOCAL_TEMPLATE_NOT_FOUND
+    value: 356
+    family: MODEL
+    source: K-LOCAL-010
+  - name: AI_LOCAL_MANIFEST_INVALID
+    value: 357
+    family: MODEL
+    source: K-LOCAL-009
   - name: AI_FINISH_LENGTH
     value: 370
     family: FINISH
+    source: K-ERR-006
   - name: AI_FINISH_CONTENT_FILTER
     value: 371
     family: FINISH
+    source: K-ERR-006
   - name: AI_MODEL_PROVIDER_MISMATCH
     value: 380
     family: MODEL_ROUTE
+    source: K-ERR-006
   - name: AI_PROVIDER_ENDPOINT_FORBIDDEN
     value: 390
     family: PROVIDER
+    source: K-SEC-001
   - name: AI_PROVIDER_AUTH_FAILED
     value: 391
     family: PROVIDER
+    source: K-JOB-006
   - name: AI_PROVIDER_UNAVAILABLE
     value: 202
     family: PROVIDER
+    source: K-ERR-005
   - name: AI_PROVIDER_INTERNAL
     value: 392
     family: PROVIDER
+    source: K-ERR-006
   - name: AI_PROVIDER_RATE_LIMITED
     value: 393
     family: PROVIDER
+    source: K-ERR-006
+  - name: AI_PROVIDER_TIMEOUT
+    value: 394
+    family: PROVIDER
+    source: K-STREAM-007
+  - name: AI_STREAM_BROKEN
+    value: 208
+    family: PROVIDER
+    source: K-STREAM-002
   - name: AI_MEDIA_SPEC_INVALID
     value: 410
     family: MEDIA
+    source: K-JOB-001
   - name: AI_MEDIA_OPTION_UNSUPPORTED
     value: 411
     family: MEDIA
+    source: K-JOB-001
   - name: AI_MEDIA_JOB_NOT_FOUND
     value: 412
     family: MEDIA
+    source: K-JOB-001
   - name: AI_MEDIA_JOB_NOT_CANCELLABLE
     value: 413
     family: MEDIA
+    source: K-JOB-001
   - name: AI_MEDIA_IDEMPOTENCY_CONFLICT
     value: 414
     family: MEDIA
+    source: K-ERR-007
   - name: AI_MODULE_CONFIG_INVALID
     value: 430
     family: MODULE
+    source: K-ERR-006
+  - name: WF_DAG_INVALID
+    value: 440
+    family: WORKFLOW
+    source: K-WF-010
+  - name: WF_NODE_CONFIG_MISMATCH
+    value: 441
+    family: WORKFLOW
+    source: K-WF-002
+  - name: WF_TIMEOUT
+    value: 442
+    family: WORKFLOW
+    source: K-WF-003
+  - name: WF_TASK_NOT_FOUND
+    value: 443
+    family: WORKFLOW
+    source: K-WF-003
+  - name: APP_MODE_DOMAIN_FORBIDDEN
+    value: 500
+    family: APP_AUTH
+    source: K-AUTHSVC-009
+  - name: APP_MODE_SCOPE_FORBIDDEN
+    value: 501
+    family: APP_AUTH
+    source: K-AUTHSVC-009
+  - name: APP_MODE_MANIFEST_INVALID
+    value: 502
+    family: APP_AUTH
+    source: K-AUTHSVC-010
+  - name: APP_SCOPE_FORBIDDEN
+    value: 503
+    family: APP_AUTH
+    source: K-GRANT-009
+  - name: APP_SCOPE_REVOKED
+    value: 504
+    family: APP_AUTH
+    source: K-GRANT-010
+  - name: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND
+    value: 510
+    family: GRANT
+    source: K-GRANT-013
+  - name: GRANT_TOKEN_CHAIN_ROOT_REQUIRED
+    value: 511
+    family: GRANT
+    source: K-GRANT-013
+  - name: PAGE_TOKEN_INVALID
+    value: 520
+    family: PAGE
+    source: K-PAGE-002

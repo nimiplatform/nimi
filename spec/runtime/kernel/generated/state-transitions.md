@@ -13,49 +13,68 @@ States: `ACTIVE`, `DISABLED`
 
 ## remote_connector_delete_flow
 
-States: `present`, `delete_pending`, `deleted`
+States: `PRESENT`, `DELETE_PENDING`, `DELETED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `present` | `delete_pending` | `DeleteConnector_step1_mark_pending` | `K-RPC-011` |
-| `delete_pending` | `delete_pending` | `DeleteConnector_retry_or_startup_rescan` | `K-RPC-011` |
-| `delete_pending` | `deleted` | `credential_cleanup_and_registry_delete` | `K-RPC-011` |
+| `PRESENT` | `DELETE_PENDING` | `DeleteConnector_step1_mark_pending` | `K-RPC-011` |
+| `DELETE_PENDING` | `DELETE_PENDING` | `DeleteConnector_retry_or_startup_rescan` | `K-RPC-011` |
+| `DELETE_PENDING` | `DELETED` | `credential_cleanup_and_registry_delete` | `K-RPC-011` |
 
 ## media_job
 
-States: `queued`, `running`, `completed`, `failed`, `cancelled`, `expired`
+States: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`, `EXPIRED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `queued` | `running` | `provider_accepts_job` | `K-JOB-002` |
-| `queued` | `failed` | `terminal_error_before_run` | `K-JOB-002` |
-| `queued` | `cancelled` | `user_cancel` | `K-JOB-002` |
-| `queued` | `expired` | `ttl_expired` | `K-JOB-002` |
-| `running` | `completed` | `provider_success` | `K-JOB-002` |
-| `running` | `failed` | `provider_or_runtime_failure` | `K-JOB-002` |
-| `running` | `cancelled` | `user_cancel` | `K-JOB-002` |
-| `running` | `expired` | `ttl_expired` | `K-JOB-002` |
+| `QUEUED` | `RUNNING` | `provider_accepts_job` | `K-JOB-002` |
+| `QUEUED` | `FAILED` | `terminal_error_before_run` | `K-JOB-002` |
+| `QUEUED` | `CANCELLED` | `user_cancel` | `K-JOB-002` |
+| `QUEUED` | `EXPIRED` | `ttl_expired` | `K-JOB-002` |
+| `RUNNING` | `COMPLETED` | `provider_success` | `K-JOB-002` |
+| `RUNNING` | `FAILED` | `provider_or_runtime_failure` | `K-JOB-002` |
+| `RUNNING` | `CANCELLED` | `user_cancel` | `K-JOB-002` |
+| `RUNNING` | `EXPIRED` | `ttl_expired` | `K-JOB-002` |
 
 ## local_model_lifecycle
 
-States: `installed`, `active`, `unhealthy`, `removed`
+States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `installed` | `active` | `start_or_health_recovered` | `K-LOCAL-005` |
-| `active` | `unhealthy` | `health_probe_failed` | `K-LOCAL-005` |
-| `unhealthy` | `active` | `recovery_probe_passed` | `K-LOCAL-005` |
-| `active` | `removed` | `remove_model` | `K-LOCAL-005` |
-| `unhealthy` | `removed` | `force_remove_model` | `K-LOCAL-005` |
+| `INSTALLED` | `ACTIVE` | `start_or_health_recovered` | `K-LOCAL-005` |
+| `ACTIVE` | `UNHEALTHY` | `health_probe_failed` | `K-LOCAL-005` |
+| `UNHEALTHY` | `ACTIVE` | `recovery_probe_passed` | `K-LOCAL-005` |
+| `ACTIVE` | `REMOVED` | `remove_model` | `K-LOCAL-005` |
+| `UNHEALTHY` | `REMOVED` | `force_remove_model` | `K-LOCAL-005` |
+| `ACTIVE` | `INSTALLED` | `stop_model` | `K-LOCAL-005` |
+| `UNHEALTHY` | `INSTALLED` | `stop_model_from_unhealthy` | `K-LOCAL-005` |
+| `INSTALLED` | `REMOVED` | `remove_model_from_installed` | `K-LOCAL-005` |
 
 ## local_service_lifecycle
 
-States: `installed`, `active`, `unhealthy`, `removed`
+States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `installed` | `active` | `spawn_and_probe_ok` | `K-LOCAL-005` |
-| `active` | `unhealthy` | `health_probe_failed` | `K-LOCAL-005` |
-| `unhealthy` | `active` | `restart_and_probe_ok` | `K-LOCAL-005` |
-| `active` | `removed` | `stop_and_cleanup` | `K-LOCAL-005` |
-| `unhealthy` | `removed` | `force_stop_and_cleanup` | `K-LOCAL-005` |
+| `INSTALLED` | `ACTIVE` | `spawn_and_probe_ok` | `K-LOCAL-005` |
+| `ACTIVE` | `UNHEALTHY` | `health_probe_failed` | `K-LOCAL-005` |
+| `UNHEALTHY` | `ACTIVE` | `restart_and_probe_ok` | `K-LOCAL-005` |
+| `ACTIVE` | `REMOVED` | `stop_and_cleanup` | `K-LOCAL-005` |
+| `UNHEALTHY` | `REMOVED` | `force_stop_and_cleanup` | `K-LOCAL-005` |
+| `ACTIVE` | `INSTALLED` | `stop_service` | `K-LOCAL-005` |
+| `UNHEALTHY` | `INSTALLED` | `stop_service_from_unhealthy` | `K-LOCAL-005` |
+| `INSTALLED` | `REMOVED` | `remove_service_from_installed` | `K-LOCAL-005` |
+
+## model_status
+
+States: `INSTALLED`, `PULLING`, `FAILED`, `REMOVED`
+
+| From | To | Trigger | Source |
+|---|---|---|---|
+| `INSTALLED` | `PULLING` | `pull_model_update` | `K-MODEL-008` |
+| `PULLING` | `INSTALLED` | `pull_success` | `K-MODEL-008` |
+| `PULLING` | `FAILED` | `pull_error` | `K-MODEL-008` |
+| `INSTALLED` | `REMOVED` | `remove_model` | `K-MODEL-008` |
+| `FAILED` | `PULLING` | `retry_pull` | `K-MODEL-008` |
+| `FAILED` | `REMOVED` | `remove_failed_model` | `K-MODEL-008` |

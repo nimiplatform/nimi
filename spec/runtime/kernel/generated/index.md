@@ -15,3 +15,11 @@
 | `connector-rpc-field-rules.md` | `tables/connector-rpc-field-rules.yaml` |
 | `job-states.md` | `tables/job-states.yaml` |
 | `state-transitions.md` | `tables/state-transitions.yaml` |
+| `local-engine-catalog.md` | `tables/local-engine-catalog.yaml` |
+| `local-adapter-routing.md` | `tables/local-adapter-routing.yaml` |
+| `daemon-health-states.md` | `tables/daemon-health-states.yaml` |
+| `interceptor-chain.md` | `tables/interceptor-chain.yaml` |
+| `ai-timeout-defaults.md` | `tables/ai-timeout-defaults.yaml` |
+| `provider-probe-targets.md` | `tables/provider-probe-targets.yaml` |
+| `workflow-node-types.md` | `tables/workflow-node-types.yaml` |
+| `workflow-states.md` | `tables/workflow-states.yaml` |

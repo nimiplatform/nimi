@@ -1,0 +1,96 @@
+# Provider Health Contract
+
+> Owner Domain: `K-PROV-*`
+
+## K-PROV-001 Provider 健康状态机
+
+每个 AI Provider 维护独立健康状态：
+
+| 状态 | 含义 |
+|---|---|
+| `unknown` | 初始态，从未探测 |
+| `healthy` | 最近一次探测成功 |
+| `unhealthy` | 最近一次探测失败 |
+
+状态迁移规则：
+- `unknown → healthy`：首次探测成功。
+- `unknown → unhealthy`：首次探测失败。
+- `healthy → unhealthy`：探测失败。连续失败计数从 0 开始递增。
+- `unhealthy → healthy`：探测成功。连续失败计数归零。
+- 状态变更时更新 `lastChangedAt`；每次探测更新 `lastCheckedAt`。
+
+快照字段：`name`、`state`、`lastReason`、`consecutiveFailures`、`lastChangedAt`、`lastCheckedAt`。
+
+## K-PROV-002 探测目标
+
+Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定为：
+
+| 探测名称 | Base URL 环境变量 | API Key 环境变量 |
+|---|---|---|
+| `local` | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | `NIMI_RUNTIME_LOCAL_AI_API_KEY` |
+| `local-nexa` | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NEXA_API_KEY` |
+| `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` |
+| `cloud-alibaba` | `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY` |
+| `cloud-bytedance` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY` |
+| `cloud-bytedance-openspeech` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY` |
+| `cloud-gemini` | `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` |
+| `cloud-minimax` | `NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY` |
+| `cloud-kimi` | `NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY` |
+| `cloud-glm` | `NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY` |
+
+仅 Base URL 非空的目标参与探测。
+
+## K-PROV-003 探测间隔与策略
+
+> 本协议适用于云端 provider 探测目标（K-PROV-002）。本地引擎健康探测使用 K-LENG-007。
+
+- **基础探测间隔**：默认 8s（`NIMI_RUNTIME_AI_HEALTH_INTERVAL` 可覆盖）。
+- **HTTP 超时**：默认 30s（`NIMI_RUNTIME_AI_HTTP_TIMEOUT` 可覆盖）。
+- **探测路径**：按序尝试 `/healthz` → `/v1/models`，任一路径返回 `2xx` 即视为健康；`401`/`403`/`429`（server 可达但配置/限流问题）亦视为健康；`404` 触发下一探测路径；其余 `4xx` 与 `5xx` 视为不健康。
+- **探测时机**：daemon 启动后立即执行首次探测，之后按间隔周期性执行。
+- **暂停条件**：daemon 处于 `STOPPING`/`STOPPED` 时跳过探测。
+
+## K-PROV-004 Provider 健康与 Runtime 状态联动
+
+- 所有探测目标均不健康时：Runtime 健康降级为 `DEGRADED`（reason: `ai-provider:<name> unavailable`）。
+- 任一探测目标恢复健康时：若当前为 AI Provider 原因的 `DEGRADED`，恢复为 `READY`。
+- 状态变更时写入审计事件（domain: `runtime.ai`, operation: `provider.health`）。
+
+## K-PROV-005 Provider 名称归一化
+
+配置文件中的 provider 名称通过归一化映射（去除非字母数字字符、转小写）：
+
+- `local`、`localnexa`/`nexa`
+- `nimillm`/`cloudnimillm`
+- `alibaba`/`aliyun`/`cloudalibaba`
+- `bytedance`/`byte`/`cloudbytedance`
+- `bytedanceopenspeech`/`openspeech`/`cloudbytedanceopenspeech`
+- `gemini`/`cloudgemini`
+- `minimax`/`cloudminimax`
+- `kimi`/`moonshot`/`cloudkimi`
+- `glm`/`zhipu`/`bigmodel`/`cloudglm`
+
+遗留名称（`litellm`、`cloudlitellm`、`cloudai`）在配置校验时拒绝。
+
+**约束点**：`CreateConnector` / `TestConnector` / `ListConnectorModels` 的 provider 输入必须经过归一化后再处理。归一化在 ConnectorService 入口统一执行，下游模块仅接收归一化后的 provider 名称。
+
+Gemini 隐式默认：当配置了 API Key 但未配置 Base URL 时，自动填充 `https://generativelanguage.googleapis.com/v1beta/openai`。同时支持 `GEMINI_API_KEY` 环境变量作为 fallback。
+
+## K-PROV-006 探测目标与 Provider 类型映射
+
+探测目标（K-PROV-002）与 `provider-capabilities.yaml` 中 provider 类型的对应关系：
+
+| 探测目标 | Provider Type | 说明 |
+|---|---|---|
+| `local` | `local` | LocalAI 引擎 |
+| `local-nexa` | `local` | Nexa 引擎 |
+| `cloud-nimillm` | — | NimiLLM 代理层（后端可为任意 provider） |
+| `cloud-alibaba` | `dashscope` | 阿里云 DashScope |
+| `cloud-bytedance` | `volcengine` | 字节跳动火山引擎 |
+| `cloud-bytedance-openspeech` | `volcengine` | 字节跳动开放语音 |
+| `cloud-gemini` | `gemini` | Google Gemini |
+| `cloud-minimax` | `openai_compatible` | MiniMax |
+| `cloud-kimi` | `openai_compatible` | Moonshot Kimi |
+| `cloud-glm` | `openai_compatible` | 智谱 GLM |
+
+`openai`/`anthropic` 为直连 provider，不经过 Nimi 适配层，无独立探测目标。

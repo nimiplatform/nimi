@@ -4,9 +4,9 @@
 > Source: `spec/runtime/kernel/tables/job-states.yaml`
 | State | Terminal |
 |---|---|
-| `queued` | `false` |
-| `running` | `false` |
-| `completed` | `true` |
-| `failed` | `true` |
-| `cancelled` | `true` |
-| `expired` | `true` |
+| `QUEUED` | `false` |
+| `RUNNING` | `false` |
+| `COMPLETED` | `true` |
+| `FAILED` | `true` |
+| `CANCELLED` | `true` |
+| `EXPIRED` | `true` |

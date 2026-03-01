@@ -4,13 +4,19 @@
 > Source: `spec/runtime/kernel/tables/rpc-migration-map.yaml`
 ## Service Mapping
 
-| Design Service | Proto Service | Status | Phase | Source Rule |
+| Design Service | Proto Service | Status | Phase | Source |
 |---|---|---|---|---|
 | `AIService` | `RuntimeAiService` | `renamed_service` | `phase1` | `K-RPC-005` |
 | `ConnectorService` | `—` | `design_only_pending_proto` | `phase1` | `K-RPC-005` |
-| `RuntimeLocalRuntimeService` | `RuntimeLocalRuntimeService` | `subset` | `phase1` | `K-RPC-004` |
+| `RuntimeLocalRuntimeService` | `RuntimeLocalRuntimeService` | `aligned` | `phase1` | `K-RPC-004` |
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
 | `RuntimeGrantService` | `RuntimeGrantService` | `aligned` | `phase1` | `K-GRANT-002` |
+| `RuntimeWorkflowService` | `RuntimeWorkflowService` | `aligned` | `phase2` | `K-WF-003` |
+| `RuntimeAuditService` | `RuntimeAuditService` | `aligned` | `phase2` | `K-AUDIT-013` |
+| `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |
+| `RuntimeKnowledgeService` | `RuntimeKnowledgeService` | `aligned` | `phase2` | `K-KNOW-001` |
+| `RuntimeAppService` | `RuntimeAppService` | `aligned` | `phase2` | `K-APP-001` |
+| `ScriptWorkerService` | `ScriptWorkerService` | `aligned` | `phase2` | `K-SCRIPT-001` |
 
 ## Method Mapping
 
@@ -24,6 +30,7 @@
 | `AIService` | `CancelMediaJob` | `RuntimeAiService` | `CancelMediaJob` | `aligned` |
 | `AIService` | `SubscribeMediaJobEvents` | `RuntimeAiService` | `SubscribeMediaJobEvents` | `aligned` |
 | `AIService` | `GetMediaResult` | `RuntimeAiService` | `GetMediaArtifacts` | `renamed_method` |
+| `AIService` | `GetSpeechVoices` | `RuntimeAiService` | `GetSpeechVoices` | `aligned` |
 | `AIService` | `SynthesizeSpeechStream` | `RuntimeAiService` | `StreamSpeechSynthesis` | `renamed_method` |
 | `ConnectorService` | `CreateConnector` | `—` | `—` | `planned` |
 | `ConnectorService` | `GetConnector` | `—` | `—` | `planned` |
@@ -38,6 +45,24 @@
 | `RuntimeLocalRuntimeService` | `StartLocalModel` | `RuntimeLocalRuntimeService` | `StartLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `StopLocalModel` | `RuntimeLocalRuntimeService` | `StopLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `CheckLocalModelHealth` | `RuntimeLocalRuntimeService` | `CheckLocalModelHealth` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ListVerifiedModels` | `RuntimeLocalRuntimeService` | `ListVerifiedModels` | `aligned` |
+| `RuntimeLocalRuntimeService` | `SearchCatalogModels` | `RuntimeLocalRuntimeService` | `SearchCatalogModels` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ResolveModelInstallPlan` | `RuntimeLocalRuntimeService` | `ResolveModelInstallPlan` | `aligned` |
+| `RuntimeLocalRuntimeService` | `InstallVerifiedModel` | `RuntimeLocalRuntimeService` | `InstallVerifiedModel` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ImportLocalModel` | `RuntimeLocalRuntimeService` | `ImportLocalModel` | `aligned` |
+| `RuntimeLocalRuntimeService` | `CollectDeviceProfile` | `RuntimeLocalRuntimeService` | `CollectDeviceProfile` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ListLocalServices` | `RuntimeLocalRuntimeService` | `ListLocalServices` | `aligned` |
+| `RuntimeLocalRuntimeService` | `InstallLocalService` | `RuntimeLocalRuntimeService` | `InstallLocalService` | `aligned` |
+| `RuntimeLocalRuntimeService` | `StartLocalService` | `RuntimeLocalRuntimeService` | `StartLocalService` | `aligned` |
+| `RuntimeLocalRuntimeService` | `StopLocalService` | `RuntimeLocalRuntimeService` | `StopLocalService` | `aligned` |
+| `RuntimeLocalRuntimeService` | `CheckLocalServiceHealth` | `RuntimeLocalRuntimeService` | `CheckLocalServiceHealth` | `aligned` |
+| `RuntimeLocalRuntimeService` | `RemoveLocalService` | `RuntimeLocalRuntimeService` | `RemoveLocalService` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ListNodeCatalog` | `RuntimeLocalRuntimeService` | `ListNodeCatalog` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ResolveDependencies` | `RuntimeLocalRuntimeService` | `ResolveDependencies` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ApplyDependencies` | `RuntimeLocalRuntimeService` | `ApplyDependencies` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ListLocalAudits` | `RuntimeLocalRuntimeService` | `ListLocalAudits` | `aligned` |
+| `RuntimeLocalRuntimeService` | `AppendInferenceAudit` | `RuntimeLocalRuntimeService` | `AppendInferenceAudit` | `aligned` |
+| `RuntimeLocalRuntimeService` | `AppendRuntimeAudit` | `RuntimeLocalRuntimeService` | `AppendRuntimeAudit` | `aligned` |
 | `RuntimeAuthService` | `RegisterApp` | `RuntimeAuthService` | `RegisterApp` | `aligned` |
 | `RuntimeAuthService` | `OpenSession` | `RuntimeAuthService` | `OpenSession` | `aligned` |
 | `RuntimeAuthService` | `RefreshSession` | `RuntimeAuthService` | `RefreshSession` | `aligned` |
@@ -50,29 +75,31 @@
 | `RuntimeGrantService` | `RevokeAppAccessToken` | `RuntimeGrantService` | `RevokeAppAccessToken` | `aligned` |
 | `RuntimeGrantService` | `IssueDelegatedAccessToken` | `RuntimeGrantService` | `IssueDelegatedAccessToken` | `aligned` |
 | `RuntimeGrantService` | `ListTokenChain` | `RuntimeGrantService` | `ListTokenChain` | `aligned` |
+| `RuntimeWorkflowService` | `SubmitWorkflow` | `RuntimeWorkflowService` | `SubmitWorkflow` | `aligned` |
+| `RuntimeWorkflowService` | `GetWorkflow` | `RuntimeWorkflowService` | `GetWorkflow` | `aligned` |
+| `RuntimeWorkflowService` | `CancelWorkflow` | `RuntimeWorkflowService` | `CancelWorkflow` | `aligned` |
+| `RuntimeWorkflowService` | `SubscribeWorkflowEvents` | `RuntimeWorkflowService` | `SubscribeWorkflowEvents` | `aligned` |
+| `RuntimeAuditService` | `ListAuditEvents` | `RuntimeAuditService` | `ListAuditEvents` | `aligned` |
+| `RuntimeAuditService` | `ExportAuditEvents` | `RuntimeAuditService` | `ExportAuditEvents` | `aligned` |
+| `RuntimeAuditService` | `ListUsageStats` | `RuntimeAuditService` | `ListUsageStats` | `aligned` |
+| `RuntimeAuditService` | `GetRuntimeHealth` | `RuntimeAuditService` | `GetRuntimeHealth` | `aligned` |
+| `RuntimeAuditService` | `ListAIProviderHealth` | `RuntimeAuditService` | `ListAIProviderHealth` | `aligned` |
+| `RuntimeAuditService` | `SubscribeAIProviderHealthEvents` | `RuntimeAuditService` | `SubscribeAIProviderHealthEvents` | `aligned` |
+| `RuntimeAuditService` | `SubscribeRuntimeHealthEvents` | `RuntimeAuditService` | `SubscribeRuntimeHealthEvents` | `aligned` |
+| `RuntimeModelService` | `ListModels` | `RuntimeModelService` | `ListModels` | `aligned` |
+| `RuntimeModelService` | `PullModel` | `RuntimeModelService` | `PullModel` | `aligned` |
+| `RuntimeModelService` | `RemoveModel` | `RuntimeModelService` | `RemoveModel` | `aligned` |
+| `RuntimeModelService` | `CheckModelHealth` | `RuntimeModelService` | `CheckModelHealth` | `aligned` |
+| `RuntimeKnowledgeService` | `BuildIndex` | `RuntimeKnowledgeService` | `BuildIndex` | `aligned` |
+| `RuntimeKnowledgeService` | `SearchIndex` | `RuntimeKnowledgeService` | `SearchIndex` | `aligned` |
+| `RuntimeKnowledgeService` | `DeleteIndex` | `RuntimeKnowledgeService` | `DeleteIndex` | `aligned` |
+| `RuntimeAppService` | `SendAppMessage` | `RuntimeAppService` | `SendAppMessage` | `aligned` |
+| `RuntimeAppService` | `SubscribeAppMessages` | `RuntimeAppService` | `SubscribeAppMessages` | `aligned` |
+| `ScriptWorkerService` | `Execute` | `ScriptWorkerService` | `Execute` | `aligned` |
 
 ## Excluded Proto Methods
 
 | Proto Service | Proto Method | Reason |
 |---|---|---|
-| `RuntimeAiService` | `GetSpeechVoices` | `deferred_ai_capability` |
 | `RuntimeAiService` | `ListTokenProviderModels` | `legacy_proto_not_in_design_surface` |
 | `RuntimeAiService` | `CheckTokenProviderHealth` | `legacy_proto_not_in_design_surface` |
-| `RuntimeLocalRuntimeService` | `ListVerifiedModels` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `SearchCatalogModels` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ResolveModelInstallPlan` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `InstallVerifiedModel` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ImportLocalModel` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `CollectDeviceProfile` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ResolveDependencies` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ApplyDependencies` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ListLocalServices` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `InstallLocalService` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `StartLocalService` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `StopLocalService` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `CheckLocalServiceHealth` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `RemoveLocalService` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ListNodeCatalog` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `ListLocalAudits` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `AppendInferenceAudit` | `deferred_phase2_local_runtime` |
-| `RuntimeLocalRuntimeService` | `AppendRuntimeAudit` | `deferred_phase2_local_runtime` |

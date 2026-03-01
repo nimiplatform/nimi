@@ -3,64 +3,64 @@ rules:
   - rpc: CreateConnector
     field: kind
     requirement: must_be_REMOTE_MANAGED
-    source_rule: K-RPC-007
+    source: K-RPC-007
   - rpc: CreateConnector
     field: api_key
     requirement: required_non_empty
-    source_rule: K-RPC-007
+    source: K-RPC-007
   - rpc: CreateConnector
     field: endpoint
     requirement: empty_uses_provider_default
-    source_rule: K-RPC-007
+    source: K-RPC-007
   - rpc: CreateConnector
     field: label
     requirement: empty_uses_default_label
-    source_rule: K-RPC-007
+    source: K-RPC-007
   - rpc: CreateConnector
     field: status/created_at/updated_at
     requirement: initialized_to_ACTIVE_and_now
-    source_rule: K-RPC-007
+    source: K-RPC-007
   - rpc: UpdateConnector
     field: mutable_fields
     requirement: at_least_one_of_endpoint_label_api_key_status
-    source_rule: K-RPC-008
+    source: K-RPC-008
   - rpc: UpdateConnector
     field: status
     requirement: UNSPECIFIED_is_invalid
-    source_rule: K-RPC-008
+    source: K-RPC-008
   - rpc: UpdateConnector
     field: api_key
     requirement: explicit_empty_string_is_invalid
-    source_rule: K-RPC-008
+    source: K-RPC-008
   - rpc: UpdateConnector
     field: label
     requirement: explicit_empty_string_is_invalid
-    source_rule: K-RPC-008
+    source: K-RPC-008
   - rpc: UpdateConnector
     field: updated_at
     requirement: refresh_on_any_legal_mutation_request
-    source_rule: K-RPC-008
+    source: K-RPC-008
   - rpc: UpdateConnector
     field: cache
     requirement: invalidate_remote_model_cache_when_api_key_or_endpoint_changes
-    source_rule: K-RPC-008
+    source: K-RPC-008
   - rpc: DeleteConnector
     field: credential
     requirement: cascade_delete
-    source_rule: K-RPC-009
+    source: K-RPC-009
   - rpc: DeleteConnector
     field: cache
     requirement: cleanup_remote_model_cache_entry
-    source_rule: K-RPC-009
+    source: K-RPC-009
   - rpc: DeleteConnector
     field: deletion_flow
     requirement: use_delete_pending_compensation_flow
-    source_rule: K-RPC-009
+    source: K-RPC-009
   - rpc: TestConnector
     field: remote_precheck
     requirement: owner_status_credential_must_pass_before_probe
-    source_rule: K-RPC-010
+    source: K-RPC-010
   - rpc: ListConnectorModels
     field: remote_cache_hit
     requirement: no_outbound_and_no_endpoint_validation_on_cache_hit
-    source_rule: K-RPC-010
+    source: K-RPC-010

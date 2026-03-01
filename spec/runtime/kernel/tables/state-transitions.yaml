@@ -12,98 +12,149 @@ machines:
         trigger: UpdateConnector(status=ACTIVE)
         source: K-RPC-011
   - machine: remote_connector_delete_flow
-    states: [present, delete_pending, deleted]
+    states: [PRESENT, DELETE_PENDING, DELETED]
     transitions:
-      - from: present
-        to: delete_pending
+      - from: PRESENT
+        to: DELETE_PENDING
         trigger: DeleteConnector_step1_mark_pending
         source: K-RPC-011
-      - from: delete_pending
-        to: delete_pending
+      - from: DELETE_PENDING
+        to: DELETE_PENDING
         trigger: DeleteConnector_retry_or_startup_rescan
         source: K-RPC-011
-      - from: delete_pending
-        to: deleted
+      - from: DELETE_PENDING
+        to: DELETED
         trigger: credential_cleanup_and_registry_delete
         source: K-RPC-011
   - machine: media_job
-    states: [queued, running, completed, failed, cancelled, expired]
+    states: [QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED, EXPIRED]
     transitions:
-      - from: queued
-        to: running
+      - from: QUEUED
+        to: RUNNING
         trigger: provider_accepts_job
         source: K-JOB-002
-      - from: queued
-        to: failed
+      - from: QUEUED
+        to: FAILED
         trigger: terminal_error_before_run
         source: K-JOB-002
-      - from: queued
-        to: cancelled
+      - from: QUEUED
+        to: CANCELLED
         trigger: user_cancel
         source: K-JOB-002
-      - from: queued
-        to: expired
+      - from: QUEUED
+        to: EXPIRED
         trigger: ttl_expired
         source: K-JOB-002
-      - from: running
-        to: completed
+      - from: RUNNING
+        to: COMPLETED
         trigger: provider_success
         source: K-JOB-002
-      - from: running
-        to: failed
+      - from: RUNNING
+        to: FAILED
         trigger: provider_or_runtime_failure
         source: K-JOB-002
-      - from: running
-        to: cancelled
+      - from: RUNNING
+        to: CANCELLED
         trigger: user_cancel
         source: K-JOB-002
-      - from: running
-        to: expired
+      - from: RUNNING
+        to: EXPIRED
         trigger: ttl_expired
         source: K-JOB-002
   - machine: local_model_lifecycle
-    states: [installed, active, unhealthy, removed]
+    states: [INSTALLED, ACTIVE, UNHEALTHY, REMOVED]
     transitions:
-      - from: installed
-        to: active
+      - from: INSTALLED
+        to: ACTIVE
         trigger: start_or_health_recovered
         source: K-LOCAL-005
-      - from: active
-        to: unhealthy
+      - from: ACTIVE
+        to: UNHEALTHY
         trigger: health_probe_failed
         source: K-LOCAL-005
-      - from: unhealthy
-        to: active
+      - from: UNHEALTHY
+        to: ACTIVE
         trigger: recovery_probe_passed
         source: K-LOCAL-005
-      - from: active
-        to: removed
+      - from: ACTIVE
+        to: REMOVED
         trigger: remove_model
         source: K-LOCAL-005
-      - from: unhealthy
-        to: removed
+      - from: UNHEALTHY
+        to: REMOVED
         trigger: force_remove_model
         source: K-LOCAL-005
+      - from: ACTIVE
+        to: INSTALLED
+        trigger: stop_model
+        source: K-LOCAL-005
+      - from: UNHEALTHY
+        to: INSTALLED
+        trigger: stop_model_from_unhealthy
+        source: K-LOCAL-005
+      - from: INSTALLED
+        to: REMOVED
+        trigger: remove_model_from_installed
+        source: K-LOCAL-005
   - machine: local_service_lifecycle
-    states: [installed, active, unhealthy, removed]
+    states: [INSTALLED, ACTIVE, UNHEALTHY, REMOVED]
     transitions:
-      - from: installed
-        to: active
+      - from: INSTALLED
+        to: ACTIVE
         trigger: spawn_and_probe_ok
         source: K-LOCAL-005
-      - from: active
-        to: unhealthy
+      - from: ACTIVE
+        to: UNHEALTHY
         trigger: health_probe_failed
         source: K-LOCAL-005
-      - from: unhealthy
-        to: active
+      - from: UNHEALTHY
+        to: ACTIVE
         trigger: restart_and_probe_ok
         source: K-LOCAL-005
-      - from: active
-        to: removed
+      - from: ACTIVE
+        to: REMOVED
         trigger: stop_and_cleanup
         source: K-LOCAL-005
-      - from: unhealthy
-        to: removed
+      - from: UNHEALTHY
+        to: REMOVED
         trigger: force_stop_and_cleanup
         source: K-LOCAL-005
+      - from: ACTIVE
+        to: INSTALLED
+        trigger: stop_service
+        source: K-LOCAL-005
+      - from: UNHEALTHY
+        to: INSTALLED
+        trigger: stop_service_from_unhealthy
+        source: K-LOCAL-005
+      - from: INSTALLED
+        to: REMOVED
+        trigger: remove_service_from_installed
+        source: K-LOCAL-005
+  - machine: model_status
+    states: [INSTALLED, PULLING, FAILED, REMOVED]
+    transitions:
+      - from: INSTALLED
+        to: PULLING
+        trigger: pull_model_update
+        source: K-MODEL-008
+      - from: PULLING
+        to: INSTALLED
+        trigger: pull_success
+        source: K-MODEL-008
+      - from: PULLING
+        to: FAILED
+        trigger: pull_error
+        source: K-MODEL-008
+      - from: INSTALLED
+        to: REMOVED
+        trigger: remove_model
+        source: K-MODEL-008
+      - from: FAILED
+        to: PULLING
+        trigger: retry_pull
+        source: K-MODEL-008
+      - from: FAILED
+        to: REMOVED
+        trigger: remove_failed_model
+        source: K-MODEL-008

@@ -4,6 +4,8 @@
 > Source: `spec/runtime/kernel/tables/rpc-methods.yaml`
 ## AIService
 
+Source: `K-RPC-002`
+
 | Method | Type |
 |---|---|
 | `Generate` | `unary` |
@@ -14,9 +16,12 @@
 | `CancelMediaJob` | `unary` |
 | `SubscribeMediaJobEvents` | `server_stream` |
 | `GetMediaResult` | `unary` |
+| `GetSpeechVoices` | `unary` |
 | `SynthesizeSpeechStream` | `server_stream` |
 
 ## ConnectorService
+
+Source: `K-RPC-003`
 
 | Method | Type |
 |---|---|
@@ -30,6 +35,8 @@
 
 ## RuntimeLocalRuntimeService
 
+Source: `K-RPC-004`
+
 | Method | Type |
 |---|---|
 | `ListLocalModels` | `unary` |
@@ -38,8 +45,28 @@
 | `StartLocalModel` | `unary` |
 | `StopLocalModel` | `unary` |
 | `CheckLocalModelHealth` | `unary` |
+| `ListVerifiedModels` | `unary` |
+| `SearchCatalogModels` | `unary` |
+| `ResolveModelInstallPlan` | `unary` |
+| `InstallVerifiedModel` | `unary` |
+| `ImportLocalModel` | `unary` |
+| `CollectDeviceProfile` | `unary` |
+| `ListLocalServices` | `unary` |
+| `InstallLocalService` | `unary` |
+| `StartLocalService` | `unary` |
+| `StopLocalService` | `unary` |
+| `CheckLocalServiceHealth` | `unary` |
+| `RemoveLocalService` | `unary` |
+| `ListNodeCatalog` | `unary` |
+| `ResolveDependencies` | `unary` |
+| `ApplyDependencies` | `unary` |
+| `ListLocalAudits` | `unary` |
+| `AppendInferenceAudit` | `unary` |
+| `AppendRuntimeAudit` | `unary` |
 
 ## RuntimeAuthService
+
+Source: `K-AUTHSVC-002`
 
 | Method | Type |
 |---|---|
@@ -53,6 +80,8 @@
 
 ## RuntimeGrantService
 
+Source: `K-GRANT-002`
+
 | Method | Type |
 |---|---|
 | `AuthorizeExternalPrincipal` | `unary` |
@@ -60,3 +89,66 @@
 | `RevokeAppAccessToken` | `unary` |
 | `IssueDelegatedAccessToken` | `unary` |
 | `ListTokenChain` | `unary` |
+
+## RuntimeWorkflowService
+
+Source: `K-WF-003`
+
+| Method | Type |
+|---|---|
+| `SubmitWorkflow` | `unary` |
+| `GetWorkflow` | `unary` |
+| `CancelWorkflow` | `unary` |
+| `SubscribeWorkflowEvents` | `server_stream` |
+
+## RuntimeAuditService
+
+Source: `K-AUDIT-013`
+
+| Method | Type |
+|---|---|
+| `ListAuditEvents` | `unary` |
+| `ExportAuditEvents` | `server_stream` |
+| `ListUsageStats` | `unary` |
+| `GetRuntimeHealth` | `unary` |
+| `ListAIProviderHealth` | `unary` |
+| `SubscribeAIProviderHealthEvents` | `server_stream` |
+| `SubscribeRuntimeHealthEvents` | `server_stream` |
+
+## RuntimeModelService
+
+Source: `K-MODEL-004`
+
+| Method | Type |
+|---|---|
+| `ListModels` | `unary` |
+| `PullModel` | `unary` |
+| `RemoveModel` | `unary` |
+| `CheckModelHealth` | `unary` |
+
+## RuntimeKnowledgeService
+
+Source: `K-KNOW-001`
+
+| Method | Type |
+|---|---|
+| `BuildIndex` | `unary` |
+| `SearchIndex` | `unary` |
+| `DeleteIndex` | `unary` |
+
+## RuntimeAppService
+
+Source: `K-APP-001`
+
+| Method | Type |
+|---|---|
+| `SendAppMessage` | `unary` |
+| `SubscribeAppMessages` | `server_stream` |
+
+## ScriptWorkerService
+
+Source: `K-SCRIPT-001`
+
+| Method | Type |
+|---|---|
+| `Execute` | `unary` |

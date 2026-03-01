@@ -8,7 +8,7 @@
 - 无 JWT：仅允许 `LOCAL_MODEL` 与 inline 路径。
 - 携带 `Authorization` 但 JWT 无效：必须 `UNAUTHENTICATED`，不降级匿名。
 
-`JWT` 的有效性判定（issuer/audience/alg/JWKS/时钟偏差）由 `K-AUTHN-*` 统一定义。
+`JWT` 的有效性判定由 `K-AUTHN-002`（必校验 claims）、`K-AUTHN-003`（算法约束）、`K-AUTHN-004`（JWKS）与 `K-AUTHN-005`（时钟偏差）定义。
 
 ## K-AUTH-002 信息隐藏
 
@@ -36,7 +36,7 @@
 2. status
 3. credential
 
-该顺序不可调整，避免越权侧信道泄露。
+该顺序不可调整，避免越权侧信道泄露。此评估顺序由 K-KEYSRC-004 的 step 定义强制执行。
 
 ## K-AUTH-006 MediaJob owner 语义
 

@@ -6,46 +6,46 @@ providers:
     managed_connector_supported: true
     inline_supported: false
     endpoint_requirement: empty_string_only
-    source_rules: [CONN-012, CONN-021, LOCAL-001]
+    sources: [K-LOCAL-001, K-LOCAL-002]
   - provider: gemini
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    source_rules: [CONN-040, K-KEYSRC-001, NIMI-001]
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: openai
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    source_rules: [CONN-040, K-KEYSRC-001, NIMI-001]
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: anthropic
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    source_rules: [CONN-040, K-KEYSRC-001, NIMI-001]
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: dashscope
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    source_rules: [CONN-040, K-KEYSRC-001, NIMI-001]
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: volcengine
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    source_rules: [CONN-040, K-KEYSRC-001, NIMI-001]
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: openai_compatible
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
-    source_rules: [CONN-040, CONN-042, K-KEYSRC-001, NIMI-001]
+    sources: [K-RPC-007, K-KEYSRC-008, K-KEYSRC-001, K-RPC-001]

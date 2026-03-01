@@ -2,23 +2,26 @@
 
 > Owner Domain: `K-RPC-*`
 
-## K-RPC-001 服务范围（当前）
+## K-RPC-001 服务范围
 
-本轮 kernel 的 RPC 覆盖范围是 `runtime-ai-plane + auth-core`：
+Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
+
+**Phase 1（AI 执行平面 + Auth Core）：**
 
 - `AIService`（design 名称，映射到 proto `RuntimeAiService`）
 - `ConnectorService`（design-first，proto 仍在迁移）
-- `RuntimeLocalRuntimeService`（Phase 1 子集）
+- `RuntimeLocalRuntimeService`
 - `RuntimeAuthService`
 - `RuntimeGrantService`
 
-deferred（不在当前 kernel 全量契约范围）：
+**Phase 2（完整 Runtime 服务）：**
 
-- `RuntimeWorkflowService`
-- `RuntimeModelService`
-- `RuntimeKnowledgeService`
-- `RuntimeAppService`
-- `RuntimeAuditService`（仅 `K-AUDIT-*` 最小字段被覆盖）
+- `RuntimeWorkflowService`（`K-WF-*`）
+- `RuntimeAuditService`（`K-AUDIT-*`）
+- `RuntimeModelService`（`K-MODEL-*`）
+- `RuntimeKnowledgeService`（`K-KNOW-*`）
+- `RuntimeAppService`（`K-APP-*`）
+- `ScriptWorkerService`（`K-SCRIPT-*`，内部服务）
 
 ## K-RPC-002 AIService 方法集合（design 权威）
 
@@ -32,7 +35,8 @@ deferred（不在当前 kernel 全量契约范围）：
 6. `CancelMediaJob`
 7. `SubscribeMediaJobEvents`
 8. `GetMediaResult`
-9. `SynthesizeSpeechStream`
+9. `GetSpeechVoices`
+10. `SynthesizeSpeechStream`
 
 ## K-RPC-003 ConnectorService 方法集合（design 权威）
 
@@ -46,9 +50,13 @@ deferred（不在当前 kernel 全量契约范围）：
 6. `TestConnector`
 7. `ListConnectorModels`
 
-## K-RPC-004 RuntimeLocalRuntimeService（Phase 1 保留集合）
+> **Proto 状态**：ConnectorService 当前为 design-first 阶段，proto 定义尚未发布（`tables/rpc-migration-map.yaml` 状态 `design_only_pending_proto`）。Proto 发布时必须与本 spec（K-RPC-007 至 K-RPC-012）保持一致，migration map 随之更新为 `aligned`。
 
-当前对外规范层仅保留以下 6 个方法：
+## K-RPC-004 RuntimeLocalRuntimeService 方法集合
+
+`RuntimeLocalRuntimeService` 方法按三层分级：
+
+**Tier 1 — 核心生命周期：**
 
 1. `ListLocalModels`
 2. `InstallLocalModel`
@@ -57,7 +65,29 @@ deferred（不在当前 kernel 全量契约范围）：
 5. `StopLocalModel`
 6. `CheckLocalModelHealth`
 
-`RuntimeLocalRuntimeService` 在 proto 中存在更多方法；其余方法统一归类为 deferred，不在当前 Phase 1 对外契约范围（详见 `tables/rpc-migration-map.yaml` 的 `excluded_proto_methods`）。
+**Tier 2 — 目录与计划：**
+
+7. `ListVerifiedModels`
+8. `SearchCatalogModels`
+9. `ResolveModelInstallPlan`
+10. `InstallVerifiedModel`
+11. `ImportLocalModel`
+12. `CollectDeviceProfile`
+
+**Tier 3 — 服务/节点/依赖/审计：**
+
+13. `ListLocalServices`
+14. `InstallLocalService`
+15. `StartLocalService`
+16. `StopLocalService`
+17. `CheckLocalServiceHealth`
+18. `RemoveLocalService`
+19. `ListNodeCatalog`
+20. `ResolveDependencies`
+21. `ApplyDependencies`
+22. `ListLocalAudits`
+23. `AppendInferenceAudit`
+24. `AppendRuntimeAudit`
 
 ## K-RPC-005 Design 名称与 Proto 名称映射
 
@@ -103,7 +133,7 @@ deferred（不在当前 kernel 全量契约范围）：
 
 - 级联删除 credential
 - 清理 remote model cache
-- 执行 `delete_pending` 补偿流程（可重试、可启动恢复）
+- 执行 `DELETE_PENDING` 补偿流程（可重试、可启动恢复）
 
 ## K-RPC-010 Remote 探测/发现前置校验契约
 
@@ -113,3 +143,13 @@ deferred（不在当前 kernel 全量契约范围）：
 ## K-RPC-011 Connector 状态机锚点
 
 `tables/state-transitions.yaml` 中 connector 相关状态机（`connector_status` 与 `remote_connector_delete_flow`）必须以本 Rule ID 作为来源锚点。
+
+## K-RPC-012 Remote Model Cache 策略
+
+`ListConnectorModels` 的 remote model 缓存规则：
+
+- **缓存 TTL**：5 分钟。
+- **隔离粒度**：按 `connector_id` 隔离，不同 connector 独立缓存。
+- **立即失效触发**：`UpdateConnector` 中 `api_key` 或 `endpoint` 变化时、`DeleteConnector` 执行时。
+- **强制刷新**：调用方可通过 `ListConnectorModels(force_refresh=true)` 绕过缓存，强制出站查询。
+- **缓存未命中**：正常出站查询并回填缓存。

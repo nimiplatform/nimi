@@ -4,27 +4,57 @@ service_mappings:
     proto_service: RuntimeAiService
     mapping_status: renamed_service
     phase: phase1
-    source_rule: K-RPC-005
+    source: K-RPC-005
   - design_service: ConnectorService
     proto_service: ""
     mapping_status: design_only_pending_proto
     phase: phase1
-    source_rule: K-RPC-005
+    source: K-RPC-005
   - design_service: RuntimeLocalRuntimeService
     proto_service: RuntimeLocalRuntimeService
-    mapping_status: subset
+    mapping_status: aligned
     phase: phase1
-    source_rule: K-RPC-004
+    source: K-RPC-004
   - design_service: RuntimeAuthService
     proto_service: RuntimeAuthService
     mapping_status: aligned
     phase: phase1
-    source_rule: K-AUTHSVC-002
+    source: K-AUTHSVC-002
   - design_service: RuntimeGrantService
     proto_service: RuntimeGrantService
     mapping_status: aligned
     phase: phase1
-    source_rule: K-GRANT-002
+    source: K-GRANT-002
+  - design_service: RuntimeWorkflowService
+    proto_service: RuntimeWorkflowService
+    mapping_status: aligned
+    phase: phase2
+    source: K-WF-003
+  - design_service: RuntimeAuditService
+    proto_service: RuntimeAuditService
+    mapping_status: aligned
+    phase: phase2
+    source: K-AUDIT-013
+  - design_service: RuntimeModelService
+    proto_service: RuntimeModelService
+    mapping_status: aligned
+    phase: phase2
+    source: K-MODEL-004
+  - design_service: RuntimeKnowledgeService
+    proto_service: RuntimeKnowledgeService
+    mapping_status: aligned
+    phase: phase2
+    source: K-KNOW-001
+  - design_service: RuntimeAppService
+    proto_service: RuntimeAppService
+    mapping_status: aligned
+    phase: phase2
+    source: K-APP-001
+  - design_service: ScriptWorkerService
+    proto_service: ScriptWorkerService
+    mapping_status: aligned
+    phase: phase2
+    source: K-SCRIPT-001
 
 method_mappings:
   - design_service: AIService
@@ -67,6 +97,11 @@ method_mappings:
     proto_service: RuntimeAiService
     proto_method: GetMediaArtifacts
     mapping_status: renamed_method
+  - design_service: AIService
+    design_method: GetSpeechVoices
+    proto_service: RuntimeAiService
+    proto_method: GetSpeechVoices
+    mapping_status: aligned
   - design_service: AIService
     design_method: SynthesizeSpeechStream
     proto_service: RuntimeAiService
@@ -139,6 +174,96 @@ method_mappings:
     proto_service: RuntimeLocalRuntimeService
     proto_method: CheckLocalModelHealth
     mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListVerifiedModels
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListVerifiedModels
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: SearchCatalogModels
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: SearchCatalogModels
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ResolveModelInstallPlan
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ResolveModelInstallPlan
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: InstallVerifiedModel
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: InstallVerifiedModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ImportLocalModel
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ImportLocalModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: CollectDeviceProfile
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: CollectDeviceProfile
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListLocalServices
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListLocalServices
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: InstallLocalService
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: InstallLocalService
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: StartLocalService
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: StartLocalService
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: StopLocalService
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: StopLocalService
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: CheckLocalServiceHealth
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: CheckLocalServiceHealth
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: RemoveLocalService
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: RemoveLocalService
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListNodeCatalog
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListNodeCatalog
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ResolveDependencies
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ResolveDependencies
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ApplyDependencies
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ApplyDependencies
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListLocalAudits
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListLocalAudits
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: AppendInferenceAudit
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: AppendInferenceAudit
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: AppendRuntimeAudit
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: AppendRuntimeAudit
+    mapping_status: aligned
 
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -202,10 +327,118 @@ method_mappings:
     proto_method: ListTokenChain
     mapping_status: aligned
 
+  - design_service: RuntimeWorkflowService
+    design_method: SubmitWorkflow
+    proto_service: RuntimeWorkflowService
+    proto_method: SubmitWorkflow
+    mapping_status: aligned
+  - design_service: RuntimeWorkflowService
+    design_method: GetWorkflow
+    proto_service: RuntimeWorkflowService
+    proto_method: GetWorkflow
+    mapping_status: aligned
+  - design_service: RuntimeWorkflowService
+    design_method: CancelWorkflow
+    proto_service: RuntimeWorkflowService
+    proto_method: CancelWorkflow
+    mapping_status: aligned
+  - design_service: RuntimeWorkflowService
+    design_method: SubscribeWorkflowEvents
+    proto_service: RuntimeWorkflowService
+    proto_method: SubscribeWorkflowEvents
+    mapping_status: aligned
+
+  - design_service: RuntimeAuditService
+    design_method: ListAuditEvents
+    proto_service: RuntimeAuditService
+    proto_method: ListAuditEvents
+    mapping_status: aligned
+  - design_service: RuntimeAuditService
+    design_method: ExportAuditEvents
+    proto_service: RuntimeAuditService
+    proto_method: ExportAuditEvents
+    mapping_status: aligned
+  - design_service: RuntimeAuditService
+    design_method: ListUsageStats
+    proto_service: RuntimeAuditService
+    proto_method: ListUsageStats
+    mapping_status: aligned
+  - design_service: RuntimeAuditService
+    design_method: GetRuntimeHealth
+    proto_service: RuntimeAuditService
+    proto_method: GetRuntimeHealth
+    mapping_status: aligned
+  - design_service: RuntimeAuditService
+    design_method: ListAIProviderHealth
+    proto_service: RuntimeAuditService
+    proto_method: ListAIProviderHealth
+    mapping_status: aligned
+  - design_service: RuntimeAuditService
+    design_method: SubscribeAIProviderHealthEvents
+    proto_service: RuntimeAuditService
+    proto_method: SubscribeAIProviderHealthEvents
+    mapping_status: aligned
+  - design_service: RuntimeAuditService
+    design_method: SubscribeRuntimeHealthEvents
+    proto_service: RuntimeAuditService
+    proto_method: SubscribeRuntimeHealthEvents
+    mapping_status: aligned
+
+  - design_service: RuntimeModelService
+    design_method: ListModels
+    proto_service: RuntimeModelService
+    proto_method: ListModels
+    mapping_status: aligned
+  - design_service: RuntimeModelService
+    design_method: PullModel
+    proto_service: RuntimeModelService
+    proto_method: PullModel
+    mapping_status: aligned
+  - design_service: RuntimeModelService
+    design_method: RemoveModel
+    proto_service: RuntimeModelService
+    proto_method: RemoveModel
+    mapping_status: aligned
+  - design_service: RuntimeModelService
+    design_method: CheckModelHealth
+    proto_service: RuntimeModelService
+    proto_method: CheckModelHealth
+    mapping_status: aligned
+
+  - design_service: RuntimeKnowledgeService
+    design_method: BuildIndex
+    proto_service: RuntimeKnowledgeService
+    proto_method: BuildIndex
+    mapping_status: aligned
+  - design_service: RuntimeKnowledgeService
+    design_method: SearchIndex
+    proto_service: RuntimeKnowledgeService
+    proto_method: SearchIndex
+    mapping_status: aligned
+  - design_service: RuntimeKnowledgeService
+    design_method: DeleteIndex
+    proto_service: RuntimeKnowledgeService
+    proto_method: DeleteIndex
+    mapping_status: aligned
+
+  - design_service: RuntimeAppService
+    design_method: SendAppMessage
+    proto_service: RuntimeAppService
+    proto_method: SendAppMessage
+    mapping_status: aligned
+  - design_service: RuntimeAppService
+    design_method: SubscribeAppMessages
+    proto_service: RuntimeAppService
+    proto_method: SubscribeAppMessages
+    mapping_status: aligned
+
+  - design_service: ScriptWorkerService
+    design_method: Execute
+    proto_service: ScriptWorkerService
+    proto_method: Execute
+    mapping_status: aligned
+
 excluded_proto_methods:
-  - proto_service: RuntimeAiService
-    proto_method: GetSpeechVoices
-    reason: deferred_ai_capability
   - proto_service: RuntimeAiService
     proto_method: ListTokenProviderModels
     reason: legacy_proto_not_in_design_surface
@@ -213,57 +446,3 @@ excluded_proto_methods:
     proto_method: CheckTokenProviderHealth
     reason: legacy_proto_not_in_design_surface
 
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ListVerifiedModels
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: SearchCatalogModels
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ResolveModelInstallPlan
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: InstallVerifiedModel
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ImportLocalModel
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: CollectDeviceProfile
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ResolveDependencies
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ApplyDependencies
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ListLocalServices
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: InstallLocalService
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: StartLocalService
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: StopLocalService
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: CheckLocalServiceHealth
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: RemoveLocalService
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ListNodeCatalog
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: ListLocalAudits
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: AppendInferenceAudit
-    reason: deferred_phase2_local_runtime
-  - proto_service: RuntimeLocalRuntimeService
-    proto_method: AppendRuntimeAudit
-    reason: deferred_phase2_local_runtime

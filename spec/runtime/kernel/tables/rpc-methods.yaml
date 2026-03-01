@@ -1,6 +1,7 @@
 version: 1
 services:
   - name: AIService
+    source: K-RPC-002
     methods:
       - name: Generate
         type: unary
@@ -18,9 +19,12 @@ services:
         type: server_stream
       - name: GetMediaResult
         type: unary
+      - name: GetSpeechVoices
+        type: unary
       - name: SynthesizeSpeechStream
         type: server_stream
   - name: ConnectorService
+    source: K-RPC-003
     methods:
       - name: CreateConnector
         type: unary
@@ -37,6 +41,7 @@ services:
       - name: ListConnectorModels
         type: unary
   - name: RuntimeLocalRuntimeService
+    source: K-RPC-004
     methods:
       - name: ListLocalModels
         type: unary
@@ -50,7 +55,44 @@ services:
         type: unary
       - name: CheckLocalModelHealth
         type: unary
+      - name: ListVerifiedModels
+        type: unary
+      - name: SearchCatalogModels
+        type: unary
+      - name: ResolveModelInstallPlan
+        type: unary
+      - name: InstallVerifiedModel
+        type: unary
+      - name: ImportLocalModel
+        type: unary
+      - name: CollectDeviceProfile
+        type: unary
+      - name: ListLocalServices
+        type: unary
+      - name: InstallLocalService
+        type: unary
+      - name: StartLocalService
+        type: unary
+      - name: StopLocalService
+        type: unary
+      - name: CheckLocalServiceHealth
+        type: unary
+      - name: RemoveLocalService
+        type: unary
+      - name: ListNodeCatalog
+        type: unary
+      - name: ResolveDependencies
+        type: unary
+      - name: ApplyDependencies
+        type: unary
+      - name: ListLocalAudits
+        type: unary
+      - name: AppendInferenceAudit
+        type: unary
+      - name: AppendRuntimeAudit
+        type: unary
   - name: RuntimeAuthService
+    source: K-AUTHSVC-002
     methods:
       - name: RegisterApp
         type: unary
@@ -67,6 +109,7 @@ services:
       - name: RevokeExternalPrincipalSession
         type: unary
   - name: RuntimeGrantService
+    source: K-GRANT-002
     methods:
       - name: AuthorizeExternalPrincipal
         type: unary
@@ -77,4 +120,64 @@ services:
       - name: IssueDelegatedAccessToken
         type: unary
       - name: ListTokenChain
+        type: unary
+  - name: RuntimeWorkflowService
+    source: K-WF-003
+    methods:
+      - name: SubmitWorkflow
+        type: unary
+      - name: GetWorkflow
+        type: unary
+      - name: CancelWorkflow
+        type: unary
+      - name: SubscribeWorkflowEvents
+        type: server_stream
+  - name: RuntimeAuditService
+    source: K-AUDIT-013
+    methods:
+      - name: ListAuditEvents
+        type: unary
+      - name: ExportAuditEvents
+        type: server_stream
+      - name: ListUsageStats
+        type: unary
+      - name: GetRuntimeHealth
+        type: unary
+      - name: ListAIProviderHealth
+        type: unary
+      - name: SubscribeAIProviderHealthEvents
+        type: server_stream
+      - name: SubscribeRuntimeHealthEvents
+        type: server_stream
+  - name: RuntimeModelService
+    source: K-MODEL-004
+    methods:
+      - name: ListModels
+        type: unary
+      - name: PullModel
+        type: unary
+      - name: RemoveModel
+        type: unary
+      - name: CheckModelHealth
+        type: unary
+  - name: RuntimeKnowledgeService
+    source: K-KNOW-001
+    methods:
+      - name: BuildIndex
+        type: unary
+      - name: SearchIndex
+        type: unary
+      - name: DeleteIndex
+        type: unary
+  - name: RuntimeAppService
+    source: K-APP-001
+    methods:
+      - name: SendAppMessage
+        type: unary
+      - name: SubscribeAppMessages
+        type: server_stream
+  - name: ScriptWorkerService
+    source: K-SCRIPT-001
+    methods:
+      - name: Execute
         type: unary

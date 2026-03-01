@@ -1,14 +1,20 @@
 version: 1
 states:
-  - state: queued
+  - state: QUEUED
     terminal: false
-  - state: running
+    source: K-JOB-002
+  - state: RUNNING
     terminal: false
-  - state: completed
+    source: K-JOB-002
+  - state: COMPLETED
     terminal: true
-  - state: failed
+    source: K-JOB-002
+  - state: FAILED
     terminal: true
-  - state: cancelled
+    source: K-JOB-002
+  - state: CANCELLED
     terminal: true
-  - state: expired
+    source: K-JOB-002
+  - state: EXPIRED
     terminal: true
+    source: K-JOB-002

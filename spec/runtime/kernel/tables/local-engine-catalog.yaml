@@ -1,0 +1,14 @@
+version: 1
+engines:
+  - engine: localai
+    default_endpoint: "http://127.0.0.1:1234/v1"
+    runtime_mode: attached_endpoint
+    protocol: openai_compatible
+    phase1: true
+    source: K-LENG-005
+  - engine: nexa
+    default_endpoint: ""
+    runtime_mode: attached_endpoint
+    protocol: openai_compatible
+    phase1: true
+    source: K-LENG-005

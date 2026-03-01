@@ -42,8 +42,40 @@
 
 ## K-AUTHSVC-007 审计与追踪
 
-所有方法必须写审计（成功/失败），最小字段遵循 `K-AUDIT-*`，且保留 `app_id`、`session_id`、`external_principal_id`（若适用）。
+所有方法必须写审计（成功/失败），最小字段遵循 `K-AUDIT-001`（最小字段），且保留 `app_id`、`session_id`、`external_principal_id`（若适用）。
 
 ## K-AUTHSVC-008 与 AuthN 契约耦合
 
-`RuntimeAuthService` 生成或续签的 token 必须满足 `K-AUTHN-*` 的可验证性约束（issuer/audience/alg/kid 可解析）。
+`RuntimeAuthService` 生成或续签的 token 必须满足 `K-AUTHN-002`（必校验 claims）与 `K-AUTHN-003`（算法与 Header 约束）的可验证性约束。
+
+## K-AUTHSVC-009 AppMode 校验矩阵
+
+`AppMode` 决定应用可访问的 domain 和 scope：
+
+| AppMode | 允许 runtime.* domain | 允许 realm.* domain | 说明 |
+|---|---|---|---|
+| `LITE` | 否 | 是 | 轻量模式，仅 realm 功能 |
+| `CORE_ONLY` | 是 | 否 | 核心模式，仅 runtime 功能 |
+| `FULL` | 是 | 是 | 完整模式，全功能 |
+
+域访问违规时返回 `APP_MODE_DOMAIN_FORBIDDEN`；scope 违规时返回 `APP_MODE_SCOPE_FORBIDDEN`。
+
+**评估顺序**：AppMode gate 在 Scope prefix gate（`K-GRANT-009`）之前执行。AppMode 拒绝后不再评估具体 scope，直接返回 `APP_MODE_DOMAIN_FORBIDDEN` 或 `APP_MODE_SCOPE_FORBIDDEN`。
+
+## K-AUTHSVC-010 Manifest 与 WorldRelation 组合规则
+
+`AppModeManifest` 必须声明 `mode` 和 `world_relation`。`WorldRelation` 枚举：
+
+| 值 | 含义 |
+|---|---|
+| `NONE` | 无世界关联 |
+| `RENDER` | 渲染权限 |
+| `EXTENSION` | 扩展权限 |
+
+组合校验：非法组合返回 `APP_MODE_MANIFEST_INVALID`。`LITE` 模式不允许 `world_relation=EXTENSION`（需要 runtime 能力）。
+
+## K-AUTHSVC-011 Session TTL 解析逻辑
+
+- 默认 TTL：3600 秒（1 小时）。
+- 客户端可通过 `ttl_seconds` 请求自定义 TTL，但必须落在服务端配置区间内（`K-AUTHSVC-004`）。
+- 缺省 `ttl_seconds` 时使用默认值。

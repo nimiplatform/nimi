@@ -1,0 +1,52 @@
+version: 1
+targets:
+  - name: local
+    base_url_env: NIMI_RUNTIME_LOCAL_AI_BASE_URL
+    api_key_env: NIMI_RUNTIME_LOCAL_AI_API_KEY
+    category: local
+    source: K-PROV-002
+  - name: local-nexa
+    base_url_env: NIMI_RUNTIME_LOCAL_NEXA_BASE_URL
+    api_key_env: NIMI_RUNTIME_LOCAL_NEXA_API_KEY
+    category: local
+    source: K-PROV-002
+  - name: cloud-nimillm
+    base_url_env: NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-alibaba
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-bytedance
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-bytedance-openspeech
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-gemini
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-minimax
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-kimi
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY
+    category: cloud
+    source: K-PROV-002
+  - name: cloud-glm
+    base_url_env: NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL
+    api_key_env: NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY
+    category: cloud
+    source: K-PROV-002

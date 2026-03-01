@@ -12,9 +12,15 @@
 ## K-SEC-002 Phase 1 安全基线
 
 1. 默认仅允许 `https://`
-2. `http://` 仅允许 loopback 且显式开启 `allow_loopback_provider_endpoint=true`
-3. 拒绝高风险地址：`localhost`、`127.0.0.0/8`、`::1`、`169.254.0.0/16`、`169.254.169.254`、`fc00::/7`、`fe80::/10`（loopback 开关仅影响 loopback）
-4. DNS 解析后按 IP 网段校验
+2. `http://` 仅在满足以下全部条件时允许：
+   - 目标地址为 loopback（`localhost`、`127.0.0.0/8`、`::1`）
+   - 显式开启 `allow_loopback_provider_endpoint=true`
+3. 无条件拒绝的高风险地址（不受任何开关影响）：
+   - 链路本地：`169.254.0.0/16`、`169.254.169.254`、`fe80::/10`
+   - 私网：`fc00::/7`
+4. 条件拒绝的 loopback 地址（`allow_loopback_provider_endpoint=false` 时拒绝）：
+   - `localhost`、`127.0.0.0/8`、`::1`
+5. DNS 解析后按实际 IP 网段重新校验（解析结果可能落入上述拒绝范围）
 
 ## K-SEC-003 TOCTOU 防护
 
