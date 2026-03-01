@@ -3,6 +3,7 @@
     "home": "Home",
     "chat": "Chat",
     "contacts": "Contacts",
+    "world": "World",
     "explore": "Explore",
     "runtime": "AI Runtime",
     "settings": "Settings",
@@ -214,6 +215,7 @@
     "chatButton": "Chat"
   },
   "Chat": {
+    "title": "Chat",
     "searchPlaceholder": "Search chats...",
     "loading": "Loading chats...",
     "loadError": "Failed to load chats",
@@ -221,6 +223,18 @@
     "noMessages": "No messages yet",
     "today": "Today",
     "yesterday": "Yesterday"
+  },
+  "World": {
+    "title": "Worlds",
+    "subtitle": "Explore and manage your worlds",
+    "searchPlaceholder": "Search worlds...",
+    "loading": "Loading worlds...",
+    "loadError": "Failed to load worlds",
+    "mainWorld": "Main World",
+    "subWorlds": "Sub Worlds",
+    "searchResults": "Search Results",
+    "noWorlds": "No sub worlds",
+    "noSearchResults": "No worlds found"
   },
   "NotificationPanel": {
     "title": "Notifications",
@@ -578,5 +592,30 @@
     "statusPrefix": "Status",
     "joinedAtPrefix": "Joined",
     "turnAuditLabel": "turnAudit"
+  },
+  "PostsTab": {
+    "noPosts": "No posts yet"
+  },
+  "ChatProfile": {
+    "about": "About",
+    "tags": "Tags"
+  },
+  "WorldDetail": {
+    "title": "World",
+    "loading": "Loading world details...",
+    "error": "Failed to load world details",
+    "level": "Level {{level}}",
+    "levelShort": "Lv.{{level}}",
+    "agents": "{{count}} Agents",
+    "mainWorld": "Main World",
+    "subWorld": "Sub World",
+    "about": "About",
+    "worldview": "Worldview",
+    "governance": "Governance",
+    "transit": "Transit",
+    "audit": "Audit"
+  },
+  "AddContact": {
+    "inputRequired": "Please input a user handle or ID."
   }
 }

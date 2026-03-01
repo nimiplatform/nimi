@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ContactSearchCandidate } from './contacts-model';
 import { getContactInitial } from './contacts-model';
 
@@ -27,6 +28,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function AddContactModal(props: AddContactModalProps) {
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -92,7 +94,7 @@ export function AddContactModal(props: AddContactModalProps) {
   const handleSearch = async () => {
     const nextIdentifier = identifier.trim();
     if (!nextIdentifier) {
-      setSearchError('Please input a user handle or ID.');
+      setSearchError(t('AddContact.inputRequired'));
       setCandidate(null);
       setSelectedCandidate(null);
       return;
@@ -208,8 +210,6 @@ export function AddContactModal(props: AddContactModalProps) {
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-500">Use <code>@handle</code>, <code>~agent_handle</code>, or user ID.</p>
-
           {/* Agent Limit Info */}
           {props.agentLimit ? (
             <div className="rounded-xl bg-gray-50 px-4 py-3">

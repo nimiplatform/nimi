@@ -3,13 +3,11 @@
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob",
-    "/nimi.runtime.v1.RuntimeAiService/CheckTokenProviderHealth",
     "/nimi.runtime.v1.RuntimeAiService/Embed",
     "/nimi.runtime.v1.RuntimeAiService/Generate",
     "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts",
     "/nimi.runtime.v1.RuntimeAiService/GetMediaJob",
     "/nimi.runtime.v1.RuntimeAiService/GetSpeechVoices",
-    "/nimi.runtime.v1.RuntimeAiService/ListTokenProviderModels",
     "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
     "/nimi.runtime.v1.RuntimeAiService/StreamSpeechSynthesis",
     "/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob",

@@ -64,6 +64,10 @@ const WorldDetailPanel = lazy(async () => {
   const mod = await import('@renderer/features/world-detail/world-detail-panel');
   return { default: mod.WorldDetailPanel };
 });
+const WorldList = lazy(async () => {
+  const mod = await import('@renderer/features/world/world-list');
+  return { default: mod.WorldList };
+});
 const HomePanel = lazy(async () => {
   const mod = await import('@renderer/features/home/home-panel');
   return { default: mod.HomePanel };
@@ -233,6 +237,77 @@ function normalizeSidebarModNavItems(input: {
     return a.label.localeCompare(b.label);
   });
   return navItems;
+}
+
+// Sidebar Tooltip Button Component - Green background, white text
+function SidebarTooltipButton({
+  label,
+  onClick,
+  children,
+  className = '',
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  
+  const handleMouseEnter = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setTooltipPos({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 8,
+      });
+    }
+  };
+  
+  const handleMouseLeave = () => {
+    setTooltipPos(null);
+  };
+  
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={onClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={className}
+        aria-label={label}
+      >
+        {children}
+      </button>
+      {tooltipPos ? (
+        <span 
+          className="fixed px-2 py-1 rounded-md bg-[#4ECCA3] text-white text-xs whitespace-nowrap z-[9999] shadow-lg pointer-events-none"
+          style={{ 
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            transform: 'translateY(-50%)',
+          }}
+        >
+          {label}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+function ChatLayout() {
+  return (
+    <div className="flex min-h-0 flex-1">
+      <div className="w-[280px] shrink-0 border-r border-gray-200 bg-white">
+        <ChatList />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col bg-white">
+        <MessageTimeline />
+      </div>
+    </div>
+  );
 }
 
 type MainLayoutViewProps = {
@@ -589,21 +664,18 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className={`flex h-full shrink-0 flex-col overflow-hidden bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
+        <aside className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}>
           <div className="flex h-14 shrink-0 items-center justify-center">
-            <button
-              type="button"
+            <SidebarTooltipButton
+              label="Home"
               onClick={() => {
                 setModsMenuOpen(false);
                 setSettingsMenuOpen(false);
                 props.onNav('home');
               }}
-              className="flex items-center justify-center"
-              aria-label="Nimi Home"
-              title="Home"
             >
               {nimiHomeNode}
-            </button>
+            </SidebarTooltipButton>
           </div>
 
           <nav className="flex-1 overflow-y-auto pt-2">
@@ -617,22 +689,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   onClick={() => props.onNav(item.id)}
                 />
               ))}
-              {/* Create Post Button - After explore */}
-              <button
-                type="button"
-                onClick={openCreatePostFromTitlebar}
-                className="group relative flex h-11 w-full items-center justify-center text-gray-400 transition-colors hover:bg-mint-100 hover:text-gray-600"
-                style={{ borderRadius: '10px' }}
-                title={t('Common.createPost')}
-                aria-label={t('Common.createPost')}
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#4ECCA3] text-white shadow-sm transition group-hover:bg-[#3DBA92]">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                </span>
-              </button>
               {quickNavItems.map((item) => (
                 <NavLink
                   key={item.id}
@@ -642,6 +698,21 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   onClick={() => props.onNav(item.id)}
                 />
               ))}
+              {/* Create Post Button - Middle of sidebar */}
+              <div className="py-3 px-2">
+                <SidebarTooltipButton
+                  label={t('Common.createPost')}
+                  onClick={openCreatePostFromTitlebar}
+                  className="flex h-11 w-full items-center justify-center text-gray-400 transition-colors hover:bg-mint-100 hover:text-gray-600 rounded-[10px]"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#4ECCA3] text-white shadow-sm transition hover:bg-[#3DBA92]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </span>
+                </SidebarTooltipButton>
+              </div>
               {flags.enableModUi ? (
                 <div className="relative" ref={modsTriggerRef}>
                   <NavLink
@@ -756,17 +827,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             ) : null}
 
             {props.activeTab === 'chat' ? (
-              <div className="flex min-h-0 flex-1">
-                <div className="w-[280px] shrink-0 border-r border-gray-200 bg-white">
-                  <ChatList />
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col bg-gray-50">
-                  <div className="min-h-0 flex-1">
-                    <MessageTimeline />
-                  </div>
-                  <TurnInput />
-                </div>
-              </div>
+              <ChatLayout />
             ) : null}
 
             {props.activeTab === 'contacts' ? (
@@ -811,6 +872,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </div>
             ) : null}
 
+            {props.activeTab === 'world' ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <WorldList />
+              </div>
+            ) : null}
             {props.activeTab === 'world-detail' ? (
               <div className="flex min-h-0 flex-1 flex-col">
                 <WorldDetailPanel />

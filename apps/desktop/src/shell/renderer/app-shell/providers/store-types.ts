@@ -10,6 +10,7 @@ export type AppTab =
   | 'home'
   | 'chat'
   | 'contacts'
+  | 'world'
   | 'explore'
   | 'runtime'
   | 'settings'
@@ -68,6 +69,7 @@ export type AppStoreState = {
   selectedChatId: string | null;
   selectedProfileId: string | null;
   selectedWorldId: string | null;
+  chatProfilePanelTarget: 'self' | 'other' | null;
   localManifestSummaries: RuntimeLocalManifestSummary[];
   registeredRuntimeModIds: string[];
   runtimeModDisabledIds: string[];
@@ -89,6 +91,7 @@ export type AppStoreState = {
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
+  setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string | null, tab: 'profile' | 'agent-detail') => void;
   navigateToWorld: (worldId: string) => void;
   navigateBack: () => void;

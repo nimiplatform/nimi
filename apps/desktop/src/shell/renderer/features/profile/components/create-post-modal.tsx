@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 
@@ -14,11 +14,62 @@ type SelectedFile = {
   type: 'image' | 'video';
 };
 
+type Location = {
+  id: string;
+  name: string;
+  address: string;
+};
+
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_CAPTION_LENGTH = 2000;
 const MAX_TAGS = 5;
+const CATEGORIES_PER_PAGE = 4;
+
+// Common emojis grouped by category
+const EMOJI_CATEGORIES = [
+  {
+    name: 'Smileys',
+    emojis: ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
+  },
+  {
+    name: 'Gestures',
+    emojis: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🫀', '🫁', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '🩸'],
+  },
+  {
+    name: 'Love',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🈳', '🈂', '🛂', '🛃', '🛄', '🛅', '🛗', '🚹', '🚺', '🚼', '⚧', '🚻', '🚮', '🎦', '📶', '🈁', '✖️', '➕', '➖', '➗', '♾️', '💱', '💲', '™️', '©️', '®️', '👁️‍🗨️', '🔚', '🔙', '🔛', '🔝', '🔜', '〰️', '➰', '➿', '✔️', '🆒', '🆓', '🆕', '🆗', '🆙', '🆖', '🈁', '🈶', '🈚', '🈷️', '🈸', '🈴', '🈳', '㊗️', '㊙️', '🈺', '🈵', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'],
+  },
+  {
+    name: 'Nature',
+    emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿️', '🦔', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪️', '🌈', '☀️', '🌤️', '⛅️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄️', '🌬️', '💨', '💧', '💦', '☔️', '☂️', '🌊', '🌫️'],
+  },
+  {
+    name: 'Food',
+    emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🍍', '🥝', '🥑', '🍅', '🍆', '🥒', '🥕', '🌽', '🌶️', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🍡', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕️', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾', '🧊', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
+  },
+  {
+    name: 'Activities',
+    emojis: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '⛹️', '🤺', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩'],
+  },
+];
+
+// Mock locations data
+const MOCK_LOCATIONS: Location[] = [
+  { id: '1', name: 'Central Park', address: 'New York, NY, USA' },
+  { id: '2', name: 'Times Square', address: 'Manhattan, New York, NY' },
+  { id: '3', name: 'Eiffel Tower', address: 'Paris, France' },
+  { id: '4', name: 'Tokyo Tower', address: 'Minato City, Tokyo, Japan' },
+  { id: '5', name: 'Sydney Opera House', address: 'Sydney NSW, Australia' },
+  { id: '6', name: 'Big Ben', address: 'London, UK' },
+  { id: '7', name: 'Burj Khalifa', address: 'Dubai, United Arab Emirates' },
+  { id: '8', name: 'Golden Gate Bridge', address: 'San Francisco, CA, USA' },
+  { id: '9', name: 'Great Wall of China', address: 'Beijing, China' },
+  { id: '10', name: 'Mount Fuji', address: 'Shizuoka, Japan' },
+  { id: '11', name: 'Statue of Liberty', address: 'New York, NY, USA' },
+  { id: '12', name: 'Colosseum', address: 'Rome, Italy' },
+];
 
 function extractHashtags(text: string): string[] {
   const matches = text.match(/#[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+/g);
@@ -36,9 +87,51 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showEmojiPanel, setShowEmojiPanel] = useState(false);
+  const [showLocationPanel, setShowLocationPanel] = useState(false);
+  const [showTagPanel, setShowTagPanel] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
+  const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [tagSearch, setTagSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Popular tags for suggestions
+  const POPULAR_TAGS = [
+    'ai', 'design', 'music', 'art', 'photography', 'travel', 'food', 'fashion',
+    'technology', 'gaming', 'sports', 'news', 'science', 'history', 'nature'
+  ];
+
+  const filteredTags = tagSearch.trim()
+    ? POPULAR_TAGS.filter(tag => tag.toLowerCase().includes(tagSearch.toLowerCase()))
+    : POPULAR_TAGS;
+
+  // Emoji pagination
+  const totalCategoryPages = Math.ceil(EMOJI_CATEGORIES.length / CATEGORIES_PER_PAGE);
+  const activeCategory = EMOJI_CATEGORIES[activeEmojiCategory] ?? EMOJI_CATEGORIES[0] ?? {
+    name: 'Default',
+    emojis: [] as string[],
+  };
+
+  // Get categories for current page
+  const getCategoriesForPage = (page: number) => {
+    const start = page * CATEGORIES_PER_PAGE;
+    const end = start + CATEGORIES_PER_PAGE;
+    return EMOJI_CATEGORIES.slice(start, end).map((cat, idx) => ({
+      ...cat,
+      originalIndex: start + idx
+    }));
+  };
 
   const tags = extractHashtags(caption);
+
+  const filteredLocations = MOCK_LOCATIONS.filter(
+    (loc) =>
+      loc.name.toLowerCase().includes(locationSearch.toLowerCase()) ||
+      loc.address.toLowerCase().includes(locationSearch.toLowerCase())
+  );
 
   const reset = useCallback(() => {
     if (selectedFile) URL.revokeObjectURL(selectedFile.previewUrl);
@@ -47,6 +140,12 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
     setUploading(false);
     setError(null);
     setDragOver(false);
+    setShowEmojiPanel(false);
+    setShowLocationPanel(false);
+    setShowTagPanel(false);
+    setSelectedLocation(null);
+    setLocationSearch('');
+    setTagSearch('');
   }, [selectedFile]);
 
   const handleClose = useCallback(() => {
@@ -85,6 +184,59 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
     const file = e.dataTransfer.files[0];
     if (file) handleFileSelect(file);
   }, [handleFileSelect]);
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newCaption = caption.slice(0, start) + emoji + caption.slice(end);
+    
+    if (newCaption.length <= MAX_CAPTION_LENGTH) {
+      setCaption(newCaption);
+      // Restore focus and set cursor position after emoji
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    }
+  };
+
+  const selectLocation = (location: Location) => {
+    setSelectedLocation(location);
+    setShowLocationPanel(false);
+  };
+
+  const removeLocation = () => {
+    setSelectedLocation(null);
+  };
+
+  const insertTag = (tag: string) => {
+    const textarea = textareaRef.current;
+    const tagText = `#${tag} `;
+    
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newCaption = caption.slice(0, start) + tagText + caption.slice(end);
+      
+      if (newCaption.length <= MAX_CAPTION_LENGTH) {
+        setCaption(newCaption);
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start + tagText.length, start + tagText.length);
+        }, 0);
+      }
+    } else {
+      const newCaption = caption + tagText;
+      if (newCaption.length <= MAX_CAPTION_LENGTH) {
+        setCaption(newCaption);
+      }
+    }
+    setTagSearch('');
+    setShowTagPanel(false);
+  };
 
   const handleSubmit = useCallback(async () => {
     if (!selectedFile) return;
@@ -134,7 +286,28 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
     } finally {
       setUploading(false);
     }
-  }, [selectedFile, caption, tags, handleClose, onCreated]);
+  }, [selectedFile, caption, tags, selectedLocation, handleClose, onCreated]);
+
+  // Close panels when clicking outside
+  useEffect(() => {
+    if (!showEmojiPanel && !showLocationPanel && !showTagPanel) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.emoji-panel') && !target.closest('.emoji-btn')) {
+        setShowEmojiPanel(false);
+      }
+      if (!target.closest('.location-panel') && !target.closest('.location-btn')) {
+        setShowLocationPanel(false);
+      }
+      if (!target.closest('.tag-panel') && !target.closest('.tag-btn')) {
+        setShowTagPanel(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPanel, showLocationPanel, showTagPanel]);
 
   if (!open) return null;
 
@@ -235,6 +408,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
           {/* Caption */}
           <div className="mt-4">
             <textarea
+              ref={textareaRef}
               value={caption}
               onChange={(e) => setCaption(e.target.value.slice(0, MAX_CAPTION_LENGTH))}
               placeholder="Write a caption... Use #hashtags for tags"
@@ -242,7 +416,322 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
               rows={3}
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:ring-1 focus:ring-brand-400 focus:outline-none disabled:opacity-50"
             />
-            <div className="mt-1 flex items-center justify-between">
+            
+            {/* Selected Location Badge */}
+            {selectedLocation && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4ECCA3]/10 px-3 py-1 text-sm text-[#4ECCA3]">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {selectedLocation.name}
+                  <button
+                    type="button"
+                    onClick={removeLocation}
+                    className="ml-1 rounded-full hover:bg-[#4ECCA3]/20"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            )}
+            
+            {/* Action buttons */}
+            <div className="relative mt-2 flex items-center gap-2">
+              {/* Emoji button with tooltip */}
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => {
+                    setShowEmojiPanel(!showEmojiPanel);
+                    setShowLocationPanel(false);
+                    setShowTagPanel(false);
+                  }}
+                  className={`emoji-btn group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                    showEmojiPanel
+                      ? 'bg-[#0066CC] text-white'
+                      : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+                  }`}
+                  title="Emoji"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                    <line x1="15" y1="9" x2="15.01" y2="9" />
+                  </svg>
+                  {/* Tooltip */}
+                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Emoji
+                  </span>
+                </button>
+                
+                {/* Emoji Panel */}
+                {showEmojiPanel && (
+                  <div className="emoji-panel absolute bottom-full left-0 z-50 mb-2 w-[320px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden">
+                    {/* Category tabs with pagination */}
+                    <div className="relative border-b border-gray-100">
+                      <div className="flex items-center justify-between px-2 pt-2 pb-1">
+                        {/* Left arrow - show when not on first page */}
+                        {emojiCategoryPage > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setEmojiCategoryPage((prev) => prev - 1)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors mr-1"
+                            aria-label="Previous page"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                          </button>
+                        )}
+                        
+                        {/* Category tabs for current page */}
+                        <div className={`flex items-center gap-1 flex-1 ${emojiCategoryPage === 0 ? 'pl-0' : ''}`}>
+                          {getCategoriesForPage(emojiCategoryPage).map((category) => (
+                            <button
+                              key={category.name}
+                              type="button"
+                              onClick={() => setActiveEmojiCategory(category.originalIndex)}
+                              className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                                activeEmojiCategory === category.originalIndex
+                                  ? 'bg-[#0066CC] text-white'
+                                  : 'text-gray-500 hover:bg-gray-100'
+                              }`}
+                            >
+                              {category.name}
+                            </button>
+                          ))}
+                        </div>
+                        
+                        {/* Right arrow - show when not on last page */}
+                        {emojiCategoryPage < totalCategoryPages - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setEmojiCategoryPage((prev) => prev + 1)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors ml-1"
+                            aria-label="Next page"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {/* Emoji grid */}
+                    <div className="p-3 max-h-[260px] overflow-y-auto">
+                      <div className="grid grid-cols-8 gap-1">
+                        {activeCategory.emojis.map((emoji, index) => (
+                          <button
+                            key={`${emoji}-${index}`}
+                            type="button"
+                            onClick={() => insertEmoji(emoji)}
+                            className="flex items-center justify-center h-8 w-8 text-xl hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Location button with tooltip */}
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => {
+                    setShowLocationPanel(!showLocationPanel);
+                    setShowEmojiPanel(false);
+                  }}
+                  className={`location-btn group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                    showLocationPanel
+                      ? 'bg-[#0066CC] text-white'
+                      : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+                  }`}
+                  title="Location"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {/* Tooltip */}
+                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Location
+                  </span>
+                </button>
+                
+                {/* Location Panel */}
+                {showLocationPanel && (
+                  <div className="location-panel absolute bottom-full left-0 z-50 mb-2 w-[320px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden">
+                    {/* Search */}
+                    <div className="border-b border-gray-100 p-3">
+                      <div className="relative">
+                        <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="8" />
+                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input
+                          type="text"
+                          placeholder="Search location..."
+                          value={locationSearch}
+                          onChange={(e) => setLocationSearch(e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
+                        />
+                      </div>
+                    </div>
+                    {/* Location list */}
+                    <div className="max-h-48 overflow-y-auto py-2">
+                      {filteredLocations.length > 0 ? (
+                        filteredLocations.map((location) => (
+                          <button
+                            key={location.id}
+                            type="button"
+                            onClick={() => selectLocation(location)}
+                            className="flex w-full items-start gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+                          >
+                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0 flex-1 text-left">
+                              <p className="truncate text-sm font-medium text-gray-900">{location.name}</p>
+                              <p className="truncate text-xs text-gray-500">{location.address}</p>
+                            </div>
+                            {selectedLocation?.id === location.id && (
+                              <svg className="mt-1 h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-center text-sm text-gray-500">
+                          No locations found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Tag button with tooltip */}
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => {
+                    setShowTagPanel(!showTagPanel);
+                    setShowEmojiPanel(false);
+                    setShowLocationPanel(false);
+                  }}
+                  className={`tag-btn group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                    showTagPanel
+                      ? 'bg-[#0066CC] text-white'
+                      : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+                  }`}
+                  title="Tag"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                  {/* Tooltip */}
+                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Tag
+                  </span>
+                </button>
+                
+                {/* Tag Panel */}
+                {showTagPanel && (
+                  <div className="tag-panel absolute bottom-full left-0 z-50 mb-2 w-[280px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden">
+                    {/* Search */}
+                    <div className="border-b border-gray-100 p-3">
+                      <div className="relative">
+                        <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="8" />
+                          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input
+                          type="text"
+                          placeholder="Search tags..."
+                          value={tagSearch}
+                          onChange={(e) => setTagSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && tagSearch.trim()) {
+                              insertTag(tagSearch.trim());
+                            }
+                          }}
+                          className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
+                        />
+                      </div>
+                    </div>
+                    {/* Tag list */}
+                    <div className="max-h-48 overflow-y-auto py-2">
+                      {filteredTags.length > 0 ? (
+                        filteredTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => insertTag(tag)}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                                <line x1="7" y1="7" x2="7.01" y2="7" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0 flex-1 text-left">
+                              <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
+                            </div>
+                            {caption.includes(`#${tag}`) && (
+                              <svg className="h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        tagSearch.trim() ? (
+                          <button
+                            type="button"
+                            onClick={() => insertTag(tagSearch.trim())}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0 flex-1 text-left">
+                              <p className="truncate text-sm font-medium text-gray-900">Add #{tagSearch}</p>
+                            </div>
+                          </button>
+                        ) : (
+                          <div className="px-3 py-4 text-center text-sm text-gray-500">
+                            Type to search or add a tag
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-2 flex items-center justify-between">
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((tag) => (
                   <span key={tag} className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600">

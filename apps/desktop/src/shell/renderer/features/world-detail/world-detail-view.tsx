@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { WorldData } from './world-detail-model';
 import {
   formatWorldDate,
@@ -83,22 +84,22 @@ function ScoreBar({ label, value, max }: { label: string; value: number; max: nu
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
     <div className="flex items-center gap-3">
-      <span className="w-10 shrink-0 text-right text-xs font-medium text-gray-500">{label}</span>
+      <span className="w-10 shrink-0 text-right text-xs font-bold text-gray-500">{label}</span>
       <div className="h-2 flex-1 rounded-full bg-gray-100">
         <div
-          className="h-2 rounded-full bg-brand-400"
+          className="h-2 rounded-full bg-[#4ECCA3]"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-12 text-xs text-gray-500">{value.toFixed(1)}</span>
+      <span className="w-12 text-xs font-medium text-gray-600">{value.toFixed(1)}</span>
     </div>
   );
 }
 
 function MetaItem({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex flex-col items-center rounded-[10px] border border-gray-200 bg-white px-4 py-3">
-      <span className="text-lg font-semibold text-gray-900">{value}</span>
+    <div className="flex flex-col items-center rounded-2xl border border-white/60 bg-white/40 px-4 py-3 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
+      <span className="text-lg font-bold text-gray-800">{value}</span>
       <span className="mt-0.5 text-[11px] text-gray-500">{label}</span>
     </div>
   );
@@ -119,13 +120,14 @@ function TransitStatusBadge({ status }: { status: WorldTransitDetail['status'] }
 }
 
 export function WorldDetailView(props: WorldDetailViewProps) {
+  const { t } = useTranslation();
   const [checkpointName, setCheckpointName] = useState('');
   const [checkpointStatus, setCheckpointStatus] = useState<WorldTransitCheckpointStatus>('PASSED');
 
   if (props.loading) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        Loading world details...
+        {t('WorldDetail.loading')}
       </div>
     );
   }
@@ -133,7 +135,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
   if (props.error) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-sm text-red-600">Failed to load world details</p>
+        <p className="text-sm text-red-600">{t('WorldDetail.error')}</p>
         {props.onRetry ? (
           <button
             type="button"
@@ -178,322 +180,326 @@ export function WorldDetailView(props: WorldDetailViewProps) {
   const auditRows = transit.audits.slice(0, 6);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-6">
-        <button
-          type="button"
-          onClick={props.onBack}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <h1 className="text-lg font-semibold tracking-tight text-gray-900">World</h1>
+    <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
+      {/* Top bar - 使用 Profile 风格 */}
+      <div className="flex h-14 shrink-0 items-center border-b border-white/50 bg-white/70 px-6 backdrop-blur-xl">
+        <h1 className="text-lg font-semibold tracking-tight text-gray-800">World</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        {/* Banner */}
-        {world.bannerUrl ? (
-          <div className="h-40 w-full overflow-hidden">
-            <img src={world.bannerUrl} alt={world.name} className="h-full w-full object-cover" />
-          </div>
-        ) : (
-          <div className="h-40 w-full" style={{ background: 'linear-gradient(135deg, #0e7490, #6366f1)' }} />
-        )}
-
-        <div className="mx-auto max-w-2xl px-6">
-          {/* World Header - overlaps banner */}
-          <div className="-mt-12 flex flex-col items-center rounded-[10px] border border-gray-200 bg-white px-6 pt-0 pb-6">
-            <div className="-mt-10 mb-4">
-              {world.iconUrl ? (
-                <img
-                  src={world.iconUrl}
-                  alt={world.name}
-                  className="h-20 w-20 rounded-[16px] border-4 border-white object-cover shadow-sm"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-[16px] border-4 border-white bg-brand-100 text-2xl font-bold text-brand-700 shadow-sm">
-                  {getWorldInitial(world.name)}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-6xl px-6 py-6">
+          {/* 顶部合并的 World 信息卡片 */}
+          <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+            
+            <div className="relative flex gap-6">
+              {/* 左侧：头像和主要信息 */}
+              <div className="flex flex-col items-center shrink-0 w-48">
+                {/* 头像 */}
+                <div className="relative">
+                  <div className="rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1">
+                    {world.iconUrl ? (
+                      <img
+                        src={world.iconUrl}
+                        alt={world.name}
+                        className="h-24 w-24 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-3xl font-bold text-[#4ECCA3]">
+                        {getWorldInitial(world.name)}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <h2 className="text-xl font-semibold tracking-tight text-gray-900">{world.name}</h2>
-
-            {/* Badges */}
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4" /></svg>
-                {world.status}
-              </span>
-              <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                {world.type === 'MAIN' ? 'Main World' : 'Sub World'}
-              </span>
-              <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                Lv.{world.level}
-              </span>
-              {world.freezeReason ? (
-                <span className="inline-flex items-center rounded-full border border-red-200 bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
-                  Frozen: {world.freezeReason}
-                </span>
-              ) : null}
-            </div>
-
-            {world.description ? (
-              <p className="mt-4 max-w-lg text-center text-sm text-gray-600">{world.description}</p>
-            ) : null}
-          </div>
-
-          {/* Stats Grid */}
-          <div className="mt-4 grid grid-cols-4 gap-3">
-            <MetaItem label="Agents" value={world.agentCount} />
-            <MetaItem label="Agent Limit" value={world.nativeAgentLimit} />
-            <MetaItem label="Transit Limit" value={world.transitInLimit} />
-            <MetaItem label="Time Flow" value={`${world.timeFlowRatio}x`} />
-          </div>
-
-          {/* Governance Scores (Q/C/A/E) */}
-          <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">Governance Scores</h3>
-            <div className="mt-3 flex flex-col gap-2.5">
-              <ScoreBar label="Q" value={world.scores.q} max={100} />
-              <ScoreBar label="C" value={world.scores.c} max={100} />
-              <ScoreBar label="A" value={world.scores.a} max={100} />
-              <ScoreBar label="E" value={world.scores.e} max={100} />
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-2">
-              <span className="text-xs text-gray-500">EWMA Score</span>
-              <span className="text-sm font-semibold text-gray-900">{world.scores.ewma.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* World Config */}
-          <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">Configuration</h3>
-            <div className="mt-2 divide-y divide-gray-100">
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-500">Native Creation</span>
-                <span className={`text-sm font-medium ${world.nativeCreationState === 'OPEN' ? 'text-green-600' : 'text-red-600'}`}>
-                  {world.nativeCreationState === 'OPEN' ? 'Open' : 'Frozen'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-gray-500">Lorebook Limit</span>
-                <span className="text-sm font-medium text-gray-900">{world.lorebookEntryLimit}</span>
-              </div>
-              {world.createdAt ? (
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Created</span>
-                  <span className="text-sm font-medium text-gray-900">{formatWorldDate(world.createdAt)}</span>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Worldview */}
-          <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">Worldview</h3>
-            {!world.hasWorldview ? (
-              <p className="mt-2 text-sm text-amber-700">No worldview is bound to this world yet.</p>
-            ) : (
-              <div className="mt-2 divide-y divide-gray-100">
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Lifecycle</span>
-                  <span className="text-sm font-medium text-gray-900">{world.worldviewLifecycle || 'Unknown'}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Version</span>
-                  <span className="text-sm font-medium text-gray-900">{world.worldviewVersion ?? '--'}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Modules</span>
-                  <span className="text-sm font-medium text-gray-900">{world.worldviewModuleCount}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Events</span>
-                  <span className="text-sm font-medium text-gray-900">{world.worldviewEventCount}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Snapshots</span>
-                  <span className="text-sm font-medium text-gray-900">{world.worldviewSnapshotCount}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-500">Latest Event</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {world.latestWorldviewEventAt ? formatWorldDate(world.latestWorldviewEventAt) : '--'}
+                {/* 名称 */}
+                <h2 className="mt-4 text-lg font-semibold tracking-tight text-gray-800">{world.name}</h2>
+                
+                {/* 标签 */}
+                <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                    <svg width="6" height="6" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4" /></svg>
+                    {world.status}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2.5 py-0.5 text-xs font-medium text-[#2A9D8F]">
+                    {world.type === 'MAIN' ? t('WorldDetail.mainWorld') : t('WorldDetail.subWorld')}
                   </span>
                 </div>
+
+                {/* 等级 */}
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                    Level {world.level}
+                  </span>
+                  {world.freezeReason ? (
+                    <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700">
+                      Frozen
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            )}
+
+              {/* 中间：描述和 About */}
+              <div className="flex-1 min-w-0 border-l border-gray-100 pl-6">
+                {/* 描述 */}
+                {world.description ? (
+                  <p className="text-sm text-gray-600 leading-relaxed mb-4">{world.description}</p>
+                ) : null}
+
+                {/* About 信息 */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4ECCA3] shrink-0">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    <span>Created {formatWorldDate(world.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4ECCA3] shrink-0">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    </svg>
+                    <span>Native Creation: <span className={world.nativeCreationState === 'OPEN' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>{world.nativeCreationState === 'OPEN' ? 'Open' : 'Frozen'}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4ECCA3] shrink-0">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    <span>Lorebook Limit: {world.lorebookEntryLimit}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 右侧：Worldview 信息 */}
+              <div className="w-48 shrink-0 border-l border-gray-100 pl-6">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Worldview</h3>
+                {!world.hasWorldview ? (
+                  <p className="text-sm text-amber-600">No worldview bound</p>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Lifecycle</span>
+                      <span className="font-medium text-gray-800">{world.worldviewLifecycle || 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Version</span>
+                      <span className="font-medium text-gray-800">{world.worldviewVersion ?? '--'}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Modules</span>
+                      <span className="font-medium text-gray-800">{world.worldviewModuleCount}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Events</span>
+                      <span className="font-medium text-gray-800">{world.worldviewEventCount}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Transit Runtime */}
-          <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">Transit Protocol</h3>
-              <button
-                type="button"
-                onClick={transit.onRefresh}
-                className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
-                disabled={transit.loading || transit.mutating}
-              >
-                Refresh
-              </button>
+          {/* 下方内容区 */}
+          <div className="space-y-4">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-4 gap-3">
+              <MetaItem label="Agents" value={world.agentCount} />
+              <MetaItem label="Agent Limit" value={world.nativeAgentLimit} />
+              <MetaItem label="Transit Limit" value={world.transitInLimit} />
+              <MetaItem label="Time Flow" value={`${world.timeFlowRatio}x`} />
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <MetaItem label="Scene Quota" value={renderQuotaText(transit.sceneQuota)} />
-              <MetaItem label="Transit History" value={transit.history.length} />
-            </div>
-
-            <div className="mt-3 flex flex-col gap-2">
-              <label className="text-xs font-medium text-gray-600">Carrier Agent</label>
-              <select
-                value={transit.selectedAgentId}
-                onChange={(event) => transit.onSelectAgent(event.target.value)}
-                className="h-9 rounded-[10px] border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                disabled={transit.loading || transit.mutating || transit.agents.length <= 0}
-              >
-                {transit.agents.length <= 0 ? (
-                  <option value="">No available agents</option>
-                ) : null}
-                {transit.agents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={transit.onStartTransit}
-                disabled={!canStartTransit}
-                className="rounded-[10px] bg-brand-500 px-3 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                Start Transit
-              </button>
-              <button
-                type="button"
-                onClick={transit.onStartSession}
-                disabled={!canStartSession}
-                className="rounded-[10px] bg-blue-500 px-3 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                Start Session
-              </button>
-              <button
-                type="button"
-                onClick={transit.onCompleteTransit}
-                disabled={!canCompleteOrAbandon}
-                className="rounded-[10px] bg-emerald-500 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                Complete
-              </button>
-              <button
-                type="button"
-                onClick={transit.onAbandonTransit}
-                disabled={!canCompleteOrAbandon}
-                className="rounded-[10px] bg-rose-500 px-3 py-2 text-xs font-medium text-white hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                Abandon
-              </button>
-            </div>
-
-            {transit.activeTransit ? (
-              <div className="mt-4 rounded-[10px] border border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium text-gray-800">Active Transit</div>
-                  <TransitStatusBadge status={transit.activeTransit.status} />
+              {/* Governance Scores (Q/C/A/E) */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                <div className="relative">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-4">Governance Scores</h3>
+                  <div className="flex flex-col gap-3">
+                    <ScoreBar label="Q" value={world.scores.q} max={100} />
+                    <ScoreBar label="C" value={world.scores.c} max={100} />
+                    <ScoreBar label="A" value={world.scores.a} max={100} />
+                    <ScoreBar label="E" value={world.scores.e} max={100} />
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t border-gray-100/60 pt-3">
+                    <span className="text-xs text-gray-500">EWMA Score</span>
+                    <span className="text-sm font-bold text-gray-800">{world.scores.ewma.toFixed(2)}</span>
+                  </div>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
-                  <span>Type: {transit.activeTransit.transitType}</span>
-                  <span>Departed: {formatWorldDateTime(transit.activeTransit.departedAt)}</span>
-                  <span>Arrived: {formatWorldDateTime(transit.activeTransit.arrivedAt)}</span>
-                  <span>From: {transit.activeTransit.fromWorldId || '--'}</span>
-                </div>
+              </div>
 
-                <div className="mt-3 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-gray-600">Checkpoint</label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      value={checkpointName}
-                      onChange={(event) => setCheckpointName(event.target.value)}
-                      placeholder="checkpoint name"
-                      className="h-9 min-w-[180px] rounded-[10px] border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                    />
-                    <select
-                      value={checkpointStatus}
-                      onChange={(event) => setCheckpointStatus(event.target.value as WorldTransitCheckpointStatus)}
-                      className="h-9 rounded-[10px] border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="PASSED">PASSED</option>
-                      <option value="FAILED">FAILED</option>
-                      <option value="SKIPPED">SKIPPED</option>
-                    </select>
+              {/* Transit Runtime */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-800">Transit Protocol</h3>
                     <button
                       type="button"
-                      onClick={() => {
-                        transit.onAddCheckpoint({
-                          name: checkpointName.trim(),
-                          status: checkpointStatus,
-                        });
-                        setCheckpointName('');
-                      }}
-                      disabled={!canAddCheckpoint}
-                      className="rounded-[10px] bg-gray-800 px-3 py-2 text-xs font-medium text-white hover:bg-gray-900 disabled:cursor-not-allowed disabled:bg-gray-300"
+                      onClick={transit.onRefresh}
+                      className="rounded-lg bg-white/60 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-white/80 border border-white/60"
+                      disabled={transit.loading || transit.mutating}
                     >
-                      Add Checkpoint
+                      Refresh
                     </button>
                   </div>
-                </div>
 
-                {activeCheckpoints.length > 0 ? (
-                  <div className="mt-3 space-y-1.5">
-                    {activeCheckpoints.slice(-5).map((checkpoint) => (
-                      <div key={`${checkpoint.timestamp}-${checkpoint.name}`} className="flex items-center justify-between rounded-md bg-white px-2.5 py-1.5 text-xs">
-                        <span className="font-medium text-gray-700">{checkpoint.name}</span>
-                        <span className="text-gray-500">{checkpoint.status} · {formatWorldDateTime(checkpoint.timestamp)}</span>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <MetaItem label="Scene Quota" value={renderQuotaText(transit.sceneQuota)} />
+                    <MetaItem label="Transit History" value={transit.history.length} />
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-2">
+                    <label className="text-xs font-medium text-gray-600">Carrier Agent</label>
+                    <select
+                      value={transit.selectedAgentId}
+                      onChange={(event) => transit.onSelectAgent(event.target.value)}
+                      className="h-10 rounded-xl border border-gray-200/60 bg-white/60 px-3 text-sm text-gray-800 outline-none focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3]/30"
+                      disabled={transit.loading || transit.mutating || transit.agents.length <= 0}
+                    >
+                      {transit.agents.length <= 0 ? (
+                        <option value="">No available agents</option>
+                      ) : null}
+                      {transit.agents.map((agent) => (
+                        <option key={agent.id} value={agent.id}>
+                          {agent.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={transit.onStartTransit}
+                      disabled={!canStartTransit}
+                      className="rounded-xl bg-[#4ECCA3] px-4 py-2 text-xs font-medium text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
+                    >
+                      Start Transit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={transit.onStartSession}
+                      disabled={!canStartSession}
+                      className="rounded-xl bg-blue-500 px-4 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
+                    >
+                      Start Session
+                    </button>
+                    <button
+                      type="button"
+                      onClick={transit.onCompleteTransit}
+                      disabled={!canCompleteOrAbandon}
+                      className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
+                    >
+                      Complete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={transit.onAbandonTransit}
+                      disabled={!canCompleteOrAbandon}
+                      className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-medium text-white hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
+                    >
+                      Abandon
+                    </button>
+                  </div>
+
+                  {transit.activeTransit ? (
+                    <div className="mt-4 rounded-xl border border-white/60 bg-white/60 px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-gray-800">Active Transit</div>
+                        <TransitStatusBadge status={transit.activeTransit.status} />
                       </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <p className="mt-3 text-xs text-gray-500">
-                No active transit. Start one to enforce `ACTIVE to COMPLETED/ABANDONED` lifecycle.
-              </p>
-            )}
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <span>Type: {transit.activeTransit.transitType}</span>
+                        <span>Departed: {formatWorldDateTime(transit.activeTransit.departedAt)}</span>
+                        <span>Arrived: {formatWorldDateTime(transit.activeTransit.arrivedAt)}</span>
+                        <span>From: {transit.activeTransit.fromWorldId || '--'}</span>
+                      </div>
 
-            {transit.operationError ? (
-              <p className="mt-3 text-xs text-rose-600">{transit.operationError}</p>
-            ) : null}
-          </div>
+                      <div className="mt-3 flex flex-col gap-2">
+                        <label className="text-xs font-medium text-gray-600">Checkpoint</label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            value={checkpointName}
+                            onChange={(event) => setCheckpointName(event.target.value)}
+                            placeholder="checkpoint name"
+                            className="h-10 min-w-[180px] rounded-xl border border-gray-200/60 bg-white/60 px-3 text-sm text-gray-800 outline-none focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3]/30"
+                          />
+                          <select
+                            value={checkpointStatus}
+                            onChange={(event) => setCheckpointStatus(event.target.value as WorldTransitCheckpointStatus)}
+                            className="h-10 rounded-xl border border-gray-200/60 bg-white/60 px-3 text-sm text-gray-800 outline-none focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3]/30"
+                          >
+                            <option value="PASSED">PASSED</option>
+                            <option value="FAILED">FAILED</option>
+                            <option value="SKIPPED">SKIPPED</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              transit.onAddCheckpoint({
+                                name: checkpointName.trim(),
+                                status: checkpointStatus,
+                              });
+                              setCheckpointName('');
+                            }}
+                            disabled={!canAddCheckpoint}
+                            className="rounded-xl bg-gray-800 px-4 py-2 text-xs font-medium text-white hover:bg-gray-900 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
+                          >
+                            Add Checkpoint
+                          </button>
+                        </div>
+                      </div>
 
-          {/* World Level Audit */}
-          <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">World Level Audit</h3>
-            {auditRows.length <= 0 ? (
-              <p className="mt-2 text-xs text-gray-500">No audit records</p>
-            ) : (
-              <div className="mt-2 space-y-2">
-                {auditRows.map((audit) => (
-                  <div key={audit.id} className="rounded-[10px] border border-gray-100 bg-gray-50 px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-700">{audit.eventType}</span>
-                      <span className="text-[11px] text-gray-500">{formatWorldDateTime(audit.occurredAt)}</span>
+                      {activeCheckpoints.length > 0 ? (
+                        <div className="mt-3 space-y-1.5">
+                          {activeCheckpoints.slice(-5).map((checkpoint) => (
+                            <div key={`${checkpoint.timestamp}-${checkpoint.name}`} className="flex items-center justify-between rounded-lg bg-white/60 px-3 py-2 text-xs border border-white/60">
+                              <span className="font-medium text-gray-700">{checkpoint.name}</span>
+                              <span className="text-gray-500">{checkpoint.status} · {formatWorldDateTime(checkpoint.timestamp)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-gray-500">Reason: {audit.reasonCode || '--'}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ) : (
+                    <p className="mt-4 text-xs text-gray-500">
+                      No active transit. Start one to enforce `ACTIVE to COMPLETED/ABANDONED` lifecycle.
+                    </p>
+                  )}
 
-          <div className="h-8" />
+                  {transit.operationError ? (
+                    <p className="mt-3 text-xs text-rose-600">{transit.operationError}</p>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* World Level Audit */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                <div className="relative">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">World Level Audit</h3>
+                  {auditRows.length <= 0 ? (
+                    <p className="text-xs text-gray-500">No audit records</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {auditRows.map((audit) => (
+                        <div key={audit.id} className="rounded-xl border border-white/60 bg-white/60 px-3 py-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-700">{audit.eventType}</span>
+                            <span className="text-[11px] text-gray-500">{formatWorldDateTime(audit.occurredAt)}</span>
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-gray-500">Reason: {audit.reasonCode || '--'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
   );
 }

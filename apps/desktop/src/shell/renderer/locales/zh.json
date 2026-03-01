@@ -3,6 +3,7 @@
     "home": "首页",
     "chat": "聊天",
     "contacts": "联系人",
+    "world": "世界",
     "explore": "探索",
     "runtime": "AI 运行时",
     "settings": "设置",
@@ -214,6 +215,7 @@
     "chatButton": "聊天"
   },
   "Chat": {
+    "title": "聊天",
     "searchPlaceholder": "搜索会话...",
     "loading": "正在加载会话...",
     "loadError": "会话加载失败",
@@ -221,6 +223,18 @@
     "noMessages": "暂无消息",
     "today": "今天",
     "yesterday": "昨天"
+  },
+  "World": {
+    "title": "世界",
+    "subtitle": "探索和管理你的世界",
+    "searchPlaceholder": "搜索世界...",
+    "loading": "正在加载世界...",
+    "loadError": "加载世界失败",
+    "mainWorld": "主世界",
+    "subWorlds": "子世界",
+    "searchResults": "搜索结果",
+    "noWorlds": "暂无子世界",
+    "noSearchResults": "未找到世界"
   },
   "NotificationPanel": {
     "title": "通知",
@@ -578,5 +592,30 @@
     "statusPrefix": "状态",
     "joinedAtPrefix": "加入时间",
     "turnAuditLabel": "turnAudit"
+  },
+  "PostsTab": {
+    "noPosts": "暂无帖子"
+  },
+  "ChatProfile": {
+    "about": "关于",
+    "tags": "标签"
+  },
+  "WorldDetail": {
+    "title": "世界",
+    "loading": "正在加载世界详情...",
+    "error": "加载世界详情失败",
+    "level": "等级 {{level}}",
+    "levelShort": "Lv.{{level}}",
+    "agents": "{{count}} 个智能体",
+    "mainWorld": "主世界",
+    "subWorld": "子世界",
+    "about": "关于",
+    "worldview": "世界观",
+    "governance": "治理",
+    "transit": "传送",
+    "audit": "审计"
+  },
+  "AddContact": {
+    "inputRequired": "请输入用户账号或 ID"
   }
 }

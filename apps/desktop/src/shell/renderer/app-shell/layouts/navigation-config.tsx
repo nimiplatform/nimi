@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
@@ -78,6 +79,14 @@ const ICON_GLOBE = (
   </svg>
 );
 
+const ICON_WORLD = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
 const ICON_WALLET = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
@@ -135,6 +144,7 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'settings') return ICON_SETTINGS;
   if (normalized === 'store' || normalized === 'marketplace') return ICON_STORE;
   if (normalized === 'globe' || normalized === 'world-studio') return ICON_GLOBE;
+  if (normalized === 'world') return ICON_WORLD;
   if (normalized === 'wallet') return ICON_WALLET;
   if (normalized === 'agent' || normalized === 'agents' || normalized === 'my-agents' || normalized === 'bot') return ICON_AGENT;
   if (normalized === 'terms' || normalized === 'file' || normalized === 'document' || normalized === 'terms-of-service') return ICON_FILE_TEXT;
@@ -148,6 +158,7 @@ const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
   { id: 'contacts', label: 'Contacts', icon: renderShellNavIcon('contacts') },
+  { id: 'world', label: 'World', icon: renderShellNavIcon('world') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'runtime', label: 'AI Runtime', icon: renderShellNavIcon('runtime') },
   { id: 'settings', label: 'Settings', icon: renderShellNavIcon('settings') },
@@ -189,35 +200,69 @@ export function NavLink({
   badge?: ReactNode;
 }) {
   const { t } = useTranslation();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
   const translatedLabel = t(`Navigation.${String(item.id)}`, { defaultValue: item.label });
+  
+  const handleMouseEnter = () => {
+    if (buttonRef.current && collapsed) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setTooltipPos({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 8,
+      });
+    }
+  };
+  
+  const handleMouseLeave = () => {
+    setTooltipPos(null);
+  };
+  
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={collapsed ? translatedLabel : undefined}
-      className={`group relative flex w-full items-center text-sm transition-colors ${
-        active ? 'font-medium' : 'text-gray-700'
-      } ${collapsed ? 'h-11 justify-center' : 'gap-3 rounded-[10px] px-3 py-2'}`}
-    >
-      <span 
-        className={`relative flex items-center justify-center ${collapsed ? 'h-8 w-8' : ''} transition-all duration-200 ${
-          active 
-            ? 'text-mint-500' 
-            : 'text-gray-400 group-hover:bg-mint-100 group-hover:text-gray-600'
-        }`}
-        style={{ borderRadius: '10px' }}
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={onClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`relative flex w-full items-center text-sm transition-colors ${
+          active ? 'font-medium' : 'text-gray-700'
+        } ${collapsed ? 'h-11 justify-center' : 'gap-3 rounded-[10px] px-3 py-2'}`}
       >
-        {item.icon}
-      </span>
-      {collapsed ? null : <span className="flex-1 text-left">{translatedLabel}</span>}
-      {collapsed ? null : badge}
-      {collapsed && badge ? (
-        <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-orange-500" />
+        <span 
+          className={`relative flex items-center justify-center ${collapsed ? 'h-8 w-8' : ''} transition-all duration-200 ${
+            active 
+              ? 'text-mint-500' 
+              : 'text-gray-400 hover:bg-mint-100 hover:text-gray-600'
+          }`}
+          style={{ borderRadius: '10px' }}
+        >
+          {item.icon}
+        </span>
+        {collapsed ? null : <span className="flex-1 text-left">{translatedLabel}</span>}
+        {collapsed ? null : badge}
+        {collapsed && badge ? (
+          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-orange-500" />
+        ) : null}
+        {collapsed ? (
+          <span className="sr-only">{translatedLabel}</span>
+        ) : null}
+      </button>
+      {/* Custom Tooltip - Fixed position to escape overflow */}
+      {collapsed && tooltipPos ? (
+        <span 
+          className="fixed px-2 py-1 rounded-md bg-[#4ECCA3] text-white text-xs whitespace-nowrap z-[9999] shadow-lg pointer-events-none"
+          style={{ 
+            top: tooltipPos.top,
+            left: tooltipPos.left,
+            transform: 'translateY(-50%)',
+          }}
+        >
+          {translatedLabel}
+        </span>
       ) : null}
-      {collapsed ? (
-        <span className="sr-only">{translatedLabel}</span>
-      ) : null}
-    </button>
+    </>
   );
 }
 

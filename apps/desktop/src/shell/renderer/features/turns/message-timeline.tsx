@@ -6,6 +6,11 @@ import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate } from '@renderer/i18n';
+import nimiLogo from '@renderer/assets/logo-gray.png';
+import type { ProfileData } from '@renderer/features/profile/profile-model';
+import { toProfileData, getProfileInitial, formatProfileDate } from '@renderer/features/profile/profile-model';
+import { PostsTab } from '@renderer/features/profile/components/posts-tab';
+import { TurnInput } from './turn-input';
 
 function resolveMessageText(message: MessageViewDto): string {
   const text = String(message.text || '').trim();
@@ -238,7 +243,8 @@ export function MessageTimeline() {
   const currentUserId = String(currentUser?.id || '');
   const currentUserAvatarUrl = typeof currentUser?.avatarUrl === 'string' ? currentUser.avatarUrl : null;
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
-  const [profilePanelTarget, setProfilePanelTarget] = useState<ProfilePanelTarget>(null);
+  const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
+  const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
   const [expandedDiagnosticsMessageId, setExpandedDiagnosticsMessageId] = useState<string | null>(null);
 
   const messagesQuery = useQuery({
@@ -291,7 +297,7 @@ export function MessageTimeline() {
   }, [selectedChatId]);
 
   const toggleProfilePanel = (target: Exclude<ProfilePanelTarget, null>) => {
-    setProfilePanelTarget((previous) => (previous === target ? null : target));
+    setProfilePanelTarget(profilePanelTarget === target ? null : target);
   };
 
   const currentUserFallback = currentUser && typeof currentUser === 'object'
@@ -335,8 +341,12 @@ export function MessageTimeline() {
 
   if (!selectedChatId) {
     return (
-      <section className="flex h-full items-center justify-center text-sm text-gray-500">
-        {t('ChatTimeline.selectChat')}
+      <section className="flex h-full items-center justify-center bg-white">
+        <img 
+          src={nimiLogo} 
+          alt="Nimi" 
+          className="w-64 h-64 object-contain"
+        />
       </section>
     );
   }
@@ -508,12 +518,13 @@ export function MessageTimeline() {
           )}
           <div ref={bottomRef} />
         </div>
+        <TurnInput />
       </div>
 
       {profilePanelTarget ? (
-        <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-white">
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
-            <h3 className="text-sm font-semibold text-gray-900">{profilePanelTitle}</h3>
+        <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-[#F0F4F8]">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/50 bg-white/70 px-4 backdrop-blur-xl">
+            <h3 className="text-sm font-semibold text-gray-800">{profilePanelTitle}</h3>
             <button
               type="button"
               onClick={() => setProfilePanelTarget(null)}
@@ -527,63 +538,210 @@ export function MessageTimeline() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            {profileQuery.isPending ? (
-              <p className="text-sm text-gray-500">{t('ChatTimeline.loadingProfileDetail')}</p>
-            ) : profileQuery.isError ? (
-              <p className="text-sm text-red-600">{profileLoadErrorText}</p>
-            ) : (
-              <div className="rounded-[10px] border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-center gap-3">
-                  {profileSummary.avatarUrl ? (
-                    <img src={profileSummary.avatarUrl} alt={profileSummary.displayName} className="h-14 w-14 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-200 text-base font-medium text-gray-600">
-                      {getInitial(profileSummary.displayName)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-semibold text-gray-900">{profileSummary.displayName}</p>
-                    <p className="truncate text-xs text-gray-500">{profileSummary.handle}</p>
-                    <p className="mt-1 text-[11px] text-gray-500">
-                      {profileSummary.isOnline ? t('ChatTimeline.online') : t('ChatTimeline.offline')} · {profileSummary.isAgent ? t('ChatTimeline.agent') : t('ChatTimeline.human')}
-                    </p>
-                  </div>
-                </div>
-
-                {profileSummary.bio ? (
-                  <p className="mt-3 text-sm leading-5 text-gray-700">{profileSummary.bio}</p>
-                ) : null}
-
-                {profileSummary.presenceText ? (
-                  <p className="mt-2 rounded bg-white px-2 py-1.5 text-xs text-gray-600">
-                    {t('ChatTimeline.statusPrefix')}: {profileSummary.presenceText}
-                  </p>
-                ) : null}
-
-                {profileSummary.createdAt ? (
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('ChatTimeline.joinedAtPrefix')}: {formatLocaleDate(profileSummary.createdAt, { year: 'numeric', month: 'short', day: '2-digit' })}
-                  </p>
-                ) : null}
-
-                <button
-                  type="button"
-                  className="mt-4 w-full rounded-[10px] bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-                  onClick={() => {
-                    if (!profileSummary.id) {
-                      return;
-                    }
-                    navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
-                  }}
-                >
-                  {profileActionLabel}
-                </button>
+          {/* Scrollable Content - Single scrollbar */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Upper: Profile Card */}
+            <div className="p-4">
+              <ChatProfileCard 
+                profileData={toProfileData(profileQuery.data || profileSummary)}
+                isSelf={profilePanelTarget === 'self'}
+                onViewFullProfile={() => {
+                  if (!profileSummary.id) return;
+                  navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
+                }}
+                viewFullProfileLabel={profileActionLabel}
+              />
+            </div>
+            {/* Lower: Posts */}
+            {profileSummary.id ? (
+              <div className="border-t border-gray-200/60 px-4 pb-4">
+                <h3 className="py-3 text-xs font-semibold text-gray-800">{t('ProfileView.posts')}</h3>
+                <PostsTab profileId={profileSummary.id} />
               </div>
-            )}
+            ) : null}
           </div>
         </aside>
       ) : null}
     </section>
+  );
+}
+
+
+// Chat Profile Card Component - Styled like Profile page sidebar
+type ChatProfileCardProps = {
+  profileData: ProfileData;
+  isSelf: boolean;
+  onViewFullProfile: () => void;
+  viewFullProfileLabel: string;
+};
+
+function ChatProfileCard({ profileData, isSelf, onViewFullProfile, viewFullProfileLabel }: ChatProfileCardProps) {
+  const { t } = useTranslation();
+  const friendCount = profileData.stats?.friendsCount ?? 0;
+  const postCount = profileData.stats?.postsCount ?? 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-[#F0F4F8] p-5">
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+      
+      <div className="relative flex flex-col items-center">
+        {/* Avatar with glass effect */}
+        <div className="relative">
+          <div className="rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1">
+            {profileData.avatarUrl ? (
+              <img
+                src={profileData.avatarUrl}
+                alt={profileData.displayName}
+                className="h-20 w-20 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-2xl font-bold text-[#4ECCA3]">
+                {getProfileInitial(profileData.displayName)}
+              </div>
+            )}
+          </div>
+          {profileData.isOnline && (
+            <span className="absolute right-0.5 bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
+          )}
+        </div>
+
+        {/* Name */}
+        <h2 className="mt-3 text-base font-semibold tracking-tight text-gray-800">
+          {profileData.displayName}
+        </h2>
+        <p className="text-xs text-gray-500">{profileData.handle}</p>
+
+        {/* Type Badge */}
+        <span className="mt-2 inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2.5 py-0.5 text-xs font-medium text-[#2A9D8F]">
+          {profileData.isAgent ? t('ChatTimeline.agent') : t('ChatTimeline.human')}
+        </span>
+
+        {/* Bio */}
+        {profileData.bio && (
+          <p className="mt-2 text-center text-xs text-gray-600 leading-relaxed line-clamp-3">{profileData.bio}</p>
+        )}
+
+        {/* Stats */}
+        <div className="mt-3 flex items-center gap-6">
+          <div className="text-center">
+            <p className="text-base font-bold text-gray-800">{friendCount}</p>
+            <p className="text-[11px] text-gray-500">{t('ProfileView.friends')}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold text-gray-800">{postCount}</p>
+            <p className="text-[11px] text-gray-500">{t('ProfileView.posts')}</p>
+          </div>
+        </div>
+
+        {/* View Full Profile Button */}
+        <button
+          type="button"
+          onClick={onViewFullProfile}
+          className="mt-4 w-full rounded-xl bg-[#4ECCA3] px-4 py-2 text-xs font-medium text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] transition-all hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
+        >
+          {viewFullProfileLabel}
+        </button>
+
+        {/* Divider */}
+        <div className="my-4 w-full border-t border-white/60" />
+
+        {/* About Section */}
+        <div className="w-full">
+          <h3 className="text-xs font-semibold text-gray-800">{t('ChatProfile.about')}</h3>
+          
+          <div className="mt-3 space-y-2">
+            <AboutRow 
+              icon={<CalendarIcon className="h-3.5 w-3.5" />}
+              label={profileData.createdAt ? `Joined ${formatProfileDate(profileData.createdAt)}` : '-'}
+            />
+            <AboutRow 
+              icon={<LocationIcon className="h-3.5 w-3.5" />}
+              label={profileData.city && profileData.countryCode 
+                ? `${profileData.city}, ${profileData.countryCode.toUpperCase()}`
+                : profileData.city || profileData.countryCode?.toUpperCase() || '-'
+              }
+            />
+            <AboutRow 
+              icon={<UserIcon className="h-3.5 w-3.5" />}
+              label={profileData.gender || '-'}
+            />
+            <AboutRow 
+              icon={<LanguageIcon className="h-3.5 w-3.5" />}
+              label={profileData.languages.join(', ') || '-'}
+            />
+          </div>
+
+          {/* Tags */}
+          {profileData.tags.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-white/60">
+              <h3 className="text-xs font-semibold text-gray-800 mb-2">{t('ChatProfile.tags')}</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {profileData.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-lg bg-[#4ECCA3]/15 px-2 py-1 text-[11px] font-medium text-[#2A9D8F] backdrop-blur-sm transition hover:bg-[#4ECCA3]/25"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// About Row Component
+function AboutRow({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#4ECCA3]/10 text-[#4ECCA3]">
+        {icon}
+      </span>
+      <span className="text-gray-600 truncate">{label}</span>
+    </div>
+  );
+}
+
+// Icons
+function CalendarIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function LocationIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function UserIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function LanguageIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
   );
 }

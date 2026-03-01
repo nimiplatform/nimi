@@ -387,6 +387,7 @@ export function ContactsPanel() {
         myAgentsCount={myAgents.length}
         requestsCount={pendingRequests.length}
         blocksCount={blockedContacts.length}
+        blockedContacts={blockedContacts}
         agentLimit={agentLimitQuery.data || null}
         allFriends={allFriends}
         filteredContacts={filteredContacts}

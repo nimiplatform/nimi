@@ -8,6 +8,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedChatId'
   | 'selectedProfileId'
   | 'selectedWorldId'
+  | 'chatProfilePanelTarget'
   | 'statusBanner'
   | 'setBootstrapReady'
   | 'setBootstrapError'
@@ -15,6 +16,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
   | 'setSelectedWorldId'
+  | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
   | 'navigateToWorld'
   | 'navigateBack'
@@ -30,6 +32,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedChatId: null,
     selectedProfileId: null,
     selectedWorldId: null,
+    chatProfilePanelTarget: null,
     statusBanner: null,
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
@@ -37,6 +40,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setSelectedChatId: (chatId) => set({ selectedChatId: chatId }),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
+    setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId, tab) =>
       set((state) => ({
         previousTab: state.activeTab,

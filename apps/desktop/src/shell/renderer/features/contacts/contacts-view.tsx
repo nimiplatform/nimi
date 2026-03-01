@@ -1,7 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { dataSync } from '@runtime/data-sync';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { getContactInitial } from './contacts-model';
+import { ProfileView } from '@renderer/features/profile/profile-view';
+import { toProfileData } from '@renderer/features/profile/profile-model';
+import type { ProfileData } from '@renderer/features/profile/profile-model';
+import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
+import nimiLogo from '@renderer/assets/logo-gray.png';
 
 type ContactsViewProps = {
   searchText: string;
@@ -11,6 +18,7 @@ type ContactsViewProps = {
   myAgentsCount: number;
   requestsCount: number;
   blocksCount: number;
+  blockedContacts: ContactRecord[];
   agentLimit: {
     used: number;
     limit: number;
@@ -45,12 +53,70 @@ const CATEGORIES = [
   { id: 'blocks' as TabFilter, label: 'Blocks', icon: '🚫', countKey: 'blocksCount' },
 ];
 
-// 记录被拉黑用户之前的分类，用于恢复
-interface BlockedUserInfo {
-  userId: string;
+// 记录被拉黑用户的完整信息和之前的分类，用于恢复
+interface BlockedUserInfo extends ContactRecord {
   previousCategory: TabFilter;
-  timestamp: number;
+  blockedAt: number;
 }
+
+// Mock 好友请求数据
+const MOCK_REQUESTS: ContactRequestRecord[] = [
+  {
+    id: 'req-1',
+    userId: 'user-1',
+    displayName: 'Sarah Chen',
+    handle: '@sarah_chen',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=b6e3f4',
+    bio: 'Hi! I would love to connect with you.',
+    isAgent: false,
+    direction: 'received',
+    requestedAt: new Date().toISOString(),
+  },
+  {
+    id: 'req-2',
+    userId: 'user-2',
+    displayName: 'Alex Morgan',
+    handle: '@alex_m',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&backgroundColor=c0aede',
+    bio: 'We met at the tech conference last week!',
+    isAgent: false,
+    direction: 'received',
+    requestedAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'req-3',
+    userId: 'user-3',
+    displayName: 'TechBot Pro',
+    handle: '~techbot_pro',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=TechBot&backgroundColor=ffdfbf',
+    bio: 'Your AI assistant for coding tasks.',
+    isAgent: true,
+    direction: 'received',
+    requestedAt: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    id: 'req-4',
+    userId: 'user-4',
+    displayName: 'Emily Watson',
+    handle: '@emily_w',
+    avatarUrl: null,
+    bio: 'Hello, I am interested in connecting!',
+    isAgent: false,
+    direction: 'received',
+    requestedAt: new Date(Date.now() - 259200000).toISOString(),
+  },
+  {
+    id: 'req-5',
+    userId: 'user-5',
+    displayName: 'Creative AI',
+    handle: '~creative_ai',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Creative&backgroundColor=ffd5dc',
+    bio: 'An AI focused on creative writing and art.',
+    isAgent: true,
+    direction: 'received',
+    requestedAt: new Date(Date.now() - 345600000).toISOString(),
+  },
+];
 
 export function ContactsView(props: ContactsViewProps) {
   const { t } = useTranslation();
@@ -61,11 +127,41 @@ export function ContactsView(props: ContactsViewProps) {
   const [selectedRequest, setSelectedRequest] = useState<ContactRequestRecord | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TabFilter | null>(null);
   
-  // 本地状态：被拉黑的用户列表（包含之前的分类信息）
+  // 本地状态：被拉黑的用户列表（包含完整联系人和之前的分类信息）
   const [blockedUsers, setBlockedUsers] = useState<Map<string, BlockedUserInfo>>(new Map());
   
-  // 跟踪展开的分类（可以同时展开多个）
-  const [expandedCategories, setExpandedCategories] = useState<Set<TabFilter>>(new Set(['humans']));
+  // 同步 props.blockedContacts 到本地状态
+  useEffect(() => {
+    setBlockedUsers(prev => {
+      const newMap = new Map<string, BlockedUserInfo>();
+      // 保留已有的 previousCategory 信息
+      for (const contact of props.blockedContacts) {
+        const existing = prev.get(contact.id);
+        newMap.set(contact.id, {
+          ...contact,
+          previousCategory: existing?.previousCategory || 'humans',
+          blockedAt: existing?.blockedAt || Date.now(),
+        });
+      }
+      return newMap;
+    });
+  }, [props.blockedContacts]);
+  
+  // 跟踪已接受的好友请求（用于在列表中显示"Added"状态）
+  const [acceptedRequests, setAcceptedRequests] = useState<Set<string>>(new Set());
+  
+  // 跟踪已拒绝的好友请求
+  const [rejectedRequests, setRejectedRequests] = useState<Set<string>>(new Set(['user-5'])); // mock: user-5 被拒绝
+  
+  // 从好友请求接受而来的联系人（需要添加到 Humans 列表）
+  const [newFriendsFromRequests, setNewFriendsFromRequests] = useState<ContactRecord[]>([]);
+  
+  // 送礼物模态框状态
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [giftTargetContact, setGiftTargetContact] = useState<ContactRecord | null>(null);
+  
+  // 跟踪展开的分类（可以同时展开多个）- 默认全部折叠
+  const [expandedCategories, setExpandedCategories] = useState<Set<TabFilter>>(new Set());
 
   // 切换分类展开/折叠
   const toggleCategory = (categoryId: TabFilter) => {
@@ -99,14 +195,17 @@ export function ContactsView(props: ContactsViewProps) {
   };
 
   // 根据分类获取联系人 - 使用 allFriends 获取完整列表，并过滤掉被拉黑的
-  const getContactsByCategory = (categoryId: TabFilter) => {
+  const getContactsByCategory = (categoryId: TabFilter): ContactRecord[] => {
     if (categoryId === 'requests') return [];
     if (categoryId === 'blocks') {
       // Blocks 分类：返回所有被拉黑的用户
-      return props.allFriends.filter(c => isUserBlocked(c.id));
+      return Array.from(blockedUsers.values());
     }
     
-    return props.allFriends.filter(c => {
+    // 合并原始联系人和从好友请求添加的新联系人
+    const allContacts = [...props.allFriends, ...newFriendsFromRequests];
+    
+    return allContacts.filter(c => {
       // 如果被拉黑了，不在任何普通分类中显示
       if (isUserBlocked(c.id)) return false;
       
@@ -123,9 +222,9 @@ export function ContactsView(props: ContactsViewProps) {
     const currentCat = selectedCategory;
     
     const blockedInfo: BlockedUserInfo = {
-      userId: contact.id,
+      ...contact,
       previousCategory: currentCat || 'humans', // 默认恢复到 humans
-      timestamp: Date.now(),
+      blockedAt: Date.now(),
     };
     
     setBlockedUsers(prev => {
@@ -183,10 +282,14 @@ export function ContactsView(props: ContactsViewProps) {
   // 更新各分类的数量（包含本地拉黑状态）
   const getUpdatedCounts = () => {
     const blockedCount = blockedUsers.size;
+    // 计算待处理的好友请求数量（未接受的 received 请求）
+    const pendingRequestsCount = MOCK_REQUESTS.filter(
+      r => r.direction === 'received' && !acceptedRequests.has(r.userId)
+    ).length;
     return {
       ...props,
       blocksCount: blockedCount,
-      // 其他数量可能需要调整，取决于实际需求
+      requestsCount: pendingRequestsCount,
     };
   };
 
@@ -219,6 +322,68 @@ export function ContactsView(props: ContactsViewProps) {
     props.onFilterChange(categoryId);
   };
 
+  // 加载选中联系人的 Profile 数据
+  const profileQuery = useQuery({
+    queryKey: ['contact-profile', selectedContact?.id],
+    queryFn: async () => {
+      if (!selectedContact) return null;
+      try {
+        const result = await dataSync.loadUserProfile(selectedContact.id);
+        return toProfileData(result as Record<string, unknown>);
+      } catch (error) {
+        // 如果 API 失败，使用联系人数据构建基础 Profile
+        return toProfileData({
+          id: selectedContact.id,
+          displayName: selectedContact.displayName,
+          handle: selectedContact.handle,
+          avatarUrl: selectedContact.avatarUrl,
+          bio: selectedContact.bio,
+          isAgent: selectedContact.isAgent,
+          createdAt: selectedContact.friendsSince,
+          isFriend: true,
+          tags: selectedContact.tags || [],
+          languages: [],
+          city: selectedContact.location || null,
+          countryCode: null,
+          gender: selectedContact.gender || null,
+        } as Record<string, unknown>);
+      }
+    },
+    enabled: !!selectedContact,
+    retry: 1,
+  });
+
+  // 将 ContactRecord 转换为 ProfileData 用于 ProfileView
+  const selectedProfile: ProfileData | null = useMemo(() => {
+    if (!selectedContact) return null;
+    
+    // 如果有查询结果，使用查询结果
+    if (profileQuery.data) {
+      return profileQuery.data;
+    }
+    
+    // 否则使用基础数据构建
+    return toProfileData({
+      id: selectedContact.id,
+      displayName: selectedContact.displayName,
+      handle: selectedContact.handle,
+      avatarUrl: selectedContact.avatarUrl,
+      bio: selectedContact.bio,
+      isAgent: selectedContact.isAgent,
+      createdAt: selectedContact.friendsSince,
+      isFriend: true,
+      tags: selectedContact.tags || [],
+      languages: [],
+      city: selectedContact.location || null,
+      countryCode: null,
+      gender: selectedContact.gender || null,
+    } as Record<string, unknown>);
+  }, [selectedContact, profileQuery.data]);
+
+  // Profile 加载和错误状态
+  const profileLoading = profileQuery.isPending && !!selectedContact;
+  const profileError = profileQuery.isError && !!selectedContact;
+
   if (props.loading) {
     return (
       <div className="flex h-full items-center justify-center bg-[#F5F7FA]">
@@ -238,50 +403,51 @@ export function ContactsView(props: ContactsViewProps) {
   return (
     <div className="flex h-full bg-[#F5F7FA]">
       {/* 左侧联系人列表 */}
-      <aside className="w-[320px] flex flex-col bg-white border-r border-gray-200">
+      <aside className="w-[320px] flex flex-col bg-[#F8F9FB] border-r border-gray-200">
         {/* 顶部标题 */}
-        <div className="flex h-14 items-center justify-between px-4 border-b border-gray-200 shrink-0">
+        <div className="flex h-14 items-center px-4 shrink-0">
           <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
-          <button
-            type="button"
-            onClick={props.onOpenAddContact}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Add Friend"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
         </div>
 
         {/* 搜索框 */}
-        <div className="p-3 border-b border-gray-100">
-          <div className="flex h-9 items-center rounded-lg bg-gray-100 px-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              className="ml-2 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-              placeholder="Search"
-              value={props.searchText}
-              onChange={(e) => props.onSearchTextChange(e.target.value)}
-            />
+        <div className="px-3 pb-3">
+          <div className="flex h-10 items-center gap-2">
+            <div className="flex-1 flex h-10 items-center rounded-full bg-white px-4 shadow-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                className="ml-2 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                placeholder="Search"
+                value={props.searchText}
+                onChange={(e) => props.onSearchTextChange(e.target.value)} />
+            </div>
+            <button
+              type="button"
+              onClick={props.onOpenAddContact}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white border-2 border-[#4ECCA3] text-[#4ECCA3] hover:bg-[#4ECCA3]/5 transition-colors shadow-sm"
+              title="Add Friend"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
           </div>
         </div>
 
         {/* 可展开的分类列表 */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto py-2 space-y-1">
           {CATEGORIES.map((category) => {
             const count = counts[category.countKey as keyof typeof counts] as number;
             const isExpanded = expandedCategories.has(category.id);
             const isRequests = category.id === 'requests';
             const isBlocks = category.id === 'blocks';
             
-            // 获取该分类下的项目
+            // 获取该分类下的项目（使用 mock 数据用于展示）
             const items = isRequests 
-              ? props.filteredRequests 
+              ? MOCK_REQUESTS 
               : getContactsByCategory(category.id);
             
             // 按字母分组（仅联系人）
@@ -293,78 +459,131 @@ export function ContactsView(props: ContactsViewProps) {
             });
 
             return (
-              <div key={category.id} className="border-b border-gray-100 last:border-b-0">
+              <div key={category.id} className="px-2">
                 {/* 分类标题 - 可点击展开/折叠 */}
                 <button
                   type="button"
-                  onClick={() => toggleCategory(category.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                  onClick={() => {
+                    toggleCategory(category.id);
+                    // 点击 New Friends 时，在右侧显示列表
+                    if (category.id === 'requests') {
+                      setSelectedCategory('requests');
+                      setSelectedRequest(null);
+                      setSelectedContact(null);
+                    }
+                  }}
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-left rounded-lg transition-all duration-150 ${
+                    isExpanded 
+                      ? 'bg-green-50 text-green-700' 
+                      : 'hover:bg-green-50/60 text-gray-700'
+                  }`}
                 >
                   {/* 展开/折叠箭头 */}
                   <svg 
-                    width="16" 
-                    height="16" 
+                    width="14" 
+                    height="14" 
                     viewBox="0 0 24 24" 
                     fill="none" 
                     stroke="currentColor" 
                     strokeWidth="2" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
-                    className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                    className={`transition-transform duration-200 ${isExpanded ? 'rotate-90 text-green-600' : 'text-gray-400'}`}
                   >
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                   
-                  <span className="text-2xl">{category.icon}</span>
-                  <span className="flex-1 text-[15px] text-gray-900">{category.label}</span>
+                  <span className="text-xl">{category.icon}</span>
+                  <span className={`flex-1 text-[14px] font-medium ${isExpanded ? 'text-green-800' : 'text-gray-700'}`}>
+                    {category.label}
+                  </span>
                   {count > 0 && (
-                    <span className="text-xs text-gray-400">{count}</span>
+                    <span className={`text-xs ${isExpanded ? 'text-green-600' : 'text-gray-400'}`}>{count}</span>
                   )}
                 </button>
 
                 {/* 展开的列表内容 */}
                 {isExpanded && (
-                  <div className="bg-[#F8F9FB]">
+                  <div className="mt-1 py-1">
                     {isRequests ? (
-                      // 新的朋友列表
-                      (items as ContactRequestRecord[]).map((request) => (
-                        <button
-                          key={`${request.direction}:${request.userId}`}
-                          type="button"
-                          onClick={() => {
-                            setSelectedRequest(request);
-                            setSelectedContact(null);
-                            props.onFilterChange('requests');
-                          }}
-                          className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors pl-11 ${
-                            currentRequest?.userId === request.userId ? 'bg-[#E6F0FF]' : ''
-                          }`}
-                        >
-                          {request.avatarUrl ? (
-                            <img src={request.avatarUrl} alt={request.displayName} className="h-10 w-10 rounded-lg object-cover" />
-                          ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 text-sm font-medium text-white">
-                              {getContactInitial(request.displayName)}
+                      // 新的朋友列表 - 只显示待处理的 received 请求（未接受且未拒绝）
+                      (items as ContactRequestRecord[])
+                        .filter(r => r.direction === 'received' && !acceptedRequests.has(r.userId) && !rejectedRequests.has(r.userId))
+                        .map((request) => {
+                        return (
+                          <div
+                            key={`${request.direction}:${request.userId}`}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 mx-1 rounded-lg transition-all duration-150 hover:bg-green-50/50 text-gray-700"
+                          >
+                            {/* 头像 */}
+                            {request.avatarUrl ? (
+                              <img src={request.avatarUrl} alt={request.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                            ) : (
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 text-sm font-medium text-white">
+                                {getContactInitial(request.displayName)}
+                              </div>
+                            )}
+                            
+                            {/* 名字和留言 */}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[15px] text-gray-900 truncate">{request.displayName}</div>
+                              <div className="text-[13px] text-gray-500 truncate">{request.bio || 'Wants to add you as a friend'}</div>
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="text-[15px] text-gray-900 truncate">{request.displayName}</div>
-                            <div className="text-[13px] text-gray-500 truncate">{request.bio || 'Wants to add you as a friend'}</div>
+                            
+                            {/* 操作按钮 - 只显示待处理的 received 请求 */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  props.onAcceptRequest(request);
+                                  setAcceptedRequests(prev => new Set(prev).add(request.userId));
+                                  // 将接受的请求转换为联系人并添加到 Humans 列表
+                                  const newContact: ContactRecord = {
+                                    id: request.userId,
+                                    displayName: request.displayName,
+                                    handle: request.handle,
+                                    avatarUrl: request.avatarUrl,
+                                    bio: request.bio,
+                                    isAgent: request.isAgent,
+                                    friendsSince: new Date().toISOString(),
+                                    agentOwnershipType: request.isAgent ? 'WORLD_OWNED' : null,
+                                  };
+                                  setNewFriendsFromRequests(prev => [...prev, newContact]);
+                                }}
+                                className="px-3 py-1.5 text-xs font-medium bg-[#4ECCA3] text-white rounded-lg hover:bg-[#3DBA92] transition-colors"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  props.onRejectRequest(request);
+                                  setRejectedRequests(prev => new Set(prev).add(request.userId));
+                                }}
+                                className="px-3 py-1.5 text-xs font-medium bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </div>
                           </div>
-                        </button>
-                      ))
+                        );
+                      })
                     ) : isBlocks ? (
                       // Blocks 列表 - 显示拉黑的用户，带有恢复按钮
                       (items as ContactRecord[]).length === 0 ? (
-                        <div className="px-11 py-3 text-sm text-gray-400">No blocked contacts</div>
+                        <div className="px-4 py-3 text-sm text-gray-400">No blocked contacts</div>
                       ) : (
                         (items as ContactRecord[]).map((contact) => (
                           <button
                             key={contact.id}
                             type="button"
                             onClick={() => handleSelectContact(contact, 'blocks')}
-                            className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors pl-11 ${
-                              currentContact?.id === contact.id ? 'bg-[#E6F0FF]' : ''
+                            className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
+                              currentContact?.id === contact.id 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'hover:bg-green-50/50 text-gray-700'
                             }`}
                           >
                             {contact.avatarUrl ? (
@@ -380,7 +599,6 @@ export function ContactsView(props: ContactsViewProps) {
                             )}
                             <div className="flex-1 min-w-0 text-left">
                               <div className="text-[15px] text-gray-900 truncate">{contact.displayName}</div>
-                              <div className="text-[13px] text-gray-500 truncate">Blocked</div>
                             </div>
                             {/* 恢复按钮 */}
                             <button
@@ -389,7 +607,7 @@ export function ContactsView(props: ContactsViewProps) {
                                 e.stopPropagation();
                                 setUnblockingContact(contact);
                               }}
-                              className="px-3 py-1 text-xs font-medium text-[#0066CC] bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
+                              className="px-3 py-1.5 text-xs font-medium bg-[#4ECCA3] text-white rounded-lg hover:bg-[#3DBA92] transition-colors"
                             >
                               Restore
                             </button>
@@ -399,12 +617,12 @@ export function ContactsView(props: ContactsViewProps) {
                     ) : (
                       // 联系人按字母分组列表
                       sortedKeys.length === 0 ? (
-                        <div className="px-11 py-3 text-sm text-gray-400">No contacts</div>
+                        <div className="px-4 py-3 text-sm text-gray-400">No contacts</div>
                       ) : (
                         sortedKeys.map((key) => (
                           <div key={key}>
                             {/* 字母分组标题 */}
-                            <div className="px-11 py-1 text-xs text-gray-400 font-medium">
+                            <div className="px-4 py-1.5 text-xs text-gray-400 font-medium">
                               {key}
                             </div>
                             {/* 该字母下的联系人 */}
@@ -413,8 +631,10 @@ export function ContactsView(props: ContactsViewProps) {
                                 key={contact.id}
                                 type="button"
                                 onClick={() => handleSelectContact(contact, category.id)}
-                                className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors pl-11 ${
-                                  currentContact?.id === contact.id ? 'bg-[#E6F0FF]' : ''
+                                className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
+                                  currentContact?.id === contact.id 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'hover:bg-green-50/50 text-gray-700'
                                 }`}
                               >
                                 {contact.avatarUrl ? (
@@ -430,9 +650,6 @@ export function ContactsView(props: ContactsViewProps) {
                                 )}
                                 <div className="flex-1 min-w-0 text-left">
                                   <div className="text-[15px] text-gray-900 truncate">{contact.displayName}</div>
-                                  {contact.bio && (
-                                    <div className="text-[13px] text-gray-500 truncate">{contact.bio}</div>
-                                  )}
                                 </div>
                               </button>
                             ))}
@@ -448,161 +665,81 @@ export function ContactsView(props: ContactsViewProps) {
         </div>
       </aside>
 
-      {/* 右侧详情区 */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#F5F7FA]">
+      {/* 右侧详情区 - 使用 ProfileView */}
+      <main className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto">
         {selectedRequest ? (
-          // 新的朋友详情
-          <div className="flex-1 flex flex-col items-center justify-center p-8">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
-              <div className="flex flex-col items-center">
-                {selectedRequest.avatarUrl ? (
-                  <img src={selectedRequest.avatarUrl} alt={selectedRequest.displayName} className="h-20 w-20 rounded-xl object-cover" />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 text-2xl font-medium text-white">
-                    {getContactInitial(selectedRequest.displayName)}
-                  </div>
-                )}
-                <h2 className="mt-4 text-xl font-semibold text-gray-900">{selectedRequest.displayName}</h2>
-                {selectedRequest.handle && (
-                  <p className="text-sm text-gray-500">{selectedRequest.handle}</p>
-                )}
-              </div>
-
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm text-gray-600">{selectedRequest.bio || 'Wants to add you as a friend'}</p>
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                {selectedRequest.direction === 'received' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => props.onAcceptRequest(selectedRequest)}
-                      className="flex-1 py-3 rounded-full bg-[#0066CC] text-white text-[15px] font-medium hover:bg-[#0052A3] transition-colors"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => props.onRejectRequest(selectedRequest)}
-                      className="flex-1 py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      Reject
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => props.onCancelRequest(selectedRequest)}
-                    className="w-full py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    Withdraw Request
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : selectedContact ? (
-          // 联系人详情
-          <div className="flex-1 flex flex-col items-center justify-center p-8">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-sm">
-              <div className="p-8 flex items-start gap-4">
-                {selectedContact.avatarUrl ? (
-                  <img src={selectedContact.avatarUrl} alt={selectedContact.displayName} className="h-16 w-16 rounded-xl object-cover" />
-                ) : (
-                  <div className={`flex h-16 w-16 items-center justify-center rounded-xl text-xl font-medium ${
-                    selectedContact.isAgent 
-                      ? 'bg-gradient-to-br from-purple-400 to-purple-500 text-white'
-                      : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-                  }`}>
-                    {getContactInitial(selectedContact.displayName)}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-semibold text-gray-900 truncate">{selectedContact.displayName}</h2>
-                  <p className="text-sm text-gray-500 mt-1">@{selectedContact.handle.replace(/^@/, '')}</p>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-100" />
-
-              <div className="p-6 space-y-4">
-                {selectedContact.bio && (
-                  <div className="flex">
-                    <span className="w-20 text-sm text-gray-500 shrink-0">Bio</span>
-                    <span className="flex-1 text-sm text-gray-900">{selectedContact.bio}</span>
-                  </div>
-                )}
-                {selectedContact.location && (
-                  <div className="flex">
-                    <span className="w-20 text-sm text-gray-500 shrink-0">Location</span>
-                    <span className="flex-1 text-sm text-gray-900">{selectedContact.location}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-gray-100" />
-
-              <div className="p-6">
-                <div className="flex gap-4">
-                  {/* 消息按钮 - 在非 Blocks 分类下显示 */}
-                  {currentCategory !== 'blocks' && (
-                    <button
-                      type="button"
-                      onClick={() => props.onMessage(selectedContact)}
-                      className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      <span className="text-sm text-[#0066CC]">Message</span>
-                    </button>
-                  )}
-                  
-                  {/* Block 按钮 - 只在非 Blocks 分类且非 Agent 时显示 */}
-                  {currentCategory !== 'blocks' && !selectedContact.isAgent && (
-                    <button
-                      type="button"
-                      onClick={() => setBlockingContact(selectedContact)}
-                      className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                      </svg>
-                      <span className="text-sm text-gray-600">Block</span>
-                    </button>
-                  )}
-                  
-                  {/* Unblock/恢复按钮 - 只在 Blocks 分类下显示 */}
-                  {currentCategory === 'blocks' && (
-                    <button
-                      type="button"
-                      onClick={() => setUnblockingContact(selectedContact)}
-                      className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
-                    >
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      <span className="text-sm text-[#0066CC]">Restore</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          // 单个好友请求详情
+          <FriendRequestDetail 
+            request={selectedRequest} 
+            isAccepted={acceptedRequests.has(selectedRequest.userId)}
+            onAccept={() => {
+              props.onAcceptRequest(selectedRequest);
+              setAcceptedRequests(prev => new Set(prev).add(selectedRequest.userId));
+            }}
+            onReject={() => props.onRejectRequest(selectedRequest)}
+            onCancel={() => props.onCancelRequest(selectedRequest)}
+          />
+        ) : selectedCategory === 'requests' ? (
+          // New Friends 列表页 - 显示所有请求（按时间排序）
+          <FriendRequestsList 
+            requests={MOCK_REQUESTS.filter(r => r.direction === 'received')}
+            acceptedRequests={acceptedRequests}
+            rejectedRequests={rejectedRequests}
+            onAccept={(req) => {
+              props.onAcceptRequest(req);
+              setAcceptedRequests(prev => new Set(prev).add(req.userId));
+              // 将接受的请求转换为联系人并添加到 Humans 列表
+              const newContact: ContactRecord = {
+                id: req.userId,
+                displayName: req.displayName,
+                handle: req.handle,
+                avatarUrl: req.avatarUrl,
+                bio: req.bio,
+                isAgent: req.isAgent,
+                friendsSince: new Date().toISOString(),
+                agentOwnershipType: req.isAgent ? 'WORLD_OWNED' : null,
+              };
+              setNewFriendsFromRequests(prev => [...prev, newContact]);
+            }}
+            onReject={(req) => {
+              props.onRejectRequest(req);
+              setRejectedRequests(prev => new Set(prev).add(req.userId));
+            }}
+          />
+        ) : selectedContact && selectedProfile ? (
+          // 联系人 Profile - 使用 ProfileView
+          <ProfileView
+            profile={selectedProfile}
+            isOwnProfile={false}
+            loading={profileLoading}
+            error={profileError}
+            onBack={() => setSelectedContact(null)}
+            onMessage={() => {
+              if (selectedContact) {
+                props.onMessage(selectedContact);
+              }
+            }}
+            onAddFriend={() => {}}
+            canAddFriend={false}
+            addFriendHint={null}
+            onSendGift={() => {
+              // 打开送礼物模态框
+              if (selectedContact) {
+                setGiftTargetContact(selectedContact);
+                setGiftModalOpen(true);
+              }
+            }}
+          />
         ) : (
-          // 空状态
-          <div className="flex-1 flex items-center justify-center text-gray-400">
+          // 空状态 - 显示 Nimi Logo
+          <div className="flex-1 flex items-center justify-center bg-white">
             <div className="text-center">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 opacity-30">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              <p>Select a contact to view details</p>
+              {/* Nimi Logo */}
+              <img 
+                src={nimiLogo} 
+                alt="Nimi" 
+                className="mx-auto w-64 h-64 object-contain"
+              />
             </div>
           </div>
         )}
@@ -655,7 +792,7 @@ export function ContactsView(props: ContactsViewProps) {
               <button
                 type="button"
                 onClick={() => handleUnblockUser(unblockingContact)}
-                className="px-5 py-2 rounded-full text-sm font-medium bg-[#0066CC] text-white hover:bg-[#0052A3] transition-colors"
+                className="px-5 py-2 rounded-lg text-sm font-medium bg-[#4ECCA3] text-white hover:bg-[#3DBA92] transition-colors"
               >
                 Restore
               </button>
@@ -663,6 +800,231 @@ export function ContactsView(props: ContactsViewProps) {
           </div>
         </div>
       )}
+
+      {/* 送礼物模态框 */}
+      <SendGiftModal
+        open={giftModalOpen && !!giftTargetContact}
+        receiverId={giftTargetContact?.id || ''}
+        receiverName={giftTargetContact?.displayName || giftTargetContact?.handle || 'User'}
+        receiverHandle={giftTargetContact?.handle}
+        receiverAvatarUrl={giftTargetContact?.avatarUrl}
+        onClose={() => {
+          setGiftModalOpen(false);
+          setGiftTargetContact(null);
+        }}
+        onSent={() => {
+          // 可以添加成功提示
+          setGiftModalOpen(false);
+          setGiftTargetContact(null);
+        }}
+      />
+    </div>
+  );
+}
+
+// 单个好友请求详情组件
+function FriendRequestDetail({ 
+  request, 
+  isAccepted, 
+  onAccept, 
+  onReject, 
+  onCancel 
+}: { 
+  request: ContactRequestRecord;
+  isAccepted: boolean;
+  onAccept: () => void;
+  onReject: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
+        <div className="flex flex-col items-center">
+          {request.avatarUrl ? (
+            <img src={request.avatarUrl} alt={request.displayName} className="h-20 w-20 rounded-xl object-cover" />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 text-2xl font-medium text-white">
+              {getContactInitial(request.displayName)}
+            </div>
+          )}
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">{request.displayName}</h2>
+          {request.handle && (
+            <p className="text-sm text-gray-500">{request.handle}</p>
+          )}
+          <span className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+            request.direction === 'received' 
+              ? 'bg-blue-50 text-blue-600' 
+              : 'bg-amber-50 text-amber-600'
+          }`}>
+            {request.direction === 'received' ? 'Received' : 'Sent'}
+          </span>
+        </div>
+
+        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+          <p className="text-sm text-gray-600">{request.bio || 'Wants to add you as a friend'}</p>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          {request.direction === 'received' ? (
+            isAccepted ? (
+              <div className="w-full py-3 rounded-full bg-green-100 text-green-700 text-[15px] font-medium text-center">
+                Added
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onAccept}
+                  className="flex-1 py-3 rounded-full bg-[#0066CC] text-white text-[15px] font-medium hover:bg-[#0052A3] transition-colors"
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  onClick={onReject}
+                  className="flex-1 py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Reject
+                </button>
+              </>
+            )
+          ) : (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="w-full py-3 rounded-full bg-gray-100 text-gray-700 text-[15px] font-medium hover:bg-gray-200 transition-colors"
+            >
+              Withdraw Request
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 好友请求列表组件 - 类似微信"新的朋友"样式
+function FriendRequestsList({ 
+  requests, 
+  acceptedRequests,
+  rejectedRequests,
+  onAccept,
+  onReject
+}: { 
+  requests: ContactRequestRecord[];
+  acceptedRequests: Set<string>;
+  rejectedRequests: Set<string>;
+  onAccept: (req: ContactRequestRecord) => void;
+  onReject: (req: ContactRequestRecord) => void;
+}) {
+  // 按时间排序（最新的在前）
+  const sortedRequests = [...requests].sort((a, b) => {
+    const timeA = a.requestedAt ? new Date(a.requestedAt).getTime() : 0;
+    const timeB = b.requestedAt ? new Date(b.requestedAt).getTime() : 0;
+    return timeB - timeA;
+  });
+
+  const pendingCount = sortedRequests.filter(r => !acceptedRequests.has(r.userId) && !rejectedRequests.has(r.userId)).length;
+
+  return (
+    <div className="flex-1 bg-[#F0F4F8] overflow-y-auto">
+      <div className="mx-auto max-w-6xl px-6 py-6">
+        <div className="flex gap-6">
+          {/* 请求列表 - 全宽显示 */}
+          <div className="flex-1 min-w-0 w-full">
+            <div className="rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
+              
+              <div className="relative">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Friend Requests</h3>
+                
+                {/* 请求列表 */}
+                <div className="space-y-3">
+                  {sortedRequests.map((request) => {
+                    const isAccepted = acceptedRequests.has(request.userId);
+                    const isRejected = rejectedRequests.has(request.userId);
+                    
+                    return (
+                      <div
+                        key={`${request.direction}:${request.userId}`}
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/60 border border-white/60 transition-all hover:bg-white/80"
+                      >
+                        {/* 头像 */}
+                        {request.avatarUrl ? (
+                          <img 
+                            src={request.avatarUrl} 
+                            alt={request.displayName} 
+                            className="h-14 w-14 rounded-2xl object-cover bg-gray-100" 
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 text-lg font-medium text-white">
+                            {getContactInitial(request.displayName)}
+                          </div>
+                        )}
+                        
+                        {/* 名字和留言 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[15px] font-semibold text-gray-900">{request.displayName}</div>
+                          <p className="text-[13px] text-gray-500 truncate mt-0.5">
+                            {request.bio || 'Wants to add you as a friend'}
+                          </p>
+                        </div>
+                        
+                        {/* 操作按钮 - 右侧 */}
+                        <div className="shrink-0 flex items-center gap-2">
+                          {isAccepted ? (
+                            // 已接受 - 显示 "Added"
+                            <span className="px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 rounded-lg">Added</span>
+                          ) : isRejected ? (
+                            // 已拒绝 - 显示 "Rejected"
+                            <span className="px-3 py-1.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-lg">Rejected</span>
+                          ) : (
+                            // 待处理 - 显示 Accept 和 Reject 按钮
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onAccept(request);
+                                }}
+                                className="px-4 py-2 text-sm font-medium bg-[#4ECCA3] text-white rounded-xl hover:bg-[#3DBA92] transition-all shadow-[0_4px_14px_rgba(78,204,163,0.35)] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onReject(request);
+                                }}
+                                className="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* 空状态 */}
+                {sortedRequests.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mb-3 opacity-50">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    </svg>
+                    <p className="text-sm">No friend requests</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

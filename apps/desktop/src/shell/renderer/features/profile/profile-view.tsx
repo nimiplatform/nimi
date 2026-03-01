@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import type { ProfileData, ProfileTab } from './profile-model';
 import { formatProfileDate, getProfileInitial } from './profile-model';
@@ -8,6 +9,7 @@ import { MediaTab } from './components/media-tab';
 import { CollectionsTab } from './components/collections-tab';
 import { GiftsTab } from './components/gifts-tab';
 import { MediaLightbox } from './components/media-lightbox';
+import { dataSync } from '@runtime/data-sync';
 
 type ProfileViewProps = {
   profile: ProfileData;
@@ -31,8 +33,93 @@ const TABS: ProfileTab[] = ['Posts', 'Media', 'Collections', 'Gifts'];
 
 export function ProfileView(props: ProfileViewProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ProfileTab>('Posts');
   const [selectedMedia, setSelectedMedia] = useState<MediaSelection | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!showMenu) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        menuButtonRef.current &&
+        !menuButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
+  const handleBlock = () => {
+    setShowMenu(false);
+    setShowBlockModal(true);
+  };
+
+  const confirmBlock = async () => {
+    setIsBlocking(true);
+    try {
+      await dataSync.blockUser({
+        id: props.profile.id,
+        displayName: props.profile.displayName,
+        handle: props.profile.handle,
+        avatarUrl: props.profile.avatarUrl,
+      });
+      
+      // Optimistically update the contacts cache to show the blocked user immediately
+      queryClient.setQueriesData({ queryKey: ['contacts'], exact: false }, (oldData: unknown) => {
+        if (!oldData || typeof oldData !== 'object') return oldData;
+        const data = oldData as Record<string, unknown>;
+        const currentBlocked = Array.isArray(data.blocked) ? data.blocked : [];
+        
+        // Check if user is already in blocked list
+        const alreadyBlocked = currentBlocked.some((u: Record<string, unknown>) => u.id === props.profile.id);
+        if (alreadyBlocked) return oldData;
+        
+        // Add the blocked user to the list
+        return {
+          ...data,
+          blocked: [
+            ...currentBlocked,
+            {
+              id: props.profile.id,
+              displayName: props.profile.displayName,
+              handle: props.profile.handle,
+              avatarUrl: props.profile.avatarUrl,
+              isAgent: false,
+            },
+          ],
+        };
+      });
+      
+      // Also refetch to ensure data is in sync with backend
+      await queryClient.refetchQueries({ queryKey: ['contacts'], exact: false, type: 'all' });
+      
+      setShowBlockModal(false);
+      // Navigate back after blocking
+      props.onBack();
+    } catch (error) {
+      console.error('Failed to block user:', error);
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
+  const handleDelete = () => {
+    setShowMenu(false);
+    // TODO: Implement delete friend functionality
+    console.log('Delete friend:', props.profile.id);
+  };
 
   if (props.loading) {
     return (
@@ -71,16 +158,7 @@ export function ProfileView(props: ProfileViewProps) {
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
       {/* Top bar */}
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-white/50 bg-white/70 px-6 backdrop-blur-xl">
-        {!props.isOwnProfile ? (
-          <button
-            type="button"
-            onClick={props.onBack}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-white/60 hover:text-gray-600"
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-          </button>
-        ) : null}
-        <h1 className="text-lg font-semibold tracking-tight text-gray-800">{t('ProfileView.title')}</h1>
+        <h1 className="text-lg font-medium tracking-tight text-gray-800">{t('ProfileView.title')}</h1>
       </div>
 
       {/* Main Content - Two Column Layout */}
@@ -94,6 +172,56 @@ export function ProfileView(props: ProfileViewProps) {
                 <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
                   {/* Subtle gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                  
+                  {/* More Options Menu */}
+                  {!props.isOwnProfile && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <button
+                        ref={menuButtonRef}
+                        type="button"
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100/50 hover:text-gray-600"
+                        title="More options"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="6" r="2" />
+                          <circle cx="12" cy="12" r="2" />
+                          <circle cx="12" cy="18" r="2" />
+                        </svg>
+                      </button>
+                      
+                      {/* Dropdown Menu */}
+                      {showMenu && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 top-full mt-1 w-40 rounded-xl border border-gray-100 bg-white py-1 shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+                        >
+                          <button
+                            type="button"
+                            onClick={handleBlock}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                            </svg>
+                            Block
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleDelete}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                            Delete Friend
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="relative flex flex-col items-center">
                     {/* Avatar with glass effect */}
@@ -224,22 +352,22 @@ export function ProfileView(props: ProfileViewProps) {
 
             {/* Right Content */}
             <div className="min-w-0 flex-1">
-              {/* Tab Bar - Minimal Style */}
-              <div className="sticky top-0 z-10 mb-4 flex border-b border-gray-200/60 bg-[#F0F4F8]/80 backdrop-blur-xl">
+              {/* Tab Bar - Enhanced Style */}
+              <div className="sticky top-0 z-10 mb-6 flex rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100/50 overflow-hidden">
                 {TABS.map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`relative px-6 py-3 text-sm font-medium transition-all ${
+                    className={`relative flex-1 px-4 py-4 text-[15px] font-semibold tracking-wide transition-all duration-200 ${
                       activeTab === tab
-                        ? 'text-[#4ECCA3]'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-[#4ECCA3] bg-[#4ECCA3]/5'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                     }`}
                   >
                     {tab}
                     {activeTab === tab && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4ECCA3]" />
+                      <span className="absolute bottom-0 left-4 right-4 h-[3px] rounded-full bg-[#4ECCA3]" />
                     )}
                   </button>
                 ))}
@@ -269,6 +397,42 @@ export function ProfileView(props: ProfileViewProps) {
           initialMediaIndex={selectedMedia.mediaIndex}
           onClose={() => setSelectedMedia(null)}
         />
+      )}
+
+      {/* Block Confirmation Modal */}
+      {showBlockModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-6 w-6 text-red-600" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Block User</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Are you sure you want to block <span className="font-medium text-gray-900">{props.profile.displayName}</span>? They will be moved to your Blocked list and won't be able to contact you.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowBlockModal(false)}
+                disabled={isBlocking}
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmBlock}
+                disabled={isBlocking}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {isBlocking ? 'Blocking...' : 'Block'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

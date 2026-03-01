@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 
@@ -96,6 +97,7 @@ function PostSkeleton() {
 }
 
 export function PostsTab({ profileId }: PostsTabProps) {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -190,7 +192,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
           onClick={() => { void fetchPosts(null); }}
           className="mt-3 rounded-xl bg-red-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-600"
         >
-          Retry
+          {t('Common.retry')}
         </button>
       </div>
     );
@@ -203,7 +205,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
-        No posts yet
+        {t('PostsTab.noPosts')}
       </div>
     );
   }
@@ -221,7 +223,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
             onClick={() => { void fetchPosts(cursor); }}
             className="mt-2 rounded-lg bg-red-500 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-red-600"
           >
-            Retry
+            {t('Common.retry')}
           </button>
         </div>
       ) : null}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -84,6 +84,7 @@ export function ChatList() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setChatProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
 
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
@@ -97,6 +98,7 @@ export function ChatList() {
     [allChats],
   );
   const [searchText, setSearchText] = useState('');
+  const avatarClickedRef = useRef(false);
 
   const chats = useMemo(() => {
     const q = searchText.trim().toLowerCase();
@@ -109,11 +111,7 @@ export function ChatList() {
     });
   }, [allChatsSorted, searchText]);
 
-  useEffect(() => {
-    if (!selectedChatId && allChatsSorted.length > 0) {
-      setSelectedChatId(allChatsSorted[0]?.id || null);
-    }
-  }, [allChatsSorted, selectedChatId, setSelectedChatId]);
+  // 默认不自动选择第一个聊天，保持空状态
 
   if (chatsQuery.isPending) {
     return <div className="p-4 text-sm text-gray-500">{t('Chat.loading')}</div>;
@@ -125,8 +123,13 @@ export function ChatList() {
 
   return (
     <div className="flex h-full flex-col bg-[#F8F9FB]">
+      {/* Header */}
+      <div className="flex h-14 items-center justify-between px-4 shrink-0">
+        <h1 className="text-lg font-semibold text-gray-900">{t('Chat.title')}</h1>
+      </div>
+
       {/* Top row: search only */}
-      <div className="flex h-16 shrink-0 items-center px-4">
+      <div className="px-3 pb-3">
         <div className="flex h-10 w-full items-center rounded-full bg-white px-4 shadow-sm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
             <circle cx="11" cy="11" r="8" />
@@ -143,7 +146,7 @@ export function ChatList() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3">
+      <div className="flex-1 overflow-y-auto py-2 px-3 pb-3">
         {chats.length === 0 ? (
           <p className="p-4 text-center text-sm text-gray-500">{t('Chat.noChats')}</p>
         ) : (
@@ -153,26 +156,46 @@ export function ChatList() {
             const unread = Number((chat as unknown as Record<string, unknown>).unreadCount || 0);
             const timeLabel = formatChatTime(chat.lastMessageAt);
             return (
-              <button
+              <div
                 key={chat.id}
-                type="button"
-                onClick={() => setSelectedChatId(chat.id)}
-                className={`flex w-full gap-3 rounded-lg p-3 text-left transition-all ${
+                className={`flex w-full gap-3 rounded-lg p-3 text-left transition-all cursor-pointer ${
                   active 
                     ? 'bg-mint-50 shadow-sm' 
                     : 'hover:bg-mint-50/50'
                 }`}
+                onClick={() => {
+                  // Check if avatar was clicked, if so, don't process this click
+                  if (avatarClickedRef.current) {
+                    avatarClickedRef.current = false;
+                    return;
+                  }
+                  setSelectedChatId(chat.id);
+                  // Close profile panel when clicking main chat item
+                  setChatProfilePanelTarget(null);
+                }}
               >
-                {/* Avatar */}
-                <div className="relative shrink-0">
+                {/* Avatar - clickable to open profile panel */}
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    // Mark that avatar was clicked
+                    avatarClickedRef.current = true;
+                    // First select the chat, then open profile panel
+                    setSelectedChatId(chat.id);
+                    setChatProfilePanelTarget('other');
+                  }}
+                  className="relative shrink-0 cursor-pointer z-10"
+                  title="View profile"
+                >
                   {getAvatarUrl(chat) ? (
                     <img
                       src={getAvatarUrl(chat)!}
                       alt={title}
-                      className="h-12 w-12 rounded-full object-cover"
+                      className="h-12 w-12 rounded-full object-cover hover:ring-2 hover:ring-[#4ECCA3]/50 transition-all"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-sm font-medium text-gray-600">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-sm font-medium text-gray-600 hover:ring-2 hover:ring-[#4ECCA3]/50 transition-all">
                       {getInitial(title)}
                     </div>
                   )}
@@ -194,7 +217,7 @@ export function ChatList() {
                     {getChatPreview(chat, t('Chat.noMessages'))}
                   </p>
                 </div>
-              </button>
+              </div>
             );
           })
         )}
