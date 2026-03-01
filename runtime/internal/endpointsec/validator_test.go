@@ -1,0 +1,164 @@
+package endpointsec
+
+import (
+	"net"
+	"testing"
+)
+
+func TestValidateEndpoint_HTTPSRequired(t *testing.T) {
+	// HTTP to non-loopback should be rejected.
+	err := ValidateEndpoint("http://example.com/v1", false)
+	if err == nil {
+		t.Fatal("expected error for HTTP to non-loopback")
+	}
+}
+
+func TestValidateEndpoint_HTTPSAccepted(t *testing.T) {
+	// HTTPS should pass validation (DNS resolution may fail in test env, that's OK).
+	err := ValidateEndpoint("https://example.com/v1", false)
+	// May fail due to DNS but should NOT fail with "HTTPS required".
+	if err != nil && contains(err.Error(), "HTTPS required") {
+		t.Fatalf("HTTPS should be accepted: %v", err)
+	}
+}
+
+func TestValidateEndpoint_HTTPLoopbackAllowed(t *testing.T) {
+	err := ValidateEndpoint("http://127.0.0.1:8080/v1", true)
+	if err != nil {
+		t.Fatalf("HTTP to 127.0.0.1 with allowLoopback should pass: %v", err)
+	}
+}
+
+func TestValidateEndpoint_HTTPLoopbackDeniedWithoutFlag(t *testing.T) {
+	err := ValidateEndpoint("http://127.0.0.1:8080/v1", false)
+	if err == nil {
+		t.Fatal("HTTP to 127.0.0.1 without allowLoopback should fail")
+	}
+}
+
+func TestValidateEndpoint_EmptyURL(t *testing.T) {
+	err := ValidateEndpoint("", false)
+	if err == nil {
+		t.Fatal("expected error for empty URL")
+	}
+}
+
+func TestValidateEndpoint_InvalidScheme(t *testing.T) {
+	err := ValidateEndpoint("ftp://example.com/v1", false)
+	if err == nil {
+		t.Fatal("expected error for ftp scheme")
+	}
+}
+
+func TestCheckIP_LinkLocal_IPv4(t *testing.T) {
+	ip := net.ParseIP("169.254.1.1")
+	if err := checkIP(ip); err == nil {
+		t.Fatal("expected link-local IPv4 to be blocked")
+	}
+}
+
+func TestCheckIP_LinkLocal_IPv6(t *testing.T) {
+	ip := net.ParseIP("fe80::1")
+	if err := checkIP(ip); err == nil {
+		t.Fatal("expected link-local IPv6 to be blocked")
+	}
+}
+
+func TestCheckIP_ULA_IPv6(t *testing.T) {
+	ip := net.ParseIP("fc00::1")
+	if err := checkIP(ip); err == nil {
+		t.Fatal("expected ULA IPv6 to be blocked")
+	}
+	ip2 := net.ParseIP("fd12::1")
+	if err := checkIP(ip2); err == nil {
+		t.Fatal("expected ULA IPv6 (fd) to be blocked")
+	}
+}
+
+func TestCheckIP_Private_IPv4(t *testing.T) {
+	for _, addr := range []string{"10.0.0.1", "172.16.0.1", "192.168.1.1"} {
+		ip := net.ParseIP(addr)
+		if err := checkIP(ip); err == nil {
+			t.Fatalf("expected private IPv4 %s to be blocked", addr)
+		}
+	}
+}
+
+func TestCheckIP_Public_IPv4(t *testing.T) {
+	ip := net.ParseIP("8.8.8.8")
+	if err := checkIP(ip); err != nil {
+		t.Fatalf("public IPv4 should pass: %v", err)
+	}
+}
+
+func TestCheckIP_Loopback_IPv4_Passes(t *testing.T) {
+	// Loopback IPs are not blocked by checkIP; only link-local/private are blocked.
+	ip := net.ParseIP("127.0.0.1")
+	if err := checkIP(ip); err != nil {
+		t.Fatalf("loopback IPv4 should pass checkIP: %v", err)
+	}
+}
+
+func TestNewPinnedTransport_HTTPSToPublic(t *testing.T) {
+	// This test only validates that the function doesn't panic.
+	// Actual DNS resolution may fail in isolated environments.
+	transport, err := NewPinnedTransport("https://example.com", false)
+	if err != nil {
+		t.Skipf("DNS resolution may not be available: %v", err)
+	}
+	if transport == nil {
+		t.Fatal("expected non-nil transport")
+	}
+	if transport.TLSClientConfig == nil || transport.TLSClientConfig.ServerName != "example.com" {
+		t.Fatal("expected TLS ServerName to be preserved")
+	}
+}
+
+func TestNewPinnedTransport_HTTPToNonLoopbackFails(t *testing.T) {
+	_, err := NewPinnedTransport("http://example.com", false)
+	if err == nil {
+		t.Fatal("expected error for HTTP to non-loopback")
+	}
+}
+
+func TestNewPinnedTransport_HTTPToLoopbackAllowed(t *testing.T) {
+	transport, err := NewPinnedTransport("http://127.0.0.1:8080", true)
+	if err != nil {
+		t.Fatalf("HTTP to 127.0.0.1 with allowLoopback should work: %v", err)
+	}
+	if transport == nil {
+		t.Fatal("expected non-nil transport")
+	}
+}
+
+func TestIsLoopbackHost(t *testing.T) {
+	tests := []struct {
+		host     string
+		expected bool
+	}{
+		{"localhost", true},
+		{"LOCALHOST", true},
+		{"127.0.0.1", true},
+		{"::1", true},
+		{"example.com", false},
+		{"192.168.1.1", false},
+	}
+	for _, tt := range tests {
+		if got := isLoopbackHost(tt.host); got != tt.expected {
+			t.Errorf("isLoopbackHost(%q) = %v, want %v", tt.host, got, tt.expected)
+		}
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstr(s, substr))
+}
+
+func containsSubstr(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
