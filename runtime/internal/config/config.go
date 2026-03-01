@@ -86,6 +86,10 @@ type Config struct {
 	// LogLevel controls the minimum log level for the daemon logger.
 	// Valid values: "debug", "info", "warn", "error". Default: "info". (K-DAEMON-009)
 	LogLevel string
+
+	// Providers holds the parsed config.json providers section for cloud connector
+	// auto-registration at startup.
+	Providers map[string]RuntimeFileTarget
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
@@ -180,6 +184,7 @@ func Load() (Config, error) {
 		UsageStatsBufferSize:          readIntWithFileConfigFallback("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", fileCfg.UsageStatsBufferSize, 50000),
 		LocalAuditCapacity:            readIntWithFileConfigFallback("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", fileCfg.LocalAuditCapacity, 5000),
 		LogLevel:                      readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
+		Providers:                     fileCfg.Providers,
 	}
 
 	// shutdownTimeoutSeconds: env (duration string) > FileConfig (int seconds) > default 10
@@ -610,13 +615,13 @@ func applyProviderEnvDefaults(fileCfg FileConfig) {
 			continue
 		}
 
-		apiKeyValue := resolveProviderAPIKey(providerCfg)
+		apiKeyValue := ResolveProviderAPIKey(providerCfg)
 		if strings.TrimSpace(os.Getenv(binding.apiKeyKey)) == "" && apiKeyValue != "" {
 			_ = os.Setenv(binding.apiKeyKey, apiKeyValue)
 		}
 
 		baseURLValue := strings.TrimSpace(providerCfg.BaseURL)
-		if baseURLValue == "" && normalizeProviderName(providerName) == "gemini" && (apiKeyValue != "" || strings.TrimSpace(os.Getenv(binding.apiKeyKey)) != "") {
+		if baseURLValue == "" && NormalizeProviderName(providerName) == "gemini" && (apiKeyValue != "" || strings.TrimSpace(os.Getenv(binding.apiKeyKey)) != "") {
 			baseURLValue = defaultCloudGeminiBaseURL
 		}
 		if strings.TrimSpace(os.Getenv(binding.baseURLKey)) == "" && baseURLValue != "" {
@@ -636,7 +641,8 @@ func applyImplicitProviderDefaults() {
 	}
 }
 
-func resolveProviderAPIKey(target RuntimeFileTarget) string {
+// ResolveProviderAPIKey resolves the API key from a RuntimeFileTarget (env var or literal).
+func ResolveProviderAPIKey(target RuntimeFileTarget) string {
 	if envRef := strings.TrimSpace(target.APIKeyEnv); envRef != "" {
 		if value := strings.TrimSpace(os.Getenv(envRef)); value != "" {
 			return value
@@ -653,7 +659,7 @@ func resolveProviderAPIKey(target RuntimeFileTarget) string {
 }
 
 func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
-	switch normalizeProviderName(raw) {
+	switch NormalizeProviderName(raw) {
 	case "local":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_LOCAL_AI_BASE_URL",
@@ -704,12 +710,18 @@ func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
 			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY",
 		}, true
+	case "deepseek", "clouddeepseek":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_API_KEY",
+		}, true
 	default:
 		return providerEnvBinding{}, false
 	}
 }
 
-func normalizeProviderName(raw string) string {
+// NormalizeProviderName strips non-alphanumeric characters and lowercases.
+func NormalizeProviderName(raw string) string {
 	trimmed := strings.TrimSpace(strings.ToLower(raw))
 	if trimmed == "" {
 		return ""
@@ -728,8 +740,37 @@ func normalizeProviderName(raw string) string {
 	return builder.String()
 }
 
+// ResolveCanonicalProviderID maps a config.json provider key to its canonical provider ID.
+// Returns ("", false) for local providers or unknown names.
+func ResolveCanonicalProviderID(raw string) (string, bool) {
+	switch NormalizeProviderName(raw) {
+	case "local", "localnexa", "nexa":
+		return "", false
+	case "nimillm", "cloudnimillm":
+		return "nimillm", true
+	case "alibaba", "aliyun", "cloudalibaba", "dashscope":
+		return "dashscope", true
+	case "bytedance", "byte", "cloudbytedance", "volcengine":
+		return "volcengine", true
+	case "bytedanceopenspeech", "openspeech", "cloudbytedanceopenspeech":
+		return "volcengine_openspeech", true
+	case "gemini", "cloudgemini":
+		return "gemini", true
+	case "minimax", "cloudminimax":
+		return "minimax", true
+	case "kimi", "moonshot", "cloudkimi":
+		return "kimi", true
+	case "glm", "zhipu", "bigmodel", "cloudglm":
+		return "glm", true
+	case "deepseek", "clouddeepseek":
+		return "deepseek", true
+	default:
+		return "", false
+	}
+}
+
 func isLegacyProviderName(raw string) bool {
-	switch normalizeProviderName(raw) {
+	switch NormalizeProviderName(raw) {
 	case "litellm", "cloudlitellm", "cloudai":
 		return true
 	default:

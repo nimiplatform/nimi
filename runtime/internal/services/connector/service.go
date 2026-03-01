@@ -143,11 +143,12 @@ func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnector
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	result := make([]*runtimev1.Connector, 0, len(records))
 	for _, r := range records {
-		// Local connectors always visible; remote filtered by owner
-		if r.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+		// System connectors (local + system cloud) always visible to all
+		if r.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
 			result = append(result, recordToProto(r))
 			continue
 		}
+		// User-owned remote connectors filtered by owner
 		if ownerID == "" || r.OwnerID == ownerID {
 			result = append(result, recordToProto(r))
 		}
@@ -183,6 +184,12 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 		if req.GetLabel() != "" || req.GetEndpoint() != "" || req.GetApiKey() != "" {
 			return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE.String())
 		}
+	}
+
+	// System cloud connectors are managed by config.json, not via API
+	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
+		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE.String())
 	}
 
 	var mutations ConnectorMutations
@@ -242,8 +249,9 @@ func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnec
 		}, nil
 	}
 
-	// Local connectors cannot be deleted
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+	// System connectors (local + system cloud) cannot be deleted via API
+	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL ||
+		rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE.String())
 	}
 

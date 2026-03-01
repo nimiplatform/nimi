@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -105,6 +106,11 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			logger.Warn("connector store reconcile startup failed", "error", err)
 		}
 		connectorservice.EnsureLocalConnectors(connStore)
+
+		cloudDefs := buildCloudConnectorDefs(cfg)
+		if err := connectorservice.EnsureCloudConnectorsFromConfig(connStore, cloudDefs); err != nil {
+			logger.Warn("cloud connector auto-registration failed", "error", err)
+		}
 
 		aiSvc := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
 		aiSvc.SetModelRegistryPersistencePath(registryPath)
@@ -208,4 +214,41 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeKnowledgeService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeConnectorService_ServiceDesc.ServiceName, servingStatus)
+}
+
+// buildCloudConnectorDefs builds cloud connector definitions from config.json providers.
+func buildCloudConnectorDefs(cfg config.Config) []connectorservice.CloudConnectorDef {
+	if len(cfg.Providers) == 0 {
+		return nil
+	}
+	var defs []connectorservice.CloudConnectorDef
+	for configKey, target := range cfg.Providers {
+		canonical, ok := config.ResolveCanonicalProviderID(configKey)
+		if !ok {
+			continue
+		}
+		apiKey := config.ResolveProviderAPIKey(target)
+		if apiKey == "" {
+			continue
+		}
+		endpoint := strings.TrimSpace(target.BaseURL)
+		if endpoint == "" {
+			endpoint = connectorservice.ResolveEndpoint(canonical, "")
+		}
+		label := "Cloud " + capitalizeFirst(canonical)
+		defs = append(defs, connectorservice.CloudConnectorDef{
+			Provider: canonical,
+			Endpoint: endpoint,
+			APIKey:   apiKey,
+			Label:    label,
+		})
+	}
+	return defs
+}
+
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
