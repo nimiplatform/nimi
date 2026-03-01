@@ -266,6 +266,49 @@ export interface ListConnectorModelsResponse {
     models: ConnectorModelDescriptor[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ProviderCatalogEntry
+ */
+export interface ProviderCatalogEntry {
+    /**
+     * @generated from protobuf field: string provider = 1
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: string default_endpoint = 2
+     */
+    defaultEndpoint: string;
+    /**
+     * @generated from protobuf field: bool requires_explicit_endpoint = 3
+     */
+    requiresExplicitEndpoint: boolean;
+    /**
+     * @generated from protobuf field: string runtime_plane = 4
+     */
+    runtimePlane: string;
+    /**
+     * @generated from protobuf field: string execution_module = 5
+     */
+    executionModule: string;
+    /**
+     * @generated from protobuf field: bool managed_supported = 6
+     */
+    managedSupported: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogRequest
+ */
+export interface ListProviderCatalogRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogResponse
+ */
+export interface ListProviderCatalogResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ProviderCatalogEntry providers = 1
+     */
+    providers: ProviderCatalogEntry[];
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.ConnectorKind
  */
 export enum ConnectorKind {
@@ -1312,6 +1355,178 @@ class ListConnectorModelsResponse$Type extends MessageType<ListConnectorModelsRe
  * @generated MessageType for protobuf message nimi.runtime.v1.ListConnectorModelsResponse
  */
 export const ListConnectorModelsResponse = new ListConnectorModelsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
+    constructor() {
+        super("nimi.runtime.v1.ProviderCatalogEntry", [
+            { no: 1, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "default_endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "requires_explicit_endpoint", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "runtime_plane", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "execution_module", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ProviderCatalogEntry>): ProviderCatalogEntry {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.provider = "";
+        message.defaultEndpoint = "";
+        message.requiresExplicitEndpoint = false;
+        message.runtimePlane = "";
+        message.executionModule = "";
+        message.managedSupported = false;
+        if (value !== undefined)
+            reflectionMergePartial<ProviderCatalogEntry>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ProviderCatalogEntry): ProviderCatalogEntry {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider */ 1:
+                    message.provider = reader.string();
+                    break;
+                case /* string default_endpoint */ 2:
+                    message.defaultEndpoint = reader.string();
+                    break;
+                case /* bool requires_explicit_endpoint */ 3:
+                    message.requiresExplicitEndpoint = reader.bool();
+                    break;
+                case /* string runtime_plane */ 4:
+                    message.runtimePlane = reader.string();
+                    break;
+                case /* string execution_module */ 5:
+                    message.executionModule = reader.string();
+                    break;
+                case /* bool managed_supported */ 6:
+                    message.managedSupported = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ProviderCatalogEntry, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider = 1; */
+        if (message.provider !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.provider);
+        /* string default_endpoint = 2; */
+        if (message.defaultEndpoint !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.defaultEndpoint);
+        /* bool requires_explicit_endpoint = 3; */
+        if (message.requiresExplicitEndpoint !== false)
+            writer.tag(3, WireType.Varint).bool(message.requiresExplicitEndpoint);
+        /* string runtime_plane = 4; */
+        if (message.runtimePlane !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.runtimePlane);
+        /* string execution_module = 5; */
+        if (message.executionModule !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.executionModule);
+        /* bool managed_supported = 6; */
+        if (message.managedSupported !== false)
+            writer.tag(6, WireType.Varint).bool(message.managedSupported);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ProviderCatalogEntry
+ */
+export const ProviderCatalogEntry = new ProviderCatalogEntry$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListProviderCatalogRequest$Type extends MessageType<ListProviderCatalogRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListProviderCatalogRequest", []);
+    }
+    create(value?: PartialMessage<ListProviderCatalogRequest>): ListProviderCatalogRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListProviderCatalogRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListProviderCatalogRequest): ListProviderCatalogRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListProviderCatalogRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListProviderCatalogRequest
+ */
+export const ListProviderCatalogRequest = new ListProviderCatalogRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListProviderCatalogResponse$Type extends MessageType<ListProviderCatalogResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListProviderCatalogResponse", [
+            { no: 1, name: "providers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ProviderCatalogEntry }
+        ]);
+    }
+    create(value?: PartialMessage<ListProviderCatalogResponse>): ListProviderCatalogResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.providers = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListProviderCatalogResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListProviderCatalogResponse): ListProviderCatalogResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ProviderCatalogEntry providers */ 1:
+                    message.providers.push(ProviderCatalogEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListProviderCatalogResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ProviderCatalogEntry providers = 1; */
+        for (let i = 0; i < message.providers.length; i++)
+            ProviderCatalogEntry.internalBinaryWrite(message.providers[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListProviderCatalogResponse
+ */
+export const ListProviderCatalogResponse = new ListProviderCatalogResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeConnectorService
  */
@@ -1322,5 +1537,6 @@ export const RuntimeConnectorService = new ServiceType("nimi.runtime.v1.RuntimeC
     { name: "UpdateConnector", options: {}, I: UpdateConnectorRequest, O: UpdateConnectorResponse },
     { name: "DeleteConnector", options: {}, I: DeleteConnectorRequest, O: DeleteConnectorResponse },
     { name: "TestConnector", options: {}, I: TestConnectorRequest, O: TestConnectorResponse },
-    { name: "ListConnectorModels", options: {}, I: ListConnectorModelsRequest, O: ListConnectorModelsResponse }
+    { name: "ListConnectorModels", options: {}, I: ListConnectorModelsRequest, O: ListConnectorModelsResponse },
+    { name: "ListProviderCatalog", options: {}, I: ListProviderCatalogRequest, O: ListProviderCatalogResponse }
 ]);

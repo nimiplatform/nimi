@@ -5,6 +5,8 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeConnectorService } from "./connector";
+import type { ListProviderCatalogResponse } from "./connector";
+import type { ListProviderCatalogRequest } from "./connector";
 import type { ListConnectorModelsResponse } from "./connector";
 import type { ListConnectorModelsRequest } from "./connector";
 import type { TestConnectorResponse } from "./connector";
@@ -54,6 +56,10 @@ export interface IRuntimeConnectorServiceClient {
      * @generated from protobuf rpc: ListConnectorModels
      */
     listConnectorModels(input: ListConnectorModelsRequest, options?: RpcOptions): UnaryCall<ListConnectorModelsRequest, ListConnectorModelsResponse>;
+    /**
+     * @generated from protobuf rpc: ListProviderCatalog
+     */
+    listProviderCatalog(input: ListProviderCatalogRequest, options?: RpcOptions): UnaryCall<ListProviderCatalogRequest, ListProviderCatalogResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeConnectorService
@@ -112,5 +118,12 @@ export class RuntimeConnectorServiceClient implements IRuntimeConnectorServiceCl
     listConnectorModels(input: ListConnectorModelsRequest, options?: RpcOptions): UnaryCall<ListConnectorModelsRequest, ListConnectorModelsResponse> {
         const method = this.methods[6], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListConnectorModelsRequest, ListConnectorModelsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListProviderCatalog
+     */
+    listProviderCatalog(input: ListProviderCatalogRequest, options?: RpcOptions): UnaryCall<ListProviderCatalogRequest, ListProviderCatalogResponse> {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListProviderCatalogRequest, ListProviderCatalogResponse>("unary", this._transport, method, opt, input);
     }
 }

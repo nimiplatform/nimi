@@ -565,6 +565,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       deleteConnector: unary(RuntimeMethodIds.connector.deleteConnector),
       testConnector: unary(RuntimeMethodIds.connector.testConnector),
       listConnectorModels: unary(RuntimeMethodIds.connector.listConnectorModels),
+      listProviderCatalog: unary(RuntimeMethodIds.connector.listProviderCatalog),
     },
     knowledge: {
       buildIndex: unary(RuntimeMethodIds.knowledge.buildIndex),

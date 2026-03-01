@@ -152,6 +152,8 @@ import type {
   TestConnectorResponse,
   UpdateConnectorRequest,
   UpdateConnectorResponse,
+  ListProviderCatalogRequest,
+  ListProviderCatalogResponse,
 } from './generated/runtime/v1/connector';
 import type {
   AIProviderHealthEvent,
@@ -357,6 +359,7 @@ export type RuntimeConnectorClient = {
   deleteConnector(request: DeleteConnectorRequest, options?: RuntimeCallOptions): Promise<DeleteConnectorResponse>;
   testConnector(request: TestConnectorRequest, options?: RuntimeCallOptions): Promise<TestConnectorResponse>;
   listConnectorModels(request: ListConnectorModelsRequest, options?: RuntimeCallOptions): Promise<ListConnectorModelsResponse>;
+  listProviderCatalog(request: ListProviderCatalogRequest, options?: RuntimeCallOptions): Promise<ListProviderCatalogResponse>;
 };
 
 export type RuntimeAuditClient = {

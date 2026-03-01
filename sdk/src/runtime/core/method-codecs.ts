@@ -135,6 +135,8 @@ import {
   TestConnectorResponse,
   UpdateConnectorRequest,
   UpdateConnectorResponse,
+  ListProviderCatalogRequest,
+  ListProviderCatalogResponse,
 } from '../generated/runtime/v1/connector';
 import {
   AppMessageEvent,
@@ -402,6 +404,10 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.connector.listConnectorModels]: {
     requestType: ListConnectorModelsRequest,
     responseType: ListConnectorModelsResponse,
+  },
+  [RuntimeMethodIds.connector.listProviderCatalog]: {
+    requestType: ListProviderCatalogRequest,
+    responseType: ListProviderCatalogResponse,
   },
   [RuntimeMethodIds.knowledge.buildIndex]: {
     requestType: BuildIndexRequest,
