@@ -569,12 +569,28 @@ export const WorldDraftSummaryStatus = {
 
 export type WorldDraftSummaryStatus = (typeof WorldDraftSummaryStatus)[keyof typeof WorldDraftSummaryStatus];
 
+export const WorldEventDetailEventHorizon = {
+  PAST: "PAST",
+  ONGOING: "ONGOING",
+  FUTURE: "FUTURE",
+} as const satisfies Record<string, components['schemas']['WorldEventDetailDto']['eventHorizon']>;
+
+export type WorldEventDetailEventHorizon = (typeof WorldEventDetailEventHorizon)[keyof typeof WorldEventDetailEventHorizon];
+
 export const WorldEventDetailLevel = {
   PRIMARY: "PRIMARY",
   SECONDARY: "SECONDARY",
 } as const satisfies Record<string, components['schemas']['WorldEventDetailDto']['level']>;
 
 export type WorldEventDetailLevel = (typeof WorldEventDetailLevel)[keyof typeof WorldEventDetailLevel];
+
+export const WorldEventUpsertEventHorizon = {
+  PAST: "PAST",
+  ONGOING: "ONGOING",
+  FUTURE: "FUTURE",
+} as const satisfies Record<string, components['schemas']['WorldEventUpsertDto']['eventHorizon']>;
+
+export type WorldEventUpsertEventHorizon = (typeof WorldEventUpsertEventHorizon)[keyof typeof WorldEventUpsertEventHorizon];
 
 export const WorldEventUpsertLevel = {
   PRIMARY: "PRIMARY",

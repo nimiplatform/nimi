@@ -5398,8 +5398,6 @@ export type components = {
             receiverId: string;
             /** @description Post ID context */
             relatedPostId?: string;
-            /** @description Amount of gem to send (for gem gift type) */
-            amount?: number;
         };
         SendMessageInputDto: {
             clientMessageId: string;
@@ -6015,12 +6013,15 @@ export type components = {
         WorldDetailDto: {
             agentCount: number;
             bannerUrl?: string;
+            clockConfig?: Record<string, never>;
             /** Format: date-time */
             createdAt: string;
             creatorId?: string;
             description?: string;
+            era?: string;
             /** @enum {string} */
             freezeReason?: "QUOTA_OVERFLOW" | "WORLD_INACTIVE" | "GOVERNANCE_LOCK";
+            genre?: string;
             iconUrl?: string;
             id: string;
             level: number;
@@ -6031,6 +6032,10 @@ export type components = {
             nativeAgentLimit: number;
             /** @enum {string} */
             nativeCreationState: "OPEN" | "NATIVE_CREATION_FROZEN";
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewedBy?: string;
+            sceneTimeConfig?: Record<string, never>;
             scoreA: number;
             scoreC: number;
             scoreE: number;
@@ -6038,10 +6043,13 @@ export type components = {
             scoreQ: number;
             /** @enum {string} */
             status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+            themes?: string[];
             timeFlowRatio: number;
             transitInLimit: number;
             /** @enum {string} */
             type: "MAIN" | "SUB";
+            /** Format: date-time */
+            updatedAt?: string;
         };
         WorldDraftDetailDto: {
             createdAt: string;
@@ -6086,6 +6094,8 @@ export type components = {
             createdAt: string;
             createdBy: string;
             dependsOnEventIds: string[];
+            /** @enum {string} */
+            eventHorizon: "PAST" | "ONGOING" | "FUTURE";
             evidenceRefs: components["schemas"]["WorldEventEvidenceRefDto"][];
             id: string;
             /** @enum {string} */
@@ -6138,6 +6148,8 @@ export type components = {
             characterRefs?: string[];
             confidence?: number;
             dependsOnEventIds?: string[];
+            /** @enum {string} */
+            eventHorizon?: "PAST" | "ONGOING" | "FUTURE";
             evidenceRefs?: components["schemas"]["WorldEventEvidenceRefInputDto"][];
             id?: string;
             /** @enum {string} */
