@@ -27,7 +27,7 @@ export type RouteResolverResult = {
   engine?: string;
   localProviderEndpoint: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
+  connectorId: string;
   model: string;
 };
 
@@ -37,7 +37,7 @@ export type ResolvedRoute = {
   adapter: 'openai_compat_adapter' | 'localai_native_adapter' | string;
   providerType: ProviderType;
   endpoint: string;
-  credentialRefId?: string;
+  connectorId?: string;
   apiKey?: string;
   model: string;
 };

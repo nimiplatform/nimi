@@ -421,7 +421,7 @@ export function NotificationPanel() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
       {/* Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6">
+      <div className="flex h-16 shrink-0 items-center justify-between bg-white px-6">
         <h1 className="flex items-center gap-2 text-xl font-bold text-gray-900">
           Notifications
           {unreadCount > 0 ? (
@@ -440,7 +440,7 @@ export function NotificationPanel() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 bg-white px-6 py-3 border-b border-gray-100">
+      <div className="flex items-center gap-2 bg-white px-6 py-3">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.id}

@@ -74,12 +74,13 @@ export async function* invokeModLlmStream(
       routePolicy: runtimeCall.routePolicy,
       fallback: runtimeCall.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      connectorId: String(input.connectorId || ''),
     }, await buildRuntimeStreamOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       signal: scopedAbort.signal,
       source,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
     }));
 

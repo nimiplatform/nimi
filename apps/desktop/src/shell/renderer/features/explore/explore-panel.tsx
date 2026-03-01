@@ -165,16 +165,18 @@ export function ExplorePanel() {
     [selectedCategory],
   );
 
-  // Reset PostFeed when category changes
-  const postFeedKey = `explore-${selectedCategory ?? 'all'}`;
+  // Reset PostFeed when category changes or refresh is triggered
+  const [refreshKey, setRefreshKey] = useState(0);
+  const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
 
   const onAgentChat = useCallback(
     (agentId: string) => {
       const target = agents.find((item) => item.id === agentId);
       setRuntimeFields({
         targetType: 'AGENT',
-        targetAccountId: '',
+        targetAccountId: agentId,
         agentId,
+        targetId: agentId,
         worldId: target?.worldId || '',
       });
       // Open mod workspace tab before setting active tab
@@ -204,6 +206,7 @@ export function ExplorePanel() {
       topAgents={topAgents}
       fetchPostPage={fetchPostPage}
       postFeedKey={postFeedKey}
+      onPostDelete={() => setRefreshKey((k) => k + 1)}
       loading={agentsQuery.isPending}
       onSearchTextChange={setSearchText}
       onToggleCategory={onToggleCategory}

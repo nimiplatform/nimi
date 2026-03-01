@@ -31,7 +31,7 @@ export interface LlmTextInput {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
   providerHints?: LocalAiProviderHints;
 }
 
@@ -46,7 +46,7 @@ export interface LlmImageInput {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
   providerHints?: LocalAiProviderHints;
 }
 
@@ -60,7 +60,7 @@ export interface LlmVideoInput {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
   providerHints?: LocalAiProviderHints;
 }
 
@@ -73,7 +73,7 @@ export interface LlmEmbeddingInput {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
   providerHints?: LocalAiProviderHints;
 }
 
@@ -88,7 +88,7 @@ export interface LlmSpeechTranscribeInput {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
   providerHints?: LocalAiProviderHints;
 }
 
@@ -168,7 +168,7 @@ export class HookRuntimeLlmService {
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerHints: input.providerHints,
     });
 
@@ -221,7 +221,7 @@ export class HookRuntimeLlmService {
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerHints: input.providerHints,
     })) {
       yield event;
@@ -250,7 +250,7 @@ export class HookRuntimeLlmService {
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerHints: input.providerHints,
     });
 
@@ -285,7 +285,7 @@ export class HookRuntimeLlmService {
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerHints: input.providerHints,
     });
 
@@ -325,7 +325,7 @@ export class HookRuntimeLlmService {
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerHints: input.providerHints,
     });
   }
@@ -373,7 +373,7 @@ export class HookRuntimeLlmService {
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerHints: input.providerHints,
     });
   }

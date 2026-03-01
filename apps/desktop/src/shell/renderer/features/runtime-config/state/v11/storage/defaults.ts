@@ -18,7 +18,7 @@ export type RuntimeConfigSeedV11 = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  credentialRefId?: string;
+  connectorId?: string;
 };
 
 export type StoredStateV11 = Partial<{

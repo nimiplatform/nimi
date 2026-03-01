@@ -28,7 +28,7 @@ export function SettingsPanelBody() {
   return (
     <div className="flex min-h-0 flex-1">
       <aside className="flex w-60 shrink-0 flex-col overflow-y-auto border-r border-gray-200 bg-white">
-        <div className="flex h-14 shrink-0 items-center border-b border-gray-200 px-6">
+        <div className="flex h-14 shrink-0 items-center px-6">
           <h1 className="text-lg font-semibold text-gray-900">{t('Navigation.settings')}</h1>
         </div>
         <SidebarNav selected={selectedId} onSelect={handleSelect} />

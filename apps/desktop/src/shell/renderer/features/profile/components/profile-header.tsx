@@ -33,8 +33,8 @@ export function ProfileHeader({
           <img
             src={profile.avatarUrl}
             alt={profile.displayName}
-            className={`h-24 w-24 object-cover ${
-              profile.isAgent ? 'rounded-lg' : 'rounded-2xl ring-4 ring-mint-100'
+            className={`h-24 w-24 object-cover rounded-2xl ${
+              profile.isAgent ? '' : 'ring-4 ring-mint-100'
             }`}
             style={profile.isAgent ? {
               boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
@@ -42,10 +42,10 @@ export function ProfileHeader({
           />
         ) : (
           <div 
-            className={`flex h-24 w-24 items-center justify-center text-2xl font-bold ${
+            className={`flex h-24 w-24 items-center justify-center text-2xl font-bold rounded-2xl ${
               profile.isAgent 
-                ? 'rounded-lg bg-slate-100 text-slate-700' 
-                : 'rounded-2xl bg-gradient-to-br from-mint-400 to-mint-500 text-white ring-4 ring-mint-100'
+                ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
+                : 'bg-gradient-to-br from-mint-400 to-mint-500 text-white ring-4 ring-mint-100'
             }`}
             style={profile.isAgent ? {
               boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'

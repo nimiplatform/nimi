@@ -74,8 +74,8 @@ async function resolveSpeechRoute(
       adapter,
       providerType: 'OPENAI_COMPATIBLE',
       endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
-      credentialRefId: resolved.credentialRefId,
-      apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId)) || undefined,
+      connectorId: resolved.connectorId,
+      apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.connectorId)) || undefined,
       model,
     };
   }
@@ -90,8 +90,8 @@ async function resolveSpeechRoute(
     adapter: normalizeSpeechAdapter(resolved.adapter),
     providerType,
     endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
-    credentialRefId: resolved.credentialRefId,
-    apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
+    connectorId: resolved.connectorId,
+    apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.connectorId),
     model,
   };
 }
@@ -143,7 +143,7 @@ export async function openSpeechStream(
     const result: SpeechStreamOpenResult = await context.speechEngine.openStream({
       model: route.model,
       routeSource: route.source,
-      credentialRefId: route.credentialRefId,
+      connectorId: route.connectorId,
       providerEndpoint: route.endpoint,
       providerType: route.providerType,
       endpoint: route.endpoint,

@@ -42,7 +42,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata: await buildRuntimeRequestMetadata({
         source,
-        credentialRefId: input.credentialRefId,
+        connectorId: input.connectorId,
         providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
       }),
       signal: input.abortSignal,

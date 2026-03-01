@@ -29,7 +29,7 @@ type SynthesizeInput = {
 type OpenStreamInput = {
   model: string;
   routeSource: 'local-runtime' | 'token-api';
-  credentialRefId?: string;
+  connectorId?: string;
   providerEndpoint?: string;
   request: SpeechSynthesizeRequest;
   open: {
@@ -84,7 +84,7 @@ export class NimiSpeechEngine {
     return openSpeechStream({
       model: input.model,
       routeSource: input.routeSource,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerEndpoint: input.providerEndpoint,
       request: input.request,
       streamRuntime: this.streamRuntime,

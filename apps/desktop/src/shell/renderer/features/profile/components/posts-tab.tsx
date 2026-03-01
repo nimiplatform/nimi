@@ -32,17 +32,17 @@ function PostCard({ post }: { post: PostDto }) {
           <img 
             src={post.author.avatarUrl} 
             alt="" 
-            className={`h-10 w-10 shrink-0 object-cover ${isAgent ? 'rounded-xl' : 'rounded-full'}`}
+            className="h-10 w-10 shrink-0 object-cover rounded-xl"
             style={isAgent ? {
               boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
             } : undefined}
           />
         ) : (
           <div 
-            className={`flex h-10 w-10 shrink-0 items-center justify-center text-sm font-medium ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center text-sm font-medium rounded-xl ${
               isAgent 
-                ? 'rounded-xl bg-slate-100 text-slate-700' 
-                : 'rounded-full bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'
+                ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
+                : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'
             }`}
             style={isAgent ? {
               boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'

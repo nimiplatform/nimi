@@ -46,7 +46,7 @@ function routeRuntimePayload(route: Awaited<ReturnType<typeof resolveModRouteBin
       localProviderEndpoint: route.localProviderEndpoint || route.endpoint,
       localProviderModel: route.localProviderModel || route.model,
       localOpenAiEndpoint: route.localOpenAiEndpoint || route.endpoint,
-      credentialRefId: route.credentialRefId,
+      connectorId: route.connectorId,
       providerHints: route.providerHints,
     };
   }
@@ -55,7 +55,7 @@ function routeRuntimePayload(route: Awaited<ReturnType<typeof resolveModRouteBin
     localProviderEndpoint: '',
     localProviderModel: route.model,
     localOpenAiEndpoint: route.localOpenAiEndpoint || route.endpoint,
-    credentialRefId: route.credentialRefId,
+    connectorId: route.connectorId,
     providerHints: route.providerHints,
   };
 }

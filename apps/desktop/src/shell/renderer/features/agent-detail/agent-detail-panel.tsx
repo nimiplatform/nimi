@@ -90,8 +90,9 @@ export function AgentDetailPanel() {
     }
     setRuntimeFields({
       targetType: 'AGENT',
-      targetAccountId: '',
+      targetAccountId: agent.id,
       agentId: agent.id,
+      targetId: agent.id,
       worldId: agent.worldId || '',
     });
     // Open mod workspace tab before setting active tab

@@ -124,9 +124,8 @@ function buildConnectorModelCacheKey(input: {
   connectorId: string;
   vendor: string;
   endpoint: string;
-  credentialRefId: string;
 }): string {
-  const ref = String(input.credentialRefId || '').trim();
+  const ref = String(input.connectorId || '').trim();
   return JSON.stringify({
     connectorId: input.connectorId,
     vendor: String(input.vendor || '').trim(),
@@ -298,7 +297,6 @@ export async function hydrateConnectorModels(input: {
   connectorId: string;
   vendor: string;
   endpoint: string;
-  credentialRefId: string;
   models: string[];
 }): Promise<RuntimeRouteHydratedModelsPayload> {
   const current = dedupeStringsV11([...(Array.isArray(input.models) ? input.models : [])]);
@@ -306,17 +304,16 @@ export async function hydrateConnectorModels(input: {
   const vendor = String(input.vendor || '').trim();
   if (vendor !== 'openrouter') return currentPayload;
 
-  const credentialRefId = String(input.credentialRefId || '').trim();
-  if (!credentialRefId) return currentPayload;
+  const connectorId = String(input.connectorId || '').trim();
+  if (!connectorId) return currentPayload;
 
   const endpoint = normalizeEndpointV11(String(input.endpoint || '').trim(), '');
   if (!endpoint) return currentPayload;
 
   const cacheKey = buildConnectorModelCacheKey({
-    connectorId: input.connectorId,
+    connectorId,
     vendor,
     endpoint,
-    credentialRefId,
   });
   const now = Date.now();
   const cached = runtimeRouteConnectorModelCache.get(cacheKey);
@@ -334,7 +331,7 @@ export async function hydrateConnectorModels(input: {
     try {
       const vault = new TauriCredentialVault();
       let secret = '';
-      try { secret = await vault.getCredentialSecret(credentialRefId); } catch { /* no secret */ }
+      try { secret = await vault.getCredentialSecret(connectorId); } catch { /* no secret */ }
       if (!secret) return currentPayload;
       const adapter = createProviderAdapter('OPENAI_COMPATIBLE', {
         name: `runtime-route-options:${input.connectorId}`,

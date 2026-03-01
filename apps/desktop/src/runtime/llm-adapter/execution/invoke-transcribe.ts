@@ -53,7 +53,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata: await buildRuntimeRequestMetadata({
         source,
-        credentialRefId: input.credentialRefId,
+        connectorId: input.connectorId,
         providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
       }),
       signal: input.abortSignal,

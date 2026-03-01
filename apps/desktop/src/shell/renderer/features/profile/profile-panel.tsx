@@ -123,8 +123,9 @@ export function ProfilePanel() {
     if (profile.isAgent) {
       setRuntimeFields({
         targetType: 'AGENT',
-        targetAccountId: '',
+        targetAccountId: profile.id,
         agentId: profile.id,
+        targetId: profile.id,
         worldId: profile.agentWorldId || '',
       });
       // Open mod workspace tab before setting active tab

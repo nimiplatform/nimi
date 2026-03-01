@@ -10,7 +10,7 @@ const ALLOWLIST_RUNTIME_FIELDS = new Set([
   'localProviderEndpoint',
   'localProviderModel',
   'localOpenAiEndpoint',
-  'credentialRefId',
+  'connectorId',
   'mode',
   'turnIndex',
   'userConfirmedUpload',

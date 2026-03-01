@@ -90,7 +90,7 @@ export interface ExecutePrivateTurnInput {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
 }
 
 export interface LocalAuditRecord {

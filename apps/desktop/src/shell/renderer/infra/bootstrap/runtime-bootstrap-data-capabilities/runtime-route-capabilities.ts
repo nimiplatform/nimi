@@ -55,7 +55,6 @@ async function hydrateConnectorModelsWithTimeout(input: {
   connectorId: string;
   vendor: string;
   endpoint: string;
-  credentialRefId: string;
   models: string[];
 }, timeoutMs: number): Promise<{ payload: HydratedConnectorModels; timedOut: boolean }> {
   const fallback = toHydrationFallbackPayload(input.models);
@@ -197,7 +196,7 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       localProviderEndpoint: runtime.localProviderEndpoint,
       localProviderModel: runtime.localProviderModel,
       localOpenAiEndpoint: runtime.localOpenAiEndpoint,
-      credentialRefId: runtime.credentialRefId,
+      connectorId: runtime.connectorId,
     };
     const bridgeMergedState = await mergeRuntimeBridgeConfigIntoState(createDefaultStateV11(seed));
     if (!bridgeMergedState.merged) {
@@ -238,7 +237,6 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
         connectorId: connector.id,
         vendor: String(connector.vendor || ''),
         endpoint: connector.endpoint,
-        credentialRefId: connector.id,
         models: [...connector.models],
       }, 1800);
 

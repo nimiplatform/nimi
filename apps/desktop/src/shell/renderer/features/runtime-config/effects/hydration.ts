@@ -64,7 +64,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
       localProviderEndpoint: input.runtimeFields.localProviderEndpoint,
       localProviderModel: input.runtimeFields.localProviderModel,
       localOpenAiEndpoint: input.runtimeFields.localOpenAiEndpoint,
-      credentialRefId: input.runtimeFields.credentialRefId,
+      connectorId: input.runtimeFields.connectorId,
     });
 
     void migrateConnectorTokensToVault(loaded, input.setStatusBanner).then(() => {
@@ -93,7 +93,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
   }, [
     input.bootstrapReady,
     input.hydrated,
-    input.runtimeFields.credentialRefId,
+    input.runtimeFields.connectorId,
     input.runtimeFields.localOpenAiEndpoint,
     input.runtimeFields.localProviderEndpoint,
     input.runtimeFields.localProviderModel,

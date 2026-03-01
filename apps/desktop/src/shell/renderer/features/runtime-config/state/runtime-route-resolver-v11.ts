@@ -29,7 +29,7 @@ type ResolvedRuntimeCapabilityConfigBaseV11 = {
   providerHints?: RuntimeConfigStateV11['localRuntime']['nodeMatrix'][number]['providerHints'];
   policyGate?: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
+  connectorId: string;
   localProviderEndpoint: string;
   localProviderModel: string;
 };
@@ -245,7 +245,6 @@ function resolveLocalRuntimeCapabilityConfig(input: {
     connectorId: '',
     endpoint: localProviderEndpoint,
     localOpenAiEndpoint,
-    credentialRefId: '',
     localProviderEndpoint,
     localProviderModel: model,
     localModelId: String(modelEntry.localModelId || ''),
@@ -324,7 +323,6 @@ function resolveTokenApiCapabilityConfig(input: {
     connectorId: connector.id,
     endpoint: String(connector.endpoint || '').trim(),
     localOpenAiEndpoint: String(connector.endpoint || '').trim(),
-    credentialRefId: connector.id,
     localProviderEndpoint,
     localProviderModel,
   };

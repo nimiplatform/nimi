@@ -12,7 +12,7 @@ import { buildStreamId } from './shared';
 export async function openSpeechStream(input: {
   model: string;
   routeSource: 'local-runtime' | 'token-api';
-  credentialRefId?: string;
+  connectorId?: string;
   providerEndpoint?: string;
   request: SpeechSynthesizeRequest;
   streamRuntime: SpeechStreamRuntime;
@@ -28,7 +28,7 @@ export async function openSpeechStream(input: {
     const runtime = getRuntimeClient();
     const metadata = await buildRuntimeRequestMetadata({
       source: input.routeSource,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerEndpoint: input.providerEndpoint,
     });
 

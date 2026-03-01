@@ -24,7 +24,7 @@ type RuntimeFields = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
+  connectorId: string;
 };
 
 function normalizeRouteOverrideSource(value: unknown): SourceIdV11 | undefined {
@@ -48,8 +48,7 @@ function toResolvedRuntimeRouteBinding(
       localProviderEndpoint: resolved.localProviderEndpoint,
       localProviderModel: resolved.localProviderModel,
       localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-      credentialRefId: resolved.credentialRefId,
-      connectorId: '',
+      connectorId: resolved.connectorId,
     };
   }
 
@@ -63,7 +62,6 @@ function toResolvedRuntimeRouteBinding(
     model: resolved.model,
     endpoint: resolved.endpoint,
     localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-    credentialRefId: resolved.credentialRefId,
   };
 }
 
@@ -379,7 +377,7 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
       adapter: resolved.adapter,
       localProviderEndpoint: resolved.localProviderEndpoint,
       localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-      credentialRefId: resolved.credentialRefId,
+      connectorId: resolved.connectorId,
       model: resolved.model,
       engine: resolved.source === 'local-runtime' ? resolved.engine : undefined,
     };

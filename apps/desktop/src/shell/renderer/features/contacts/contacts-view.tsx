@@ -572,13 +572,25 @@ export function ContactsView(props: ContactsViewProps) {
                             }`}
                           >
                             {contact.avatarUrl ? (
-                              <img src={contact.avatarUrl} alt={contact.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                              <img 
+                                src={contact.avatarUrl} 
+                                alt={contact.displayName} 
+                                className="h-10 w-10 rounded-lg object-cover"
+                                style={contact.isAgent ? {
+                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                } : undefined}
+                              />
                             ) : (
-                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                                contact.isAgent 
-                                  ? 'bg-gradient-to-br from-purple-400 to-purple-500 text-white'
-                                  : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-                              }`}>
+                              <div 
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                                  contact.isAgent 
+                                    ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
+                                    : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                                }`}
+                                style={contact.isAgent ? {
+                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                } : undefined}
+                              >
                                 {getContactInitial(contact.displayName)}
                               </div>
                             )}
@@ -752,13 +764,25 @@ export function ContactsView(props: ContactsViewProps) {
                             }`}
                           >
                             {contact.avatarUrl ? (
-                              <img src={contact.avatarUrl} alt={contact.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                              <img 
+                                src={contact.avatarUrl} 
+                                alt={contact.displayName} 
+                                className="h-10 w-10 rounded-lg object-cover"
+                                style={contact.isAgent ? {
+                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                } : undefined}
+                              />
                             ) : (
-                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                                contact.isAgent 
-                                  ? 'bg-gradient-to-br from-purple-400 to-purple-500 text-white'
-                                  : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-                              }`}>
+                              <div 
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                                  contact.isAgent 
+                                    ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
+                                    : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                                }`}
+                                style={contact.isAgent ? {
+                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                } : undefined}
+                              >
                                 {getContactInitial(contact.displayName)}
                               </div>
                             )}
@@ -803,13 +827,25 @@ export function ContactsView(props: ContactsViewProps) {
                                 }`}
                               >
                                 {contact.avatarUrl ? (
-                                  <img src={contact.avatarUrl} alt={contact.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                                  <img 
+                                    src={contact.avatarUrl} 
+                                    alt={contact.displayName} 
+                                    className="h-10 w-10 rounded-lg object-cover"
+                                    style={contact.isAgent ? {
+                                      boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                    } : undefined}
+                                  />
                                 ) : (
-                                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                                    contact.isAgent 
-                                      ? 'bg-gradient-to-br from-purple-400 to-purple-500 text-white'
-                                      : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-                                  }`}>
+                                  <div 
+                                    className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                                      contact.isAgent 
+                                        ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
+                                        : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                                    }`}
+                                    style={contact.isAgent ? {
+                                      boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                    } : undefined}
+                                  >
                                     {getContactInitial(contact.displayName)}
                                   </div>
                                 )}
@@ -894,6 +930,7 @@ export function ContactsView(props: ContactsViewProps) {
                 setGiftModalOpen(true);
               }
             }}
+            showMessageButton={!selectedContact?.isAgent}
           />
         ) : (
           // 空状态 - 显示 Nimi Logo

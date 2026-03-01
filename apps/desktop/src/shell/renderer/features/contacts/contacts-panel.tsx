@@ -350,8 +350,9 @@ export function ContactsPanel() {
 
       setRuntimeFields({
         targetType: 'AGENT',
-        targetAccountId: '',
+        targetAccountId: contact.id,
         agentId: contact.id,
+        targetId: contact.id,
         worldId,
       });
       // Open mod workspace tab before setting active tab

@@ -56,7 +56,6 @@ export type LocalRuntimeRouteBinding = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
   connectorId: '';
 };
 
@@ -70,7 +69,6 @@ export type TokenApiRouteBinding = {
   model: string;
   endpoint: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
 };
 
 export type ResolvedRuntimeRouteBinding = LocalRuntimeRouteBinding | TokenApiRouteBinding;
@@ -88,7 +86,7 @@ export type RuntimeLlmHealthInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  credentialRefId?: string;
+  connectorId?: string;
   extra?: Record<string, unknown>;
 };
 

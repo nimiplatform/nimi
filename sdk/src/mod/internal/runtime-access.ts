@@ -61,7 +61,7 @@ function toRuntimeHealthInput(route: ResolvedRuntimeRouteBinding): RuntimeLlmHea
       localProviderEndpoint: route.localProviderEndpoint || route.endpoint,
       localProviderModel: route.localProviderModel || route.model,
       localOpenAiEndpoint: route.localOpenAiEndpoint || route.endpoint,
-      credentialRefId: route.credentialRefId,
+      connectorId: route.connectorId,
     };
   }
 
@@ -69,7 +69,7 @@ function toRuntimeHealthInput(route: ResolvedRuntimeRouteBinding): RuntimeLlmHea
     provider: route.provider,
     localProviderModel: route.model,
     localOpenAiEndpoint: route.localOpenAiEndpoint || route.endpoint,
-    credentialRefId: route.credentialRefId,
+    connectorId: route.connectorId,
   };
 }
 

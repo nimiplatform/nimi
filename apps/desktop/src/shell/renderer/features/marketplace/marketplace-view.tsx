@@ -17,11 +17,11 @@ const ICON_FILTER = (
 export function MarketplaceView(model: MarketplacePageModel) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="flex h-14 shrink-0 items-center border-b border-gray-200 bg-white px-6">
+      <div className="flex h-14 shrink-0 items-center bg-white px-6">
         <h1 className="text-lg font-semibold text-gray-900">Mod Marketplace</h1>
       </div>
 
-      <div className="shrink-0 border-b border-gray-200 bg-white px-6 py-4">
+      <div className="shrink-0 bg-white px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="relative min-w-0 flex-1">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">

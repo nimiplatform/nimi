@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
@@ -113,7 +113,7 @@ function AddFriendModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={handleClose}
@@ -141,8 +141,8 @@ function AddFriendModal({
               <img
                 src={author.avatarUrl}
                 alt={author.name}
-                className={`h-20 w-20 object-cover ${
-                  author.isAgent ? 'rounded-lg' : 'rounded-full ring-4 ring-mint-100'
+                className={`h-20 w-20 object-cover rounded-2xl ${
+                  author.isAgent ? '' : 'ring-4 ring-mint-100'
                 }`}
                 style={author.isAgent ? {
                   boxShadow: '0 0 0 2px #a855f7, 0 0 8px 3px rgba(168, 85, 247, 0.5), 0 0 16px 6px rgba(124, 58, 237, 0.3)'
@@ -150,10 +150,10 @@ function AddFriendModal({
               />
             ) : (
               <div 
-                className={`flex h-20 w-20 items-center justify-center text-2xl font-bold ${
+                className={`flex h-20 w-20 items-center justify-center text-2xl font-bold rounded-2xl ${
                   author.isAgent 
-                    ? 'rounded-lg bg-slate-100 text-slate-700' 
-                    : 'rounded-full bg-mint-100 text-mint-700 ring-4 ring-mint-100'
+                    ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
+                    : 'bg-mint-100 text-mint-700 ring-4 ring-mint-100'
                 }`}
                 style={author.isAgent ? {
                   boxShadow: '0 0 0 2px #a855f7, 0 0 8px 3px rgba(168, 85, 247, 0.5), 0 0 16px 6px rgba(124, 58, 237, 0.3)'
@@ -265,7 +265,7 @@ function SendGiftModal({
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={handleClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={handleClose}>
       <div className="relative mx-4 w-full max-w-sm rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
@@ -300,14 +300,16 @@ function SendGiftModal({
           </div>
 
           {/* Gem Amount Input */}
-          <div className="rounded-2xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-6">
+          <div className={`rounded-2xl bg-white p-6 border-2 transition-colors duration-200 border-[#4ECCA3] ${
+            gemAmount > 0 ? 'shadow-[0_0_0_4px_rgba(78,204,163,0.1)]' : ''
+          }`}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4ECCA3]/20">
                 <GemIcon className="h-6 w-6 text-[#4ECCA3]" />
               </div>
-              <span className="text-white font-medium">{t('gemAmount') || 'Gem Amount'}</span>
+              <span className="font-medium text-[#4ECCA3]">{t('gemAmount') || 'Gem Amount'}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div>
               <input
                 type="text"
                 inputMode="numeric"
@@ -315,12 +317,13 @@ function SendGiftModal({
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="0"
-                className="flex-1 bg-transparent text-4xl font-bold text-white outline-none placeholder:text-gray-600"
+                className={`w-full bg-transparent text-4xl font-bold outline-none transition-colors duration-200 ${
+                  gemAmount > 0 ? 'text-[#4ECCA3]' : 'text-gray-800 placeholder:text-gray-300'
+                }`}
                 autoFocus
               />
-              <span className="text-xl font-semibold text-gray-400">GEM</span>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-[#4ECCA3]/70">
               {t('minSendAmount') || 'Min: 1 GEM'}
             </p>
           </div>
@@ -442,7 +445,7 @@ function ReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
@@ -571,6 +574,43 @@ function GiftIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+// Cloudflare iframe video player — loads iframe with controls=false to show first frame
+// without native play button, overlays custom 56px play button, switches to autoplay on click.
+function CloudflareVideoPlayer({ src }: { src: string }) {
+  const [activated, setActivated] = useState(false);
+
+  // Before click: controls=false hides Cloudflare native UI, preload=auto shows first frame
+  // After click: autoplay=true&controls=true for normal playback
+  const iframeSrc = activated
+    ? `${src}?autoplay=true&controls=true`
+    : `${src}?controls=false&preload=auto`;
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      <iframe
+        src={iframeSrc}
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+        allowFullScreen
+        className="w-full aspect-[4/5] border-0"
+        title="Post video"
+      />
+      {!activated && (
+        <button
+          type="button"
+          onClick={() => setActivated(true)}
+          className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors"
+        >
+          <div className="w-14 h-14 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#1A1A1A" className="ml-0.5">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Native video player with custom small play button
 function NativeVideoPlayer({ src, poster }: { src: string; poster?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -622,7 +662,7 @@ function NativeVideoPlayer({ src, poster }: { src: string; poster?: string }) {
   );
 }
 
-export function PostCard({ post }: { post: PostDto }) {
+export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => void }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -634,7 +674,9 @@ export function PostCard({ post }: { post: PostDto }) {
   const hasMedia = post.media && post.media.length > 0;
   
   // Check if this is the current user's post
-  const isOwnPost = currentUserId && post.author?.id === currentUserId;
+  const isOwnPost = Boolean(currentUserId && post.author?.id && post.author.id === currentUserId);
+  
+
   
   // State declarations
   const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
@@ -644,7 +686,9 @@ export function PostCard({ post }: { post: PostDto }) {
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Close menu when clicking outside
@@ -655,8 +699,8 @@ export function PostCard({ post }: { post: PostDto }) {
         setShowPostMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [showPostMenu]);
 
   const handleBlockUser = async () => {
@@ -729,6 +773,28 @@ export function PostCard({ post }: { post: PostDto }) {
     setIsLiked((prev) => !prev);
   };
 
+  const handleDeletePost = async () => {
+    if (!post.id) return;
+    setIsDeleting(true);
+    try {
+      await dataSync.deletePost(post.id);
+      setStatusBanner({
+        kind: 'success',
+        message: 'Post deleted successfully',
+      });
+      // Notify parent to refresh the feed
+      onDelete?.();
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to delete post',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const handleChat = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -769,8 +835,9 @@ export function PostCard({ post }: { post: PostDto }) {
 
       setRuntimeFields({
         targetType: 'AGENT',
-        targetAccountId: '',
+        targetAccountId: userId,
         agentId: userId,
+        targetId: userId,
         worldId,
       });
       // Open mod workspace tab before setting active tab
@@ -830,8 +897,8 @@ export function PostCard({ post }: { post: PostDto }) {
                   <img
                     src={post.author.avatarUrl}
                     alt=""
-                    className={`h-11 w-11 shrink-0 object-cover ${
-                      post.author?.isAgent ? 'rounded-lg' : 'rounded-xl ring-2 ring-gray-50'
+                    className={`h-11 w-11 shrink-0 object-cover rounded-xl ${
+                      post.author?.isAgent ? '' : 'ring-2 ring-gray-50'
                     }`}
                     style={post.author?.isAgent ? {
                       boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4), 0 0 8px 3px rgba(124, 58, 237, 0.2)'
@@ -839,10 +906,10 @@ export function PostCard({ post }: { post: PostDto }) {
                   />
                 ) : (
                   <div 
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center text-sm font-semibold ${
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center text-sm font-semibold rounded-xl ${
                       post.author?.isAgent 
-                        ? 'rounded-lg bg-slate-100 text-slate-700' 
-                        : 'rounded-xl bg-mint-100 text-mint-700 ring-2 ring-gray-50'
+                        ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
+                        : 'bg-mint-100 text-mint-700 ring-2 ring-gray-50'
                     }`}
                     style={post.author?.isAgent ? {
                       boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4), 0 0 8px 3px rgba(124, 58, 237, 0.2)'
@@ -852,8 +919,8 @@ export function PostCard({ post }: { post: PostDto }) {
                   </div>
                 )}
               </button>
-              {/* Add Friend Badge - only show if not friend */}
-              {!isFriend && (
+              {/* Add Friend Badge - only show if not friend and not own post */}
+              {!isFriend && !isOwnPost && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -901,7 +968,7 @@ export function PostCard({ post }: { post: PostDto }) {
             
             {/* Post Menu Dropdown */}
             {showPostMenu && (
-              <div className="absolute right-0 top-8 z-20 w-40 rounded-xl border border-gray-100 bg-white shadow-lg py-1">
+              <div className="absolute right-0 top-8 z-30 w-40 rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden">
                 {isOwnPost ? (
                   <>
                     {/* Own post: Edit and Delete */}
@@ -910,12 +977,14 @@ export function PostCard({ post }: { post: PostDto }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowPostMenu(false);
-                        setStatusBanner({
-                          kind: 'info',
-                          message: 'Edit post feature coming soon',
-                        });
+                        setTimeout(() => {
+                          setStatusBanner({
+                            kind: 'info',
+                            message: 'Edit post feature coming soon',
+                          });
+                        }, 0);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-mint-50 hover:text-mint-700 transition-colors rounded-t-xl"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -928,12 +997,9 @@ export function PostCard({ post }: { post: PostDto }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowPostMenu(false);
-                        setStatusBanner({
-                          kind: 'info',
-                          message: 'Delete post feature coming soon',
-                        });
+                        setTimeout(() => setShowDeleteConfirm(true), 0);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors rounded-b-xl"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6" />
@@ -950,9 +1016,9 @@ export function PostCard({ post }: { post: PostDto }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowPostMenu(false);
-                        setShowBlockConfirm(true);
+                        setTimeout(() => setShowBlockConfirm(true), 0);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-mint-50 hover:text-mint-700 transition-colors rounded-t-xl"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
@@ -965,9 +1031,9 @@ export function PostCard({ post }: { post: PostDto }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowPostMenu(false);
-                        setShowReportModal(true);
+                        setTimeout(() => setShowReportModal(true), 0);
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-mint-50 hover:text-mint-700 transition-colors rounded-b-xl"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -988,15 +1054,7 @@ export function PostCard({ post }: { post: PostDto }) {
 
         {/* Media */}
         {firstMediaType === PostMediaType.VIDEO && videoSource?.mode === 'iframe' ? (
-          <div className="relative overflow-hidden bg-gray-900 rounded-lg">
-            <iframe
-              src={videoSource.src}
-              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-              allowFullScreen
-              className="w-full aspect-[4/5] border-0"
-              title="Post video"
-            />
-          </div>
+          <CloudflareVideoPlayer src={videoSource.src} />
         ) : firstMediaType === PostMediaType.VIDEO && videoSource?.mode === 'native' ? (
           <NativeVideoPlayer src={videoSource.src} poster={firstMedia?.thumbnail} />
         ) : firstMediaType === PostMediaType.IMAGE && firstMediaUrl ? (
@@ -1031,13 +1089,17 @@ export function PostCard({ post }: { post: PostDto }) {
             {/* Chat and Gift buttons - only show for other users' posts */}
             {!isOwnPost && (
               <>
-                <button
-                  type="button"
-                  onClick={(e) => handleChat(e)}
-                  className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
-                >
-                  <ChatIcon size={18} />
-                </button>
+                {/* Chat button - hide for agents */}
+                {!post.author?.isAgent && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleChat(e)}
+                    className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
+                  >
+                    <ChatIcon size={18} />
+                  </button>
+                )}
+                {/* Gift button - show for all */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1097,7 +1159,7 @@ export function PostCard({ post }: { post: PostDto }) {
 
       {/* Block Confirm Modal */}
       {showBlockConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowBlockConfirm(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Block User</h3>
@@ -1132,6 +1194,36 @@ export function PostCard({ post }: { post: PostDto }) {
           onClose={() => setShowReportModal(false)}
           onSubmit={handleReportPost}
         />
+      )}
+
+      {/* Delete Confirm Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Post</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to delete this post? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeletePost}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

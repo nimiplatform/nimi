@@ -92,7 +92,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   return (
     <div className="flex min-h-0 flex-1">
       <aside className="flex w-60 shrink-0 flex-col overflow-y-auto border-r border-gray-200 bg-white">
-        <div className="flex h-14 shrink-0 items-center border-b border-gray-200 px-6">
+        <div className="flex h-14 shrink-0 items-center px-6">
           <h1 className="text-lg font-semibold text-gray-900">AI Runtime</h1>
         </div>
         <RuntimeSectionSidebar
@@ -127,7 +127,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-gray-50">
-        <div className="flex h-14 shrink-0 items-center border-b border-gray-200 bg-white px-6">
+        <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex w-full items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{setupSectionName}</h2>

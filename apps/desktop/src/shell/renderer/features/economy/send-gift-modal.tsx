@@ -111,14 +111,16 @@ export function SendGiftModal(props: SendGiftModalProps) {
           </div>
 
           {/* Gem Amount Input */}
-          <div className="rounded-2xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-6">
+          <div className={`rounded-2xl bg-white p-6 border-2 transition-colors duration-200 border-[#4ECCA3] ${
+            gemAmount > 0 ? 'shadow-[0_0_0_4px_rgba(78,204,163,0.1)]' : ''
+          }`}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4ECCA3]/20">
                 <GemIcon className="h-6 w-6 text-[#4ECCA3]" />
               </div>
-              <span className="text-white font-medium">{t('gemAmount') || 'Gem Amount'}</span>
+              <span className="font-medium text-[#4ECCA3]">{t('gemAmount') || 'Gem Amount'}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div>
               <input
                 type="text"
                 inputMode="numeric"
@@ -126,12 +128,13 @@ export function SendGiftModal(props: SendGiftModalProps) {
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="0"
-                className="flex-1 bg-transparent text-4xl font-bold text-white outline-none placeholder:text-gray-600"
+                className={`w-full bg-transparent text-4xl font-bold outline-none transition-colors duration-200 ${
+                  gemAmount > 0 ? 'text-[#4ECCA3]' : 'text-gray-800 placeholder:text-gray-300'
+                }`}
                 autoFocus
               />
-              <span className="text-xl font-semibold text-gray-400">GEM</span>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-[#4ECCA3]/70">
               {t('minSendAmount') || 'Min: 1 GEM'}
             </p>
           </div>

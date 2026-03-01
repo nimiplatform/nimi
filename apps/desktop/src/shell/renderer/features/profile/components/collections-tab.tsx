@@ -43,17 +43,17 @@ function LikedPostCard({ post }: { post: PostDto }) {
             <img 
               src={post.author.avatarUrl} 
               alt="" 
-              className={`h-5 w-5 object-cover ${isAgent ? 'rounded' : 'rounded-full'}`}
+              className="h-5 w-5 object-cover rounded"
               style={isAgent ? {
                 boxShadow: '0 0 0 1px #a855f7, 0 0 2px 1px rgba(168, 85, 247, 0.4)'
               } : undefined}
             />
           ) : (
             <div 
-              className={`flex h-5 w-5 items-center justify-center text-[10px] font-medium ${
+              className={`flex h-5 w-5 items-center justify-center text-[10px] font-medium rounded ${
                 isAgent 
-                  ? 'rounded bg-slate-100 text-slate-700' 
-                  : 'rounded-full bg-gray-100 text-gray-500'
+                  ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
+                  : 'bg-gray-100 text-gray-500'
               }`}
               style={isAgent ? {
                 boxShadow: '0 0 0 1px #a855f7, 0 0 2px 1px rgba(168, 85, 247, 0.4)'

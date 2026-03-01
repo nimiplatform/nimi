@@ -17,6 +17,7 @@ type ExploreViewProps = {
   topAgents: ExploreAgentCardData[];
   fetchPostPage: (cursor: string | null) => Promise<{ items: PostDto[]; nextCursor: string | null }>;
   postFeedKey: string;
+  onPostDelete?: () => void;
   loading: boolean;
   onSearchTextChange: (value: string) => void;
   onToggleCategory: (category: string) => void;
@@ -30,7 +31,7 @@ export function ExploreView(props: ExploreViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header bar */}
-      <div className="flex h-14 shrink-0 items-center gap-4 border-b border-gray-200 bg-white px-6">
+      <div className="flex h-14 shrink-0 items-center gap-4 bg-white px-6">
         <h1 className="text-lg font-semibold tracking-tight text-gray-900">
           {t('Explore.pageTitle')}
         </h1>
@@ -112,7 +113,9 @@ export function ExploreView(props: ExploreViewProps) {
                 key={props.postFeedKey}
                 fetchPage={props.fetchPostPage}
                 emptyText={t('Explore.noPosts')}
-                renderItem={(post) => <PostCard post={post} />}
+                renderItem={(post) => (
+                  <PostCard post={post} onDelete={props.onPostDelete} />
+                )}
                 className="grid grid-cols-2 gap-4"
               />
             </div>

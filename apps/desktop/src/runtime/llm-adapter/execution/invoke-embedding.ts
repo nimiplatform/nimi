@@ -65,11 +65,12 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       routePolicy: runtimeCall.routePolicy,
       fallback: runtimeCall.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      connectorId: String(input.connectorId || ''),
     }, await buildRuntimeCallOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       source,
-      credentialRefId: input.credentialRefId,
+      connectorId: input.connectorId,
       providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
     }));
     return {

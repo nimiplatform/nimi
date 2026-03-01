@@ -22,7 +22,7 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
     localProviderEndpoint: input.localProviderEndpoint,
     localProviderModel: input.localProviderModel,
     localOpenAiEndpoint: input.localOpenAiEndpoint,
-    credentialRefId: input.credentialRefId,
+    connectorId: input.connectorId,
     fetchImpl: input.fetchImpl,
   });
   const assistantText = String(result.text || '').trim();

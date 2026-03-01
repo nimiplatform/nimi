@@ -182,7 +182,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
       {/* Top bar - 使用 Profile 风格 */}
-      <div className="flex h-14 shrink-0 items-center border-b border-white/50 bg-white/70 px-6 backdrop-blur-xl">
+      <div className="flex h-14 shrink-0 items-center bg-white/70 px-6 backdrop-blur-xl">
         <h1 className="text-lg font-semibold tracking-tight text-gray-800">World</h1>
       </div>
 

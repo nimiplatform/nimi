@@ -8,7 +8,7 @@ export type ListVoicesInput = {
   providerId?: string;
   model?: string;
   routeSource?: 'local-runtime' | 'token-api';
-  credentialRefId?: string;
+  connectorId?: string;
   providerEndpoint?: string;
 };
 
@@ -34,7 +34,7 @@ export async function listSpeechVoices(input?: ListVoicesInput): Promise<SpeechV
       fallback: 'deny',
       metadata: await buildRuntimeRequestMetadata({
         source: input?.routeSource || 'local-runtime',
-        credentialRefId: input?.credentialRefId,
+        connectorId: input?.connectorId,
         providerEndpoint: input?.providerEndpoint,
       }),
     });

@@ -97,8 +97,8 @@ export class HookRuntimeSpeechService {
         adapter,
         providerType: 'OPENAI_COMPATIBLE',
         endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
-        credentialRefId: resolved.credentialRefId,
-        apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId)) || undefined,
+        connectorId: resolved.connectorId,
+        apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.connectorId)) || undefined,
         model,
       };
     }
@@ -114,8 +114,8 @@ export class HookRuntimeSpeechService {
       adapter: normalizeSpeechAdapter(resolved.adapter),
       providerType: inferProviderTypeFromPrefix(prefix),
       endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
-      credentialRefId: resolved.credentialRefId,
-      apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.credentialRefId),
+      connectorId: resolved.connectorId,
+      apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.connectorId),
       model,
     };
   }
@@ -181,7 +181,7 @@ export class HookRuntimeSpeechService {
         providerId: normalizeSpeechProviderId(input.providerId || route.provider || 'openai-compatible'),
         model: route.model,
         routeSource: route.source,
-        credentialRefId: route.credentialRefId,
+        connectorId: route.connectorId,
         providerEndpoint: route.endpoint,
       });
       return voices.map((voice) => this.mapVoice(voice));
