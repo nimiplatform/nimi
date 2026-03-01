@@ -105,7 +105,7 @@ Phase 1 固定 `request_id == trace_id`（同一 ULID），为后续 fan-out 分
 | `mime_type` | string | 内容类型 |
 
 - 请求可指定 `format`（导出格式）、`compress`（是否 deflate 压缩）、时间范围。
-- `eof=true` 后 server 正常关闭流。
+- `eof=true` 后 server 正常关闭流（K-STREAM-008 模式 C，K-STREAM-009）。
 
 ## K-AUDIT-010 UsageStatRecord 字段
 

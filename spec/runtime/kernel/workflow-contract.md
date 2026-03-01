@@ -93,7 +93,7 @@ WorkflowEventType 枚举（12 种）：
 11. `NODE_EXTERNAL_COMPLETED` — 外部节点完成
 12. `NODE_EXTERNAL_FAILED` — 外部节点失败
 
-终态事件后 server 正常关闭流。
+终态事件后 server 正常关闭流（K-STREAM-008 模式 B）。
 
 ## K-WF-005 执行模式
 

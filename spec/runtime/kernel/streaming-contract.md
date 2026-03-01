@@ -4,9 +4,25 @@
 
 ## K-STREAM-001 适用 RPC
 
+本契约覆盖 Runtime 全部 server-streaming RPC。按流关闭模式分类：
+
+**模式 A — done=true 终帧**（K-STREAM-003/004）：
 - `StreamGenerate`
 - `SynthesizeSpeechStream`
+
+**模式 B — 终态事件后 gRPC OK close**（K-STREAM-005）：
 - `SubscribeMediaJobEvents`（状态事件流）
+- `SubscribeWorkflowEvents`（K-WF-004：终态事件后 server 正常关闭流）
+
+**模式 C — eof=true 块后 gRPC OK close**（K-STREAM-009）：
+- `ExportAuditEvents`（K-AUDIT-009：`eof=true` 后 server 关闭流）
+
+**模式 D — 长生命周期订阅流**（K-STREAM-010）：
+- `SubscribeRuntimeHealthEvents`（K-AUDIT-013）
+- `SubscribeAIProviderHealthEvents`（K-AUDIT-013）
+- `SubscribeAppMessages`（K-APP-003）
+
+模式 D 的流没有终帧/eof 信号，客户端或 server 可单方关闭。server 关闭场景：daemon 进入 STOPPING（K-DAEMON-003）时以 gRPC `CANCELLED` 关闭所有活跃订阅流。客户端应以 `runtime.disconnected`（SDKR-028）或 gRPC status 检测到关闭后决策是否重建。
 
 ## K-STREAM-002 阶段边界
 
@@ -44,3 +60,38 @@
 - **总超时**：从请求发出到流正常关闭的总耗时上限（默认 120s）。
 
 首包超时触发时，流以 `DEADLINE_EXCEEDED` + `AI_PROVIDER_TIMEOUT` 终止。总超时独立计时，不因收到首包而重置。
+
+## K-STREAM-008 流关闭模式统一分类
+
+Runtime 全部 server-streaming RPC 归入四种关闭模式（K-STREAM-001 分类表）：
+
+| 模式 | 关闭信号 | 适用 RPC | 详细规则 |
+|---|---|---|---|
+| A — done=true 终帧 | 最后一帧 `done=true` + 可选 `reason_code` | StreamGenerate, SynthesizeSpeechStream | K-STREAM-003, K-STREAM-004 |
+| B — 终态事件后 close | 终态事件（COMPLETED/FAILED/CANCELED 等）发出后 server gRPC OK close | SubscribeMediaJobEvents, SubscribeWorkflowEvents | K-STREAM-005, K-WF-004 |
+| C — eof=true 块后 close | `eof=true` 块发出后 server gRPC OK close | ExportAuditEvents | K-AUDIT-009 |
+| D — 长生命周期订阅 | 无终帧/eof 信号；server 在 daemon STOPPING 时以 `CANCELLED` 关闭 | SubscribeRuntimeHealthEvents, SubscribeAIProviderHealthEvents, SubscribeAppMessages | K-STREAM-010 |
+
+SDK 消费方实现流式 RPC 时必须按所属模式处理流关闭语义。新增 server-streaming RPC 时必须在本表中声明所属模式。
+
+## K-STREAM-009 eof 标记流关闭协议
+
+`ExportAuditEvents` 使用 eof 标记流关闭模式（模式 C）：
+
+- 每个 chunk 携带 `eof` 布尔字段。
+- `eof=true` 标记最后一个数据块。
+- server 在发送 `eof=true` 块后正常关闭流（gRPC OK）。
+- 客户端在收到 `eof=true` 后应停止读取。
+
+详细字段定义见 K-AUDIT-009。
+
+## K-STREAM-010 长生命周期订阅流协议
+
+长生命周期订阅流（模式 D）没有业务层的终止信号，流的生命周期与订阅方/被观察资源的生命周期绑定：
+
+- server 在以下场景关闭流：
+  - daemon 进入 `STOPPING` 状态（K-DAEMON-003）
+  - 被订阅资源不再可用
+- server 关闭流时使用 gRPC `CANCELLED` 状态码。
+- 客户端通过 gRPC status 或 `runtime.disconnected` 事件检测到流关闭。
+- 重建策略由 SDK/Desktop 消费层定义，Runtime 不规定。
