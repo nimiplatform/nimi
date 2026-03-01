@@ -1,26 +1,14 @@
-import { resolveRuntimeCapabilityConfigFromStateV11 } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
+import type {
+  LocalRuntimeEngine,
+  ResolvedRuntimeRouteBinding,
+  RuntimeModality,
+  RuntimeRouteHint,
+  RuntimeRouteOverride,
+} from '@nimiplatform/sdk/mod/types';
 import {
   normalizeCapabilityV11,
   type SourceIdV11,
 } from '@renderer/features/runtime-config/state/v11/types';
-import { createDefaultStateV11 } from '@renderer/features/runtime-config/state/v11/storage/defaults';
-import { applyRuntimeBridgeConfigToState } from '@renderer/features/runtime-config/runtime-bridge-config';
-import { desktopBridge } from '@renderer/bridge';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import {
-  buildRuntimeRouteResolveCacheKey,
-  RUNTIME_ROUTE_RESOLVE_CACHE_TTL_MS,
-  runtimeRouteResolveCache,
-  safeErrorMessage,
-  toRecord,
-} from './runtime-bootstrap-utils';
-import type {
-  ResolvedRuntimeRouteBinding,
-  RuntimeRouteHint,
-  RuntimeRouteOverride,
-} from '@nimiplatform/sdk/mod/types';
-import { RuntimeRouteResolutionError } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
-import { localAiRuntime } from '@runtime/local-ai-runtime';
 
 type RuntimeFields = {
   provider: string;
@@ -31,318 +19,78 @@ type RuntimeFields = {
   connectorId: string;
 };
 
-function normalizeRouteOverrideSource(value: unknown): SourceIdV11 | undefined {
-  return value === 'token-api' ? 'token-api' : value === 'local-runtime' ? 'local-runtime' : undefined;
+function hintToCapability(hint: string): string {
+  const normalized = String(hint || 'chat/default').trim().toLowerCase();
+  if (normalized.startsWith('image/')) return 'image';
+  if (normalized.startsWith('video/')) return 'video';
+  if (normalized.startsWith('tts/')) return 'tts';
+  if (normalized.startsWith('stt/')) return 'stt';
+  if (normalized.startsWith('embedding/')) return 'embedding';
+  return 'chat';
 }
 
-async function loadConnectorsFromSdk(
-  state: ReturnType<typeof createDefaultStateV11>,
-): Promise<ReturnType<typeof createDefaultStateV11>> {
-  try {
-    const { sdkListConnectors } = await import(
-      '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
-    );
-    const connectors = await sdkListConnectors();
-    if (connectors.length > 0) {
-      const { replaceConnectorsInState } = await import(
-        '@renderer/features/runtime-config/panels/provider-connectors/connector-actions'
-      );
-      return replaceConnectorsInState(state, connectors);
-    }
-  } catch { /* SDK unavailable — keep empty connectors */ }
-  return state;
+function inferSource(provider: string): SourceIdV11 {
+  const lower = String(provider || '').trim().toLowerCase();
+  if (lower.startsWith('local-runtime') || lower === 'localai' || lower === 'nexa') {
+    return 'local-runtime';
+  }
+  return 'token-api';
 }
 
-async function loadBridgeMergedState(runtimeFields: RuntimeFields) {
-  const seed = {
-    provider: runtimeFields.provider,
-    runtimeModelType: runtimeFields.runtimeModelType,
-    localProviderEndpoint: runtimeFields.localProviderEndpoint,
-    localProviderModel: runtimeFields.localProviderModel,
-    localOpenAiEndpoint: runtimeFields.localOpenAiEndpoint,
-    connectorId: runtimeFields.connectorId,
-  };
-  const defaultState = createDefaultStateV11(seed);
-  if (!desktopBridge.hasTauriInvoke()) {
-    return { state: defaultState, seed };
-  }
-  try {
-    const result = await desktopBridge.getRuntimeBridgeConfig();
-    const config = toRecord(toRecord(result).config);
-    const bridgeState = applyRuntimeBridgeConfigToState(defaultState, config);
-    const stateWithConnectors = await loadConnectorsFromSdk(bridgeState);
-    return { state: stateWithConnectors, seed };
-  } catch {
-    return { state: defaultState, seed };
-  }
-}
-
-function toResolvedRuntimeRouteBinding(
-  resolved: ReturnType<typeof resolveRuntimeCapabilityConfigFromStateV11>,
-): ResolvedRuntimeRouteBinding {
-  if (resolved.source === 'local-runtime') {
-    return {
-      source: 'local-runtime',
-      runtimeModelType: resolved.runtimeModelType,
-      provider: resolved.provider,
-      localModelId: resolved.localModelId,
-      engine: resolved.engine,
-      adapter: resolved.adapter,
-      providerHints: resolved.providerHints,
-      model: resolved.model,
-      endpoint: resolved.endpoint,
-      localProviderEndpoint: resolved.localProviderEndpoint,
-      localProviderModel: resolved.localProviderModel,
-      localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-      connectorId: resolved.connectorId,
-    };
-  }
-
-  return {
-    source: 'token-api',
-    runtimeModelType: resolved.runtimeModelType,
-    provider: resolved.provider,
-    adapter: resolved.adapter,
-    providerHints: resolved.providerHints,
-    connectorId: resolved.connectorId,
-    model: resolved.model,
-    endpoint: resolved.endpoint,
-    localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-  };
-}
-
-function resolveRouteReasonCode(error: unknown): string {
-  if (error instanceof RuntimeRouteResolutionError) {
-    return error.code;
-  }
-  if (error && typeof error === 'object' && 'code' in error) {
-    const code = String((error as { code?: unknown }).code || '').trim();
-    if (code) return code;
-  }
-  return 'RUNTIME_ROUTE_RESOLVE_FAILED';
-}
-
-function resolveRoutePolicyGate(error: unknown): unknown {
-  if (error instanceof RuntimeRouteResolutionError) {
-    return (error.metadata && typeof error.metadata === 'object')
-      ? (error.metadata as Record<string, unknown>).policyGate
-      : undefined;
-  }
-  if (error && typeof error === 'object' && 'metadata' in error) {
-    const metadata = (error as { metadata?: unknown }).metadata;
-    if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
-      return (metadata as Record<string, unknown>).policyGate;
-    }
-  }
-  return undefined;
-}
-
-function mapRouteReasonToLocalAiReasonCode(reasonCode: string): string {
-  switch (reasonCode) {
-    case 'RUNTIME_ROUTE_MODEL_MISSING':
-    case 'RUNTIME_ROUTE_CAPABILITY_MISSING':
-    case 'RUNTIME_ROUTE_CAPABILITY_MISMATCH':
-      return 'LOCAL_AI_CAPABILITY_MISSING';
-    case 'RUNTIME_ROUTE_CONNECTOR_TOKEN_MISSING':
-      return 'LOCAL_AI_AUTH_FAILED';
-    case 'RUNTIME_ROUTE_CONNECTOR_MISSING':
-    case 'RUNTIME_ROUTE_RESOLVE_FAILED':
-      return 'LOCAL_AI_SERVICE_UNREACHABLE';
-    default:
-      return 'LOCAL_AI_PROVIDER_INTERNAL_ERROR';
-  }
-}
-
+/**
+ * Thin passthrough: reads `{ model, connectorId, source }` from runtime fields
+ * and returns a binding without any local routing logic. The Go runtime handles
+ * all model resolution, capability detection, and provider routing.
+ */
 export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields) {
   return async ({ routeHint, modId, routeOverride }: {
     routeHint: RuntimeRouteHint;
     modId?: string;
     routeOverride?: RuntimeRouteOverride;
   }): Promise<ResolvedRuntimeRouteBinding> => {
-    const normalizedRouteHint = String(routeHint || 'chat/default').trim().toLowerCase();
-    const capability = normalizeCapabilityV11(
-      normalizedRouteHint.startsWith('image/')
-        ? 'image'
-        : normalizedRouteHint.startsWith('video/')
-          ? 'video'
-          : normalizedRouteHint.startsWith('tts/')
-            ? 'tts'
-            : normalizedRouteHint.startsWith('stt/')
-              ? 'stt'
-              : normalizedRouteHint.startsWith('embedding/')
-                ? 'embedding'
-                : 'chat',
-    );
+    const capability = normalizeCapabilityV11(hintToCapability(String(routeHint || '')));
+    const fields = getRuntimeFields();
+    const source = routeOverride?.source === 'token-api' || routeOverride?.source === 'local-runtime'
+      ? routeOverride.source
+      : inferSource(fields.provider);
+    const model = routeOverride?.model || fields.localProviderModel || '';
+    const connectorId = routeOverride?.connectorId || fields.connectorId || '';
 
-    const routeFlowId = createRendererFlowId('runtime-route-resolve');
-    const runtimeFieldsForCache = getRuntimeFields();
-    const routeOverrideRecord = routeOverride
-      ? {
-        source: routeOverride.source || null,
-        connectorId: routeOverride.connectorId || null,
-        model: routeOverride.model || null,
-        localModelId: routeOverride.localModelId || null,
-        engine: routeOverride.engine || null,
-      }
-      : null;
-    const normalizedOverrideSource = normalizeRouteOverrideSource(routeOverride?.source);
-    const normalizedRouteOverride = routeOverride
-      ? {
-        source: normalizedOverrideSource,
-        connectorId: routeOverride.connectorId || undefined,
-        model: routeOverride.model || undefined,
-        localModelId: routeOverride.localModelId || undefined,
-        engine: routeOverride.engine || undefined,
-      }
-      : undefined;
-    const cacheKey = buildRuntimeRouteResolveCacheKey({
-      capability,
-      modId: modId || '',
-      routeOverride: routeOverrideRecord,
-      runtimeFields: runtimeFieldsForCache,
-    });
-
-    const now = Date.now();
-    const cached = runtimeRouteResolveCache.get(cacheKey);
-    if (cached && cached.expiresAt > now) {
-      return cached.value;
-    }
-    if (cached && cached.expiresAt <= now) {
-      runtimeRouteResolveCache.delete(cacheKey);
+    if (source === 'local-runtime') {
+      return {
+        source: 'local-runtime',
+        runtimeModelType: fields.runtimeModelType as RuntimeModality,
+        provider: fields.provider,
+        adapter: 'openai_compat_adapter',
+        localModelId: model,
+        engine: (fields.provider || 'localai') as LocalRuntimeEngine,
+        model,
+        endpoint: fields.localProviderEndpoint || fields.localOpenAiEndpoint,
+        localProviderEndpoint: fields.localProviderEndpoint,
+        localProviderModel: model,
+        localOpenAiEndpoint: fields.localOpenAiEndpoint,
+        connectorId: '' as const,
+      };
     }
 
-    logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'runtime-route:resolve:start',
-      flowId: routeFlowId,
-      details: {
-        capability,
-        modId: modId || null,
-        overrideSource: routeOverride?.source || null,
-        overrideConnectorId: routeOverride?.connectorId || null,
-        overrideModel: routeOverride?.model || null,
-      },
-    });
-
-    try {
-      const { state: bridgeState, seed } = await loadBridgeMergedState(runtimeFieldsForCache);
-      const resolved = resolveRuntimeCapabilityConfigFromStateV11(
-        bridgeState,
-        seed,
-        capability,
-        { modId, routeOverride: normalizedRouteOverride },
-      );
-      const binding = toResolvedRuntimeRouteBinding(resolved);
-      logRendererEvent({
-        level: 'info',
-        area: 'renderer-bootstrap',
-        message: 'runtime-route:resolve:done',
-        flowId: routeFlowId,
-        details: {
-          capability,
-          modId: modId || null,
-          source: resolved.source,
-          connectorId: resolved.connectorId || null,
-          model: resolved.model,
-        },
-      });
-      runtimeRouteResolveCache.set(cacheKey, {
-        expiresAt: now + RUNTIME_ROUTE_RESOLVE_CACHE_TTL_MS,
-        value: binding,
-      });
-      return binding;
-    } catch (error) {
-      const reasonCode = resolveRouteReasonCode(error);
-      const localAiReasonCode = mapRouteReasonToLocalAiReasonCode(reasonCode);
-      const policyGate = resolveRoutePolicyGate(error);
-      void localAiRuntime.appendInferenceAudit({
-        eventType: 'inference_failed',
-        modId: modId || 'core.runtime-route',
-        source: normalizedOverrideSource === 'token-api' ? 'token-api' : 'local-runtime',
-        provider: 'runtime-route',
-        modality: capability,
-        adapter: '',
-        model: normalizedRouteOverride?.model || '',
-        endpoint: undefined,
-        reasonCode: localAiReasonCode,
-        detail: safeErrorMessage(error),
-        policyGate: (typeof policyGate === 'string' || (policyGate && typeof policyGate === 'object'))
-          ? policyGate as string | Record<string, unknown>
-          : undefined,
-      }).catch(() => {});
-      logRendererEvent({
-        level: 'error',
-        area: 'renderer-bootstrap',
-        message: 'runtime-route:resolve:failed',
-        flowId: routeFlowId,
-        details: {
-          capability,
-          modId: modId || null,
-          reasonCode,
-          error: safeErrorMessage(error),
-        },
-      });
-      throw error;
-    }
+    return {
+      source: 'token-api',
+      runtimeModelType: fields.runtimeModelType as RuntimeModality,
+      provider: fields.provider,
+      adapter: 'openai_compat_adapter',
+      model,
+      endpoint: fields.localOpenAiEndpoint,
+      localOpenAiEndpoint: fields.localOpenAiEndpoint,
+      connectorId,
+    };
   };
 }
 
+/**
+ * Thin passthrough for speech route resolution. No local route decision logic —
+ * the Go runtime resolves model capabilities and provider routing via connectorId.
+ */
 export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields) {
-  type ParsedSpeechProviderId = {
-    valid: boolean;
-    inferredSource?: 'local-runtime' | 'token-api';
-    requiredSource?: 'local-runtime' | 'token-api';
-    engine?: string;
-  };
-
-  const parseSpeechProviderId = (value: string | undefined): ParsedSpeechProviderId => {
-    const raw = String(value || '').trim().toLowerCase();
-    if (!raw || raw === 'auto') return { valid: true };
-
-    if (
-      raw === 'local-runtime'
-      || raw.startsWith('local-runtime:')
-      || raw === 'token-api'
-      || raw.startsWith('token-api:')
-    ) {
-      return { valid: false };
-    }
-
-    if (raw === 'localai' || raw === 'localai-native') {
-      return {
-        valid: true,
-        inferredSource: 'local-runtime',
-        requiredSource: 'local-runtime',
-        engine: 'localai',
-      };
-    }
-    if (raw === 'nexa') {
-      return {
-        valid: true,
-        inferredSource: 'local-runtime',
-        requiredSource: 'local-runtime',
-        engine: 'nexa',
-      };
-    }
-    if (raw === 'openrouter' || raw.startsWith('openrouter:')) {
-      return {
-        valid: true,
-        inferredSource: 'token-api',
-        requiredSource: 'token-api',
-      };
-    }
-    if (
-      raw === 'openai-compatible'
-      || raw === 'dashscope-compatible'
-      || raw === 'volcengine-compatible'
-    ) {
-      return { valid: true };
-    }
-
-    return { valid: false };
-  };
-
   return async ({
     modId,
     providerId,
@@ -356,80 +104,22 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
     connectorId?: string;
     model?: string;
   }) => {
-    const parsedProviderId = parseSpeechProviderId(providerId);
-    if (!parsedProviderId.valid) {
-      throw new Error(`HOOK_LLM_SPEECH_PROVIDER_UNAVAILABLE: unsupported providerId ${providerId}`);
-    }
-    const normalizedRouteSource = routeSource === 'local-runtime' || routeSource === 'token-api'
+    const fields = getRuntimeFields();
+    const source = routeSource === 'local-runtime' || routeSource === 'token-api'
       ? routeSource
-      : undefined;
-    if (
-      normalizedRouteSource
-      && parsedProviderId.requiredSource
-      && parsedProviderId.requiredSource !== normalizedRouteSource
-    ) {
-      throw new Error(`HOOK_LLM_SPEECH_PROVIDER_UNAVAILABLE: providerId source mismatch ${providerId}`);
-    }
-    const hasExplicitRouteSource = normalizedRouteSource !== undefined;
-    let inferredSource: 'local-runtime' | 'token-api' | undefined = normalizedRouteSource;
-    if (!inferredSource) {
-      inferredSource = parsedProviderId.inferredSource;
-    }
-
-    const normalizedConnectorId = String(connectorId || '').trim();
-    const normalizedExplicitModel = String(explicitModel || '').trim();
-    const routeOverride = inferredSource
-      ? (
-        hasExplicitRouteSource
-          ? (
-            inferredSource === 'token-api'
-              ? {
-                  source: inferredSource,
-                  connectorId: normalizedConnectorId,
-                  model: normalizedExplicitModel || '',
-                  localModelId: '',
-                  engine: '',
-                }
-              : {
-                  source: inferredSource,
-                  connectorId: normalizedConnectorId,
-                  model: normalizedExplicitModel || '',
-                  localModelId: '',
-                  engine: parsedProviderId.engine || '',
-                }
-          )
-          : {
-              source: inferredSource,
-              ...(normalizedConnectorId ? { connectorId: normalizedConnectorId } : {}),
-              ...(normalizedExplicitModel ? { model: normalizedExplicitModel } : {}),
-              ...(inferredSource === 'local-runtime' && parsedProviderId.engine
-                ? { engine: parsedProviderId.engine }
-                : {}),
-            }
-      )
-      : normalizedConnectorId
-        ? { connectorId: normalizedConnectorId, ...(normalizedExplicitModel ? { model: normalizedExplicitModel } : {}) }
-        : normalizedExplicitModel
-          ? { model: normalizedExplicitModel }
-          : undefined;
-
-    const { state: bridgeState, seed } = await loadBridgeMergedState(getRuntimeFields());
-    const resolved = resolveRuntimeCapabilityConfigFromStateV11(
-      bridgeState,
-      seed,
-      'tts',
-      { modId, routeOverride },
-    );
+      : inferSource(providerId || fields.provider);
+    const model = String(explicitModel || fields.localProviderModel || '').trim();
+    const resolvedConnectorId = String(connectorId || fields.connectorId || '').trim();
 
     return {
-      source: resolved.source,
-      provider: resolved.provider,
-      adapter: resolved.adapter,
-      localProviderEndpoint: resolved.localProviderEndpoint,
-      localOpenAiEndpoint: resolved.localOpenAiEndpoint,
-      connectorId: resolved.connectorId,
-      model: resolved.model,
-      engine: resolved.source === 'local-runtime' ? resolved.engine : undefined,
+      source,
+      provider: fields.provider,
+      adapter: 'openai_compat_adapter',
+      localProviderEndpoint: fields.localProviderEndpoint,
+      localOpenAiEndpoint: fields.localOpenAiEndpoint,
+      connectorId: resolvedConnectorId,
+      model,
+      engine: source === 'local-runtime' ? (providerId || 'localai') : undefined,
     };
   };
 }
