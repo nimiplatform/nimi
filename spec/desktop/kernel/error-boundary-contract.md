@@ -66,7 +66,7 @@ Runtime 错误通过三层投影到 Desktop UI：
 | Runtime ReasonCode | SDK 投影 | Desktop UI 消息 |
 |---|---|---|
 | `AI_PROVIDER_TIMEOUT` | `S-ERROR-007` retryable | "AI 服务超时，请稍后重试" |
-| `AI_PROVIDER_UNAVAILABLE` | `S-ERROR-007` retryable | "AI 服务暂时不可用"（注：也覆盖 `ListConnectorModels` 失败，K-ERR-005） |
+| `AI_PROVIDER_UNAVAILABLE` | `S-ERROR-007` retryable | 上下文感知映射（见下文 D-ERR-007a） |
 | `AI_PROVIDER_RATE_LIMITED` | `S-ERROR-007` retryable | "AI 服务繁忙，请稍后重试" |
 | `AI_PROVIDER_INTERNAL` | `S-ERROR-001` 上游错误 | "AI 服务内部错误，请稍后重试" |
 | `AI_PROVIDER_ENDPOINT_FORBIDDEN` | `S-ERROR-001` 上游错误 | "AI 服务端点被安全策略拒绝" |
@@ -101,6 +101,22 @@ Runtime 错误通过三层投影到 Desktop UI：
 | `APP_MODE_MANIFEST_INVALID` | `S-ERROR-001` 上游错误（**不可重试**） | "应用模式配置无效" |
 | `RUNTIME_UNAVAILABLE` | SDK 合成码 | "本地运行时不可用，请检查 daemon 状态" |
 | `RUNTIME_BRIDGE_DAEMON_UNAVAILABLE` | SDK 合成码 | "无法连接到运行时服务" |
+
+**D-ERR-007a `AI_PROVIDER_UNAVAILABLE` 上下文感知映射**：
+
+Runtime K-PROV-003a 指出 provider 健康探测将 `401`/`403` 视为 healthy（server 可达）。因此 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，根因是凭据问题而非网络问题。Desktop 应结合 provider 健康状态（D-IPC-002 可获取）差异化引导用户：
+
+| Provider 健康状态 | UI 消息 | 引导方向 |
+|---|---|---|
+| `healthy` | "AI 服务凭证可能已失效，请检查 API key 配置" | 凭据配置诊断 |
+| `unhealthy` 或 `unknown` | "AI 服务暂时不可用" | 网络连通性诊断 |
+| Phase 1 简化（provider 健康细粒度不可用时） | "AI 服务暂时不可用"（通用兜底） | — |
+
+Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 1 使用通用兜底消息。Phase 2 实现 provider 级健康指示器后，必须启用上下文感知映射。
+
+注：`ListConnectorModels` 失败也复用此 ReasonCode（K-ERR-005），此场景无 provider 健康上下文，走通用兜底。
+
+**跨层引用**：K-PROV-003a（健康探测设计取舍）、D-IPC-002（provider 健康 UI 映射）。
 
 **非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 SDK S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
 
