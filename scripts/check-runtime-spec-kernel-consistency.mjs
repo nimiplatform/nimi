@@ -787,10 +787,12 @@ function parseProtoServiceMethodMap() {
     const content = fs.readFileSync(file, 'utf8');
     const lines = content.split('\n');
     let currentService = '';
+    let braceDepth = 0;
     for (const line of lines) {
       const serviceMatch = line.match(/^\s*service\s+([A-Za-z0-9_]+)\s*\{/u);
       if (serviceMatch) {
         currentService = serviceMatch[1];
+        braceDepth = 1;
         if (!out.has(currentService)) out.set(currentService, new Set());
         continue;
       }
@@ -798,10 +800,14 @@ function parseProtoServiceMethodMap() {
         const rpcMatch = line.match(/^\s*rpc\s+([A-Za-z0-9_]+)\s*\(/u);
         if (rpcMatch) {
           out.get(currentService)?.add(rpcMatch[1]);
-          continue;
         }
-        if (/^\s*\}\s*$/u.test(line)) {
+        for (const ch of line) {
+          if (ch === '{') braceDepth++;
+          else if (ch === '}') braceDepth--;
+        }
+        if (braceDepth <= 0) {
           currentService = '';
+          braceDepth = 0;
         }
       }
     }

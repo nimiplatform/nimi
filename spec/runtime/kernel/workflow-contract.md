@@ -159,3 +159,15 @@ WorkflowEventType 枚举（12 种）：
 |---|---|
 | `AUTO` | 外部完成后自动继续后续节点 |
 | `MANUAL` | 外部完成后等待手动触发继续 |
+
+## K-WF-012 消费契约要求
+
+Workflow 服务的跨域消费契约状态：
+
+| 消费层 | 当前状态 | Phase 2 启动前必须 |
+|---|---|---|
+| **SDK 方法投影** | Phase 2 deferred（SDKR-023） | 创建 SDK 方法投影（SubmitWorkflow、GetWorkflow、CancelWorkflow、SubscribeWorkflowEvents），定义 gRPC→SDK 参数映射和错误投影 |
+| **Desktop UI Spec** | 完全缺失 | 创建 Workflow UI spec，至少定义：(1) 工作流执行状态面板（K-WF-003 状态机映射到 UI 状态）；(2) 节点级进度显示（K-WF-004 NODE_PROGRESS 事件消费）；(3) 取消操作 UI（K-WF-007 异步取消的用户反馈） |
+| **Desktop DataSync** | 无 Workflow 数据流 | 创建 D-DSYNC Workflow 数据流，定义轮询/事件订阅策略 |
+
+> **设计完整性注意**：K-WF-001~011 共 11 条规则已定义完整的执行模型，但无任何消费方。Runtime 实现完成后，功能不可交付直到 SDK 和 Desktop 消费契约就绪。

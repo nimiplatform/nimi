@@ -80,6 +80,11 @@
 - `RuntimeModelService.PullModel` 用于拉取远程模型资源（如下载权重文件），与 `InstallLocalModel`（配置本地引擎绑定）互补。
 - `RuntimeModelService.ListModels` 是模型的统一视图；`ListLocalModels` 是本地模型的详细视图（含引擎配置、端点等）。
 
+**统一路径**：Phase 2 启用 K-MODEL-* 时，Desktop 层需要从当前"仅 K-LOCAL/K-LENG 路径"迁移到"K-MODEL 统一视图 + K-LOCAL 详细视图"双层模型：
+- Desktop 模型列表页面必须切换到 `ListModels`（统一视图），原 `ListLocalModels` 降级为"本地模型详情"子视图。
+- Desktop 模型健康检查必须同时支持 `CheckModelHealth`（K-MODEL-006）和 `checkLocalLlmHealth`（K-LENG-007），前者用于 remote 模型，后者用于 local 模型。
+- SDK 必须先完成 RuntimeModelService 方法投影后 Desktop 方可迁移。
+
 ## K-MODEL-008 ModelStatus 状态机
 
 `ModelStatus` 状态转换定义于 `tables/state-transitions.yaml` 的 `model_status` 机。合法转换：

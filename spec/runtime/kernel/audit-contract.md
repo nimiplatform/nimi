@@ -163,6 +163,10 @@ Phase 1 固定 `request_id == trace_id`（同一 ULID），为后续 fan-out 分
 6. `SubscribeAIProviderHealthEvents` — 订阅 AI Provider 健康变更事件流
 7. `SubscribeRuntimeHealthEvents` — 订阅运行时健康变更事件流
 
+**消费契约状态**：
+- 方法 1-3（审计查询/导出/使用量统计）：SDK 和 Desktop **均无消费契约**。用户当前无法通过 SDK 或 Desktop UI 查看审计记录和使用量统计。Phase 2 启动时需优先创建 SDK 方法投影和 Desktop 审计查看 UI。
+- 方法 4-7（健康查询/订阅）：Desktop 通过 D-LLM-004/D-IPC-002 间接消费（healthz 端点 + daemon status），但未使用 gRPC 方法。SDK 方法投影 deferred。
+
 ## K-AUDIT-014 AIProviderHealthSnapshot 字段
 
 | 字段 | 类型 | 说明 |

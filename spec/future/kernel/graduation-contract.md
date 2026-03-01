@@ -12,6 +12,7 @@
 2. 已确定目标 spec 路径（`target_spec_path`）。
 3. 已有明确的 kernel Rule ID 分配方案。
 4. 已完成架构影响评估（`architecture_notes` 非空且具体）。
+5. 目标 spec 域的 CI 一致性检查必须通过（对应 `check:<domain>-spec-kernel-consistency`）。此条件确保毕业后的 spec 不会破坏已有的一致性守护。
 
 ## F-GRAD-002 毕业流程
 

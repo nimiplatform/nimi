@@ -85,6 +85,8 @@ gRPC 请求经过 4 层有序拦截器，unary 与 stream 分别注册：
 - **存储介质**：进程内内存 map。不跨重启持久化（重启后相同 key 可重新执行）。
 - **容量上限**：默认 10,000 条，超限时按 LRU 淘汰最久未访问的条目。
 
+> **参数选取依据**：24h TTL 覆盖跨时区用户的同一操作重试窗口（最远场景：用户跨日期线后重试前一天的操作）。10,000 条容量覆盖单日高频用户的全部 unary RPC 调用量（估算：每次 AI 请求 ~3 个 unary RPC，单用户日均 AI 请求 < 1,000 次，10k 留 3x 余量）。每条记录约 200 bytes（request hash + response snapshot），总计 ~2 MB，在桌面端可忽略。
+
 ## K-DAEMON-007 调度器并发模型
 
 AI 执行路径使用双层信号量控制并发：
@@ -94,6 +96,8 @@ AI 执行路径使用双层信号量控制并发：
 - **获取顺序**：先获取全局信号量，再获取 per-app 信号量。释放顺序相反。
 - **饥饿检测**：等待时间超过阈值（默认 30s）时，`AcquireResult.Starved=true`。
 - **空 AppID 处理**：归入 `_default` 键。
+
+> **参数选取依据**：全局并发上限 8 ≈ 典型桌面端 CPU 核数（4-8 核），避免 AI 推理独占全部计算资源。Per-app 上限 2 保证至少 4 个 app 可同时发起推理（8 / 2 = 4），防止单个 app 独占全部 slot。饥饿检测 30s 对应 StreamGenerate 的首包超时 10s + 总超时 120s 之间的中间值，确保在流式请求超时前有机会检测到调度饥饿。
 
 ## K-DAEMON-008 AI 超时层次
 
@@ -161,6 +165,22 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 未知字段在解析时忽略（向前兼容）。
 
 > **设计决策**：Cloud provider 凭据（`K-PROV-002` 列出的 `NIMI_RUNTIME_*_API_KEY` / `NIMI_RUNTIME_*_BASE_URL` 环境变量）有意不纳入配置文件 schema。原因：凭据仅通过环境变量注入，避免明文持久化到磁盘（与 `K-LENG-009` 凭据安全策略一致）。实现者不应将此视为 schema 遗漏。
+
+## K-DAEMON-011 版本 Metadata 交换协议
+
+Runtime daemon 必须通过 gRPC server metadata 暴露版本信息，供 SDK 进行版本兼容判定（`S-TRANSPORT-005`）。
+
+**协议**：
+
+- gRPC server 在每个 RPC 的 response header metadata 中携带 `x-nimi-runtime-version`，值为 semver 格式（如 `0.1.0`）。
+- 版本值在 daemon 启动时确定，整个进程生命周期内不变。
+- SDK 从首次成功 RPC 的 response metadata 中提取版本，缓存后用于后续兼容判定。
+- 若 metadata 缺失（旧版 Runtime 或非 gRPC 传输），SDK 按 `S-TRANSPORT-005` 的 best-effort 策略处理。
+
+**与 Desktop 的关系**：
+
+- Desktop 通过 `runtime_bridge_status` 返回的 `daemonVersion` 字段获取版本（`D-IPC-002`/`D-IPC-009`），不依赖本规则。
+- 本规则面向 `node-grpc` 传输的独立 SDK 消费者。两条路径语义等价，传输手段不同。
 
 ## K-DAEMON-010 HTTP 健康端点
 

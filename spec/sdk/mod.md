@@ -25,7 +25,12 @@
 - `SDKMOD-010`: host 缺失时必须 fail-close（`SDK_MOD_HOST_MISSING`），错误码来源遵循 `S-ERROR-003`（SDK 本地错误码事实源）。
 - `SDKMOD-011`: action/event/data/turn/ui/interMod/llm/audit/meta 客户端语义必须保持稳定键名，不允许静默重命名。
 
-## 3. 非目标
+## 3. Inter-Mod 通信边界（领域增量）
+
+- `SDKMOD-020`: Mod 间通信存在两条路径：D-HOOK interMod（renderer 进程内）和 K-APP SendAppMessage（Runtime gRPC 跨进程）。路由规则见 `K-APP-006`。
+- `SDKMOD-021`: Mod SDK 的 `interMod` client（`SDKMOD-011`）仅封装 D-HOOK 路径。若 mod 需要走 K-APP 路径，必须通过 Runtime SDK 的 AppMessaging 方法（Phase 2），不允许绕过 Mod SDK 直接调用。
+
+## 4. 非目标
 
 - 不定义 desktop 内部执行内核实现
 - 不定义 runtime 业务规则

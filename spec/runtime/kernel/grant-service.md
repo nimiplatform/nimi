@@ -52,7 +52,7 @@
 
 **Phase 1 约束**：
 
-- Phase 1 仅支持单版本（`sdk-v1`），不存在版本协商。
+- Phase 1 仅支持单版本（`sdk-v1`），不存在版本协商。版本化基础设施（`issued_scope_catalog_version` 字段）为 Phase 2 多版本协商预留，Phase 1 实现仅需硬编码 `sdk-v1`。
 - 已签发 token 的 scope 按签发时版本评估（old token + new catalog = old version evaluation）。
 - 多版本协商协议列为 deferred decision。
 

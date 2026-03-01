@@ -20,7 +20,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 - **初始数据加载** — `loadInitialData()` 按序加载 `loadCurrentUser()` → `loadChats()` → `loadContacts()`。
 - **Facade 委托** — 所有业务操作委托给 `createDataSyncActions` 工厂创建的 actions 对象，注入 `callApiTask`、`emitFacadeError`、`setToken`、`clearAuth`、`stopAllPolling`、`isFriend`。
 - **分页基础设施** — 所有 `loadMore*` 方法遵循统一分页契约：
-  - 默认 `pageSize: 20`（可由调用方覆盖）。
+  - 默认 `pageSize: 20`（可由调用方覆盖），上限 `100`（超过 100 截断为 100）。
   - Cursor 传递：首次请求不传 cursor；后续请求传递上一次响应返回的 `nextCursor`。
   - 末页检测：响应中 `hasMore=false` 或返回结果数量 < `pageSize` 时标记为末页，UI 停止触发加载。
   - 适用方法：`loadMoreChats`、`loadMoreMessages`、`loadMoreExploreFeed` 及其他分页场景。
