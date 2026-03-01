@@ -41,6 +41,19 @@ Daemon 启动固定为以下阶段：
 
 停机期间只读方法允许通过 lifecycle 拦截器（`K-DAEMON-005`）。
 
+**跨状态机联动（K-DAEMON-003a）**：daemon 进入 `STOPPING` 时对 in-flight 任务的影响：
+
+| 子系统状态机 | STOPPING 行为 | 引用 |
+|---|---|---|
+| 活跃 MediaJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已提交的 in-flight job 继续执行直到 gRPC GracefulStop 超时后强制终止 | K-DAEMON-003 step 5 |
+| 活跃 Workflow（K-WF-003） | 同 MediaJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 5 |
+| 活跃 StreamGenerate/SynthesizeSpeechStream | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 5 |
+| 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
+| Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 3 |
+| Session 内存 map（K-AUTHSVC-012） | 进程退出后丢失，所有 session 失效 | K-AUTHSVC-012 |
+
+**设计决策**：Phase 1 不实现 in-flight 任务的优雅排空（drain）——GracefulStop 超时到期后直接 ForceStop。此决策基于：桌面端 daemon 重启预期为低频事件，AI 推理任务可由客户端重试恢复。若未来引入服务端持久化队列，可在此基础上添加排空协议。
+
 ## K-DAEMON-004 Worker 监管
 
 Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervisor 角色管理子进程：
