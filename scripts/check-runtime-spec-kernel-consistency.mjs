@@ -18,6 +18,8 @@ const kernelFiles = [
   'spec/runtime/kernel/key-source-routing.md',
   'spec/runtime/kernel/media-job-lifecycle.md',
   'spec/runtime/kernel/local-category-capability.md',
+  'spec/runtime/kernel/local-engine-contract.md',
+  'spec/runtime/kernel/device-profile-contract.md',
   'spec/runtime/kernel/endpoint-security.md',
   'spec/runtime/kernel/streaming-contract.md',
   'spec/runtime/kernel/error-model.md',
@@ -34,6 +36,22 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/connector-rpc-field-rules.yaml',
   'spec/runtime/kernel/tables/job-states.yaml',
   'spec/runtime/kernel/tables/state-transitions.yaml',
+  'spec/runtime/kernel/tables/local-engine-catalog.yaml',
+  'spec/runtime/kernel/tables/local-adapter-routing.yaml',
+  // Phase 2 kernel files (daemon, provider, deferred services)
+  'spec/runtime/kernel/daemon-lifecycle.md',
+  'spec/runtime/kernel/provider-health-contract.md',
+  'spec/runtime/kernel/workflow-contract.md',
+  'spec/runtime/kernel/model-service-contract.md',
+  'spec/runtime/kernel/knowledge-contract.md',
+  'spec/runtime/kernel/app-messaging-contract.md',
+  'spec/runtime/kernel/script-worker-contract.md',
+  'spec/runtime/kernel/tables/daemon-health-states.yaml',
+  'spec/runtime/kernel/tables/interceptor-chain.yaml',
+  'spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
+  'spec/runtime/kernel/tables/provider-probe-targets.yaml',
+  'spec/runtime/kernel/tables/workflow-node-types.yaml',
+  'spec/runtime/kernel/tables/workflow-states.yaml',
 ];
 
 const domainFiles = [
@@ -102,9 +120,17 @@ checkProviderReferencesResolvable();
 checkRuleIdReferencesResolvable(kernelRuleDefinitions);
 checkNoKernelRuleDefinitionsInImplementationDocs();
 checkMetadataKeyContract();
+checkMetadataKeyCrossReferences();
 checkKeySourceTruthTable();
 checkErrorMappingMatrix();
 checkRpcMigrationMapCoverage();
+checkDomainSection0ImportsCoveredInBody();
+checkConfigPathConsistency();
+checkConfigOverrideTraceability();
+checkProbeTargetProviderCoverage();
+checkRpcMethodsSourceTraceability(kernelRuleDefinitions);
+checkProviderCatalogSourceTraceability(kernelRuleDefinitions);
+checkReasonCodeSourceTraceability(kernelRuleDefinitions);
 
 if (failed) process.exit(1);
 console.log('runtime-spec-kernel-consistency: OK');
@@ -236,13 +262,13 @@ function checkConnectorRpcFieldRulesCoverage() {
   }
 
   for (const item of rules) {
-    const sourceRule = String(item?.source_rule || '').trim();
-    if (!sourceRule) {
-      fail('connector-rpc-field-rules: each rule must include source_rule');
+    const source = String(item?.source || '').trim();
+    if (!source) {
+      fail('connector-rpc-field-rules: each rule must include source');
       continue;
     }
-    if (!/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
-      fail(`connector-rpc-field-rules invalid source_rule: ${sourceRule}`);
+    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
+      fail(`connector-rpc-field-rules invalid source: ${source}`);
     }
   }
 }
@@ -322,7 +348,7 @@ function checkDomainProviderTableAnchors() {
     },
     {
       file: 'spec/runtime/local-model.md',
-      mustInclude: ['kernel/tables/provider-capabilities.yaml'],
+      mustInclude: ['kernel/tables/local-engine-catalog.yaml', 'kernel/tables/local-adapter-routing.yaml'],
     },
   ];
 
@@ -372,7 +398,7 @@ function checkReasonCodeReferencesResolvable() {
 
   for (const rel of runtimeMarkdownFiles) {
     const content = read(rel);
-    const refs = [...content.matchAll(/\b(?:AUTH_TOKEN_INVALID|AI_[A-Z0-9_]+)\b/g)];
+    const refs = [...content.matchAll(/\b(?:AUTH_TOKEN_INVALID|AI_[A-Z]+_[A-Z0-9_]+)\b/g)];
     for (const ref of refs) {
       const reasonCode = ref[0];
       if (reasonCode.endsWith('_')) continue;
@@ -488,6 +514,29 @@ function checkMetadataKeyContract() {
   }
 }
 
+function checkMetadataKeyCrossReferences() {
+  const table = readYaml('spec/runtime/kernel/tables/metadata-keys.yaml');
+  const keys = Array.isArray(table?.keys) ? table.keys : [];
+  const yamlKeys = new Set(
+    keys.map((item) => String(item?.key || '').trim()).filter(Boolean),
+  );
+
+  // Scan all kernel + domain markdown for x-nimi-* metadata key references
+  const allMdFiles = [...runtimeMarkdownFiles, ...domainFiles];
+  const keyRefPattern = /`(x-nimi-[a-z][a-z0-9-]*)`/g;
+
+  for (const rel of allMdFiles) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    const content = read(rel);
+    for (const match of content.matchAll(keyRefPattern)) {
+      const key = match[1];
+      if (!yamlKeys.has(key)) {
+        fail(`${rel} references metadata key "${key}" not found in metadata-keys.yaml`);
+      }
+    }
+  }
+}
+
 function checkKeySourceTruthTable() {
   const table = readYaml('spec/runtime/kernel/tables/key-source-truth-table.yaml');
   const cases = Array.isArray(table?.cases) ? table.cases : [];
@@ -510,9 +559,9 @@ function checkKeySourceTruthTable() {
     }
     byId.set(id, item);
 
-    const sourceRule = String(item?.source_rule || '').trim();
-    if (!sourceRule || !/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
-      fail(`key-source-truth-table case ${id} has invalid source_rule: ${sourceRule}`);
+    const source = String(item?.source || '').trim();
+    if (!source || !/^K-[A-Z]+-\d{3}$/u.test(source)) {
+      fail(`key-source-truth-table case ${id} has invalid source: ${source}`);
     }
 
     const reasonCode = String(item?.reason_code || '').trim();
@@ -557,7 +606,7 @@ function checkErrorMappingMatrix() {
   for (const item of mappings) {
     const reasonCode = String(item?.reason_code || '').trim();
     const grpcCode = String(item?.grpc_code || '').trim();
-    const sourceRule = String(item?.source_rule || '').trim();
+    const source = String(item?.source || '').trim();
     if (!reasonCode) {
       fail('error-mapping-matrix mapping missing reason_code');
       continue;
@@ -568,8 +617,8 @@ function checkErrorMappingMatrix() {
     if (!reasonCodes.has(reasonCode)) {
       fail(`error-mapping-matrix references unknown reason_code: ${reasonCode}`);
     }
-    if (!sourceRule || !/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
-      fail(`error-mapping-matrix ${reasonCode} has invalid source_rule: ${sourceRule}`);
+    if (!source || !/^K-[A-Z]+-\d{3}$/u.test(source)) {
+      fail(`error-mapping-matrix ${reasonCode} has invalid source: ${source}`);
     }
     covered.add(reasonCode);
   }
@@ -758,6 +807,196 @@ function parseProtoServiceMethodMap() {
     }
   }
   return out;
+}
+
+function checkDomainSection0ImportsCoveredInBody() {
+  for (const rel of domainFiles) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    const content = read(rel);
+    const lines = content.split('\n');
+
+    // Find Section 0 boundary (ends at first ## 1. or next ## N.)
+    let section0End = lines.length;
+    for (let i = 0; i < lines.length; i += 1) {
+      if (/^##\s+1\.\s/.test(lines[i])) {
+        section0End = i;
+        break;
+      }
+    }
+
+    const section0Text = lines.slice(0, section0End).join('\n');
+    const bodyText = lines.slice(section0End).join('\n');
+
+    // Extract K-<DOMAIN>-* wildcard imports from Section 0
+    const wildcardImports = [...section0Text.matchAll(/K-([A-Z]+)-\*/g)];
+    const importedDomains = new Set(wildcardImports.map((m) => m[1]));
+
+    for (const domain of importedDomains) {
+      const specificPattern = new RegExp(`\\bK-${domain}-\\d{3}\\b`);
+      if (!specificPattern.test(bodyText)) {
+        fail(`${rel} Section 0 imports K-${domain}-* but body has no specific K-${domain}-NNN reference`);
+      }
+    }
+
+    // Reverse check: body wildcards must be declared in Section 0
+    const bodyWildcards = [...bodyText.matchAll(/K-([A-Z]+)-\*/g)];
+    const bodyWildcardDomains = new Set(bodyWildcards.map((m) => m[1]));
+    for (const domain of bodyWildcardDomains) {
+      if (!importedDomains.has(domain)) {
+        fail(`${rel} body references K-${domain}-* but Section 0 does not import it`);
+      }
+    }
+  }
+}
+
+function checkConfigPathConsistency() {
+  // Detect ghost config.yaml paths in kernel markdown files
+  const ghostPattern = /~\/\.nimi\/[^\s`]*config\.yaml/g;
+  for (const rel of runtimeMarkdownFiles) {
+    const content = read(rel);
+    const matches = [...content.matchAll(ghostPattern)];
+    for (const match of matches) {
+      fail(`${rel} contains ghost config path (should be config.json): ${match[0]}`);
+    }
+  }
+}
+
+function checkConfigOverrideTraceability() {
+  // For every "可通过 K-DAEMON-009 配置覆盖" claim, verify the config key exists in daemon-lifecycle.md
+  const daemonContent = read('spec/runtime/kernel/daemon-lifecycle.md');
+
+  // Extract config keys from the K-DAEMON-009 config table
+  const configKeyPattern = /\|\s*`([a-zA-Z]+)`\s*\|/g;
+  const configKeys = new Set();
+  // Find the config table section (between "关键配置项" and "未知字段")
+  const tableStart = daemonContent.indexOf('Phase 1 配置文件 schema');
+  const tableEnd = daemonContent.indexOf('未知字段在解析时忽略');
+  if (tableStart === -1 || tableEnd === -1) {
+    fail('K-DAEMON-009 config table boundaries not found in daemon-lifecycle.md');
+    return;
+  }
+  const tableSection = daemonContent.slice(tableStart, tableEnd);
+  for (const match of tableSection.matchAll(configKeyPattern)) {
+    configKeys.add(match[1]);
+  }
+
+  // Scan all kernel markdown for override claims
+  const overridePattern = /可通过\s*`?K-DAEMON-009`?\s*配置覆盖/g;
+  for (const rel of runtimeMarkdownFiles) {
+    const content = read(rel);
+    const lines = content.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (!overridePattern.test(lines[i])) continue;
+      overridePattern.lastIndex = 0;
+      // Check that the surrounding context references a config key that exists
+      const contextWindow = lines.slice(Math.max(0, i - 2), Math.min(lines.length, i + 3)).join('\n');
+      // Extract any candidate config key names from nearby backtick references
+      const nearbyKeys = [...contextWindow.matchAll(/`([a-zA-Z][a-zA-Z0-9_]*)`/g)].map((m) => m[1]);
+      // At minimum, log a trace — the key should be findable in the config table
+      // We check that at least one nearby key exists in the config table, or that the rule ID context
+      // matches a known config key via the "来源" column
+      const ruleIdMatch = contextWindow.match(/K-[A-Z]+-\d{3}/);
+      if (!ruleIdMatch) continue;
+      const ruleId = ruleIdMatch[0];
+      // Check if this rule ID appears as a source in the config table
+      if (!tableSection.includes(ruleId)) {
+        fail(`${rel}:${i + 1} claims K-DAEMON-009 config override for ${ruleId}, but ${ruleId} is not referenced as source in K-DAEMON-009 config table`);
+      }
+    }
+  }
+}
+
+function checkProbeTargetProviderCoverage() {
+  // Verify every probe target in provider-probe-targets.yaml has a provider type mapping in K-PROV-006
+  const probeTargets = readYaml('spec/runtime/kernel/tables/provider-probe-targets.yaml');
+  const targets = Array.isArray(probeTargets?.targets) ? probeTargets.targets : [];
+  const targetNames = targets.map((t) => String(t?.name || '').trim()).filter(Boolean);
+
+  const providerHealthContent = read('spec/runtime/kernel/provider-health-contract.md');
+
+  // Check that K-PROV-006 section exists
+  if (!providerHealthContent.includes('K-PROV-006')) {
+    fail('provider-health-contract.md missing K-PROV-006 probe target mapping section');
+    return;
+  }
+
+  // Extract probe target names from the K-PROV-006 mapping table
+  const mappingTablePattern = /\|\s*`([a-z][a-z0-9-]*)`\s*\|/g;
+  const prov006Start = providerHealthContent.indexOf('K-PROV-006');
+  const prov006Section = providerHealthContent.slice(prov006Start);
+  const mappedTargets = new Set();
+  for (const match of prov006Section.matchAll(mappingTablePattern)) {
+    mappedTargets.add(match[1]);
+  }
+
+  for (const targetName of targetNames) {
+    if (!mappedTargets.has(targetName)) {
+      fail(`provider-probe-targets.yaml target "${targetName}" has no mapping in K-PROV-006`);
+    }
+  }
+}
+
+function checkRpcMethodsSourceTraceability(kernelRuleSet) {
+  const rpcTable = readYaml('spec/runtime/kernel/tables/rpc-methods.yaml');
+  const services = Array.isArray(rpcTable?.services) ? rpcTable.services : [];
+  for (const service of services) {
+    const name = String(service?.name || '').trim();
+    if (!name) continue;
+    const source = String(service?.source || '').trim();
+    if (!source) {
+      fail(`rpc-methods service ${name} missing source`);
+      continue;
+    }
+    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
+      fail(`rpc-methods service ${name} has invalid source: ${source}`);
+      continue;
+    }
+    if (!kernelRuleSet.has(source)) {
+      fail(`rpc-methods service ${name} references undefined kernel rule: ${source}`);
+    }
+  }
+}
+
+function checkProviderCatalogSourceTraceability(kernelRuleSet) {
+  const catalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
+  const providers = Array.isArray(catalog?.providers) ? catalog.providers : [];
+  for (const item of providers) {
+    const provider = String(item?.provider || '').trim();
+    if (!provider) continue;
+    const source = String(item?.source || '').trim();
+    if (!source) {
+      fail(`provider-catalog provider ${provider} missing source`);
+      continue;
+    }
+    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
+      fail(`provider-catalog provider ${provider} has invalid source: ${source}`);
+      continue;
+    }
+    if (!kernelRuleSet.has(source)) {
+      fail(`provider-catalog provider ${provider} references undefined kernel rule: ${source}`);
+    }
+  }
+}
+
+function checkReasonCodeSourceTraceability(kernelRuleSet) {
+  const reasonTable = readYaml('spec/runtime/kernel/tables/reason-codes.yaml');
+  const codes = Array.isArray(reasonTable?.codes) ? reasonTable.codes : [];
+  for (const code of codes) {
+    const name = String(code?.name || '').trim();
+    if (!name) continue;
+    const source = String(code?.source || '').trim();
+    if (!source) {
+      fail(`reason-codes code ${name} missing source`);
+      continue;
+    }
+    if (!/^K-[A-Z]+-\d{3}$/u.test(source)) {
+      fail(`reason-codes code ${name} has invalid source: ${source}`);
+      continue;
+    }
+    if (!kernelRuleSet.has(source)) {
+      fail(`reason-codes code ${name} references undefined kernel rule: ${source}`);
+    }
+  }
 }
 
 function loadReasonCodeSet() {

@@ -234,6 +234,18 @@ jobs:
       - name: SDK spec kernel generated-doc drift check
         run: pnpm check:sdk-spec-kernel-docs-drift
 
+      - name: Desktop spec kernel consistency check
+        run: pnpm check:desktop-spec-kernel-consistency
+
+      - name: Desktop spec kernel generated-doc drift check
+        run: pnpm check:desktop-spec-kernel-docs-drift
+
+      - name: Future spec kernel consistency check
+        run: pnpm check:future-spec-kernel-consistency
+
+      - name: Future spec kernel generated-doc drift check
+        run: pnpm check:future-spec-kernel-docs-drift
+
       - name: ReasonCode constants policy check
         run: pnpm check:reason-code-constants
 
