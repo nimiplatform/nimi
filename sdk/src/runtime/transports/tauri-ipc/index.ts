@@ -22,6 +22,7 @@ type StreamOpenResponse = {
 
 type UnaryResponse = {
   responseBytesBase64: string;
+  responseMetadata?: Record<string, string>;
 };
 
 type StreamEventEnvelope = {
@@ -249,6 +250,12 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
             actionHint: 'check_runtime_bridge_payload_contract',
             source: 'runtime',
           });
+        }
+        if (config._responseMetadataObserver && response.responseMetadata) {
+          const meta = response.responseMetadata;
+          if (typeof meta === 'object' && Object.keys(meta).length > 0) {
+            config._responseMetadataObserver(meta);
+          }
         }
         return fromBase64(response.responseBytesBase64);
       } catch (error) {

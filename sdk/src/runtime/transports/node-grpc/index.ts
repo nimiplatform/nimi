@@ -327,7 +327,7 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
   const invokeUnaryInternal = async (input: RuntimeUnaryCall<RuntimeWireMessage>): Promise<RuntimeWireMessage> => {
     const runtime = await ensureRuntime();
     return new Promise<RuntimeWireMessage>((resolve, reject) => {
-      runtime.client.makeUnaryRequest<RuntimeWireMessage, RuntimeWireMessage>(
+      const call = runtime.client.makeUnaryRequest<RuntimeWireMessage, RuntimeWireMessage>(
         input.methodId,
         (value: RuntimeWireMessage) => Buffer.from(value),
         (value: Buffer) => Uint8Array.from(value),
@@ -358,6 +358,19 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
           resolve(response);
         },
       );
+      if (config._responseMetadataObserver) {
+        const observer = config._responseMetadataObserver;
+        call.on('metadata', (md: { get(key: string): (string | Buffer)[] }) => {
+          const collected: Record<string, string> = {};
+          const version = md.get('x-nimi-runtime-version');
+          if (version.length > 0) {
+            collected['x-nimi-runtime-version'] = String(version[0]);
+          }
+          if (Object.keys(collected).length > 0) {
+            observer(collected);
+          }
+        });
+      }
     });
   };
 
