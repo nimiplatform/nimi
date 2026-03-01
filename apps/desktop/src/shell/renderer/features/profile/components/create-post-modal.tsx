@@ -6,6 +6,7 @@ type CreatePostModalProps = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  onUploadStart?: () => void; // Called when upload starts for optimistic UI
 };
 
 type SelectedFile = {
@@ -81,7 +82,7 @@ function stripHashtags(text: string): string {
   return text.replace(/#[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+/g, '').replace(/\s+/g, ' ').trim();
 }
 
-export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalProps) {
+export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: CreatePostModalProps) {
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -95,6 +96,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
   const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
   const [locationSearch, setLocationSearch] = useState('');
   const [tagSearch, setTagSearch] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiBtnRef = useRef<HTMLButtonElement>(null);
@@ -131,7 +133,9 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
     }));
   };
 
-  const tags = extractHashtags(caption);
+  // Get hashtags from caption and merge with selected tags
+  const captionTags = extractHashtags(caption);
+  const tags = [...new Set([...selectedTags, ...captionTags])];
 
   const filteredLocations = MOCK_LOCATIONS.filter(
     (loc) =>
@@ -152,6 +156,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
     setSelectedLocation(null);
     setLocationSearch('');
     setTagSearch('');
+    setSelectedTags([]);
   }, [selectedFile]);
 
   const handleClose = useCallback(() => {
@@ -219,29 +224,17 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
   };
 
   const insertTag = (tag: string) => {
-    const textarea = textareaRef.current;
-    const tagText = `#${tag} `;
-    
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newCaption = caption.slice(0, start) + tagText + caption.slice(end);
-      
-      if (newCaption.length <= MAX_CAPTION_LENGTH) {
-        setCaption(newCaption);
-        setTimeout(() => {
-          textarea.focus();
-          textarea.setSelectionRange(start + tagText.length, start + tagText.length);
-        }, 0);
-      }
-    } else {
-      const newCaption = caption + tagText;
-      if (newCaption.length <= MAX_CAPTION_LENGTH) {
-        setCaption(newCaption);
-      }
-    }
+    // Add tag to selected tags list (displayed below input, not in caption)
+    setSelectedTags((prev) => {
+      if (prev.includes(tag)) return prev;
+      return [...prev, tag];
+    });
     setTagSearch('');
-    setShowTagPanel(false);
+    // Don't close panel after selecting tag to allow multiple selection
+  };
+
+  const removeTag = (tag: string) => {
+    setSelectedTags((prev) => prev.filter((t) => t !== tag));
   };
 
   const toggleEmojiPanel = () => {
@@ -278,54 +271,64 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
   };
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedFile) return;
-    setUploading(true);
-    setError(null);
-
+    // Must have either a file or caption text to post
+    if (!selectedFile && !caption.trim()) return;
+    
+    // Optimistic UI: notify parent that upload has started
+    onUploadStart?.();
+    
+    // Close modal immediately for better UX
+    handleClose();
+    
+    // Continue upload in background
     try {
-      let mediaId: string;
+      let media: { type: PostMediaType; id: string }[] | undefined;
 
-      if (selectedFile.type === 'image') {
-        // 1. Get upload credentials
-        const upload = await dataSync.createImageDirectUpload();
-        // 2. Upload file to Cloudflare
-        const formData = new FormData();
-        formData.append('file', selectedFile.file);
-        await fetch(upload.uploadUrl, {
-          method: 'POST',
-          body: formData,
-        });
-        mediaId = upload.imageId;
-      } else {
-        // Video upload
-        const uploadData = await dataSync.createVideoDirectUpload();
-        const formData = new FormData();
-        formData.append('file', selectedFile.file);
-        await fetch(uploadData.uploadURL, {
-          method: 'POST',
-          body: formData,
-        });
-        mediaId = uploadData.uid;
-      }
-
-      // 3. Create post
-      await dataSync.createPost({
-        media: [{
+      // Upload file if selected
+      if (selectedFile) {
+        let mediaId: string;
+        if (selectedFile.type === 'image') {
+          // 1. Get upload credentials
+          const upload = await dataSync.createImageDirectUpload();
+          // 2. Upload file to Cloudflare
+          const formData = new FormData();
+          formData.append('file', selectedFile.file);
+          await fetch(upload.uploadUrl, {
+            method: 'POST',
+            body: formData,
+          });
+          mediaId = upload.imageId;
+        } else {
+          // Video upload
+          const uploadData = await dataSync.createVideoDirectUpload();
+          const formData = new FormData();
+          formData.append('file', selectedFile.file);
+          await fetch(uploadData.uploadURL, {
+            method: 'POST',
+            body: formData,
+          });
+          mediaId = uploadData.uid;
+        }
+        media = [{
           type: selectedFile.type === 'image' ? PostMediaType.IMAGE : PostMediaType.VIDEO,
           id: mediaId,
-        }],
+        }];
+      }
+
+      // 3. Create post (with or without media)
+      await dataSync.createPost({
+        media,
         caption: stripHashtags(caption) || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
 
-      handleClose();
+      // Notify parent that post was created successfully
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create post. Please try again.');
-    } finally {
-      setUploading(false);
+      // Error is handled silently in background, user can retry if needed
+      console.error('Failed to create post:', err);
     }
-  }, [selectedFile, caption, tags, selectedLocation, handleClose, onCreated]);
+  }, [selectedFile, caption, tags, selectedLocation, handleClose, onCreated, onUploadStart]);
 
   // Close panels when clicking outside
   useEffect(() => {
@@ -399,7 +402,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
           {!selectedFile ? (
             <div
               className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 transition ${
-                dragOver ? 'border-brand-400 bg-brand-50' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                dragOver ? 'border-[#4ECCA3] bg-[#4ECCA3]/10' : 'border-gray-300 bg-gray-50 hover:border-[#4ECCA3]'
               }`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
@@ -474,29 +477,47 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
               placeholder="Write a caption... Use #hashtags for tags"
               disabled={uploading}
               rows={3}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:ring-1 focus:ring-brand-400 focus:outline-none disabled:opacity-50"
+              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3] focus:outline-none disabled:opacity-50"
             />
             
-            {/* Selected Location Badge */}
-            {selectedLocation && (
-              <div className="mt-2 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4ECCA3]/10 px-3 py-1 text-sm text-[#4ECCA3]">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  {selectedLocation.name}
-                  <button
-                    type="button"
-                    onClick={removeLocation}
-                    className="ml-1 rounded-full hover:bg-[#4ECCA3]/20"
-                  >
+            {/* Selected Location Badge & Tags */}
+            {(selectedLocation || tags.length > 0) && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {selectedLocation && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#4ECCA3]/10 px-3 py-1 text-sm text-[#4ECCA3]">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
                     </svg>
+                    {selectedLocation.name}
+                    <button
+                      type="button"
+                      onClick={removeLocation}
+                      className="ml-1 rounded-full hover:bg-[#4ECCA3]/20"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+                {tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="inline-flex items-center gap-1 rounded-full bg-[#4ECCA3]/10 px-2 py-1 text-xs font-medium text-[#4ECCA3] hover:bg-[#4ECCA3]/20 transition-colors"
+                  >
+                    #{tag}
+                    {selectedTags.includes(tag) && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    )}
                   </button>
-                </span>
+                ))}
               </div>
             )}
             
@@ -580,14 +601,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
               </div>
             </div>
             
-            <div className="mt-2 flex items-center justify-between">
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-600">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
+            <div className="mt-2 flex items-center justify-end">
               <span className="text-xs text-gray-400">{caption.length}/{MAX_CAPTION_LENGTH}</span>
             </div>
           </div>
@@ -611,8 +625,8 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
           <button
             type="button"
             onClick={() => { void handleSubmit(); }}
-            disabled={!selectedFile || uploading}
-            className="flex items-center gap-2 rounded-[10px] bg-brand-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={(!selectedFile && !caption.trim()) || uploading}
+            className="flex items-center gap-2 rounded-[10px] bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {uploading ? (
               <>
@@ -634,6 +648,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
         <div
           className="emoji-panel fixed z-[100] w-[320px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden"
           style={{ left: emojiPanelPos.left, top: emojiPanelPos.top }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Category tabs with pagination */}
           <div className="relative border-b border-gray-100">
@@ -708,6 +723,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
         <div
           className="location-panel fixed z-[100] w-[320px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden"
           style={{ left: locationPanelPos.left, top: locationPanelPos.top }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Search */}
           <div className="border-b border-gray-100 p-3">
@@ -766,6 +782,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
         <div
           className="tag-panel fixed z-[100] w-[280px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden"
           style={{ left: tagPanelPos.left, top: tagPanelPos.top }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Search */}
           <div className="border-b border-gray-100 p-3">
@@ -807,7 +824,7 @@ export function CreatePostModal({ open, onClose, onCreated }: CreatePostModalPro
                   <div className="min-w-0 flex-1 text-left">
                     <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
                   </div>
-                  {caption.includes(`#${tag}`) && (
+                  {tags.includes(tag) && (
                     <svg className="h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>

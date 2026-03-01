@@ -8,6 +8,9 @@ export type ContactRecord = {
   friendsSince: string | null;
   agentOwnershipType?: 'MASTER_OWNED' | 'WORLD_OWNED' | null;
   agentCreatorId?: string | null;
+  // World info
+  worldId?: string | null;
+  worldName?: string | null;
   // Extended profile fields
   age?: number | null;
   gender?: 'male' | 'female' | 'other' | null;
@@ -29,7 +32,7 @@ export type ContactRequestRecord = {
   requestedAt: string | null;
 };
 
-export type TabFilter = 'humans' | 'agents' | 'myAgents' | 'requests' | 'blocks';
+export type TabFilter = 'humans' | 'agents' | 'myAgents' | 'requests' | 'blocks' | 'world';
 export type ContactSearchCandidate = {
   id: string;
   displayName: string;
@@ -123,6 +126,13 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
   else if (genderStr === 'female' || genderStr === 'f') gender = 'female';
   else if (genderStr === 'other' || genderStr === 'o') gender = 'other';
   
+  // Parse world info
+  const worldData = item.world && typeof item.world === 'object' ? item.world as Record<string, unknown> : null;
+  const worldId = typeof item.worldId === 'string' ? item.worldId : 
+    typeof worldData?.id === 'string' ? worldData.id : null;
+  const worldName = typeof item.worldName === 'string' ? item.worldName : 
+    typeof worldData?.name === 'string' ? worldData.name : null;
+  
   return {
     id: String(item.id || ''),
     displayName: String(item.displayName || handle || 'Unknown'),
@@ -132,6 +142,8 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
     isAgent,
     agentOwnershipType,
     friendsSince: typeof item.friendsSince === 'string' ? item.friendsSince : null,
+    worldId,
+    worldName,
     age,
     gender,
     location: typeof item.location === 'string' ? item.location : null,
@@ -148,6 +160,13 @@ export function toDeveloperAgentContact(item: Record<string, unknown>): ContactR
     ? ownershipRaw
     : null;
   const agentCreatorIdRaw = String(item.creatorId || agentProfile?.creatorId || '').trim();
+  
+  // Parse world info
+  const worldData = item.world && typeof item.world === 'object' ? item.world as Record<string, unknown> : null;
+  const worldId = typeof item.worldId === 'string' ? item.worldId : 
+    typeof worldData?.id === 'string' ? worldData.id : null;
+  const worldName = typeof item.worldName === 'string' ? item.worldName : 
+    typeof worldData?.name === 'string' ? worldData.name : null;
 
   return {
     id: String(item.id || ''),
@@ -159,6 +178,8 @@ export function toDeveloperAgentContact(item: Record<string, unknown>): ContactR
     friendsSince: typeof item.createdAt === 'string' ? item.createdAt : null,
     agentOwnershipType,
     agentCreatorId: agentCreatorIdRaw || null,
+    worldId,
+    worldName,
   };
 }
 

@@ -362,6 +362,14 @@
     "memoryE2E": "E2E",
     "memoryProfiles": "Profiles"
   },
+  "world": "World",
+  "sendGem": "Send Gem",
+  "gemAmount": "Gem Amount",
+  "minSendAmount": "Min: 1 GEM",
+  "messageOptional": "Message (Optional)",
+  "addNiceMessage": "Add a nice message...",
+  "onlyRecipientCanSee": "Only recipient can see",
+  "sending": "Sending...",
   "Contacts": {
     "title": "Contacts",
     "addContact": "Add Contact",

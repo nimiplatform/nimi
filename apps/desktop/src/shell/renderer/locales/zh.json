@@ -362,6 +362,14 @@
     "memoryE2E": "E2E",
     "memoryProfiles": "档案"
   },
+  "world": "世界",
+  "sendGem": "赠送 Gem",
+  "gemAmount": "Gem 数量",
+  "minSendAmount": "最低: 1 GEM",
+  "messageOptional": "留言（可选）",
+  "addNiceMessage": "添加一条留言...",
+  "onlyRecipientCanSee": "仅收件人可见",
+  "sending": "发送中...",
   "Contacts": {
     "title": "联系人",
     "addContact": "添加联系人",

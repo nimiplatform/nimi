@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dataSync } from '@runtime/data-sync';
+import { useTranslation } from 'react-i18next';
 
 type SendGiftModalProps = {
   open: boolean;
@@ -11,49 +12,39 @@ type SendGiftModalProps = {
   onSent?: () => void;
 };
 
-// Unified gift list - same across all modals
-const GIFTS = [
-  { id: 'candy', name: 'Candy', emoji: '🍬', price: 5 },
-  { id: 'cookie', name: 'Cookie', emoji: '🍪', price: 10 },
-  { id: 'coffee', name: 'Coffee', emoji: '☕', price: 100 },
-  { id: 'rose', name: 'Rose', emoji: '🌹', price: 200 },
-  { id: 'gem', name: 'Gem', emoji: '💎', price: 500 },
-  { id: 'rocket', name: 'Rocket', emoji: '🚀', price: 1000 },
-] as const;
-
 function getProfileInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
 
 export function SendGiftModal(props: SendGiftModalProps) {
-  const [selectedGiftId, setSelectedGiftId] = useState('');
+  const { t } = useTranslation();
+  const [amount, setAmount] = useState<string>('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!props.open) {
-      return;
-    }
-    if (!selectedGiftId && GIFTS.length > 0) {
-      const firstGift = GIFTS[0];
-      if (firstGift) {
-        setSelectedGiftId(firstGift.id);
-      }
-    }
-  }, [props.open, selectedGiftId]);
-
-  useEffect(() => {
-    if (!props.open) {
-      setSelectedGiftId('');
+      setAmount('');
       setMessage('');
       setSending(false);
       setError(null);
     }
   }, [props.open]);
 
+  const handleAmountChange = (value: string) => {
+    // Only allow positive integers
+    const numericValue = value.replace(/[^0-9]/g, '');
+    // Remove leading zeros
+    const cleanedValue = numericValue.replace(/^0+/, '') || '';
+    setAmount(cleanedValue);
+    setError(null);
+  };
+
+  const gemAmount = parseInt(amount, 10) || 0;
+
   const handleSend = async () => {
-    if (!selectedGiftId || !props.receiverId) {
+    if (gemAmount <= 0 || !props.receiverId) {
       return;
     }
     setSending(true);
@@ -61,7 +52,8 @@ export function SendGiftModal(props: SendGiftModalProps) {
     try {
       await dataSync.sendGift({
         receiverId: props.receiverId,
-        giftId: selectedGiftId,
+        giftId: 'gem',
+        amount: gemAmount,
         message: message.trim() || undefined,
       });
       props.onSent?.();
@@ -83,12 +75,12 @@ export function SendGiftModal(props: SendGiftModalProps) {
       onClick={props.onClose}
     >
       <div
-        className="relative mx-4 flex w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="relative mx-4 w-full max-w-sm rounded-3xl bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
-          <h2 className="text-lg font-semibold text-gray-900">Send a Gift</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('sendGem') || 'Send Gem'}</h2>
           <button
             type="button"
             onClick={props.onClose}
@@ -98,7 +90,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-6 pb-6">
+        <div className="px-6 pb-6">
           {/* User Info */}
           <div className="flex flex-col items-center pb-6">
             <div className="relative">
@@ -118,41 +110,47 @@ export function SendGiftModal(props: SendGiftModalProps) {
             <p className="text-sm text-gray-500">{props.receiverHandle || ''}</p>
           </div>
 
-          {/* Gift Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            {GIFTS.map((gift) => (
-              <button
-                key={gift.id}
-                type="button"
-                onClick={() => setSelectedGiftId(gift.id)}
-                className={`flex flex-col items-center rounded-2xl border-2 px-3 py-4 text-center transition ${
-                  selectedGiftId === gift.id
-                    ? 'border-[#4ECCA3] bg-[#4ECCA3]/5'
-                    : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-3xl">{gift.emoji}</span>
-                <span className="mt-2 text-sm font-medium text-gray-800">{gift.name}</span>
-                <span className="text-xs font-semibold text-[#4ECCA3]">${gift.price}</span>
-              </button>
-            ))}
+          {/* Gem Amount Input */}
+          <div className="rounded-2xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4ECCA3]/20">
+                <GemIcon className="h-6 w-6 text-[#4ECCA3]" />
+              </div>
+              <span className="text-white font-medium">{t('gemAmount') || 'Gem Amount'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                placeholder="0"
+                className="flex-1 bg-transparent text-4xl font-bold text-white outline-none placeholder:text-gray-600"
+                autoFocus
+              />
+              <span className="text-xl font-semibold text-gray-400">GEM</span>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              {t('minSendAmount') || 'Min: 1 GEM'}
+            </p>
           </div>
 
           {/* Message Input */}
           <div className="mt-6">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Message (Optional)
+              {t('messageOptional') || 'Message (Optional)'}
             </label>
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value.slice(0, 200))}
               rows={3}
-              placeholder="Add a nice message..."
+              placeholder={t('addNiceMessage') || 'Add a nice message...'}
               className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#4ECCA3] focus:bg-white focus:ring-2 focus:ring-[#4ECCA3]/20"
             />
             <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
               <LockIcon className="h-3.5 w-3.5" />
-              <span>Only recipient can see</span>
+              <span>{t('onlyRecipientCanSee') || 'Only recipient can see'}</span>
             </div>
           </div>
 
@@ -167,9 +165,9 @@ export function SendGiftModal(props: SendGiftModalProps) {
           <button
             type="button"
             onClick={() => { void handleSend(); }}
-            disabled={!selectedGiftId || sending}
+            disabled={gemAmount <= 0 || sending}
             className={`mt-6 flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold transition ${
-              selectedGiftId && !sending
+              gemAmount > 0 && !sending
                 ? 'bg-[#4ECCA3] text-white hover:bg-[#3DBA92] hover:shadow-lg hover:shadow-[#4ECCA3]/25'
                 : 'bg-[#E8EAED] text-gray-400 cursor-not-allowed opacity-60'
             }`}
@@ -177,18 +175,18 @@ export function SendGiftModal(props: SendGiftModalProps) {
             {sending ? (
               <>
                 <LoadingSpinner className="h-4 w-4" />
-                Sending...
+                {t('sending') || 'Sending...'}
               </>
-            ) : selectedGiftId ? (
+            ) : gemAmount > 0 ? (
               <>
-                <span>Proceed</span>
+                <span>{t('sendGem') || 'Send Gem'}</span>
                 <span className="opacity-60">|</span>
-                <span>${GIFTS.find(g => g.id === selectedGiftId)?.price}</span>
+                <span>{gemAmount} GEM</span>
                 <SendIcon className="h-4 w-4" />
               </>
             ) : (
               <>
-                Send Gift
+                {t('sendGem') || 'Send Gem'}
                 <SendIcon className="h-4 w-4" />
               </>
             )}
@@ -232,6 +230,16 @@ function LoadingSpinner({ className = '' }: { className?: string }) {
     <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    </svg>
+  );
+}
+
+function GemIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
     </svg>
   );
 }

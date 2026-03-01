@@ -465,16 +465,57 @@ export function ContactsView(props: ContactsViewProps) {
               const query = props.searchText.trim().toLowerCase();
               const allContacts = [...props.allFriends, ...newFriendsFromRequests].filter(c => !isUserBlocked(c.id));
               
-              // 按分类分组
-              const humans = allContacts.filter(c => !c.isAgent && (c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)));
-              const agents = allContacts.filter(c => c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED' && (c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)));
-              const myAgents = allContacts.filter(c => c.isAgent && c.agentOwnershipType === 'MASTER_OWNED' && (c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)));
+              // 直接匹配的联系人
+              const directMatches = allContacts.filter(c => 
+                c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)
+              );
               
-              const groups = [
-                { id: 'humans' as TabFilter, title: t('Contacts.tabHumans'), items: humans },
-                { id: 'agents' as TabFilter, title: t('Contacts.tabAgents'), items: agents },
-                { id: 'myAgents' as TabFilter, title: t('Contacts.tabMyAgents'), items: myAgents },
-              ].filter(g => g.items.length > 0);
+              // 按分类分组直接匹配
+              const humans = directMatches.filter(c => !c.isAgent);
+              const agents = directMatches.filter(c => c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED');
+              const myAgents = directMatches.filter(c => c.isAgent && c.agentOwnershipType === 'MASTER_OWNED');
+              
+              // 收集匹配联系人所属的 world
+              const matchedWorldIds = new Set<string>();
+              const matchedWorldNames = new Map<string, string>();
+              directMatches.forEach(c => {
+                if (c.worldId) {
+                  matchedWorldIds.add(c.worldId);
+                  if (c.worldName) matchedWorldNames.set(c.worldId, c.worldName);
+                }
+              });
+              
+              // 查找同 world 的其他好友（排除已直接匹配的）
+              const directMatchIds = new Set(directMatches.map(c => c.id));
+              const worldRelatedContacts = allContacts.filter(c => 
+                c.worldId && matchedWorldIds.has(c.worldId) && !directMatchIds.has(c.id)
+              );
+              
+              // 按 world 名称分组
+              const worldGroups = new Map<string, ContactRecord[]>();
+              worldRelatedContacts.forEach(c => {
+                if (c.worldId) {
+                  if (!worldGroups.has(c.worldId)) {
+                    worldGroups.set(c.worldId, []);
+                  }
+                  worldGroups.get(c.worldId)!.push(c);
+                }
+              });
+              
+              const baseGroups: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = [
+                { id: 'humans', title: t('Contacts.tabHumans'), items: humans },
+                { id: 'agents', title: t('Contacts.tabAgents'), items: agents },
+                { id: 'myAgents', title: t('Contacts.tabMyAgents'), items: myAgents },
+              ];
+              const worldGroupList: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = worldGroups.size > 0 
+                ? Array.from(worldGroups.entries()).map(([worldId, items]) => ({
+                    id: 'world' as TabFilter,
+                    title: matchedWorldNames.get(worldId) || t('world') || 'World',
+                    items,
+                    worldId,
+                  }))
+                : [];
+              const groups = [...baseGroups, ...worldGroupList].filter(g => g.items.length > 0);
               
               // 高亮匹配文字的组件
               const HighlightText = ({ text, query }: { text: string; query: string }) => {
@@ -511,7 +552,7 @@ export function ContactsView(props: ContactsViewProps) {
               return (
                 <div className="space-y-4">
                   {groups.map((group) => (
-                    <div key={group.id}>
+                    <div key={`${group.id}-${group.title}`}>
                       {/* 分组标题 */}
                       <div className="px-3 py-1.5 text-xs text-gray-500 font-medium flex items-center justify-between">
                         <span>{group.title}</span>
@@ -523,7 +564,7 @@ export function ContactsView(props: ContactsViewProps) {
                           <button
                             key={contact.id}
                             type="button"
-                            onClick={() => handleSelectContact(contact, group.id)}
+                            onClick={() => handleSelectContact(contact, group.id === 'world' ? (contact.isAgent ? 'agents' : 'humans') : group.id)}
                             className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
                               selectedContact?.id === contact.id 
                                 ? 'bg-green-100 text-green-800' 
@@ -546,7 +587,11 @@ export function ContactsView(props: ContactsViewProps) {
                                 <HighlightText text={contact.displayName} query={query} />
                               </div>
                               <div className="text-xs text-gray-400 truncate">
-                                <HighlightText text={contact.handle} query={query} />
+                                {group.id === 'world' ? (
+                                  <span className="text-[#4ECCA3]">{contact.handle}</span>
+                                ) : (
+                                  <HighlightText text={contact.handle} query={query} />
+                                )}
                               </div>
                             </div>
                           </button>

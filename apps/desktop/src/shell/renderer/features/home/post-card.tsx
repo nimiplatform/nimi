@@ -1,7 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { dataSync } from '@runtime/data-sync';
+import { useTranslation } from 'react-i18next';
 
 function normalizeMediaType(type: unknown): PostMediaType | null {
   const normalized = String(type || '').toUpperCase();
@@ -225,19 +229,35 @@ function SendGiftModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const [selectedGift, setSelectedGift] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
   
   const initial = author.name.charAt(0).toUpperCase();
   
-  const handleSend = useCallback(() => {
-    setSelectedGift(null);
-    setMessage('');
-    onClose();
-  }, [onClose]);
+  const handleAmountChange = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    const cleanedValue = numericValue.replace(/^0+/, '') || '';
+    setAmount(cleanedValue);
+  };
+  
+  const gemAmount = parseInt(amount, 10) || 0;
+  
+  const handleSend = useCallback(async () => {
+    if (gemAmount <= 0) return;
+    setSending(true);
+    // TODO: Implement actual API call when author ID is available
+    setTimeout(() => {
+      setAmount('');
+      setMessage('');
+      setSending(false);
+      onClose();
+    }, 500);
+  }, [gemAmount, onClose]);
   
   const handleClose = useCallback(() => {
-    setSelectedGift(null);
+    setAmount('');
     setMessage('');
     onClose();
   }, [onClose]);
@@ -246,10 +266,10 @@ function SendGiftModal({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={handleClose}>
-      <div className="relative mx-4 flex w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative mx-4 w-full max-w-sm rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
-          <h2 className="text-lg font-semibold text-gray-900">Send a Gift</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('sendGem') || 'Send Gem'}</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -259,7 +279,7 @@ function SendGiftModal({
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-6 pb-6">
+        <div className="px-6 pb-6">
           {/* User Info */}
           <div className="flex flex-col items-center pb-6">
             <div className="relative">
@@ -279,40 +299,46 @@ function SendGiftModal({
             <p className="text-sm text-gray-500">{author.handle}</p>
           </div>
 
-          {/* Gift Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            {GIFTS.map((gift) => (
-              <button
-                key={gift.id}
-                type="button"
-                onClick={() => setSelectedGift(gift.id)}
-                className={`flex flex-col items-center rounded-2xl border-2 px-3 py-4 text-center transition ${
-                  selectedGift === gift.id
-                    ? 'border-[#4ECCA3] bg-[#4ECCA3]/5'
-                    : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-3xl">{gift.emoji}</span>
-                <span className="mt-2 text-sm font-medium text-gray-800">{gift.name}</span>
-                <span className="text-xs font-semibold text-[#4ECCA3]">${gift.price}</span>
-              </button>
-            ))}
+          {/* Gem Amount Input */}
+          <div className="rounded-2xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4ECCA3]/20">
+                <GemIcon className="h-6 w-6 text-[#4ECCA3]" />
+              </div>
+              <span className="text-white font-medium">{t('gemAmount') || 'Gem Amount'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                placeholder="0"
+                className="flex-1 bg-transparent text-4xl font-bold text-white outline-none placeholder:text-gray-600"
+                autoFocus
+              />
+              <span className="text-xl font-semibold text-gray-400">GEM</span>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              {t('minSendAmount') || 'Min: 1 GEM'}
+            </p>
           </div>
 
           {/* Message Input */}
           <div className="mt-6">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-              Message (Optional)
+              {t('messageOptional') || 'Message (Optional)'}
             </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Add a nice message..."
+              placeholder={t('addNiceMessage') || 'Add a nice message...'}
               className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#4ECCA3] focus:bg-white focus:ring-2 focus:ring-[#4ECCA3]/20"
             />
             <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
               <LockIcon className="h-3.5 w-3.5" />
-              <span>Only recipient can see</span>
+              <span>{t('onlyRecipientCanSee') || 'Only recipient can see'}</span>
             </div>
           </div>
 
@@ -320,23 +346,28 @@ function SendGiftModal({
           <button
             type="button"
             onClick={handleSend}
-            disabled={!selectedGift}
+            disabled={gemAmount <= 0 || sending}
             className={`mt-6 flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold transition ${
-              selectedGift
+              gemAmount > 0 && !sending
                 ? 'bg-[#4ECCA3] text-white hover:bg-[#3DBA92] hover:shadow-lg hover:shadow-[#4ECCA3]/25'
                 : 'bg-[#E8EAED] text-gray-400 cursor-not-allowed opacity-60'
             }`}
           >
-            {selectedGift ? (
+            {sending ? (
               <>
-                <span>Proceed</span>
+                <LoadingSpinner className="h-4 w-4" />
+                {t('sending') || 'Sending...'}
+              </>
+            ) : gemAmount > 0 ? (
+              <>
+                <span>{t('sendGem') || 'Send Gem'}</span>
                 <span className="opacity-60">|</span>
-                <span>${GIFTS.find(g => g.id === selectedGift)?.price}</span>
+                <span>{gemAmount} GEM</span>
                 <SendIcon className="h-4 w-4" />
               </>
             ) : (
               <>
-                <span>Send Gift</span>
+                {t('sendGem') || 'Send Gem'}
                 <SendIcon className="h-4 w-4" />
               </>
             )}
@@ -370,6 +401,135 @@ function SendIcon({ className = '' }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="22" y1="2" x2="11" y2="13" />
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+// Report reasons
+const REPORT_REASONS = [
+  { value: 'SPAM', label: 'Spam' },
+  { value: 'HARASSMENT', label: 'Harassment or bullying' },
+  { value: 'INAPPROPRIATE_CONTENT', label: 'Inappropriate content' },
+  { value: 'MISINFORMATION', label: 'Misinformation' },
+  { value: 'HATE_SPEECH', label: 'Hate speech' },
+  { value: 'VIOLENCE', label: 'Violence or dangerous content' },
+  { value: 'COPYRIGHT', label: 'Copyright infringement' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+// Report Modal Component
+function ReportModal({
+  post,
+  onClose,
+  onSubmit,
+}: {
+  post: PostDto;
+  onClose: () => void;
+  onSubmit: (reason: string) => void;
+}) {
+  const [selectedReason, setSelectedReason] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!selectedReason) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(selectedReason);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Report Post</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        
+        <p className="text-sm text-gray-500 mb-4">
+          Why are you reporting this post by <span className="font-medium text-gray-700">{post.author?.displayName || post.author?.handle}</span>?
+        </p>
+
+        <div className="space-y-2 mb-4">
+          {REPORT_REASONS.map((reason) => (
+            <button
+              key={reason.value}
+              type="button"
+              onClick={() => setSelectedReason(reason.value)}
+              className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors ${
+                selectedReason === reason.value
+                  ? 'bg-[#4ECCA3]/10 text-[#4ECCA3] border-2 border-[#4ECCA3]'
+                  : 'bg-gray-50 text-gray-700 border-2 border-transparent hover:bg-gray-100'
+              }`}
+            >
+              {reason.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Additional details (optional)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Please provide more details about your report..."
+            rows={3}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#4ECCA3] focus:ring-1 focus:ring-[#4ECCA3] resize-none"
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!selectedReason || isSubmitting}
+            className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-[#4ECCA3] hover:bg-[#3dbb92] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Report'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GemIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+      <polyline points="2 17 12 22 22 17" />
+      <polyline points="2 12 12 17 22 12" />
+    </svg>
+  );
+}
+
+function LoadingSpinner({ className = '' }: { className?: string }) {
+  return (
+    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>
   );
 }
@@ -464,7 +624,86 @@ function NativeVideoPlayer({ src, poster }: { src: string; poster?: string }) {
 
 export function PostCard({ post }: { post: PostDto }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const currentUserId = useAppStore((state) => state.auth.user?.id);
   const hasMedia = post.media && post.media.length > 0;
+  
+  // Check if this is the current user's post
+  const isOwnPost = currentUserId && post.author?.id === currentUserId;
+  
+  // State declarations
+  const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
+  const [isSendGiftOpen, setIsSendGiftOpen] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [showPostMenu, setShowPostMenu] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!showPostMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!menuButtonRef.current?.contains(e.target as Node)) {
+        setShowPostMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPostMenu]);
+
+  const handleBlockUser = async () => {
+    if (!post.author?.id) return;
+    setIsBlocking(true);
+    try {
+      await dataSync.blockUser({
+        id: post.author.id,
+        displayName: post.author.displayName || '',
+        handle: post.author.handle || '',
+        avatarUrl: post.author.avatarUrl,
+      });
+      setStatusBanner({
+        kind: 'success',
+        message: `Blocked ${post.author.displayName || post.author.handle}`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to block user',
+      });
+    } finally {
+      setIsBlocking(false);
+      setShowBlockConfirm(false);
+    }
+  };
+
+  const handleReportPost = async (reason: string) => {
+    try {
+      // Using the SDK's report API
+      await (dataSync as unknown as { createReport: (params: { targetType: string; targetId: string; reason: string }) => Promise<void> }).createReport({
+        targetType: 'POST',
+        targetId: post.id,
+        reason,
+      });
+      setStatusBanner({
+        kind: 'success',
+        message: 'Report submitted successfully',
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to submit report',
+      });
+    } finally {
+      setShowReportModal(false);
+    }
+  };
   const firstMedia = hasMedia
     ? post.media.find((m) => {
         const mediaType = normalizeMediaType(m.type);
@@ -479,25 +718,96 @@ export function PostCard({ post }: { post: PostDto }) {
     post.author && typeof post.author === 'object'
   ) ? (post.author as Record<string, unknown>) : null;
 
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSendGiftOpen, setIsSendGiftOpen] = useState(false);
-  const [isFriend, setIsFriend] = useState(authorRecord?.isFriend === true);
-  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  // Update isFriend when authorRecord changes
+  useEffect(() => {
+    setIsFriend(authorRecord?.isFriend === true);
+  }, [authorRecord?.isFriend]);
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsLiked(!isLiked);
+    setIsLiked((prev) => !prev);
   };
 
-  const handleChat = (e: React.MouseEvent) => {
+  const handleChat = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    
     const userId = post.author?.id || (post.author as unknown as { _id?: string })?._id;
-    if (userId) {
-      navigate('/chat', { state: { userId } });
-    } else {
-      // Fallback: just navigate to chat page
-      navigate('/chat');
+    if (!userId) {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Cannot start chat: user ID not found',
+      });
+      return;
+    }
+
+    // Check if author is an agent
+    const isAgent = post.author?.isAgent;
+    
+    if (isAgent) {
+      // For agents, use local-chat
+      let worldId = '';
+      try {
+        const profile = await dataSync.loadUserProfile(userId);
+        const payload = profile as Record<string, unknown>;
+        const direct = String(payload.worldId || '').trim();
+        if (direct) {
+          worldId = direct;
+        } else {
+          const agent = payload.agent && typeof payload.agent === 'object'
+            ? (payload.agent as Record<string, unknown>)
+            : null;
+          const fromAgent = String(agent?.worldId || '').trim();
+          if (fromAgent) {
+            worldId = fromAgent;
+          }
+        }
+      } catch {
+        // keep fallback empty worldId
+      }
+
+      setRuntimeFields({
+        targetType: 'AGENT',
+        targetAccountId: '',
+        agentId: userId,
+        worldId,
+      });
+      setActiveTab('mod:local-chat');
+      return;
+    }
+
+    // For regular users, start a chat
+    try {
+      // First, start/create the chat
+      const result = await dataSync.startChat(userId);
+      if (!result?.chatId) {
+        throw new Error('Failed to create chat');
+      }
+      const chatId = String(result.chatId);
+      
+      // Set runtime fields before switching tab
+      setRuntimeFields({
+        targetType: 'FRIEND',
+        targetAccountId: userId,
+        agentId: '',
+        worldId: '',
+      });
+      
+      // Invalidate and refresh chat list
+      await queryClient.invalidateQueries({ queryKey: ['chats'] });
+      
+      // Switch to chat tab
+      setActiveTab('chat');
+      
+      // Set the selected chat ID after a small delay to ensure ChatList has loaded
+      setTimeout(() => {
+        setSelectedChatId(chatId);
+      }, 100);
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to open chat',
+      });
     }
   };
 
@@ -569,9 +879,14 @@ export function PostCard({ post }: { post: PostDto }) {
             </div>
           </div>
 
-          <div className="flex flex-col justify-between h-11">
+          <div className="flex flex-col justify-between h-11 relative">
             <button
+              ref={menuButtonRef}
               type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPostMenu(!showPostMenu);
+              }}
               className="p-1.5 -mr-1.5 -mt-1.5 text-gray-300 hover:text-gray-500 hover:bg-gray-50 rounded-lg transition-colors self-end"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -580,6 +895,45 @@ export function PostCard({ post }: { post: PostDto }) {
                 <circle cx="5" cy="12" r="1" />
               </svg>
             </button>
+            
+            {/* Post Menu Dropdown */}
+            {showPostMenu && (
+              <div className="absolute right-0 top-8 z-20 w-40 rounded-xl border border-gray-100 bg-white shadow-lg py-1">
+                {!isOwnPost && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPostMenu(false);
+                      setShowBlockConfirm(true);
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    </svg>
+                    Block User
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPostMenu(false);
+                    setShowReportModal(true);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Report Post
+                </button>
+              </div>
+            )}
             <span className="text-xs text-gray-400 self-end">
               {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
@@ -618,6 +972,7 @@ export function PostCard({ post }: { post: PostDto }) {
           )}
           {/* Action Buttons */}
           <div className="flex items-center gap-4 shrink-0 pt-0.5">
+            {/* Like Button */}
             <button
               type="button"
               onClick={(e) => handleLike(e)}
@@ -627,23 +982,28 @@ export function PostCard({ post }: { post: PostDto }) {
             >
               <HeartIcon size={18} filled={isLiked} />
             </button>
-            <button
-              type="button"
-              onClick={(e) => handleChat(e)}
-              className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
-            >
-              <ChatIcon size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSendGiftOpen(true);
-              }}
-              className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
-            >
-              <GiftIcon size={18} />
-            </button>
+            {/* Chat and Gift buttons - only show for other users' posts */}
+            {!isOwnPost && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => handleChat(e)}
+                  className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
+                >
+                  <ChatIcon size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSendGiftOpen(true);
+                  }}
+                  className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
+                >
+                  <GiftIcon size={18} />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -688,6 +1048,45 @@ export function PostCard({ post }: { post: PostDto }) {
           setShowAddFriendModal(false);
         }}
       />
+
+      {/* Block Confirm Modal */}
+      {showBlockConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowBlockConfirm(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Block User</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Are you sure you want to block <span className="font-medium text-gray-700">{post.author?.displayName || post.author?.handle}</span>? You won't see their posts anymore.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowBlockConfirm(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBlockUser}
+                disabled={isBlocking}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {isBlocking ? 'Blocking...' : 'Block'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          post={post}
+          onClose={() => setShowReportModal(false)}
+          onSubmit={handleReportPost}
+        />
+      )}
     </>
   );
 }
