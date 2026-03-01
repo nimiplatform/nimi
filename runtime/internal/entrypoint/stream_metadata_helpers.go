@@ -132,7 +132,7 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 		pairs = append(pairs, "x-nimi-trace-id", metadataValue.TraceID)
 	}
 	if source := strings.ToLower(strings.TrimSpace(metadataValue.CredentialSource)); source != "" {
-		pairs = append(pairs, "x-nimi-credential-source", source)
+		pairs = append(pairs, "x-nimi-key-source", source)
 	}
 	if endpoint := strings.TrimSpace(metadataValue.ProviderEndpoint); endpoint != "" {
 		pairs = append(pairs, "x-nimi-provider-endpoint", endpoint)

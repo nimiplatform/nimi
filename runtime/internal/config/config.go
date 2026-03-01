@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -27,6 +28,19 @@ type Config struct {
 	HTTPAddr              string
 	ShutdownTimeout       time.Duration
 	LocalRuntimeStatePath string
+
+	// AllowLoopbackProviderEndpoint permits HTTP (non-TLS) connections to
+	// loopback addresses (127.0.0.0/8, ::1, localhost) for provider endpoints.
+	// Default: false. (K-SEC-002, K-DAEMON-009)
+	AllowLoopbackProviderEndpoint bool
+
+	// SessionTTLMinSeconds is the minimum TTL in seconds allowed for auth
+	// sessions. Requests below this bound are rejected. Default: 60. (K-AUTHSVC-004)
+	SessionTTLMinSeconds int
+
+	// SessionTTLMaxSeconds is the maximum TTL in seconds allowed for auth
+	// sessions. Requests above this bound are rejected. Default: 86400. (K-AUTHSVC-004)
+	SessionTTLMaxSeconds int
 }
 
 type FileConfig struct {
@@ -81,10 +95,13 @@ func Load() (Config, error) {
 	applyImplicitProviderDefaults()
 
 	cfg := Config{
-		GRPCAddr:              readString("NIMI_RUNTIME_GRPC_ADDR", firstNonEmptyString(fileCfg.Runtime.GRPCAddr, defaultGRPCAddr)),
-		HTTPAddr:              readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.Runtime.HTTPAddr, defaultHTTPAddr)),
-		ShutdownTimeout:       10 * time.Second,
-		LocalRuntimeStatePath: resolveLocalRuntimeStatePath(fileCfg),
+		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", firstNonEmptyString(fileCfg.Runtime.GRPCAddr, defaultGRPCAddr)),
+		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.Runtime.HTTPAddr, defaultHTTPAddr)),
+		ShutdownTimeout:               10 * time.Second,
+		LocalRuntimeStatePath:         resolveLocalRuntimeStatePath(fileCfg),
+		AllowLoopbackProviderEndpoint: readBool("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", false),
+		SessionTTLMinSeconds:          readInt("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", 60),
+		SessionTTLMaxSeconds:          readInt("NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS", 86400),
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))
@@ -124,6 +141,30 @@ func readString(envKey string, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func readBool(envKey string, fallback bool) bool {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv(envKey)))
+	switch raw {
+	case "true", "1", "yes":
+		return true
+	case "false", "0", "no":
+		return false
+	default:
+		return fallback
+	}
+}
+
+func readInt(envKey string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(envKey))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return fallback
+	}
+	return value
 }
 
 func firstNonEmptyString(values ...string) string {

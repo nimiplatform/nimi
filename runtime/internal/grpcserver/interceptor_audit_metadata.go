@@ -93,7 +93,7 @@ func providerCredentialMetadata(ctx context.Context) (string, string, string) {
 	if !ok {
 		return "", "", ""
 	}
-	source := strings.ToLower(firstMetadata(md, "x-nimi-credential-source"))
+	source := strings.ToLower(firstMetadata(md, "x-nimi-key-source"))
 	endpoint := firstMetadata(md, "x-nimi-provider-endpoint")
 	apiKey := firstMetadata(md, "x-nimi-provider-api-key")
 	return source, endpoint, secretFingerprint(apiKey)

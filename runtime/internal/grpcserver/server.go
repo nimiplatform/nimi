@@ -20,6 +20,7 @@ import (
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
+	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 	localruntimeservice "github.com/nimiplatform/nimi/runtime/internal/services/localruntime"
@@ -71,7 +72,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 	aiHealth := providerhealth.New()
 
 	h := grpcHealth.NewServer()
-	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog)
+	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog, grantservice.WithAuditStore(auditStore))
 	g := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			newUnaryLifecycleInterceptor(state),
@@ -98,9 +99,20 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, workerproxy.NewLocalRuntimeProxy(workerPool))
 		logger.Info("runtime worker proxy mode enabled")
 	} else {
-		aiSvc := aiservice.NewWithDependencies(logger, modelRegistry, aiHealth, auditStore)
+		connStore := connectorservice.NewConnectorStore(connectorservice.ResolveBasePath())
+		if err := connStore.ReconcileStartup(); err != nil {
+			logger.Warn("connector store reconcile startup failed", "error", err)
+		}
+		connectorservice.EnsureLocalConnectors(connStore)
+
+		aiSvc := aiservice.NewWithAllDependencies(logger, modelRegistry, aiHealth, auditStore, connStore)
 		aiSvc.SetModelRegistryPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
+
+		connSvc := connectorservice.New(logger, connStore, auditStore)
+		connSvc.SetCloudProvider(aiSvc.CloudProvider())
+		runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
+
 		runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger))
 		modelSvc := modelservice.New(logger, modelRegistry)
 		modelSvc.SetPersistencePath(registryPath)
@@ -110,7 +122,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 	}
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
-	runtimev1.RegisterRuntimeAuthServiceServer(g, authservice.NewWithRegistry(logger, appRegistry))
+	runtimev1.RegisterRuntimeAuthServiceServer(g, authservice.NewWithDependencies(
+		logger, appRegistry, auditStore,
+		cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds,
+	))
 	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger))
 	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger))
 
@@ -191,4 +206,5 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeKnowledgeService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeConnectorService_ServiceDesc.ServiceName, servingStatus)
 }

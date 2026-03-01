@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"sync"
@@ -55,6 +56,12 @@ func (s *Supervisor) Start(ctx context.Context, names []string) error {
 	return nil
 }
 
+// backoffWithJitter returns the base backoff duration plus a uniform random
+// jitter in [0, 500ms] to prevent thundering herd on mass restart (K-DAEMON-004).
+func backoffWithJitter(base time.Duration) time.Duration {
+	return base + time.Duration(rand.Int64N(500_000_000))
+}
+
 func (s *Supervisor) loopWorker(ctx context.Context, name string) {
 	restartBackoff := 2 * time.Second
 	socketPath, socketErr := workeripc.SocketPath(name)
@@ -76,7 +83,7 @@ func (s *Supervisor) loopWorker(ctx context.Context, name string) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(restartBackoff):
+			case <-time.After(backoffWithJitter(restartBackoff)):
 				continue
 			}
 		}
@@ -89,7 +96,7 @@ func (s *Supervisor) loopWorker(ctx context.Context, name string) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(restartBackoff):
+		case <-time.After(backoffWithJitter(restartBackoff)):
 		}
 	}
 }
