@@ -41,9 +41,12 @@ type Service struct {
 	catalog  []*runtimev1.LocalCatalogModelDescriptor
 }
 
-func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string) *Service {
+func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) *Service {
 	if logger == nil {
 		logger = slog.Default()
+	}
+	if localAuditCapacity <= 0 {
+		localAuditCapacity = 5000
 	}
 	verified := defaultVerifiedModels()
 	svc := &Service{
@@ -52,7 +55,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string) *Ser
 		stateStorePath: resolveLocalRuntimeStatePath(stateStorePath),
 		models:         make(map[string]*runtimev1.LocalModelRecord),
 		services:       make(map[string]*runtimev1.LocalServiceDescriptor),
-		audits:         make([]*runtimev1.LocalAuditEvent, 0, 1024),
+		audits:         make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:       verified,
 		catalog:        defaultCatalogFromVerified(verified),
 	}

@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
@@ -59,7 +60,7 @@ func Run(role string) error {
 		if loadErr != nil {
 			registry = modelregistry.New()
 		}
-		svc := aiservice.NewWithDependencies(logger, registry, providerhealth.New(), nil)
+		svc := aiservice.New(logger, registry, providerhealth.New(), nil, nil, config.Config{})
 		svc.SetModelRegistryPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeAiServiceServer(server, svc)
 	case "model":
@@ -76,7 +77,7 @@ func Run(role string) error {
 	case "script":
 		runtimev1.RegisterScriptWorkerServiceServer(server, scriptworkerservice.New(logger))
 	case "localruntime":
-		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(server, localruntimeservice.New(logger, nil, ""))
+		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(server, localruntimeservice.New(logger, nil, "", 0))
 	}
 
 	errCh := make(chan error, 1)

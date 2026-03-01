@@ -13,7 +13,7 @@ import (
 func newTestService(t *testing.T) *Service {
 	t.Helper()
 	statePath := filepath.Join(t.TempDir(), "local-runtime-state.json")
-	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath)
+	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
 }
 
 func TestLocalRuntimeModelLifecycle(t *testing.T) {
@@ -602,7 +602,7 @@ func TestLocalRuntimeStateRestoresAfterRestart(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-runtime-state.json")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	svc := New(logger, nil, statePath)
+	svc := New(logger, nil, statePath, 0)
 	installedModel, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/persisted-model",
 		Capabilities: []string{"chat"},
@@ -620,7 +620,7 @@ func TestLocalRuntimeStateRestoresAfterRestart(t *testing.T) {
 		t.Fatalf("install service: %v", err)
 	}
 
-	restarted := New(logger, nil, statePath)
+	restarted := New(logger, nil, statePath, 0)
 	modelsResp, err := restarted.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
 	if err != nil {
 		t.Fatalf("list models after restart: %v", err)

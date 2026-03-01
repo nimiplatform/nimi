@@ -18,7 +18,7 @@ func TestLiveSmokeLocalGenerateText(t *testing.T) {
 	modelID := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_MODEL_ID")
 	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{
 			"localai": {BaseURL: baseURL, APIKey: apiKey},
 			"nexa":    {BaseURL: baseURL, APIKey: apiKey},
@@ -52,7 +52,7 @@ func TestLiveSmokeNimiLLMGenerateText(t *testing.T) {
 	modelID := requiredLiveEnv(t, "NIMI_LIVE_NIMILLM_MODEL_ID")
 	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_NIMILLM_API_KEY"))
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"nimillm": {BaseURL: baseURL, APIKey: apiKey},
 		},
@@ -89,7 +89,7 @@ func TestLiveSmokeLocalSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{
 			"localai": {BaseURL: baseURL, APIKey: apiKey},
 			"nexa":    {BaseURL: baseURL, APIKey: apiKey},
@@ -188,7 +188,7 @@ func TestLiveSmokeNimiLLMSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"nimillm": {BaseURL: baseURL, APIKey: apiKey},
 		},
@@ -294,7 +294,7 @@ func TestLiveSmokeBytedanceSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine":           {BaseURL: baseURL, APIKey: apiKey},
 			"volcengine_openspeech": {BaseURL: speechBaseURL, APIKey: speechAPIKey},
@@ -393,7 +393,7 @@ func TestLiveSmokeAlibabaSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"dashscope": {BaseURL: baseURL, APIKey: apiKey},
 		},
@@ -491,7 +491,7 @@ func TestLiveSmokeGeminiSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"gemini": {BaseURL: baseURL, APIKey: apiKey},
 		},
@@ -589,7 +589,7 @@ func TestLiveSmokeMiniMaxSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"minimax": {BaseURL: baseURL, APIKey: apiKey},
 		},
@@ -687,7 +687,7 @@ func TestLiveSmokeKimiSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"kimi": {BaseURL: baseURL, APIKey: apiKey},
 		},
@@ -765,7 +765,7 @@ func TestLiveSmokeGLMSubmitMediaJobModalities(t *testing.T) {
 		audioMIME = "audio/wav"
 	}
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"glm": {BaseURL: baseURL, APIKey: apiKey},
 		},

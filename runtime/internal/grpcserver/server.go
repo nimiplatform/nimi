@@ -27,7 +27,6 @@ import (
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"github.com/nimiplatform/nimi/runtime/internal/workerproxy"
-	"github.com/nimiplatform/nimi/runtime/internal/workers"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -47,8 +46,8 @@ type Server struct {
 
 func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 	addr := cfg.GRPCAddr
-	auditStore := auditlog.New(20_000, 50_000)
-	idempotencyStore := idempotency.New(24 * time.Hour)
+	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
+	idempotencyStore := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
 	appRegistry := appregistry.New()
 	scopeCatalog := scopecatalog.New(func(operation string, version string, code runtimev1.ReasonCode) {
 		appendAuditEvent(auditStore, auditEventInput{
@@ -91,7 +90,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditservice.New(state, logger, aiHealth, auditStore))
 
 	var workerPool *workerproxy.ConnPool
-	if workers.Enabled() {
+	if cfg.WorkerMode {
 		workerPool = workerproxy.NewConnPool(logger)
 		runtimev1.RegisterRuntimeAiServiceServer(g, workerproxy.NewAIProxy(workerPool))
 		runtimev1.RegisterRuntimeWorkflowServiceServer(g, workerproxy.NewWorkflowProxy(workerPool))
@@ -105,7 +104,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 		}
 		connectorservice.EnsureLocalConnectors(connStore)
 
-		aiSvc := aiservice.NewWithAllDependencies(logger, modelRegistry, aiHealth, auditStore, connStore)
+		aiSvc := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
 		aiSvc.SetModelRegistryPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 
@@ -117,7 +116,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 		modelSvc := modelservice.New(logger, modelRegistry)
 		modelSvc.SetPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
-		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath))
+		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath, cfg.LocalAuditCapacity))
 		logger.Info("runtime in-process mode enabled")
 	}
 

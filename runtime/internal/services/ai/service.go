@@ -4,6 +4,7 @@ import (
 	"context"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -50,31 +51,35 @@ type Service struct {
 	connStore    *connector.ConnectorStore
 }
 
-func New(logger *slog.Logger, cfg ...Config) *Service {
-	return NewWithRegistry(logger, nil, cfg...)
-}
-
-func NewWithRegistry(logger *slog.Logger, registry *modelregistry.Registry, cfg ...Config) *Service {
-	return NewWithDependencies(logger, registry, nil, nil, cfg...)
-}
-
-func NewWithDependencies(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, cfg ...Config) *Service {
-	return NewWithAllDependencies(logger, registry, aiHealth, auditStore, nil, cfg...)
-}
-
-// NewWithAllDependencies creates a Service with all dependencies including connector store.
-func NewWithAllDependencies(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg ...Config) *Service {
+// New creates a Service with all dependencies.
+func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) *Service {
 	effectiveCfg := loadConfigFromEnv()
-	if len(cfg) > 0 {
-		effectiveCfg = cfg[0].normalized()
+	globalConc := daemonCfg.GlobalConcurrencyLimit
+	if globalConc <= 0 {
+		globalConc = 8
+	}
+	perAppConc := daemonCfg.PerAppConcurrencyLimit
+	if perAppConc <= 0 {
+		perAppConc = 2
+	}
+	return newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
+}
+
+// newFromProviderConfig is an internal constructor used by New and tests.
+func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) *Service {
+	if globalConc <= 0 {
+		globalConc = 8
+	}
+	if perAppConc <= 0 {
+		perAppConc = 2
 	}
 	return &Service{
 		logger:    logger,
-		config:    effectiveCfg,
-		selector:  newRouteSelectorWithRegistry(effectiveCfg, registry, aiHealth),
+		config:    cfg,
+		selector:  newRouteSelectorWithRegistry(cfg, registry, aiHealth),
 		audit:     auditStore,
 		registry:  registry,
-		scheduler: scheduler.New(scheduler.Config{GlobalConcurrency: 8, PerAppConcurrency: 2, StarvationThreshold: 30 * time.Second}),
+		scheduler: scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
 		mediaJobs: newMediaJobStore(),
 		connStore: connStore,
 	}

@@ -33,6 +33,38 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.LocalRuntimeStatePath != expectedStatePath {
 		t.Fatalf("state path mismatch: got=%q want=%q", cfg.LocalRuntimeStatePath, expectedStatePath)
 	}
+
+	// K-DAEMON-009 new fields defaults
+	if cfg.WorkerMode != false {
+		t.Fatalf("workerMode default should be false")
+	}
+	if cfg.AIHealthIntervalSeconds != 8 {
+		t.Fatalf("aiHealthIntervalSeconds default mismatch: got=%d want=8", cfg.AIHealthIntervalSeconds)
+	}
+	if cfg.AIHTTPTimeoutSeconds != 30 {
+		t.Fatalf("aiHttpTimeoutSeconds default mismatch: got=%d want=30", cfg.AIHTTPTimeoutSeconds)
+	}
+	if cfg.GlobalConcurrencyLimit != 8 {
+		t.Fatalf("globalConcurrencyLimit default mismatch: got=%d want=8", cfg.GlobalConcurrencyLimit)
+	}
+	if cfg.PerAppConcurrencyLimit != 2 {
+		t.Fatalf("perAppConcurrencyLimit default mismatch: got=%d want=2", cfg.PerAppConcurrencyLimit)
+	}
+	if cfg.IdempotencyCapacity != 10000 {
+		t.Fatalf("idempotencyCapacity default mismatch: got=%d want=10000", cfg.IdempotencyCapacity)
+	}
+	if cfg.MaxDelegationDepth != 3 {
+		t.Fatalf("maxDelegationDepth default mismatch: got=%d want=3", cfg.MaxDelegationDepth)
+	}
+	if cfg.AuditRingBufferSize != 20000 {
+		t.Fatalf("auditRingBufferSize default mismatch: got=%d want=20000", cfg.AuditRingBufferSize)
+	}
+	if cfg.UsageStatsBufferSize != 50000 {
+		t.Fatalf("usageStatsBufferSize default mismatch: got=%d want=50000", cfg.UsageStatsBufferSize)
+	}
+	if cfg.LocalAuditCapacity != 5000 {
+		t.Fatalf("localAuditCapacity default mismatch: got=%d want=5000", cfg.LocalAuditCapacity)
+	}
 }
 
 func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
@@ -353,6 +385,92 @@ func TestLoadAppliesGeminiAliasFromEnvironment(t *testing.T) {
 	}
 }
 
+func TestLoadEnvOverridesNewFields(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_WORKER_MODE", "true")
+	t.Setenv("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", "16")
+	t.Setenv("NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT", "4")
+	t.Setenv("NIMI_RUNTIME_IDEMPOTENCY_CAPACITY", "5000")
+	t.Setenv("NIMI_RUNTIME_MAX_DELEGATION_DEPTH", "5")
+	t.Setenv("NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE", "10000")
+	t.Setenv("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", "25000")
+	t.Setenv("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", "2000")
+	t.Setenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", "15")
+	t.Setenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", "60")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if !cfg.WorkerMode {
+		t.Fatal("workerMode should be true")
+	}
+	if cfg.GlobalConcurrencyLimit != 16 {
+		t.Fatalf("globalConcurrencyLimit got=%d want=16", cfg.GlobalConcurrencyLimit)
+	}
+	if cfg.PerAppConcurrencyLimit != 4 {
+		t.Fatalf("perAppConcurrencyLimit got=%d want=4", cfg.PerAppConcurrencyLimit)
+	}
+	if cfg.IdempotencyCapacity != 5000 {
+		t.Fatalf("idempotencyCapacity got=%d want=5000", cfg.IdempotencyCapacity)
+	}
+	if cfg.MaxDelegationDepth != 5 {
+		t.Fatalf("maxDelegationDepth got=%d want=5", cfg.MaxDelegationDepth)
+	}
+	if cfg.AuditRingBufferSize != 10000 {
+		t.Fatalf("auditRingBufferSize got=%d want=10000", cfg.AuditRingBufferSize)
+	}
+	if cfg.UsageStatsBufferSize != 25000 {
+		t.Fatalf("usageStatsBufferSize got=%d want=25000", cfg.UsageStatsBufferSize)
+	}
+	if cfg.LocalAuditCapacity != 2000 {
+		t.Fatalf("localAuditCapacity got=%d want=2000", cfg.LocalAuditCapacity)
+	}
+	if cfg.AIHealthIntervalSeconds != 15 {
+		t.Fatalf("aiHealthIntervalSeconds got=%d want=15", cfg.AIHealthIntervalSeconds)
+	}
+	if cfg.AIHTTPTimeoutSeconds != 60 {
+		t.Fatalf("aiHttpTimeoutSeconds got=%d want=60", cfg.AIHTTPTimeoutSeconds)
+	}
+}
+
+func TestLoadFlatFileConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "grpcAddr": "127.0.0.1:50001",
+  "httpAddr": "127.0.0.1:50002",
+  "shutdownTimeout": "15s",
+  "localRuntimeStatePath": "~/custom/state.json"
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.GRPCAddr != "127.0.0.1:50001" {
+		t.Fatalf("grpc mismatch: %q", cfg.GRPCAddr)
+	}
+	if cfg.HTTPAddr != "127.0.0.1:50002" {
+		t.Fatalf("http mismatch: %q", cfg.HTTPAddr)
+	}
+	if cfg.ShutdownTimeout != 15*time.Second {
+		t.Fatalf("shutdown timeout mismatch: %s", cfg.ShutdownTimeout)
+	}
+	if cfg.LocalRuntimeStatePath != filepath.Join(homeDir, "custom/state.json") {
+		t.Fatalf("state path mismatch: %q", cfg.LocalRuntimeStatePath)
+	}
+}
+
 func clearRuntimeConfigEnv(t *testing.T) {
 	t.Helper()
 	keys := []string{
@@ -384,6 +502,19 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY",
 		"GEMINI_API_KEY",
 		"LOCALAI_API_KEY",
+		"NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT",
+		"NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS",
+		"NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS",
+		"NIMI_RUNTIME_WORKER_MODE",
+		"NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS",
+		"NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS",
+		"NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT",
+		"NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT",
+		"NIMI_RUNTIME_IDEMPOTENCY_CAPACITY",
+		"NIMI_RUNTIME_MAX_DELEGATION_DEPTH",
+		"NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE",
+		"NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE",
+		"NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY",
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")

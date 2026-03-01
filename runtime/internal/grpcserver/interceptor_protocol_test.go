@@ -19,7 +19,7 @@ import (
 )
 
 func TestUnaryProtocolInterceptorRejectsMissingMetadata(t *testing.T) {
-	interceptor := newUnaryProtocolInterceptor(idempotency.New(0))
+	interceptor := newUnaryProtocolInterceptor(idempotency.New(0, 0))
 	handlerCalled := false
 	_, err := interceptor(context.Background(), &runtimev1.RemoveModelRequest{
 		AppId:   "nimi.desktop",
@@ -41,7 +41,7 @@ func TestUnaryProtocolInterceptorRejectsMissingMetadata(t *testing.T) {
 }
 
 func TestUnaryProtocolInterceptorReplaysIdempotentWrite(t *testing.T) {
-	interceptor := newUnaryProtocolInterceptor(idempotency.New(0))
+	interceptor := newUnaryProtocolInterceptor(idempotency.New(0, 0))
 	callCount := 0
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-protocol-version", "1.0.0",
@@ -88,7 +88,7 @@ func TestUnaryProtocolInterceptorReplaysIdempotentWrite(t *testing.T) {
 }
 
 func TestUnaryProtocolInterceptorRejectsVersionMinorMismatch(t *testing.T) {
-	interceptor := newUnaryProtocolInterceptor(idempotency.New(0))
+	interceptor := newUnaryProtocolInterceptor(idempotency.New(0, 0))
 	handlerCalled := false
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-protocol-version", "1.0.0",

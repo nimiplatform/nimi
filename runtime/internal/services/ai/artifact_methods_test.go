@@ -25,7 +25,7 @@ func TestEmbedLegacyWrapper(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 

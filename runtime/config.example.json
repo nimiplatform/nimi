@@ -1,55 +1,7 @@
 {
   "schemaVersion": 1,
-  "runtime": {
-    "grpcAddr": "127.0.0.1:46371",
-    "httpAddr": "127.0.0.1:46372",
-    "shutdownTimeout": "10s",
-    "localRuntimeStatePath": "~/.nimi/runtime/local-runtime-state.json"
-  },
-  "ai": {
-    "httpTimeout": "30s",
-    "healthInterval": "8s",
-    "providers": {
-      "local": {
-        "baseUrl": "http://127.0.0.1:8080",
-        "apiKeyEnv": "LOCALAI_API_KEY"
-      },
-      "local-nexa": {
-        "baseUrl": "http://127.0.0.1:18181",
-        "apiKeyEnv": "NEXA_API_KEY"
-      },
-      "nimillm": {
-        "baseUrl": "http://127.0.0.1:4000",
-        "apiKeyEnv": "NIMILLM_API_KEY"
-      },
-      "alibaba": {
-        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode",
-        "apiKeyEnv": "DASHSCOPE_API_KEY"
-      },
-      "bytedance": {
-        "baseUrl": "https://ark.cn-beijing.volces.com",
-        "apiKeyEnv": "ARK_API_KEY"
-      },
-      "bytedance-openspeech": {
-        "baseUrl": "https://openspeech.bytedance.com",
-        "apiKeyEnv": "OPENSPEECH_API_KEY"
-      },
-      "gemini": {
-        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "apiKeyEnv": "GEMINI_API_KEY"
-      },
-      "minimax": {
-        "baseUrl": "https://api.minimax.io",
-        "apiKeyEnv": "MINIMAX_API_KEY"
-      },
-      "kimi": {
-        "baseUrl": "https://api.moonshot.cn",
-        "apiKeyEnv": "MOONSHOT_API_KEY"
-      },
-      "glm": {
-        "baseUrl": "https://api.z.ai/api/paas/v4",
-        "apiKeyEnv": "ZAI_API_KEY"
-      }
-    }
-  }
+  "grpcAddr": "127.0.0.1:46371",
+  "httpAddr": "127.0.0.1:46372",
+  "shutdownTimeout": "10s",
+  "localRuntimeStatePath": "~/.nimi/runtime/local-runtime-state.json"
 }

@@ -33,7 +33,7 @@ func TestGenerateSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
@@ -65,7 +65,7 @@ func TestGenerateSuccess(t *testing.T) {
 }
 
 func TestGenerateFallbackDenied(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
 		AppId:         "nimi.desktop",
@@ -105,7 +105,7 @@ func TestGenerateHonorsRequestTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
@@ -159,7 +159,7 @@ func TestStreamGenerateSequence(t *testing.T) {
 	}))
 	defer streamServer.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
@@ -228,7 +228,7 @@ func TestStreamGenerateUsesProviderNativeStream(t *testing.T) {
 	}))
 	defer streamServer.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
@@ -278,7 +278,7 @@ func TestStreamGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 	}))
 	defer streamServer.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
@@ -335,7 +335,7 @@ func TestStreamGenerateFirstPacketTimeoutEmitsFailedEvent(t *testing.T) {
 	}))
 	defer streamServer.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
@@ -382,7 +382,7 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 	}))
 	defer streamServer.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
@@ -434,14 +434,16 @@ func TestGenerateRejectsUnhealthyHintedProvider(t *testing.T) {
 	healthTracker.Mark("cloud-nimillm", true, "")
 	healthTracker.Mark("cloud-dashscope", false, "timeout")
 
-	svc := NewWithDependencies(
+	svc := newFromProviderConfig(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		registry,
 		healthTracker,
 		auditlog.New(128, 128),
+		nil,
 		Config{
 			CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: nimiServer.URL}},
-		},
+		}.normalized(),
+		8, 2,
 	)
 
 	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{

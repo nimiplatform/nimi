@@ -364,31 +364,34 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.SchemaVersion != 0 {
 		merged.SchemaVersion = raw.SchemaVersion
 	}
-	if strings.TrimSpace(raw.Runtime.GRPCAddr) != "" {
-		merged.Runtime.GRPCAddr = raw.Runtime.GRPCAddr
+	// Merge from flat or legacy nested keys.
+	if v := raw.EffectiveGRPCAddr(); v != "" {
+		merged.GRPCAddr = v
+		merged.Runtime.GRPCAddr = v
 	}
-	if strings.TrimSpace(raw.Runtime.HTTPAddr) != "" {
-		merged.Runtime.HTTPAddr = raw.Runtime.HTTPAddr
+	if v := raw.EffectiveHTTPAddr(); v != "" {
+		merged.HTTPAddr = v
+		merged.Runtime.HTTPAddr = v
 	}
-	if strings.TrimSpace(raw.Runtime.ShutdownTimeout) != "" {
-		merged.Runtime.ShutdownTimeout = raw.Runtime.ShutdownTimeout
+	if v := raw.EffectiveShutdownTimeout(); v != "" {
+		merged.ShutdownTimeout = v
+		merged.Runtime.ShutdownTimeout = v
 	}
-	if strings.TrimSpace(raw.Runtime.LocalRuntimeStatePath) != "" {
-		merged.Runtime.LocalRuntimeStatePath = raw.Runtime.LocalRuntimeStatePath
-	}
-
-	if strings.TrimSpace(raw.AI.HTTPTimeout) != "" {
-		merged.AI.HTTPTimeout = raw.AI.HTTPTimeout
-	}
-	if strings.TrimSpace(raw.AI.HealthInterval) != "" {
-		merged.AI.HealthInterval = raw.AI.HealthInterval
+	if v := raw.EffectiveLocalRuntimeStatePath(); v != "" {
+		merged.LocalRuntimeStatePath = v
+		merged.Runtime.LocalRuntimeStatePath = v
 	}
 
+	if v := raw.EffectiveAIHTTPTimeout(); v != "" {
+		merged.AI.HTTPTimeout = v
+	}
+	if v := raw.EffectiveAIHealthInterval(); v != "" {
+		merged.AI.HealthInterval = v
+	}
+	providers := raw.EffectiveProviders()
 	mergedProviders := map[string]config.RuntimeFileTarget{}
-	if raw.AI.Providers != nil {
-		for providerName, providerCfg := range raw.AI.Providers {
-			mergedProviders[providerName] = providerCfg
-		}
+	for k, v := range providers {
+		mergedProviders[k] = v
 	}
 	merged.AI.Providers = mergedProviders
 	return merged

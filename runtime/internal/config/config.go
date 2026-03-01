@@ -22,7 +22,7 @@ const (
 	defaultCloudGeminiBaseURL       = "https://generativelanguage.googleapis.com/v1beta/openai"
 )
 
-// Config defines daemon boot configuration.
+// Config defines daemon boot configuration. (K-DAEMON-009)
 type Config struct {
 	GRPCAddr              string
 	HTTPAddr              string
@@ -41,22 +41,74 @@ type Config struct {
 	// SessionTTLMaxSeconds is the maximum TTL in seconds allowed for auth
 	// sessions. Requests above this bound are rejected. Default: 86400. (K-AUTHSVC-004)
 	SessionTTLMaxSeconds int
+
+	// WorkerMode enables runtime worker supervisor/proxy mode.
+	// Default: false. (K-DAEMON-004, K-DAEMON-009)
+	WorkerMode bool
+
+	// AIHealthIntervalSeconds is the interval in seconds between AI provider
+	// health probes. Default: 8. (K-DAEMON-009)
+	AIHealthIntervalSeconds int
+
+	// AIHTTPTimeoutSeconds is the HTTP timeout in seconds for AI provider
+	// requests. Default: 30. (K-DAEMON-009)
+	AIHTTPTimeoutSeconds int
+
+	// GlobalConcurrencyLimit is the maximum number of concurrent AI requests
+	// across all apps. Default: 8. (K-DAEMON-009)
+	GlobalConcurrencyLimit int
+
+	// PerAppConcurrencyLimit is the maximum number of concurrent AI requests
+	// per app. Default: 2. (K-DAEMON-009)
+	PerAppConcurrencyLimit int
+
+	// IdempotencyCapacity is the maximum number of idempotency entries retained
+	// before LRU eviction. Default: 10000. (K-DAEMON-009)
+	IdempotencyCapacity int
+
+	// MaxDelegationDepth is the maximum depth of delegation chains.
+	// Default: 3. (K-DAEMON-009)
+	MaxDelegationDepth int
+
+	// AuditRingBufferSize is the capacity of the in-memory audit event ring
+	// buffer. Default: 20000. (K-DAEMON-009)
+	AuditRingBufferSize int
+
+	// UsageStatsBufferSize is the capacity of the in-memory usage stats ring
+	// buffer. Default: 50000. (K-DAEMON-009)
+	UsageStatsBufferSize int
+
+	// LocalAuditCapacity is the capacity of the local runtime audit event
+	// buffer. Default: 5000. (K-DAEMON-009)
+	LocalAuditCapacity int
 }
 
+// FileConfig is the on-disk JSON schema for runtime configuration.
+// Top-level flat keys per K-DAEMON-009. Cloud provider credentials are
+// env-only and not represented here.
 type FileConfig struct {
-	SchemaVersion int                 `json:"schemaVersion"`
-	Runtime       RuntimeFileConfig   `json:"runtime"`
-	AI            RuntimeFileAIConfig `json:"ai"`
+	SchemaVersion         int    `json:"schemaVersion"`
+	GRPCAddr              string `json:"grpcAddr,omitempty"`
+	HTTPAddr              string `json:"httpAddr,omitempty"`
+	ShutdownTimeout       string `json:"shutdownTimeout,omitempty"`
+	LocalRuntimeStatePath string `json:"localRuntimeStatePath,omitempty"`
+
+	// Legacy nested structure — supported for backward-compatible loading only.
+	// New configs should use top-level keys.
+	Runtime *LegacyRuntimeFileConfig `json:"runtime,omitempty"`
+	AI      *LegacyAIFileConfig      `json:"ai,omitempty"`
 }
 
-type RuntimeFileConfig struct {
+// LegacyRuntimeFileConfig supports the old nested "runtime" key.
+type LegacyRuntimeFileConfig struct {
 	GRPCAddr              string `json:"grpcAddr"`
 	HTTPAddr              string `json:"httpAddr"`
 	ShutdownTimeout       string `json:"shutdownTimeout"`
 	LocalRuntimeStatePath string `json:"localRuntimeStatePath"`
 }
 
-type RuntimeFileAIConfig struct {
+// LegacyAIFileConfig supports the old nested "ai" key.
+type LegacyAIFileConfig struct {
 	HTTPTimeout    string                       `json:"httpTimeout"`
 	HealthInterval string                       `json:"healthInterval"`
 	Providers      map[string]RuntimeFileTarget `json:"providers"`
@@ -68,16 +120,89 @@ type RuntimeFileTarget struct {
 	APIKeyEnv string `json:"apiKeyEnv"`
 }
 
+// effectiveGRPCAddr returns the grpcAddr from flat or legacy nested config.
+func (f FileConfig) EffectiveGRPCAddr() string {
+	if v := strings.TrimSpace(f.GRPCAddr); v != "" {
+		return v
+	}
+	if f.Runtime != nil {
+		return strings.TrimSpace(f.Runtime.GRPCAddr)
+	}
+	return ""
+}
+
+// effectiveHTTPAddr returns the httpAddr from flat or legacy nested config.
+func (f FileConfig) EffectiveHTTPAddr() string {
+	if v := strings.TrimSpace(f.HTTPAddr); v != "" {
+		return v
+	}
+	if f.Runtime != nil {
+		return strings.TrimSpace(f.Runtime.HTTPAddr)
+	}
+	return ""
+}
+
+// effectiveShutdownTimeout returns shutdownTimeout from flat or legacy.
+func (f FileConfig) EffectiveShutdownTimeout() string {
+	if v := strings.TrimSpace(f.ShutdownTimeout); v != "" {
+		return v
+	}
+	if f.Runtime != nil {
+		return strings.TrimSpace(f.Runtime.ShutdownTimeout)
+	}
+	return ""
+}
+
+// effectiveLocalRuntimeStatePath returns localRuntimeStatePath from flat or legacy.
+func (f FileConfig) EffectiveLocalRuntimeStatePath() string {
+	if v := strings.TrimSpace(f.LocalRuntimeStatePath); v != "" {
+		return v
+	}
+	if f.Runtime != nil {
+		return strings.TrimSpace(f.Runtime.LocalRuntimeStatePath)
+	}
+	return ""
+}
+
+// effectiveAIHTTPTimeout returns ai httpTimeout from legacy nested config.
+func (f FileConfig) EffectiveAIHTTPTimeout() string {
+	if f.AI != nil {
+		return strings.TrimSpace(f.AI.HTTPTimeout)
+	}
+	return ""
+}
+
+// effectiveAIHealthInterval returns ai healthInterval from legacy nested config.
+func (f FileConfig) EffectiveAIHealthInterval() string {
+	if f.AI != nil {
+		return strings.TrimSpace(f.AI.HealthInterval)
+	}
+	return ""
+}
+
+// effectiveProviders returns providers from legacy nested config.
+func (f FileConfig) EffectiveProviders() map[string]RuntimeFileTarget {
+	if f.AI != nil && f.AI.Providers != nil {
+		return f.AI.Providers
+	}
+	return nil
+}
+
 func DefaultFileConfig() FileConfig {
 	return FileConfig{
-		SchemaVersion: DefaultSchemaVersion,
-		Runtime: RuntimeFileConfig{
+		SchemaVersion:         DefaultSchemaVersion,
+		GRPCAddr:              defaultGRPCAddr,
+		HTTPAddr:              defaultHTTPAddr,
+		ShutdownTimeout:       "10s",
+		LocalRuntimeStatePath: "~/" + defaultLocalRuntimeStateRelPath,
+		// Legacy nested structs are initialized for backward compat with CLI config commands.
+		Runtime: &LegacyRuntimeFileConfig{
 			GRPCAddr:              defaultGRPCAddr,
 			HTTPAddr:              defaultHTTPAddr,
 			ShutdownTimeout:       "10s",
 			LocalRuntimeStatePath: "~/" + defaultLocalRuntimeStateRelPath,
 		},
-		AI: RuntimeFileAIConfig{
+		AI: &LegacyAIFileConfig{
 			HTTPTimeout:    "30s",
 			HealthInterval: "8s",
 			Providers:      map[string]RuntimeFileTarget{},
@@ -95,18 +220,28 @@ func Load() (Config, error) {
 	applyImplicitProviderDefaults()
 
 	cfg := Config{
-		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", firstNonEmptyString(fileCfg.Runtime.GRPCAddr, defaultGRPCAddr)),
-		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.Runtime.HTTPAddr, defaultHTTPAddr)),
+		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", firstNonEmptyString(fileCfg.EffectiveGRPCAddr(), defaultGRPCAddr)),
+		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.EffectiveHTTPAddr(), defaultHTTPAddr)),
 		ShutdownTimeout:               10 * time.Second,
 		LocalRuntimeStatePath:         resolveLocalRuntimeStatePath(fileCfg),
 		AllowLoopbackProviderEndpoint: readBool("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", false),
 		SessionTTLMinSeconds:          readInt("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", 60),
 		SessionTTLMaxSeconds:          readInt("NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS", 86400),
+		WorkerMode:                    readBool("NIMI_RUNTIME_WORKER_MODE", false),
+		AIHealthIntervalSeconds:       readInt("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", 8),
+		AIHTTPTimeoutSeconds:          readInt("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", 30),
+		GlobalConcurrencyLimit:        readInt("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", 8),
+		PerAppConcurrencyLimit:        readInt("NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT", 2),
+		IdempotencyCapacity:           readInt("NIMI_RUNTIME_IDEMPOTENCY_CAPACITY", 10000),
+		MaxDelegationDepth:            readInt("NIMI_RUNTIME_MAX_DELEGATION_DEPTH", 3),
+		AuditRingBufferSize:           readInt("NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE", 20000),
+		UsageStatsBufferSize:          readInt("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", 50000),
+		LocalAuditCapacity:            readInt("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", 5000),
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))
 	if shutdownTimeoutRaw == "" {
-		shutdownTimeoutRaw = strings.TrimSpace(fileCfg.Runtime.ShutdownTimeout)
+		shutdownTimeoutRaw = fileCfg.EffectiveShutdownTimeout()
 	}
 	if shutdownTimeoutRaw != "" {
 		d, err := time.ParseDuration(shutdownTimeoutRaw)
@@ -191,7 +326,7 @@ func resolveLocalRuntimeStatePath(fileCfg FileConfig) string {
 	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH")); value != "" {
 		return value
 	}
-	if value := strings.TrimSpace(fileCfg.Runtime.LocalRuntimeStatePath); value != "" {
+	if value := fileCfg.EffectiveLocalRuntimeStatePath(); value != "" {
 		return expandUserPath(value)
 	}
 	home, err := os.UserHomeDir()
@@ -372,7 +507,7 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 	if fileCfg.SchemaVersion != DefaultSchemaVersion {
 		return fmt.Errorf("schemaVersion must be %d", DefaultSchemaVersion)
 	}
-	for providerName, providerCfg := range fileCfg.AI.Providers {
+	for providerName, providerCfg := range fileCfg.EffectiveProviders() {
 		if isLegacyProviderName(providerName) {
 			return fmt.Errorf("provider %q is forbidden", providerName)
 		}
@@ -433,14 +568,14 @@ type providerEnvBinding struct {
 }
 
 func applyAIEnvDefaults(fileCfg FileConfig) {
-	if timeout := strings.TrimSpace(fileCfg.AI.HTTPTimeout); timeout != "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT")) == "" {
+	if timeout := fileCfg.EffectiveAIHTTPTimeout(); timeout != "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT")) == "" {
 		_ = os.Setenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT", timeout)
 	}
-	if interval := strings.TrimSpace(fileCfg.AI.HealthInterval); interval != "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL")) == "" {
+	if interval := fileCfg.EffectiveAIHealthInterval(); interval != "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL")) == "" {
 		_ = os.Setenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL", interval)
 	}
 
-	for providerName, providerCfg := range fileCfg.AI.Providers {
+	for providerName, providerCfg := range fileCfg.EffectiveProviders() {
 		binding, ok := resolveProviderBinding(providerName)
 		if !ok {
 			continue

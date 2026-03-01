@@ -62,7 +62,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	workerCtx, stopWorkers := context.WithCancel(context.Background())
 	defer stopWorkers()
-	if workers.Enabled() {
+	if d.cfg.WorkerMode {
 		d.workers = workers.New(d.logger, "", d.onWorkerStateChange)
 		if err := d.workers.Start(workerCtx, runtimeWorkerNames); err != nil {
 			d.logger.Error("start worker supervisor failed", "error", err)
@@ -180,8 +180,14 @@ func (d *Daemon) sampleAIProviderHealth(stop <-chan struct{}) {
 		return
 	}
 
-	timeout := aiProviderProbeTimeout()
-	interval := aiProviderProbeInterval()
+	timeout := time.Duration(d.cfg.AIHTTPTimeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	interval := time.Duration(d.cfg.AIHealthIntervalSeconds) * time.Second
+	if interval <= 0 {
+		interval = 8 * time.Second
+	}
 	client := &http.Client{Timeout: timeout}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -283,38 +289,11 @@ func configuredAIProviderTargets() []aiProviderTarget {
 	return targets
 }
 
-func firstNonEmptyEnv(keys ...string) string {
-	for _, key := range keys {
-		value := strings.TrimSpace(os.Getenv(key))
-		if value != "" {
-			return value
-		}
-	}
-	return ""
-}
 
-func aiProviderProbeTimeout() time.Duration {
-	raw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT"))
-	if raw != "" {
-		timeout, err := time.ParseDuration(raw)
-		if err == nil && timeout > 0 {
-			return timeout
-		}
-	}
-	return 30 * time.Second
-}
-
-func aiProviderProbeInterval() time.Duration {
-	raw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL"))
-	if raw != "" {
-		interval, err := time.ParseDuration(raw)
-		if err == nil && interval > 0 {
-			return interval
-		}
-	}
-	return 8 * time.Second
-}
-
+// probeAIProvider checks provider health per K-PROV-003:
+//   - 2xx/401/403/429 = healthy
+//   - 404 = try next path
+//   - other 4xx/5xx = unhealthy
 func probeAIProvider(client *http.Client, target aiProviderTarget) error {
 	paths := []string{"/healthz", "/v1/models"}
 	var lastErr error
@@ -336,10 +315,16 @@ func probeAIProvider(client *http.Client, target aiProviderTarget) error {
 		}
 		resp.Body.Close()
 
-		if resp.StatusCode >= 200 && resp.StatusCode < 500 {
-			return nil
+		switch {
+		case resp.StatusCode >= 200 && resp.StatusCode < 300:
+			return nil // 2xx = healthy
+		case resp.StatusCode == 401, resp.StatusCode == 403, resp.StatusCode == 429:
+			return nil // auth/rate-limit = healthy (provider is reachable)
+		case resp.StatusCode == 404:
+			continue // try next path
+		default:
+			lastErr = fmt.Errorf("status=%d", resp.StatusCode)
 		}
-		lastErr = fmt.Errorf("status=%d", resp.StatusCode)
 	}
 	if lastErr != nil {
 		return lastErr

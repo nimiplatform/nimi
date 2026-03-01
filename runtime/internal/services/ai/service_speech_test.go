@@ -16,7 +16,7 @@ import (
 )
 
 func TestGetSpeechVoicesReturnsPresets(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
@@ -42,7 +42,7 @@ func TestGetSpeechVoicesReturnsPresets(t *testing.T) {
 }
 
 func TestGetSpeechVoicesDashScopePresets(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
@@ -66,7 +66,7 @@ func TestGetSpeechVoicesDashScopePresets(t *testing.T) {
 }
 
 func TestGetSpeechVoicesValidation(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	_, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
 		AppId:         "",
@@ -91,7 +91,7 @@ func TestStreamSpeechSynthesisSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
@@ -141,7 +141,7 @@ func TestStreamSpeechSynthesisSuccess(t *testing.T) {
 }
 
 func TestStreamSpeechSynthesisValidation(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	mockStream := &mockArtifactChunkStream{ctx: context.Background()}
 
@@ -172,7 +172,7 @@ func TestStreamSpeechSynthesisLargePayloadChunking(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
@@ -217,7 +217,7 @@ func TestStreamSpeechSynthesisLargePayloadChunking(t *testing.T) {
 }
 
 func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
