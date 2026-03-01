@@ -1,0 +1,23 @@
+version: 1
+event_types:
+  - type: world_agent_gift
+    description: "world 内 Agent 礼物事件"
+    subject_to_share: true
+    source: R-ECON-010
+  - type: world_trade
+    description: "world 上下文内交易事件"
+    subject_to_share: true
+    source: R-ECON-010
+  - type: extension_app_world_trade
+    description: "extension-app 绑定 world 后的交易事件"
+    subject_to_share: true
+    source: R-ECON-010
+  - type: off_world_trade
+    description: "无 world 上下文的交易事件"
+    subject_to_share: false
+    source: R-ECON-010
+
+context_rules:
+  - "事件必须携带 worldId 且通过 world 可见性/绑定校验"
+  - "extension-app 事件必须命中有效 worldId -> extensionAppId 绑定"
+  - "未命中 world 上下文的事件不得混入 Creator 分成池"

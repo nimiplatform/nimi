@@ -1,0 +1,68 @@
+version: 1
+pricing_model: non_uniform_step
+tiers:
+  - tier: 1
+    key_range: "1-20"
+    unit_price_usd: 20
+    capacity: 20
+    cumulative_keys: 20
+    cumulative_revenue_usd: 400
+    source: R-ECON-001
+  - tier: 2
+    key_range: "21-50"
+    unit_price_usd: 50
+    capacity: 30
+    cumulative_keys: 50
+    cumulative_revenue_usd: 1900
+    source: R-ECON-001
+  - tier: 3
+    key_range: "51-100"
+    unit_price_usd: 120
+    capacity: 50
+    cumulative_keys: 100
+    cumulative_revenue_usd: 7900
+    source: R-ECON-001
+  - tier: 4
+    key_range: "101-200"
+    unit_price_usd: 300
+    capacity: 100
+    cumulative_keys: 200
+    cumulative_revenue_usd: 37900
+    source: R-ECON-001
+  - tier: 5
+    key_range: "201-400"
+    unit_price_usd: 800
+    capacity: 200
+    cumulative_keys: 400
+    cumulative_revenue_usd: 197900
+    source: R-ECON-001
+  - tier: 6
+    key_range: "401-700"
+    unit_price_usd: 2000
+    capacity: 300
+    cumulative_keys: 700
+    cumulative_revenue_usd: 797900
+    source: R-ECON-001
+  - tier: 7
+    key_range: "701-1000"
+    unit_price_usd: 5000
+    capacity: 300
+    cumulative_keys: 1000
+    cumulative_revenue_usd: 2297900
+    source: R-ECON-001
+  - tier: 8
+    key_range: "1001+"
+    unit_price_usd: 10000
+    capacity: open
+    cumulative_keys: null
+    cumulative_revenue_usd: null
+    source: R-ECON-001
+
+constraints:
+  - "一账户一 Key"
+  - "无赠送/转让"
+  - "无激活时限"
+  - "激活选目标（一次性、不可逆）"
+  - "绑定即消耗"
+  - "前期引导阶段免费 Key 上限 20 个（占同池配额）"
+  - "Tier 8 不设总量上限"

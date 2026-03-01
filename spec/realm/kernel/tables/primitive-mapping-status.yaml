@@ -1,0 +1,37 @@
+version: 1
+mappings:
+  - primitive: timeflow
+    code_anchor: "nimi-realm world timeflow domain services"
+    status: PARTIAL
+    gap: "已有时间流速/时间差计算基础，但与协议字段 (tick/driftBudget/catchUpPolicy) 缺统一合同层映射"
+    source: R-INTEROP-001
+  - primitive: social
+    code_anchor: "nimi-realm social + relationship domains"
+    status: PARTIAL
+    gap: "具备社交基础能力，但跨 World 映射与拒绝语义未形成统一 primitive 适配层"
+    source: R-INTEROP-001
+  - primitive: economy
+    code_anchor: "nimi-realm economy + revenue-share domains"
+    status: PARTIAL
+    gap: "有交易与分账实现，但 conservationRequired/settlementWindow 的协议级验证点未绑定"
+    source: R-INTEROP-001
+  - primitive: transit
+    code_anchor: "nimi-realm world transit domain"
+    status: PARTIAL
+    gap: "有跨 world 迁移与配额逻辑，但状态模型/拒绝语义/跨原语一致性校验需补齐"
+    source: R-INTEROP-001
+  - primitive: context
+    code_anchor: "nimi-realm world-context domain"
+    status: PARTIAL
+    gap: "已有 world context 数据能力，但 contextScope/injectionPriority/handoffPolicy 未统一"
+    source: R-INTEROP-001
+  - primitive: presence
+    code_anchor: "nimi-realm user + discovery domains"
+    status: PARTIAL
+    gap: "有在线状态与可见性字段，但 heartbeat/ttl/device merge 规则未统一执行"
+    source: R-INTEROP-001
+
+valid_statuses:
+  - COVERED
+  - PARTIAL
+  - MISSING

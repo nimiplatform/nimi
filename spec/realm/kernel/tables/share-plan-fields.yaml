@@ -1,0 +1,56 @@
+version: 1
+fields:
+  - field: sharePlanId
+    type: string
+    required: true
+    source: R-ECON-020
+  - field: eventType
+    type: string
+    required: true
+    source: R-ECON-020
+  - field: participants
+    type: array
+    required: true
+    subfields:
+      - role
+      - accountId
+      - percentageBps
+    source: R-ECON-020
+  - field: effectiveFrom
+    type: datetime
+    required: true
+    source: R-ECON-020
+  - field: effectiveTo
+    type: datetime
+    required: false
+    source: R-ECON-020
+  - field: status
+    type: enum
+    required: true
+    values: [draft, active, retired]
+    source: R-ECON-020
+  - field: settlementWindowSeconds
+    type: int
+    required: true
+    constraint: "60..86400"
+    source: R-ECON-020
+
+validation_rules:
+  - rule: "participants.percentageBps 总和必须等于 10000"
+    source: R-ECON-021
+  - rule: "world_* 事件中必须存在 creator 角色"
+    source: R-ECON-022
+  - rule: "extension_app_world_trade 事件中必须存在 platform + creator + extension_app 三方角色"
+    source: R-ECON-023
+  - rule: "active 计划变更后仅影响新事件，不回写历史分账"
+    source: R-ECON-024
+  - rule: "同一 eventType 同一时刻最多一个 active Share Plan，激活新计划须先退休前计划"
+    source: R-ECON-025
+
+ledgers:
+  - name: key_fiat_earmarked_ledger
+    purpose: "Creator Key 法币专项收入"
+    source: R-ECON-030
+  - name: ops_spark_gem_ledger
+    purpose: "Spark/Gem 运营分账与结算"
+    source: R-ECON-030

@@ -1,0 +1,46 @@
+version: 1
+boundaries:
+  - domain: world
+    vocabulary:
+      - term: World
+        description: "世界实体，Nimi OASIS 核心资产"
+      - term: Worldview
+        description: "世界观，规则根 1:1 绑定 world"
+      - term: WorldAccessControl
+        description: "创建/维护/发布权限控制"
+      - term: WorldMutation
+        description: "World 变更记录"
+      - term: WorldMaintenanceSnapshot
+        description: "维护快照"
+    lifecycle: "draft -> published -> maintained"
+    change_domains: "world/worldview/events/lorebooks/mutations"
+    knowledge_delete_semantic: "逻辑归档 (archive)，不承诺物理硬删"
+    source: R-BOUND-001
+
+  - domain: agent
+    vocabulary:
+      - term: AgentProfile
+        description: "Agent 身份配置"
+      - term: AgentOwnership
+        description: "归属类型 (MASTER_OWNED / WORLD_OWNED)"
+      - term: AgentWorldBinding
+        description: "Agent-World 绑定"
+      - term: AgentMemory
+        description: "记忆入口 (core / e2e)"
+    ownership_model: "MASTER_OWNED (用户直属) / WORLD_OWNED (世界托管)"
+    memory_entry_points: "core (基础人格记忆) / e2e (对话记忆)"
+    source: R-BOUND-002
+
+  - domain: social
+    vocabulary:
+      - term: Friendship
+        description: "关系原子"
+      - term: RelationshipType
+        description: "主体关系类型 (HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT, AGENT_HUMAN)"
+      - term: RelationshipStatus
+        description: "关系状态 (ACTIVE | BLOCKED | PENDING)"
+      - term: SocialPrecondition
+        description: "聊天/互动前置条件判定"
+    relationship_lifecycle: "PENDING -> ACTIVE -> BLOCKED (可逆至 ACTIVE)"
+    relationship_types: "HUMAN_HUMAN, HUMAN_AGENT, AGENT_AGENT, AGENT_HUMAN"
+    source: R-BOUND-003
