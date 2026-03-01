@@ -117,6 +117,7 @@ type CreateDataSyncActionsInput = {
   callApiTask: DataSyncCallApi;
   emitFacadeError: DataSyncEmitError;
   setToken: (token: string | null | undefined) => void;
+  setRefreshToken: (token: string | null | undefined) => void;
   clearAuth: () => void;
   stopAllPolling: () => void;
   isFriend: (userId: string) => boolean;
@@ -365,9 +366,9 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     resolveChatRoute: async (data: DesktopChatRouteRequestDto): Promise<DesktopChatRouteResultDto> =>
       resolveChatRoute(input.callApiTask, data, input.emitFacadeError),
     login: async (identifier: string, password: string, debug?: PasswordAuthDebug) =>
-      loginWithPassword(input.callApiTask, (token) => input.setToken(token), identifier, password, debug),
+      loginWithPassword(input.callApiTask, (token) => input.setToken(token), identifier, password, debug, (token) => input.setRefreshToken(token)),
     register: async (email: string, password: string, debug?: PasswordAuthDebug) =>
-      registerWithPassword(input.callApiTask, (token) => input.setToken(token), email, password, debug),
+      registerWithPassword(input.callApiTask, (token) => input.setToken(token), email, password, debug, (token) => input.setRefreshToken(token)),
     logout: async () =>
       logoutWithCleanup({
         callApi: input.callApiTask,

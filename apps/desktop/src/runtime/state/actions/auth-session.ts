@@ -1,13 +1,13 @@
 import type { StoreActionContext } from './action-context';
 
-export function setAuthState(ctx: StoreActionContext, user: unknown, token: string) {
-  ctx.state.auth = { isAuthenticated: true, user, token };
+export function setAuthState(ctx: StoreActionContext, user: unknown, token: string, refreshToken?: string | null) {
+  ctx.state.auth = { isAuthenticated: true, user, token, refreshToken: refreshToken ?? ctx.state.auth.refreshToken };
   ctx.emit('authChange', ctx.state.auth);
   ctx.persistState();
 }
 
 export function clearAuthState(ctx: StoreActionContext) {
-  ctx.state.auth = { isAuthenticated: false, user: null, token: null };
+  ctx.state.auth = { isAuthenticated: false, user: null, token: null, refreshToken: null };
   ctx.emit('authChange', ctx.state.auth);
   ctx.persistState();
 }

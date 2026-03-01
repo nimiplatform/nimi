@@ -5,6 +5,7 @@ export type AuthState = {
   isAuthenticated: boolean;
   user: unknown;
   token: string | null;
+  refreshToken?: string | null;
 };
 
 export type SessionState = {

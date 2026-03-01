@@ -89,7 +89,7 @@ export class Store extends EventEmitter<StoreEventMap> {
     else this.setState(path, updates);
   }
 
-  setAuth(user: unknown, token: string) { setAuthState(this.actionContext, user, token); }
+  setAuth(user: unknown, token: string, refreshToken?: string | null) { setAuthState(this.actionContext, user, token, refreshToken); }
   clearAuth() { clearAuthState(this.actionContext); }
   getToken() { return getAuthToken(this.actionContext); }
   getCurrentUser() { return getAuthUser(this.actionContext); }

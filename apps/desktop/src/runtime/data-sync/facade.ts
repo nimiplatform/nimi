@@ -2,7 +2,8 @@ import { store } from '@runtime/state';
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
 import type { AuthState } from '@runtime/state';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
-import type { Realm } from '@nimiplatform/sdk/realm';
+import { Realm } from '@nimiplatform/sdk/realm';
+import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
@@ -40,6 +41,7 @@ const DATA_SYNC_HOT_STATE_KEY = '__NIMI_DATA_SYNC_API_CONFIG__' as const;
 type DataSyncHotState = {
   realmBaseUrl: string;
   accessToken: string;
+  refreshToken: string;
   fetchImpl: FetchImpl | null;
 };
 type DataSyncGlobalRef = typeof globalThis & {
@@ -58,6 +60,7 @@ function readDataSyncHotState(): DataSyncHotState | null {
   return {
     realmBaseUrl,
     accessToken: String(snapshot.accessToken || ''),
+    refreshToken: String(snapshot.refreshToken || ''),
     fetchImpl: typeof snapshot.fetchImpl === 'function' ? snapshot.fetchImpl : null,
   };
 }
@@ -67,6 +70,7 @@ function writeDataSyncHotState(state: DataSyncHotState) {
   globalRef[DATA_SYNC_HOT_STATE_KEY] = {
     realmBaseUrl: state.realmBaseUrl,
     accessToken: state.accessToken,
+    refreshToken: state.refreshToken,
     fetchImpl: state.fetchImpl,
   };
 }
@@ -74,7 +78,9 @@ function writeDataSyncHotState(state: DataSyncHotState) {
 export class DataSync {
   private realmBaseUrl = '';
   private accessToken = '';
+  private refreshToken = '';
   private fetchImpl: FetchImpl | null = null;
+  private proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly polling = new DataSyncPollingManager();
   private readonly callApiTask = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) =>
     this.callApi(task, fallbackMessage);
@@ -87,6 +93,7 @@ export class DataSync {
     callApiTask: this.callApiTask,
     emitFacadeError: this.emitFacadeError,
     setToken: (token) => this.setToken(token),
+    setRefreshToken: (token) => this.setRefreshToken(token),
     clearAuth: () => store.clearAuth(),
     stopAllPolling: () => this.stopAllPolling(),
     isFriend: (userId) => this.isFriend(userId),
@@ -104,6 +111,7 @@ export class DataSync {
     }
     this.realmBaseUrl = hotState.realmBaseUrl;
     this.accessToken = hotState.accessToken;
+    this.refreshToken = hotState.refreshToken;
     this.fetchImpl = hotState.fetchImpl;
     return true;
   }
@@ -115,6 +123,7 @@ export class DataSync {
     writeDataSyncHotState({
       realmBaseUrl: this.realmBaseUrl,
       accessToken: this.accessToken,
+      refreshToken: this.refreshToken,
       fetchImpl: this.fetchImpl,
     });
   }
@@ -122,9 +131,15 @@ export class DataSync {
   initApi(config?: DataSyncApiConfig) {
     this.realmBaseUrl = normalizeRealmBaseUrl(config?.realmBaseUrl);
     this.accessToken = String(config?.accessToken || '');
+    this.refreshToken = String(config?.refreshToken || '');
     this.fetchImpl = typeof config?.fetchImpl === 'function' ? config.fetchImpl : null;
     this.persistApiToHotState();
     return this;
+  }
+
+  setRefreshToken(token: string | null | undefined) {
+    this.refreshToken = String(token || '');
+    this.persistApiToHotState();
   }
 
   setToken(token: string | null | undefined) {
@@ -146,7 +161,39 @@ export class DataSync {
         {
           realmBaseUrl: this.realmBaseUrl,
           accessToken: this.accessToken,
+          refreshToken: this.refreshToken,
           fetchImpl: this.fetchImpl,
+          onTokenRefreshed: (refreshResult: RealmTokenRefreshResult) => {
+            this.accessToken = refreshResult.accessToken;
+            if (refreshResult.refreshToken) {
+              this.refreshToken = refreshResult.refreshToken;
+            }
+            this.persistApiToHotState();
+            store.setAuth(
+              store.getCurrentUser(),
+              refreshResult.accessToken,
+              refreshResult.refreshToken,
+            );
+            this.scheduleProactiveRefresh(refreshResult.accessToken);
+            emitRuntimeLog({
+              level: 'info',
+              area: 'datasync',
+              message: 'action:token-refresh:success',
+            });
+          },
+          onRefreshFailed: (error: unknown) => {
+            emitRuntimeLog({
+              level: 'warn',
+              area: 'datasync',
+              message: 'action:token-refresh:failed',
+              details: {
+                error: error instanceof Error ? error.message : String(error || ''),
+              },
+            });
+            store.clearAuth();
+            this.stopAllPolling();
+            this.clearProactiveRefreshTimer();
+          },
         },
         task,
       );
@@ -159,10 +206,19 @@ export class DataSync {
 
   setupStoreListeners() {
     store.on('authChange', (auth: AuthState) => {
-      if (auth.isAuthenticated) this.setToken(auth.token);
-      else {
+      if (auth.isAuthenticated) {
+        this.setToken(auth.token);
+        if (auth.refreshToken) {
+          this.setRefreshToken(auth.refreshToken);
+        }
+        if (auth.token) {
+          this.scheduleProactiveRefresh(auth.token);
+        }
+      } else {
         this.setToken('');
+        this.setRefreshToken('');
         this.stopAllPolling();
+        this.clearProactiveRefreshTimer();
       }
     });
   }
@@ -364,15 +420,101 @@ export class DataSync {
   register(email: string, password: string, debug?: PasswordAuthDebug) {
     return this.actions.register(email, password, debug);
   }
-  async logout() { await this.actions.logout(); }
+  async logout() {
+    await this.actions.logout();
+    this.clearProactiveRefreshTimer();
+  }
   startPolling(key: string, callback: () => void, intervalMs: number) { this.polling.start(key, callback, intervalMs); }
   stopPolling(key: string) { this.polling.stop(key); }
   stopAllPolling() { this.polling.stopAll(); }
 
+  scheduleProactiveRefresh(accessToken: string) {
+    this.clearProactiveRefreshTimer();
+    if (!this.refreshToken) {
+      return;
+    }
+    const expiry = Realm.decodeTokenExpiry(accessToken);
+    if (!expiry) {
+      return;
+    }
+    const PROACTIVE_REFRESH_BUFFER_MS = 60_000;
+    const delayMs = Math.max(expiry.expiresInMs - PROACTIVE_REFRESH_BUFFER_MS, 1000);
+    this.proactiveRefreshTimer = setTimeout(() => {
+      this.proactiveRefreshTimer = null;
+      this.doProactiveRefresh();
+    }, delayMs);
+    emitRuntimeLog({
+      level: 'info',
+      area: 'datasync',
+      message: 'action:proactive-refresh:scheduled',
+      details: {
+        expiresAt: new Date(expiry.expiresAt).toISOString(),
+        refreshInMs: delayMs,
+      },
+    });
+  }
+
+  private async doProactiveRefresh() {
+    if (!this.refreshToken || !this.realmBaseUrl) {
+      return;
+    }
+    try {
+      const fetchFn = this.fetchImpl || globalThis.fetch.bind(globalThis);
+      const response = await fetchFn(`${this.realmBaseUrl}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: this.refreshToken }),
+      });
+      if (!response.ok) {
+        throw new Error(`refresh failed: ${response.status}`);
+      }
+      const data = await response.json() as Record<string, unknown>;
+      const tokens = (data.tokens || data) as Record<string, unknown>;
+      const newAccessToken = String(tokens.accessToken || '').trim();
+      if (!newAccessToken) {
+        throw new Error('refresh response missing accessToken');
+      }
+      const newRefreshToken = String(tokens.refreshToken || '').trim() || undefined;
+      this.accessToken = newAccessToken;
+      if (newRefreshToken) {
+        this.refreshToken = newRefreshToken;
+      }
+      this.persistApiToHotState();
+      store.setAuth(store.getCurrentUser(), newAccessToken, newRefreshToken);
+      this.scheduleProactiveRefresh(newAccessToken);
+      emitRuntimeLog({
+        level: 'info',
+        area: 'datasync',
+        message: 'action:proactive-refresh:success',
+      });
+    } catch (error) {
+      emitRuntimeLog({
+        level: 'warn',
+        area: 'datasync',
+        message: 'action:proactive-refresh:failed',
+        details: {
+          error: error instanceof Error ? error.message : String(error || ''),
+        },
+      });
+      store.clearAuth();
+      this.stopAllPolling();
+      this.clearProactiveRefreshTimer();
+    }
+  }
+
+  clearProactiveRefreshTimer() {
+    if (this.proactiveRefreshTimer) {
+      clearTimeout(this.proactiveRefreshTimer);
+      this.proactiveRefreshTimer = null;
+    }
+  }
+
   destroy() {
     this.stopAllPolling();
+    this.clearProactiveRefreshTimer();
     this.realmBaseUrl = '';
     this.accessToken = '';
+    this.refreshToken = '';
     this.fetchImpl = null;
   }
 }

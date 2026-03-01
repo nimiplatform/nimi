@@ -1,4 +1,5 @@
 import { Realm } from '@nimiplatform/sdk/realm';
+import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog, type RuntimeLogMessage } from '@runtime/telemetry/logger';
 
 type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -6,7 +7,10 @@ type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respo
 type OpenApiContextInput = {
   realmBaseUrl: string;
   accessToken?: string;
+  refreshToken?: string;
   fetchImpl?: FetchImpl | null;
+  onTokenRefreshed?: (result: RealmTokenRefreshResult) => void;
+  onRefreshFailed?: (error: unknown) => void;
 };
 
 let contextQueue: Promise<void> = Promise.resolve();
@@ -40,10 +44,14 @@ function emitContextLog(payload: {
 }
 
 function toRealm(input: OpenApiContextInput): Realm {
+  const refreshToken = String(input.refreshToken || '').trim();
   return new Realm({
     baseUrl: input.realmBaseUrl,
     auth: {
       accessToken: async () => String(input.accessToken || ''),
+      refreshToken: refreshToken || undefined,
+      onTokenRefreshed: input.onTokenRefreshed,
+      onRefreshFailed: input.onRefreshFailed,
     },
     fetchImpl: input.fetchImpl || undefined,
   });

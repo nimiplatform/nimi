@@ -10,6 +10,7 @@ export async function loginWithPassword(
   identifier: string,
   password: string,
   debug?: PasswordAuthDebug,
+  setRefreshToken?: (token: string | null | undefined) => void,
 ) {
   const traceId = traceIdOf(debug)
     || `datasync-login-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -43,8 +44,11 @@ export async function loginWithPassword(
     });
 
     if (result.tokens?.accessToken) {
-      store.setAuth(result.tokens.user, result.tokens.accessToken);
+      store.setAuth(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken);
       setToken(result.tokens.accessToken);
+      if (result.tokens.refreshToken) {
+        setRefreshToken?.(result.tokens.refreshToken);
+      }
     }
     return result;
   } catch (error) {
@@ -68,6 +72,7 @@ export async function registerWithPassword(
   email: string,
   password: string,
   debug?: PasswordAuthDebug,
+  setRefreshToken?: (token: string | null | undefined) => void,
 ) {
   const traceId = traceIdOf(debug)
     || `datasync-register-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -101,8 +106,11 @@ export async function registerWithPassword(
     });
 
     if (result.tokens?.accessToken) {
-      store.setAuth(result.tokens.user, result.tokens.accessToken);
+      store.setAuth(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken);
       setToken(result.tokens.accessToken);
+      if (result.tokens.refreshToken) {
+        setRefreshToken?.(result.tokens.refreshToken);
+      }
     }
     return result;
   } catch (error) {
