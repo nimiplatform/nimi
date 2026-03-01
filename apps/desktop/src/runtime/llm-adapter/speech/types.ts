@@ -1,5 +1,3 @@
-import type { ProviderType } from '../types';
-
 export type SpeechFormat = 'mp3' | 'wav' | 'opus' | 'pcm';
 
 export type SpeechSynthesizeRequest = {
@@ -56,34 +54,6 @@ export type SpeechHealthResult = {
   detail: string;
   checkedAt: string;
   latencyMs?: number;
-};
-
-export type SpeechAdapterConfig = {
-  name: string;
-  endpoint: string;
-  headers?: Record<string, string>;
-  fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-  transformRequest?: (params: Record<string, unknown>) => Record<string, unknown>;
-};
-
-export interface SpeechAdapter {
-  readonly type: ProviderType;
-  readonly config: SpeechAdapterConfig;
-  synthesize(request: SpeechSynthesizeRequest): Promise<SpeechSynthesizeResult>;
-  stream?(request: SpeechSynthesizeRequest): Promise<SpeechNativeStreamResponse>;
-  healthCheck(model?: string): Promise<SpeechHealthResult>;
-}
-
-export type SpeechStreamOpenRequest = {
-  providerType: ProviderType;
-  endpoint: string;
-  apiKey?: string;
-  model: string;
-  text: string;
-  voice?: string;
-  format?: SpeechFormat;
-  speed?: number;
-  sampleRateHz?: number;
 };
 
 export type SpeechStreamOpenResult = {

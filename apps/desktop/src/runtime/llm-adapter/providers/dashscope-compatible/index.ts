@@ -1,1 +1,0 @@
-export { DashScopeCompatibleAdapter } from './adapter';

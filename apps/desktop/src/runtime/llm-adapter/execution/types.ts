@@ -3,8 +3,6 @@ export const DEFAULT_OPENAI_ENDPOINT = 'http://127.0.0.1:1234/v1';
 export const PRIVATE_PROVIDER_TIMEOUT_MS = 60_000;
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-export type ProviderKind = 'OPENAI_COMPATIBLE' | 'LOCALAI_NATIVE' | 'FALLBACK';
-export type ProviderNamespace = 'localai' | 'nexa' | string;
 
 export type LocalAiProviderHints = {
   localai?: {
@@ -31,19 +29,7 @@ export type LocalAiProviderHints = {
   };
 } & Record<string, unknown>;
 
-export type ProviderPlan = {
-  providerKind: ProviderKind;
-  providerNamespace: ProviderNamespace;
-  providerRef: string;
-  modelHint: string;
-  endpoint: string | null;
-  model: string;
-  adapter: 'openai_compat_adapter' | 'localai_native_adapter';
-  providerHints?: LocalAiProviderHints;
-};
-
 export type ProviderHealth = {
-  providerKind: ProviderKind;
   provider: string;
   endpoint: string | null;
   model: string;

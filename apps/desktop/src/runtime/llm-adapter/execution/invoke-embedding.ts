@@ -3,7 +3,7 @@ import {
   buildRuntimeCallOptions,
   extractEmbeddings,
   getRuntimeClient,
-  resolveRuntimeAiCall,
+  resolveSourceAndModel,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeModEmbeddingInput, InvokeModEmbeddingOutput } from './types';
@@ -17,23 +17,19 @@ function normalizeEmbeddingInputs(input: string | string[]): string[] {
 }
 
 export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promise<InvokeModEmbeddingOutput> {
-  const runtimeCall = resolveRuntimeAiCall({
+  const resolved = resolveSourceAndModel({
     ...input,
-    modality: 'embedding',
     model: input.model,
   });
-  const source = runtimeCall.source;
-  const policyGate = runtimeCall.plan.providerHints?.nexa?.policyGate;
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
-    source,
-    provider: runtimeCall.plan.providerRef,
+    source: resolved.source,
+    provider: resolved.provider,
     modality: 'embedding',
-    adapter: runtimeCall.plan.adapter,
-    model: runtimeCall.modelId,
-    endpoint: runtimeCall.plan.endpoint,
-    policyGate,
+    adapter: resolved.adapter,
+    model: resolved.modelId,
+    endpoint: resolved.endpoint,
   });
 
   const inputs = normalizeEmbeddingInputs(input.input);
@@ -42,15 +38,14 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'embedding',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
       detail,
-      policyGate,
     });
     throw new Error(`LOCAL_AI_CAPABILITY_MISSING: ${detail}`);
   }
@@ -60,18 +55,18 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
     const response = await runtime.ai.embed({
       appId: runtime.appId,
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      modelId: runtimeCall.modelId,
+      modelId: resolved.modelId,
       inputs,
-      routePolicy: runtimeCall.routePolicy,
-      fallback: runtimeCall.fallbackPolicy,
+      routePolicy: resolved.routePolicy,
+      fallback: resolved.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       connectorId: String(input.connectorId || ''),
     }, await buildRuntimeCallOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      source,
+      source: resolved.source,
       connectorId: input.connectorId,
-      providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+      providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
     }));
     return {
       embeddings: extractEmbeddings((response as { vectors?: unknown }).vectors),
@@ -82,15 +77,14 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'embedding',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode,
       detail: normalizedError,
-      policyGate,
     });
     throw new Error(normalizedError);
   }

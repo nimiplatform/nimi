@@ -15,8 +15,6 @@ export type {
   InvokeModTranscribeInput,
   InvokeModTranscribeOutput,
   ProviderHealth,
-  ProviderKind,
-  ProviderPlan,
 } from './types';
 
 export { checkLocalLlmHealth } from './health-check';

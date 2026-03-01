@@ -2,7 +2,7 @@ import { emitInferenceAudit, parseReasonCode } from './inference-audit';
 import {
   buildRuntimeRequestMetadata,
   getRuntimeClient,
-  resolveRuntimeAiCall,
+  resolveSourceAndModel,
   resolveTranscribeAudio,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
@@ -11,23 +11,19 @@ import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { formatProviderError } from './utils';
 
 export async function invokeModTranscribe(input: InvokeModTranscribeInput): Promise<InvokeModTranscribeOutput> {
-  const runtimeCall = resolveRuntimeAiCall({
+  const resolved = resolveSourceAndModel({
     ...input,
-    modality: 'stt',
     model: input.model || input.localProviderModel,
   });
-  const source = runtimeCall.source;
-  const policyGate = runtimeCall.plan.providerHints?.nexa?.policyGate;
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
-    source,
-    provider: runtimeCall.plan.providerRef,
+    source: resolved.source,
+    provider: resolved.provider,
     modality: 'stt',
-    adapter: runtimeCall.plan.adapter,
-    model: runtimeCall.modelId,
-    endpoint: runtimeCall.plan.endpoint,
-    policyGate,
+    adapter: resolved.adapter,
+    model: resolved.modelId,
+    endpoint: resolved.endpoint,
   });
 
   try {
@@ -41,20 +37,20 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
     const runtime = getRuntimeClient();
     const response = await runtime.media.stt.transcribe({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      model: runtimeCall.modelId,
+      model: resolved.modelId,
       audio: {
         kind: 'bytes',
         bytes: audio.audioBytes,
       },
       mimeType: audio.mimeType,
       language: String(input.language || '').trim() || undefined,
-      route: source,
+      route: resolved.source,
       fallback: 'deny',
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata: await buildRuntimeRequestMetadata({
-        source,
+        source: resolved.source,
         connectorId: input.connectorId,
-        providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+        providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
       }),
       signal: input.abortSignal,
     });
@@ -68,15 +64,14 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'stt',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode,
       detail: normalizedError,
-      policyGate,
     });
     throw new Error(normalizedError);
   }

@@ -2,7 +2,7 @@ import { emitInferenceAudit, parseReasonCode } from './inference-audit';
 import {
   buildRuntimeStreamOptions,
   getRuntimeClient,
-  resolveRuntimeAiCall,
+  resolveSourceAndModel,
   RUNTIME_MODAL_TEXT,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
@@ -14,22 +14,16 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 export async function* invokeModLlmStream(
   input: InvokeModLlmInput,
 ): AsyncIterable<InvokeModLlmStreamEvent> {
-  const runtimeCall = resolveRuntimeAiCall({
-    ...input,
-    modality: 'chat',
-  });
-  const source = runtimeCall.source;
-  const policyGate = runtimeCall.plan.providerHints?.nexa?.policyGate;
+  const resolved = resolveSourceAndModel(input);
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
-    source,
-    provider: runtimeCall.plan.providerRef,
+    source: resolved.source,
+    provider: resolved.provider,
     modality: 'chat',
-    adapter: runtimeCall.plan.adapter,
-    model: runtimeCall.modelId,
-    endpoint: runtimeCall.plan.endpoint,
-    policyGate,
+    adapter: resolved.adapter,
+    model: resolved.modelId,
+    endpoint: resolved.endpoint,
     extra: { stream: true },
   });
 
@@ -38,15 +32,14 @@ export async function* invokeModLlmStream(
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'chat',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
       detail: 'prompt required',
-      policyGate,
       extra: { stream: true },
     });
     throw new Error('LOCAL_AI_CAPABILITY_MISSING: prompt required');
@@ -59,7 +52,7 @@ export async function* invokeModLlmStream(
     const stream = await runtime.ai.streamGenerate({
       appId: runtime.appId,
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      modelId: runtimeCall.modelId,
+      modelId: resolved.modelId,
       modal: RUNTIME_MODAL_TEXT,
       input: [{
         role: 'user',
@@ -71,17 +64,17 @@ export async function* invokeModLlmStream(
       temperature: typeof input.temperature === 'number' ? input.temperature : 0,
       topP: 0,
       maxTokens: input.maxTokens ?? 0,
-      routePolicy: runtimeCall.routePolicy,
-      fallback: runtimeCall.fallbackPolicy,
+      routePolicy: resolved.routePolicy,
+      fallback: resolved.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       connectorId: String(input.connectorId || ''),
     }, await buildRuntimeStreamOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       signal: scopedAbort.signal,
-      source,
+      source: resolved.source,
       connectorId: input.connectorId,
-      providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+      providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
     }));
 
     for await (const event of stream as AsyncIterable<{
@@ -94,25 +87,17 @@ export async function* invokeModLlmStream(
       const payload = event?.payload;
       if (payload?.oneofKind === 'delta') {
         const textDelta = String(payload.delta?.text || '');
-        if (!textDelta) {
-          continue;
-        }
+        if (!textDelta) continue;
         yield { type: 'text_delta', textDelta };
         continue;
       }
-
       if (payload?.oneofKind === 'completed') {
         doneEmitted = true;
         yield { type: 'done' };
         return;
       }
-
       if (payload?.oneofKind === 'failed') {
-        const runtimeError = {
-          reasonCode: payload.failed?.reasonCode,
-          message: String(payload.failed?.actionHint || 'stream failed'),
-        };
-        const reasonCode = toLocalAiReasonCode(runtimeError) || 'LOCAL_AI_PROVIDER_INTERNAL_ERROR';
+        const reasonCode = toLocalAiReasonCode({ reasonCode: payload.failed?.reasonCode }) || 'LOCAL_AI_PROVIDER_INTERNAL_ERROR';
         throw new Error(`${reasonCode}: ${String(payload.failed?.actionHint || 'stream failed')}`);
       }
     }
@@ -125,15 +110,14 @@ export async function* invokeModLlmStream(
       emitInferenceAudit({
         eventType: 'inference_failed',
         modId: input.modId,
-        source,
-        provider: runtimeCall.plan.providerRef,
+        source: resolved.source,
+        provider: resolved.provider,
         modality: 'chat',
-        adapter: runtimeCall.plan.adapter,
-        model: runtimeCall.modelId,
-        endpoint: runtimeCall.plan.endpoint,
+        adapter: resolved.adapter,
+        model: resolved.modelId,
+        endpoint: resolved.endpoint,
         reasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
         detail: `provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`,
-        policyGate,
         extra: { stream: true },
       });
       throw new Error(`LOCAL_AI_PROVIDER_TIMEOUT: provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`);
@@ -142,15 +126,14 @@ export async function* invokeModLlmStream(
       emitInferenceAudit({
         eventType: 'inference_failed',
         modId: input.modId,
-        source,
-        provider: runtimeCall.plan.providerRef,
+        source: resolved.source,
+        provider: resolved.provider,
         modality: 'chat',
-        adapter: runtimeCall.plan.adapter,
-        model: runtimeCall.modelId,
-        endpoint: runtimeCall.plan.endpoint,
+        adapter: resolved.adapter,
+        model: resolved.modelId,
+        endpoint: resolved.endpoint,
         reasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
         detail: 'stream aborted by caller',
-        policyGate,
         extra: { stream: true },
       });
       throw new Error('LOCAL_AI_PROVIDER_TIMEOUT: stream aborted by caller');
@@ -160,15 +143,14 @@ export async function* invokeModLlmStream(
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'chat',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode,
       detail: normalizedError,
-      policyGate,
       extra: { stream: true },
     });
     throw new Error(normalizedError);

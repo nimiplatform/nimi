@@ -1,29 +1,17 @@
-import type { ProviderType } from '../../types';
-import { SpeechAssetStore } from '../asset-store';
 import { SpeechStreamRuntime } from '../stream-runtime';
 import type {
-  SpeechProviderDescriptor,
   SpeechStreamControlAction,
   SpeechStreamOpenResult,
   SpeechSynthesizeRequest,
-  SpeechSynthesizeResult,
   SpeechVoiceDescriptor,
+  SpeechProviderDescriptor,
 } from '../types';
-import { listSpeechProviders } from './list-providers';
-import { listSpeechVoices, type ListVoicesInput } from './list-voices';
-import { synthesizeSpeech } from './synthesize';
 import { openSpeechStream } from './open-stream';
 
 type StreamPublisher = (
   topic: string,
   payload: Record<string, unknown>,
 ) => Promise<void>;
-
-type SynthesizeInput = {
-  providerType: ProviderType;
-  endpoint: string;
-  request: SpeechSynthesizeRequest;
-};
 
 type OpenStreamInput = {
   model: string;
@@ -35,13 +23,20 @@ type OpenStreamInput = {
     format?: 'mp3' | 'wav' | 'opus' | 'pcm';
     sampleRateHz?: number;
   };
-  providerType: ProviderType;
+  providerType: string;
   endpoint: string;
+};
+
+export type ListVoicesInput = {
+  providerId?: string;
+  model?: string;
+  routeSource?: 'local-runtime' | 'token-api';
+  connectorId?: string;
+  providerEndpoint?: string;
 };
 
 export class NimiSpeechEngine {
   private readonly streamRuntime?: SpeechStreamRuntime;
-  private readonly assetStore = new SpeechAssetStore();
   private fetchImpl?: typeof fetch;
 
   constructor(input?: { publish?: StreamPublisher }) {
@@ -57,21 +52,11 @@ export class NimiSpeechEngine {
   }
 
   listProviders(): SpeechProviderDescriptor[] {
-    return listSpeechProviders();
+    return [];
   }
 
-  async listVoices(input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
-    return listSpeechVoices(input);
-  }
-
-  async synthesize(input: SynthesizeInput): Promise<SpeechSynthesizeResult> {
-    return synthesizeSpeech({
-      providerType: input.providerType,
-      endpoint: input.endpoint,
-      request: input.request,
-      assetStore: this.assetStore,
-      fetchImpl: this.fetchImpl,
-    });
+  async listVoices(_input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
+    return [];
   }
 
   async openStream(input: OpenStreamInput): Promise<SpeechStreamOpenResult> {

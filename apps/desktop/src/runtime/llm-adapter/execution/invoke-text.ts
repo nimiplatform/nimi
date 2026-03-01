@@ -3,7 +3,7 @@ import {
   buildRuntimeCallOptions,
   extractTextFromGenerateOutput,
   getRuntimeClient,
-  resolveRuntimeAiCall,
+  resolveSourceAndModel,
   RUNTIME_MODAL_TEXT,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
@@ -13,22 +13,16 @@ import { buildLocalId, formatProviderError } from './utils';
 import { emitRuntimeLog } from '../../telemetry/logger';
 
 export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
-  const runtimeCall = resolveRuntimeAiCall({
-    ...input,
-    modality: 'chat',
-  });
-  const source = runtimeCall.source;
-  const policyGate = runtimeCall.plan.providerHints?.nexa?.policyGate;
+  const resolved = resolveSourceAndModel(input);
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
-    source,
-    provider: runtimeCall.plan.providerRef,
+    source: resolved.source,
+    provider: resolved.provider,
     modality: 'chat',
-    adapter: runtimeCall.plan.adapter,
-    model: runtimeCall.modelId,
-    endpoint: runtimeCall.plan.endpoint,
-    policyGate,
+    adapter: resolved.adapter,
+    model: resolved.modelId,
+    endpoint: resolved.endpoint,
   });
 
   try {
@@ -36,7 +30,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
     const response = await runtime.ai.generate({
       appId: runtime.appId,
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      modelId: runtimeCall.modelId,
+      modelId: resolved.modelId,
       modal: RUNTIME_MODAL_TEXT,
       input: [{
         role: 'user',
@@ -48,16 +42,16 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       temperature: typeof input.temperature === 'number' ? input.temperature : 0,
       topP: 0,
       maxTokens: input.maxTokens ?? 0,
-      routePolicy: runtimeCall.routePolicy,
-      fallback: runtimeCall.fallbackPolicy,
+      routePolicy: resolved.routePolicy,
+      fallback: resolved.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       connectorId: String(input.connectorId || ''),
     }, await buildRuntimeCallOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      source,
+      source: resolved.source,
       connectorId: input.connectorId,
-      providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+      providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
     }));
 
     const text = extractTextFromGenerateOutput((response as { output?: unknown }).output);
@@ -72,8 +66,8 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
         message: '[MODS-TEST-DIAG] llm raw text output',
         details: {
           modId: input.modId,
-          source,
-          modelId: runtimeCall.modelId,
+          source: resolved.source,
+          modelId: resolved.modelId,
           textLength: text.length,
           text,
         },
@@ -90,15 +84,14 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'chat',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode,
       detail: normalizedError,
-      policyGate,
     });
     throw new Error(normalizedError);
   }

@@ -1,45 +1,34 @@
-import { resolveProviderExecutionPlan } from './provider-plan';
+import { inferRouteSourceFromEndpoint } from './inference-audit';
 import type { CheckLlmHealthInput, ProviderHealth } from './types';
 import { formatProviderError } from './utils';
 import { getRuntimeClient } from './runtime-ai-bridge';
 
 export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<ProviderHealth> {
-  const plan = resolveProviderExecutionPlan(input);
-  if (plan.providerKind === 'FALLBACK') {
-    return {
-      providerKind: plan.providerKind,
-      provider: plan.providerRef,
-      endpoint: null,
-      model: plan.model,
-      status: 'unsupported',
-      detail: 'fallback provider has no health endpoint',
-      checkedAt: new Date().toISOString(),
-    };
-  }
+  const endpoint = String(input.localProviderEndpoint || input.localOpenAiEndpoint || '').trim();
+  const source = inferRouteSourceFromEndpoint(endpoint);
+  const model = String(input.localProviderModel || '').trim();
+  const provider = String(input.provider || '').trim() || 'openai-compatible';
 
-  // For local runtime providers with an endpoint, use direct endpoint check
-  if (plan.endpoint) {
+  if (endpoint && source === 'local-runtime') {
     try {
       const localFetch = input.fetchImpl || fetch;
-      const response = await localFetch(`${plan.endpoint}/models`, {
+      const response = await localFetch(`${endpoint}/models`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000),
       });
       return {
-        providerKind: plan.providerKind,
-        provider: plan.providerRef,
-        endpoint: plan.endpoint,
-        model: plan.model,
+        provider,
+        endpoint,
+        model,
         status: response.ok ? 'healthy' : 'degraded',
         detail: response.ok ? '' : `HTTP ${response.status}`,
         checkedAt: new Date().toISOString(),
       };
     } catch (error) {
       return {
-        providerKind: plan.providerKind,
-        provider: plan.providerRef,
-        endpoint: plan.endpoint,
-        model: plan.model,
+        provider,
+        endpoint,
+        model,
         status: 'unreachable',
         detail: formatProviderError(error),
         checkedAt: new Date().toISOString(),
@@ -47,7 +36,6 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
     }
   }
 
-  // For cloud/token-api providers, use runtime SDK connector test
   if (input.connectorId) {
     try {
       const runtime = getRuntimeClient();
@@ -57,20 +45,18 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
       });
       const ok = result?.ack?.ok !== false;
       return {
-        providerKind: plan.providerKind,
-        provider: plan.providerRef,
-        endpoint: plan.endpoint,
-        model: plan.model,
+        provider,
+        endpoint,
+        model,
         status: ok ? 'healthy' : 'degraded',
         detail: ok ? '' : (result?.ack?.actionHint || 'connector test failed'),
         checkedAt: new Date().toISOString(),
       };
     } catch (error) {
       return {
-        providerKind: plan.providerKind,
-        provider: plan.providerRef,
-        endpoint: plan.endpoint,
-        model: plan.model,
+        provider,
+        endpoint,
+        model,
         status: 'unreachable',
         detail: formatProviderError(error),
         checkedAt: new Date().toISOString(),
@@ -79,12 +65,11 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   }
 
   return {
-    providerKind: plan.providerKind,
-    provider: plan.providerRef,
-    endpoint: plan.endpoint,
-    model: plan.model,
+    provider,
+    endpoint: null,
+    model,
     status: 'unsupported',
-    detail: 'no connector available for health check',
+    detail: 'no endpoint or connector available for health check',
     checkedAt: new Date().toISOString(),
   };
 }

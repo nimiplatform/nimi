@@ -3,7 +3,7 @@ import {
   base64FromBytes,
   buildRuntimeRequestMetadata,
   getRuntimeClient,
-  resolveRuntimeAiCall,
+  resolveSourceAndModel,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeModVideoInput, InvokeModVideoOutput } from './types';
@@ -11,39 +11,35 @@ import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { formatProviderError } from './utils';
 
 export async function invokeModVideo(input: InvokeModVideoInput): Promise<InvokeModVideoOutput> {
-  const runtimeCall = resolveRuntimeAiCall({
+  const resolved = resolveSourceAndModel({
     ...input,
-    modality: 'video',
     model: input.model || input.localProviderModel,
   });
-  const source = runtimeCall.source;
-  const policyGate = runtimeCall.plan.providerHints?.nexa?.policyGate;
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
-    source,
-    provider: runtimeCall.plan.providerRef,
+    source: resolved.source,
+    provider: resolved.provider,
     modality: 'video',
-    adapter: runtimeCall.plan.adapter,
-    model: runtimeCall.modelId,
-    endpoint: runtimeCall.plan.endpoint,
-    policyGate,
+    adapter: resolved.adapter,
+    model: resolved.modelId,
+    endpoint: resolved.endpoint,
   });
 
   try {
     const runtime = getRuntimeClient();
     const generated = await runtime.media.video.generate({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      model: runtimeCall.modelId,
+      model: resolved.modelId,
       prompt: String(input.prompt || '').trim(),
-      route: source,
+      route: resolved.source,
       fallback: 'deny',
       durationSec: typeof input.durationSeconds === 'number' ? input.durationSeconds : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata: await buildRuntimeRequestMetadata({
-        source,
+        source: resolved.source,
         connectorId: input.connectorId,
-        providerEndpoint: runtimeCall.plan.endpoint || input.localOpenAiEndpoint,
+        providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
       }),
       signal: input.abortSignal,
     });
@@ -72,15 +68,14 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source,
-      provider: runtimeCall.plan.providerRef,
+      source: resolved.source,
+      provider: resolved.provider,
       modality: 'video',
-      adapter: runtimeCall.plan.adapter,
-      model: runtimeCall.modelId,
-      endpoint: runtimeCall.plan.endpoint,
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
       reasonCode,
       detail: normalizedError,
-      policyGate,
     });
     throw new Error(normalizedError);
   }

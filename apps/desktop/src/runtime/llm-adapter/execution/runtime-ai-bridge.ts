@@ -1,7 +1,5 @@
 import { getPlatformClient } from '@runtime/platform-client';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
-import { resolveProviderExecutionPlan } from './provider-plan';
-import type { FetchImpl, LocalAiProviderHints, ProviderPlan } from './types';
 
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 const ROUTE_POLICY_TOKEN_API = 2;
@@ -39,44 +37,29 @@ export const RUNTIME_MODAL_VIDEO = 3;
 export const RUNTIME_MODAL_STT = 5;
 export const RUNTIME_MODAL_EMBEDDING = 6;
 
-export type RuntimeAiCallResolution = {
-  plan: ProviderPlan;
+export type SourceAndModel = {
   source: InferenceRouteSource;
   routePolicy: number;
   fallbackPolicy: number;
   modelId: string;
+  endpoint: string;
+  provider: string;
+  adapter: string;
 };
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
 
 function normalizeModelRoot(model: string): string {
   const normalized = String(model || '').trim();
-  if (!normalized) {
-    return 'default';
-  }
+  if (!normalized) return 'default';
   const lower = normalized.toLowerCase();
-  if (lower.startsWith('local/')) {
-    return normalized.slice('local/'.length).trim() || 'default';
-  }
-  if (lower.startsWith('cloud/')) {
-    return normalized.slice('cloud/'.length).trim() || 'default';
-  }
-  if (lower.startsWith('token/')) {
-    return normalized.slice('token/'.length).trim() || 'default';
-  }
+  if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim() || 'default';
+  if (lower.startsWith('cloud/')) return normalized.slice('cloud/'.length).trim() || 'default';
+  if (lower.startsWith('token/')) return normalized.slice('token/'.length).trim() || 'default';
   return normalized;
 }
 
 function ensureRouteModelId(model: string, routePolicy: number): string {
   const modelRoot = normalizeModelRoot(model);
-  if (routePolicy === ROUTE_POLICY_TOKEN_API) {
-    return `cloud/${modelRoot}`;
-  }
+  if (routePolicy === ROUTE_POLICY_TOKEN_API) return `cloud/${modelRoot}`;
   return `local/${modelRoot}`;
 }
 
@@ -88,40 +71,25 @@ export function getRuntimeClient() {
   return runtime;
 }
 
-export function resolveRuntimeAiCall(input: {
+export function resolveSourceAndModel(input: {
   provider: string;
-  modality: 'chat' | 'embedding' | 'stt' | 'tts' | 'image' | 'video';
   model?: string;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
-  providerHints?: LocalAiProviderHints;
-}): RuntimeAiCallResolution {
-  const plan = resolveProviderExecutionPlan({
-    provider: input.provider,
-    modality: input.modality,
-    localProviderEndpoint: input.localProviderEndpoint,
-    localProviderModel: input.localProviderModel,
-    localOpenAiEndpoint: input.localOpenAiEndpoint,
-    providerHints: input.providerHints,
-  });
-
-  if (plan.providerKind === 'FALLBACK') {
-    throw new Error('LOCAL_AI_CAPABILITY_MISSING: fallback provider is not supported');
-  }
-
-  const source = inferRouteSourceFromEndpoint(plan.endpoint);
-  const routePolicy = source === 'local-runtime'
-    ? ROUTE_POLICY_LOCAL_RUNTIME
-    : ROUTE_POLICY_TOKEN_API;
-
-  const model = String(input.model || plan.model || input.localProviderModel || '').trim() || 'default';
+}): SourceAndModel {
+  const endpoint = String(input.localProviderEndpoint || input.localOpenAiEndpoint || '').trim();
+  const source = inferRouteSourceFromEndpoint(endpoint);
+  const routePolicy = source === 'local-runtime' ? ROUTE_POLICY_LOCAL_RUNTIME : ROUTE_POLICY_TOKEN_API;
+  const model = String(input.model || input.localProviderModel || '').trim() || 'default';
   return {
-    plan,
     source,
     routePolicy,
     fallbackPolicy: FALLBACK_POLICY_DENY,
     modelId: ensureRouteModelId(model, routePolicy),
+    endpoint,
+    provider: String(input.provider || '').trim() || 'openai-compatible',
+    adapter: 'openai_compat_adapter',
   };
 }
 
@@ -131,29 +99,9 @@ function resolveCaller(modId: string): {
 } {
   const normalized = String(modId || '').trim();
   if (normalized.startsWith('core.')) {
-    return {
-      callerKind: 'desktop-core',
-      callerId: normalized,
-    };
+    return { callerKind: 'desktop-core', callerId: normalized };
   }
-  return {
-    callerKind: 'desktop-mod',
-    callerId: normalized ? `mod:${normalized}` : 'mod:unknown',
-  };
-}
-
-async function resolveCredentialMetadata(input: {
-  source: InferenceRouteSource;
-  connectorId?: string;
-  providerEndpoint?: string;
-}): Promise<{
-  keySource: 'managed';
-}> {
-  // Runtime inference must resolve credentials through runtime config (`apiKeyEnv`) only.
-  void input;
-  return {
-    keySource: 'managed',
-  };
+  return { callerKind: 'desktop-mod', callerId: normalized ? `mod:${normalized}` : 'mod:unknown' };
 }
 
 export async function buildRuntimeRequestMetadata(input: {
@@ -161,11 +109,8 @@ export async function buildRuntimeRequestMetadata(input: {
   connectorId?: string;
   providerEndpoint?: string;
 }): Promise<Record<string, string>> {
-  const resolved = await resolveCredentialMetadata(input);
-  const metadata: Record<string, string> = {
-    keySource: resolved.keySource,
-  };
-  return metadata;
+  void input;
+  return { keySource: 'managed' };
 }
 
 export async function buildRuntimeCallOptions(input: {
@@ -184,18 +129,13 @@ export async function buildRuntimeCallOptions(input: {
   };
 }> {
   const caller = resolveCaller(input.modId);
-  const credentialMetadata = await resolveCredentialMetadata({
-    source: input.source,
-    connectorId: input.connectorId,
-    providerEndpoint: input.providerEndpoint,
-  });
   return {
     timeoutMs: input.timeoutMs,
     metadata: {
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
-      keySource: credentialMetadata.keySource,
+      keySource: 'managed',
     },
   };
 }
@@ -220,11 +160,6 @@ export async function buildRuntimeStreamOptions(
   };
 }> {
   const caller = resolveCaller(input.modId);
-  const credentialMetadata = await resolveCredentialMetadata({
-    source: input.source,
-    connectorId: input.connectorId,
-    providerEndpoint: input.providerEndpoint,
-  });
   return {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
@@ -232,22 +167,14 @@ export async function buildRuntimeStreamOptions(
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
-      keySource: credentialMetadata.keySource,
+      keySource: 'managed',
     },
   };
 }
 
-export function routeSourceFromDecision(
-  routeDecision: unknown,
-  fallback: InferenceRouteSource,
-): InferenceRouteSource {
-  if (routeDecision === ROUTE_POLICY_LOCAL_RUNTIME || routeDecision === 'ROUTE_POLICY_LOCAL_RUNTIME') {
-    return 'local-runtime';
-  }
-  if (routeDecision === ROUTE_POLICY_TOKEN_API || routeDecision === 'ROUTE_POLICY_TOKEN_API') {
-    return 'token-api';
-  }
-  return fallback;
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
 }
 
 export function extractTextFromGenerateOutput(output: unknown): string {
@@ -272,102 +199,22 @@ export function extractEmbeddings(vectorsValue: unknown): number[][] {
       const kind = asRecord(valueRecord.kind);
       if (kind.oneofKind === 'numberValue') {
         const n = Number(kind.numberValue);
-        if (Number.isFinite(n)) {
-          row.push(n);
-        }
+        if (Number.isFinite(n)) row.push(n);
       }
     }
     return row;
   });
 }
 
-import { toBase64, fromBase64, concatChunks } from '../../util/encoding.js';
+import { toBase64, fromBase64 } from '../../util/encoding.js';
 
 export function base64FromBytes(bytes: Uint8Array): string {
   return toBase64(bytes);
 }
 
-export type RuntimeArtifact = {
-  artifactId: string;
-  mimeType: string;
-  bytes: Uint8Array;
-  source: InferenceRouteSource;
-  traceId: string;
-};
-
-export async function collectRuntimeArtifacts(
-  stream: AsyncIterable<unknown>,
-  fallbackSource: InferenceRouteSource,
-): Promise<RuntimeArtifact[]> {
-  const order: string[] = [];
-  const states = new Map<string, {
-    artifactId: string;
-    mimeType: string;
-    chunks: Uint8Array[];
-    source: InferenceRouteSource;
-    traceId: string;
-  }>();
-
-  for await (const event of stream) {
-    const record = asRecord(event);
-    const artifactId = String(record.artifactId || '').trim() || `artifact-${order.length + 1}`;
-    const entry = states.get(artifactId) || {
-      artifactId,
-      mimeType: '',
-      chunks: [],
-      source: fallbackSource,
-      traceId: '',
-    };
-    if (!states.has(artifactId)) {
-      states.set(artifactId, entry);
-      order.push(artifactId);
-    }
-
-    const mimeType = String(record.mimeType || '').trim();
-    if (mimeType) {
-      entry.mimeType = mimeType;
-    }
-    entry.source = routeSourceFromDecision(record.routeDecision, entry.source);
-    const traceId = String(record.traceId || '').trim();
-    if (traceId) {
-      entry.traceId = traceId;
-    }
-    const chunkValue = record.chunk;
-    if (chunkValue instanceof Uint8Array) {
-      entry.chunks.push(chunkValue);
-    } else if (chunkValue instanceof ArrayBuffer) {
-      entry.chunks.push(new Uint8Array(chunkValue));
-    } else if (Array.isArray(chunkValue)) {
-      entry.chunks.push(Uint8Array.from(chunkValue.map((value) => Number(value) || 0)));
-    }
-  }
-
-  return order.map((artifactId) => {
-    const entry = states.get(artifactId);
-    if (!entry) {
-      return {
-        artifactId,
-        mimeType: 'application/octet-stream',
-        bytes: new Uint8Array(0),
-        source: fallbackSource,
-        traceId: '',
-      };
-    }
-    return {
-      artifactId: entry.artifactId,
-      mimeType: entry.mimeType || 'application/octet-stream',
-      bytes: concatChunks(entry.chunks),
-      source: entry.source,
-      traceId: entry.traceId,
-    };
-  });
-}
-
 function decodeBase64Payload(raw: string): Uint8Array {
   const normalized = String(raw || '').trim();
-  if (!normalized) {
-    return new Uint8Array(0);
-  }
+  if (!normalized) return new Uint8Array(0);
   const payload = normalized.includes(',') ? normalized.split(',').slice(-1)[0] || '' : normalized;
   return fromBase64(payload);
 }
@@ -379,18 +226,15 @@ function parseDataUrl(input: string): {
 } | null {
   const normalized = String(input || '').trim();
   const match = normalized.match(/^data:([^;,]+)?(;base64)?,(.*)$/i);
-  if (!match) {
-    return null;
-  }
-  const mimeType = String(match[1] || '').trim() || 'application/octet-stream';
-  const isBase64 = Boolean(match[2]);
-  const payload = String(match[3] || '');
+  if (!match) return null;
   return {
-    mimeType,
-    payload,
-    isBase64,
+    mimeType: String(match[1] || '').trim() || 'application/octet-stream',
+    payload: String(match[3] || ''),
+    isBase64: Boolean(match[2]),
   };
 }
+
+export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export async function resolveTranscribeAudio(input: {
   audioUri?: string;
@@ -406,114 +250,66 @@ export async function resolveTranscribeAudio(input: {
   if (rawBase64) {
     const parsed = parseDataUrl(rawBase64);
     if (parsed) {
-      if (!parsed.isBase64) {
-        throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio data url must be base64');
-      }
+      if (!parsed.isBase64) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio data url must be base64');
       const decoded = decodeBase64Payload(parsed.payload);
-      if (decoded.length === 0) {
-        throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
-      }
-      return {
-        audioBytes: decoded,
-        mimeType: explicitMimeType || parsed.mimeType,
-      };
+      if (decoded.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+      return { audioBytes: decoded, mimeType: explicitMimeType || parsed.mimeType };
     }
-
     const decoded = decodeBase64Payload(rawBase64);
-    if (decoded.length === 0) {
-      throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
-    }
-    return {
-      audioBytes: decoded,
-      mimeType: explicitMimeType || 'audio/wav',
-    };
+    if (decoded.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+    return { audioBytes: decoded, mimeType: explicitMimeType || 'audio/wav' };
   }
 
   const audioUri = String(input.audioUri || '').trim();
-  if (!audioUri) {
-    throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio source required');
-  }
+  if (!audioUri) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio source required');
 
   const parsedDataUrl = parseDataUrl(audioUri);
   if (parsedDataUrl) {
-    if (!parsedDataUrl.isBase64) {
-      throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio data url must be base64');
-    }
+    if (!parsedDataUrl.isBase64) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio data url must be base64');
     const decoded = decodeBase64Payload(parsedDataUrl.payload);
-    if (decoded.length === 0) {
-      throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
-    }
-    return {
-      audioBytes: decoded,
-      mimeType: explicitMimeType || parsedDataUrl.mimeType,
-    };
+    if (decoded.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+    return { audioBytes: decoded, mimeType: explicitMimeType || parsedDataUrl.mimeType };
   }
 
   const fetchImpl = input.fetchImpl || fetch;
   const response = await fetchImpl(audioUri);
-  if (!response.ok) {
-    throw new Error(`LOCAL_AI_SERVICE_UNREACHABLE: fetch audio failed HTTP_${response.status}`);
-  }
+  if (!response.ok) throw new Error(`LOCAL_AI_SERVICE_UNREACHABLE: fetch audio failed HTTP_${response.status}`);
   const arrayBuffer = await response.arrayBuffer();
   const audioBytes = new Uint8Array(arrayBuffer);
-  if (audioBytes.length === 0) {
-    throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
-  }
+  if (audioBytes.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
   const responseMimeType = String(response.headers.get('content-type') || '').trim();
-  return {
-    audioBytes,
-    mimeType: explicitMimeType || responseMimeType || 'audio/wav',
-  };
+  return { audioBytes, mimeType: explicitMimeType || responseMimeType || 'audio/wav' };
 }
 
 function extractReasonCodeCandidate(value: unknown): string | null {
   if (typeof value === 'string') {
     const normalized = value.trim();
     if (!normalized) return null;
-    if (/^\d+$/.test(normalized)) {
-      const mapped = AI_REASON_CODE_NUMERIC[Number(normalized)];
-      return mapped || null;
-    }
+    if (/^\d+$/.test(normalized)) return AI_REASON_CODE_NUMERIC[Number(normalized)] || null;
     return normalized;
   }
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    const mapped = AI_REASON_CODE_NUMERIC[value];
-    return mapped || null;
-  }
+  if (typeof value === 'number' && Number.isFinite(value)) return AI_REASON_CODE_NUMERIC[value] || null;
   return null;
 }
 
 export function extractRuntimeReasonCode(error: unknown): string | null {
   const record = asRecord(error);
   const direct = extractReasonCodeCandidate(record.reasonCode);
-  if (direct) {
-    return direct;
-  }
-
+  if (direct) return direct;
   const message = String(record.message || (error instanceof Error ? error.message : '') || '').trim();
-  if (!message) {
-    return null;
-  }
-
+  if (!message) return null;
   const explicit = message.match(/\b(AI_[A-Z_]+)\b/);
-  if (explicit?.[1]) {
-    return explicit[1];
-  }
-
+  if (explicit?.[1]) return explicit[1];
   const numeric = message.match(/\b(20\d)\b/);
   if (numeric?.[1]) {
     const mapped = AI_REASON_CODE_NUMERIC[Number(numeric[1])];
-    if (mapped) {
-      return mapped;
-    }
+    if (mapped) return mapped;
   }
   return null;
 }
 
 export function toLocalAiReasonCode(error: unknown): string | null {
   const runtimeCode = extractRuntimeReasonCode(error);
-  if (!runtimeCode) {
-    return null;
-  }
+  if (!runtimeCode) return null;
   return RUNTIME_REASON_CODE_TO_LOCAL_AI[runtimeCode] || null;
 }

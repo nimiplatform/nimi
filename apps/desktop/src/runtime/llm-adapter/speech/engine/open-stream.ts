@@ -7,7 +7,10 @@ import type {
   SpeechStreamOpenResult,
   SpeechSynthesizeRequest,
 } from '../types';
-import { buildStreamId } from './shared';
+
+function buildStreamId(): string {
+  return `stream-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export async function openSpeechStream(input: {
   model: string;
