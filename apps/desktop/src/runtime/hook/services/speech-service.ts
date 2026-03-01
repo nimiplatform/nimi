@@ -2,7 +2,6 @@ import type {
   SpeechProviderDescriptor,
   SpeechVoiceDescriptor,
 } from '../../llm-adapter/speech/types.js';
-import { createHookError } from '../contracts/errors.js';
 import { createHookRecord } from './utils.js';
 import {
   closeSpeechStream,
@@ -10,14 +9,11 @@ import {
   openSpeechStream,
 } from './speech/stream.js';
 import { synthesizeModSpeech } from './speech/synthesize.js';
+import { resolveSpeechRoute } from './speech/resolve-route.js';
 import {
-  inferProviderTypeFromPrefix,
-  normalizeLocalRuntimeProviderRef,
   normalizeSpeechProviderId,
-  normalizeSpeechAdapter,
 } from './speech/types.js';
 import type {
-  ResolvedRoute,
   SpeechProvidersInput,
   SpeechProvidersResult,
   SpeechServiceInput,
@@ -57,63 +53,6 @@ export class HookRuntimeSpeechService {
       lang: voice.lang,
       langs: voice.langs,
       sampleAudioUri: voice.sampleAudioUri,
-    };
-  }
-
-  private async resolveSpeechRoute(input: {
-    modId: string;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    connectorId?: string;
-  }): Promise<ResolvedRoute> {
-    const resolved = await this.context.resolveRoute({
-      modId: input.modId,
-      providerId: input.providerId,
-      routeSource: input.routeSource,
-      connectorId: input.connectorId,
-    });
-
-    const source = String(resolved?.source || '').trim();
-    if (source !== 'local-runtime' && source !== 'token-api') {
-      throw createHookError(
-        'HOOK_LLM_SPEECH_PROVIDER_UNAVAILABLE',
-        `unsupported speech route source: ${source || 'unknown'}`,
-        { modId: input.modId, providerId: input.providerId || null },
-      );
-    }
-
-    if (source === 'local-runtime') {
-      const model = String(resolved.model || '').trim();
-      const adapter = normalizeSpeechAdapter(resolved.adapter);
-      return {
-        source,
-        provider: normalizeLocalRuntimeProviderRef({
-          provider: resolved.provider,
-          engine: resolved.engine,
-          adapter,
-          model,
-        }),
-        adapter,
-        providerType: 'OPENAI_COMPATIBLE',
-        endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
-        connectorId: resolved.connectorId,
-        model,
-      };
-    }
-
-    const model = String(resolved.model || '').trim();
-    const providerStr = String(resolved.provider || '').trim();
-    const prefix = providerStr.includes(':')
-      ? String(providerStr.split(':')[0] || '')
-      : 'openai-compatible';
-    return {
-      source,
-      provider: providerStr || `openai-compatible:${model}`,
-      adapter: normalizeSpeechAdapter(resolved.adapter),
-      providerType: inferProviderTypeFromPrefix(prefix),
-      endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
-      connectorId: resolved.connectorId,
-      model,
     };
   }
 
@@ -168,7 +107,7 @@ export class HookRuntimeSpeechService {
     }));
 
     try {
-      const route = await this.resolveSpeechRoute({
+      const route = await resolveSpeechRoute(this.context, {
         modId: input.modId,
         providerId: input.providerId,
         routeSource: input.routeSource,

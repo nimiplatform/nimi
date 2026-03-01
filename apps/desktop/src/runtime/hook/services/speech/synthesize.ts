@@ -2,96 +2,17 @@ import { emitInferenceAudit, parseReasonCode } from '../../../llm-adapter/execut
 import { createHookError } from '../../contracts/errors.js';
 import { createHookRecord } from '../utils.js';
 import {
-  inferProviderTypeFromPrefix,
-  normalizeLocalRuntimeProviderRef,
-  normalizeSpeechAdapter,
-} from './types.js';
-import {
   buildRuntimeRequestMetadata,
   getRuntimeClient,
 } from '../../../llm-adapter/execution/runtime-ai-bridge';
+import { toBase64 } from '../../../util/encoding.js';
+import { resolveSpeechRoute } from './resolve-route.js';
 import type {
-  ResolvedRoute,
   SpeechServiceInput,
   SpeechSynthesizeInput,
   SpeechSynthesizeResultPayload,
 } from './types.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-
-async function resolveSpeechRoute(
-  context: SpeechServiceInput,
-  input: {
-    modId: string;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    connectorId?: string;
-    model?: string;
-  },
-): Promise<ResolvedRoute> {
-  const resolved = await context.resolveRoute({
-    modId: input.modId,
-    providerId: input.providerId,
-    routeSource: input.routeSource,
-    connectorId: input.connectorId,
-    model: input.model,
-  });
-
-  const source = String(resolved?.source || '').trim();
-  if (source !== 'local-runtime' && source !== 'token-api') {
-    throw createHookError(
-      'HOOK_LLM_SPEECH_PROVIDER_UNAVAILABLE',
-      `unsupported speech route source: ${source || 'unknown'}`,
-      { modId: input.modId, providerId: input.providerId || null },
-    );
-  }
-
-  if (source === 'local-runtime') {
-    const model = String(resolved.model || '').trim();
-    const adapter = normalizeSpeechAdapter(resolved.adapter);
-    return {
-      source,
-      provider: normalizeLocalRuntimeProviderRef({
-        provider: resolved.provider,
-        engine: resolved.engine,
-        adapter,
-        model,
-      }),
-      adapter,
-      providerType: 'OPENAI_COMPATIBLE',
-      endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
-      connectorId: resolved.connectorId,
-      model,
-    };
-  }
-
-  const model = String(resolved.model || '').trim();
-  const providerStr = String(resolved.provider || '').trim();
-  const prefix = providerStr.includes(':') ? String(providerStr.split(':')[0] || '') : 'openai-compatible';
-  const providerType = inferProviderTypeFromPrefix(prefix);
-  return {
-    source,
-    provider: providerStr || `openai-compatible:${model}`,
-    adapter: normalizeSpeechAdapter(resolved.adapter),
-    providerType,
-    endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
-    connectorId: resolved.connectorId,
-    model,
-  };
-}
-
-function toBase64(bytes: Uint8Array): string {
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(bytes).toString('base64');
-  }
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 1) {
-    binary += String.fromCharCode(bytes[i] || 0);
-  }
-  if (typeof btoa === 'function') {
-    return btoa(binary);
-  }
-  return '';
-}
 
 export async function synthesizeModSpeech(
   context: SpeechServiceInput,

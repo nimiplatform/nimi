@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { getStatusBadgeStyle } from './shared.js';
 
 type WorldListItem = {
   id: string;
@@ -33,23 +34,6 @@ type WorldListItem = {
   timeFlowRatio: number;
   transitInLimit: number;
 };
-
-function getStatusBadgeStyle(status: string): { bg: string; text: string } {
-  switch (status) {
-    case 'ACTIVE':
-      return { bg: 'bg-green-100', text: 'text-green-700' };
-    case 'DRAFT':
-      return { bg: 'bg-yellow-100', text: 'text-yellow-700' };
-    case 'PENDING_REVIEW':
-      return { bg: 'bg-blue-100', text: 'text-blue-700' };
-    case 'SUSPENDED':
-      return { bg: 'bg-red-100', text: 'text-red-700' };
-    case 'ARCHIVED':
-      return { bg: 'bg-gray-100', text: 'text-gray-600' };
-    default:
-      return { bg: 'bg-gray-100', text: 'text-gray-600' };
-  }
-}
 
 function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
   return {
