@@ -1,0 +1,20 @@
+id: world.nimi.test-chat-tts
+name: Test Chat + TTS
+version: 1.0.0
+kind: capability-mod
+icon: local-chat
+entry: ./dist/mods/test-chat-tts/index.js
+description: >
+  Minimal test mod for validating chat and TTS pipelines end-to-end.
+capabilities:
+  - llm.text.generate
+  - llm.speech.providers.list
+  - llm.speech.voices.list
+  - llm.speech.synthesize
+  - data.query.data-api.runtime.route.options
+  - ui.register.ui-extension.app.sidebar.mods
+  - ui.register.ui-extension.app.content.routes
+ai:
+  consume:
+    - chat
+    - tts
