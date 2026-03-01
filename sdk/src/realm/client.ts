@@ -396,8 +396,13 @@ export class Realm {
       method: 'GET',
       path: '/',
       timeoutMs,
-    }).catch(() => {
-      // Some realm deployments do not expose root endpoint. Client state is still ready.
+    }).catch((error: unknown) => {
+      // Fail-open per SDKREALM-019: #requestUnknown already emitted the error
+      // event, so we only add telemetry and swallow the exception.
+      const mapped = mapRealmError(error);
+      this.#emitTelemetry('realm.ready_probe_failed', {
+        reasonCode: mapped.reasonCode,
+      });
     });
 
     this.#state = {
@@ -666,10 +671,16 @@ export class Realm {
 
   async #resolveAccessToken(): Promise<string> {
     const accessToken = this.#options.auth?.accessToken;
+    let resolved: string;
     if (typeof accessToken === 'function') {
-      return normalizeText(await accessToken());
+      resolved = normalizeText(await accessToken());
+    } else {
+      resolved = normalizeText(accessToken);
     }
-    return normalizeText(accessToken);
+    if (resolved === Realm.NO_AUTH) {
+      return '';
+    }
+    return resolved;
   }
 
   async #resolveRefreshToken(): Promise<string> {
