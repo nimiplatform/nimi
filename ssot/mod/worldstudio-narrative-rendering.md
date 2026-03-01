@@ -1,8 +1,8 @@
 ---
 title: World Studio -> Narrative -> Rendering Chain SSOT
 status: ACTIVE
-version: v1.3
-updated_at: 2026-03-01
+version: v1.4
+updated_at: 2026-03-02
 rules:
   - 本文件定义跨 mod 编排契约，不替代各业务 mod 的单体 SSOT。
   - 产品主链固定为 `world-studio -> narrative -> renderer`，其中 renderer 可为 textplay 或 videoplay。
@@ -16,6 +16,9 @@ rules:
   - videoplay 作为正式 renderer 分支，固定执行链为 `narrative-ingest -> episode-segmentation -> screenplay -> storyboard -> asset-render -> edit-compose -> qc-gate -> release-package`。
   - renderer 产物必须携带 `sourceEventIds`，可追溯到 `CoreOutput.spineEvents`。
   - 编排层失败语义必须统一为 `reasonCode + actionHint`，并可跨 stage 追踪。
+  - 跨阶段运行协议以 `ssot/mod/worldstudio-narrative-chain-run-protocol.md` 为唯一入口；本文件不重复定义事件字段级细节。
+  - 跨阶段自动守卫与回归门禁以 `ssot/mod/worldstudio-narrative-chain-guard-governance.md` 为唯一入口；本文件只声明链路目标。
+  - videoplay 创作操作语义（插镜头/改镜头/变体/重生成/撤销/分支）以 `nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md` 为唯一入口。
   - 不考虑 legacy 兼容，按 final-state 一次性定义契约。
 ---
 
@@ -163,6 +166,13 @@ NarrativeContext 正式 scope 字段：
 5. `CHAIN_RENDER_ROUTE_UNAVAILABLE`
 6. `CHAIN_RENDER_FAILED`
 
+## 5.3 与运行协议和守卫协议的关系
+
+1. `reasonCode + actionHint + traceId` 的跨阶段一致性由 `worldstudio-narrative-chain-run-protocol.md` 中的事件协议字段固化。
+2. 失败后的用户动作分流（继续、重跑、取消）由 `worldstudio-narrative-chain-run-protocol.md` 固化。
+3. 禁止模式与自动回归门禁由 `worldstudio-narrative-chain-guard-governance.md` 固化。
+4. 本文件不再重复定义 step 级恢复字段与守卫脚本入口。
+
 ## 6. 与 realm world+agent 的对齐原则
 
 1. 世界事实来源唯一：realm world control-plane 资产（events/lorebooks/worldview）。
@@ -190,9 +200,12 @@ NarrativeContext 正式 scope 字段：
 2. narrative：`nimi-mods/narrative/SSOT.md`
 3. textplay：`nimi-mods/textplay/SSOT.md`
 4. videoplay：`nimi-mods/videoplay/SSOT.md`
-5. videoplay spec index：`nimi-mods/videoplay/spec/INDEX.md`
-6. videoplay 分集切分契约：`nimi-mods/videoplay/spec/kernel/tables/segmentation-policy.yaml`
-7. videoplay 剪辑合成契约：`nimi-mods/videoplay/spec/kernel/tables/edit-compose-policy.yaml`
-8. mod 通用治理：`ssot/mod/governance.md`
-9. world 边界桩：`ssot/boundaries/world.md`
-10. agent 边界桩：`ssot/boundaries/agent.md`
+5. 链路运行协议：`ssot/mod/worldstudio-narrative-chain-run-protocol.md`
+6. 链路守卫治理：`ssot/mod/worldstudio-narrative-chain-guard-governance.md`
+7. videoplay spec index：`nimi-mods/videoplay/spec/INDEX.md`
+8. videoplay 分集切分契约：`nimi-mods/videoplay/spec/kernel/tables/segmentation-policy.yaml`
+9. videoplay 剪辑合成契约：`nimi-mods/videoplay/spec/kernel/tables/edit-compose-policy.yaml`
+10. videoplay 创作操作契约：`nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md`
+11. mod 通用治理：`ssot/mod/governance.md`
+12. world 边界桩：`ssot/boundaries/world.md`
+13. agent 边界桩：`ssot/boundaries/agent.md`
