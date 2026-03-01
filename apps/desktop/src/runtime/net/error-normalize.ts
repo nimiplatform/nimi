@@ -24,7 +24,7 @@ function isNimiError(error: unknown): error is NimiError {
   return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
 }
 
-export function normalizeApiError(error: unknown): Error {
+export function normalizeApiError(error: unknown, fallback = '请求失败'): Error {
   if (error instanceof Error && !isApiErrorLike(error)) {
     return error;
   }
@@ -34,7 +34,7 @@ export function normalizeApiError(error: unknown): Error {
   }
 
   if (!isApiErrorLike(error)) {
-    return new Error('UNKNOWN_ERROR: 请求失败');
+    return new Error(fallback);
   }
 
   const body = tryParseJsonLike(error.body);
@@ -42,7 +42,7 @@ export function normalizeApiError(error: unknown): Error {
     const data = body as Record<string, unknown>;
     const code = String(data.code || data.error || data.reasonCode || `HTTP_${error.status}`);
     const message = String(
-      data.message || data.error_description || error.message || error.statusText,
+      data.message || data.error_description || error.message || error.statusText || fallback,
     );
     return new Error(`${code}: ${message}`);
   }
@@ -51,5 +51,5 @@ export function normalizeApiError(error: unknown): Error {
     return new Error(`HTTP_${error.status}: ${body}`);
   }
 
-  return new Error(`HTTP_${error.status}: ${error.statusText || error.message}`);
+  return new Error(`HTTP_${error.status}: ${error.statusText || error.message || fallback}`);
 }

@@ -18,6 +18,56 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, string> = {
   LOCAL_AI_QWEN_PYTHON_REQUIRED: 'Qwen TTS 需要 Python 3.10+，请先安装后重试',
   LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED: 'Qwen TTS 需要 Python 3.10+，当前版本不满足要求',
   LOCAL_AI_QWEN_BOOTSTRAP_FAILED: 'Qwen TTS 运行时依赖安装失败，请检查 Python/pip 与网络环境',
+
+  // Phase 1: AI Provider reason codes (D-ERR-007)
+  AI_PROVIDER_TIMEOUT: 'AI 服务超时',
+  AI_PROVIDER_UNAVAILABLE: 'AI 服务不可用',
+  AI_PROVIDER_RATE_LIMITED: 'AI 服务请求频率受限',
+  AI_PROVIDER_INTERNAL: 'AI 服务内部错误',
+  AI_PROVIDER_ENDPOINT_FORBIDDEN: 'AI 服务端点被禁止',
+  AI_PROVIDER_AUTH_FAILED: 'AI 服务认证失败',
+  AI_STREAM_BROKEN: 'AI 流式响应中断',
+
+  // Phase 1: AI Connector reason codes
+  AI_CONNECTOR_CREDENTIAL_MISSING: 'AI 连接器凭证缺失',
+  AI_CONNECTOR_DISABLED: 'AI 连接器已禁用',
+  AI_CONNECTOR_NOT_FOUND: 'AI 连接器未找到',
+  AI_CONNECTOR_INVALID: 'AI 连接器配置无效',
+  AI_CONNECTOR_IMMUTABLE: 'AI 连接器不可修改',
+  AI_CONNECTOR_LIMIT_EXCEEDED: 'AI 连接器数量超限',
+
+  // Phase 1: AI Model reason codes
+  AI_MODEL_NOT_FOUND: 'AI 模型未找到',
+  AI_MODALITY_NOT_SUPPORTED: 'AI 模态不支持',
+  AI_MODEL_PROVIDER_MISMATCH: 'AI 模型与供应商不匹配',
+
+  // Phase 1: AI Media reason codes
+  AI_MEDIA_IDEMPOTENCY_CONFLICT: '媒体任务幂等冲突',
+  AI_MEDIA_JOB_NOT_FOUND: '媒体任务未找到',
+  AI_MEDIA_SPEC_INVALID: '媒体规格无效',
+  AI_MEDIA_OPTION_UNSUPPORTED: '媒体选项不支持',
+  AI_MEDIA_JOB_NOT_CANCELLABLE: '媒体任务不可取消',
+
+  // Phase 1: AI Local Model reason codes
+  AI_LOCAL_MODEL_UNAVAILABLE: '本地模型不可用',
+  AI_LOCAL_MODEL_PROFILE_MISSING: '本地模型配置缺失',
+  AI_LOCAL_MODEL_ALREADY_INSTALLED: '本地模型已安装',
+  AI_LOCAL_ENDPOINT_REQUIRED: '本地 AI 端点配置缺失',
+  AI_LOCAL_TEMPLATE_NOT_FOUND: '本地模板未找到',
+  AI_LOCAL_MANIFEST_INVALID: '本地清单无效',
+
+  // Phase 1: Auth & Session reason codes
+  AUTH_TOKEN_INVALID: '认证令牌无效',
+  SESSION_EXPIRED: '会话已过期',
+
+  // Phase 1: App Mode reason codes
+  APP_MODE_DOMAIN_FORBIDDEN: '应用模式域禁止',
+  APP_MODE_SCOPE_FORBIDDEN: '应用模式范围禁止',
+  APP_MODE_MANIFEST_INVALID: '应用模式清单无效',
+
+  // Phase 1: Runtime reason codes
+  RUNTIME_UNAVAILABLE: '运行时不可用',
+  RUNTIME_BRIDGE_DAEMON_UNAVAILABLE: '运行时守护进程不可用',
 };
 
 const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; message: string }> = [

@@ -1,4 +1,4 @@
-import type { NimiError } from '@nimiplatform/sdk/types';
+export { normalizeApiError } from '@runtime/net/error-normalize';
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -8,36 +8,6 @@ export type DataSyncApiConfig = {
   refreshToken?: string;
   fetchImpl?: FetchImpl;
 };
-
-type ApiErrorLike = {
-  status: number;
-  statusText?: string;
-  body?: unknown;
-  message?: string;
-};
-
-function objectValue(value: unknown): Record<string, unknown> {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return {};
-}
-
-function isApiErrorLike(error: unknown): error is ApiErrorLike {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const status = Number((error as { status?: unknown }).status);
-  return Number.isFinite(status) && status > 0;
-}
-
-function isNimiError(error: unknown): error is NimiError {
-  if (!error || typeof error !== 'object') {
-    return false;
-  }
-  const record = error as Record<string, unknown>;
-  return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
-}
 
 export function tryParseJsonLike<T>(value: T): T {
   if (typeof value !== 'string') {
@@ -83,32 +53,4 @@ export function normalizeRealmBaseUrl(rawValue: unknown): string {
   } catch {
     return normalized;
   }
-}
-
-export function normalizeApiError(error: unknown, fallback = '请求失败'): Error {
-  if (error instanceof Error && !isApiErrorLike(error)) {
-    return error;
-  }
-
-  if (isNimiError(error)) {
-    return error;
-  }
-
-  if (!isApiErrorLike(error)) {
-    return new Error(fallback);
-  }
-
-  const body = tryParseJsonLike(error.body);
-  if (body && typeof body === 'object') {
-    const payload = objectValue(body);
-    const code = payload.code || payload.error || payload.reasonCode || `HTTP_${error.status}`;
-    const message = payload.message || payload.error_description || error.message || error.statusText;
-    return new Error(`${String(code)}: ${String(message || fallback)}`);
-  }
-
-  if (typeof body === 'string' && body.trim()) {
-    return new Error(`HTTP_${error.status}: ${body}`);
-  }
-
-  return new Error(`HTTP_${error.status}: ${error.statusText || error.message || fallback}`);
 }

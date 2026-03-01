@@ -69,7 +69,9 @@ function isRetryableApiError(error: unknown): error is ApiErrorLike {
 }
 
 function getRetryDelayMs(attempt: number, initialDelayMs: number, maxDelayMs: number) {
-  return Math.min(maxDelayMs, initialDelayMs * Math.pow(2, attempt - 1));
+  const base = initialDelayMs * Math.pow(2, attempt - 1);
+  const jitter = Math.random() * (initialDelayMs / 2);
+  return Math.min(maxDelayMs, base + jitter);
 }
 
 export async function requestWithRetry<T>(input: {
