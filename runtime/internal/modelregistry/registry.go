@@ -139,6 +139,27 @@ func cloneEntry(input Entry) Entry {
 	}
 }
 
+// InferCapabilities returns heuristic capability strings for a model ID.
+// Exported so that both model and connector services can reuse it.
+func InferCapabilities(modelID string) []string {
+	caps := []string{"text.generate"}
+	lower := strings.ToLower(modelID)
+
+	if strings.Contains(lower, "embed") {
+		caps = append(caps, "text.embed")
+	}
+	if strings.Contains(lower, "stt") || strings.Contains(lower, "whisper") {
+		caps = append(caps, "audio.transcribe")
+	}
+	if strings.Contains(lower, "tts") {
+		caps = append(caps, "audio.synthesize")
+	}
+	if strings.Contains(lower, "vision") || strings.Contains(lower, "vl") {
+		caps = append(caps, "image.understand")
+	}
+	return caps
+}
+
 func inferProviderHint(modelID string, source string) ProviderHint {
 	id := strings.ToLower(strings.TrimSpace(modelID))
 	src := strings.ToLower(strings.TrimSpace(source))

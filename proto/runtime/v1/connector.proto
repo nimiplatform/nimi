@@ -119,6 +119,7 @@ message ConnectorModelDescriptor {
   string model_id = 1;
   string model_label = 2;
   bool available = 3;
+  repeated string capabilities = 4;
 }
 
 message ListConnectorModelsRequest {

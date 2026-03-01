@@ -13,6 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
@@ -476,9 +477,10 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		}
 		for _, m := range rawModels {
 			models = append(models, &runtimev1.ConnectorModelDescriptor{
-				ModelId:    m.ModelID,
-				ModelLabel: m.ModelLabel,
-				Available:  m.Available,
+				ModelId:      m.ModelID,
+				ModelLabel:   m.ModelLabel,
+				Available:    m.Available,
+				Capabilities: modelregistry.InferCapabilities(m.ModelID),
 			})
 		}
 	}

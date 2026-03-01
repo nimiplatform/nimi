@@ -1038,6 +1038,7 @@ type ConnectorModelDescriptor struct {
 	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	ModelLabel    string                 `protobuf:"bytes,2,opt,name=model_label,json=modelLabel,proto3" json:"model_label,omitempty"`
 	Available     bool                   `protobuf:"varint,3,opt,name=available,proto3" json:"available,omitempty"`
+	Capabilities  []string               `protobuf:"bytes,4,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1091,6 +1092,13 @@ func (x *ConnectorModelDescriptor) GetAvailable() bool {
 		return x.Available
 	}
 	return false
+}
+
+func (x *ConnectorModelDescriptor) GetCapabilities() []string {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
 }
 
 type ListConnectorModelsRequest struct {
@@ -1428,12 +1436,13 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\tR\aownerId\"?\n" +
 	"\x15TestConnectorResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"t\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"\x98\x01\n" +
 	"\x18ConnectorModelDescriptor\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x1f\n" +
 	"\vmodel_label\x18\x02 \x01(\tR\n" +
 	"modelLabel\x12\x1c\n" +
-	"\tavailable\x18\x03 \x01(\bR\tavailable\"\x7f\n" +
+	"\tavailable\x18\x03 \x01(\bR\tavailable\x12\"\n" +
+	"\fcapabilities\x18\x04 \x03(\tR\fcapabilities\"\x7f\n" +
 	"\x1aListConnectorModelsRequest\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\tR\aownerId\x12#\n" +
