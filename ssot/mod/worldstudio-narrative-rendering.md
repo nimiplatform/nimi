@@ -1,11 +1,13 @@
 ---
 title: World Studio -> Narrative -> Rendering Chain SSOT
 status: ACTIVE
-version: v1.2
+version: v1.3
 updated_at: 2026-03-01
 rules:
   - 本文件定义跨 mod 编排契约，不替代各业务 mod 的单体 SSOT。
   - 产品主链固定为 `world-studio -> narrative -> renderer`，其中 renderer 可为 textplay 或 videoplay。
+  - 本文件必须同时提供“架构主链（系统内部）”与“玩家体验链（产品交互）”两种可读视角，供人类与 AI 共同使用。
+  - Narrative 是事实编译内核，不是玩家直接交互入口；玩家主交互入口固定为 textplay，videoplay 用于把叙事事实窗口转成分集发布包。
   - realm world+agent 是唯一基础事实源；Narrative 是唯一叙事事实层；renderer 只能消费叙事事实投影，不得改写任何事实层。
   - world-studio 只负责世界资产生产与维护，不直接承担叙事回合执行。
   - 渲染通道（text/video）必须共享 Narrative canonical `CoreOutput` 事实流；videoplay 可按 episode 聚合消费，但禁止双事实链分叉。
@@ -32,6 +34,22 @@ rules:
 1. 各 mod 内部实现细节（见各自 SSOT）。
 2. realm 私有治理算法。
 
+### 1.1 双视角链路（人类与 AI 共读）
+
+#### 1.1.1 架构主链（系统内部契约）
+
+1. `world-studio -> narrative -> renderer(textplay|videoplay)`。
+2. `narrative` 负责事实编译与守卫，不直接作为玩家 UI 入口。
+3. `renderer` 只消费 `CoreOutput` 投影，不回写叙事事实层。
+
+#### 1.1.2 玩家体验链（产品交互主路径）
+
+1. Creator 在 `world-studio` 建立并发布世界资产（World/Worldview/Events/Lorebooks）。
+2. 玩家在 `textplay` 实时游玩并与角色/世界互动。
+3. 玩家交互触发 narrative turn，系统持续生成并沉淀 canonical `CoreOutput + spine`。
+4. 玩家进入 `videoplay`，对已形成的叙事事实窗口做分集化生产。
+5. `videoplay` 产出可发布的 `Episode ReleasePackage`（video+poster+caption+metadata+trace）。
+
 ## 2. 固定阶段与职责
 
 ### Stage A: world-studio（创作与维护）
@@ -54,8 +72,9 @@ rules:
 输入：
 
 1. `TurnInput`（storyId + triggerSource + message/systemPayload）
-2. Stage A 产出的 world 资产（读）
-3. agent 语义资产（profile + memory + NarrativeContext(setting/state)）
+2. 回合触发源来自 textplay 玩家互动、agent initiative 或 system event（统一进入 narrative 编译链）。
+3. Stage A 产出的 world 资产（读）
+4. agent 语义资产（profile + memory + NarrativeContext(setting/state)）
 
 输出：
 
@@ -162,16 +181,18 @@ NarrativeContext 正式 scope 字段：
 7. videoplay 的 `groundedRatio` 与 `assetCoverageRatio` 需满足其 SSOT 门槛定义。
 8. videoplay 必须支持“连续叙事输入 -> 分集产出”闭环，且分集可独立发布。
 9. videoplay 任一分集中的 beat/shot 都必须可回溯到被聚合 turn 的 `sourceEventIds`。
+10. 玩家交互入口必须位于 renderer 层（textplay/videoplay），不得把 narrative 作为终端玩家直达入口。
+11. videoplay 的 episode 输入窗口必须来自 narrative 已生成的 canonical 事实流（可由 textplay 互动回合累积形成）。
 
 ## 8. 引用关系
 
-1. world-studio：`@nimiplatform/nimi-mods/world-studio/SSOT.md`
-2. narrative：`@nimiplatform/nimi-mods/narrative/SSOT.md`
-3. textplay：`@nimiplatform/nimi-mods/textplay/SSOT.md`
-4. videoplay：`@nimiplatform/nimi-mods/videoplay/SSOT.md`
-5. videoplay spec import index：`@nimiplatform/nimi-mods/videoplay/spec/index.yaml`
-6. videoplay 分集切分契约：`@nimiplatform/nimi-mods/videoplay/spec/contracts/episode-segmentation.yaml`
-7. videoplay 剪辑合成契约：`@nimiplatform/nimi-mods/videoplay/spec/contracts/edit-compose.yaml`
-8. mod 通用治理：`@nimiplatform/nimi/ssot/mod/governance.md`
-9. world 边界桩：`@nimiplatform/nimi/ssot/boundaries/world.md`
-10. agent 边界桩：`@nimiplatform/nimi/ssot/boundaries/agent.md`
+1. world-studio：`nimi-mods/world-studio/SSOT.md`
+2. narrative：`nimi-mods/narrative/SSOT.md`
+3. textplay：`nimi-mods/textplay/SSOT.md`
+4. videoplay：`nimi-mods/videoplay/SSOT.md`
+5. videoplay spec index：`nimi-mods/videoplay/spec/INDEX.md`
+6. videoplay 分集切分契约：`nimi-mods/videoplay/spec/kernel/tables/segmentation-policy.yaml`
+7. videoplay 剪辑合成契约：`nimi-mods/videoplay/spec/kernel/tables/edit-compose-policy.yaml`
+8. mod 通用治理：`ssot/mod/governance.md`
+9. world 边界桩：`ssot/boundaries/world.md`
+10. agent 边界桩：`ssot/boundaries/agent.md`
