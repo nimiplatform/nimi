@@ -143,6 +143,11 @@ method_mappings:
     proto_service: RuntimeConnectorService
     proto_method: ListConnectorModels
     mapping_status: aligned
+  - design_service: ConnectorService
+    design_method: ListProviderCatalog
+    proto_service: RuntimeConnectorService
+    proto_method: ListProviderCatalog
+    mapping_status: aligned
 
   - design_service: RuntimeLocalRuntimeService
     design_method: ListLocalModels

@@ -20,6 +20,30 @@ providers:
     default_endpoint: https://ark.cn-beijing.volces.com/api/v3
     requires_explicit_endpoint: false
     source: K-RPC-001
+  - provider: nimillm
+    default_endpoint: null
+    requires_explicit_endpoint: true
+    source: K-RPC-001
+  - provider: minimax
+    default_endpoint: https://api.minimax.chat/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: kimi
+    default_endpoint: https://api.moonshot.cn/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: glm
+    default_endpoint: https://open.bigmodel.cn/api/paas/v4
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: deepseek
+    default_endpoint: https://api.deepseek.com/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: openrouter
+    default_endpoint: https://openrouter.ai/api/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
   - provider: openai_compatible
     default_endpoint: null
     requires_explicit_endpoint: true

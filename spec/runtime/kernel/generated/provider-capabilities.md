@@ -10,4 +10,10 @@
 | `anthropic` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
 | `dashscope` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
 | `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `nimillm` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `minimax` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `kimi` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `glm` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `deepseek` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
 | `openai_compatible` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-008`, `K-KEYSRC-001`, `K-RPC-001` |

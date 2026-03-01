@@ -30,6 +30,7 @@ groups:
       - DeleteConnector
       - TestConnector
       - ListConnectorModels
+      - ListProviderCatalog
     source_rule: S-SURFACE-002
   - group: local_runtime_service_projection
     service: RuntimeLocalRuntimeService

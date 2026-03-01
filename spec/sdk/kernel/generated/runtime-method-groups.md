@@ -32,6 +32,7 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `DeleteConnector` | `S-SURFACE-002` |
 | `TestConnector` | `S-SURFACE-002` |
 | `ListConnectorModels` | `S-SURFACE-002` |
+| `ListProviderCatalog` | `S-SURFACE-002` |
 
 ## local_runtime_service_projection
 

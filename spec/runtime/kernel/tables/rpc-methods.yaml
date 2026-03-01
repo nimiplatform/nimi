@@ -40,6 +40,8 @@ services:
         type: unary
       - name: ListConnectorModels
         type: unary
+      - name: ListProviderCatalog
+        type: unary
   - name: RuntimeLocalRuntimeService
     source: K-RPC-004
     methods:

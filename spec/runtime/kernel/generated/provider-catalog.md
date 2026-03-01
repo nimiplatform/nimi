@@ -9,4 +9,10 @@
 | `anthropic` | `https://api.anthropic.com` | `false` | `K-RPC-001` |
 | `dashscope` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `false` | `K-RPC-001` |
 | `volcengine` | `https://ark.cn-beijing.volces.com/api/v3` | `false` | `K-RPC-001` |
+| `nimillm` | — | `true` | `K-RPC-001` |
+| `minimax` | `https://api.minimax.chat/v1` | `false` | `K-RPC-001` |
+| `kimi` | `https://api.moonshot.cn/v1` | `false` | `K-RPC-001` |
+| `glm` | `https://open.bigmodel.cn/api/paas/v4` | `false` | `K-RPC-001` |
+| `deepseek` | `https://api.deepseek.com/v1` | `false` | `K-RPC-001` |
+| `openrouter` | `https://openrouter.ai/api/v1` | `false` | `K-RPC-001` |
 | `openai_compatible` | — | `true` | `K-RPC-001` |

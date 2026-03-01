@@ -39,6 +39,7 @@
 | `ConnectorService` | `DeleteConnector` | `RuntimeConnectorService` | `DeleteConnector` | `aligned` |
 | `ConnectorService` | `TestConnector` | `RuntimeConnectorService` | `TestConnector` | `aligned` |
 | `ConnectorService` | `ListConnectorModels` | `RuntimeConnectorService` | `ListConnectorModels` | `aligned` |
+| `ConnectorService` | `ListProviderCatalog` | `RuntimeConnectorService` | `ListProviderCatalog` | `aligned` |
 | `RuntimeLocalRuntimeService` | `ListLocalModels` | `RuntimeLocalRuntimeService` | `ListLocalModels` | `aligned` |
 | `RuntimeLocalRuntimeService` | `InstallLocalModel` | `RuntimeLocalRuntimeService` | `InstallLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `RemoveLocalModel` | `RuntimeLocalRuntimeService` | `RemoveLocalModel` | `aligned` |

@@ -42,6 +42,48 @@ providers:
     inline_supported: true
     endpoint_requirement: default_or_explicit
     sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: nimillm
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: minimax
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: kimi
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: glm
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: deepseek
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: openrouter
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: openai_compatible
     runtime_plane: remote
     execution_module: nimillm

@@ -32,6 +32,7 @@ Source: `K-RPC-003`
 | `DeleteConnector` | `unary` |
 | `TestConnector` | `unary` |
 | `ListConnectorModels` | `unary` |
+| `ListProviderCatalog` | `unary` |
 
 ## RuntimeLocalRuntimeService
 
