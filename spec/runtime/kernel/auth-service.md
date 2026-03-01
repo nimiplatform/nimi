@@ -88,6 +88,18 @@
 - 客户端应实现 session 失效后的自动重连逻辑（检测到 `UNAUTHENTICATED` 后重新 `OpenSession`）。
 - 未来版本可引入持久化存储（如文件或嵌入式 KV），但 Phase 1 明确不要求。
 
+**跨消费方恢复协议差异（K-AUTHSVC-012a）**：
+
+daemon 重启导致内存 session 全部失效，不同消费方受影响程度和恢复策略不同：
+
+| 消费方 | 使用 OpenSession? | 重启影响 | 恢复策略 |
+|---|---|---|---|
+| **Desktop** | 否（token 来自 Realm Backend） | 需重新 RegisterApp（D-BOOT-004），Realm token 不受影响 | Desktop 检测到 `runtime.disconnected`（SDKR-028）后重新执行 bootstrap 序列 |
+| **External Agent（SDK 消费者）** | 是（K-AUTHSVC-006） | session 失效，所有需认证的 RPC 返回 `UNAUTHENTICATED` | 应用层检测到 `UNAUTHENTICATED` 后重新 `RegisterExternalPrincipal` + `OpenExternalPrincipalSession`。SDK `runtime.disconnected` 事件可检测连接断开但**无法区分**"网络故障"和"daemon 重启导致 session 失效"——两者恢复策略相同（重建连接 + 重建 session） |
+| **独立 SDK 消费者** | 是（K-AUTHSVC-002） | 同 External Agent | 同 External Agent |
+
+**SDK 层推荐实现模式**：SDK 消费者应在 `runtime.disconnected` 事件处理器中无条件重新 `connect()` + `OpenSession()`（或 `OpenExternalPrincipalSession()`），不需要区分断开原因。失败时按 SDKR-045 退避重试。
+
 ## K-AUTHSVC-013 ExternalPrincipal proof_type 枚举
 
 `RegisterExternalPrincipal` 和 `OpenExternalPrincipalSession` 中 `proof_type` 的支持值：
