@@ -145,13 +145,15 @@ export function ContactsPanel() {
   const filteredContacts = useMemo(() => {
     const query = searchText.trim().toLowerCase();
     if (!query) return activeList;
-    return activeList.filter(
+    // 搜索所有非 blocked 的联系人（不限制于当前分类）
+    const allContacts = [...humans, ...agents, ...myAgents];
+    return allContacts.filter(
       (contact) =>
         contact.displayName.toLowerCase().includes(query) ||
         contact.handle.toLowerCase().includes(query) ||
         (contact.bio && contact.bio.toLowerCase().includes(query)),
     );
-  }, [activeList, searchText]);
+  }, [activeList, searchText, humans, agents, myAgents]);
 
   const filteredRequests = useMemo(() => {
     const query = searchText.trim().toLowerCase();

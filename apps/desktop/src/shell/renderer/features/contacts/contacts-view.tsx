@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
@@ -421,7 +421,27 @@ export function ContactsView(props: ContactsViewProps) {
                 className="ml-2 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
                 placeholder="Search"
                 value={props.searchText}
-                onChange={(e) => props.onSearchTextChange(e.target.value)} />
+                onChange={(e) => props.onSearchTextChange(e.target.value)}
+              />
+              {/* 清除按钮 */}
+              {props.searchText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    props.onSearchTextChange('');
+                    setSelectedContact(null);
+                    setSelectedRequest(null);
+                    setSelectedCategory(null);
+                  }}
+                  className="ml-1 flex h-6 w-6 items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
             </div>
             <button
               type="button"
@@ -437,9 +457,109 @@ export function ContactsView(props: ContactsViewProps) {
           </div>
         </div>
 
-        {/* 可展开的分类列表 */}
+        {/* 可展开的分类列表或搜索结果 */}
         <div className="flex-1 overflow-y-auto py-2 space-y-1">
-          {CATEGORIES.map((category) => {
+          {props.searchText.trim() ? (
+            // 搜索结果显示 - 按分组显示
+            (() => {
+              const query = props.searchText.trim().toLowerCase();
+              const allContacts = [...props.allFriends, ...newFriendsFromRequests].filter(c => !isUserBlocked(c.id));
+              
+              // 按分类分组
+              const humans = allContacts.filter(c => !c.isAgent && (c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)));
+              const agents = allContacts.filter(c => c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED' && (c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)));
+              const myAgents = allContacts.filter(c => c.isAgent && c.agentOwnershipType === 'MASTER_OWNED' && (c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)));
+              
+              const groups = [
+                { id: 'humans' as TabFilter, title: t('Contacts.tabHumans'), items: humans },
+                { id: 'agents' as TabFilter, title: t('Contacts.tabAgents'), items: agents },
+                { id: 'myAgents' as TabFilter, title: t('Contacts.tabMyAgents'), items: myAgents },
+              ].filter(g => g.items.length > 0);
+              
+              // 高亮匹配文字的组件
+              const HighlightText = ({ text, query }: { text: string; query: string }) => {
+                if (!query) return <>{text}</>;
+                const lowerText = text.toLowerCase();
+                const lowerQuery = query.toLowerCase();
+                const parts: (string | React.ReactNode)[] = [];
+                let lastIndex = 0;
+                let index = lowerText.indexOf(lowerQuery);
+                
+                while (index !== -1) {
+                  if (index > lastIndex) {
+                    parts.push(text.slice(lastIndex, index));
+                  }
+                  parts.push(<span key={index} className="text-[#4ECCA3] font-medium">{text.slice(index, index + query.length)}</span>);
+                  lastIndex = index + query.length;
+                  index = lowerText.indexOf(lowerQuery, lastIndex);
+                }
+                if (lastIndex < text.length) {
+                  parts.push(text.slice(lastIndex));
+                }
+                return <>{parts}</>;
+              };
+              
+              if (groups.length === 0) {
+                return (
+                  <div className="px-4 py-6 text-center">
+                    <div className="text-3xl mb-2">🔍</div>
+                    <div className="text-sm text-gray-400">No contacts found</div>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-4">
+                  {groups.map((group) => (
+                    <div key={group.id}>
+                      {/* 分组标题 */}
+                      <div className="px-3 py-1.5 text-xs text-gray-500 font-medium flex items-center justify-between">
+                        <span>{group.title}</span>
+                        <span className="text-gray-400">({group.items.length})</span>
+                      </div>
+                      {/* 该分组下的联系人 */}
+                      <div className="space-y-0.5">
+                        {group.items.map((contact) => (
+                          <button
+                            key={contact.id}
+                            type="button"
+                            onClick={() => handleSelectContact(contact, group.id)}
+                            className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
+                              selectedContact?.id === contact.id 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'hover:bg-green-50/50 text-gray-700'
+                            }`}
+                          >
+                            {contact.avatarUrl ? (
+                              <img src={contact.avatarUrl} alt={contact.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                            ) : (
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                                contact.isAgent 
+                                  ? 'bg-gradient-to-br from-purple-400 to-purple-500 text-white'
+                                  : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                              }`}>
+                                {getContactInitial(contact.displayName)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-left">
+                              <div className="text-[15px] text-gray-900 truncate">
+                                <HighlightText text={contact.displayName} query={query} />
+                              </div>
+                              <div className="text-xs text-gray-400 truncate">
+                                <HighlightText text={contact.handle} query={query} />
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          ) : (
+            // 分类列表显示
+            CATEGORIES.map((category) => {
             const count = counts[category.countKey as keyof typeof counts] as number;
             const isExpanded = expandedCategories.has(category.id);
             const isRequests = category.id === 'requests';
@@ -661,7 +781,7 @@ export function ContactsView(props: ContactsViewProps) {
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
       </aside>
 
