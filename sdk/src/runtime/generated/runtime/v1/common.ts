@@ -273,7 +273,51 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN = 213;
      */
-    AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN = 213
+    AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN = 213,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_NOT_FOUND = 310;
+     */
+    AI_CONNECTOR_NOT_FOUND = 310,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_DISABLED = 311;
+     */
+    AI_CONNECTOR_DISABLED = 311,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_CREDENTIAL_MISSING = 312;
+     */
+    AI_CONNECTOR_CREDENTIAL_MISSING = 312,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_INVALID = 313;
+     */
+    AI_CONNECTOR_INVALID = 313,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_IMMUTABLE = 314;
+     */
+    AI_CONNECTOR_IMMUTABLE = 314,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_LIMIT_EXCEEDED = 315;
+     */
+    AI_CONNECTOR_LIMIT_EXCEEDED = 315,
+    /**
+     * @generated from protobuf enum value: AI_CONNECTOR_ID_REQUIRED = 316;
+     */
+    AI_CONNECTOR_ID_REQUIRED = 316,
+    /**
+     * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_CONFLICT = 330;
+     */
+    AI_REQUEST_CREDENTIAL_CONFLICT = 330,
+    /**
+     * @generated from protobuf enum value: AI_APP_ID_REQUIRED = 340;
+     */
+    AI_APP_ID_REQUIRED = 340,
+    /**
+     * @generated from protobuf enum value: AI_APP_ID_CONFLICT = 341;
+     */
+    AI_APP_ID_CONFLICT = 341,
+    /**
+     * @generated from protobuf enum value: AI_MODEL_ID_REQUIRED = 350;
+     */
+    AI_MODEL_ID_REQUIRED = 350
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

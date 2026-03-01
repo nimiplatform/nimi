@@ -103,6 +103,10 @@ export interface GenerateRequest {
      * @generated from protobuf field: int32 timeout_ms = 13
      */
     timeoutMs: number;
+    /**
+     * @generated from protobuf field: string connector_id = 14
+     */
+    connectorId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GenerateResponse
@@ -189,6 +193,10 @@ export interface StreamGenerateRequest {
      * @generated from protobuf field: int32 timeout_ms = 13
      */
     timeoutMs: number;
+    /**
+     * @generated from protobuf field: string connector_id = 14
+     */
+    connectorId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StreamStarted
@@ -361,6 +369,10 @@ export interface EmbedRequest {
      * @generated from protobuf field: int32 timeout_ms = 7
      */
     timeoutMs: number;
+    /**
+     * @generated from protobuf field: string connector_id = 8
+     */
+    connectorId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.EmbedResponse
@@ -812,6 +824,10 @@ export interface SubmitMediaJobRequest {
         [key: string]: string;
     };
     /**
+     * @generated from protobuf field: string connector_id = 11
+     */
+    connectorId: string;
+    /**
      * @generated from protobuf oneof: spec
      */
     spec: {
@@ -1037,6 +1053,10 @@ export interface GetSpeechVoicesRequest {
      * @generated from protobuf field: nimi.runtime.v1.FallbackPolicy fallback = 5
      */
     fallback: FallbackPolicy;
+    /**
+     * @generated from protobuf field: string connector_id = 6
+     */
+    connectorId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetSpeechVoicesResponse
@@ -1087,6 +1107,10 @@ export interface StreamSpeechSynthesisRequest {
      * @generated from protobuf field: int32 timeout_ms = 7
      */
     timeoutMs: number;
+    /**
+     * @generated from protobuf field: string connector_id = 8
+     */
+    connectorId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListTokenProviderModelsRequest
@@ -1591,7 +1615,8 @@ class GenerateRequest$Type extends MessageType<GenerateRequest> {
             { no: 10, name: "max_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 11, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 12, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
-            { no: 13, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 13, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 14, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GenerateRequest>): GenerateRequest {
@@ -1609,6 +1634,7 @@ class GenerateRequest$Type extends MessageType<GenerateRequest> {
         message.routePolicy = 0;
         message.fallback = 0;
         message.timeoutMs = 0;
+        message.connectorId = "";
         if (value !== undefined)
             reflectionMergePartial<GenerateRequest>(this, message, value);
         return message;
@@ -1656,6 +1682,9 @@ class GenerateRequest$Type extends MessageType<GenerateRequest> {
                     break;
                 case /* int32 timeout_ms */ 13:
                     message.timeoutMs = reader.int32();
+                    break;
+                case /* string connector_id */ 14:
+                    message.connectorId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1708,6 +1737,9 @@ class GenerateRequest$Type extends MessageType<GenerateRequest> {
         /* int32 timeout_ms = 13; */
         if (message.timeoutMs !== 0)
             writer.tag(13, WireType.Varint).int32(message.timeoutMs);
+        /* string connector_id = 14; */
+        if (message.connectorId !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.connectorId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1819,7 +1851,8 @@ class StreamGenerateRequest$Type extends MessageType<StreamGenerateRequest> {
             { no: 10, name: "max_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 11, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 12, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
-            { no: 13, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 13, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 14, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<StreamGenerateRequest>): StreamGenerateRequest {
@@ -1837,6 +1870,7 @@ class StreamGenerateRequest$Type extends MessageType<StreamGenerateRequest> {
         message.routePolicy = 0;
         message.fallback = 0;
         message.timeoutMs = 0;
+        message.connectorId = "";
         if (value !== undefined)
             reflectionMergePartial<StreamGenerateRequest>(this, message, value);
         return message;
@@ -1884,6 +1918,9 @@ class StreamGenerateRequest$Type extends MessageType<StreamGenerateRequest> {
                     break;
                 case /* int32 timeout_ms */ 13:
                     message.timeoutMs = reader.int32();
+                    break;
+                case /* string connector_id */ 14:
+                    message.connectorId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1936,6 +1973,9 @@ class StreamGenerateRequest$Type extends MessageType<StreamGenerateRequest> {
         /* int32 timeout_ms = 13; */
         if (message.timeoutMs !== 0)
             writer.tag(13, WireType.Varint).int32(message.timeoutMs);
+        /* string connector_id = 14; */
+        if (message.connectorId !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.connectorId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2409,7 +2449,8 @@ class EmbedRequest$Type extends MessageType<EmbedRequest> {
             { no: 4, name: "inputs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 6, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
-            { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<EmbedRequest>): EmbedRequest {
@@ -2421,6 +2462,7 @@ class EmbedRequest$Type extends MessageType<EmbedRequest> {
         message.routePolicy = 0;
         message.fallback = 0;
         message.timeoutMs = 0;
+        message.connectorId = "";
         if (value !== undefined)
             reflectionMergePartial<EmbedRequest>(this, message, value);
         return message;
@@ -2450,6 +2492,9 @@ class EmbedRequest$Type extends MessageType<EmbedRequest> {
                     break;
                 case /* int32 timeout_ms */ 7:
                     message.timeoutMs = reader.int32();
+                    break;
+                case /* string connector_id */ 8:
+                    message.connectorId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2484,6 +2529,9 @@ class EmbedRequest$Type extends MessageType<EmbedRequest> {
         /* int32 timeout_ms = 7; */
         if (message.timeoutMs !== 0)
             writer.tag(7, WireType.Varint).int32(message.timeoutMs);
+        /* string connector_id = 8; */
+        if (message.connectorId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.connectorId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3542,6 +3590,7 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
             { no: 8, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "idempotency_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "labels", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
+            { no: 11, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 20, name: "image_spec", kind: "message", oneof: "spec", T: () => ImageGenerationSpec },
             { no: 21, name: "video_spec", kind: "message", oneof: "spec", T: () => VideoGenerationSpec },
             { no: 22, name: "speech_spec", kind: "message", oneof: "spec", T: () => SpeechSynthesisSpec },
@@ -3560,6 +3609,7 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
         message.requestId = "";
         message.idempotencyKey = "";
         message.labels = {};
+        message.connectorId = "";
         message.spec = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<SubmitMediaJobRequest>(this, message, value);
@@ -3599,6 +3649,9 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
                     break;
                 case /* map<string, string> labels */ 10:
                     this.binaryReadMap10(message.labels, reader, options);
+                    break;
+                case /* string connector_id */ 11:
+                    message.connectorId = reader.string();
                     break;
                 case /* nimi.runtime.v1.ImageGenerationSpec image_spec */ 20:
                     message.spec = {
@@ -3682,6 +3735,9 @@ class SubmitMediaJobRequest$Type extends MessageType<SubmitMediaJobRequest> {
         /* map<string, string> labels = 10; */
         for (let k of globalThis.Object.keys(message.labels))
             writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.labels[k]).join();
+        /* string connector_id = 11; */
+        if (message.connectorId !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.connectorId);
         /* nimi.runtime.v1.ImageGenerationSpec image_spec = 20; */
         if (message.spec.oneofKind === "imageSpec")
             ImageGenerationSpec.internalBinaryWrite(message.spec.imageSpec, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
@@ -4367,7 +4423,8 @@ class GetSpeechVoicesRequest$Type extends MessageType<GetSpeechVoicesRequest> {
             { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
-            { no: 5, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] }
+            { no: 5, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
+            { no: 6, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetSpeechVoicesRequest>): GetSpeechVoicesRequest {
@@ -4377,6 +4434,7 @@ class GetSpeechVoicesRequest$Type extends MessageType<GetSpeechVoicesRequest> {
         message.modelId = "";
         message.routePolicy = 0;
         message.fallback = 0;
+        message.connectorId = "";
         if (value !== undefined)
             reflectionMergePartial<GetSpeechVoicesRequest>(this, message, value);
         return message;
@@ -4400,6 +4458,9 @@ class GetSpeechVoicesRequest$Type extends MessageType<GetSpeechVoicesRequest> {
                     break;
                 case /* nimi.runtime.v1.FallbackPolicy fallback */ 5:
                     message.fallback = reader.int32();
+                    break;
+                case /* string connector_id */ 6:
+                    message.connectorId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4428,6 +4489,9 @@ class GetSpeechVoicesRequest$Type extends MessageType<GetSpeechVoicesRequest> {
         /* nimi.runtime.v1.FallbackPolicy fallback = 5; */
         if (message.fallback !== 0)
             writer.tag(5, WireType.Varint).int32(message.fallback);
+        /* string connector_id = 6; */
+        if (message.connectorId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.connectorId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4511,7 +4575,8 @@ class StreamSpeechSynthesisRequest$Type extends MessageType<StreamSpeechSynthesi
             { no: 4, name: "speech_spec", kind: "message", T: () => SpeechSynthesisSpec },
             { no: 5, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 6, name: "fallback", kind: "enum", T: () => ["nimi.runtime.v1.FallbackPolicy", FallbackPolicy, "FALLBACK_POLICY_"] },
-            { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 7, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<StreamSpeechSynthesisRequest>): StreamSpeechSynthesisRequest {
@@ -4522,6 +4587,7 @@ class StreamSpeechSynthesisRequest$Type extends MessageType<StreamSpeechSynthesi
         message.routePolicy = 0;
         message.fallback = 0;
         message.timeoutMs = 0;
+        message.connectorId = "";
         if (value !== undefined)
             reflectionMergePartial<StreamSpeechSynthesisRequest>(this, message, value);
         return message;
@@ -4551,6 +4617,9 @@ class StreamSpeechSynthesisRequest$Type extends MessageType<StreamSpeechSynthesi
                     break;
                 case /* int32 timeout_ms */ 7:
                     message.timeoutMs = reader.int32();
+                    break;
+                case /* string connector_id */ 8:
+                    message.connectorId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4585,6 +4654,9 @@ class StreamSpeechSynthesisRequest$Type extends MessageType<StreamSpeechSynthesi
         /* int32 timeout_ms = 7; */
         if (message.timeoutMs !== 0)
             writer.tag(7, WireType.Varint).int32(message.timeoutMs);
+        /* string connector_id = 8; */
+        if (message.connectorId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.connectorId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -78,10 +78,12 @@ export interface IRuntimeAiServiceClient {
      */
     streamSpeechSynthesis(input: StreamSpeechSynthesisRequest, options?: RpcOptions): ServerStreamingCall<StreamSpeechSynthesisRequest, ArtifactChunk>;
     /**
+     * @deprecated
      * @generated from protobuf rpc: ListTokenProviderModels
      */
     listTokenProviderModels(input: ListTokenProviderModelsRequest, options?: RpcOptions): UnaryCall<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse>;
     /**
+     * @deprecated
      * @generated from protobuf rpc: CheckTokenProviderHealth
      */
     checkTokenProviderHealth(input: CheckTokenProviderHealthRequest, options?: RpcOptions): UnaryCall<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse>;
@@ -166,6 +168,7 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<StreamSpeechSynthesisRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
     }
     /**
+     * @deprecated
      * @generated from protobuf rpc: ListTokenProviderModels
      */
     listTokenProviderModels(input: ListTokenProviderModelsRequest, options?: RpcOptions): UnaryCall<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse> {
@@ -173,6 +176,7 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
         return stackIntercept<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @deprecated
      * @generated from protobuf rpc: CheckTokenProviderHealth
      */
     checkTokenProviderHealth(input: CheckTokenProviderHealthRequest, options?: RpcOptions): UnaryCall<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse> {
