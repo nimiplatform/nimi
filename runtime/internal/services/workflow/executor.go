@@ -135,13 +135,15 @@ func (s *Service) executeTask(taskID string) {
 			}
 			reasonCode := workflowReasonCodeFromError(executeErr)
 			s.setNodeStatus(taskID, nodeID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED, 1, executeErr.Error())
-			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+			if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 				EventType:       runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_COMPLETED,
 				NodeId:          nodeID,
 				ProgressPercent: 100,
 				ReasonCode:      reasonCode,
 				Payload:         structFromMap(map[string]any{"error": executeErr.Error()}),
-			})
+			}); err != nil {
+				s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+			}
 			s.finishFailed(taskID, reasonCode, executeErr.Error())
 			return
 		}
@@ -171,11 +173,13 @@ func (s *Service) executeTask(taskID string) {
 	if !s.setTaskStatus(taskID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED, runtimev1.ReasonCode_ACTION_EXECUTED, output) {
 		return
 	}
-	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+	if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_COMPLETED,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		Payload:    output,
-	})
+	}); err != nil {
+		s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+	}
 	s.markTaskTerminal(taskID)
 }
 
@@ -284,7 +288,7 @@ func (s *Service) executeNodeExternalAsync(
 		})
 	}
 	s.setNodeExternalStatus(taskID, nodeID, job.GetProviderJobId(), job.GetNextPollAt(), job.GetRetryCount(), "")
-	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+	if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED,
 		NodeId:     nodeID,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
@@ -296,7 +300,9 @@ func (s *Service) executeNodeExternalAsync(
 			"reason_code":     job.GetReasonCode().String(),
 			"reason_detail":   job.GetReasonDetail(),
 		}),
-	})
+	}); err != nil {
+		s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+	}
 
 	retryCount := int32(0)
 	runningEventSent := false
@@ -330,7 +336,7 @@ func (s *Service) executeNodeExternalAsync(
 			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
 			if !runningEventSent || current.GetStatus() == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING {
 				runningEventSent = true
-				_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+				if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 					EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING,
 					NodeId:     nodeID,
 					ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
@@ -342,12 +348,14 @@ func (s *Service) executeNodeExternalAsync(
 						"reason_code":     current.GetReasonCode().String(),
 						"reason_detail":   current.GetReasonDetail(),
 					}),
-				})
+				}); err != nil {
+					s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+				}
 			}
 			time.Sleep(400 * time.Millisecond)
 			continue
 		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
-			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+			if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 				EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED,
 				NodeId:     nodeID,
 				ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
@@ -359,7 +367,9 @@ func (s *Service) executeNodeExternalAsync(
 					"reason_code":     current.GetReasonCode().String(),
 					"reason_detail":   current.GetReasonDetail(),
 				}),
-			})
+			}); err != nil {
+				s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+			}
 			return outputsFromMediaJob(s, record, node, current)
 		default:
 			reasonCode := workflowReasonCodeFromMediaJob(current)
@@ -368,7 +378,7 @@ func (s *Service) executeNodeExternalAsync(
 				lastError = current.GetReasonCode().String()
 			}
 			s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), effectiveRetryCount, lastError)
-			_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+			if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 				EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_FAILED,
 				NodeId:     nodeID,
 				ReasonCode: reasonCode,
@@ -380,7 +390,9 @@ func (s *Service) executeNodeExternalAsync(
 					"reason_code":     current.GetReasonCode().String(),
 					"reason_detail":   current.GetReasonDetail(),
 				}),
-			})
+			}); err != nil {
+				s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+			}
 			return nil, fmt.Errorf("external async media job failed: %s", current.GetReasonCode().String())
 		}
 	}
@@ -1134,12 +1146,14 @@ func (s *Service) markNodeSkipped(taskID string, nodeID string, reason string) b
 	if !s.setNodeStatus(taskID, nodeID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_SKIPPED, 0, reason) {
 		return false
 	}
-	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+	if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_SKIPPED,
 		NodeId:     nodeID,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		Payload:    structFromMap(map[string]any{"reason": reason}),
-	})
+	}); err != nil {
+		s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+	}
 	return true
 }
 
@@ -1344,22 +1358,30 @@ func (s *Service) publishIfRunning(taskID string, event *runtimev1.WorkflowEvent
 }
 
 func (s *Service) finishFailed(taskID string, reason runtimev1.ReasonCode, why string) {
-	_ = s.setTaskStatus(taskID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED, reason, nil)
+	if !s.setTaskStatus(taskID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED, reason, nil) {
+		s.logger.Warn("workflow task status update failed", "task_id", taskID)
+	}
 	payload := structFromMap(map[string]any{"reason": why})
-	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+	if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_FAILED,
 		ReasonCode: reason,
 		Payload:    payload,
-	})
+	}); err != nil {
+		s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+	}
 	s.markTaskTerminal(taskID)
 }
 
 func (s *Service) finishCanceled(taskID string) {
-	_ = s.setTaskStatus(taskID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
-	_ = s.publishEvent(taskID, &runtimev1.WorkflowEvent{
+	if !s.setTaskStatus(taskID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED, nil) {
+		s.logger.Warn("workflow task status update failed", "task_id", taskID)
+	}
+	if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 		EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_CANCELED,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
-	})
+	}); err != nil {
+		s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+	}
 	s.markTaskTerminal(taskID)
 }
 

@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
@@ -364,36 +363,61 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.SchemaVersion != 0 {
 		merged.SchemaVersion = raw.SchemaVersion
 	}
-	// Merge from flat or legacy nested keys.
-	if v := raw.EffectiveGRPCAddr(); v != "" {
+	if v := strings.TrimSpace(raw.GRPCAddr); v != "" {
 		merged.GRPCAddr = v
-		merged.Runtime.GRPCAddr = v
 	}
-	if v := raw.EffectiveHTTPAddr(); v != "" {
+	if v := strings.TrimSpace(raw.HTTPAddr); v != "" {
 		merged.HTTPAddr = v
-		merged.Runtime.HTTPAddr = v
 	}
-	if v := raw.EffectiveShutdownTimeout(); v != "" {
-		merged.ShutdownTimeout = v
-		merged.Runtime.ShutdownTimeout = v
+	if raw.ShutdownTimeoutSeconds != nil {
+		merged.ShutdownTimeoutSeconds = raw.ShutdownTimeoutSeconds
 	}
-	if v := raw.EffectiveLocalRuntimeStatePath(); v != "" {
+	if v := strings.TrimSpace(raw.LocalRuntimeStatePath); v != "" {
 		merged.LocalRuntimeStatePath = v
-		merged.Runtime.LocalRuntimeStatePath = v
 	}
-
-	if v := raw.EffectiveAIHTTPTimeout(); v != "" {
-		merged.AI.HTTPTimeout = v
+	if raw.WorkerMode != nil {
+		merged.WorkerMode = raw.WorkerMode
 	}
-	if v := raw.EffectiveAIHealthInterval(); v != "" {
-		merged.AI.HealthInterval = v
+	if raw.AIHealthIntervalSeconds != nil {
+		merged.AIHealthIntervalSeconds = raw.AIHealthIntervalSeconds
 	}
-	providers := raw.EffectiveProviders()
-	mergedProviders := map[string]config.RuntimeFileTarget{}
-	for k, v := range providers {
-		mergedProviders[k] = v
+	if raw.AIHTTPTimeoutSeconds != nil {
+		merged.AIHTTPTimeoutSeconds = raw.AIHTTPTimeoutSeconds
 	}
-	merged.AI.Providers = mergedProviders
+	if raw.GlobalConcurrencyLimit != nil {
+		merged.GlobalConcurrencyLimit = raw.GlobalConcurrencyLimit
+	}
+	if raw.PerAppConcurrencyLimit != nil {
+		merged.PerAppConcurrencyLimit = raw.PerAppConcurrencyLimit
+	}
+	if raw.IdempotencyCapacity != nil {
+		merged.IdempotencyCapacity = raw.IdempotencyCapacity
+	}
+	if raw.MaxDelegationDepth != nil {
+		merged.MaxDelegationDepth = raw.MaxDelegationDepth
+	}
+	if raw.AuditRingBufferSize != nil {
+		merged.AuditRingBufferSize = raw.AuditRingBufferSize
+	}
+	if raw.UsageStatsBufferSize != nil {
+		merged.UsageStatsBufferSize = raw.UsageStatsBufferSize
+	}
+	if raw.LocalAuditCapacity != nil {
+		merged.LocalAuditCapacity = raw.LocalAuditCapacity
+	}
+	if raw.SessionTTLMinSeconds != nil {
+		merged.SessionTTLMinSeconds = raw.SessionTTLMinSeconds
+	}
+	if raw.SessionTTLMaxSeconds != nil {
+		merged.SessionTTLMaxSeconds = raw.SessionTTLMaxSeconds
+	}
+	if raw.Providers != nil {
+		mergedProviders := map[string]config.RuntimeFileTarget{}
+		for k, v := range raw.Providers {
+			mergedProviders[k] = v
+		}
+		merged.Providers = mergedProviders
+	}
 	return merged
 }
 
@@ -402,24 +426,14 @@ func validateMergedRuntimeFields(fileCfg config.FileConfig) error {
 		return err
 	}
 
-	if _, _, err := net.SplitHostPort(strings.TrimSpace(fileCfg.Runtime.GRPCAddr)); err != nil {
-		return fmt.Errorf("runtime.grpcAddr invalid: %w", err)
+	if _, _, err := net.SplitHostPort(strings.TrimSpace(fileCfg.GRPCAddr)); err != nil {
+		return fmt.Errorf("grpcAddr invalid: %w", err)
 	}
-	if _, _, err := net.SplitHostPort(strings.TrimSpace(fileCfg.Runtime.HTTPAddr)); err != nil {
-		return fmt.Errorf("runtime.httpAddr invalid: %w", err)
+	if _, _, err := net.SplitHostPort(strings.TrimSpace(fileCfg.HTTPAddr)); err != nil {
+		return fmt.Errorf("httpAddr invalid: %w", err)
 	}
-	if _, err := time.ParseDuration(strings.TrimSpace(fileCfg.Runtime.ShutdownTimeout)); err != nil {
-		return fmt.Errorf("runtime.shutdownTimeout invalid: %w", err)
-	}
-	if strings.TrimSpace(fileCfg.AI.HTTPTimeout) != "" {
-		if _, err := time.ParseDuration(strings.TrimSpace(fileCfg.AI.HTTPTimeout)); err != nil {
-			return fmt.Errorf("ai.httpTimeout invalid: %w", err)
-		}
-	}
-	if strings.TrimSpace(fileCfg.AI.HealthInterval) != "" {
-		if _, err := time.ParseDuration(strings.TrimSpace(fileCfg.AI.HealthInterval)); err != nil {
-			return fmt.Errorf("ai.healthInterval invalid: %w", err)
-		}
+	if fileCfg.ShutdownTimeoutSeconds != nil && *fileCfg.ShutdownTimeoutSeconds <= 0 {
+		return fmt.Errorf("shutdownTimeoutSeconds must be > 0")
 	}
 	return nil
 }
@@ -487,39 +501,118 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		cfg.SchemaVersion = parsed
 		return nil
-	case "runtime.grpcAddr":
-		cfg.Runtime.GRPCAddr = value
+	case "grpcAddr":
+		cfg.GRPCAddr = value
 		return nil
-	case "runtime.httpAddr":
-		cfg.Runtime.HTTPAddr = value
+	case "httpAddr":
+		cfg.HTTPAddr = value
 		return nil
-	case "runtime.shutdownTimeout":
-		cfg.Runtime.ShutdownTimeout = value
+	case "shutdownTimeoutSeconds":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("shutdownTimeoutSeconds must be integer: %w", err)
+		}
+		cfg.ShutdownTimeoutSeconds = &parsed
 		return nil
-	case "runtime.localRuntimeStatePath":
-		cfg.Runtime.LocalRuntimeStatePath = value
+	case "localRuntimeStatePath":
+		cfg.LocalRuntimeStatePath = value
 		return nil
-	case "ai.httpTimeout":
-		cfg.AI.HTTPTimeout = value
+	case "workerMode":
+		v := strings.ToLower(strings.TrimSpace(value)) == "true"
+		cfg.WorkerMode = &v
 		return nil
-	case "ai.healthInterval":
-		cfg.AI.HealthInterval = value
+	case "aiHealthIntervalSeconds":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("aiHealthIntervalSeconds must be integer: %w", err)
+		}
+		cfg.AIHealthIntervalSeconds = &parsed
+		return nil
+	case "aiHttpTimeoutSeconds":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("aiHttpTimeoutSeconds must be integer: %w", err)
+		}
+		cfg.AIHTTPTimeoutSeconds = &parsed
+		return nil
+	case "globalConcurrencyLimit":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("globalConcurrencyLimit must be integer: %w", err)
+		}
+		cfg.GlobalConcurrencyLimit = &parsed
+		return nil
+	case "perAppConcurrencyLimit":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("perAppConcurrencyLimit must be integer: %w", err)
+		}
+		cfg.PerAppConcurrencyLimit = &parsed
+		return nil
+	case "idempotencyCapacity":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("idempotencyCapacity must be integer: %w", err)
+		}
+		cfg.IdempotencyCapacity = &parsed
+		return nil
+	case "maxDelegationDepth":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("maxDelegationDepth must be integer: %w", err)
+		}
+		cfg.MaxDelegationDepth = &parsed
+		return nil
+	case "auditRingBufferSize":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("auditRingBufferSize must be integer: %w", err)
+		}
+		cfg.AuditRingBufferSize = &parsed
+		return nil
+	case "usageStatsBufferSize":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("usageStatsBufferSize must be integer: %w", err)
+		}
+		cfg.UsageStatsBufferSize = &parsed
+		return nil
+	case "localAuditCapacity":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("localAuditCapacity must be integer: %w", err)
+		}
+		cfg.LocalAuditCapacity = &parsed
+		return nil
+	case "sessionTtlMinSeconds":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("sessionTtlMinSeconds must be integer: %w", err)
+		}
+		cfg.SessionTTLMinSeconds = &parsed
+		return nil
+	case "sessionTtlMaxSeconds":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("sessionTtlMaxSeconds must be integer: %w", err)
+		}
+		cfg.SessionTTLMaxSeconds = &parsed
 		return nil
 	}
 
 	parts := strings.Split(normalizedKey, ".")
-	if len(parts) != 4 || parts[0] != "ai" || parts[1] != "providers" {
+	if len(parts) != 3 || parts[0] != "providers" {
 		return fmt.Errorf("unsupported config key %q", key)
 	}
-	providerName := strings.TrimSpace(parts[2])
-	providerField := strings.TrimSpace(parts[3])
+	providerName := strings.TrimSpace(parts[1])
+	providerField := strings.TrimSpace(parts[2])
 	if providerName == "" {
 		return fmt.Errorf("provider name cannot be empty")
 	}
-	if cfg.AI.Providers == nil {
-		cfg.AI.Providers = map[string]config.RuntimeFileTarget{}
+	if cfg.Providers == nil {
+		cfg.Providers = map[string]config.RuntimeFileTarget{}
 	}
-	target := cfg.AI.Providers[providerName]
+	target := cfg.Providers[providerName]
 	switch providerField {
 	case "baseUrl":
 		target.BaseURL = value
@@ -530,7 +623,7 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	default:
 		return fmt.Errorf("unsupported provider config key %q", key)
 	}
-	cfg.AI.Providers[providerName] = target
+	cfg.Providers[providerName] = target
 	return nil
 }
 
@@ -543,47 +636,77 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	switch normalizedKey {
 	case "schemaVersion":
 		return fmt.Errorf("schemaVersion cannot be unset")
-	case "runtime.grpcAddr":
-		cfg.Runtime.GRPCAddr = defaultCfg.Runtime.GRPCAddr
+	case "grpcAddr":
+		cfg.GRPCAddr = defaultCfg.GRPCAddr
 		return nil
-	case "runtime.httpAddr":
-		cfg.Runtime.HTTPAddr = defaultCfg.Runtime.HTTPAddr
+	case "httpAddr":
+		cfg.HTTPAddr = defaultCfg.HTTPAddr
 		return nil
-	case "runtime.shutdownTimeout":
-		cfg.Runtime.ShutdownTimeout = defaultCfg.Runtime.ShutdownTimeout
+	case "shutdownTimeoutSeconds":
+		cfg.ShutdownTimeoutSeconds = defaultCfg.ShutdownTimeoutSeconds
 		return nil
-	case "runtime.localRuntimeStatePath":
-		cfg.Runtime.LocalRuntimeStatePath = defaultCfg.Runtime.LocalRuntimeStatePath
+	case "localRuntimeStatePath":
+		cfg.LocalRuntimeStatePath = defaultCfg.LocalRuntimeStatePath
 		return nil
-	case "ai.httpTimeout":
-		cfg.AI.HTTPTimeout = defaultCfg.AI.HTTPTimeout
+	case "workerMode":
+		cfg.WorkerMode = defaultCfg.WorkerMode
 		return nil
-	case "ai.healthInterval":
-		cfg.AI.HealthInterval = defaultCfg.AI.HealthInterval
+	case "aiHealthIntervalSeconds":
+		cfg.AIHealthIntervalSeconds = defaultCfg.AIHealthIntervalSeconds
+		return nil
+	case "aiHttpTimeoutSeconds":
+		cfg.AIHTTPTimeoutSeconds = defaultCfg.AIHTTPTimeoutSeconds
+		return nil
+	case "globalConcurrencyLimit":
+		cfg.GlobalConcurrencyLimit = defaultCfg.GlobalConcurrencyLimit
+		return nil
+	case "perAppConcurrencyLimit":
+		cfg.PerAppConcurrencyLimit = defaultCfg.PerAppConcurrencyLimit
+		return nil
+	case "idempotencyCapacity":
+		cfg.IdempotencyCapacity = defaultCfg.IdempotencyCapacity
+		return nil
+	case "maxDelegationDepth":
+		cfg.MaxDelegationDepth = defaultCfg.MaxDelegationDepth
+		return nil
+	case "auditRingBufferSize":
+		cfg.AuditRingBufferSize = defaultCfg.AuditRingBufferSize
+		return nil
+	case "usageStatsBufferSize":
+		cfg.UsageStatsBufferSize = defaultCfg.UsageStatsBufferSize
+		return nil
+	case "localAuditCapacity":
+		cfg.LocalAuditCapacity = defaultCfg.LocalAuditCapacity
+		return nil
+	case "sessionTtlMinSeconds":
+		cfg.SessionTTLMinSeconds = defaultCfg.SessionTTLMinSeconds
+		return nil
+	case "sessionTtlMaxSeconds":
+		cfg.SessionTTLMaxSeconds = defaultCfg.SessionTTLMaxSeconds
 		return nil
 	}
 
 	parts := strings.Split(normalizedKey, ".")
-	if len(parts) < 3 || parts[0] != "ai" || parts[1] != "providers" {
+	if len(parts) < 2 || parts[0] != "providers" {
 		return fmt.Errorf("unsupported unset key %q", key)
 	}
-	providerName := strings.TrimSpace(parts[2])
+	providerName := strings.TrimSpace(parts[1])
 	if providerName == "" {
 		return fmt.Errorf("provider name cannot be empty")
 	}
-	if cfg.AI.Providers == nil {
-		cfg.AI.Providers = map[string]config.RuntimeFileTarget{}
+	if cfg.Providers == nil {
+		cfg.Providers = map[string]config.RuntimeFileTarget{}
 	}
 
-	if len(parts) == 3 {
-		delete(cfg.AI.Providers, providerName)
+	if len(parts) == 2 {
+		delete(cfg.Providers, providerName)
 		return nil
 	}
-	if len(parts) != 4 {
+	if len(parts) != 3 {
 		return fmt.Errorf("unsupported unset key %q", key)
 	}
-	target := cfg.AI.Providers[providerName]
-	switch strings.TrimSpace(parts[3]) {
+	target := cfg.Providers[providerName]
+	switch strings.TrimSpace(parts[2]) {
 	case "baseUrl":
 		target.BaseURL = ""
 	case "apiKeyEnv":
@@ -593,7 +716,7 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	default:
 		return fmt.Errorf("unsupported unset key %q", key)
 	}
-	cfg.AI.Providers[providerName] = target
+	cfg.Providers[providerName] = target
 	return nil
 }
 

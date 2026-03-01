@@ -2,6 +2,19 @@
   "schemaVersion": 1,
   "grpcAddr": "127.0.0.1:46371",
   "httpAddr": "127.0.0.1:46372",
-  "shutdownTimeout": "10s",
-  "localRuntimeStatePath": "~/.nimi/runtime/local-runtime-state.json"
+  "shutdownTimeoutSeconds": 10,
+  "localRuntimeStatePath": "~/.nimi/runtime/local-runtime-state.json",
+  "workerMode": false,
+  "aiHealthIntervalSeconds": 8,
+  "aiHttpTimeoutSeconds": 30,
+  "globalConcurrencyLimit": 8,
+  "perAppConcurrencyLimit": 2,
+  "idempotencyCapacity": 10000,
+  "maxDelegationDepth": 3,
+  "auditRingBufferSize": 20000,
+  "usageStatsBufferSize": 50000,
+  "localAuditCapacity": 5000,
+  "sessionTtlMinSeconds": 60,
+  "sessionTtlMaxSeconds": 86400,
+  "providers": {}
 }

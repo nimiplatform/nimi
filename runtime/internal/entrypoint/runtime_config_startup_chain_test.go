@@ -56,11 +56,11 @@ func TestRunDaemonFromArgsMigratesLegacyRuntimeConfigOnStartup(t *testing.T) {
 	if loadErr != nil {
 		t.Fatalf("load migrated config: %v", loadErr)
 	}
-	if fileCfg.Runtime.GRPCAddr != "127.0.0.1:59001" {
-		t.Fatalf("migrated grpc addr mismatch: %q", fileCfg.Runtime.GRPCAddr)
+	if fileCfg.GRPCAddr != "127.0.0.1:59001" {
+		t.Fatalf("migrated grpc addr mismatch: %q", fileCfg.GRPCAddr)
 	}
-	if fileCfg.Runtime.HTTPAddr != "127.0.0.1:59002" {
-		t.Fatalf("migrated http addr mismatch: %q", fileCfg.Runtime.HTTPAddr)
+	if fileCfg.HTTPAddr != "127.0.0.1:59002" {
+		t.Fatalf("migrated http addr mismatch: %q", fileCfg.HTTPAddr)
 	}
 }
 

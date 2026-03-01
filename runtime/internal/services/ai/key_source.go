@@ -120,7 +120,7 @@ func resolveKeySourceToTarget(parsed ParsedKeySource, connStore *connector.Conne
 
 func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStore) (*nimillm.RemoteTarget, error) {
 	if connStore == nil {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
 
 	rec, found, err := connStore.Get(connectorID)

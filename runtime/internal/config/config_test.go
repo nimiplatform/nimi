@@ -73,23 +73,19 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	configPath := filepath.Join(configDir, "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "runtime": {
-    "grpcAddr": "127.0.0.1:50001",
-    "httpAddr": "127.0.0.1:50002",
-    "shutdownTimeout": "13s",
-    "localRuntimeStatePath": "~/runtime/custom-state.json"
-  },
-  "ai": {
-    "httpTimeout": "21s",
-    "healthInterval": "3s",
-    "providers": {
-      "gemini": {
-        "apiKeyEnv": "GEMINI_API_KEY"
-      },
-      "local": {
-        "baseUrl": "http://127.0.0.1:11434",
-        "apiKeyEnv": "LOCALAI_API_KEY"
-      }
+  "grpcAddr": "127.0.0.1:50001",
+  "httpAddr": "127.0.0.1:50002",
+  "shutdownTimeoutSeconds": 13,
+  "localRuntimeStatePath": "~/runtime/custom-state.json",
+  "aiHttpTimeoutSeconds": 21,
+  "aiHealthIntervalSeconds": 3,
+  "providers": {
+    "gemini": {
+      "apiKeyEnv": "GEMINI_API_KEY"
+    },
+    "local": {
+      "baseUrl": "http://127.0.0.1:11434",
+      "apiKeyEnv": "LOCALAI_API_KEY"
     }
   }
 }`
@@ -121,11 +117,11 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 		t.Fatalf("local runtime state path mismatch: %q", cfg.LocalRuntimeStatePath)
 	}
 
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HTTP_TIMEOUT")); got != "21s" {
-		t.Fatalf("ai http timeout env mismatch: %q", got)
+	if cfg.AIHTTPTimeoutSeconds != 21 {
+		t.Fatalf("aiHttpTimeoutSeconds mismatch: got=%d want=21", cfg.AIHTTPTimeoutSeconds)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_AI_HEALTH_INTERVAL")); got != "3s" {
-		t.Fatalf("ai health interval env mismatch: %q", got)
+	if cfg.AIHealthIntervalSeconds != 3 {
+		t.Fatalf("aiHealthIntervalSeconds mismatch: got=%d want=3", cfg.AIHealthIntervalSeconds)
 	}
 	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")); got != "gemini-from-env" {
 		t.Fatalf("gemini key env mismatch: %q", got)
@@ -145,16 +141,12 @@ func TestLoadEnvOverridesConfigFile(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "runtime": {
-    "grpcAddr": "127.0.0.1:50001",
-    "httpAddr": "127.0.0.1:50002"
-  },
-  "ai": {
-    "providers": {
-      "gemini": {
-        "baseUrl": "https://config.example.com/openai",
-        "apiKeyEnv": "GEMINI_API_KEY"
-      }
+  "grpcAddr": "127.0.0.1:50001",
+  "httpAddr": "127.0.0.1:50002",
+  "providers": {
+    "gemini": {
+      "baseUrl": "https://config.example.com/openai",
+      "apiKeyEnv": "GEMINI_API_KEY"
     }
   }
 }`
@@ -204,13 +196,11 @@ func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "ai": {
-    "providers": {
-      "gemini": {
-        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "apiKey": "plaintext-forbidden",
-        "apiKeyEnv": "GEMINI_API_KEY"
-      }
+  "providers": {
+    "gemini": {
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "apiKey": "plaintext-forbidden",
+      "apiKeyEnv": "GEMINI_API_KEY"
     }
   }
 }`
@@ -233,12 +223,10 @@ func TestLoadRejectsLegacyProviderKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "ai": {
-    "providers": {
-      "cloudlitellm": {
-        "baseUrl": "https://legacy.invalid/v1",
-        "apiKeyEnv": "LEGACY_API_KEY"
-      }
+  "providers": {
+    "cloudlitellm": {
+      "baseUrl": "https://legacy.invalid/v1",
+      "apiKeyEnv": "LEGACY_API_KEY"
     }
   }
 }`
@@ -261,12 +249,10 @@ func TestLoadAcceptsCloudNimiLLMAlias(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
-  "ai": {
-    "providers": {
-      "cloudnimillm": {
-        "baseUrl": "https://api.example.com/v1",
-        "apiKeyEnv": "NIMI_KEY"
-      }
+  "providers": {
+    "cloudnimillm": {
+      "baseUrl": "https://api.example.com/v1",
+      "apiKeyEnv": "NIMI_KEY"
     }
   }
 }`
@@ -333,8 +319,8 @@ func TestResolveRuntimeConfigPathForLoadMigratesLegacyPath(t *testing.T) {
 	if migrated.SchemaVersion != DefaultSchemaVersion {
 		t.Fatalf("migrated schema version mismatch: got=%d want=%d", migrated.SchemaVersion, DefaultSchemaVersion)
 	}
-	if migrated.Runtime.GRPCAddr != "127.0.0.1:59001" {
-		t.Fatalf("migrated grpc addr mismatch: got=%q", migrated.Runtime.GRPCAddr)
+	if migrated.GRPCAddr != "127.0.0.1:59001" {
+		t.Fatalf("migrated grpc addr mismatch: got=%q", migrated.GRPCAddr)
 	}
 }
 
@@ -441,7 +427,7 @@ func TestLoadFlatFileConfig(t *testing.T) {
   "schemaVersion": 1,
   "grpcAddr": "127.0.0.1:50001",
   "httpAddr": "127.0.0.1:50002",
-  "shutdownTimeout": "15s",
+  "shutdownTimeoutSeconds": 15,
   "localRuntimeStatePath": "~/custom/state.json"
 }`
 	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {

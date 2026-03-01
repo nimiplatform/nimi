@@ -204,7 +204,9 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 	if !ok {
 		return
 	}
-	_, _ = s.mediaJobs.transition(jobID, runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING, runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_RUNNING, nil)
+	if _, ok := s.mediaJobs.transition(jobID, runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING, runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_RUNNING, nil); !ok {
+		s.logger.Warn("media job transition to RUNNING failed", "job_id", jobID)
+	}
 
 	adapterName := resolveMediaAdapterName(req.GetModelId(), modelResolved, req.GetModal())
 	var (
@@ -262,23 +264,27 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 			statusValue = runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT
 			eventType = runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_TIMEOUT
 		}
-		_, _ = s.mediaJobs.transition(jobID, statusValue, eventType, func(job *runtimev1.MediaJob) {
+		if _, ok := s.mediaJobs.transition(jobID, statusValue, eventType, func(job *runtimev1.MediaJob) {
 			if providerJobID != "" {
 				job.ProviderJobId = providerJobID
 			}
 			job.ReasonCode = reasonCode
 			job.ReasonDetail = strings.TrimSpace(err.Error())
-		})
+		}); !ok {
+			s.logger.Warn("media job transition to terminal failed", "job_id", jobID, "status", statusValue.String())
+		}
 		return
 	}
 
-	_, _ = s.mediaJobs.transition(jobID, runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED, runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_COMPLETED, func(job *runtimev1.MediaJob) {
+	if _, ok := s.mediaJobs.transition(jobID, runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED, runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_COMPLETED, func(job *runtimev1.MediaJob) {
 		job.ProviderJobId = strings.TrimSpace(providerJobID)
 		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		job.ReasonDetail = ""
 		job.Artifacts = cloneArtifacts(artifacts)
 		job.Usage = usage
-	})
+	}); !ok {
+		s.logger.Warn("media job transition to COMPLETED failed", "job_id", jobID)
+	}
 }
 
 // executeBackendSyncMedia routes sync media operations through the underlying
@@ -695,7 +701,7 @@ func (s *Service) UpdatePollState(
 	nextPollAt *timestamppb.Timestamp,
 	lastError string,
 ) {
-	_, _ = s.mediaJobs.transition(
+	if _, ok := s.mediaJobs.transition(
 		jobID,
 		runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_UNSPECIFIED,
 		runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_TYPE_UNSPECIFIED,
@@ -705,5 +711,7 @@ func (s *Service) UpdatePollState(
 			job.NextPollAt = nextPollAt
 			job.ReasonDetail = strings.TrimSpace(lastError)
 		},
-	)
+	); !ok {
+		s.logger.Warn("media job poll state update failed", "job_id", jobID)
+	}
 }

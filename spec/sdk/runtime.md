@@ -59,7 +59,7 @@
 - `SDKR-031`: Connector 管理 RPC 的 `app_id` 仅通过 metadata 传递。
 - `SDKR-032`: `RuntimeOptions.authContext` 提供 `subjectUserId` 或异步 `getSubjectUserId()` 回调。
 - `SDKR-033`: authContext 仅用于 metadata 填充，不改变 RPC 请求语义；遵循 `S-TRANSPORT-002`。
-- `SDKR-034`: SDK 必须透传 runtime key-source metadata keys。完整键集合以 `spec/runtime/kernel/tables/metadata-keys.yaml` 为权威源（7 个 key）：`x-nimi-key-source`、`x-nimi-provider-type`、`x-nimi-provider-endpoint`、`x-nimi-provider-api-key`、`x-nimi-app-id`、`x-nimi-client-id`（可选审计上下文）、`x-nimi-idempotency-key`（可选幂等去重，来源 `K-DAEMON-006`）。字段语义以 `K-KEYSRC-003` 为权威。
+- `SDKR-034`: SDK 必须透传 runtime key-source metadata keys。完整键集合以 `spec/runtime/kernel/tables/metadata-keys.yaml` 为权威源（7 个请求方向 key，另有 1 个响应方向 key `x-nimi-runtime-version`，见 `K-DAEMON-011`）：`x-nimi-key-source`、`x-nimi-provider-type`、`x-nimi-provider-endpoint`、`x-nimi-provider-api-key`、`x-nimi-app-id`、`x-nimi-client-id`（可选审计上下文）、`x-nimi-idempotency-key`（可选幂等去重，来源 `K-DAEMON-006`）。字段语义以 `K-KEYSRC-003` 为权威。
 - `SDKR-035`: `connector_id`（body）与 inline 凭据（metadata）互斥。同时提供必须 fail，runtime 返回 `AI_REQUEST_CREDENTIAL_CONFLICT`（`K-KEYSRC-002`）。SDK MAY 在发送前前置校验并 fail-close，但此校验非必须——runtime 侧为最终权威。
 - `SDKR-036`: Inline 凭据路径仅适用于 `runtime_plane=remote` 的 provider。Local provider 必须使用 managed connector 路径（`K-KEYSRC-009`）。SDK 不在客户端复制 provider-capabilities 表。
 

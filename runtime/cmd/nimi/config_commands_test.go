@@ -72,9 +72,9 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 	setOutput, err := captureStdoutFromRun(func() error {
 		return runRuntimeConfig([]string{
 			"set",
-			"--set", "runtime.grpcAddr=127.0.0.1:50051",
-			"--set", "ai.providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai",
-			"--set", "ai.providers.gemini.apiKeyEnv=GEMINI_API_KEY",
+			"--set", "grpcAddr=127.0.0.1:50051",
+			"--set", "providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai",
+			"--set", "providers.gemini.apiKeyEnv=GEMINI_API_KEY",
 			"--json",
 		})
 	})
@@ -91,17 +91,17 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 	if loadErr != nil {
 		t.Fatalf("LoadFileConfig: %v", loadErr)
 	}
-	if cfg.Runtime.GRPCAddr != "127.0.0.1:50051" {
-		t.Fatalf("grpc addr mismatch: got=%q", cfg.Runtime.GRPCAddr)
+	if cfg.GRPCAddr != "127.0.0.1:50051" {
+		t.Fatalf("grpc addr mismatch: got=%q", cfg.GRPCAddr)
 	}
-	provider := cfg.AI.Providers["gemini"]
+	provider := cfg.Providers["gemini"]
 	if provider.APIKeyEnv != "GEMINI_API_KEY" {
 		t.Fatalf("apiKeyEnv mismatch: got=%q", provider.APIKeyEnv)
 	}
 
 	err = runRuntimeConfig([]string{
 		"set",
-		"--set", "ai.providers.gemini.apiKey=plaintext",
+		"--set", "providers.gemini.apiKey=plaintext",
 	})
 	if err == nil {
 		t.Fatalf("expected secret policy error")
@@ -175,7 +175,7 @@ func TestRunRuntimeConfigSetReturnsWriteLocked(t *testing.T) {
 
 	err := runRuntimeConfig([]string{
 		"set",
-		"--set", "runtime.grpcAddr=127.0.0.1:50099",
+		"--set", "grpcAddr=127.0.0.1:50099",
 	})
 	if err == nil {
 		t.Fatalf("expected write lock error")
@@ -210,7 +210,7 @@ func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 	go func() {
 		firstErrCh <- runRuntimeConfig([]string{
 			"set",
-			"--set", "runtime.grpcAddr=127.0.0.1:50101",
+			"--set", "grpcAddr=127.0.0.1:50101",
 			"--json",
 		})
 	}()
@@ -219,7 +219,7 @@ func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 
 	secondErr := runRuntimeConfig([]string{
 		"set",
-		"--set", "runtime.grpcAddr=127.0.0.1:50102",
+		"--set", "grpcAddr=127.0.0.1:50102",
 		"--json",
 	})
 	if secondErr == nil {
@@ -244,8 +244,8 @@ func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 	if fileCfg.SchemaVersion != config.DefaultSchemaVersion {
 		t.Fatalf("schema version mismatch: got=%d want=%d", fileCfg.SchemaVersion, config.DefaultSchemaVersion)
 	}
-	if fileCfg.Runtime.GRPCAddr != "127.0.0.1:50101" {
-		t.Fatalf("grpc addr mismatch after concurrent set: %q", fileCfg.Runtime.GRPCAddr)
+	if fileCfg.GRPCAddr != "127.0.0.1:50101" {
+		t.Fatalf("grpc addr mismatch after concurrent set: %q", fileCfg.GRPCAddr)
 	}
 }
 
@@ -261,11 +261,9 @@ func TestRunRuntimeConfigValidateFailsOnInvalidSchema(t *testing.T) {
 	}
 	invalid := `{
   "schemaVersion": 2,
-  "ai": {
-    "providers": {
-      "gemini": {
-        "apiKeyEnv": "GEMINI_API_KEY"
-      }
+  "providers": {
+    "gemini": {
+      "apiKeyEnv": "GEMINI_API_KEY"
     }
   }
 }`

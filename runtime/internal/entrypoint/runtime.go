@@ -18,7 +18,11 @@ import (
 	"time"
 )
 
-func RunDaemonFromArgs(program string, args []string) error {
+func RunDaemonFromArgs(program string, args []string, version ...string) error {
+	runtimeVersion := "0.0.0-dev"
+	if len(version) > 0 && version[0] != "" {
+		runtimeVersion = version[0]
+	}
 	baseCfg, err := config.Load()
 	if err != nil {
 		return err
@@ -40,12 +44,12 @@ func RunDaemonFromArgs(program string, args []string) error {
 		return fmt.Errorf("parse shutdown-timeout: %w", err)
 	}
 
-	cfg := config.Config{
-		GRPCAddr:              *grpcAddr,
-		HTTPAddr:              *httpAddr,
-		ShutdownTimeout:       shutdownTimeout,
-		LocalRuntimeStatePath: *localRuntimeStatePath,
-	}
+	// Preserve all Config fields from Load(), only override flags that were explicitly set.
+	cfg := baseCfg
+	cfg.GRPCAddr = *grpcAddr
+	cfg.HTTPAddr = *httpAddr
+	cfg.ShutdownTimeout = shutdownTimeout
+	cfg.LocalRuntimeStatePath = *localRuntimeStatePath
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
@@ -55,7 +59,7 @@ func RunDaemonFromArgs(program string, args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	d := daemon.New(cfg, logger)
+	d := daemon.New(cfg, logger, runtimeVersion)
 	return d.Run(ctx)
 }
 

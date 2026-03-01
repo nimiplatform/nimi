@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+// Version is the runtime version string, injected via ldflags at build time.
+// Default: "0.0.0-dev" for development builds.
+var Version = "0.0.0-dev"
+
 func main() {
 	args := normalizeRootArgs(os.Args)
 
@@ -33,7 +37,7 @@ func main() {
 
 	switch args[1] {
 	case "serve":
-		if err := entrypoint.RunDaemonFromArgs("nimi serve", args[2:]); err != nil {
+		if err := entrypoint.RunDaemonFromArgs("nimi serve", args[2:], Version); err != nil {
 			fmt.Fprintf(os.Stderr, "serve failed: %v\n", err)
 			os.Exit(1)
 		}

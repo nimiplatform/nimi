@@ -35,20 +35,19 @@ const (
 	defaultTranscribeTimeout    = 90 * time.Second
 )
 
-var streamFirstPacketTimeout = defaultStreamFirstTimeout
-
 // Service implements RuntimeAiService with deterministic in-memory behavior.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAiServiceServer
-	logger       *slog.Logger
-	config       Config
-	selector     *routeSelector
-	audit        *auditlog.Store
-	registry     *modelregistry.Registry
-	registryPath string
-	scheduler    *scheduler.Scheduler
-	mediaJobs    *mediaJobStore
-	connStore    *connector.ConnectorStore
+	logger                  *slog.Logger
+	config                  Config
+	selector                *routeSelector
+	audit                   *auditlog.Store
+	registry                *modelregistry.Registry
+	registryPath            string
+	scheduler               *scheduler.Scheduler
+	mediaJobs               *mediaJobStore
+	connStore               *connector.ConnectorStore
+	streamFirstPacketTimeout time.Duration
 }
 
 // New creates a Service with all dependencies.
@@ -74,14 +73,15 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		perAppConc = 2
 	}
 	return &Service{
-		logger:    logger,
-		config:    cfg,
-		selector:  newRouteSelectorWithRegistry(cfg, registry, aiHealth),
-		audit:     auditStore,
-		registry:  registry,
-		scheduler: scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
-		mediaJobs: newMediaJobStore(),
-		connStore: connStore,
+		logger:                  logger,
+		config:                  cfg,
+		selector:                newRouteSelectorWithRegistry(cfg, registry, aiHealth),
+		audit:                   auditStore,
+		registry:                registry,
+		scheduler:               scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
+		mediaJobs:               newMediaJobStore(),
+		connStore:               connStore,
+		streamFirstPacketTimeout: defaultStreamFirstTimeout,
 	}
 }
 
@@ -197,7 +197,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	defer requestCancel()
 	firstPacketTimedOut := &atomic.Bool{}
 	firstPacketSeen := &atomic.Bool{}
-	firstTimeout := streamFirstPacketTimeout
+	firstTimeout := s.streamFirstPacketTimeout
 	if totalTimeout > 0 && totalTimeout < firstTimeout {
 		firstTimeout = totalTimeout
 	}

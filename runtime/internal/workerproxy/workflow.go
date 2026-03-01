@@ -70,6 +70,5 @@ func (s *WorkflowProxy) client() (runtimev1.RuntimeWorkflowServiceClient, error)
 }
 
 func unavailableWorker(role string, err error) error {
-	_ = err
-	return status.Error(codes.Unavailable, fmt.Sprintf("worker_%s_unavailable", role))
+	return status.Error(codes.Unavailable, fmt.Sprintf("worker_%s_unavailable: %v", role, err))
 }

@@ -37,7 +37,7 @@ type Daemon struct {
 
 var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "localruntime"}
 
-func New(cfg config.Config, logger *slog.Logger) *Daemon {
+func New(cfg config.Config, logger *slog.Logger, version string) *Daemon {
 	if value := strings.TrimSpace(cfg.LocalRuntimeStatePath); value != "" {
 		_ = os.Setenv("NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH", value)
 	}
@@ -46,7 +46,7 @@ func New(cfg config.Config, logger *slog.Logger) *Daemon {
 		cfg:        cfg,
 		logger:     logger,
 		state:      state,
-		grpc:       grpcserver.New(cfg, state, logger),
+		grpc:       grpcserver.New(cfg, state, logger, version),
 		http:       httpserver.New(cfg.HTTPAddr, state, logger),
 		aiHealth:   nil,
 		auditStore: nil,

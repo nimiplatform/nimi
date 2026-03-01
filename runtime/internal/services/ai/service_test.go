@@ -314,12 +314,6 @@ func TestStreamGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 }
 
 func TestStreamGenerateFirstPacketTimeoutEmitsFailedEvent(t *testing.T) {
-	original := streamFirstPacketTimeout
-	streamFirstPacketTimeout = 20 * time.Millisecond
-	t.Cleanup(func() {
-		streamFirstPacketTimeout = original
-	})
-
 	streamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
 			http.NotFound(w, r)
@@ -338,6 +332,7 @@ func TestStreamGenerateFirstPacketTimeoutEmitsFailedEvent(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
+	svc.streamFirstPacketTimeout = 20 * time.Millisecond
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
 	err := svc.StreamGenerate(&runtimev1.StreamGenerateRequest{

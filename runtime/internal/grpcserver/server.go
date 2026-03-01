@@ -44,7 +44,7 @@ type Server struct {
 	workerPool   *workerproxy.ConnPool
 }
 
-func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
+func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) *Server {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
 	idempotencyStore := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
@@ -74,12 +74,14 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger) *Server {
 	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog, grantservice.WithAuditStore(auditStore))
 	g := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
+			newUnaryVersionInterceptor(version),
 			newUnaryLifecycleInterceptor(state),
 			newUnaryProtocolInterceptor(idempotencyStore),
 			newUnaryAuthzInterceptor(grantSvc),
 			newUnaryAuditInterceptor(auditStore),
 		),
 		grpc.ChainStreamInterceptor(
+			newStreamVersionInterceptor(version),
 			newStreamLifecycleInterceptor(state),
 			newStreamProtocolInterceptor(),
 			newStreamAuthzInterceptor(grantSvc),
