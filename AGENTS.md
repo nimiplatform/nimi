@@ -131,7 +131,7 @@ nimi-mods──nimi-hook──→ desktop ──@nimiplatform/sdk──→ runti
   - `pnpm check:runtime-spec-kernel-consistency`
 - Legacy naming/contracts are forbidden in runtime spec (including `docs/runtime/design-*` refs and token-provider legacy RPC names).
 - If a task explicitly excludes `spec/sdk`, do not modify `spec/sdk/**`.
-- If `ssot/` and `spec/` are temporarily inconsistent, do not silently force one to match the other outside task scope; record sync work under `dev/plan/` or `dev/report/`.
+- If cross-domain spec documents are temporarily inconsistent, do not silently force alignment outside task scope; record sync work under `dev/plan/` or `dev/report/`.
 
 ### Spec Consistency: CI-First Principle (MUST)
 
@@ -173,14 +173,14 @@ LLM 审计仅用于 CI 无法覆盖的语义层面：
 - `dev/plan/` MUST contain iteration, refactor, and implementation plan documents only.
 - New development-process documents MUST be placed in one of the `dev/*` folders above (not repo root).
 
-### SSOT vs Dev Boundary (MUST)
+### Spec vs Dev Boundary (MUST)
 
-- `ssot/` MUST contain normative contracts only: scope, invariants, MUST/SHOULD rules, acceptance gates, and verification commands.
-- `ssot/` MUST NOT contain execution-state content:
+- `spec/` MUST contain normative contracts only: scope, invariants, MUST/SHOULD rules, acceptance gates, and verification commands.
+- `spec/` MUST NOT contain execution-state content:
   - checked progress markers (for example `- [x] ...`)
   - dated status snapshots (for example "当前状态快照（YYYY-MM-DD）")
   - iteration completion ledgers (`计划完成日期/实际完成日期/阻塞原因/下轮承接`)
   - "this round passed/failed" conclusions tied to a specific run
 - Execution-state evidence MUST be written in `dev/report/` (results/evidence) or `dev/plan/` (iteration planning).
-- If a SSOT clause needs empirical proof, SSOT should define the required evidence format and point to `dev/report/*`, but MUST NOT embed dated pass/fail state itself.
-- Any migration from SSOT execution-state content MUST preserve history by creating/refreshing a corresponding `dev/report/*` document first.
+- If a spec clause needs empirical proof, spec should define the required evidence format and point to `dev/report/*`, but MUST NOT embed dated pass/fail state itself.
+- Any migration from spec execution-state content MUST preserve history by creating/refreshing a corresponding `dev/report/*` document first.
