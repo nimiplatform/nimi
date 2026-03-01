@@ -66,26 +66,7 @@ runtime/
 
 ## Service Implementation Pattern
 
-Each gRPC service follows this structure:
-
-```go
-// internal/services/ai/service.go
-type Service struct {
-    pb.UnimplementedRuntimeAiServiceServer
-    // dependencies injected via constructor
-}
-
-func New(deps ...Dependency) *Service {
-    return &Service{...}
-}
-
-func (s *Service) Generate(ctx context.Context, req *pb.GenerateRequest) (*pb.GenerateResponse, error) {
-    // 1. Validate request
-    // 2. Execute business logic
-    // 3. Emit audit event
-    // 4. Return response
-}
-```
+Each gRPC service follows: constructor injection → validate → execute → audit → return. See `internal/services/*/service.go` for canonical examples.
 
 ## Key Patterns
 
@@ -124,18 +105,7 @@ State transitions:
 
 ## Error Handling
 
-Runtime errors use gRPC status codes with `ReasonCode` in the message:
-
-```go
-// Return structured error
-return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND.String())
-
-// Return error with actionHint (JSON body)
-errBody := fmt.Sprintf(`{"reasonCode":"%s","actionHint":"%s"}`, reasonCode.String(), actionHint)
-return nil, status.Error(codes.PermissionDenied, errBody)
-```
-
-All `ReasonCode` values are defined in `proto/runtime/v1/common.proto`.
+Runtime errors use gRPC status codes with `ReasonCode` in the message (plain string or JSON body with `reasonCode` + `actionHint`). All `ReasonCode` values are defined in `proto/runtime/v1/common.proto`.
 
 ## Proto Evolution Rules
 

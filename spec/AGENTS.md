@@ -14,6 +14,8 @@ Applies to all files under:
 - `spec/platform/**`
 - `spec/realm/**`
 
+评估/审计/查询系统能力时，同样从 `spec/INDEX.md` 开始。
+
 ## Authoritative Structure
 
 - `kernel/*.md`: cross-domain rule contracts (`K-*` / `S-*` / `D-*` / `F-*` / `P-*` / `R-*`).
@@ -29,49 +31,31 @@ Applies to all files under:
 
 ## Mandatory Verification Commands
 
-Run commands based on changed scope.
+Run commands based on changed scope. Template (replace `{domain}` with the affected domain):
 
-If `spec/runtime/**` changed:
+```
+pnpm check:{domain}-spec-kernel-consistency
+pnpm check:{domain}-spec-kernel-docs-drift
+```
 
-- `pnpm check:runtime-spec-kernel-consistency`
-- `pnpm check:runtime-spec-kernel-docs-drift`
+If `spec/{domain}/kernel/tables/*.yaml` changed, also run generation first:
 
-If `spec/sdk/**` changed:
+```
+pnpm generate:{domain}-spec-kernel-docs
+```
 
-- `pnpm check:sdk-spec-kernel-consistency`
-- `pnpm check:sdk-spec-kernel-docs-drift`
+then rerun the corresponding `check:*docs-drift` command.
 
-If `spec/desktop/**` changed:
+| Domain | Scope |
+|--------|-------|
+| runtime | `spec/runtime/**` |
+| sdk | `spec/sdk/**` |
+| desktop | `spec/desktop/**` |
+| future | `spec/future/**` |
+| platform | `spec/platform/**` |
+| realm | `spec/realm/**` |
 
-- `pnpm check:desktop-spec-kernel-consistency`
-- `pnpm check:desktop-spec-kernel-docs-drift`
-
-If `spec/future/**` changed:
-
-- `pnpm check:future-spec-kernel-consistency`
-- `pnpm check:future-spec-kernel-docs-drift`
-
-If `spec/platform/**` changed:
-
-- `pnpm check:platform-spec-kernel-consistency`
-- `pnpm check:platform-spec-kernel-docs-drift`
-
-If `spec/realm/**` changed:
-
-- `pnpm check:realm-spec-kernel-consistency`
-- `pnpm check:realm-spec-kernel-docs-drift`
-
-If any `spec/**/kernel/tables/*.yaml` changed:
-
-- `pnpm generate:runtime-spec-kernel-docs` (for runtime tables)
-- `pnpm generate:sdk-spec-kernel-docs` (for sdk tables)
-- `pnpm generate:desktop-spec-kernel-docs` (for desktop tables)
-- `pnpm generate:future-spec-kernel-docs` (for future tables)
-- `pnpm generate:platform-spec-kernel-docs` (for platform tables)
-- `pnpm generate:realm-spec-kernel-docs` (for realm tables)
-- then rerun the corresponding `check:*docs-drift` command(s)
-
-If both runtime and sdk specs changed, run all four `check:*spec*` commands.
+If multiple domains changed, run all affected domains' commands.
 
 ## Consistency Guard: Two-Layer Model
 
