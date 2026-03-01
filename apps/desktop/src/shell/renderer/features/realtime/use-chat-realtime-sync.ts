@@ -47,21 +47,24 @@ function hasMessageQuery(chatId: string): boolean {
   return queryClient.getQueryState(['messages', chatId]) !== undefined;
 }
 
-function rememberSeenEvent(seen: Map<string, true>, key: string): boolean {
+function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
   const normalizedKey = String(key || '').trim();
   if (!normalizedKey) {
     return false;
   }
   if (seen.has(normalizedKey)) {
+    // LRU promotion: delete and re-insert to move entry to newest position
+    seen.delete(normalizedKey);
+    seen.set(normalizedKey, Date.now());
     return true;
   }
-  seen.set(normalizedKey, true);
-  if (seen.size <= SEEN_EVENT_LIMIT) {
-    return false;
-  }
-  const oldest = seen.keys().next().value;
-  if (oldest) {
-    seen.delete(oldest);
+  seen.set(normalizedKey, Date.now());
+  if (seen.size > SEEN_EVENT_LIMIT) {
+    // Evict the least recently used entry (first in Map iteration order)
+    const oldest = seen.keys().next().value;
+    if (oldest) {
+      seen.delete(oldest);
+    }
   }
   return false;
 }
@@ -320,7 +323,7 @@ export function useChatRealtimeSync(): void {
   const socketRef = useRef<Socket | null>(null);
   const selectedChatIdRef = useRef<string | null>(selectedChatId);
   const currentUserIdRef = useRef(currentUserId);
-  const seenEventsRef = useRef<Map<string, true>>(new Map());
+  const seenEventsRef = useRef<Map<string, number>>(new Map());
   const sessionRef = useRef<ChatSessionState | null>(null);
 
   const realtimeBaseUrl = useMemo(
