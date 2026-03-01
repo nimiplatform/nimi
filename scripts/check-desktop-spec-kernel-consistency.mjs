@@ -156,6 +156,18 @@ checkNoKernelRuleDefinitionsInDomainDocs();
 
 checkRuleIdReferencesResolvable();
 
+// ── Check 15: Cross-domain K-* references exist in Runtime spec ──
+
+checkCrossDomainKRuleReferences();
+
+// ── Check 16: D-ERR-007 critical ReasonCode coverage ──
+
+checkCriticalReasonCodeCoverage();
+
+// ── Check 17: D-STRM RPC coverage (streaming RPCs have consumption rules) ──
+
+checkStreamingRpcCoverage();
+
 // ── Result ──
 
 if (failed) process.exit(1);
@@ -534,5 +546,88 @@ function checkRuleIdReferencesResolvable() {
         fail(`${rel} references undefined kernel Rule ID: ${ref}`);
       }
     }
+  }
+}
+
+function checkCrossDomainKRuleReferences() {
+  // Collect all K-* Rule ID definitions from Runtime kernel spec
+  const runtimeKernelDir = path.join(cwd, 'spec/runtime/kernel');
+  if (!fs.existsSync(runtimeKernelDir)) return;
+
+  const runtimeRuleDefinitions = new Set();
+  const runtimeMdFiles = fs.readdirSync(runtimeKernelDir)
+    .filter((f) => f.endsWith('.md') && !f.startsWith('generated'))
+    .map((f) => path.join(runtimeKernelDir, f));
+
+  for (const filePath of runtimeMdFiles) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const headingPattern = /^##\s+(K-[A-Z]+-\d{3})\b/gm;
+    let match;
+    while ((match = headingPattern.exec(content)) !== null) {
+      runtimeRuleDefinitions.add(match[1]);
+    }
+  }
+
+  if (runtimeRuleDefinitions.size === 0) return; // No runtime spec to check against
+
+  // Check Desktop kernel files for K-* references
+  const kRefPattern = /\bK-[A-Z]+-\d{3}\b/g;
+  const kernelMdFiles = kernelFiles.filter(
+    (f) => f.endsWith('.md') && !f.includes('/generated/'),
+  );
+
+  for (const rel of kernelMdFiles) {
+    if (!fileExists(rel)) continue;
+    const content = read(rel);
+    const refs = new Set([...content.matchAll(kRefPattern)].map((m) => m[0]));
+    for (const ref of refs) {
+      if (!runtimeRuleDefinitions.has(ref)) {
+        fail(`${rel} references undefined Runtime Rule ID: ${ref}`);
+      }
+    }
+  }
+}
+
+function checkCriticalReasonCodeCoverage() {
+  // Critical ReasonCodes that must be explicitly mapped in D-ERR-007
+  const criticalCodes = [
+    'AI_PROVIDER_TIMEOUT',
+    'AI_PROVIDER_UNAVAILABLE',
+    'AI_STREAM_BROKEN',
+    'AI_MEDIA_IDEMPOTENCY_CONFLICT',
+    'AI_LOCAL_MODEL_UNAVAILABLE',
+    'AI_FINISH_LENGTH',
+    'AI_FINISH_CONTENT_FILTER',
+    'SESSION_EXPIRED',
+    'AUTH_TOKEN_INVALID',
+  ];
+
+  const errBoundaryPath = 'spec/desktop/kernel/error-boundary-contract.md';
+  if (!fileExists(errBoundaryPath)) return;
+
+  const content = read(errBoundaryPath);
+  const missing = criticalCodes.filter((code) => !content.includes(code));
+
+  if (missing.length > 0) {
+    fail(`D-ERR-007 missing critical ReasonCode mappings: ${missing.join(', ')}`);
+  }
+}
+
+function checkStreamingRpcCoverage() {
+  // Streaming RPCs from K-STREAM-001 that must have D-STRM consumption rules
+  const streamingRpcs = [
+    'StreamGenerate',
+    'SynthesizeSpeechStream',
+    'SubscribeMediaJobEvents',
+  ];
+
+  const strmPath = 'spec/desktop/kernel/streaming-consumption-contract.md';
+  if (!fileExists(strmPath)) return;
+
+  const content = read(strmPath);
+  const missing = streamingRpcs.filter((rpc) => !content.includes(rpc));
+
+  if (missing.length > 0) {
+    fail(`streaming-consumption-contract.md missing consumption rules for streaming RPCs: ${missing.join(', ')}`);
   }
 }

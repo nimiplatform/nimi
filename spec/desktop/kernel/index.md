@@ -34,13 +34,13 @@
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync facade 业务流规则（auth/user/chat/social/world/economy/feed/explore/notification/settings/agent/transit） |
 | `hook-capability-contract.md` | `D-HOOK-*` | 5 个 hook 子系统、能力模型、权限网关 |
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核、生命周期状态、审计决策记录 |
-| `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配、路由、凭证库、语音引擎集成 |
+| `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配、路由、Connector 凭据路由、语音引擎集成 |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航 Tab、布局、路由、i18n、主题、分包 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界、错误归一化、bridge 错误映射 |
 | `telemetry-contract.md` | `D-TEL-*` | 结构化日志、流 ID、日志区域、消息格式 |
 | `network-contract.md` | `D-NET-*` | 代理 fetch、请求重试、指数退避、可重试状态码、实时传输 |
-| `security-contract.md` | `D-SEC-*` | CSP、Keyring、OAuth、Bearer Token、端点安全 |
-| `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费生命周期、渲染缓冲、错误恢复、取消语义 |
+| `security-contract.md` | `D-SEC-*` | CSP、AI 凭据委托、OAuth、Bearer Token、端点安全 |
+| `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费生命周期、渲染缓冲、错误恢复、取消语义、MediaJob 事件流消费、AI 操作超时感知 |
 
 ## 5. 结构化事实源
 

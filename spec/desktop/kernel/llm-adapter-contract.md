@@ -6,16 +6,20 @@
 
 ## Scope
 
-Desktop LLM 适配器契约。定义 provider 适配、路由策略、凭证库管理、语音引擎集成。
+Desktop LLM 适配器契约。定义 provider 适配、路由策略、Connector 凭据路由、语音引擎集成。
 
 ## D-LLM-001 — Provider 适配层
 
-LLM 请求通过 provider 适配层路由：
+LLM 请求通过 provider 适配层路由，对齐 K-KEYSRC-001 两路径模型：
 
-- `provider` 字段确定执行路径（remote token API / local runtime）。
+- **managed 路径**（`connector_id` 存在）：通过 ConnectorService 解析 provider / endpoint / credential（K-KEYSRC-009）。`connector_id` 由用户在 Runtime Config UI 选择 connector 后写入运行时字段。
+- **inline 路径**（Phase 2，K-KEYSRC-001 inline metadata）：Desktop Phase 1 不使用 inline 路径。
+- `provider` 字段仍用于 UI 展示和路由选择，但执行层凭据注入由 `connector_id` 驱动。Runtime K-PROV-005 定义 provider 归一化映射（provider 名称到 ProviderType 枚举的规范化），Desktop 应使用归一化后的 provider 名称发送请求，确保 Runtime 侧正确路由。
 - `runtimeModelType` 指定模型能力类型（chat、image、video、tts、stt、embedding）。
 - `localProviderEndpoint` / `localProviderModel`：本地引擎绑定。
 - `localOpenAiEndpoint`：OpenAI 兼容端点。
+
+**跨层引用**：K-KEYSRC-001、K-KEYSRC-009、K-PROV-005。
 
 ## D-LLM-002 — 路由策略
 
@@ -25,13 +29,16 @@ LLM 请求通过 provider 适配层路由：
 - `ExecutePrivateTurnInput` 封装完整请求（sessionId、turnIndex、mode、provider、model 参数）。
 - `mode: 'STORY' | 'SCENE_TURN'` 确定对话模式。
 
-## D-LLM-003 — 凭证库
+## D-LLM-003 — Connector 凭据路由
 
-凭证通过 `credentialRefId` 引用：
+AI 请求的凭据通过 `connector_id` 路由（K-KEYSRC-001 managed 路径）：
 
-- 凭证安全存储和访问策略由 `D-SEC-009` 定义。
-- 运行时通过 `setRuntimeField('credentialRefId', value)` 绑定。
-- LLM 请求自动注入绑定的凭证。
+- 用户在 Runtime Config UI 选择 connector → `connector_id` 存入运行时字段 → SDK 请求 metadata 携带 `connector_id`（K-KEYSRC-003）。
+- Runtime ConnectorService 在 K-KEYSRC-004 step 5~6 加载 connector 并解密凭据注入执行上下文。
+- Desktop renderer 全程不接触原始凭据，凭据安全策略由 `D-SEC-009` 定义。
+- `credentialRefId` 概念废弃，统一使用 `connector_id`。
+
+**跨层引用**：K-KEYSRC-001~004、CONN-001。
 
 ## D-LLM-004 — 本地 LLM 健康检查
 
@@ -60,8 +67,8 @@ Hook runtime 提供语音能力：
 
 `LocalAiInferenceAuditPayload` 记录推理事件：
 
-- `eventType`：`inference_invoked` / `inference_failed` / `fallback_to_token_api`
-- `source`：`local-runtime` / `token-api`
+- `eventType`：`inference_invoked` / `inference_failed` / `fallback_to_token_api`（映射到 Runtime 审计字段 `operation`）
+- `source`：`local-runtime` / `token-api`（映射到 Runtime 审计载荷 `payload.source`）
 - `modality`：`chat` / `image` / `video` / `tts` / `stt` / `embedding`
 - `adapter`：`openai_compat_adapter` / `localai_native_adapter`
 - `policyGate`：策略门控信息

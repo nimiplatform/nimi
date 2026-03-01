@@ -6,7 +6,7 @@
 
 ## Scope
 
-Desktop 安全模型契约。定义 CSP 策略、Keyring 管理、OAuth 安全、Bearer Token 处理、端点安全校验。
+Desktop 安全模型契约。定义 CSP 策略、AI 凭据委托、OAuth 安全、Bearer Token 处理、端点安全校验。
 
 ## D-SEC-001 — Endpoint 回环限制
 
@@ -57,12 +57,16 @@ Mod 执行在能力沙箱内（参考 `D-HOOK-007`、`D-MOD-005`）：
 - 导入时执行 `LOCAL_AI_IMPORT_HASH_MISMATCH` 检查。
 - 空哈希模型无法启动（`LOCAL_AI_MODEL_HASHES_EMPTY`）。
 
+**跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 hash 完整性检查是 UX 前端防线，与 Runtime 层清单验证互补。
+
 ## D-SEC-007 — External Agent Token 安全
 
 - Token 通过 `external_agent_issue_token` IPC 命令签发。
 - Token 可通过 `external_agent_revoke_token` 吊销。
 - Token 列表通过 `external_agent_list_tokens` 审计。
 - Gateway 状态通过 `external_agent_gateway_status` 监控。
+
+**跨层引用**：Runtime K-AUTHSVC-006 定义 External Principal 注册与开会话的验证规则（`proof_type` + `signature_key_id` 一致性校验）。Runtime K-GRANT-003 定义 token 权限模型。Desktop 层 token 签发/吊销通过 Tauri backend 桥接到 Runtime 层执行，Desktop 不直接处理 token 验证逻辑。
 
 ## D-SEC-008 — CSP 策略
 
@@ -73,14 +77,16 @@ Content Security Policy 约束：
 - `script-src` 禁止 `eval` 和 inline script（mod 通过沙箱 iframe 隔离）。
 - Web 模式下依赖服务端 CSP header 而非 Tauri webview 策略。
 
-## D-SEC-009 — Keyring 管理
+## D-SEC-009 — AI 凭据委托模型
 
-凭证安全存储策略：
+AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（CONN-001: custodian not distributor）：
 
-- Desktop 环境通过 Tauri backend keyring（OS 原生密钥链）存储敏感凭证。
-- 凭证通过 `credentialRefId` 引用，运行时通过 `setRuntimeField('credentialRefId', value)` 绑定。
-- LLM 请求自动注入绑定的凭证（参考 `D-LLM-003`）。
-- Web 环境无 keyring 支持，凭证管理降级为服务端 token-based 方案。
+- Desktop renderer **不接触**原始 API key。用户通过 UI 输入凭据后，Desktop 调用 SDK `CreateConnector` / `UpdateConnector`（K-RPC-007/008）将凭据写入 Runtime，写入后即刻丢弃内存副本。
+- AI 请求通过 `connector_id`（managed 路径，K-KEYSRC-001）路由到 Runtime，Runtime 在执行上下文中解密注入凭据（K-KEYSRC-004 step 6），下游不直接访问 CredentialStore。
+- Realm access token（非 AI 凭据）仍由 `D-AUTH-002` / `D-AUTH-003` 管理，与 ConnectorService 无关。
+- Desktop / Web 统一使用 SDK ConnectorService 接口，无平台差异。
+
+**跨层引用**：CONN-001、K-RPC-003、K-RPC-007~009、K-KEYSRC-001/004。
 
 ## D-SEC-010 — Web 端 Token 存储安全
 

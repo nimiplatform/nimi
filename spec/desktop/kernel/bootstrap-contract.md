@@ -12,6 +12,7 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken）和 `RuntimeExecutionDefaults`（provider、model、agent 绑定）。
 
+- **daemon 就绪前置条件**：Tauri backend 在返回 `runtime_defaults` 前确保 daemon 可达。若 daemon 处于 `STARTING` 状态（K-DAEMON-001），backend 等待 daemon 就绪（最长等待 30s，与 D-IPC-002 启动超时一致）。超时后返回错误，进入 `D-BOOT-008` 错误路径。
 - 失败行为：抛出异常，进入 `D-BOOT-008` 错误路径。
 - 后续依赖：DataSync 初始化、Platform Client 初始化。
 

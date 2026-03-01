@@ -51,6 +51,8 @@ anonymous     → authenticated  (login 成功)
 
 Desktop auth 状态迁移不直接调用 Runtime session API；token 获取和刷新通过 Realm SDK 完成，Runtime 通过 metadata 中的 token 间接验证会话有效性。
 
+**AppMode 声明**（K-AUTHSVC-009）：Desktop 使用 `AppMode=FULL`、`WorldRelation=RENDER` 注册（K-AUTHSVC-010）。`FULL` 模式允许同时访问 `runtime.*` 和 `realm.*` 域。若注册时使用错误的 AppMode，Runtime 返回 `APP_MODE_DOMAIN_FORBIDDEN`（D-ERR-007 映射表兜底处理）。
+
 ## D-AUTH-005 — Auth 事件联动
 
 DataSync 监听 `authChange` 事件：

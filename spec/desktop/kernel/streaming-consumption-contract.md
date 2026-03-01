@@ -45,18 +45,76 @@ subscribe → onDelta(chunk)* → onDone | onError → cleanup
   3. 提供重试按钮，用户可选择重新发送。
 - **终帧错误**：收到 `done=true` + 非零 `reason_code`，提取 reason code 走 D-ERR-007 映射为用户消息。
 - **SDK 重连约束**：SDK `S-TRANSPORT-003` 禁止隐式重连续流，Desktop 不得自动重试中断的流。
+- **语音流错误码**：`SynthesizeSpeechStream` 中途错误使用通用 provider reason codes（`AI_PROVIDER_UNAVAILABLE`、`AI_PROVIDER_TIMEOUT`、`AI_STREAM_BROKEN` 等），Phase 1 无语音专用错误码。语音流错误走 D-ERR-007 通用投影路径。
 
 ## D-STRM-004 — 取消/中止语义
 
 用户主动取消和系统超时取消：
 
 - **用户取消**：用户点击"停止生成"按钮，调用 SDK abort 机制取消流。已渲染内容保留，消息标记为"已停止"。
-- **超时取消**：流总耗时超过 120s（K-STREAM-007 总超时）由 Runtime 侧终止，Desktop 收到终帧后正常处理。
+- **超时取消**：流总耗时超过 120s（K-STREAM-007 总超时，完整超时表见 D-STRM-006 / K-DAEMON-008）由 Runtime 侧终止，Desktop 收到终帧后正常处理。
 - **取消后状态**：取消不触发错误边界（D-ERR-006），UI 回到就绪态，用户可立即发起新请求。
 - **并发保护**：同一聊天同一时刻仅允许一个活跃流。新请求发起前必须确保前一个流已完成或已取消。
+
+## D-STRM-005 — MediaJob 事件流消费生命周期
+
+MediaJob 事件流（`SubscribeMediaJobEvents`）使用独立于文本/语音流的消费生命周期。引用 Runtime K-JOB-002 终态集合和 K-STREAM-005 流关闭语义。
+
+**生命周期**：
+
+```
+subscribe → onJobEvent* → onTerminalState(gRPC OK close) → cleanup
+```
+
+- **subscribe**：通过 SDK Runtime client 发起 `SubscribeMediaJobEvents(job_id)` 订阅。
+- **onJobEvent**：每收到一个 job 状态事件（`PENDING` → `RUNNING` → ...），更新 UI 进度（进度条、状态文本）。
+- **onTerminalState**：收到终态事件（K-JOB-002: `COMPLETED` / `FAILED` / `CANCELLED` / `EXPIRED`）后，server 正常关闭流（gRPC OK）。**注意**：此流不使用 `done=true` 终帧语义（K-STREAM-005），与 D-STRM-001 的 `onDone(done=true)` 生命周期根本不同。
+- **cleanup**：释放订阅资源，移除进度指示器。
+
+**终态 UI 映射**：
+
+| 终态 | UI 行为 |
+|---|---|
+| `COMPLETED` | 展示生成结果（图片/视频/音频），隐藏进度条 |
+| `FAILED` | 展示错误消息（reason code 走 D-ERR-007），提供重试按钮 |
+| `CANCELLED` | 展示"已取消"状态，保留操作历史 |
+| `EXPIRED` | 展示"任务已过期"提示，建议用户重新提交 |
+
+**与文本流的差异**：
+
+- 文本流（D-STRM-001）：增量 chunk 追加渲染，`done=true` 终帧。
+- MediaJob 流（D-STRM-005）：离散状态事件，gRPC OK 关闭。不支持增量渲染，结果在终态后通过 `GetMediaResult` 获取。
+
+**跨层引用**：Runtime K-JOB-001~006、K-STREAM-005。
+
+## D-STRM-006 — AI 操作超时感知表
+
+Desktop 必须为每种 AI 操作设置正确的 UI 超时行为。超时值引用 Runtime K-DAEMON-008 AI 超时层次。
+
+| AI 操作 | Runtime 默认超时 | UI 超时行为 |
+|---|---|---|
+| `Generate`（unary） | 30s | loading indicator 最长 30s，超时展示"AI 响应超时" |
+| `StreamGenerate`（首包） | 10s | 首包 10s 内无响应，展示"等待响应中…"警告 |
+| `StreamGenerate`（总） | 120s | 总超时 120s，由 Runtime 终止流，正常处理终帧 |
+| `Embed` | 20s | loading indicator 最长 20s，超时展示"嵌入操作超时" |
+| `SynthesizeSpeechStream` | 45s | 语音播放器 loading 最长 45s |
+| `SubmitMediaJob`(image) | 120s | 图片生成进度条最长 120s，期间展示预估剩余时间 |
+| `SubmitMediaJob`(video) | 300s | 视频生成进度条最长 300s，期间展示预估剩余时间 |
+| `SubmitMediaJob`(stt) | 90s | 语音转文字 loading 最长 90s |
+
+**超时处理规则**：
+
+- Runtime 侧超时（K-DAEMON-008）返回 `DEADLINE_EXCEEDED` + `AI_PROVIDER_TIMEOUT`，走 D-ERR-007 映射。
+- Desktop UI 超时指示器基于上表设置，与 Runtime 超时值保持一致。
+- 用户可在超时前主动取消（走 D-STRM-004 取消语义）。
+
+**跨层引用**：Runtime K-DAEMON-008。
 
 ## Fact Sources
 
 - Runtime `K-STREAM-001~007` — 流式传输规则
+- Runtime `K-JOB-001~006` — MediaJob 生命周期
+- Runtime `K-STREAM-005` — MediaJob 事件流关闭语义
+- Runtime `K-DAEMON-008` — AI 操作超时层次
 - SDK `S-TRANSPORT-003` — 流式行为边界
 - SDK `S-ERROR-004` — 重试语义

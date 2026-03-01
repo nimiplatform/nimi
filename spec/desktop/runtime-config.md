@@ -21,7 +21,7 @@ Runtime 字段映射（`RuntimeFieldMap`）：
 - `provider`：AI provider 选择
 - `runtimeModelType`：模型能力类型（chat/image/video/tts/stt/embedding）
 - `localProviderEndpoint` / `localProviderModel` / `localOpenAiEndpoint`：本地引擎绑定
-- `credentialRefId`：凭证引用
+- `connectorId`：connector 引用（K-KEYSRC-001 managed 路径）
 - `targetType` / `targetAccountId` / `agentId` / `worldId`：执行目标
 - `mode`：对话模式（STORY / SCENE_TURN）
 
@@ -47,7 +47,7 @@ Provider 适配层：`provider` 字段确定执行路径（remote token API / lo
 
 ### LLM (D-LLM-003)
 
-凭证库：凭证通过 `credentialRefId` 引用，安全存储由 `D-SEC-009` 管理。
+Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-001 managed 路径），安全策略由 `D-SEC-009` 定义。
 
 ### LLM (D-LLM-004)
 
