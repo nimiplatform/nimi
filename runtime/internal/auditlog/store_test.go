@@ -5,6 +5,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -141,5 +142,64 @@ func TestStoreListUsageByCallerKindAndCapability(t *testing.T) {
 	})
 	if len(aiCapability.GetRecords()) != 2 {
 		t.Fatalf("expected 2 runtime.ai.generate records, got=%d", len(aiCapability.GetRecords()))
+	}
+}
+
+func TestListEventsPageSizeDefault50(t *testing.T) {
+	store := New(500, 100)
+	for i := 0; i < 60; i++ {
+		payload, _ := structpb.NewStruct(map[string]any{"i": float64(i)})
+		store.AppendEvent(&runtimev1.AuditEventRecord{
+			Domain:    "test",
+			Operation: "op",
+			Payload:   payload,
+		})
+	}
+
+	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if len(resp.Events) != 50 {
+		t.Fatalf("default page size should be 50, got %d", len(resp.Events))
+	}
+	if resp.NextPageToken == "" {
+		t.Fatal("expected next page token")
+	}
+}
+
+func TestListEventsPageSizeMaxCap200(t *testing.T) {
+	store := New(500, 100)
+	for i := 0; i < 300; i++ {
+		payload, _ := structpb.NewStruct(map[string]any{"i": float64(i)})
+		store.AppendEvent(&runtimev1.AuditEventRecord{
+			Domain:    "test",
+			Operation: "op",
+			Payload:   payload,
+		})
+	}
+
+	// Request 500 — should be capped to 200 (K-PAGE-005).
+	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+		PageSize: 500,
+	})
+	if len(resp.Events) != 200 {
+		t.Fatalf("page size should be capped at 200, got %d", len(resp.Events))
+	}
+}
+
+func TestListEventsPageSizeExact200(t *testing.T) {
+	store := New(500, 100)
+	for i := 0; i < 300; i++ {
+		payload, _ := structpb.NewStruct(map[string]any{"i": float64(i)})
+		store.AppendEvent(&runtimev1.AuditEventRecord{
+			Domain:    "test",
+			Operation: "op",
+			Payload:   payload,
+		})
+	}
+
+	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+		PageSize: 200,
+	})
+	if len(resp.Events) != 200 {
+		t.Fatalf("page size 200 should be allowed, got %d", len(resp.Events))
 	}
 }

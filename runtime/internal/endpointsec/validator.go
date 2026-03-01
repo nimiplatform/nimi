@@ -151,22 +151,13 @@ func parseAndNormalize(rawURL string) (*url.URL, error) {
 	return parsed, nil
 }
 
-// checkIP rejects link-local and private/ULA addresses.
+// checkIP rejects link-local and ULA addresses per K-SEC-002.
+// RFC 1918 private addresses (10/8, 172.16/12, 192.168/16) are allowed.
 func checkIP(ip net.IP) error {
 	if ip4 := ip.To4(); ip4 != nil {
 		// Link-local: 169.254.0.0/16
 		if ip4[0] == 169 && ip4[1] == 254 {
 			return fmt.Errorf("link-local IPv4 address")
-		}
-		// RFC 1918 private ranges.
-		if ip4[0] == 10 {
-			return fmt.Errorf("private IPv4 address (10.0.0.0/8)")
-		}
-		if ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31 {
-			return fmt.Errorf("private IPv4 address (172.16.0.0/12)")
-		}
-		if ip4[0] == 192 && ip4[1] == 168 {
-			return fmt.Errorf("private IPv4 address (192.168.0.0/16)")
 		}
 		return nil
 	}

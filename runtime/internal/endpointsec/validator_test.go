@@ -75,11 +75,12 @@ func TestCheckIP_ULA_IPv6(t *testing.T) {
 	}
 }
 
-func TestCheckIP_Private_IPv4(t *testing.T) {
+func TestCheckIP_Private_IPv4_Allowed(t *testing.T) {
+	// K-SEC-002: RFC 1918 private addresses are allowed (not blocked).
 	for _, addr := range []string{"10.0.0.1", "172.16.0.1", "192.168.1.1"} {
 		ip := net.ParseIP(addr)
-		if err := checkIP(ip); err == nil {
-			t.Fatalf("expected private IPv4 %s to be blocked", addr)
+		if err := checkIP(ip); err != nil {
+			t.Fatalf("RFC 1918 private IPv4 %s should be allowed: %v", addr, err)
 		}
 	}
 }

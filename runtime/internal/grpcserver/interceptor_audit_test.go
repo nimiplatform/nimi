@@ -410,7 +410,7 @@ func TestUnaryAuditInterceptorCapturesGrantAuditFields(t *testing.T) {
 		t.Fatalf("unary interceptor returned error: %v", err)
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.app_auth"})
+	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.grant"})
 	if len(events.GetEvents()) != 1 {
 		t.Fatalf("expected 1 grant audit event, got=%d", len(events.GetEvents()))
 	}
