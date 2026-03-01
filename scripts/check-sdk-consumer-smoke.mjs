@@ -101,7 +101,7 @@ async function writeSmokeEntry(appDir) {
     "if (typeof normalizeRuntimeRouteSource !== 'function') throw new Error('mod runtime-route export invalid');",
     "if (typeof clearModSdkHost !== 'function') throw new Error('mod host export invalid');",
     "if (typeof Modal !== 'object') throw new Error('runtime export invalid');",
-    "const realm = new Realm({ baseUrl: 'https://realm.nimi.local' });",
+    "const realm = new Realm({ baseUrl: 'https://realm.nimi.local', auth: { accessToken: Realm.NO_AUTH } });",
     "if (typeof realm.raw?.request !== 'function') throw new Error('realm raw request export invalid');",
     "if (typeof realm.connect !== 'function') throw new Error('realm connect export invalid');",
     "if (typeof ReasonCode !== 'object') throw new Error('types export invalid');",

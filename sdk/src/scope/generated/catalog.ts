@@ -82,6 +82,7 @@ export const GENERATED_RUNTIME_SCOPES: readonly ScopeName[] = Object.freeze([
   'runtime.connector.get_connector' as ScopeName,
   'runtime.connector.list_connector_models' as ScopeName,
   'runtime.connector.list_connectors' as ScopeName,
+  'runtime.connector.list_provider_catalog' as ScopeName,
   'runtime.connector.read' as ScopeName,
   'runtime.connector.test_connector' as ScopeName,
   'runtime.connector.update_connector' as ScopeName,
