@@ -23,7 +23,6 @@ function createBaseState(): RuntimeConfigStateV11 {
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
     localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-    credentialRefId: '',
   });
 }
 
@@ -31,20 +30,18 @@ test('applyRuntimeBridgeConfigToState maps provider endpoints into runtime setup
   const previous = createBaseState();
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
-    ai: {
-      providers: {
-        local: {
-          baseUrl: 'http://127.0.0.1:18080/v1',
-          apiKeyEnv: 'LOCALAI_API_KEY',
-        },
-        gemini: {
-          baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-          apiKeyEnv: 'GEMINI_API_KEY',
-        },
-        alibaba: {
-          baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-          apiKeyEnv: 'DASHSCOPE_API_KEY',
-        },
+    providers: {
+      local: {
+        baseUrl: 'http://127.0.0.1:18080/v1',
+        apiKeyEnv: 'LOCALAI_API_KEY',
+      },
+      gemini: {
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        apiKeyEnv: 'GEMINI_API_KEY',
+      },
+      alibaba: {
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        apiKeyEnv: 'DASHSCOPE_API_KEY',
       },
     },
   });
@@ -86,11 +83,10 @@ test('buildRuntimeBridgeConfigFromState emits schema defaults and managed provid
   const config = buildRuntimeBridgeConfigFromState(state, {});
   assert.equal(config.schemaVersion, 1);
 
-  const runtime = asRecord(config.runtime);
-  assert.equal(runtime.grpcAddr, '127.0.0.1:46371');
-  assert.equal(runtime.httpAddr, '127.0.0.1:46372');
+  assert.equal(config.grpcAddr, '127.0.0.1:46371');
+  assert.equal(config.httpAddr, '127.0.0.1:46372');
 
-  const providers = asRecord(asRecord(config.ai).providers);
+  const providers = asRecord(config.providers);
   const local = asRecord(providers.local);
   assert.equal(local.baseUrl, 'http://127.0.0.1:11434/v1');
   assert.equal(local.apiKeyEnv, 'LOCALAI_API_KEY');
@@ -161,12 +157,10 @@ test('applyRuntimeBridgeConfigToState preserves existing in-memory connector tok
 
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
-    ai: {
-      providers: {
-        gemini: {
-          baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-          apiKeyEnv: 'GEMINI_API_KEY',
-        },
+    providers: {
+      gemini: {
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        apiKeyEnv: 'GEMINI_API_KEY',
       },
     },
   });
@@ -180,12 +174,10 @@ test('applyRuntimeBridgeConfigToState rejects legacy provider keys', () => {
   assert.throws(
     () => applyRuntimeBridgeConfigToState(previous, {
       schemaVersion: 1,
-      ai: {
-        providers: {
-          litellm: {
-            baseUrl: 'https://legacy.invalid/v1',
-            apiKeyEnv: 'LEGACY_KEY',
-          },
+      providers: {
+        litellm: {
+          baseUrl: 'https://legacy.invalid/v1',
+          apiKeyEnv: 'LEGACY_KEY',
         },
       },
     }),
@@ -198,12 +190,10 @@ test('buildRuntimeBridgeConfigFromState rejects legacy provider keys from base c
   assert.throws(
     () => buildRuntimeBridgeConfigFromState(state, {
       schemaVersion: 1,
-      ai: {
-        providers: {
-          cloudai: {
-            baseUrl: 'https://legacy.invalid/v1',
-            apiKeyEnv: 'LEGACY_KEY',
-          },
+      providers: {
+        cloudai: {
+          baseUrl: 'https://legacy.invalid/v1',
+          apiKeyEnv: 'LEGACY_KEY',
         },
       },
     }),

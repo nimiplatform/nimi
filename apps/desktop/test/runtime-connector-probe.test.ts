@@ -93,7 +93,7 @@ test('connector discovery uses direct HTTP calls to list models and check health
       localProviderEndpoint: 'http://127.0.0.1:1234/v1',
       localProviderModel: 'local-model',
       localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-      credentialRefId: 'connector-openrouter',
+      connectorId: 'connector-openrouter',
     });
     const connector = createConnectorV11('openrouter', 'OpenRouter');
     connector.id = 'connector-openrouter';

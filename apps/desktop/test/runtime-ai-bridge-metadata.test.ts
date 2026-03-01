@@ -27,7 +27,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
     const runtimeAiBridge = await import('../src/runtime/llm-adapter/execution/runtime-ai-bridge');
     const metadata = await runtimeAiBridge.buildRuntimeRequestMetadata({
       source: 'token-api',
-      credentialRefId: 'connector-test',
+      connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
     assert.deepEqual(metadata, {
@@ -38,7 +38,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
       modId: 'mod.runtime.metadata',
       timeoutMs: 10_000,
       source: 'token-api',
-      credentialRefId: 'connector-test',
+      connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
     assert.deepEqual(callOptions.metadata, {
@@ -52,7 +52,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
       modId: 'mod.runtime.metadata',
       timeoutMs: 10_000,
       source: 'token-api',
-      credentialRefId: 'connector-test',
+      connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
     assert.deepEqual(streamOptions.metadata, {

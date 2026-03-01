@@ -14,7 +14,6 @@ test('write-back guard: state changes should not be written when bridge read fai
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
     localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-    credentialRefId: '',
   });
 
   let runtimeBridgeReadSucceeded = false;

@@ -13,7 +13,6 @@ const seed = {
   localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   localProviderModel: 'local-model',
   localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-  credentialRefId: '',
 };
 
 test('strict local-runtime route throws RUNTIME_ROUTE_MODEL_MISSING when no local models exist', () => {

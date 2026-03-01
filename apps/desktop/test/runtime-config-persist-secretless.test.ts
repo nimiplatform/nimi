@@ -12,7 +12,6 @@ test('persisted state does not contain tokenApiKey or localOpenAiApiKey (type-le
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'local-model',
     localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-    credentialRefId: '',
   });
 
   const connector = createConnectorV11('gemini', 'Gemini');
@@ -29,7 +28,7 @@ test('persisted state does not contain tokenApiKey or localOpenAiApiKey (type-le
   }
 });
 
-test('persistRuntimeConfigStateV11 strips runtime-injected tokenApiKey from connectors', () => {
+test('persistRuntimeConfigStateV11 does not persist connectors to localStorage', () => {
   // Set up in-memory localStorage
   const store = new Map<string, string>();
   (globalThis as Record<string, unknown>).localStorage = {
@@ -48,14 +47,10 @@ test('persistRuntimeConfigStateV11 strips runtime-injected tokenApiKey from conn
       localProviderEndpoint: 'http://127.0.0.1:1234/v1',
       localProviderModel: 'local-model',
       localOpenAiEndpoint: 'https://openrouter.ai/api/v1',
-      credentialRefId: '',
     });
 
     const connector = createConnectorV11('gemini', 'Gemini');
     connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
-
-    // Simulate runtime-injected legacy field (bypasses TypeScript type removal)
-    (connector as Record<string, unknown>).tokenApiKey = 'sk-leaked-secret-key';
 
     state.connectors = [connector];
     state.selectedConnectorId = connector.id;
@@ -64,13 +59,10 @@ test('persistRuntimeConfigStateV11 strips runtime-injected tokenApiKey from conn
 
     const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V11);
     assert.ok(raw, 'localStorage should contain persisted state');
-    assert.ok(!raw.includes('"tokenApiKey"'), 'persisted JSON must not contain tokenApiKey field');
-    assert.ok(!raw.includes('sk-leaked-secret-key'), 'persisted JSON must not contain the secret value');
 
     const parsed = JSON.parse(raw);
-    for (const c of parsed.connectors) {
-      assert.ok(!('tokenApiKey' in c), `persisted connector ${c.id} must not have tokenApiKey`);
-    }
+    assert.equal(parsed.connectors, undefined, 'connectors must not be persisted to localStorage');
+    assert.equal(parsed.selectedConnectorId, undefined, 'selectedConnectorId must not be persisted');
   } finally {
     delete (globalThis as Record<string, unknown>).localStorage;
   }
