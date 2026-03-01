@@ -1,7 +1,7 @@
 # Runtime SDK Domain Spec
 
 > Status: Draft
-> Date: 2026-02-28
+> Date: 2026-03-01
 > Scope: `@nimiplatform/sdk/runtime` 的领域增量规则（构造、模块编排、与 runtime kernel 的投影关系）。
 > Normative Imports: `spec/sdk/kernel/*`
 
@@ -76,14 +76,13 @@
 - `SDKR-048`: `RuntimeOptions.telemetry.enabled/onEvent` 控制遥测事件发射。
 - `SDKR-049`: telemetry 是辅助面，不改变请求成功/失败语义（引用 S-TRANSPORT-006）。
 
-## 6. Blocked 依赖
+## 6. ConnectorService 投影
 
-- `SDKR-050`: **ConnectorService 投影** — spec 定义 7 个方法（`CreateConnector`、`GetConnector`、`ListConnectors`、`UpdateConnector`、`DeleteConnector`、`TestConnector`、`ListConnectorModels`），但 proto 文件尚未创建，SDK 无法实现。Blocked on proto dependency，不在本轮实现。
-- `SDKR-051`: ConnectorService blocked 期间，SDK 对 ConnectorService 方法调用返回 `SDK_RUNTIME_METHOD_UNAVAILABLE`（`S-ERROR-006`）。不提供 fallback 或 shim。
+- `SDKR-050`: **ConnectorService 投影** — proto 依赖已就绪（`connector.proto` 已定义），7 个方法（`CreateConnector`、`GetConnector`、`ListConnectors`、`UpdateConnector`、`DeleteConnector`、`TestConnector`、`ListConnectorModels`）纳入 Phase 1 实现范围。方法投影规则与 AIService 一致（SDKR-003）。
 
 ## 7. Auth 服务投影（领域增量）
 
-- `SDKR-060`: `RegisterApp` 调用模型：SDK 不在 `connect()` 中隐式调用 `RegisterApp`。应用层需显式调用或通过高阶模块触发。Session 生命周期管理（open/refresh/revoke）由应用层驱动。Session TTL 语义：`ttl_seconds` 必须落在服务端配置区间内（`K-AUTHSVC-004`），默认 TTL 3600s（`K-AUTHSVC-011`）。Phase 1 session 存储为进程内内存 map，daemon 重启后所有 session 失效，客户端需重新建立会话（`K-AUTHSVC-012`）。
+- `SDKR-060`: `RegisterApp` 调用模型：SDK 不在 `connect()` 中隐式调用 `RegisterApp`。应用层需显式调用或通过高阶模块触发。Desktop 场景下 `RegisterApp` 在 bootstrap 阶段显式调用（D-BOOT-004），`appMode` 和 `worldRelation` 由 Desktop 编译时确定（非用户配置）。Session 生命周期管理（open/refresh/revoke）由应用层驱动。Session TTL 语义：`ttl_seconds` 必须落在服务端配置区间内（`K-AUTHSVC-004`），默认 TTL 3600s（`K-AUTHSVC-011`）。Phase 1 session 存储为进程内内存 map，daemon 重启后所有 session 失效，客户端需重新建立会话（`K-AUTHSVC-012`）。
 - `SDKR-061`: AppMode gate（`K-AUTHSVC-009`）由 runtime 侧强制执行。SDK 不复制 AppMode 校验逻辑，仅投影错误码 `APP_MODE_DOMAIN_FORBIDDEN` / `APP_MODE_SCOPE_FORBIDDEN` / `APP_MODE_MANIFEST_INVALID`。
 - `SDKR-062`: External principal session workflow 需要应用层组装 proof（`K-AUTHSVC-006`）。SDK 提供透传通道，不内置 proof 生成逻辑。
 
