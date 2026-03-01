@@ -6,7 +6,7 @@ type TauriInvokeCall = {
   payload: unknown;
 };
 
-test('runtime ai bridge metadata remains runtime-config only for token-api requests', async () => {
+test('runtime ai bridge metadata remains managed only for token-api requests', async () => {
   const calls: TauriInvokeCall[] = [];
   const globalRecord = globalThis as Record<string, unknown>;
   const previousTauri = globalRecord.__TAURI__;
@@ -31,7 +31,7 @@ test('runtime ai bridge metadata remains runtime-config only for token-api reque
       providerEndpoint: 'https://example.invalid/v1',
     });
     assert.deepEqual(metadata, {
-      credentialSource: 'runtime-config',
+      keySource: 'managed',
     });
 
     const callOptions = await runtimeAiBridge.buildRuntimeCallOptions({
@@ -45,7 +45,7 @@ test('runtime ai bridge metadata remains runtime-config only for token-api reque
       callerKind: 'desktop-mod',
       callerId: 'mod:mod.runtime.metadata',
       surfaceId: 'desktop.renderer',
-      credentialSource: 'runtime-config',
+      keySource: 'managed',
     });
 
     const streamOptions = await runtimeAiBridge.buildRuntimeStreamOptions({
@@ -59,7 +59,7 @@ test('runtime ai bridge metadata remains runtime-config only for token-api reque
       callerKind: 'desktop-mod',
       callerId: 'mod:mod.runtime.metadata',
       surfaceId: 'desktop.renderer',
-      credentialSource: 'runtime-config',
+      keySource: 'managed',
     });
 
     assert.equal(

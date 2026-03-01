@@ -462,7 +462,7 @@ test('Realm 401 with refreshToken triggers refresh then retries successfully', a
     if (authHeader === 'Bearer expired-token') {
       return new Response(JSON.stringify({
         message: 'token expired',
-        reasonCode: 'APP_TOKEN_EXPIRED',
+        reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
       }), {
         status: 401,
         headers: { 'content-type': 'application/json' },
@@ -507,7 +507,7 @@ test('Realm 401 without refreshToken throws directly (existing behavior)', async
   globalThis.fetch = (async (): Promise<Response> => {
     return new Response(JSON.stringify({
       message: 'unauthorized',
-      reasonCode: 'APP_TOKEN_EXPIRED',
+      reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
     }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
@@ -530,7 +530,7 @@ test('Realm 401 without refreshToken throws directly (existing behavior)', async
     assert.ok(thrown);
     const nimiError = asNimiError(thrown, { source: 'realm' });
     assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
-    assert.equal(nimiError.reasonCode, 'APP_TOKEN_EXPIRED');
+    assert.equal(nimiError.reasonCode, ReasonCode.APP_TOKEN_EXPIRED);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -553,7 +553,7 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
 
     return new Response(JSON.stringify({
       message: 'access token expired',
-      reasonCode: 'APP_TOKEN_EXPIRED',
+      reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
     }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
@@ -582,7 +582,7 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
     assert.ok(failedError);
     const nimiError = asNimiError(thrown, { source: 'realm' });
     assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
-    assert.equal(nimiError.reasonCode, 'APP_TOKEN_EXPIRED');
+    assert.equal(nimiError.reasonCode, ReasonCode.APP_TOKEN_EXPIRED);
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -8,7 +8,7 @@ import {
   setNodeGrpcBridge,
   type NodeGrpcBridge,
 } from '../../src/runtime/index.js';
-import { ReasonCode } from '../../src/types/index.js';
+import { ReasonCode, isRetryableReasonCode } from '../../src/types/index.js';
 import {
   AuthorizeExternalPrincipalRequest,
   AuthorizeExternalPrincipalResponse,
@@ -322,6 +322,201 @@ test('Runtime appAuth.authorizeExternalPrincipal resolves published scopeCatalog
     });
 
     assert.equal(capturedScopeCatalogVersion, '1.0.0');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('AI_PROVIDER_RATE_LIMITED is retryable', () => {
+  assert.equal(isRetryableReasonCode(ReasonCode.AI_PROVIDER_RATE_LIMITED), true);
+});
+
+test('SDK_SCOPE_CATALOG_VERSION_CONFLICT exists and key equals value', () => {
+  assert.equal(
+    ReasonCode.SDK_SCOPE_CATALOG_VERSION_CONFLICT,
+    'SDK_SCOPE_CATALOG_VERSION_CONFLICT',
+  );
+});
+
+test('retry backoff includes jitter', async () => {
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.5;
+
+    let callCount = 0;
+    const callTimestamps: number[] = [];
+
+    installNodeGrpcBridge({
+      invokeUnary: async (_config, input) => {
+        if (input.methodId === RuntimeMethodIds.ai.generate) {
+          callCount += 1;
+          callTimestamps.push(Date.now());
+
+          if (callCount < 3) {
+            throw {
+              reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+              actionHint: 'retry',
+              retryable: true,
+              message: 'unavailable',
+            };
+          }
+
+          return GenerateResponse.toBinary(
+            GenerateResponse.create({
+              output: Struct.fromJson({ text: 'jitter-ok' } as never),
+              finishReason: FinishReason.STOP,
+              routeDecision: RoutePolicy.LOCAL_RUNTIME,
+              modelResolved: 'local/qwen2.5',
+              traceId: 'trace-jitter',
+            }),
+          );
+        }
+        throw new Error(`unexpected method: ${input.methodId}`);
+      },
+      openStream: async () => {
+        throw new Error('unexpected stream call');
+      },
+      closeStream: async () => {},
+    });
+
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      retry: {
+        maxAttempts: 3,
+        backoffMs: 100,
+      },
+      authContext: {
+        subjectUserId: 'jitter-user',
+      },
+    });
+
+    const output = await runtime.ai.text.generate({
+      model: 'local/qwen2.5',
+      input: 'jitter test',
+    });
+
+    assert.equal(output.text, 'jitter-ok');
+    assert.equal(callCount, 3);
+  } finally {
+    Math.random = originalRandom;
+    clearNodeGrpcBridge();
+  }
+});
+
+test('metadata sends x-nimi-key-source with inline/managed values', async () => {
+  let capturedMetadata: Record<string, string> = {};
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.generate) {
+        const metadataEntries = input.metadata;
+        capturedMetadata = {};
+        for (const [key, value] of Object.entries(metadataEntries)) {
+          if (typeof value === 'string') {
+            capturedMetadata[key] = value;
+          }
+        }
+
+        return GenerateResponse.toBinary(
+          GenerateResponse.create({
+            output: Struct.fromJson({ text: 'metadata-ok' } as never),
+            finishReason: FinishReason.STOP,
+            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            modelResolved: 'local/qwen2.5',
+            traceId: 'trace-metadata',
+          }),
+        );
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      authContext: {
+        subjectUserId: 'metadata-user',
+      },
+    });
+
+    await runtime.ai.text.generate({
+      model: 'local/qwen2.5',
+      input: 'metadata test',
+      metadata: {
+        keySource: 'managed',
+      },
+    });
+
+    assert.equal(capturedMetadata.keySource, 'managed');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('OPERATION_ABORTED reasonCode prevents retry even when retryable is true', async () => {
+  let generateCalls = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.generate) {
+        generateCalls += 1;
+        throw {
+          reasonCode: ReasonCode.OPERATION_ABORTED,
+          actionHint: 'retry_if_needed',
+          retryable: true,
+          message: 'operation aborted',
+        };
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      retry: {
+        maxAttempts: 3,
+        backoffMs: 1,
+      },
+      authContext: {
+        subjectUserId: 'abort-user',
+      },
+    });
+
+    let thrown: unknown = null;
+    try {
+      await runtime.ai.text.generate({
+        model: 'local/qwen2.5',
+        input: 'abort test',
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    assert.ok(thrown);
+    const nimiError = asNimiError(thrown, { source: 'runtime' });
+    assert.equal(nimiError.reasonCode, ReasonCode.OPERATION_ABORTED);
+    assert.equal(generateCalls, 1, 'OPERATION_ABORTED must not be retried');
   } finally {
     clearNodeGrpcBridge();
   }

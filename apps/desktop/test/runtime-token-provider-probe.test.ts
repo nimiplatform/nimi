@@ -58,7 +58,7 @@ function installMockTauriSecret(secret: string): {
   };
 }
 
-test('connector discovery uses runtime probe RPC with request-injected metadata', async () => {
+test('connector discovery uses runtime probe RPC with inline metadata', async () => {
   const tauri = installMockTauriSecret('sk-probe');
   try {
     const platform = await import('../src/runtime/platform-client');
@@ -107,7 +107,7 @@ test('connector discovery uses runtime probe RPC with request-injected metadata'
     assert.equal(calls[0]?.method, 'listTokenProviderModels');
     assert.equal(calls[1]?.method, 'checkTokenProviderHealth');
     for (const call of calls) {
-      assert.equal(call.metadata?.credentialSource, 'request-injected');
+      assert.equal(call.metadata?.keySource, 'inline');
       assert.equal(call.metadata?.providerApiKey, 'sk-probe');
       assert.equal(call.metadata?.providerEndpoint, 'https://openrouter.ai/api/v1');
     }
@@ -131,7 +131,7 @@ test('token-api health check path uses runtime probe RPC', async () => {
     let invoked = false;
     runtime.ai.checkTokenProviderHealth = async (_request: unknown, options?: RuntimeProbeOptions) => {
       invoked = true;
-      assert.equal(options?.metadata?.credentialSource, 'request-injected');
+      assert.equal(options?.metadata?.keySource, 'inline');
       assert.equal(options?.metadata?.providerApiKey, 'sk-health');
       return {
         health: {
