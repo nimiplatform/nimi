@@ -699,6 +699,74 @@ test('Realm.decodeTokenExpiry parses valid and invalid JWTs', () => {
   assert.equal(Realm.decodeTokenExpiry(malformedJwt), null);
 });
 
+test('Realm NO_AUTH does not send Authorization header (SDKREALM-016)', async () => {
+  const originalFetch = globalThis.fetch;
+  const capturedHeaders: Record<string, string>[] = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const headers = resolveFetchHeaders(input, init);
+    const captured: Record<string, string> = {};
+    headers.forEach((value, key) => {
+      captured[key.toLowerCase()] = value;
+    });
+    capturedHeaders.push(captured);
+
+    return new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-noauth.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
+    });
+
+    await realm.raw.request({ method: 'GET', path: '/api/public' });
+
+    assert.equal(capturedHeaders.length, 1);
+    assert.equal(capturedHeaders[0]?.authorization, undefined, 'NO_AUTH must not emit Authorization header');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('Realm ready() emits error event on probe failure (SDKREALM-019)', async () => {
+  const originalFetch = globalThis.fetch;
+  const errors: Array<{ error: { reasonCode?: string }; at: string }> = [];
+
+  globalThis.fetch = (async (input: RequestInfo | URL): Promise<Response> => {
+    const url = resolveFetchUrl(input);
+    if (new URL(url).pathname === '/') {
+      throw new TypeError('network failure during ready probe');
+    }
+    return new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-ready-error.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
+    });
+
+    realm.events.on('error', (event) => {
+      errors.push(event as typeof errors[number]);
+    });
+
+    await realm.ready({ timeoutMs: 1000 });
+
+    assert.equal(errors.length, 1, 'ready() probe failure must emit exactly one error event');
+    assert.equal(errors[0]?.error?.reasonCode, 'REALM_UNAVAILABLE');
+    assert.equal(realm.state().status, 'ready', 'state must still be ready (fail-open)');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('Realm services support path-first call pattern for mixed path/query methods', async () => {
   const originalFetch = globalThis.fetch;
   const urls: string[] = [];

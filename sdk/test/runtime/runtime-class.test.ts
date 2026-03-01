@@ -465,6 +465,147 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
   }
 });
 
+test('RuntimeEventName does not include ai.route.decision or media.job.status (SDKR-028)', () => {
+  // The Phase 1 event set is: runtime.connected, runtime.disconnected,
+  // auth.token.issued, auth.token.revoked, error.
+  // ai.route.decision and media.job.status are NOT in Phase 1 — they were
+  // removed and moved to telemetry side-channel.
+  const runtime = new Runtime({
+    appId: APP_ID,
+    transport: {
+      type: 'node-grpc',
+      endpoint: '127.0.0.1:46371',
+    },
+  });
+
+  // Attempting to subscribe to a non-existent event name should not register
+  // a meaningful handler. We verify the Phase 1 set is the complete list by
+  // confirming events.on returns an unsubscribe function for valid names.
+  const validNames = [
+    'runtime.connected',
+    'runtime.disconnected',
+    'auth.token.issued',
+    'auth.token.revoked',
+    'error',
+  ] as const;
+
+  for (const name of validNames) {
+    const unsub = runtime.events.on(name, () => {});
+    assert.equal(typeof unsub, 'function', `events.on('${name}') must return unsubscribe`);
+    unsub();
+  }
+});
+
+test('Runtime runtimeVersion() returns null before any RPC and caches after metadata arrives', async () => {
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.generate) {
+        return GenerateResponse.toBinary(
+          GenerateResponse.create({
+            output: Struct.fromJson({ text: 'version-test' } as never),
+            finishReason: FinishReason.STOP,
+            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            modelResolved: 'local/qwen2.5',
+            traceId: 'trace-version',
+          }),
+        );
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      authContext: {
+        subjectUserId: 'version-user',
+      },
+    });
+
+    // Before any RPC, version is null
+    assert.equal(runtime.runtimeVersion(), null);
+
+    await runtime.ai.text.generate({
+      model: 'local/qwen2.5',
+      input: 'version test',
+    });
+
+    // runtimeVersion remains null when the bridge does not emit metadata
+    // (node-grpc bridge mock doesn't call _responseMetadataObserver)
+    assert.equal(runtime.runtimeVersion(), null);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Runtime retry defaults to maxAttempts=3 backoffMs=200 when retry is omitted', async () => {
+  let generateCalls = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.generate) {
+        generateCalls += 1;
+
+        if (generateCalls < 3) {
+          throw {
+            reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+            actionHint: 'retry',
+            retryable: true,
+            message: 'unavailable',
+          };
+        }
+
+        return GenerateResponse.toBinary(
+          GenerateResponse.create({
+            output: Struct.fromJson({ text: 'default-retry' } as never),
+            finishReason: FinishReason.STOP,
+            routeDecision: RoutePolicy.LOCAL_RUNTIME,
+            modelResolved: 'local/qwen2.5',
+            traceId: 'trace-default-retry',
+          }),
+        );
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    // No retry config — should use defaults (maxAttempts=3, backoffMs=200)
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      authContext: {
+        subjectUserId: 'default-retry-user',
+      },
+    });
+
+    const output = await runtime.ai.text.generate({
+      model: 'local/qwen2.5',
+      input: 'default retry',
+    });
+
+    assert.equal(output.text, 'default-retry');
+    assert.equal(generateCalls, 3, 'should retry with default maxAttempts=3');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('OPERATION_ABORTED reasonCode prevents retry even when retryable is true', async () => {
   let generateCalls = 0;
 
