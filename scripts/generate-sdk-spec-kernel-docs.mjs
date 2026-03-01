@@ -55,8 +55,9 @@ function renderMethodGroups(doc, sourceName) {
     const name = String(group?.group || '').trim();
     if (!name) continue;
     const methods = Array.isArray(group?.methods) ? group.methods : [];
+    const phase = group?.phase != null ? `Phase ${group.phase}` : '—';
     out += `## ${name}\n\n`;
-    out += `Source: \`${String(group?.source_kernel_table || '').trim() || '—'}\`\n\n`;
+    out += `Source: \`${String(group?.source_kernel_table || '').trim() || '—'}\` · ${phase}\n\n`;
     out += '| Method | Source Rule |\n';
     out += '|---|---|\n';
     for (const method of methods) {
@@ -75,8 +76,11 @@ function renderImportBoundaries(doc, sourceName) {
     if (!surface) continue;
     const allowed = Array.isArray(rule?.allowed) ? rule.allowed : [];
     const forbidden = Array.isArray(rule?.forbidden) ? rule.forbidden : [];
+    const sourceRules = Array.isArray(rule?.source_rules)
+      ? rule.source_rules.map((item) => String(item || '').trim()).filter(Boolean)
+      : (String(rule?.source_rule || '').trim() ? [String(rule?.source_rule || '').trim()] : []);
     out += `## ${surface}\n\n`;
-    out += `Source Rule: \`${String(rule?.source_rule || '').trim() || '—'}\`\n\n`;
+    out += `Source Rules: ${sourceRules.length > 0 ? sourceRules.map((item) => `\`${item}\``).join(', ') : '—'}\n\n`;
     out += `Allowed: ${allowed.length > 0 ? allowed.map((item) => `\`${item}\``).join(', ') : '—'}\n\n`;
     out += `Forbidden: ${forbidden.length > 0 ? forbidden.map((item) => `\`${item}\``).join(', ') : '—'}\n\n`;
   }
@@ -92,8 +96,10 @@ function renderSdkErrorCodes(doc, sourceName) {
     const name = String(code?.name || '').trim();
     const family = String(code?.family || '').trim();
     const sourceRule = String(code?.source_rule || '').trim();
+    const deprecatedBy = String(code?.deprecated_by || '').trim();
     if (!name) continue;
-    out += `| \`${name}\` | \`${family || '—'}\` | \`${sourceRule || '—'}\` |\n`;
+    const displayName = deprecatedBy ? `${name} (deprecated → ${deprecatedBy})` : name;
+    out += `| \`${displayName}\` | \`${family || '—'}\` | \`${sourceRule || '—'}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);
