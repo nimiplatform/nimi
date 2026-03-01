@@ -66,10 +66,11 @@ rules:
 
 ### 3.4 Provider Naming and Env Binding
 
-1. `MUST`：provider 配置项以 `ai.providers.<provider>` 表达，支持别名归一（示例：`cloud-gemini` -> `gemini`）。
-2. `MUST`：provider API key 来源通过 `apiKeyEnv` 绑定到环境变量。
-3. `MUST`：Gemini 保留 key alias：当 `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` 为空时可回退 `GEMINI_API_KEY`。
-4. `MUST`：当 Gemini key 存在且 base URL 为空时，默认补全 `https://generativelanguage.googleapis.com/v1beta/openai`。
+1. `MUST`：provider 配置项以 `ai.providers.<provider>` 表达，支持别名归一（示例：`cloud-gemini` -> `gemini`，`cloudnimillm` -> `nimillm`）。
+2. `MUST`：`litellm` / `cloudlitellm` / `cloudai` 及其大小写/分隔符变体属于非法输入，runtime/desktop 配置入口必须拒绝（`MUST reject`），不得兼容回退。
+3. `MUST`：provider API key 来源通过 `apiKeyEnv` 绑定到环境变量。
+4. `MUST`：Gemini 保留 key alias：当 `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` 为空时可回退 `GEMINI_API_KEY`。
+5. `MUST`：当 Gemini key 存在且 base URL 为空时，默认补全 `https://generativelanguage.googleapis.com/v1beta/openai`。
 
 ### 3.5 Secret Policy
 
