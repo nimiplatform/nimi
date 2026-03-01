@@ -24,6 +24,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
   - Cursor 传递：首次请求不传 cursor；后续请求传递上一次响应返回的 `nextCursor`。
   - 末页检测：响应中 `hasMore=false` 或返回结果数量 < `pageSize` 时标记为末页，UI 停止触发加载。
   - 适用方法：`loadMoreChats`、`loadMoreMessages`、`loadMoreExploreFeed` 及其他分页场景。
+  - **跨域分页参数说明**：D-DSYNC-000 的 `pageSize: 20` 是 Desktop DataSync 层面向 Realm REST API 的客户端默认值。Runtime gRPC List RPC 的分页默认值（K-PAGE-005: page_size=50, max=200）独立于此，由 SDK runtime.md SDKR-066 投影。两者服务不同传输域，差异为设计意图。
 
 ## D-DSYNC-001 — Auth 数据流
 

@@ -90,6 +90,12 @@ Runtime 错误通过三层投影到 Desktop UI：
 
 **兜底规则**：未映射的 ReasonCode 走 D-ERR-005 两阶段归一化兜底路径，最终返回通用错误消息。
 
+**映射治理规则**：
+
+- 当 `spec/runtime/kernel/tables/reason-codes.yaml` 新增 ReasonCode 且 `surface` 包含 `consume` 或 `connector` 时，必须评估是否需要添加 D-ERR-007 映射条目。
+- 评估标准：该 ReasonCode 是否可能在 Desktop 用户操作流中触达。可通过 UI 触达的码必须添加中文映射；仅内部使用的码（如 management RPC 专用码）可跳过。
+- 此评估应作为 reason-codes.yaml 变更 PR 的 review checklist 项。
+
 **跨层引用**：Runtime `K-ERR-001~008`、SDK `S-ERROR-001~010`。
 
 ## D-ERR-008 — 本地模型生命周期 NOT_FOUND 映射

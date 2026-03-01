@@ -59,6 +59,8 @@ Mod 执行在能力沙箱内（参考 `D-HOOK-007`、`D-MOD-005`）：
 
 **跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 hash 完整性检查是 UX 前端防线，与 Runtime 层清单验证互补。
 
+**信任边界声明**：Desktop D-SEC-006 的 hash 校验是 UX 层防线，防止用户通过 Desktop UI 启动未经验证的模型。Runtime K-LOCAL-009 是格式/引擎校验的权威层，但 Phase 1 不做 hash 验证。通过 Runtime gRPC 直接安装的模型（绕过 Desktop UI）可能缺少 hash 信息——Desktop 启动该模型时会被 `LOCAL_AI_MODEL_HASHES_EMPTY` 拦截，此为设计意图（Desktop 作为 UX 守护层）。
+
 ## D-SEC-007 — External Agent Token 安全
 
 - Token 通过 `external_agent_issue_token` IPC 命令签发。
@@ -79,7 +81,7 @@ Content Security Policy 约束：
 
 ## D-SEC-009 — AI 凭据委托模型
 
-AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（CONN-001: custodian not distributor）：
+AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（CONN-001: custodian not distributor，定义于 spec/runtime/connector-auth.md）：
 
 - Desktop renderer **不接触**原始 API key。用户通过 UI 输入凭据后，Desktop 调用 SDK `CreateConnector` / `UpdateConnector`（K-RPC-007/008）将凭据写入 Runtime，写入后即刻丢弃内存副本。
 - AI 请求通过 `connector_id`（managed 路径，K-KEYSRC-001）路由到 Runtime，Runtime 在执行上下文中解密注入凭据（K-KEYSRC-004 step 6），下游不直接访问 CredentialStore。
