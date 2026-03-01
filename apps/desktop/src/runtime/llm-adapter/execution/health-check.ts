@@ -69,7 +69,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   try {
     const source = inferRouteSourceFromEndpoint(plan.endpoint);
     if (source === 'token-api') {
-      const apiKey = await resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
+      const apiKey = await resolveProviderApiKeyFromCredentialRef(input.connectorId);
       const runtime = getRuntimeClient();
       const response = await runtime.ai.checkTokenProviderHealth({
         appId: 'nimi.desktop',
@@ -84,7 +84,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
           callerKind: 'desktop-core',
           callerId: 'runtime.health-check',
           surfaceId: 'runtime.config',
-          credentialSource: 'request-injected',
+          keySource: 'inline',
           providerApiKey: apiKey,
           providerEndpoint: plan.endpoint || undefined,
         },
@@ -103,7 +103,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
       };
     }
 
-    const apiKey = await resolveProviderApiKeyFromCredentialRef(input.credentialRefId);
+    const apiKey = await resolveProviderApiKeyFromCredentialRef(input.connectorId);
     const adapter = buildAdapter(plan, localFetch, apiKey);
     const health = await adapter.healthCheck(plan.model);
     return {

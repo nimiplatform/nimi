@@ -23,7 +23,7 @@ const RESERVED_METADATA_KEYS: &[&str] = &[
     "x-nimi-app-id",
     "x-nimi-trace-id",
     "x-nimi-surface-id",
-    "x-nimi-credential-source",
+    "x-nimi-key-source",
     "x-nimi-provider-endpoint",
     "x-nimi-provider-api-key",
 ];
@@ -41,7 +41,7 @@ pub struct RuntimeBridgeMetadata {
     pub caller_kind: Option<String>,
     pub caller_id: Option<String>,
     pub surface_id: Option<String>,
-    pub credential_source: Option<String>,
+    pub key_source: Option<String>,
     pub provider_endpoint: Option<String>,
     pub provider_api_key: Option<String>,
     pub extra: Option<HashMap<String, String>>,
@@ -72,7 +72,7 @@ impl fmt::Debug for RuntimeBridgeMetadata {
             .field("caller_kind", &self.caller_kind)
             .field("caller_id", &self.caller_id)
             .field("surface_id", &self.surface_id)
-            .field("credential_source", &self.credential_source)
+            .field("key_source", &self.key_source)
             .field("provider_endpoint", &self.provider_endpoint)
             .field(
                 "provider_api_key",
@@ -212,8 +212,8 @@ pub fn apply_metadata(
     )?;
     insert_metadata_value(
         request,
-        "x-nimi-credential-source",
-        normalize(value.credential_source.as_deref()),
+        "x-nimi-key-source",
+        normalize(value.key_source.as_deref()),
     )?;
     insert_metadata_value(
         request,
@@ -320,7 +320,7 @@ mod tests {
             caller_kind: Some("desktop-core".to_string()),
             caller_id: Some("renderer".to_string()),
             surface_id: Some("settings".to_string()),
-            credential_source: Some("request-injected".to_string()),
+            key_source: Some("inline".to_string()),
             provider_endpoint: Some("https://api.example.com/v1".to_string()),
             provider_api_key: Some("secret-token".to_string()),
             extra: Some(extra),
@@ -375,8 +375,8 @@ mod tests {
             Some("settings")
         );
         assert_eq!(
-            read_metadata(&request, "x-nimi-credential-source").as_deref(),
-            Some("request-injected")
+            read_metadata(&request, "x-nimi-key-source").as_deref(),
+            Some("inline")
         );
         assert_eq!(
             read_metadata(&request, "x-nimi-provider-endpoint").as_deref(),

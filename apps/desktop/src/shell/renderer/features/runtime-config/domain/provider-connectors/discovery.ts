@@ -272,7 +272,7 @@ export async function discoverConnectorModelsAndHealth(input: {
       callerKind: 'desktop-core' as const,
       callerId: 'runtime-config.connector-probe',
       surfaceId: 'runtime.config',
-      credentialSource: 'request-injected' as const,
+      keySource: 'inline' as const,
       providerApiKey: token,
       providerEndpoint: endpoint,
     },

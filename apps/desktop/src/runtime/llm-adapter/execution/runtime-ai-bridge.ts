@@ -91,8 +91,8 @@ export function getRuntimeClient() {
 
 const credentialVault = new TauriCredentialVault();
 
-export async function resolveProviderApiKeyFromCredentialRef(credentialRefId: string | undefined): Promise<string> {
-  const ref = String(credentialRefId || '').trim();
+export async function resolveProviderApiKeyFromCredentialRef(connectorId: string | undefined): Promise<string> {
+  const ref = String(connectorId || '').trim();
   if (!ref) return '';
   try {
     return await credentialVault.getCredentialSecret(ref);
@@ -157,26 +157,26 @@ function resolveCaller(modId: string): {
 
 async function resolveCredentialMetadata(input: {
   source: InferenceRouteSource;
-  credentialRefId?: string;
+  connectorId?: string;
   providerEndpoint?: string;
 }): Promise<{
-  credentialSource: 'runtime-config';
+  keySource: 'managed';
 }> {
   // Runtime inference must resolve credentials through runtime config (`apiKeyEnv`) only.
   void input;
   return {
-    credentialSource: 'runtime-config',
+    keySource: 'managed',
   };
 }
 
 export async function buildRuntimeRequestMetadata(input: {
   source: InferenceRouteSource;
-  credentialRefId?: string;
+  connectorId?: string;
   providerEndpoint?: string;
 }): Promise<Record<string, string>> {
   const resolved = await resolveCredentialMetadata(input);
   const metadata: Record<string, string> = {
-    credentialSource: resolved.credentialSource,
+    keySource: resolved.keySource,
   };
   return metadata;
 }
@@ -185,7 +185,7 @@ export async function buildRuntimeCallOptions(input: {
   modId: string;
   timeoutMs: number;
   source: InferenceRouteSource;
-  credentialRefId?: string;
+  connectorId?: string;
   providerEndpoint?: string;
 }): Promise<{
   timeoutMs: number;
@@ -193,13 +193,13 @@ export async function buildRuntimeCallOptions(input: {
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
-    credentialSource: 'runtime-config';
+    keySource: 'managed';
   };
 }> {
   const caller = resolveCaller(input.modId);
   const credentialMetadata = await resolveCredentialMetadata({
     source: input.source,
-    credentialRefId: input.credentialRefId,
+    connectorId: input.connectorId,
     providerEndpoint: input.providerEndpoint,
   });
   return {
@@ -208,7 +208,7 @@ export async function buildRuntimeCallOptions(input: {
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
-      credentialSource: credentialMetadata.credentialSource,
+      keySource: credentialMetadata.keySource,
     },
   };
 }
@@ -219,7 +219,7 @@ export async function buildRuntimeStreamOptions(
     timeoutMs: number;
     signal?: AbortSignal;
     source: InferenceRouteSource;
-    credentialRefId?: string;
+    connectorId?: string;
     providerEndpoint?: string;
   },
 ): Promise<{
@@ -229,13 +229,13 @@ export async function buildRuntimeStreamOptions(
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
-    credentialSource: 'runtime-config';
+    keySource: 'managed';
   };
 }> {
   const caller = resolveCaller(input.modId);
   const credentialMetadata = await resolveCredentialMetadata({
     source: input.source,
-    credentialRefId: input.credentialRefId,
+    connectorId: input.connectorId,
     providerEndpoint: input.providerEndpoint,
   });
   return {
@@ -245,7 +245,7 @@ export async function buildRuntimeStreamOptions(
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
-      credentialSource: credentialMetadata.credentialSource,
+      keySource: credentialMetadata.keySource,
     },
   };
 }

@@ -58,7 +58,7 @@ function toRuntimeProbeMetadata(adapter: ProviderAdapter): {
   callerKind: 'desktop-core';
   callerId: string;
   surfaceId: string;
-  credentialSource: 'request-injected';
+  keySource: 'inline';
   providerApiKey: string;
   providerEndpoint: string;
 } {
@@ -70,7 +70,7 @@ function toRuntimeProbeMetadata(adapter: ProviderAdapter): {
     callerKind: 'desktop-core',
     callerId: 'runtime.llm-adapter.probe',
     surfaceId: 'desktop.renderer',
-    credentialSource: 'request-injected',
+    keySource: 'inline',
     providerApiKey,
     providerEndpoint: adapter.config.endpoint,
   };
