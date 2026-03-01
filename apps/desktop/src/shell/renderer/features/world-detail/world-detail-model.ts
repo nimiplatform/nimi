@@ -4,6 +4,9 @@ export type WorldData = {
   id: string;
   name: string;
   description: string | null;
+  genre: string | null;
+  themes: string[];
+  era: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
   type: string;
@@ -11,8 +14,13 @@ export type WorldData = {
   level: number;
   creatorId: string | null;
   createdAt: string;
+  updatedAt: string | null;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
   agentCount: number;
   timeFlowRatio: number;
+  clockConfig: Record<string, unknown> | null;
+  sceneTimeConfig: Record<string, unknown> | null;
   nativeAgentLimit: number;
   transitInLimit: number;
   lorebookEntryLimit: number;
@@ -80,6 +88,9 @@ export function toWorldData(raw: Record<string, unknown>, semantic?: WorldSemant
     id: String(raw.id || ''),
     name: String(raw.name || 'Unknown World'),
     description: typeof raw.description === 'string' ? raw.description : null,
+    genre: typeof raw.genre === 'string' ? raw.genre : null,
+    themes: Array.isArray(raw.themes) ? raw.themes.filter((t): t is string => typeof t === 'string') : [],
+    era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
     type: typeof raw.type === 'string' ? raw.type : 'SUB',
@@ -87,8 +98,17 @@ export function toWorldData(raw: Record<string, unknown>, semantic?: WorldSemant
     level: typeof raw.level === 'number' ? raw.level : 1,
     creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
+    reviewedAt: typeof raw.reviewedAt === 'string' ? raw.reviewedAt : null,
+    reviewedBy: typeof raw.reviewedBy === 'string' ? raw.reviewedBy : null,
     agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
     timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
+    clockConfig: raw.clockConfig && typeof raw.clockConfig === 'object' && !Array.isArray(raw.clockConfig)
+      ? raw.clockConfig as Record<string, unknown>
+      : null,
+    sceneTimeConfig: raw.sceneTimeConfig && typeof raw.sceneTimeConfig === 'object' && !Array.isArray(raw.sceneTimeConfig)
+      ? raw.sceneTimeConfig as Record<string, unknown>
+      : null,
     nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 2,
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 100,
     lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 300,

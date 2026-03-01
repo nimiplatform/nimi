@@ -246,6 +246,35 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                   <p className="text-sm text-gray-600 leading-relaxed mb-4">{world.description}</p>
                 ) : null}
 
+                {/* Genre / Era / Themes */}
+                {(world.genre || world.era || world.themes.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {world.genre && (
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                        {world.genre}
+                      </span>
+                    )}
+                    {world.era && (
+                      <span className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700">
+                        {world.era}
+                      </span>
+                    )}
+                    {world.themes.slice(0, 3).map((theme, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+                      >
+                        {theme}
+                      </span>
+                    ))}
+                    {world.themes.length > 3 && (
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                        +{world.themes.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* About 信息 */}
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-gray-600">
@@ -255,6 +284,29 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                     </svg>
                     <span>Created {formatWorldDate(world.createdAt)}</span>
                   </div>
+                  {world.updatedAt && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4ECCA3] shrink-0">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                      <span>Updated {formatWorldDate(world.updatedAt)}</span>
+                    </div>
+                  )}
+                  {world.reviewedAt && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4ECCA3] shrink-0">
+                        <path d="M9 12l2 2 4-4" />
+                        <circle cx="12" cy="12" r="10" />
+                      </svg>
+                      <span>
+                        Reviewed {formatWorldDate(world.reviewedAt)}
+                        {world.reviewedBy && (
+                          <span className="text-gray-500"> by {world.reviewedBy.substring(0, 8)}...</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-gray-600">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#4ECCA3] shrink-0">
                       <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -310,6 +362,34 @@ export function WorldDetailView(props: WorldDetailViewProps) {
               <MetaItem label="Transit Limit" value={world.transitInLimit} />
               <MetaItem label="Time Flow" value={`${world.timeFlowRatio}x`} />
             </div>
+
+            {/* Time Configuration */}
+            {(world.clockConfig || world.sceneTimeConfig) && (
+              <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                <div className="relative">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-4">Time Configuration</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {world.clockConfig && (
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase tracking-wider">Clock Config</label>
+                        <pre className="mt-2 text-xs bg-white/60 rounded-xl p-3 overflow-auto max-h-40 text-gray-700">
+                          {JSON.stringify(world.clockConfig, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    {world.sceneTimeConfig && (
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase tracking-wider">Scene Time Config</label>
+                        <pre className="mt-2 text-xs bg-white/60 rounded-xl p-3 overflow-auto max-h-40 text-gray-700">
+                          {JSON.stringify(world.sceneTimeConfig, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
               {/* Governance Scores (Q/C/A/E) */}
               <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">

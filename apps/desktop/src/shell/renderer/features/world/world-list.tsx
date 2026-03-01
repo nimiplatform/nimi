@@ -8,6 +8,9 @@ type WorldListItem = {
   id: string;
   name: string;
   description: string | null;
+  genre: string | null;
+  themes: string[];
+  era: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
   type: string;
@@ -16,6 +19,7 @@ type WorldListItem = {
   levelUpdatedAt: string | null;
   agentCount: number;
   createdAt: string;
+  updatedAt: string | null;
   creatorId: string | null;
   freezeReason: string | null;
   lorebookEntryLimit: number;
@@ -52,6 +56,9 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     id: String(raw.id || ''),
     name: String(raw.name || 'Unknown World'),
     description: typeof raw.description === 'string' ? raw.description : null,
+    genre: typeof raw.genre === 'string' ? raw.genre : null,
+    themes: Array.isArray(raw.themes) ? raw.themes.filter((t): t is string => typeof t === 'string') : [],
+    era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
     type: typeof raw.type === 'string' ? raw.type : 'SUB',
@@ -60,6 +67,7 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
     agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
     freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
     lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
@@ -180,8 +188,36 @@ export function WorldList() {
                       {mainWorld.nativeCreationState}
                     </span>
                   </div>
+                  {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {mainWorld.genre && (
+                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">
+                          {mainWorld.genre}
+                        </span>
+                      )}
+                      {mainWorld.era && (
+                        <span className="inline-block px-2 py-0.5 bg-purple-50 text-purple-600 rounded text-xs">
+                          {mainWorld.era}
+                        </span>
+                      )}
+                      {mainWorld.themes.slice(0, 3).map((theme, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-xs"
+                        >
+                          {theme}
+                        </span>
+                      ))}
+                      {mainWorld.themes.length > 3 && (
+                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
+                          +{mainWorld.themes.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
                   {mainWorld.description && (
-                    <p className="mt-1 text-sm text-gray-600 line-clamp-2">{mainWorld.description}</p>
+                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">{mainWorld.description}</p>
                   )}
                   
                   {/* Stats Grid */}
@@ -295,6 +331,34 @@ export function WorldList() {
                             {world.nativeCreationState}
                           </span>
                         </div>
+                        {(world.genre || world.era || world.themes.length > 0) && (
+                          <div className="mt-2 flex flex-wrap items-center gap-1">
+                            {world.genre && (
+                              <span className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px]">
+                                {world.genre}
+                              </span>
+                            )}
+                            {world.era && (
+                              <span className="inline-block px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-[10px]">
+                                {world.era}
+                              </span>
+                            )}
+                            {world.themes.slice(0, 2).map((theme, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-block px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px]"
+                              >
+                                {theme}
+                              </span>
+                            ))}
+                            {world.themes.length > 2 && (
+                              <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
+                                +{world.themes.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
                         {world.description && (
                           <p className="mt-2 text-xs text-gray-500 line-clamp-2">{world.description}</p>
                         )}
