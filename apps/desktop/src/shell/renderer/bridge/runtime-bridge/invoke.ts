@@ -148,7 +148,7 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
   const sessionTraceId = resolveRendererSessionTraceId();
   const payloadSummary = summarizeInvokePayload(command, payload);
   const commandLog = {
-    level: 'info' as const,
+    level: 'debug' as const,
     area: 'bridge',
     message: toRendererLogMessage(`action:invoke-start:${command}`),
     details: {

@@ -216,7 +216,7 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
     const resolvedDefault = { ...selected };
 
     safeLogRuntimeRouteOptionsQuery({
-      level: 'info',
+      level: 'debug',
       area: 'renderer-bootstrap',
       message: 'action:runtime-route-options:query:start',
       details: {
@@ -297,7 +297,7 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       connectors,
     };
     safeLogRuntimeRouteOptionsQuery({
-      level: 'info',
+      level: 'debug',
       area: 'renderer-bootstrap',
       message: 'action:runtime-route-options:query:done',
       details: {
