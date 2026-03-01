@@ -33,6 +33,8 @@ func NormalizeTokenProviderID(raw string) (string, error) {
 		return "kimi", nil
 	case "glm", "zhipu", "bigmodel", "cloudglm":
 		return "glm", nil
+	case "deepseek", "clouddeepseek":
+		return "deepseek", nil
 	default:
 		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 	}

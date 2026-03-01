@@ -25,6 +25,7 @@ var ProviderCatalog = map[string]ProviderCatalogEntry{
 	"minimax":           {DefaultEndpoint: "https://api.minimax.chat/v1", RequiresExplicitEndpoint: false},
 	"kimi":              {DefaultEndpoint: "https://api.moonshot.cn/v1", RequiresExplicitEndpoint: false},
 	"glm":               {DefaultEndpoint: "https://open.bigmodel.cn/api/paas/v4", RequiresExplicitEndpoint: false},
+	"deepseek":           {DefaultEndpoint: "https://api.deepseek.com/v1", RequiresExplicitEndpoint: false},
 	"openai_compatible": {RequiresExplicitEndpoint: true},
 }
 
@@ -40,6 +41,7 @@ var ProviderCapabilities = map[string]ProviderCapability{
 	"minimax":           {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 	"kimi":              {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 	"glm":               {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
+	"deepseek":           {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 	"openai_compatible": {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 }
 

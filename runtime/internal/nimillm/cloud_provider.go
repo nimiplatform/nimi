@@ -14,7 +14,7 @@ import (
 )
 
 // knownProviders lists the canonical provider IDs in priority order for default routing.
-var knownProviders = []string{"nimillm", "dashscope", "volcengine", "gemini", "minimax", "kimi", "glm"}
+var knownProviders = []string{"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "minimax", "kimi", "glm"}
 
 // prefixToProvider maps model-ID prefix segments to canonical provider IDs.
 var prefixToProvider = map[string]string{
@@ -32,6 +32,7 @@ var prefixToProvider = map[string]string{
 	"glm":       "glm",
 	"zhipu":     "glm",
 	"bigmodel":  "glm",
+	"deepseek":  "deepseek",
 }
 
 // hintToProvider maps modelregistry.ProviderHint to canonical provider IDs.

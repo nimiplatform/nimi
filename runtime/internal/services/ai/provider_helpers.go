@@ -22,7 +22,8 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 		strings.HasPrefix(lower, "moonshot/") ||
 		strings.HasPrefix(lower, "glm/") ||
 		strings.HasPrefix(lower, "zhipu/") ||
-		strings.HasPrefix(lower, "bigmodel/") {
+		strings.HasPrefix(lower, "bigmodel/") ||
+		strings.HasPrefix(lower, "deepseek/") {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
 	}
 	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
