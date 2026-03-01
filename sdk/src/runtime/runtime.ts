@@ -31,6 +31,7 @@ import type {
   RuntimeAuthClient,
   RuntimeCallOptions,
   RuntimeClient,
+  RuntimeConnectorClient,
   RuntimeKnowledgeClient,
   RuntimeLocalRuntimeClient,
   RuntimeModelClient,
@@ -411,6 +412,8 @@ export class Runtime {
 
   readonly localRuntime: RuntimeLocalRuntimeClient;
 
+  readonly connector: RuntimeConnectorClient;
+
   readonly knowledge: RuntimeKnowledgeClient;
 
   readonly app: {
@@ -482,6 +485,7 @@ export class Runtime {
     this.workflow = this.#createPassthroughModule('workflow') as RuntimeWorkflowClient;
     this.model = this.#createPassthroughModule('model') as RuntimeModelClient;
     this.localRuntime = this.#createPassthroughModule('localRuntime') as RuntimeLocalRuntimeClient;
+    this.connector = this.#createPassthroughModule('connector') as RuntimeConnectorClient;
     this.knowledge = this.#createPassthroughModule('knowledge') as RuntimeKnowledgeClient;
     this.audit = this.#createPassthroughModule('audit') as RuntimeAuditClient;
 
@@ -823,7 +827,7 @@ export class Runtime {
   }
 
   #createPassthroughModule<Module extends Record<string, (...args: unknown[]) => Promise<unknown>>>(
-    moduleKey: keyof Pick<RuntimeClient, 'auth' | 'workflow' | 'model' | 'localRuntime' | 'knowledge' | 'audit'>,
+    moduleKey: keyof Pick<RuntimeClient, 'auth' | 'workflow' | 'model' | 'localRuntime' | 'connector' | 'knowledge' | 'audit'>,
   ): Module {
     return new Proxy({} as Module, {
       get: (_target, property: string | symbol) => {

@@ -557,6 +557,15 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       appendInferenceAudit: unary(RuntimeMethodIds.localRuntime.appendInferenceAudit),
       appendRuntimeAudit: unary(RuntimeMethodIds.localRuntime.appendRuntimeAudit),
     },
+    connector: {
+      createConnector: unary(RuntimeMethodIds.connector.createConnector),
+      getConnector: unary(RuntimeMethodIds.connector.getConnector),
+      listConnectors: unary(RuntimeMethodIds.connector.listConnectors),
+      updateConnector: unary(RuntimeMethodIds.connector.updateConnector),
+      deleteConnector: unary(RuntimeMethodIds.connector.deleteConnector),
+      testConnector: unary(RuntimeMethodIds.connector.testConnector),
+      listConnectorModels: unary(RuntimeMethodIds.connector.listConnectorModels),
+    },
     knowledge: {
       buildIndex: unary(RuntimeMethodIds.knowledge.buildIndex),
       searchIndex: unary(RuntimeMethodIds.knowledge.searchIndex),

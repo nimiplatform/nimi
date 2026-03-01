@@ -138,6 +138,22 @@ import type {
   SubscribeAppMessagesRequest,
 } from './generated/runtime/v1/app';
 import type {
+  CreateConnectorRequest,
+  CreateConnectorResponse,
+  DeleteConnectorRequest,
+  DeleteConnectorResponse,
+  GetConnectorRequest,
+  GetConnectorResponse,
+  ListConnectorModelsRequest,
+  ListConnectorModelsResponse,
+  ListConnectorsRequest,
+  ListConnectorsResponse,
+  TestConnectorRequest,
+  TestConnectorResponse,
+  UpdateConnectorRequest,
+  UpdateConnectorResponse,
+} from './generated/runtime/v1/connector';
+import type {
   AIProviderHealthEvent,
   AuditExportChunk,
   ExportAuditEventsRequest,
@@ -333,6 +349,16 @@ export type RuntimeAppClient = {
   subscribeAppMessages(request: SubscribeAppMessagesRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AppMessageEvent>>;
 };
 
+export type RuntimeConnectorClient = {
+  createConnector(request: CreateConnectorRequest, options?: RuntimeCallOptions): Promise<CreateConnectorResponse>;
+  getConnector(request: GetConnectorRequest, options?: RuntimeCallOptions): Promise<GetConnectorResponse>;
+  listConnectors(request: ListConnectorsRequest, options?: RuntimeCallOptions): Promise<ListConnectorsResponse>;
+  updateConnector(request: UpdateConnectorRequest, options?: RuntimeCallOptions): Promise<UpdateConnectorResponse>;
+  deleteConnector(request: DeleteConnectorRequest, options?: RuntimeCallOptions): Promise<DeleteConnectorResponse>;
+  testConnector(request: TestConnectorRequest, options?: RuntimeCallOptions): Promise<TestConnectorResponse>;
+  listConnectorModels(request: ListConnectorModelsRequest, options?: RuntimeCallOptions): Promise<ListConnectorModelsResponse>;
+};
+
 export type RuntimeAuditClient = {
   listAuditEvents(request: ListAuditEventsRequest, options?: RuntimeCallOptions): Promise<ListAuditEventsResponse>;
   exportAuditEvents(request: ExportAuditEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AuditExportChunk>>;
@@ -352,6 +378,7 @@ export type RuntimeClient = {
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
   localRuntime: RuntimeLocalRuntimeClient;
+  connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;
   app: RuntimeAppClient;
   audit: RuntimeAuditClient;

@@ -121,6 +121,22 @@ import {
   SearchIndexResponse,
 } from '../generated/runtime/v1/knowledge';
 import {
+  CreateConnectorRequest,
+  CreateConnectorResponse,
+  DeleteConnectorRequest,
+  DeleteConnectorResponse,
+  GetConnectorRequest,
+  GetConnectorResponse,
+  ListConnectorModelsRequest,
+  ListConnectorModelsResponse,
+  ListConnectorsRequest,
+  ListConnectorsResponse,
+  TestConnectorRequest,
+  TestConnectorResponse,
+  UpdateConnectorRequest,
+  UpdateConnectorResponse,
+} from '../generated/runtime/v1/connector';
+import {
   AppMessageEvent,
   SendAppMessageRequest,
   SendAppMessageResponse,
@@ -358,6 +374,34 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.localRuntime.appendRuntimeAudit]: {
     requestType: AppendRuntimeAuditRequest,
     responseType: Ack,
+  },
+  [RuntimeMethodIds.connector.createConnector]: {
+    requestType: CreateConnectorRequest,
+    responseType: CreateConnectorResponse,
+  },
+  [RuntimeMethodIds.connector.getConnector]: {
+    requestType: GetConnectorRequest,
+    responseType: GetConnectorResponse,
+  },
+  [RuntimeMethodIds.connector.listConnectors]: {
+    requestType: ListConnectorsRequest,
+    responseType: ListConnectorsResponse,
+  },
+  [RuntimeMethodIds.connector.updateConnector]: {
+    requestType: UpdateConnectorRequest,
+    responseType: UpdateConnectorResponse,
+  },
+  [RuntimeMethodIds.connector.deleteConnector]: {
+    requestType: DeleteConnectorRequest,
+    responseType: DeleteConnectorResponse,
+  },
+  [RuntimeMethodIds.connector.testConnector]: {
+    requestType: TestConnectorRequest,
+    responseType: TestConnectorResponse,
+  },
+  [RuntimeMethodIds.connector.listConnectorModels]: {
+    requestType: ListConnectorModelsRequest,
+    responseType: ListConnectorModelsResponse,
   },
   [RuntimeMethodIds.knowledge.buildIndex]: {
     requestType: BuildIndexRequest,
