@@ -6,8 +6,8 @@ service_mappings:
     phase: phase1
     source: K-RPC-005
   - design_service: ConnectorService
-    proto_service: ""
-    mapping_status: design_only_pending_proto
+    proto_service: RuntimeConnectorService
+    mapping_status: aligned
     phase: phase1
     source: K-RPC-005
   - design_service: RuntimeLocalRuntimeService
@@ -110,39 +110,39 @@ method_mappings:
 
   - design_service: ConnectorService
     design_method: CreateConnector
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: CreateConnector
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: GetConnector
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: GetConnector
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: ListConnectors
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: ListConnectors
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: UpdateConnector
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: UpdateConnector
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: DeleteConnector
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: DeleteConnector
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: TestConnector
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: TestConnector
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: ListConnectorModels
-    proto_service: ""
-    proto_method: ""
-    mapping_status: planned
+    proto_service: RuntimeConnectorService
+    proto_method: ListConnectorModels
+    mapping_status: aligned
 
   - design_service: RuntimeLocalRuntimeService
     design_method: ListLocalModels

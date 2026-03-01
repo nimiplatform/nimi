@@ -7,7 +7,7 @@
 | Design Service | Proto Service | Status | Phase | Source |
 |---|---|---|---|---|
 | `AIService` | `RuntimeAiService` | `renamed_service` | `phase1` | `K-RPC-005` |
-| `ConnectorService` | `—` | `design_only_pending_proto` | `phase1` | `K-RPC-005` |
+| `ConnectorService` | `RuntimeConnectorService` | `aligned` | `phase1` | `K-RPC-005` |
 | `RuntimeLocalRuntimeService` | `RuntimeLocalRuntimeService` | `aligned` | `phase1` | `K-RPC-004` |
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
 | `RuntimeGrantService` | `RuntimeGrantService` | `aligned` | `phase1` | `K-GRANT-002` |
@@ -32,13 +32,13 @@
 | `AIService` | `GetMediaResult` | `RuntimeAiService` | `GetMediaArtifacts` | `renamed_method` |
 | `AIService` | `GetSpeechVoices` | `RuntimeAiService` | `GetSpeechVoices` | `aligned` |
 | `AIService` | `SynthesizeSpeechStream` | `RuntimeAiService` | `StreamSpeechSynthesis` | `renamed_method` |
-| `ConnectorService` | `CreateConnector` | `—` | `—` | `planned` |
-| `ConnectorService` | `GetConnector` | `—` | `—` | `planned` |
-| `ConnectorService` | `ListConnectors` | `—` | `—` | `planned` |
-| `ConnectorService` | `UpdateConnector` | `—` | `—` | `planned` |
-| `ConnectorService` | `DeleteConnector` | `—` | `—` | `planned` |
-| `ConnectorService` | `TestConnector` | `—` | `—` | `planned` |
-| `ConnectorService` | `ListConnectorModels` | `—` | `—` | `planned` |
+| `ConnectorService` | `CreateConnector` | `RuntimeConnectorService` | `CreateConnector` | `aligned` |
+| `ConnectorService` | `GetConnector` | `RuntimeConnectorService` | `GetConnector` | `aligned` |
+| `ConnectorService` | `ListConnectors` | `RuntimeConnectorService` | `ListConnectors` | `aligned` |
+| `ConnectorService` | `UpdateConnector` | `RuntimeConnectorService` | `UpdateConnector` | `aligned` |
+| `ConnectorService` | `DeleteConnector` | `RuntimeConnectorService` | `DeleteConnector` | `aligned` |
+| `ConnectorService` | `TestConnector` | `RuntimeConnectorService` | `TestConnector` | `aligned` |
+| `ConnectorService` | `ListConnectorModels` | `RuntimeConnectorService` | `ListConnectorModels` | `aligned` |
 | `RuntimeLocalRuntimeService` | `ListLocalModels` | `RuntimeLocalRuntimeService` | `ListLocalModels` | `aligned` |
 | `RuntimeLocalRuntimeService` | `InstallLocalModel` | `RuntimeLocalRuntimeService` | `InstallLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `RemoveLocalModel` | `RuntimeLocalRuntimeService` | `RemoveLocalModel` | `aligned` |
