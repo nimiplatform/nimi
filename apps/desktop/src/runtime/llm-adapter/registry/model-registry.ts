@@ -1,6 +1,5 @@
 import type { ProviderAdapter } from '../providers';
 import type { CapabilityRequest, ModelProfile } from '../types';
-import { listModelsWithRuntimeProbe } from '../runtime/token-provider-probe';
 import { filterByCapability } from './capability-filter';
 import { DEFAULT_TEMPLATES, mergeProfile, type ModelProfileOverlay, type ModelTemplateRule } from './templates';
 
@@ -75,7 +74,7 @@ export class ModelRegistry {
       return snapshot.profileIds.map((id) => this.profiles.get(id)).filter(Boolean) as ModelProfile[];
     }
 
-    const discovered = await listModelsWithRuntimeProbe(adapter);
+    const discovered = await adapter.listModels();
     const nextProfiles = discovered.map((profile) => this.applyTemplateAndOverlay(profile));
     const nextIds = new Set(nextProfiles.map((profile) => profile.id));
     const previousIds = snapshot?.profileIds ?? [];
