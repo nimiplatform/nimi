@@ -34,6 +34,7 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 受 `enableRuntimeBootstrap` feature flag 门控（参考 `tables/feature-flags.yaml`）。
 
 - 设置 HTTP context provider（runtime defaults + store token + proxy fetch）。
+- 通过 SDK Runtime client 调用 `RegisterApp(appMode=FULL, worldRelation=RENDER)`（K-AUTHSVC-010）。成功后 Runtime 记录 app 注册信息，后续请求可通过 AppMode gate（K-AUTHSVC-009）。失败（如 `APP_MODE_MANIFEST_INVALID`）时中断 bootstrap，进入 D-BOOT-008 错误路径。
 - 构建 runtime host capabilities（local LLM health check、execution kernel turn、OpenAPI context lock、hook runtime）。
 - 装配 mod SDK host。
 - 配置 speech route resolver 和 missing data capability resolver。
@@ -83,6 +84,17 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 `bootstrapRuntime()` 使用 `bootstrapPromise` 单例保证全局只执行一次。
 重复调用返回同一 Promise。
+
+## D-BOOT-011 — Desktop 退出与 Daemon 关闭
+
+Desktop 窗口关闭时的 daemon 生命周期行为：
+
+**触发条件**：Tauri `on_window_event(CloseRequested)` 或应用进程退出。
+
+**行为**：
+- **Desktop managed daemon**（D-IPC-002 `managed=true`）：Desktop 退出前调用 `runtime_bridge_stop`（D-IPC-002），等待 daemon 进入 `STOPPED` 状态。等待超时为 K-DAEMON-003 停机超时（默认 10s）+ 2s 缓冲。超时后 Desktop 强制退出，daemon 可能残留为孤儿进程。
+- **外部 daemon**（`managed=false`）：Desktop 退出不停止 daemon。daemon 由外部管理者负责生命周期。
+- **清理顺序**：停止所有轮询（D-DSYNC-000 `stopAllPolling`）→ 清除主动刷新计时器（D-AUTH-007）→ 发送 `runtime_bridge_stop`（仅 managed）→ 退出。
 
 ## Fact Sources
 
