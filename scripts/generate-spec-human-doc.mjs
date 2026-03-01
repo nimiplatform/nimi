@@ -1500,9 +1500,9 @@ Mod 8 阶段执行管道
 
   d.text(`### 10.8 LLM 适配器与语音引擎
 
-Desktop 的 LLM 层有一个关键设计决策：**不直接调用外部 AI API**。所有 AI 推理——无论是 OpenAI、Gemini 还是本地 Qwen——全部通过 SDK 的 Runtime 接口执行。Desktop 只在 Runtime 之上添加三层本地增强：provider 适配（路由到正确的 Runtime 方法）、凭据绑定（通过 \`credentialRefId\` 引用安全存储中的密钥）、本地模型健康检查（验证 endpoint 可达性和模型状态）。
+Desktop 的 LLM 层有一个关键设计决策：**不直接调用外部 AI API**。所有 AI 推理——无论是 OpenAI、Gemini 还是本地 Qwen——全部通过 SDK 的 Runtime 接口执行。Desktop 只在 Runtime 之上添加三层本地增强：provider 适配（路由到正确的 Runtime 方法）、Connector 凭据路由（通过 \`connector_id\` 路由到 Runtime ConnectorService 管理的凭据）、本地模型健康检查（验证 endpoint 可达性和模型状态）。
 
-这意味着 Desktop 层面的 LLM 代码量极小——路由决策通过 \`resolveChatRoute\` 确定执行模式，凭据通过引用而非明文传递，健康检查通过 \`checkLocalLlmHealth\` 在推理前执行。`);
+这意味着 Desktop 层面的 LLM 代码量极小——路由决策通过 \`resolveChatRoute\` 确定执行模式，凭据通过 \`connector_id\` 委托 Runtime 管理而非本地持有，健康检查通过 \`checkLocalLlmHealth\` 在推理前执行。`);
   d.blank();
   d.rule('D-LLM-001');
   d.rule('D-LLM-002');
@@ -1598,11 +1598,14 @@ Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制
   d.blank();
   d.rule('D-SEC-001');
 
-  d.text(`**Layer 2: Bearer Token 管理** — Token 存储在 Zustand \`auth.token\` 中，同步到 DataSync hot state。Desktop 使用 OS 原生 keyring 存储，Web 使用 localStorage 加过期机制（敏感页面需二次验证，logout 时完全清除）。`);
+  d.text(`**Layer 2: Bearer Token 管理** — Token 存储在 Zustand \`auth.token\` 中，同步到 DataSync hot state。Desktop 和 Web 通过各自的持久化机制管理 Realm access token（Web 使用 localStorage 加过期机制，敏感页面需二次验证，logout 时完全清除）。`);
   d.blank();
   d.rule('D-SEC-002');
-  d.rule('D-SEC-009');
   d.rule('D-SEC-010');
+
+  d.text(`**Layer 2.5: AI 凭据委托** — AI provider API key 的唯一托管者是 Runtime ConnectorService（CONN-001: custodian not distributor）。Desktop renderer 不接触原始 API key，通过 SDK \`CreateConnector\` / \`UpdateConnector\` 将凭据写入 Runtime 后即刻丢弃内存副本。AI 请求通过 \`connector_id\` 路由，Desktop/Web 统一使用 SDK ConnectorService 接口。`);
+  d.blank();
+  d.rule('D-SEC-009');
 
   d.text(`**Layer 3: OAuth 安全** — OAuth 流程通过 Tauri IPC 执行，支持 PKCE 和 clientSecret 两种模式，通过 redirect URI 监听完成授权。`);
   d.blank();
