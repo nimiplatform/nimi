@@ -41,6 +41,11 @@ SDK 与 Runtime 的版本协商必须显式可判定：
 - 方法可用性通过已知方法集合（`runtime-method-groups.yaml`）静态判定，不依赖运行时反射。
 - 降级仅限于 Phase 2 deferred 方法标记为不可用，不改变 Phase 1 方法语义。
 
+**blocked vs deferred 语义区分**：
+
+- `blocked`：Phase 1 服务但 proto 依赖未就绪（如 ConnectorService，`SDKR-050`），SDK 返回 `SDK_RUNTIME_METHOD_UNAVAILABLE`。blocked 服务的方法一旦 proto 发布即可实现，不需要版本协商。
+- `deferred`：Phase 2 服务（如 WorkflowService），在版本兼容降级中标记为不可用。deferred 服务的可用性取决于 runtime 版本支持。
+
 ## S-TRANSPORT-006 Trace 与可观测性边界
 
 - SDK 必须支持将调用链 trace 标识透传到下游（如 metadata/header）。
@@ -61,7 +66,7 @@ SDK 必须将 runtime 流式终帧（`done=true`）中的 `reason_code` 和 `usa
 流式 RPC 超时由 runtime 侧强制执行（`K-STREAM-007`）：
 
 - 首包超时默认 10s（由 runtime 侧配置控制，`K-DAEMON-008`），SDK 侧不可覆盖；超时触发 `DEADLINE_EXCEEDED + AI_PROVIDER_TIMEOUT`。
-- 总超时默认 120s，独立计时，可由 runtime 配置调整。
+- 总超时默认 120s，独立计时，可由 runtime 配置调整（`K-DAEMON-008`，`K-DAEMON-009`）。
 - SDK 不叠加独立客户端侧流超时（除非显式配置）。
 - `AI_PROVIDER_TIMEOUT` 属于可重试 ReasonCode（`S-ERROR-007`）。
 
