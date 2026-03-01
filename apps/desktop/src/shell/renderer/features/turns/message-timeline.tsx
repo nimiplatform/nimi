@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
@@ -11,6 +11,7 @@ import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { toProfileData, getProfileInitial, formatProfileDate } from '@renderer/features/profile/profile-model';
 import { PostsTab } from '@renderer/features/profile/components/posts-tab';
 import { TurnInput } from './turn-input';
+import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
 
 function resolveMessageText(message: MessageViewDto): string {
   const text = String(message.text || '').trim();
@@ -235,6 +236,27 @@ function toChatProfileSummary(input: {
 
 type ProfilePanelTarget = 'self' | 'other' | null;
 
+function useStreamState(chatId: string | null): StreamState | null {
+  const [state, setState] = useState<StreamState | null>(() =>
+    chatId ? getStreamState(chatId) : null,
+  );
+
+  useEffect(() => {
+    if (!chatId) {
+      setState(null);
+      return;
+    }
+    setState(getStreamState(chatId));
+    return subscribeStream((updated) => {
+      if (updated.chatId === chatId) {
+        setState({ ...updated });
+      }
+    });
+  }, [chatId]);
+
+  return state;
+}
+
 export function MessageTimeline() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -246,6 +268,8 @@ export function MessageTimeline() {
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
   const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
   const [expandedDiagnosticsMessageId, setExpandedDiagnosticsMessageId] = useState<string | null>(null);
+  const streamState = useStreamState(selectedChatId);
+  const isStreaming = streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
 
   const messagesQuery = useQuery({
     queryKey: ['messages', selectedChatId],
@@ -371,7 +395,7 @@ export function MessageTimeline() {
     <section className="flex h-full min-w-0">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Chat header */}
-        <header className="flex h-14 shrink-0 items-center border-b border-gray-100 bg-white px-4">
+        <header className="flex h-14 shrink-0 items-center bg-white px-4">
           {/* Name - clickable to open profile panel */}
           <button
             type="button"
@@ -516,6 +540,62 @@ export function MessageTimeline() {
               );
             })
           )}
+
+          {/* Streaming indicator */}
+          {streamState && isStreaming && (
+            <div className="flex gap-2">
+              {contactAvatarUrl ? (
+                <img src={contactAvatarUrl} alt={contactName} className="mt-1 h-8 w-8 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
+                  {getInitial(contactName)}
+                </div>
+              )}
+              <div className="max-w-[75%]">
+                <div className="inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900">
+                  {streamState.partialText || (
+                    <span className="inline-flex items-center gap-1 text-gray-400">
+                      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
+                      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
+                      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1">
+                  <button
+                    type="button"
+                    onClick={() => selectedChatId && cancelStream(selectedChatId)}
+                    className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+                  >
+                    {t('ChatTimeline.stopGenerating', 'Stop generating')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Stream interrupted / error indicator */}
+          {streamState && (streamState.phase === 'error' || streamState.phase === 'cancelled') && streamState.interrupted && (
+            <div className="flex gap-2">
+              {contactAvatarUrl ? (
+                <img src={contactAvatarUrl} alt={contactName} className="mt-1 h-8 w-8 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
+                  {getInitial(contactName)}
+                </div>
+              )}
+              <div className="max-w-[75%]">
+                <div className="inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900">
+                  {streamState.partialText}
+                  <span className="ml-1 text-xs text-red-400">[{t('ChatTimeline.streamInterrupted', 'Response interrupted')}]</span>
+                </div>
+                {streamState.errorMessage && (
+                  <p className="mt-1 text-xs text-red-400">{streamState.errorMessage}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div ref={bottomRef} />
         </div>
         <TurnInput />
@@ -523,7 +603,7 @@ export function MessageTimeline() {
 
       {profilePanelTarget ? (
         <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-[#F0F4F8]">
-          <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/50 bg-white/70 px-4 backdrop-blur-xl">
+          <div className="flex h-14 shrink-0 items-center justify-between bg-white/70 px-4 backdrop-blur-xl">
             <h3 className="text-sm font-semibold text-gray-800">{profilePanelTitle}</h3>
             <button
               type="button"
