@@ -1,4 +1,5 @@
 import { getPlatformClient } from '@runtime/platform-client';
+import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import {
   VENDOR_CATALOGS_V11,
   catalogModelsV11,
@@ -19,6 +20,24 @@ const DESKTOP_OWNER_ID = 'desktop';
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
+
+let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
+
+export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
+  if (cachedProviderCatalog) return cachedProviderCatalog;
+  const runtime = getPlatformClient().runtime;
+  const response = await runtime.connector.listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
+  cachedProviderCatalog = response.providers || [];
+  return cachedProviderCatalog;
+}
+
+export function resolveProviderEndpoint(
+  provider: string,
+  catalog: ProviderCatalogEntry[],
+): string {
+  const entry = catalog.find((e) => e.provider === provider);
+  return entry?.defaultEndpoint || '';
+}
 
 export function providerToVendor(provider: string): ApiVendor {
   const normalized = String(provider || '').trim().toLowerCase();
