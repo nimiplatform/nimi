@@ -254,6 +254,10 @@ export interface StreamCompleted {
      * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 1
      */
     finishReason: FinishReason;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 2
+     */
+    usage?: UsageStats;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StreamFailed
@@ -2200,7 +2204,8 @@ export const ToolResultEvent = new ToolResultEvent$Type();
 class StreamCompleted$Type extends MessageType<StreamCompleted> {
     constructor() {
         super("nimi.runtime.v1.StreamCompleted", [
-            { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] }
+            { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
+            { no: 2, name: "usage", kind: "message", T: () => UsageStats }
         ]);
     }
     create(value?: PartialMessage<StreamCompleted>): StreamCompleted {
@@ -2218,6 +2223,9 @@ class StreamCompleted$Type extends MessageType<StreamCompleted> {
                 case /* nimi.runtime.v1.FinishReason finish_reason */ 1:
                     message.finishReason = reader.int32();
                     break;
+                case /* nimi.runtime.v1.UsageStats usage */ 2:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2233,6 +2241,9 @@ class StreamCompleted$Type extends MessageType<StreamCompleted> {
         /* nimi.runtime.v1.FinishReason finish_reason = 1; */
         if (message.finishReason !== 0)
             writer.tag(1, WireType.Varint).int32(message.finishReason);
+        /* nimi.runtime.v1.UsageStats usage = 2; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

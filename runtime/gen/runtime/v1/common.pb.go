@@ -77,6 +77,18 @@ const (
 	ReasonCode_AI_APP_ID_REQUIRED                    ReasonCode = 340
 	ReasonCode_AI_APP_ID_CONFLICT                    ReasonCode = 341
 	ReasonCode_AI_MODEL_ID_REQUIRED                  ReasonCode = 350
+	ReasonCode_AI_MODALITY_NOT_SUPPORTED             ReasonCode = 351
+	ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE            ReasonCode = 352
+	ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING        ReasonCode = 353
+	ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED      ReasonCode = 354
+	ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED            ReasonCode = 355
+	ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND           ReasonCode = 356
+	ReasonCode_AI_LOCAL_MANIFEST_INVALID             ReasonCode = 357
+	ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION     ReasonCode = 358
+	ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN        ReasonCode = 360
+	ReasonCode_AUTH_TOKEN_INVALID                    ReasonCode = 400
+	ReasonCode_AUTH_TOKEN_EXPIRED                    ReasonCode = 401
+	ReasonCode_PAGE_TOKEN_INVALID                    ReasonCode = 500
 )
 
 // Enum value maps for ReasonCode.
@@ -135,6 +147,18 @@ var (
 		340: "AI_APP_ID_REQUIRED",
 		341: "AI_APP_ID_CONFLICT",
 		350: "AI_MODEL_ID_REQUIRED",
+		351: "AI_MODALITY_NOT_SUPPORTED",
+		352: "AI_LOCAL_MODEL_UNAVAILABLE",
+		353: "AI_LOCAL_MODEL_PROFILE_MISSING",
+		354: "AI_LOCAL_MODEL_ALREADY_INSTALLED",
+		355: "AI_LOCAL_ENDPOINT_REQUIRED",
+		356: "AI_LOCAL_TEMPLATE_NOT_FOUND",
+		357: "AI_LOCAL_MANIFEST_INVALID",
+		358: "AI_LOCAL_MODEL_INVALID_TRANSITION",
+		360: "AI_PROVIDER_ENDPOINT_FORBIDDEN",
+		400: "AUTH_TOKEN_INVALID",
+		401: "AUTH_TOKEN_EXPIRED",
+		500: "PAGE_TOKEN_INVALID",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":               0,
@@ -190,6 +214,18 @@ var (
 		"AI_APP_ID_REQUIRED":                    340,
 		"AI_APP_ID_CONFLICT":                    341,
 		"AI_MODEL_ID_REQUIRED":                  350,
+		"AI_MODALITY_NOT_SUPPORTED":             351,
+		"AI_LOCAL_MODEL_UNAVAILABLE":            352,
+		"AI_LOCAL_MODEL_PROFILE_MISSING":        353,
+		"AI_LOCAL_MODEL_ALREADY_INSTALLED":      354,
+		"AI_LOCAL_ENDPOINT_REQUIRED":            355,
+		"AI_LOCAL_TEMPLATE_NOT_FOUND":           356,
+		"AI_LOCAL_MANIFEST_INVALID":             357,
+		"AI_LOCAL_MODEL_INVALID_TRANSITION":     358,
+		"AI_PROVIDER_ENDPOINT_FORBIDDEN":        360,
+		"AUTH_TOKEN_INVALID":                    400,
+		"AUTH_TOKEN_EXPIRED":                    401,
+		"PAGE_TOKEN_INVALID":                    500,
 	}
 )
 
@@ -673,7 +709,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xb9\f\n" +
+	"actionHint*\xc1\x0f\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -728,7 +764,19 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1eAI_REQUEST_CREDENTIAL_CONFLICT\x10\xca\x02\x12\x17\n" +
 	"\x12AI_APP_ID_REQUIRED\x10\xd4\x02\x12\x17\n" +
 	"\x12AI_APP_ID_CONFLICT\x10\xd5\x02\x12\x19\n" +
-	"\x14AI_MODEL_ID_REQUIRED\x10\xde\x02*\xa9\x01\n" +
+	"\x14AI_MODEL_ID_REQUIRED\x10\xde\x02\x12\x1e\n" +
+	"\x19AI_MODALITY_NOT_SUPPORTED\x10\xdf\x02\x12\x1f\n" +
+	"\x1aAI_LOCAL_MODEL_UNAVAILABLE\x10\xe0\x02\x12#\n" +
+	"\x1eAI_LOCAL_MODEL_PROFILE_MISSING\x10\xe1\x02\x12%\n" +
+	" AI_LOCAL_MODEL_ALREADY_INSTALLED\x10\xe2\x02\x12\x1f\n" +
+	"\x1aAI_LOCAL_ENDPOINT_REQUIRED\x10\xe3\x02\x12 \n" +
+	"\x1bAI_LOCAL_TEMPLATE_NOT_FOUND\x10\xe4\x02\x12\x1e\n" +
+	"\x19AI_LOCAL_MANIFEST_INVALID\x10\xe5\x02\x12&\n" +
+	"!AI_LOCAL_MODEL_INVALID_TRANSITION\x10\xe6\x02\x12#\n" +
+	"\x1eAI_PROVIDER_ENDPOINT_FORBIDDEN\x10\xe8\x02\x12\x17\n" +
+	"\x12AUTH_TOKEN_INVALID\x10\x90\x03\x12\x17\n" +
+	"\x12AUTH_TOKEN_EXPIRED\x10\x91\x03\x12\x17\n" +
+	"\x12PAGE_TOKEN_INVALID\x10\xf4\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

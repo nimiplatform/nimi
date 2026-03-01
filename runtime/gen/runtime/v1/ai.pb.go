@@ -1185,6 +1185,7 @@ func (x *ToolResultEvent) GetToolOutput() *structpb.Struct {
 type StreamCompleted struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FinishReason  FinishReason           `protobuf:"varint,1,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
+	Usage         *UsageStats            `protobuf:"bytes,2,opt,name=usage,proto3" json:"usage,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1224,6 +1225,13 @@ func (x *StreamCompleted) GetFinishReason() FinishReason {
 		return x.FinishReason
 	}
 	return FinishReason_FINISH_REASON_UNSPECIFIED
+}
+
+func (x *StreamCompleted) GetUsage() *UsageStats {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
 }
 
 type StreamFailed struct {
@@ -4191,9 +4199,10 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0fToolResultEvent\x12\x1b\n" +
 	"\ttool_name\x18\x01 \x01(\tR\btoolName\x128\n" +
 	"\vtool_output\x18\x02 \x01(\v2\x17.google.protobuf.StructR\n" +
-	"toolOutput\"U\n" +
+	"toolOutput\"\x88\x01\n" +
 	"\x0fStreamCompleted\x12B\n" +
-	"\rfinish_reason\x18\x01 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\"m\n" +
+	"\rfinish_reason\x18\x01 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x121\n" +
+	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\"m\n" +
 	"\fStreamFailed\x12<\n" +
 	"\vreason_code\x18\x01 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
@@ -4635,95 +4644,96 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	52, // 16: nimi.runtime.v1.ToolCallEvent.tool_input:type_name -> google.protobuf.Struct
 	52, // 17: nimi.runtime.v1.ToolResultEvent.tool_output:type_name -> google.protobuf.Struct
 	3,  // 18: nimi.runtime.v1.StreamCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	54, // 19: nimi.runtime.v1.StreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	5,  // 20: nimi.runtime.v1.StreamGenerateEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
-	55, // 21: nimi.runtime.v1.StreamGenerateEvent.timestamp:type_name -> google.protobuf.Timestamp
-	13, // 22: nimi.runtime.v1.StreamGenerateEvent.started:type_name -> nimi.runtime.v1.StreamStarted
-	14, // 23: nimi.runtime.v1.StreamGenerateEvent.delta:type_name -> nimi.runtime.v1.StreamDelta
-	15, // 24: nimi.runtime.v1.StreamGenerateEvent.tool_call:type_name -> nimi.runtime.v1.ToolCallEvent
-	16, // 25: nimi.runtime.v1.StreamGenerateEvent.tool_result:type_name -> nimi.runtime.v1.ToolResultEvent
-	53, // 26: nimi.runtime.v1.StreamGenerateEvent.usage:type_name -> nimi.runtime.v1.UsageStats
-	17, // 27: nimi.runtime.v1.StreamGenerateEvent.completed:type_name -> nimi.runtime.v1.StreamCompleted
-	18, // 28: nimi.runtime.v1.StreamGenerateEvent.failed:type_name -> nimi.runtime.v1.StreamFailed
-	1,  // 29: nimi.runtime.v1.EmbedRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 30: nimi.runtime.v1.EmbedRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	56, // 31: nimi.runtime.v1.EmbedResponse.vectors:type_name -> google.protobuf.ListValue
-	53, // 32: nimi.runtime.v1.EmbedResponse.usage:type_name -> nimi.runtime.v1.UsageStats
-	1,  // 33: nimi.runtime.v1.EmbedResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	52, // 34: nimi.runtime.v1.ImageGenerationSpec.provider_options:type_name -> google.protobuf.Struct
-	52, // 35: nimi.runtime.v1.VideoGenerationSpec.provider_options:type_name -> google.protobuf.Struct
-	52, // 36: nimi.runtime.v1.SpeechSynthesisSpec.provider_options:type_name -> google.protobuf.Struct
-	25, // 37: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
-	26, // 38: nimi.runtime.v1.SpeechTranscriptionSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
-	52, // 39: nimi.runtime.v1.SpeechTranscriptionSpec.provider_options:type_name -> google.protobuf.Struct
-	52, // 40: nimi.runtime.v1.MediaArtifact.provider_raw:type_name -> google.protobuf.Struct
-	0,  // 41: nimi.runtime.v1.MediaJob.modal:type_name -> nimi.runtime.v1.Modal
-	1,  // 42: nimi.runtime.v1.MediaJob.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	1,  // 43: nimi.runtime.v1.MediaJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	6,  // 44: nimi.runtime.v1.MediaJob.status:type_name -> nimi.runtime.v1.MediaJobStatus
-	54, // 45: nimi.runtime.v1.MediaJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	55, // 46: nimi.runtime.v1.MediaJob.created_at:type_name -> google.protobuf.Timestamp
-	55, // 47: nimi.runtime.v1.MediaJob.updated_at:type_name -> google.protobuf.Timestamp
-	55, // 48: nimi.runtime.v1.MediaJob.next_poll_at:type_name -> google.protobuf.Timestamp
-	52, // 49: nimi.runtime.v1.MediaJob.provider_options:type_name -> google.protobuf.Struct
-	28, // 50: nimi.runtime.v1.MediaJob.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
-	53, // 51: nimi.runtime.v1.MediaJob.usage:type_name -> nimi.runtime.v1.UsageStats
-	0,  // 52: nimi.runtime.v1.SubmitMediaJobRequest.modal:type_name -> nimi.runtime.v1.Modal
-	1,  // 53: nimi.runtime.v1.SubmitMediaJobRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 54: nimi.runtime.v1.SubmitMediaJobRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	51, // 55: nimi.runtime.v1.SubmitMediaJobRequest.labels:type_name -> nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
-	22, // 56: nimi.runtime.v1.SubmitMediaJobRequest.image_spec:type_name -> nimi.runtime.v1.ImageGenerationSpec
-	23, // 57: nimi.runtime.v1.SubmitMediaJobRequest.video_spec:type_name -> nimi.runtime.v1.VideoGenerationSpec
-	24, // 58: nimi.runtime.v1.SubmitMediaJobRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
-	27, // 59: nimi.runtime.v1.SubmitMediaJobRequest.transcription_spec:type_name -> nimi.runtime.v1.SpeechTranscriptionSpec
-	29, // 60: nimi.runtime.v1.SubmitMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
-	29, // 61: nimi.runtime.v1.GetMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
-	29, // 62: nimi.runtime.v1.CancelMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
-	7,  // 63: nimi.runtime.v1.MediaJobEvent.event_type:type_name -> nimi.runtime.v1.MediaJobEventType
-	55, // 64: nimi.runtime.v1.MediaJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	29, // 65: nimi.runtime.v1.MediaJobEvent.job:type_name -> nimi.runtime.v1.MediaJob
-	28, // 66: nimi.runtime.v1.GetMediaArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
-	53, // 67: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
-	1,  // 68: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	1,  // 69: nimi.runtime.v1.GetSpeechVoicesRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 70: nimi.runtime.v1.GetSpeechVoicesRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	41, // 71: nimi.runtime.v1.GetSpeechVoicesResponse.voices:type_name -> nimi.runtime.v1.SpeechVoiceDescriptor
-	24, // 72: nimi.runtime.v1.StreamSpeechSynthesisRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
-	1,  // 73: nimi.runtime.v1.StreamSpeechSynthesisRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	2,  // 74: nimi.runtime.v1.StreamSpeechSynthesisRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	46, // 75: nimi.runtime.v1.ListTokenProviderModelsResponse.models:type_name -> nimi.runtime.v1.TokenProviderModelDescriptor
-	4,  // 76: nimi.runtime.v1.TokenProviderHealthSnapshot.status:type_name -> nimi.runtime.v1.TokenProviderHealthStatus
-	55, // 77: nimi.runtime.v1.TokenProviderHealthSnapshot.checked_at:type_name -> google.protobuf.Timestamp
-	49, // 78: nimi.runtime.v1.CheckTokenProviderHealthResponse.health:type_name -> nimi.runtime.v1.TokenProviderHealthSnapshot
-	10, // 79: nimi.runtime.v1.RuntimeAiService.Generate:input_type -> nimi.runtime.v1.GenerateRequest
-	12, // 80: nimi.runtime.v1.RuntimeAiService.StreamGenerate:input_type -> nimi.runtime.v1.StreamGenerateRequest
-	20, // 81: nimi.runtime.v1.RuntimeAiService.Embed:input_type -> nimi.runtime.v1.EmbedRequest
-	30, // 82: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:input_type -> nimi.runtime.v1.SubmitMediaJobRequest
-	32, // 83: nimi.runtime.v1.RuntimeAiService.GetMediaJob:input_type -> nimi.runtime.v1.GetMediaJobRequest
-	34, // 84: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:input_type -> nimi.runtime.v1.CancelMediaJobRequest
-	37, // 85: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:input_type -> nimi.runtime.v1.SubscribeMediaJobEventsRequest
-	38, // 86: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:input_type -> nimi.runtime.v1.GetMediaArtifactsRequest
-	42, // 87: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:input_type -> nimi.runtime.v1.GetSpeechVoicesRequest
-	44, // 88: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:input_type -> nimi.runtime.v1.StreamSpeechSynthesisRequest
-	45, // 89: nimi.runtime.v1.RuntimeAiService.ListTokenProviderModels:input_type -> nimi.runtime.v1.ListTokenProviderModelsRequest
-	48, // 90: nimi.runtime.v1.RuntimeAiService.CheckTokenProviderHealth:input_type -> nimi.runtime.v1.CheckTokenProviderHealthRequest
-	11, // 91: nimi.runtime.v1.RuntimeAiService.Generate:output_type -> nimi.runtime.v1.GenerateResponse
-	19, // 92: nimi.runtime.v1.RuntimeAiService.StreamGenerate:output_type -> nimi.runtime.v1.StreamGenerateEvent
-	21, // 93: nimi.runtime.v1.RuntimeAiService.Embed:output_type -> nimi.runtime.v1.EmbedResponse
-	31, // 94: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:output_type -> nimi.runtime.v1.SubmitMediaJobResponse
-	33, // 95: nimi.runtime.v1.RuntimeAiService.GetMediaJob:output_type -> nimi.runtime.v1.GetMediaJobResponse
-	35, // 96: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:output_type -> nimi.runtime.v1.CancelMediaJobResponse
-	36, // 97: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:output_type -> nimi.runtime.v1.MediaJobEvent
-	39, // 98: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:output_type -> nimi.runtime.v1.GetMediaArtifactsResponse
-	43, // 99: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:output_type -> nimi.runtime.v1.GetSpeechVoicesResponse
-	40, // 100: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:output_type -> nimi.runtime.v1.ArtifactChunk
-	47, // 101: nimi.runtime.v1.RuntimeAiService.ListTokenProviderModels:output_type -> nimi.runtime.v1.ListTokenProviderModelsResponse
-	50, // 102: nimi.runtime.v1.RuntimeAiService.CheckTokenProviderHealth:output_type -> nimi.runtime.v1.CheckTokenProviderHealthResponse
-	91, // [91:103] is the sub-list for method output_type
-	79, // [79:91] is the sub-list for method input_type
-	79, // [79:79] is the sub-list for extension type_name
-	79, // [79:79] is the sub-list for extension extendee
-	0,  // [0:79] is the sub-list for field type_name
+	53, // 19: nimi.runtime.v1.StreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
+	54, // 20: nimi.runtime.v1.StreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	5,  // 21: nimi.runtime.v1.StreamGenerateEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
+	55, // 22: nimi.runtime.v1.StreamGenerateEvent.timestamp:type_name -> google.protobuf.Timestamp
+	13, // 23: nimi.runtime.v1.StreamGenerateEvent.started:type_name -> nimi.runtime.v1.StreamStarted
+	14, // 24: nimi.runtime.v1.StreamGenerateEvent.delta:type_name -> nimi.runtime.v1.StreamDelta
+	15, // 25: nimi.runtime.v1.StreamGenerateEvent.tool_call:type_name -> nimi.runtime.v1.ToolCallEvent
+	16, // 26: nimi.runtime.v1.StreamGenerateEvent.tool_result:type_name -> nimi.runtime.v1.ToolResultEvent
+	53, // 27: nimi.runtime.v1.StreamGenerateEvent.usage:type_name -> nimi.runtime.v1.UsageStats
+	17, // 28: nimi.runtime.v1.StreamGenerateEvent.completed:type_name -> nimi.runtime.v1.StreamCompleted
+	18, // 29: nimi.runtime.v1.StreamGenerateEvent.failed:type_name -> nimi.runtime.v1.StreamFailed
+	1,  // 30: nimi.runtime.v1.EmbedRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 31: nimi.runtime.v1.EmbedRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	56, // 32: nimi.runtime.v1.EmbedResponse.vectors:type_name -> google.protobuf.ListValue
+	53, // 33: nimi.runtime.v1.EmbedResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	1,  // 34: nimi.runtime.v1.EmbedResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	52, // 35: nimi.runtime.v1.ImageGenerationSpec.provider_options:type_name -> google.protobuf.Struct
+	52, // 36: nimi.runtime.v1.VideoGenerationSpec.provider_options:type_name -> google.protobuf.Struct
+	52, // 37: nimi.runtime.v1.SpeechSynthesisSpec.provider_options:type_name -> google.protobuf.Struct
+	25, // 38: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
+	26, // 39: nimi.runtime.v1.SpeechTranscriptionSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
+	52, // 40: nimi.runtime.v1.SpeechTranscriptionSpec.provider_options:type_name -> google.protobuf.Struct
+	52, // 41: nimi.runtime.v1.MediaArtifact.provider_raw:type_name -> google.protobuf.Struct
+	0,  // 42: nimi.runtime.v1.MediaJob.modal:type_name -> nimi.runtime.v1.Modal
+	1,  // 43: nimi.runtime.v1.MediaJob.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	1,  // 44: nimi.runtime.v1.MediaJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	6,  // 45: nimi.runtime.v1.MediaJob.status:type_name -> nimi.runtime.v1.MediaJobStatus
+	54, // 46: nimi.runtime.v1.MediaJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	55, // 47: nimi.runtime.v1.MediaJob.created_at:type_name -> google.protobuf.Timestamp
+	55, // 48: nimi.runtime.v1.MediaJob.updated_at:type_name -> google.protobuf.Timestamp
+	55, // 49: nimi.runtime.v1.MediaJob.next_poll_at:type_name -> google.protobuf.Timestamp
+	52, // 50: nimi.runtime.v1.MediaJob.provider_options:type_name -> google.protobuf.Struct
+	28, // 51: nimi.runtime.v1.MediaJob.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
+	53, // 52: nimi.runtime.v1.MediaJob.usage:type_name -> nimi.runtime.v1.UsageStats
+	0,  // 53: nimi.runtime.v1.SubmitMediaJobRequest.modal:type_name -> nimi.runtime.v1.Modal
+	1,  // 54: nimi.runtime.v1.SubmitMediaJobRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 55: nimi.runtime.v1.SubmitMediaJobRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	51, // 56: nimi.runtime.v1.SubmitMediaJobRequest.labels:type_name -> nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
+	22, // 57: nimi.runtime.v1.SubmitMediaJobRequest.image_spec:type_name -> nimi.runtime.v1.ImageGenerationSpec
+	23, // 58: nimi.runtime.v1.SubmitMediaJobRequest.video_spec:type_name -> nimi.runtime.v1.VideoGenerationSpec
+	24, // 59: nimi.runtime.v1.SubmitMediaJobRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
+	27, // 60: nimi.runtime.v1.SubmitMediaJobRequest.transcription_spec:type_name -> nimi.runtime.v1.SpeechTranscriptionSpec
+	29, // 61: nimi.runtime.v1.SubmitMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
+	29, // 62: nimi.runtime.v1.GetMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
+	29, // 63: nimi.runtime.v1.CancelMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
+	7,  // 64: nimi.runtime.v1.MediaJobEvent.event_type:type_name -> nimi.runtime.v1.MediaJobEventType
+	55, // 65: nimi.runtime.v1.MediaJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	29, // 66: nimi.runtime.v1.MediaJobEvent.job:type_name -> nimi.runtime.v1.MediaJob
+	28, // 67: nimi.runtime.v1.GetMediaArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
+	53, // 68: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
+	1,  // 69: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
+	1,  // 70: nimi.runtime.v1.GetSpeechVoicesRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 71: nimi.runtime.v1.GetSpeechVoicesRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	41, // 72: nimi.runtime.v1.GetSpeechVoicesResponse.voices:type_name -> nimi.runtime.v1.SpeechVoiceDescriptor
+	24, // 73: nimi.runtime.v1.StreamSpeechSynthesisRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
+	1,  // 74: nimi.runtime.v1.StreamSpeechSynthesisRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	2,  // 75: nimi.runtime.v1.StreamSpeechSynthesisRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	46, // 76: nimi.runtime.v1.ListTokenProviderModelsResponse.models:type_name -> nimi.runtime.v1.TokenProviderModelDescriptor
+	4,  // 77: nimi.runtime.v1.TokenProviderHealthSnapshot.status:type_name -> nimi.runtime.v1.TokenProviderHealthStatus
+	55, // 78: nimi.runtime.v1.TokenProviderHealthSnapshot.checked_at:type_name -> google.protobuf.Timestamp
+	49, // 79: nimi.runtime.v1.CheckTokenProviderHealthResponse.health:type_name -> nimi.runtime.v1.TokenProviderHealthSnapshot
+	10, // 80: nimi.runtime.v1.RuntimeAiService.Generate:input_type -> nimi.runtime.v1.GenerateRequest
+	12, // 81: nimi.runtime.v1.RuntimeAiService.StreamGenerate:input_type -> nimi.runtime.v1.StreamGenerateRequest
+	20, // 82: nimi.runtime.v1.RuntimeAiService.Embed:input_type -> nimi.runtime.v1.EmbedRequest
+	30, // 83: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:input_type -> nimi.runtime.v1.SubmitMediaJobRequest
+	32, // 84: nimi.runtime.v1.RuntimeAiService.GetMediaJob:input_type -> nimi.runtime.v1.GetMediaJobRequest
+	34, // 85: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:input_type -> nimi.runtime.v1.CancelMediaJobRequest
+	37, // 86: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:input_type -> nimi.runtime.v1.SubscribeMediaJobEventsRequest
+	38, // 87: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:input_type -> nimi.runtime.v1.GetMediaArtifactsRequest
+	42, // 88: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:input_type -> nimi.runtime.v1.GetSpeechVoicesRequest
+	44, // 89: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:input_type -> nimi.runtime.v1.StreamSpeechSynthesisRequest
+	45, // 90: nimi.runtime.v1.RuntimeAiService.ListTokenProviderModels:input_type -> nimi.runtime.v1.ListTokenProviderModelsRequest
+	48, // 91: nimi.runtime.v1.RuntimeAiService.CheckTokenProviderHealth:input_type -> nimi.runtime.v1.CheckTokenProviderHealthRequest
+	11, // 92: nimi.runtime.v1.RuntimeAiService.Generate:output_type -> nimi.runtime.v1.GenerateResponse
+	19, // 93: nimi.runtime.v1.RuntimeAiService.StreamGenerate:output_type -> nimi.runtime.v1.StreamGenerateEvent
+	21, // 94: nimi.runtime.v1.RuntimeAiService.Embed:output_type -> nimi.runtime.v1.EmbedResponse
+	31, // 95: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:output_type -> nimi.runtime.v1.SubmitMediaJobResponse
+	33, // 96: nimi.runtime.v1.RuntimeAiService.GetMediaJob:output_type -> nimi.runtime.v1.GetMediaJobResponse
+	35, // 97: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:output_type -> nimi.runtime.v1.CancelMediaJobResponse
+	36, // 98: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:output_type -> nimi.runtime.v1.MediaJobEvent
+	39, // 99: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:output_type -> nimi.runtime.v1.GetMediaArtifactsResponse
+	43, // 100: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:output_type -> nimi.runtime.v1.GetSpeechVoicesResponse
+	40, // 101: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:output_type -> nimi.runtime.v1.ArtifactChunk
+	47, // 102: nimi.runtime.v1.RuntimeAiService.ListTokenProviderModels:output_type -> nimi.runtime.v1.ListTokenProviderModelsResponse
+	50, // 103: nimi.runtime.v1.RuntimeAiService.CheckTokenProviderHealth:output_type -> nimi.runtime.v1.CheckTokenProviderHealthResponse
+	92, // [92:104] is the sub-list for method output_type
+	80, // [80:92] is the sub-list for method input_type
+	80, // [80:80] is the sub-list for extension type_name
+	80, // [80:80] is the sub-list for extension extendee
+	0,  // [0:80] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_proto_init() }

@@ -130,6 +130,26 @@ export interface ListConnectorsRequest {
      * @generated from protobuf field: string owner_id = 1
      */
     ownerId: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 2
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 3
+     */
+    pageToken: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorKind kind_filter = 4
+     */
+    kindFilter: ConnectorKind;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorStatus status_filter = 5
+     */
+    statusFilter: ConnectorStatus;
+    /**
+     * @generated from protobuf field: string provider_filter = 6
+     */
+    providerFilter: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListConnectorsResponse
@@ -139,6 +159,10 @@ export interface ListConnectorsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.Connector connectors = 1
      */
     connectors: Connector[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateConnectorRequest
@@ -757,12 +781,22 @@ export const GetConnectorResponse = new GetConnectorResponse$Type();
 class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListConnectorsRequest", [
-            { no: 1, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "kind_filter", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorKind", ConnectorKind, "CONNECTOR_KIND_"] },
+            { no: 5, name: "status_filter", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorStatus", ConnectorStatus, "CONNECTOR_STATUS_"] },
+            { no: 6, name: "provider_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListConnectorsRequest>): ListConnectorsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.ownerId = "";
+        message.pageSize = 0;
+        message.pageToken = "";
+        message.kindFilter = 0;
+        message.statusFilter = 0;
+        message.providerFilter = "";
         if (value !== undefined)
             reflectionMergePartial<ListConnectorsRequest>(this, message, value);
         return message;
@@ -774,6 +808,21 @@ class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
             switch (fieldNo) {
                 case /* string owner_id */ 1:
                     message.ownerId = reader.string();
+                    break;
+                case /* int32 page_size */ 2:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 3:
+                    message.pageToken = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ConnectorKind kind_filter */ 4:
+                    message.kindFilter = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ConnectorStatus status_filter */ 5:
+                    message.statusFilter = reader.int32();
+                    break;
+                case /* string provider_filter */ 6:
+                    message.providerFilter = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -790,6 +839,21 @@ class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
         /* string owner_id = 1; */
         if (message.ownerId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.ownerId);
+        /* int32 page_size = 2; */
+        if (message.pageSize !== 0)
+            writer.tag(2, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 3; */
+        if (message.pageToken !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.pageToken);
+        /* nimi.runtime.v1.ConnectorKind kind_filter = 4; */
+        if (message.kindFilter !== 0)
+            writer.tag(4, WireType.Varint).int32(message.kindFilter);
+        /* nimi.runtime.v1.ConnectorStatus status_filter = 5; */
+        if (message.statusFilter !== 0)
+            writer.tag(5, WireType.Varint).int32(message.statusFilter);
+        /* string provider_filter = 6; */
+        if (message.providerFilter !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.providerFilter);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -804,12 +868,14 @@ export const ListConnectorsRequest = new ListConnectorsRequest$Type();
 class ListConnectorsResponse$Type extends MessageType<ListConnectorsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListConnectorsResponse", [
-            { no: 1, name: "connectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Connector }
+            { no: 1, name: "connectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Connector },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListConnectorsResponse>): ListConnectorsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectors = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListConnectorsResponse>(this, message, value);
         return message;
@@ -821,6 +887,9 @@ class ListConnectorsResponse$Type extends MessageType<ListConnectorsResponse> {
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.Connector connectors */ 1:
                     message.connectors.push(Connector.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -837,6 +906,9 @@ class ListConnectorsResponse$Type extends MessageType<ListConnectorsResponse> {
         /* repeated nimi.runtime.v1.Connector connectors = 1; */
         for (let i = 0; i < message.connectors.length; i++)
             Connector.internalBinaryWrite(message.connectors[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

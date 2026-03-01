@@ -72,10 +72,16 @@ message GetConnectorResponse {
 
 message ListConnectorsRequest {
   string owner_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  ConnectorKind kind_filter = 4;
+  ConnectorStatus status_filter = 5;
+  string provider_filter = 6;
 }
 
 message ListConnectorsResponse {
   repeated Connector connectors = 1;
+  string next_page_token = 2;
 }
 
 message UpdateConnectorRequest {

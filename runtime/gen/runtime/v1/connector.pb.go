@@ -578,10 +578,15 @@ func (x *GetConnectorResponse) GetConnector() *Connector {
 }
 
 type ListConnectorsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OwnerId       string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OwnerId        string                 `protobuf:"bytes,1,opt,name=owner_id,json=ownerId,proto3" json:"owner_id,omitempty"`
+	PageSize       int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	KindFilter     ConnectorKind          `protobuf:"varint,4,opt,name=kind_filter,json=kindFilter,proto3,enum=nimi.runtime.v1.ConnectorKind" json:"kind_filter,omitempty"`
+	StatusFilter   ConnectorStatus        `protobuf:"varint,5,opt,name=status_filter,json=statusFilter,proto3,enum=nimi.runtime.v1.ConnectorStatus" json:"status_filter,omitempty"`
+	ProviderFilter string                 `protobuf:"bytes,6,opt,name=provider_filter,json=providerFilter,proto3" json:"provider_filter,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListConnectorsRequest) Reset() {
@@ -621,9 +626,45 @@ func (x *ListConnectorsRequest) GetOwnerId() string {
 	return ""
 }
 
+func (x *ListConnectorsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListConnectorsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListConnectorsRequest) GetKindFilter() ConnectorKind {
+	if x != nil {
+		return x.KindFilter
+	}
+	return ConnectorKind_CONNECTOR_KIND_UNSPECIFIED
+}
+
+func (x *ListConnectorsRequest) GetStatusFilter() ConnectorStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED
+}
+
+func (x *ListConnectorsRequest) GetProviderFilter() string {
+	if x != nil {
+		return x.ProviderFilter
+	}
+	return ""
+}
+
 type ListConnectorsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Connectors    []*Connector           `protobuf:"bytes,1,rep,name=connectors,proto3" json:"connectors,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -663,6 +704,13 @@ func (x *ListConnectorsResponse) GetConnectors() []*Connector {
 		return x.Connectors
 	}
 	return nil
+}
+
+func (x *ListConnectorsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type UpdateConnectorRequest struct {
@@ -1347,13 +1395,21 @@ const file_runtime_v1_connector_proto_rawDesc = "" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\tR\aownerId\"P\n" +
 	"\x14GetConnectorResponse\x128\n" +
-	"\tconnector\x18\x01 \x01(\v2\x1a.nimi.runtime.v1.ConnectorR\tconnector\"2\n" +
+	"\tconnector\x18\x01 \x01(\v2\x1a.nimi.runtime.v1.ConnectorR\tconnector\"\x9f\x02\n" +
 	"\x15ListConnectorsRequest\x12\x19\n" +
-	"\bowner_id\x18\x01 \x01(\tR\aownerId\"T\n" +
+	"\bowner_id\x18\x01 \x01(\tR\aownerId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\x12?\n" +
+	"\vkind_filter\x18\x04 \x01(\x0e2\x1e.nimi.runtime.v1.ConnectorKindR\n" +
+	"kindFilter\x12E\n" +
+	"\rstatus_filter\x18\x05 \x01(\x0e2 .nimi.runtime.v1.ConnectorStatusR\fstatusFilter\x12'\n" +
+	"\x0fprovider_filter\x18\x06 \x01(\tR\x0eproviderFilter\"|\n" +
 	"\x16ListConnectorsResponse\x12:\n" +
 	"\n" +
 	"connectors\x18\x01 \x03(\v2\x1a.nimi.runtime.v1.ConnectorR\n" +
-	"connectors\"\xdb\x01\n" +
+	"connectors\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xdb\x01\n" +
 	"\x16UpdateConnectorRequest\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\tR\aownerId\x12\x14\n" +
@@ -1471,34 +1527,36 @@ var file_runtime_v1_connector_proto_depIdxs = []int32{
 	3,  // 3: nimi.runtime.v1.Connector.local_category:type_name -> nimi.runtime.v1.LocalConnectorCategory
 	4,  // 4: nimi.runtime.v1.CreateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
 	4,  // 5: nimi.runtime.v1.GetConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	4,  // 6: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
-	2,  // 7: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
-	4,  // 8: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
-	23, // 9: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	23, // 10: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
-	17, // 11: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
-	20, // 12: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
-	5,  // 13: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
-	7,  // 14: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
-	9,  // 15: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
-	11, // 16: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
-	13, // 17: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
-	15, // 18: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
-	18, // 19: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
-	21, // 20: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
-	6,  // 21: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
-	8,  // 22: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
-	10, // 23: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
-	12, // 24: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
-	14, // 25: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
-	16, // 26: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
-	19, // 27: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
-	22, // 28: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
-	21, // [21:29] is the sub-list for method output_type
-	13, // [13:21] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	0,  // 6: nimi.runtime.v1.ListConnectorsRequest.kind_filter:type_name -> nimi.runtime.v1.ConnectorKind
+	2,  // 7: nimi.runtime.v1.ListConnectorsRequest.status_filter:type_name -> nimi.runtime.v1.ConnectorStatus
+	4,  // 8: nimi.runtime.v1.ListConnectorsResponse.connectors:type_name -> nimi.runtime.v1.Connector
+	2,  // 9: nimi.runtime.v1.UpdateConnectorRequest.status:type_name -> nimi.runtime.v1.ConnectorStatus
+	4,  // 10: nimi.runtime.v1.UpdateConnectorResponse.connector:type_name -> nimi.runtime.v1.Connector
+	23, // 11: nimi.runtime.v1.DeleteConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	23, // 12: nimi.runtime.v1.TestConnectorResponse.ack:type_name -> nimi.runtime.v1.Ack
+	17, // 13: nimi.runtime.v1.ListConnectorModelsResponse.models:type_name -> nimi.runtime.v1.ConnectorModelDescriptor
+	20, // 14: nimi.runtime.v1.ListProviderCatalogResponse.providers:type_name -> nimi.runtime.v1.ProviderCatalogEntry
+	5,  // 15: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:input_type -> nimi.runtime.v1.CreateConnectorRequest
+	7,  // 16: nimi.runtime.v1.RuntimeConnectorService.GetConnector:input_type -> nimi.runtime.v1.GetConnectorRequest
+	9,  // 17: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:input_type -> nimi.runtime.v1.ListConnectorsRequest
+	11, // 18: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:input_type -> nimi.runtime.v1.UpdateConnectorRequest
+	13, // 19: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:input_type -> nimi.runtime.v1.DeleteConnectorRequest
+	15, // 20: nimi.runtime.v1.RuntimeConnectorService.TestConnector:input_type -> nimi.runtime.v1.TestConnectorRequest
+	18, // 21: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:input_type -> nimi.runtime.v1.ListConnectorModelsRequest
+	21, // 22: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:input_type -> nimi.runtime.v1.ListProviderCatalogRequest
+	6,  // 23: nimi.runtime.v1.RuntimeConnectorService.CreateConnector:output_type -> nimi.runtime.v1.CreateConnectorResponse
+	8,  // 24: nimi.runtime.v1.RuntimeConnectorService.GetConnector:output_type -> nimi.runtime.v1.GetConnectorResponse
+	10, // 25: nimi.runtime.v1.RuntimeConnectorService.ListConnectors:output_type -> nimi.runtime.v1.ListConnectorsResponse
+	12, // 26: nimi.runtime.v1.RuntimeConnectorService.UpdateConnector:output_type -> nimi.runtime.v1.UpdateConnectorResponse
+	14, // 27: nimi.runtime.v1.RuntimeConnectorService.DeleteConnector:output_type -> nimi.runtime.v1.DeleteConnectorResponse
+	16, // 28: nimi.runtime.v1.RuntimeConnectorService.TestConnector:output_type -> nimi.runtime.v1.TestConnectorResponse
+	19, // 29: nimi.runtime.v1.RuntimeConnectorService.ListConnectorModels:output_type -> nimi.runtime.v1.ListConnectorModelsResponse
+	22, // 30: nimi.runtime.v1.RuntimeConnectorService.ListProviderCatalog:output_type -> nimi.runtime.v1.ListProviderCatalogResponse
+	23, // [23:31] is the sub-list for method output_type
+	15, // [15:23] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_connector_proto_init() }

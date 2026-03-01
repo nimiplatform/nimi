@@ -156,6 +156,7 @@ message ToolResultEvent {
 
 message StreamCompleted {
   FinishReason finish_reason = 1;
+  UsageStats usage = 2;
 }
 
 message StreamFailed {

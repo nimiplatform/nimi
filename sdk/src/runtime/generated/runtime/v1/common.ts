@@ -317,7 +317,55 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_MODEL_ID_REQUIRED = 350;
      */
-    AI_MODEL_ID_REQUIRED = 350
+    AI_MODEL_ID_REQUIRED = 350,
+    /**
+     * @generated from protobuf enum value: AI_MODALITY_NOT_SUPPORTED = 351;
+     */
+    AI_MODALITY_NOT_SUPPORTED = 351,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_UNAVAILABLE = 352;
+     */
+    AI_LOCAL_MODEL_UNAVAILABLE = 352,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_PROFILE_MISSING = 353;
+     */
+    AI_LOCAL_MODEL_PROFILE_MISSING = 353,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_ALREADY_INSTALLED = 354;
+     */
+    AI_LOCAL_MODEL_ALREADY_INSTALLED = 354,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ENDPOINT_REQUIRED = 355;
+     */
+    AI_LOCAL_ENDPOINT_REQUIRED = 355,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_TEMPLATE_NOT_FOUND = 356;
+     */
+    AI_LOCAL_TEMPLATE_NOT_FOUND = 356,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MANIFEST_INVALID = 357;
+     */
+    AI_LOCAL_MANIFEST_INVALID = 357,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_INVALID_TRANSITION = 358;
+     */
+    AI_LOCAL_MODEL_INVALID_TRANSITION = 358,
+    /**
+     * @generated from protobuf enum value: AI_PROVIDER_ENDPOINT_FORBIDDEN = 360;
+     */
+    AI_PROVIDER_ENDPOINT_FORBIDDEN = 360,
+    /**
+     * @generated from protobuf enum value: AUTH_TOKEN_INVALID = 400;
+     */
+    AUTH_TOKEN_INVALID = 400,
+    /**
+     * @generated from protobuf enum value: AUTH_TOKEN_EXPIRED = 401;
+     */
+    AUTH_TOKEN_EXPIRED = 401,
+    /**
+     * @generated from protobuf enum value: PAGE_TOKEN_INVALID = 500;
+     */
+    PAGE_TOKEN_INVALID = 500
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType
