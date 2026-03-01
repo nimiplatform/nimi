@@ -1,15 +1,18 @@
 ---
 title: World Studio -> Narrative -> Rendering Chain SSOT
 status: ACTIVE
-version: v1.0
-updated_at: 2026-02-28
+version: v1.2
+updated_at: 2026-03-01
 rules:
   - 本文件定义跨 mod 编排契约，不替代各业务 mod 的单体 SSOT。
   - 产品主链固定为 `world-studio -> narrative -> renderer`，其中 renderer 可为 textplay 或 videoplay。
-  - Narrative 是唯一事实层；renderer 只能消费事实投影，不得改写事实。
+  - realm world+agent 是唯一基础事实源；Narrative 是唯一叙事事实层；renderer 只能消费叙事事实投影，不得改写任何事实层。
   - world-studio 只负责世界资产生产与维护，不直接承担叙事回合执行。
-  - 渲染通道（text/video）必须共享同一 `CoreOutput` 事实源，禁止双事实链分叉。
+  - 渲染通道（text/video）必须共享 Narrative canonical `CoreOutput` 事实流；videoplay 可按 episode 聚合消费，但禁止双事实链分叉。
+  - textplay 作为正式 renderer 分支，固定执行链为 `received -> normalize -> filter-visibility -> build-prompt -> generate -> wrap-output -> persist-best-effort`。
   - `NarrativeContext` 仅承载叙事控制变量（setting/state）；world/agent 事实正文必须由 narrative Step1 运行时读取，不得回填到 NarrativeContext。
+  - videoplay 作为正式 renderer 分支，固定执行链为 `narrative-ingest -> episode-segmentation -> screenplay -> storyboard -> asset-render -> edit-compose -> qc-gate -> release-package`。
+  - renderer 产物必须携带 `sourceEventIds`，可追溯到 `CoreOutput.spineEvents`。
   - 编排层失败语义必须统一为 `reasonCode + actionHint`，并可跨 stage 追踪。
   - 不考虑 legacy 兼容，按 final-state 一次性定义契约。
 ---
@@ -72,7 +75,7 @@ NarrativeContext 正式 scope 字段：
 可选分支：
 
 1. `textplay`：输出沉浸文本
-2. `videoplay`（未来）：输出镜头脚本/视频提示结构
+2. `videoplay`：输出分集短剧发布包（master video + poster + caption + metadata + trace）
 
 硬约束：
 
@@ -97,19 +100,31 @@ NarrativeContext 正式 scope 字段：
 4. `worldStyle`
 5. `agent/player/scene anchor`
 6. `metrics`
+7. `sourceEventIds`（渲染计划中每个 beat/shot 的事实追溯键）
 
 ## 4. TextPlay 与 VideoPlay 分工
 
-### 4.1 TextPlay（已规划）
+### 4.1 TextPlay（正式）
 
 1. 输出文本散文/对话体验。
 2. 强制执行 visibility + POV 约束。
+3. 固定执行主链：`received -> normalize -> filter-visibility -> build-prompt -> generate -> wrap-output -> persist-best-effort`。
 
-### 4.2 VideoPlay（预留）
+### 4.2 VideoPlay（正式）
 
 1. 输出镜头级结构（shot plan / beat / style prompt / motion cue）。
 2. 以 `CoreOutput` 为事实锚点，不得增加世界事实。
 3. 允许在表现层补充镜头语法字段（camera/motion/lens），但这些字段不回写 Narrative。
+4. 固定执行主链：`narrative-ingest -> episode-segmentation -> screenplay -> storyboard -> asset-render -> edit-compose -> qc-gate -> release-package`。
+5. 每个 beat/shot 必须携带 `sourceEventIds`，并可回溯到输入 `spineEvents`。
+6. `groundedRatio` 与 `assetCoverageRatio` 未达门槛时必须 fail-close。
+7. 产线交付单位固定为 episode，不是单回合片段；发布包必须包含 video+poster+caption+metadata+trace 最小集。
+
+### 4.3 Text/Video 一致性
+
+1. 同一 narrative turn 只能有一份 canonical `CoreOutput`；textplay 可按 turn 直接消费，videoplay 可按分集窗口聚合消费。
+2. 允许表现风格差异（文字 vs 视频），不允许事实差异（事件集合与可见性约束）。
+3. 双 renderer 都必须通过 visibility + POV 约束，不得在任一模态泄漏 internal 非玩家事件。
 
 ## 5. 编排层统一失败语义
 
@@ -143,12 +158,20 @@ NarrativeContext 正式 scope 字段：
 3. text/video 双 renderer 对同一 turn 不产生事实分叉。
 4. 任一阶段失败均返回结构化 `reasonCode + actionHint + stage`。
 5. traceId 可贯通 stage A/B/C，支持端到端审计。
+6. videoplay 输出的 beat/shot 必须全量可追溯到 `sourceEventIds`。
+7. videoplay 的 `groundedRatio` 与 `assetCoverageRatio` 需满足其 SSOT 门槛定义。
+8. videoplay 必须支持“连续叙事输入 -> 分集产出”闭环，且分集可独立发布。
+9. videoplay 任一分集中的 beat/shot 都必须可回溯到被聚合 turn 的 `sourceEventIds`。
 
 ## 8. 引用关系
 
 1. world-studio：`@nimiplatform/nimi-mods/world-studio/SSOT.md`
 2. narrative：`@nimiplatform/nimi-mods/narrative/SSOT.md`
 3. textplay：`@nimiplatform/nimi-mods/textplay/SSOT.md`
-4. mod 通用治理：`@nimiplatform/nimi/ssot/mod/governance.md`
-5. world 边界桩：`@nimiplatform/nimi/ssot/boundaries/world.md`
-6. agent 边界桩：`@nimiplatform/nimi/ssot/boundaries/agent.md`
+4. videoplay：`@nimiplatform/nimi-mods/videoplay/SSOT.md`
+5. videoplay spec import index：`@nimiplatform/nimi-mods/videoplay/spec/index.yaml`
+6. videoplay 分集切分契约：`@nimiplatform/nimi-mods/videoplay/spec/contracts/episode-segmentation.yaml`
+7. videoplay 剪辑合成契约：`@nimiplatform/nimi-mods/videoplay/spec/contracts/edit-compose.yaml`
+8. mod 通用治理：`@nimiplatform/nimi/ssot/mod/governance.md`
+9. world 边界桩：`@nimiplatform/nimi/ssot/boundaries/world.md`
+10. agent 边界桩：`@nimiplatform/nimi/ssot/boundaries/agent.md`
