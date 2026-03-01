@@ -37,6 +37,9 @@ func NewBackend(name string, baseURL string, apiKey string, timeout time.Duratio
 // transport from endpointsec). Returns nil if baseURL is empty.
 func NewBackendWithTransport(name string, baseURL string, apiKey string, timeout time.Duration, transport http.RoundTripper) *Backend {
 	trimmed := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	// Strip trailing /v1 to prevent double-versioned paths: the backend
+	// hardcodes /v1/... in request paths (e.g. /v1/chat/completions).
+	trimmed = strings.TrimSuffix(trimmed, "/v1")
 	if trimmed == "" {
 		return nil
 	}
@@ -61,6 +64,7 @@ func (b *Backend) WithRequestOverrides(endpoint string, apiKey string) *Backend 
 		return nil
 	}
 	normalizedEndpoint := strings.TrimSuffix(strings.TrimSpace(endpoint), "/")
+	normalizedEndpoint = strings.TrimSuffix(normalizedEndpoint, "/v1")
 	if normalizedEndpoint == "" {
 		normalizedEndpoint = b.baseURL
 	}
