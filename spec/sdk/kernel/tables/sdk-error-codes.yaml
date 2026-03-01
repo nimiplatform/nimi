@@ -9,7 +9,16 @@ codes:
   - name: SDK_RUNTIME_NODE_GRPC_ENDPOINT_REQUIRED
     family: SDK_CONFIG
     source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_VERSION_INCOMPATIBLE
+    family: SDK_CONFIG
+    source_rule: S-ERROR-006
+  - name: SDK_RUNTIME_METHOD_UNAVAILABLE
+    family: SDK_CONFIG
+    source_rule: S-ERROR-006
   - name: SDK_AI_PROVIDER_RUNTIME_REQUIRED
+    family: SDK_AI_PROVIDER
+    source_rule: S-ERROR-003
+  - name: SDK_AI_PROVIDER_SUBJECT_USER_ID_REQUIRED
     family: SDK_AI_PROVIDER
     source_rule: S-ERROR-003
   - name: SDK_AI_PROVIDER_CONFIG_INVALID
@@ -18,6 +27,106 @@ codes:
   - name: SDK_SCOPE_CATALOG_INVALID
     family: SDK_SCOPE
     source_rule: S-ERROR-003
+  - name: SDK_SCOPE_CATALOG_VERSION_CONFLICT
+    family: SDK_SCOPE
+    source_rule: S-ERROR-003
+  - name: SDK_REALM_ENDPOINT_REQUIRED
+    family: SDK_REALM
+    source_rule: S-ERROR-005
+  - name: SDK_REALM_BASE_URL_REQUIRED
+    family: SDK_REALM
+    source_rule: S-ERROR-005
+    deprecated_by: SDK_REALM_ENDPOINT_REQUIRED
+  - name: SDK_REALM_TOKEN_REQUIRED
+    family: SDK_REALM
+    source_rule: S-ERROR-005
+  - name: SDK_REALM_CONFIG_INVALID
+    family: SDK_REALM
+    source_rule: S-ERROR-005
   - name: SDK_MOD_HOST_MISSING
     family: SDK_MOD
     source_rule: S-ERROR-003
+  # --- Transport & codec errors (source: sdk/src/types/index.ts) ---
+  - name: SDK_AI_PROVIDER_BASE64_UNAVAILABLE
+    family: SDK_AI_PROVIDER
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_ID_REQUIRED
+    family: SDK_CONFIG
+    source_rule: S-ERROR-003
+    deprecated_by: SDK_APP_ID_REQUIRED
+  - name: SDK_RUNTIME_BASE64_DECODER_UNAVAILABLE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_BASE64_ENCODER_UNAVAILABLE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_CODEC_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_EMPTY_RESPONSE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_STREAM_CLOSE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_UNARY_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_REQUEST_BYTES_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_REQUEST_ENCODE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_RESPONSE_DECODE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_STREAM_DECODE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_INVOKE_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_LISTEN_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_CLOSE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_ID_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_OPEN_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_REMOTE_ERROR
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_UNARY_BYTES_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_UNARY_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_TARGET_REQUIRED
+    family: SDK_CONFIG
+    source_rule: S-ERROR-003
+  # --- SDK Synthetic ReasonCodes (source: S-ERROR-010) ---
+  - name: OPERATION_ABORTED
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: "SDK 合成码；永不重试（S-ERROR-008）"
+  - name: RUNTIME_UNAVAILABLE
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: "SDK 合成码；应用层可重试（S-ERROR-007）"
+  - name: RUNTIME_BRIDGE_DAEMON_UNAVAILABLE
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: "SDK 合成码；应用层可重试（S-ERROR-007）"
