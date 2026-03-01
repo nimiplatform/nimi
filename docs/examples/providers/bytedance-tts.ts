@@ -148,7 +148,7 @@ async function main(): Promise<void> {
     },
   }, {
     metadata: {
-      credentialSource: 'request-injected',
+      keySource: 'inline',
       providerEndpoint: connector.endpoint,
       providerApiKey: connector.apiKey,
     } as any,

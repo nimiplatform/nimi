@@ -155,7 +155,7 @@ async function main(): Promise<void> {
     timeoutMs: 120000,
   }, {
     metadata: {
-      credentialSource: 'request-injected',
+      keySource: 'inline',
       providerEndpoint: connector.endpoint,
       providerApiKey: connector.apiKey,
     } as any,

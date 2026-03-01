@@ -4,7 +4,7 @@
 `deepseek-chat.ts` and `bytedance-tts.ts` are now single-file runtime examples:
 1. save API key into app-managed connector storage
 2. get `connectorId`
-3. call runtime with `connectorId`-resolved request metadata (`credentialSource=request-injected`)
+3. call runtime with `connectorId`-resolved request metadata (`keySource=inline`)
 
 ## Core Rule
 

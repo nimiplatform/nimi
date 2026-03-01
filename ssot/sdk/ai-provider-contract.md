@@ -50,7 +50,7 @@ rules:
 
 1. `text.doGenerate/doStream` -> `runtime.ai.generate/streamGenerate`
 2. `embedding.doEmbed` -> `runtime.ai.embed`
-3. `ai-provider` 仅映射 runtime 请求体字段；`token-api` 的 `credentialSource` 由 transport profile 安全上下文承载，不在 provider 入参中表达。
+3. `ai-provider` 仅映射 runtime 请求体字段；`token-api` 的 `keySource` 由 transport profile 安全上下文承载，不在 provider 入参中表达。
 
 ### 3.2 媒体任务（image/video/tts/stt）
 

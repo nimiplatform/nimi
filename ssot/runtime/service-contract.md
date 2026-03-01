@@ -260,7 +260,7 @@ ExternalPrincipal：
 - `x-nimi-surface-id` -> `surfaceId`（可选：页面/模块/入口标识）
 
 `MUST`：`callerKind/callerId/surfaceId` 仅用于审计与统计归因，不得用于授予额外权限或绕过 scope 校验。
-`MUST`：`token-api` 路由必须通过 transport profile 的等效安全上下文显式传递 `credentialSource`，不得依赖推断；该约束不要求新增 L0 envelope 字段。
+`MUST`：`token-api` 路由必须通过 transport profile 的等效安全上下文显式传递 `keySource`，不得依赖推断；该约束不要求新增 L0 envelope 字段。
 
 ### 6.1.2 Schema 真相源（必填）
 
@@ -472,13 +472,13 @@ App 授权链路 reasonCode 最小集合：
 #### 6.4.6 Token-API 请求期凭证合同（MUST）
 
 1. `MUST`：`token-api` 调用必须绑定显式凭证来源，允许值：
-   1. `credentialSource=request-injected`（受信宿主在请求期注入 provider secret；例如 desktop 先解析 `connectorId` 再注入）
-   2. `credentialSource=runtime-config`（runtime/cli/headless 使用进程配置凭证）
-2. `MUST`：`credentialSource` 属于 transport profile 字段（metadata 或 profile 等效安全上下文），不是 `.proto` body 中的明文字段。
-3. `MUST`：desktop/mod 执行面默认使用 `credentialSource=request-injected`；缺少请求期凭证时必须拒绝，不得静默降级到进程级凭证。
+   1. `keySource=inline`（受信宿主在请求期注入 provider secret；例如 desktop 先解析 `connectorId` 再注入）
+   2. `keySource=managed`（runtime/cli/headless 使用进程配置凭证）
+2. `MUST`：`keySource` 属于 transport profile 字段（metadata 或 profile 等效安全上下文），不是 `.proto` body 中的明文字段。
+3. `MUST`：desktop/mod 执行面默认使用 `keySource=inline`；缺少请求期凭证时必须拒绝，不得静默降级到进程级凭证。
 4. `MUST`：runtime 执行面不得要求调用方提供 `connectorId`，也不得承担 `connectorId -> secret` 解析职责。
 5. `MUST`：请求期 secret 轮换必须在下一次请求生效，不得要求 runtime 重启。
-6. `MUST`：当 `credentialSource=request-injected` 时，不得回退到 daemon 启动时读取的 provider API key。
+6. `MUST`：当 `keySource=inline` 时，不得回退到 daemon 启动时读取的 provider API key。
 7. `MUST`：审计事件必须记录凭证来源与请求凭证引用指纹（不可逆），用于排查“配置凭证”与“请求凭证”漂移。
 8. `MUST`：以下失败语义必须可识别并 fail-close：
    1. `AI_REQUEST_CREDENTIAL_REQUIRED`
