@@ -617,6 +617,7 @@ type GenerateRequest struct {
 	RoutePolicy   RoutePolicy            `protobuf:"varint,11,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
 	Fallback      FallbackPolicy         `protobuf:"varint,12,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
 	TimeoutMs     int32                  `protobuf:"varint,13,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,14,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -742,6 +743,13 @@ func (x *GenerateRequest) GetTimeoutMs() int32 {
 	return 0
 }
 
+func (x *GenerateRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
+}
+
 type GenerateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Output        *structpb.Struct       `protobuf:"bytes,1,opt,name=output,proto3" json:"output,omitempty"`
@@ -841,6 +849,7 @@ type StreamGenerateRequest struct {
 	RoutePolicy   RoutePolicy            `protobuf:"varint,11,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
 	Fallback      FallbackPolicy         `protobuf:"varint,12,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
 	TimeoutMs     int32                  `protobuf:"varint,13,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,14,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -964,6 +973,13 @@ func (x *StreamGenerateRequest) GetTimeoutMs() int32 {
 		return x.TimeoutMs
 	}
 	return 0
+}
+
+func (x *StreamGenerateRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
 }
 
 type StreamStarted struct {
@@ -1465,6 +1481,7 @@ type EmbedRequest struct {
 	RoutePolicy   RoutePolicy            `protobuf:"varint,5,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
 	Fallback      FallbackPolicy         `protobuf:"varint,6,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
 	TimeoutMs     int32                  `protobuf:"varint,7,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,8,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1546,6 +1563,13 @@ func (x *EmbedRequest) GetTimeoutMs() int32 {
 		return x.TimeoutMs
 	}
 	return 0
+}
+
+func (x *EmbedRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
 }
 
 type EmbedResponse struct {
@@ -2614,6 +2638,7 @@ type SubmitMediaJobRequest struct {
 	RequestId      string                 `protobuf:"bytes,8,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	IdempotencyKey string                 `protobuf:"bytes,9,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
 	Labels         map[string]string      `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ConnectorId    string                 `protobuf:"bytes,11,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	// Types that are valid to be assigned to Spec:
 	//
 	//	*SubmitMediaJobRequest_ImageSpec
@@ -2723,6 +2748,13 @@ func (x *SubmitMediaJobRequest) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *SubmitMediaJobRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
 }
 
 func (x *SubmitMediaJobRequest) GetSpec() isSubmitMediaJobRequest_Spec {
@@ -3431,6 +3463,7 @@ type GetSpeechVoicesRequest struct {
 	ModelId       string                 `protobuf:"bytes,3,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	RoutePolicy   RoutePolicy            `protobuf:"varint,4,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
 	Fallback      FallbackPolicy         `protobuf:"varint,5,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,6,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3498,6 +3531,13 @@ func (x *GetSpeechVoicesRequest) GetFallback() FallbackPolicy {
 		return x.Fallback
 	}
 	return FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED
+}
+
+func (x *GetSpeechVoicesRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
 }
 
 type GetSpeechVoicesResponse struct {
@@ -3569,6 +3609,7 @@ type StreamSpeechSynthesisRequest struct {
 	RoutePolicy   RoutePolicy            `protobuf:"varint,5,opt,name=route_policy,json=routePolicy,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_policy,omitempty"`
 	Fallback      FallbackPolicy         `protobuf:"varint,6,opt,name=fallback,proto3,enum=nimi.runtime.v1.FallbackPolicy" json:"fallback,omitempty"`
 	TimeoutMs     int32                  `protobuf:"varint,7,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,8,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3650,6 +3691,13 @@ func (x *StreamSpeechSynthesisRequest) GetTimeoutMs() int32 {
 		return x.TimeoutMs
 	}
 	return 0
+}
+
+func (x *StreamSpeechSynthesisRequest) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
 }
 
 type ListTokenProviderModelsRequest struct {
@@ -4087,7 +4135,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x04name\x18\x03 \x01(\tR\x04name\"Z\n" +
 	"\bToolSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12:\n" +
-	"\finput_schema\x18\x02 \x01(\v2\x17.google.protobuf.StructR\vinputSchema\"\x96\x04\n" +
+	"\finput_schema\x18\x02 \x01(\v2\x17.google.protobuf.StructR\vinputSchema\"\xb9\x04\n" +
 	"\x0fGenerateRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
@@ -4104,14 +4152,15 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\froute_policy\x18\v \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
 	"\bfallback\x18\f \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\r \x01(\x05R\ttimeoutMs\"\xc1\x02\n" +
+	"timeout_ms\x18\r \x01(\x05R\ttimeoutMs\x12!\n" +
+	"\fconnector_id\x18\x0e \x01(\tR\vconnectorId\"\xc1\x02\n" +
 	"\x10GenerateResponse\x12/\n" +
 	"\x06output\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x06output\x12B\n" +
 	"\rfinish_reason\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x121\n" +
 	"\x05usage\x18\x03 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12C\n" +
 	"\x0eroute_decision\x18\x04 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12%\n" +
 	"\x0emodel_resolved\x18\x05 \x01(\tR\rmodelResolved\x12\x19\n" +
-	"\btrace_id\x18\x06 \x01(\tR\atraceId\"\x9c\x04\n" +
+	"\btrace_id\x18\x06 \x01(\tR\atraceId\"\xbf\x04\n" +
 	"\x15StreamGenerateRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
@@ -4128,7 +4177,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\froute_policy\x18\v \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
 	"\bfallback\x18\f \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\r \x01(\x05R\ttimeoutMs\"{\n" +
+	"timeout_ms\x18\r \x01(\x05R\ttimeoutMs\x12!\n" +
+	"\fconnector_id\x18\x0e \x01(\tR\vconnectorId\"{\n" +
 	"\rStreamStarted\x12%\n" +
 	"\x0emodel_resolved\x18\x01 \x01(\tR\rmodelResolved\x12C\n" +
 	"\x0eroute_decision\x18\x02 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\"!\n" +
@@ -4164,7 +4214,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x05usage\x18\x0e \x01(\v2\x1b.nimi.runtime.v1.UsageStatsH\x00R\x05usage\x12@\n" +
 	"\tcompleted\x18\x0f \x01(\v2 .nimi.runtime.v1.StreamCompletedH\x00R\tcompleted\x127\n" +
 	"\x06failed\x18\x10 \x01(\v2\x1d.nimi.runtime.v1.StreamFailedH\x00R\x06failedB\t\n" +
-	"\apayload\"\x9d\x02\n" +
+	"\apayload\"\xc0\x02\n" +
 	"\fEmbedRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
@@ -4173,7 +4223,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\froute_policy\x18\x05 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
 	"\bfallback\x18\x06 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\"\xff\x01\n" +
+	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\x12!\n" +
+	"\fconnector_id\x18\b \x01(\tR\vconnectorId\"\xff\x01\n" +
 	"\rEmbedResponse\x124\n" +
 	"\avectors\x18\x01 \x03(\v2\x1a.google.protobuf.ListValueR\avectors\x121\n" +
 	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12C\n" +
@@ -4288,7 +4339,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x10provider_options\x18\x11 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\x12<\n" +
 	"\tartifacts\x18\x12 \x03(\v2\x1e.nimi.runtime.v1.MediaArtifactR\tartifacts\x121\n" +
 	"\x05usage\x18\x13 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12\x19\n" +
-	"\btrace_id\x18\x14 \x01(\tR\atraceId\"\xc5\x06\n" +
+	"\btrace_id\x18\x14 \x01(\tR\atraceId\"\xe8\x06\n" +
 	"\x15SubmitMediaJobRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
@@ -4302,7 +4353,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"request_id\x18\b \x01(\tR\trequestId\x12'\n" +
 	"\x0fidempotency_key\x18\t \x01(\tR\x0eidempotencyKey\x12J\n" +
 	"\x06labels\x18\n" +
-	" \x03(\v22.nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntryR\x06labels\x12E\n" +
+	" \x03(\v22.nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntryR\x06labels\x12!\n" +
+	"\fconnector_id\x18\v \x01(\tR\vconnectorId\x12E\n" +
 	"\n" +
 	"image_spec\x18\x14 \x01(\v2$.nimi.runtime.v1.ImageGenerationSpecH\x00R\timageSpec\x12E\n" +
 	"\n" +
@@ -4355,17 +4407,18 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\bvoice_id\x18\x01 \x01(\tR\avoiceId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04lang\x18\x03 \x01(\tR\x04lang\x12'\n" +
-	"\x0fsupported_langs\x18\x04 \x03(\tR\x0esupportedLangs\"\xf0\x01\n" +
+	"\x0fsupported_langs\x18\x04 \x03(\tR\x0esupportedLangs\"\x93\x02\n" +
 	"\x16GetSpeechVoicesRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
 	"\bmodel_id\x18\x03 \x01(\tR\amodelId\x12?\n" +
 	"\froute_policy\x18\x04 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
-	"\bfallback\x18\x05 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\"\x9b\x01\n" +
+	"\bfallback\x18\x05 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12!\n" +
+	"\fconnector_id\x18\x06 \x01(\tR\vconnectorId\"\x9b\x01\n" +
 	"\x17GetSpeechVoicesResponse\x12>\n" +
 	"\x06voices\x18\x01 \x03(\v2&.nimi.runtime.v1.SpeechVoiceDescriptorR\x06voices\x12%\n" +
 	"\x0emodel_resolved\x18\x02 \x01(\tR\rmodelResolved\x12\x19\n" +
-	"\btrace_id\x18\x03 \x01(\tR\atraceId\"\xdc\x02\n" +
+	"\btrace_id\x18\x03 \x01(\tR\atraceId\"\xff\x02\n" +
 	"\x1cStreamSpeechSynthesisRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
@@ -4375,7 +4428,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\froute_policy\x18\x05 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\vroutePolicy\x12;\n" +
 	"\bfallback\x18\x06 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\"\xcc\x01\n" +
+	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\x12!\n" +
+	"\fconnector_id\x18\b \x01(\tR\vconnectorId\"\xcc\x01\n" +
 	"\x1eListTokenProviderModelsRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x1f\n" +
@@ -4473,7 +4527,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x19MEDIA_JOB_EVENT_COMPLETED\x10\x04\x12\x1a\n" +
 	"\x16MEDIA_JOB_EVENT_FAILED\x10\x05\x12\x1c\n" +
 	"\x18MEDIA_JOB_EVENT_CANCELED\x10\x06\x12\x1b\n" +
-	"\x17MEDIA_JOB_EVENT_TIMEOUT\x10\a2\xd6\t\n" +
+	"\x17MEDIA_JOB_EVENT_TIMEOUT\x10\a2\xe2\t\n" +
 	"\x10RuntimeAiService\x12O\n" +
 	"\bGenerate\x12 .nimi.runtime.v1.GenerateRequest\x1a!.nimi.runtime.v1.GenerateResponse\x12`\n" +
 	"\x0eStreamGenerate\x12&.nimi.runtime.v1.StreamGenerateRequest\x1a$.nimi.runtime.v1.StreamGenerateEvent0\x01\x12F\n" +
@@ -4484,9 +4538,9 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x17SubscribeMediaJobEvents\x12/.nimi.runtime.v1.SubscribeMediaJobEventsRequest\x1a\x1e.nimi.runtime.v1.MediaJobEvent0\x01\x12j\n" +
 	"\x11GetMediaArtifacts\x12).nimi.runtime.v1.GetMediaArtifactsRequest\x1a*.nimi.runtime.v1.GetMediaArtifactsResponse\x12d\n" +
 	"\x0fGetSpeechVoices\x12'.nimi.runtime.v1.GetSpeechVoicesRequest\x1a(.nimi.runtime.v1.GetSpeechVoicesResponse\x12h\n" +
-	"\x15StreamSpeechSynthesis\x12-.nimi.runtime.v1.StreamSpeechSynthesisRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01\x12|\n" +
-	"\x17ListTokenProviderModels\x12/.nimi.runtime.v1.ListTokenProviderModelsRequest\x1a0.nimi.runtime.v1.ListTokenProviderModelsResponse\x12\x7f\n" +
-	"\x18CheckTokenProviderHealth\x120.nimi.runtime.v1.CheckTokenProviderHealthRequest\x1a1.nimi.runtime.v1.CheckTokenProviderHealthResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x15StreamSpeechSynthesis\x12-.nimi.runtime.v1.StreamSpeechSynthesisRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01\x12\x81\x01\n" +
+	"\x17ListTokenProviderModels\x12/.nimi.runtime.v1.ListTokenProviderModelsRequest\x1a0.nimi.runtime.v1.ListTokenProviderModelsResponse\"\x03\x88\x02\x01\x12\x84\x01\n" +
+	"\x18CheckTokenProviderHealth\x120.nimi.runtime.v1.CheckTokenProviderHealthRequest\x1a1.nimi.runtime.v1.CheckTokenProviderHealthResponse\"\x03\x88\x02\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_ai_proto_rawDescOnce sync.Once

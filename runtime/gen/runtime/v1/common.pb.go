@@ -66,6 +66,17 @@ const (
 	ReasonCode_AI_REQUEST_CREDENTIAL_MISSING         ReasonCode = 211
 	ReasonCode_AI_REQUEST_CREDENTIAL_INVALID         ReasonCode = 212
 	ReasonCode_AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN ReasonCode = 213
+	ReasonCode_AI_CONNECTOR_NOT_FOUND                ReasonCode = 310
+	ReasonCode_AI_CONNECTOR_DISABLED                 ReasonCode = 311
+	ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING       ReasonCode = 312
+	ReasonCode_AI_CONNECTOR_INVALID                  ReasonCode = 313
+	ReasonCode_AI_CONNECTOR_IMMUTABLE                ReasonCode = 314
+	ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED           ReasonCode = 315
+	ReasonCode_AI_CONNECTOR_ID_REQUIRED              ReasonCode = 316
+	ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT        ReasonCode = 330
+	ReasonCode_AI_APP_ID_REQUIRED                    ReasonCode = 340
+	ReasonCode_AI_APP_ID_CONFLICT                    ReasonCode = 341
+	ReasonCode_AI_MODEL_ID_REQUIRED                  ReasonCode = 350
 )
 
 // Enum value maps for ReasonCode.
@@ -113,6 +124,17 @@ var (
 		211: "AI_REQUEST_CREDENTIAL_MISSING",
 		212: "AI_REQUEST_CREDENTIAL_INVALID",
 		213: "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN",
+		310: "AI_CONNECTOR_NOT_FOUND",
+		311: "AI_CONNECTOR_DISABLED",
+		312: "AI_CONNECTOR_CREDENTIAL_MISSING",
+		313: "AI_CONNECTOR_INVALID",
+		314: "AI_CONNECTOR_IMMUTABLE",
+		315: "AI_CONNECTOR_LIMIT_EXCEEDED",
+		316: "AI_CONNECTOR_ID_REQUIRED",
+		330: "AI_REQUEST_CREDENTIAL_CONFLICT",
+		340: "AI_APP_ID_REQUIRED",
+		341: "AI_APP_ID_CONFLICT",
+		350: "AI_MODEL_ID_REQUIRED",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":               0,
@@ -157,6 +179,17 @@ var (
 		"AI_REQUEST_CREDENTIAL_MISSING":         211,
 		"AI_REQUEST_CREDENTIAL_INVALID":         212,
 		"AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN": 213,
+		"AI_CONNECTOR_NOT_FOUND":                310,
+		"AI_CONNECTOR_DISABLED":                 311,
+		"AI_CONNECTOR_CREDENTIAL_MISSING":       312,
+		"AI_CONNECTOR_INVALID":                  313,
+		"AI_CONNECTOR_IMMUTABLE":                314,
+		"AI_CONNECTOR_LIMIT_EXCEEDED":           315,
+		"AI_CONNECTOR_ID_REQUIRED":              316,
+		"AI_REQUEST_CREDENTIAL_CONFLICT":        330,
+		"AI_APP_ID_REQUIRED":                    340,
+		"AI_APP_ID_CONFLICT":                    341,
+		"AI_MODEL_ID_REQUIRED":                  350,
 	}
 )
 
@@ -640,7 +673,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xef\t\n" +
+	"actionHint*\xb9\f\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -684,7 +717,18 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1eAI_REQUEST_CREDENTIAL_REQUIRED\x10\xd2\x01\x12\"\n" +
 	"\x1dAI_REQUEST_CREDENTIAL_MISSING\x10\xd3\x01\x12\"\n" +
 	"\x1dAI_REQUEST_CREDENTIAL_INVALID\x10\xd4\x01\x12*\n" +
-	"%AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN\x10\xd5\x01*\xa9\x01\n" +
+	"%AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN\x10\xd5\x01\x12\x1b\n" +
+	"\x16AI_CONNECTOR_NOT_FOUND\x10\xb6\x02\x12\x1a\n" +
+	"\x15AI_CONNECTOR_DISABLED\x10\xb7\x02\x12$\n" +
+	"\x1fAI_CONNECTOR_CREDENTIAL_MISSING\x10\xb8\x02\x12\x19\n" +
+	"\x14AI_CONNECTOR_INVALID\x10\xb9\x02\x12\x1b\n" +
+	"\x16AI_CONNECTOR_IMMUTABLE\x10\xba\x02\x12 \n" +
+	"\x1bAI_CONNECTOR_LIMIT_EXCEEDED\x10\xbb\x02\x12\x1d\n" +
+	"\x18AI_CONNECTOR_ID_REQUIRED\x10\xbc\x02\x12#\n" +
+	"\x1eAI_REQUEST_CREDENTIAL_CONFLICT\x10\xca\x02\x12\x17\n" +
+	"\x12AI_APP_ID_REQUIRED\x10\xd4\x02\x12\x17\n" +
+	"\x12AI_APP_ID_CONFLICT\x10\xd5\x02\x12\x19\n" +
+	"\x14AI_MODEL_ID_REQUIRED\x10\xde\x02*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

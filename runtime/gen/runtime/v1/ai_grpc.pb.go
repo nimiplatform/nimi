@@ -47,7 +47,9 @@ type RuntimeAiServiceClient interface {
 	GetMediaArtifacts(ctx context.Context, in *GetMediaArtifactsRequest, opts ...grpc.CallOption) (*GetMediaArtifactsResponse, error)
 	GetSpeechVoices(ctx context.Context, in *GetSpeechVoicesRequest, opts ...grpc.CallOption) (*GetSpeechVoicesResponse, error)
 	StreamSpeechSynthesis(ctx context.Context, in *StreamSpeechSynthesisRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
+	// Deprecated: Do not use.
 	ListTokenProviderModels(ctx context.Context, in *ListTokenProviderModelsRequest, opts ...grpc.CallOption) (*ListTokenProviderModelsResponse, error)
+	// Deprecated: Do not use.
 	CheckTokenProviderHealth(ctx context.Context, in *CheckTokenProviderHealthRequest, opts ...grpc.CallOption) (*CheckTokenProviderHealthResponse, error)
 }
 
@@ -186,6 +188,7 @@ func (c *runtimeAiServiceClient) StreamSpeechSynthesis(ctx context.Context, in *
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_StreamSpeechSynthesisClient = grpc.ServerStreamingClient[ArtifactChunk]
 
+// Deprecated: Do not use.
 func (c *runtimeAiServiceClient) ListTokenProviderModels(ctx context.Context, in *ListTokenProviderModelsRequest, opts ...grpc.CallOption) (*ListTokenProviderModelsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListTokenProviderModelsResponse)
@@ -196,6 +199,7 @@ func (c *runtimeAiServiceClient) ListTokenProviderModels(ctx context.Context, in
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *runtimeAiServiceClient) CheckTokenProviderHealth(ctx context.Context, in *CheckTokenProviderHealthRequest, opts ...grpc.CallOption) (*CheckTokenProviderHealthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CheckTokenProviderHealthResponse)
@@ -220,7 +224,9 @@ type RuntimeAiServiceServer interface {
 	GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error)
 	GetSpeechVoices(context.Context, *GetSpeechVoicesRequest) (*GetSpeechVoicesResponse, error)
 	StreamSpeechSynthesis(*StreamSpeechSynthesisRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
+	// Deprecated: Do not use.
 	ListTokenProviderModels(context.Context, *ListTokenProviderModelsRequest) (*ListTokenProviderModelsResponse, error)
+	// Deprecated: Do not use.
 	CheckTokenProviderHealth(context.Context, *CheckTokenProviderHealthRequest) (*CheckTokenProviderHealthResponse, error)
 }
 

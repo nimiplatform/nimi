@@ -106,6 +106,7 @@ message GenerateRequest {
   RoutePolicy route_policy = 11;
   FallbackPolicy fallback = 12;
   int32 timeout_ms = 13;
+  string connector_id = 14;
 }
 
 message GenerateResponse {
@@ -131,6 +132,7 @@ message StreamGenerateRequest {
   RoutePolicy route_policy = 11;
   FallbackPolicy fallback = 12;
   int32 timeout_ms = 13;
+  string connector_id = 14;
 }
 
 message StreamStarted {
@@ -185,6 +187,7 @@ message EmbedRequest {
   RoutePolicy route_policy = 5;
   FallbackPolicy fallback = 6;
   int32 timeout_ms = 7;
+  string connector_id = 8;
 }
 
 message EmbedResponse {
@@ -313,6 +316,7 @@ message SubmitMediaJobRequest {
   string request_id = 8;
   string idempotency_key = 9;
   map<string, string> labels = 10;
+  string connector_id = 11;
   oneof spec {
     ImageGenerationSpec image_spec = 20;
     VideoGenerationSpec video_spec = 21;
@@ -389,6 +393,7 @@ message GetSpeechVoicesRequest {
   string model_id = 3;
   RoutePolicy route_policy = 4;
   FallbackPolicy fallback = 5;
+  string connector_id = 6;
 }
 
 message GetSpeechVoicesResponse {
@@ -405,6 +410,7 @@ message StreamSpeechSynthesisRequest {
   RoutePolicy route_policy = 5;
   FallbackPolicy fallback = 6;
   int32 timeout_ms = 7;
+  string connector_id = 8;
 }
 
 message ListTokenProviderModelsRequest {
@@ -462,6 +468,10 @@ service RuntimeAiService {
   rpc GetMediaArtifacts(GetMediaArtifactsRequest) returns (GetMediaArtifactsResponse);
   rpc GetSpeechVoices(GetSpeechVoicesRequest) returns (GetSpeechVoicesResponse);
   rpc StreamSpeechSynthesis(StreamSpeechSynthesisRequest) returns (stream ArtifactChunk);
-  rpc ListTokenProviderModels(ListTokenProviderModelsRequest) returns (ListTokenProviderModelsResponse);
-  rpc CheckTokenProviderHealth(CheckTokenProviderHealthRequest) returns (CheckTokenProviderHealthResponse);
+  rpc ListTokenProviderModels(ListTokenProviderModelsRequest) returns (ListTokenProviderModelsResponse) {
+    option deprecated = true;
+  }
+  rpc CheckTokenProviderHealth(CheckTokenProviderHealthRequest) returns (CheckTokenProviderHealthResponse) {
+    option deprecated = true;
+  }
 }

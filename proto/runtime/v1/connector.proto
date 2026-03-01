@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/common.proto";
+
+enum ConnectorKind {
+  CONNECTOR_KIND_UNSPECIFIED = 0;
+  CONNECTOR_KIND_LOCAL_MODEL = 1;
+  CONNECTOR_KIND_REMOTE_MANAGED = 2;
+}
+
+enum ConnectorOwnerType {
+  CONNECTOR_OWNER_TYPE_UNSPECIFIED = 0;
+  CONNECTOR_OWNER_TYPE_SYSTEM = 1;
+  CONNECTOR_OWNER_TYPE_REALM_USER = 2;
+}
+
+enum ConnectorStatus {
+  CONNECTOR_STATUS_UNSPECIFIED = 0;
+  CONNECTOR_STATUS_ACTIVE = 1;
+  CONNECTOR_STATUS_DISABLED = 2;
+}
+
+enum LocalConnectorCategory {
+  LOCAL_CONNECTOR_CATEGORY_UNSPECIFIED = 0;
+  LOCAL_CONNECTOR_CATEGORY_LLM = 1;
+  LOCAL_CONNECTOR_CATEGORY_VISION = 2;
+  LOCAL_CONNECTOR_CATEGORY_IMAGE = 3;
+  LOCAL_CONNECTOR_CATEGORY_TTS = 4;
+  LOCAL_CONNECTOR_CATEGORY_STT = 5;
+  LOCAL_CONNECTOR_CATEGORY_CUSTOM = 6;
+}
+
+message Connector {
+  string connector_id = 1;
+  ConnectorKind kind = 2;
+  ConnectorOwnerType owner_type = 3;
+  string owner_id = 4;
+  string provider = 5;
+  string endpoint = 6;
+  string label = 7;
+  ConnectorStatus status = 8;
+  LocalConnectorCategory local_category = 9;
+  bool has_credential = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
+}
+
+message CreateConnectorRequest {
+  string provider = 1;
+  string endpoint = 2;
+  string label = 3;
+  string api_key = 4;
+  string owner_id = 5;
+}
+
+message CreateConnectorResponse {
+  Connector connector = 1;
+}
+
+message GetConnectorRequest {
+  string connector_id = 1;
+  string owner_id = 2;
+}
+
+message GetConnectorResponse {
+  Connector connector = 1;
+}
+
+message ListConnectorsRequest {
+  string owner_id = 1;
+}
+
+message ListConnectorsResponse {
+  repeated Connector connectors = 1;
+}
+
+message UpdateConnectorRequest {
+  string connector_id = 1;
+  string owner_id = 2;
+  string label = 3;
+  string endpoint = 4;
+  string api_key = 5;
+  ConnectorStatus status = 6;
+}
+
+message UpdateConnectorResponse {
+  Connector connector = 1;
+}
+
+message DeleteConnectorRequest {
+  string connector_id = 1;
+  string owner_id = 2;
+}
+
+message DeleteConnectorResponse {
+  Ack ack = 1;
+}
+
+message TestConnectorRequest {
+  string connector_id = 1;
+  string owner_id = 2;
+}
+
+message TestConnectorResponse {
+  Ack ack = 1;
+}
+
+message ConnectorModelDescriptor {
+  string model_id = 1;
+  string model_label = 2;
+  bool available = 3;
+}
+
+message ListConnectorModelsRequest {
+  string connector_id = 1;
+  string owner_id = 2;
+  bool force_refresh = 3;
+}
+
+message ListConnectorModelsResponse {
+  repeated ConnectorModelDescriptor models = 1;
+}
+
+service RuntimeConnectorService {
+  rpc CreateConnector(CreateConnectorRequest) returns (CreateConnectorResponse);
+  rpc GetConnector(GetConnectorRequest) returns (GetConnectorResponse);
+  rpc ListConnectors(ListConnectorsRequest) returns (ListConnectorsResponse);
+  rpc UpdateConnector(UpdateConnectorRequest) returns (UpdateConnectorResponse);
+  rpc DeleteConnector(DeleteConnectorRequest) returns (DeleteConnectorResponse);
+  rpc TestConnector(TestConnectorRequest) returns (TestConnectorResponse);
+  rpc ListConnectorModels(ListConnectorModelsRequest) returns (ListConnectorModelsResponse);
+}
