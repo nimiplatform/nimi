@@ -30,7 +30,7 @@ AI consume 只允许二选一路径：
 3. `app_id` 非空校验
 4. key-source 与互斥校验
 5. connector 加载
-6. owner/status/credential 校验
+6. owner/status/credential 校验（credential 由 ConnectorService 在本步骤解密并注入执行上下文；下游执行模块如 nimiLLM 通过执行上下文获取凭据，不直接访问存储）。"执行上下文" 为请求作用域的参数结构（如 `nimillm.RemoteTarget`），承载 `provider_type`/`endpoint`/`credential` 三元组。接口定义由实现层决定，spec 仅约束：下游模块不直接访问 CredentialStore
 7. remote endpoint 安全校验
 8. inline endpoint 安全校验
 9. `model_id` 校验链路
@@ -61,3 +61,36 @@ AI consume 只允许二选一路径：
 
 - `x-nimi-provider-endpoint` 必须非空
 - 缺失/空值必须返回 `INVALID_ARGUMENT` + `AI_REQUEST_CREDENTIAL_MISSING`
+
+## K-KEYSRC-009 AI 执行路由判定
+
+在 `K-KEYSRC-004` step 10 "路由执行" 阶段，按以下规则判定执行路径：
+
+**managed 路径**（`connector_id` 存在）：
+
+1. 从 `connector_id` 加载 connector 记录。
+2. 查 `tables/provider-capabilities.yaml`，按 connector 的 `provider` 确定 `runtime_plane` 与 `execution_module`。
+3. 分发到对应 `execution_module`（`nimillm` 用于 remote、`local-model` 用于 local）。
+
+**inline 路径**（`x-nimi-key-source=inline`）：
+
+1. 从 `x-nimi-provider-type` 查 `tables/provider-capabilities.yaml`。
+2. inline 仅支持 `runtime_plane=remote` 的 provider。`runtime_plane=local` 的 provider 不可通过 inline 路径访问。
+3. 分发到 `nimillm` 执行模块。
+
+路由判定不可回退：一旦确定执行路径，不允许在执行失败后自动切换到另一条路径。
+
+## K-KEYSRC-010 model_id 校验链路（Step 9）
+
+K-KEYSRC-004 step 9 的 `model_id` 校验按路径分行为：
+
+**Remote 路径**（managed remote / inline）：
+- `model_id` 为透传字段，Runtime 不校验其是否存在于 provider 模型目录。
+- 无效 `model_id` 由 provider 上游返回错误，映射为 `AI_MODEL_NOT_FOUND`（K-ERR-004）。
+
+**Local 路径**（managed local）：
+- `model_id` 按 K-LOCAL-020 前缀路由规则解析。
+- 前缀不匹配已安装模型的引擎时，返回 `AI_MODEL_PROVIDER_MISMATCH`。
+- 匹配后模型不可用（非 `ACTIVE` 状态）时，返回 `AI_LOCAL_MODEL_UNAVAILABLE`。
+
+`model_id` 为空或缺失时，必须返回 `INVALID_ARGUMENT` + `AI_MODEL_ID_REQUIRED`。

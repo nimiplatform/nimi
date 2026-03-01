@@ -48,3 +48,9 @@ Provider 上游失败（401/429/5xx/timeout）统一映射：`UNAVAILABLE` + `AI
 
 - `SubmitMediaJob` 幂等键冲突：`ALREADY_EXISTS` + `AI_MEDIA_IDEMPOTENCY_CONFLICT`
 - 不允许将该冲突静默降级为普通 provider 错误或未知内部错误
+
+幂等键由客户端通过 gRPC metadata `x-nimi-idempotency-key` 传递（`K-DAEMON-006`），缺失时不做去重。
+
+## K-ERR-008 管理 RPC 的 NOT_FOUND 语义
+
+本地模型管理 RPC（`StartLocalModel`、`StopLocalModel`、`RemoveLocalModel` 等）在目标 `local_model_id` 不存在时返回 `NOT_FOUND`（无特定 reason code）。`AI_LOCAL_*` 系列 reason code 专用于 consume 路径和 probe 路径场景（见 error-mapping-matrix.yaml）。

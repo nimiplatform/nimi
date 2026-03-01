@@ -10,3 +10,4 @@
 | `x-nimi-provider-api-key` | — | inline |
 | `x-nimi-app-id` | — | ConnectorService RPC |
 | `x-nimi-client-id` | — | optional audit context |
+| `x-nimi-idempotency-key` | — | optional dedup context |

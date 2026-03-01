@@ -31,3 +31,16 @@
 ## K-STREAM-005 状态事件流约束
 
 `SubscribeMediaJobEvents` 不使用 `done=true` 语义；终态事件后 server 正常关闭流（gRPC OK）。
+
+## K-STREAM-006 Chunk framing 规则
+
+流式 AI 输出的 chunk 最小单元为 32 bytes。实现在达到最小单元前缓冲数据；终帧时刷出所有剩余缓冲。
+
+## K-STREAM-007 首包超时独立于总超时
+
+流式 RPC 有两个独立超时：
+
+- **首包超时**：从请求发出到收到第一个非空 chunk 的等待上限（默认 10s，`K-DAEMON-008`）。
+- **总超时**：从请求发出到流正常关闭的总耗时上限（默认 120s）。
+
+首包超时触发时，流以 `DEADLINE_EXCEEDED` + `AI_PROVIDER_TIMEOUT` 终止。总超时独立计时，不因收到首包而重置。
