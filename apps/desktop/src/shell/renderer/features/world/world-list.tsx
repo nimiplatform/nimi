@@ -9,11 +9,25 @@ type WorldListItem = {
   name: string;
   description: string | null;
   iconUrl: string | null;
+  bannerUrl: string | null;
   type: string;
   status: string;
   level: number;
+  levelUpdatedAt: string | null;
   agentCount: number;
   createdAt: string;
+  creatorId: string | null;
+  freezeReason: string | null;
+  lorebookEntryLimit: number;
+  nativeAgentLimit: number;
+  nativeCreationState: string;
+  scoreA: number;
+  scoreC: number;
+  scoreE: number;
+  scoreEwma: number;
+  scoreQ: number;
+  timeFlowRatio: number;
+  transitInLimit: number;
 };
 
 function getStatusBadgeStyle(status: string): { bg: string; text: string } {
@@ -39,11 +53,25 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     name: String(raw.name || 'Unknown World'),
     description: typeof raw.description === 'string' ? raw.description : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
+    bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
     type: typeof raw.type === 'string' ? raw.type : 'SUB',
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
+    levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
     agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
+    creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
+    freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
+    lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
+    nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 0,
+    nativeCreationState: typeof raw.nativeCreationState === 'string' ? raw.nativeCreationState : 'OPEN',
+    scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
+    scoreC: typeof raw.scoreC === 'number' ? raw.scoreC : 0,
+    scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
+    scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
+    scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
+    timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
+    transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
   };
 }
 
@@ -125,7 +153,16 @@ export function WorldList() {
               className="cursor-pointer rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
-              <div className="relative flex items-center gap-4">
+              
+              {/* Banner */}
+              {mainWorld.bannerUrl && (
+                <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden">
+                  <img src={mainWorld.bannerUrl} alt={mainWorld.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                </div>
+              )}
+              
+              <div className="relative flex items-start gap-4">
                 {mainWorld.iconUrl ? (
                   <img src={mainWorld.iconUrl} alt={mainWorld.name} className="h-20 w-20 rounded-2xl object-cover" />
                 ) : (
@@ -134,20 +171,67 @@ export function WorldList() {
                   </div>
                 )}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-gray-900">{mainWorld.name}</h3>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(mainWorld.status).bg} ${getStatusBadgeStyle(mainWorld.status).text}`}>
                       {mainWorld.status}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${mainWorld.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                      {mainWorld.nativeCreationState}
                     </span>
                   </div>
                   {mainWorld.description && (
                     <p className="mt-1 text-sm text-gray-600 line-clamp-2">{mainWorld.description}</p>
                   )}
-                  <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
-                    <span>{t('WorldDetail.level', { level: mainWorld.level })}</span>
-                    <span>•</span>
-                    <span>{t('WorldDetail.agents', { count: mainWorld.agentCount })}</span>
+                  
+                  {/* Stats Grid */}
+                  <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
+                    <div className="bg-white/50 rounded-lg p-2">
+                      <div className="text-gray-500">{t('WorldDetail.level')}</div>
+                      <div className="font-semibold text-gray-900">{mainWorld.level}</div>
+                    </div>
+                    <div className="bg-white/50 rounded-lg p-2">
+                      <div className="text-gray-500">{t('WorldDetail.agents')}</div>
+                      <div className="font-semibold text-gray-900">{mainWorld.agentCount}</div>
+                    </div>
+                    <div className="bg-white/50 rounded-lg p-2">
+                      <div className="text-gray-500">{t('WorldDetail.nativeAgentLimit')}</div>
+                      <div className="font-semibold text-gray-900">{mainWorld.nativeAgentLimit}</div>
+                    </div>
+                    <div className="bg-white/50 rounded-lg p-2">
+                      <div className="text-gray-500">{t('WorldDetail.lorebookLimit')}</div>
+                      <div className="font-semibold text-gray-900">{mainWorld.lorebookEntryLimit}</div>
+                    </div>
                   </div>
+                  
+                  {/* Time & Transit */}
+                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                    <span>{t('WorldDetail.timeFlowRatio', { ratio: mainWorld.timeFlowRatio })}</span>
+                    <span>•</span>
+                    <span>{t('WorldDetail.transitInLimit', { limit: mainWorld.transitInLimit })}</span>
+                    {mainWorld.freezeReason && (
+                      <>
+                        <span>•</span>
+                        <span className="text-red-500">{t('WorldDetail.freezeReason', { reason: mainWorld.freezeReason })}</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Scores */}
+                  <div className="mt-2 flex items-center gap-3 text-xs">
+                    <span className="text-gray-400">{t('WorldDetail.scores')}:</span>
+                    <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">A:{mainWorld.scoreA.toFixed(1)}</span>
+                    <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">C:{mainWorld.scoreC.toFixed(1)}</span>
+                    <span className="px-1.5 py-0.5 bg-green-50 text-green-600 rounded">E:{mainWorld.scoreE.toFixed(1)}</span>
+                    <span className="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">Q:{mainWorld.scoreQ.toFixed(1)}</span>
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">EWMA:{mainWorld.scoreEwma.toFixed(1)}</span>
+                  </div>
+                  
+                  {mainWorld.creatorId && (
+                    <div className="mt-1 text-xs text-gray-400">
+                      {t('WorldDetail.creatorId', { id: mainWorld.creatorId })}
+                    </div>
+                  )}
                 </div>
                 <div className="text-gray-400">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -183,6 +267,14 @@ export function WorldList() {
                     onClick={() => navigateToWorld(world.id)}
                     className="cursor-pointer rounded-2xl border border-white/60 bg-white/40 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                   >
+                    {/* Banner */}
+                    {world.bannerUrl && (
+                      <div className="relative -mx-5 -mt-5 mb-3 h-20 overflow-hidden rounded-t-2xl">
+                        <img src={world.bannerUrl} alt={world.name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                      </div>
+                    )}
+                    
                     <div className="flex items-start gap-3">
                       {world.iconUrl ? (
                         <img src={world.iconUrl} alt={world.name} className="h-14 w-14 rounded-xl object-cover shrink-0" />
@@ -192,20 +284,54 @@ export function WorldList() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <h3 className="font-semibold text-gray-900 truncate">{world.name}</h3>
                         </div>
-                        <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}>
-                          {world.status}
-                        </span>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                            {world.status}
+                          </span>
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${world.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {world.nativeCreationState}
+                          </span>
+                        </div>
                         {world.description && (
                           <p className="mt-2 text-xs text-gray-500 line-clamp-2">{world.description}</p>
                         )}
-                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                          <span>{t('WorldDetail.levelShort', { level: world.level })}</span>
-                          <span>•</span>
-                          <span>{t('WorldDetail.agents', { count: world.agentCount })}</span>
+                        
+                        {/* Stats */}
+                        <div className="mt-3 grid grid-cols-2 gap-1 text-[10px]">
+                          <div className="bg-white/50 rounded px-2 py-1">
+                            <span className="text-gray-400">{t('WorldDetail.levelShort')}</span>
+                            <span className="ml-1 font-medium text-gray-700">{world.level}</span>
+                          </div>
+                          <div className="bg-white/50 rounded px-2 py-1">
+                            <span className="text-gray-400">{t('WorldDetail.agentsShort')}</span>
+                            <span className="ml-1 font-medium text-gray-700">{world.agentCount}</span>
+                          </div>
+                          <div className="bg-white/50 rounded px-2 py-1">
+                            <span className="text-gray-400">{t('WorldDetail.nativeLimitShort')}</span>
+                            <span className="ml-1 font-medium text-gray-700">{world.nativeAgentLimit}</span>
+                          </div>
+                          <div className="bg-white/50 rounded px-2 py-1">
+                            <span className="text-gray-400">{t('WorldDetail.lorebookShort')}</span>
+                            <span className="ml-1 font-medium text-gray-700">{world.lorebookEntryLimit}</span>
+                          </div>
                         </div>
+                        
+                        {/* Scores */}
+                        <div className="mt-2 flex items-center gap-1 text-[10px] flex-wrap">
+                          <span className="text-gray-400">{t('WorldDetail.scoresShort')}:</span>
+                          <span className="px-1 bg-blue-50 text-blue-600 rounded">A:{world.scoreA.toFixed(0)}</span>
+                          <span className="px-1 bg-purple-50 text-purple-600 rounded">C:{world.scoreC.toFixed(0)}</span>
+                          <span className="px-1 bg-green-50 text-green-600 rounded">E:{world.scoreE.toFixed(0)}</span>
+                        </div>
+                        
+                        {world.freezeReason && (
+                          <div className="mt-1 text-[10px] text-red-500">
+                            {t('WorldDetail.freezeReason', { reason: world.freezeReason })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

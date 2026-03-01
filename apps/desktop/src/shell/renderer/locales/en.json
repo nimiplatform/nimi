@@ -615,13 +615,26 @@
     "level": "Level {{level}}",
     "levelShort": "Lv.{{level}}",
     "agents": "{{count}} Agents",
+    "agentsShort": "Agents",
     "mainWorld": "Main World",
     "subWorld": "Sub World",
     "about": "About",
     "worldview": "Worldview",
     "governance": "Governance",
     "transit": "Transit",
-    "audit": "Audit"
+    "audit": "Audit",
+    "nativeAgentLimit": "Native Limit: {{limit}}",
+    "nativeLimitShort": "Native",
+    "lorebookLimit": "Lorebook: {{limit}}",
+    "lorebookShort": "Lore",
+    "timeFlowRatio": "Time Flow: {{ratio}}x",
+    "transitInLimit": "Transit In: {{limit}}",
+    "freezeReason": "Frozen: {{reason}}",
+    "creatorId": "Creator: {{id}}",
+    "scores": "Scores",
+    "scoresShort": "Scores",
+    "nativeCreationState": "Creation State",
+    "status": "Status"
   },
   "AddContact": {
     "inputRequired": "Please input a user handle or ID."

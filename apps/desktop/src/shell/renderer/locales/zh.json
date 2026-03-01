@@ -615,13 +615,26 @@
     "level": "等级 {{level}}",
     "levelShort": "Lv.{{level}}",
     "agents": "{{count}} 个智能体",
+    "agentsShort": "智能体",
     "mainWorld": "主世界",
     "subWorld": "子世界",
     "about": "关于",
     "worldview": "世界观",
     "governance": "治理",
     "transit": "传送",
-    "audit": "审计"
+    "audit": "审计",
+    "nativeAgentLimit": "原生限制: {{limit}}",
+    "nativeLimitShort": "原生限制",
+    "lorebookLimit": "知识库: {{limit}}",
+    "lorebookShort": "知识库",
+    "timeFlowRatio": "时间流速: {{ratio}}x",
+    "transitInLimit": "转入限制: {{limit}}",
+    "freezeReason": "冻结原因: {{reason}}",
+    "creatorId": "创建者: {{id}}",
+    "scores": "评分",
+    "scoresShort": "评分",
+    "nativeCreationState": "创建状态",
+    "status": "状态"
   },
   "AddContact": {
     "inputRequired": "请输入用户账号或 ID"
