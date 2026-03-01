@@ -510,6 +510,24 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
           runtimeBridgeFailedProjectionRef.current = '';
           return next;
         });
+        // Load connectors from SDK after bridge config is ready (serial, not a separate effect).
+        // Using a ref check to avoid re-running this block would race with the render cycle,
+        // so we chain it directly here.
+        if (!cancelled) {
+          try {
+            const { sdkListConnectors } = await import('./domain/provider-connectors/connector-sdk-service');
+            const connectors = await sdkListConnectors();
+            if (!cancelled && connectors.length > 0) {
+              const { replaceConnectorsInState } = await import('./panels/provider-connectors/connector-actions');
+              panelState.setState((previous) => {
+                if (!previous) return previous;
+                return replaceConnectorsInState(previous, connectors);
+              });
+            }
+          } catch {
+            // SDK connector load failed — connectors will remain from bridge config
+          }
+        }
       } catch (error) {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : String(error || 'runtime config bridge load failed');
@@ -535,30 +553,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       cancelled = true;
     };
   }, [panelState.hydrated, panelState.setState, setStatusBanner, bridgeRetryCount]);
-
-  // Load connectors from SDK after bridge config is ready
-  useEffect(() => {
-    if (!panelState.hydrated || !runtimeBridgeReadyRef.current) return;
-    let cancelled = false;
-    const loadConnectors = async () => {
-      try {
-        const { sdkListConnectors } = await import('./domain/provider-connectors/connector-sdk-service');
-        const connectors = await sdkListConnectors();
-        if (cancelled) return;
-        const { replaceConnectorsInState } = await import('./panels/provider-connectors/connector-actions');
-        panelState.setState((previous) => {
-          if (!previous) return previous;
-          return replaceConnectorsInState(previous, connectors);
-        });
-      } catch {
-        // SDK connector load failed — connectors will remain empty until next attempt
-      }
-    };
-    void loadConnectors();
-    return () => {
-      cancelled = true;
-    };
-  }, [panelState.hydrated, panelState.setState, bridgeRetryCount]);
 
   useEffect(() => {
     const stateSnapshot = panelState.state;

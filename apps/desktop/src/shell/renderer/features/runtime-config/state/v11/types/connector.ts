@@ -76,6 +76,7 @@ export type ApiConnector = {
   status: ProviderStatusV11;
   lastCheckedAt: string | null;
   lastDetail: string;
+  isDraft?: boolean;
 };
 
 export const DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';

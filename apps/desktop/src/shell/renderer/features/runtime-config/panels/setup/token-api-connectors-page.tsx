@@ -53,6 +53,7 @@ export function TokenApiConnectorsPage({
 
   const selectedConnectorId = selectedConnector?.id || '';
   const isSystemOwned = selectedConnector?.isSystemOwned || false;
+  const isDraft = selectedConnector?.isDraft || false;
   const canSaveToken = useMemo(
     () => Boolean(selectedConnectorId) && tokenDraft.trim().length > 0 && !savingToken,
     [savingToken, tokenDraft, selectedConnectorId],
@@ -124,6 +125,8 @@ export function TokenApiConnectorsPage({
                 <p className="font-semibold">{connector.label}</p>
                 {connector.isSystemOwned ? (
                   <span className="text-[9px] text-gray-400">system</span>
+                ) : connector.isDraft ? (
+                  <span className="text-[9px] text-amber-500">draft</span>
                 ) : null}
               </div>
               <p className="text-[10px] text-gray-500">{VENDOR_CATALOGS_V11[connector.vendor].label}</p>
@@ -178,7 +181,7 @@ export function TokenApiConnectorsPage({
               </div>
             ) : (
               <Input
-                label="Session API Key"
+                label={isDraft ? 'API Key (required)' : 'Session API Key'}
                 value={tokenDraft}
                 onChange={setTokenDraft}
                 type={showTokenApiKey ? 'text' : 'password'}
@@ -195,7 +198,7 @@ export function TokenApiConnectorsPage({
                 disabled={!canSaveToken}
                 onClick={() => void saveTokenToVault()}
               >
-                {savingToken ? 'Saving...' : 'Save API Key'}
+                {savingToken ? 'Saving...' : isDraft ? 'Create Connector' : 'Save API Key'}
               </Button>
             ) : null}
             <Button variant="secondary" size="sm" onClick={() => onSetShowTokenApiKey((value) => !value)}>

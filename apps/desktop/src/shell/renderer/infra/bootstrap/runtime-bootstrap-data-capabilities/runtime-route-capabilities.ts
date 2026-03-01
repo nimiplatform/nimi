@@ -202,7 +202,19 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
     if (!bridgeMergedState.merged) {
       throw new Error(bridgeMergedState.error || 'runtime bridge config unavailable');
     }
-    const state = bridgeMergedState.state;
+    let state = bridgeMergedState.state;
+    try {
+      const { sdkListConnectors } = await import(
+        '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
+      );
+      const sdkConnectors = await sdkListConnectors();
+      if (sdkConnectors.length > 0) {
+        const { replaceConnectorsInState } = await import(
+          '@renderer/features/runtime-config/panels/provider-connectors/connector-actions'
+        );
+        state = replaceConnectorsInState(state, sdkConnectors);
+      }
+    } catch { /* SDK unavailable — keep bridge config connectors */ }
     const resolved = resolveRuntimeCapabilityConfigFromStateV11(state, seed, capability, { modId: modId || undefined });
     const localSnapshot = await pollLocalRuntimeSnapshotWithTimeout();
 

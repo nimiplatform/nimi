@@ -1,4 +1,4 @@
-import { inferVendorFromEndpoint, removeSelectedConnector, updateConnectorField, replaceConnectorsInState } from './provider-connectors/connector-actions';
+import { inferVendorFromEndpoint, addConnectorToState, removeSelectedConnector, updateConnectorField, replaceConnectorsInState } from './provider-connectors/connector-actions';
 import { ProviderConnectorsPanelView } from './provider-connectors/view';
 import type { ProviderConnectorsPanelProps } from './provider-connectors/types';
 import {
@@ -10,7 +10,7 @@ import {
   resolveProviderEndpoint,
   vendorToProvider,
 } from '../domain/provider-connectors/connector-sdk-service';
-import { VENDOR_CATALOGS_V11, catalogModelsV11 } from '../state/v11/types';
+import { VENDOR_CATALOGS_V11, catalogModelsV11, randomIdV11, type ApiVendor } from '../state/v11/types';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 export function ProviderConnectorsPanel({
@@ -24,40 +24,43 @@ export function ProviderConnectorsPanel({
   const refreshConnectorsFromSdk = async () => {
     try {
       const connectors = await sdkListConnectors();
-      updateState((prev) => replaceConnectorsInState(prev, connectors));
+      updateState((prev) => {
+        const drafts = prev.connectors.filter((c) => c.isDraft);
+        return replaceConnectorsInState(prev, [...connectors, ...drafts]);
+      });
     } catch { /* SDK unavailable — keep current state */ }
   };
 
   const onAddConnector = async () => {
-    try {
-      const vendor = 'openrouter';
-      const provider = vendorToProvider(vendor);
-      const runtimeCatalog = await sdkListProviderCatalog().catch(() => []);
-      const endpoint = resolveProviderEndpoint(provider, runtimeCatalog)
-        || VENDOR_CATALOGS_V11[vendor].defaultEndpoint;
-      const created = await sdkCreateConnector({
-        provider,
-        endpoint,
-        label: `API Connector ${stateModel.state.connectors.length + 1}`,
-        apiKey: '',
-      });
-      await refreshConnectorsFromSdk();
-      if (created) {
-        updateState((prev) => ({ ...prev, selectedConnectorId: created.id }));
-      }
-    } catch (error) {
-      logRendererEvent({
-        level: 'error',
-        area: 'runtime-config.connector',
-        message: 'connector create failed',
-        details: { error: error instanceof Error ? error.message : String(error) },
-      });
-    }
+    const vendor: ApiVendor = 'openrouter';
+    const provider = vendorToProvider(vendor);
+    const runtimeCatalog = await sdkListProviderCatalog().catch(() => []);
+    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog)
+      || VENDOR_CATALOGS_V11[vendor].defaultEndpoint;
+    const draft = {
+      id: randomIdV11('draft'),
+      label: `API Connector ${stateModel.state.connectors.length + 1}`,
+      vendor,
+      provider,
+      endpoint,
+      hasCredential: false,
+      isSystemOwned: false,
+      models: catalogModelsV11(vendor),
+      status: 'idle' as const,
+      lastCheckedAt: null,
+      lastDetail: '',
+      isDraft: true,
+    };
+    updateState((prev) => addConnectorToState(prev, draft));
   };
 
   const onRemoveSelectedConnector = async () => {
     if (!selectedConnectorId) return;
     if (selectedConnector?.isSystemOwned) return;
+    if (selectedConnector?.isDraft) {
+      updateState((prev) => removeSelectedConnector(prev, selectedConnectorId));
+      return;
+    }
     try {
       await sdkDeleteConnector(selectedConnectorId);
       await refreshConnectorsFromSdk();
@@ -83,7 +86,7 @@ export function ProviderConnectorsPanel({
   const onRenameSelectedConnector = (label: string) => {
     if (selectedConnector?.isSystemOwned) return;
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, { label }));
-    if (selectedConnectorId) {
+    if (selectedConnectorId && !selectedConnector?.isDraft) {
       void sdkUpdateConnector({ connectorId: selectedConnectorId, label }).catch(() => {});
     }
   };
@@ -103,15 +106,37 @@ export function ProviderConnectorsPanel({
       }
       return updateConnectorField(prev, selectedConnectorId, { endpoint });
     });
-    if (selectedConnectorId) {
+    if (selectedConnectorId && !selectedConnector?.isDraft) {
       void sdkUpdateConnector({ connectorId: selectedConnectorId, endpoint }).catch(() => {});
     }
   };
 
   const onChangeConnectorToken = async (secret: string) => {
-    if (!selectedConnectorId) return;
+    if (!selectedConnectorId || !selectedConnector) return;
     const normalizedSecret = String(secret || '').trim();
     if (!normalizedSecret) return;
+
+    if (selectedConnector.isDraft) {
+      const created = await sdkCreateConnector({
+        provider: selectedConnector.provider,
+        endpoint: selectedConnector.endpoint,
+        label: selectedConnector.label,
+        apiKey: normalizedSecret,
+      });
+      if (created) {
+        updateState((prev) => {
+          const withoutDraft = prev.connectors.filter((c) => c.id !== selectedConnectorId);
+          return {
+            ...prev,
+            connectors: [...withoutDraft, created],
+            selectedConnectorId: created.id,
+          };
+        });
+      }
+      commandModel.onVaultChanged();
+      return;
+    }
+
     await sdkUpdateConnector({
       connectorId: selectedConnectorId,
       apiKey: normalizedSecret,
@@ -135,7 +160,7 @@ export function ProviderConnectorsPanel({
       models: catalogModelsV11(normalizedVendor),
       provider,
     }));
-    if (selectedConnectorId) {
+    if (selectedConnectorId && !selectedConnector.isDraft) {
       void sdkUpdateConnector({
         connectorId: selectedConnectorId,
         endpoint,

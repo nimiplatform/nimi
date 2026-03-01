@@ -26,7 +26,7 @@ function createBaseState(): RuntimeConfigStateV11 {
   });
 }
 
-test('applyRuntimeBridgeConfigToState maps provider endpoints into runtime setup state', () => {
+test('applyRuntimeBridgeConfigToState maps local provider endpoint', () => {
   const previous = createBaseState();
   const next = applyRuntimeBridgeConfigToState(previous, {
     schemaVersion: 1,
@@ -35,54 +35,48 @@ test('applyRuntimeBridgeConfigToState maps provider endpoints into runtime setup
         baseUrl: 'http://127.0.0.1:18080/v1',
         apiKeyEnv: 'LOCALAI_API_KEY',
       },
-      gemini: {
-        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-        apiKeyEnv: 'GEMINI_API_KEY',
-      },
-      alibaba: {
-        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-        apiKeyEnv: 'DASHSCOPE_API_KEY',
-      },
     },
   });
 
   assert.equal(next.localRuntime.endpoint, 'http://127.0.0.1:18080/v1');
-  assert.ok(next.connectors.length >= 2);
-
-  const managedConnectors = next.connectors.filter(
-    (connector) => connector.vendor === 'gemini' || connector.vendor === 'dashscope',
-  );
-  assert.equal(managedConnectors.length, 2);
-
-  const geminiConnector = next.connectors.find((connector) => connector.vendor === 'gemini');
-  assert.ok(geminiConnector);
-  assert.equal(geminiConnector.endpoint, 'https://generativelanguage.googleapis.com/v1beta/openai');
-  assert.equal(geminiConnector.tokenApiKeyEnv, 'GEMINI_API_KEY');
-
-  const dashscopeConnector = next.connectors.find((connector) => connector.vendor === 'dashscope');
-  assert.ok(dashscopeConnector);
-  assert.equal(dashscopeConnector.endpoint, 'https://dashscope.aliyuncs.com/compatible-mode/v1');
-  assert.equal(dashscopeConnector.tokenApiKeyEnv, 'DASHSCOPE_API_KEY');
 });
 
-test('buildRuntimeBridgeConfigFromState emits schema defaults and managed providers', () => {
+test('applyRuntimeBridgeConfigToState preserves existing endpoint when no local baseUrl', () => {
+  const previous = createBaseState();
+  previous.localRuntime.endpoint = 'http://127.0.0.1:9999/v1';
+
+  const next = applyRuntimeBridgeConfigToState(previous, {
+    schemaVersion: 1,
+    providers: {},
+  });
+
+  assert.equal(next.localRuntime.endpoint, 'http://127.0.0.1:9999/v1');
+});
+
+test('applyRuntimeBridgeConfigToState does not manage connectors — they come from SDK', () => {
+  const previous = createBaseState();
+  const existingConnector = createConnectorV11('openrouter', 'Primary');
+  previous.connectors = [existingConnector];
+
+  const next = applyRuntimeBridgeConfigToState(previous, {
+    schemaVersion: 1,
+    providers: {
+      local: { baseUrl: 'http://127.0.0.1:18080/v1' },
+      gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKeyEnv: 'GEMINI_API_KEY' },
+    },
+  });
+
+  // Connectors pass through unchanged — cloud providers managed by Go runtime
+  assert.equal(next.connectors.length, 1);
+  assert.equal(next.connectors[0]?.id, existingConnector.id);
+});
+
+test('buildRuntimeBridgeConfigFromState emits schema defaults and local endpoint', () => {
   const state = createBaseState();
   state.localRuntime.endpoint = 'http://127.0.0.1:11434/v1';
 
-  const geminiConnector = createConnectorV11('gemini', 'Gemini');
-  geminiConnector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
-  geminiConnector.tokenApiKeyEnv = 'GEMINI_API_KEY';
-
-  const dashscopeConnector = createConnectorV11('dashscope', 'DashScope');
-  dashscopeConnector.endpoint = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
-  dashscopeConnector.tokenApiKeyEnv = 'DASHSCOPE_API_KEY';
-
-  state.connectors = [geminiConnector, dashscopeConnector];
-  state.selectedConnectorId = geminiConnector.id;
-
   const config = buildRuntimeBridgeConfigFromState(state, {});
   assert.equal(config.schemaVersion, 1);
-
   assert.equal(config.grpcAddr, '127.0.0.1:46371');
   assert.equal(config.httpAddr, '127.0.0.1:46372');
 
@@ -90,14 +84,25 @@ test('buildRuntimeBridgeConfigFromState emits schema defaults and managed provid
   const local = asRecord(providers.local);
   assert.equal(local.baseUrl, 'http://127.0.0.1:11434/v1');
   assert.equal(local.apiKeyEnv, 'LOCALAI_API_KEY');
+});
 
+test('buildRuntimeBridgeConfigFromState preserves existing non-local provider entries', () => {
+  const state = createBaseState();
+  state.localRuntime.endpoint = 'http://127.0.0.1:11434/v1';
+
+  const config = buildRuntimeBridgeConfigFromState(state, {
+    providers: {
+      gemini: {
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        apiKeyEnv: 'GEMINI_API_KEY',
+      },
+    },
+  });
+
+  const providers = asRecord(config.providers);
   const gemini = asRecord(providers.gemini);
   assert.equal(gemini.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
   assert.equal(gemini.apiKeyEnv, 'GEMINI_API_KEY');
-
-  const alibaba = asRecord(providers.alibaba);
-  assert.equal(alibaba.baseUrl, 'https://dashscope.aliyuncs.com/compatible-mode/v1');
-  assert.equal(alibaba.apiKeyEnv, 'DASHSCOPE_API_KEY');
 });
 
 test('serializeRuntimeBridgeProjection ignores status-only runtime state changes', () => {
@@ -129,74 +134,20 @@ test('serializeRuntimeBridgeProjection ignores status-only runtime state changes
   assert.equal(first, second);
 });
 
-test('serializeRuntimeBridgeProjection includes apiKeyEnv changes', () => {
+test('serializeRuntimeBridgeProjection detects local endpoint changes', () => {
   const state = createBaseState();
-  const connector = createConnectorV11('gemini', 'Gemini');
-  connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
-  connector.tokenApiKeyEnv = 'GEMINI_API_KEY';
-  state.connectors = [connector];
-  state.selectedConnectorId = connector.id;
+  state.localRuntime.endpoint = 'http://127.0.0.1:1234/v1';
 
   const first = serializeRuntimeBridgeProjection(state);
 
-  state.connectors = [{
-    ...connector,
-    tokenApiKeyEnv: 'NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY',
-  }];
-
-  const second = serializeRuntimeBridgeProjection(state);
-  assert.notEqual(first, second);
-});
-
-test('applyRuntimeBridgeConfigToState preserves existing in-memory connector token for same provider', () => {
-  const previous = createBaseState();
-  const connector = createConnectorV11('gemini', 'Gemini');
-  connector.endpoint = 'https://generativelanguage.googleapis.com/v1beta/openai';
-  previous.connectors = [connector];
-  previous.selectedConnectorId = connector.id;
-
-  const next = applyRuntimeBridgeConfigToState(previous, {
-    schemaVersion: 1,
-    providers: {
-      gemini: {
-        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-        apiKeyEnv: 'GEMINI_API_KEY',
-      },
+  const changed = {
+    ...state,
+    localRuntime: {
+      ...state.localRuntime,
+      endpoint: 'http://127.0.0.1:9999/v1',
     },
-  });
+  };
 
-  assert.equal(next.connectors.length, 1);
-  assert.equal(next.connectors[0]?.tokenApiKeyEnv, 'GEMINI_API_KEY');
-});
-
-test('applyRuntimeBridgeConfigToState rejects legacy provider keys', () => {
-  const previous = createBaseState();
-  assert.throws(
-    () => applyRuntimeBridgeConfigToState(previous, {
-      schemaVersion: 1,
-      providers: {
-        litellm: {
-          baseUrl: 'https://legacy.invalid/v1',
-          apiKeyEnv: 'LEGACY_KEY',
-        },
-      },
-    }),
-    /legacy provider key is forbidden: litellm/,
-  );
-});
-
-test('buildRuntimeBridgeConfigFromState rejects legacy provider keys from base config', () => {
-  const state = createBaseState();
-  assert.throws(
-    () => buildRuntimeBridgeConfigFromState(state, {
-      schemaVersion: 1,
-      providers: {
-        cloudai: {
-          baseUrl: 'https://legacy.invalid/v1',
-          apiKeyEnv: 'LEGACY_KEY',
-        },
-      },
-    }),
-    /legacy provider key is forbidden: cloudai/,
-  );
+  const second = serializeRuntimeBridgeProjection(changed);
+  assert.notEqual(first, second);
 });

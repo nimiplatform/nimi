@@ -97,7 +97,7 @@ export function sdkConnectorToApiConnector(
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listConnectors(
-    { ownerId: DESKTOP_OWNER_ID },
+    { ownerId: DESKTOP_OWNER_ID, pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
     CONNECTOR_CALL_OPTIONS,
   );
   const remoteConnectors = (response.connectors || []).filter(
