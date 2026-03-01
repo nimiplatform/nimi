@@ -155,29 +155,43 @@ AI 执行路径使用双层信号量控制并发：
 
 Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 
-| Key | Type | Default | 说明 | 来源 |
-|---|---|---|---|---|
-| `schemaVersion` | int | `1` | 配置版本号 | K-DAEMON-009 |
-| `grpcAddr` | string | `127.0.0.1:46371` | gRPC 监听地址 | K-DAEMON-009 |
-| `httpAddr` | string | `127.0.0.1:46372` | HTTP 监听地址 | K-DAEMON-009 |
-| `shutdownTimeoutSeconds` | int | `10` | 优雅停机超时（秒） | K-DAEMON-003 |
-| `localRuntimeStatePath` | string | `~/.nimi/runtime/local-runtime-state.json` | 本地状态持久化路径 | K-LOCAL-016 |
-| `workerMode` | bool | `false` | 是否启用 worker 模式 | K-DAEMON-004 |
-| `aiHealthIntervalSeconds` | int | `8` | AI Provider 探活间隔（秒） | K-PROV-003 |
-| `aiHttpTimeoutSeconds` | int | `30` | AI Provider HTTP 超时（秒） | K-PROV-003 |
-| `globalConcurrencyLimit` | int | `8` | AI 全局并发上限 | K-DAEMON-007 |
-| `perAppConcurrencyLimit` | int | `2` | AI 单 App 并发上限 | K-DAEMON-007 |
-| `idempotencyCapacity` | int | `10000` | 幂等性存储容量上限 | K-DAEMON-006 |
-| `maxDelegationDepth` | int | `3` | 委托链最大深度 | K-GRANT-005 |
-| `auditRingBufferSize` | int | `20000` | 审计事件环形缓冲上限 | K-AUDIT-007 |
-| `usageStatsBufferSize` | int | `50000` | 使用量样本环形缓冲上限 | K-AUDIT-008 |
-| `localAuditCapacity` | int | `5000` | Local 审计事件存储上限 | K-LOCAL-016 |
-| `sessionTtlMinSeconds` | int | `60` | Session TTL 下限（秒） | K-AUTHSVC-004 |
-| `sessionTtlMaxSeconds` | int | `86400` | Session TTL 上限（秒） | K-AUTHSVC-004 |
+| Key | Type | Default | Reload | 说明 | 来源 |
+|---|---|---|---|---|---|
+| `schemaVersion` | int | `1` | — | 配置版本号 | K-DAEMON-009 |
+| `grpcAddr` | string | `127.0.0.1:46371` | restart | gRPC 监听地址 | K-DAEMON-009 |
+| `httpAddr` | string | `127.0.0.1:46372` | restart | HTTP 监听地址 | K-DAEMON-009 |
+| `shutdownTimeoutSeconds` | int | `10` | restart | 优雅停机超时（秒） | K-DAEMON-003 |
+| `localRuntimeStatePath` | string | `~/.nimi/runtime/local-runtime-state.json` | restart | 本地状态持久化路径 | K-LOCAL-016 |
+| `workerMode` | bool | `false` | restart | 是否启用 worker 模式 | K-DAEMON-004 |
+| `aiHealthIntervalSeconds` | int | `8` | hot | AI Provider 探活间隔（秒） | K-PROV-003 |
+| `aiHttpTimeoutSeconds` | int | `30` | hot | AI Provider HTTP 超时（秒） | K-PROV-003 |
+| `globalConcurrencyLimit` | int | `8` | hot | AI 全局并发上限 | K-DAEMON-007 |
+| `perAppConcurrencyLimit` | int | `2` | hot | AI 单 App 并发上限 | K-DAEMON-007 |
+| `idempotencyCapacity` | int | `10000` | hot | 幂等性存储容量上限 | K-DAEMON-006 |
+| `maxDelegationDepth` | int | `3` | hot | 委托链最大深度 | K-GRANT-005 |
+| `auditRingBufferSize` | int | `20000` | hot | 审计事件环形缓冲上限 | K-AUDIT-007 |
+| `usageStatsBufferSize` | int | `50000` | hot | 使用量样本环形缓冲上限 | K-AUDIT-008 |
+| `localAuditCapacity` | int | `5000` | hot | Local 审计事件存储上限 | K-LOCAL-016 |
+| `sessionTtlMinSeconds` | int | `60` | hot | Session TTL 下限（秒） | K-AUTHSVC-004 |
+| `sessionTtlMaxSeconds` | int | `86400` | hot | Session TTL 上限（秒） | K-AUTHSVC-004 |
+| `providers` | map | `{}` | hot | AI Provider 路由表（key=provider name） | K-DAEMON-009 |
+
+`providers` 值结构：`{ baseUrl: string, apiKeyEnv: string }`。`apiKey` 明文字段被禁止（写入校验拒绝，`CONFIG_SECRET_POLICY_VIOLATION`），仅允许 `apiKeyEnv` 引用环境变量名。
 
 未知字段在解析时忽略（向前兼容）。
 
-> **设计决策**：Cloud provider 凭据（`K-PROV-002` 列出的 `NIMI_RUNTIME_*_API_KEY` / `NIMI_RUNTIME_*_BASE_URL` 环境变量）有意不纳入配置文件 schema。原因：凭据仅通过环境变量注入，避免明文持久化到磁盘（与 `K-LENG-009` 凭据安全策略一致）。实现者不应将此视为 schema 遗漏。
+**Reload 列语义**：
+
+- `restart`：变更后需要 daemon 重启才生效（涉及网络绑定、进程模型等启动时固化的资源）。
+- `hot`：变更后无需重启，下次使用时即刻生效。
+- `—`：不可变更（`schemaVersion`）。
+
+**`config set` 响应 reasonCode**：
+
+- `CONFIG_RESTART_REQUIRED`：至少一个 `restart` 列字段发生了变更。
+- `CONFIG_APPLIED`：仅 `hot` 列字段发生变更，或无实质变更。
+
+消费端（Desktop）仅在收到 `CONFIG_RESTART_REQUIRED` 时提示用户重启 runtime。
 
 ## K-DAEMON-011 版本 Metadata 交换协议
 

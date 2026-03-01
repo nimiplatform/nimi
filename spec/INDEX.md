@@ -182,6 +182,89 @@ SDK 规范采用 kernel + domain 的两层结构：
 1. 先改 `spec/sdk/kernel/*`（必要时含 `tables/*`）
 2. 再改对应 `spec/sdk/*.md` domain 文档
 
+## Platform（当前）
+
+Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协议、AI 最后一公里、开源治理。
+
+- Kernel（唯一事实源）：`spec/platform/kernel/`
+- Tables（事实源）：`spec/platform/kernel/tables/`
+- Generated（自动生成视图）：`spec/platform/kernel/generated/`
+- Domain：
+  - `spec/platform/vision.md`
+  - `spec/platform/architecture.md`
+  - `spec/platform/protocol.md`
+  - `spec/platform/ai-last-mile.md`
+  - `spec/platform/open-source-governance.md`
+
+### 修改协议层 / 版本协商 / 原语
+
+1. `spec/platform/kernel/protocol-contract.md`
+2. `spec/platform/kernel/tables/protocol-error-codes.yaml`
+3. `spec/platform/kernel/tables/protocol-primitives.yaml`
+4. `spec/platform/protocol.md`
+
+### 修改架构层 / 通信模式 / 凭证面
+
+1. `spec/platform/kernel/architecture-contract.md`
+2. `spec/platform/architecture.md`
+
+### 修改 AI 最后一公里 / Hook Action Fabric
+
+1. `spec/platform/kernel/ai-last-mile-contract.md`
+2. `spec/platform/ai-last-mile.md`
+
+### 修改开源治理 / License / 发布门
+
+1. `spec/platform/kernel/governance-contract.md`
+2. `spec/platform/open-source-governance.md`
+
+### 修改合规测试 / 审计事件
+
+1. `spec/platform/kernel/tables/compliance-test-matrix.yaml`
+2. `spec/platform/kernel/tables/audit-events.yaml`
+3. `spec/platform/protocol.md`
+
+### 修改应用授权 / 参与者画像
+
+1. `spec/platform/kernel/tables/app-authorization-presets.yaml`
+2. `spec/platform/kernel/tables/participant-profiles.yaml`
+3. `spec/platform/protocol.md`
+
+## Realm（当前）
+
+Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、创作者经济、原语互操作映射。
+
+- Kernel（唯一事实源）：`spec/realm/kernel/`
+- Tables（事实源）：`spec/realm/kernel/tables/`
+- Generated（自动生成视图）：`spec/realm/kernel/generated/`
+- Domain：
+  - `spec/realm/world.md`
+  - `spec/realm/agent.md`
+  - `spec/realm/social.md`
+  - `spec/realm/world-creator-economy.md`
+  - `spec/realm/creator-revenue-policy.md`
+  - `spec/realm/realm-interop-mapping.md`
+
+### 修改公共边界词汇
+
+1. `spec/realm/kernel/boundary-vocabulary-contract.md`
+2. `spec/realm/kernel/tables/public-vocabulary.yaml`
+3. 受影响 domain 文档（`world.md` / `agent.md` / `social.md`）
+
+### 修改创作者经济 / 定价 / 收入
+
+1. `spec/realm/kernel/economy-contract.md`
+2. `spec/realm/kernel/tables/creator-key-tiers.yaml`
+3. `spec/realm/kernel/tables/revenue-event-types.yaml`
+4. `spec/realm/kernel/tables/share-plan-fields.yaml`
+5. 受影响 domain 文档（`world-creator-economy.md` / `creator-revenue-policy.md`）
+
+### 修改原语互操作映射
+
+1. `spec/realm/kernel/interop-mapping-contract.md`
+2. `spec/realm/kernel/tables/primitive-mapping-status.yaml`
+3. `spec/realm/realm-interop-mapping.md`
+
 ## Future Capabilities
 
 未来能力 backlog，汇总研究报告中可借鉴项，按优先级分类管理：

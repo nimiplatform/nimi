@@ -11,13 +11,15 @@ Applies to all files under:
 - `spec/sdk/**`
 - `spec/desktop/**`
 - `spec/future/**`
+- `spec/platform/**`
+- `spec/realm/**`
 
 ## Authoritative Structure
 
-- `kernel/*.md`: cross-domain rule contracts (`K-*` / `S-*` / `D-*` / `F-*`).
+- `kernel/*.md`: cross-domain rule contracts (`K-*` / `S-*` / `D-*` / `F-*` / `P-*` / `R-*`).
 - `kernel/tables/*.yaml`: structured fact sources (authoritative data layer).
 - `kernel/generated/*.md`: generated views from YAML tables.
-- `domain docs` (for example `spec/runtime/*.md`, `spec/sdk/*.md`): domain increments only, with rule references. Do not duplicate kernel prose.
+- `domain docs` (for example `spec/runtime/*.md`, `spec/sdk/*.md`, `spec/platform/*.md`, `spec/realm/*.md`): domain increments only, with rule references. Do not duplicate kernel prose.
 
 ## Editing Rules
 
@@ -49,12 +51,24 @@ If `spec/future/**` changed:
 - `pnpm check:future-spec-kernel-consistency`
 - `pnpm check:future-spec-kernel-docs-drift`
 
+If `spec/platform/**` changed:
+
+- `pnpm check:platform-spec-kernel-consistency`
+- `pnpm check:platform-spec-kernel-docs-drift`
+
+If `spec/realm/**` changed:
+
+- `pnpm check:realm-spec-kernel-consistency`
+- `pnpm check:realm-spec-kernel-docs-drift`
+
 If any `spec/**/kernel/tables/*.yaml` changed:
 
 - `pnpm generate:runtime-spec-kernel-docs` (for runtime tables)
 - `pnpm generate:sdk-spec-kernel-docs` (for sdk tables)
 - `pnpm generate:desktop-spec-kernel-docs` (for desktop tables)
 - `pnpm generate:future-spec-kernel-docs` (for future tables)
+- `pnpm generate:platform-spec-kernel-docs` (for platform tables)
+- `pnpm generate:realm-spec-kernel-docs` (for realm tables)
 - then rerun the corresponding `check:*docs-drift` command(s)
 
 If both runtime and sdk specs changed, run all four `check:*spec*` commands.
@@ -73,6 +87,8 @@ Spec 质量守护分两层，CI 是主层，LLM 审计是补充层。
 | SDK | `check-sdk-spec-kernel-consistency.mjs` | Rule ID refs, method groups, import boundaries, error code families |
 | Desktop | `check-desktop-spec-kernel-consistency.mjs` | Rule ID refs, source code ↔ spec alignment (UI slots, hook points, lifecycle states, retry codes) |
 | Future | `check-future-spec-kernel-consistency.mjs` | ID format, dependency cycles, graduation log, status consistency |
+| Platform | `check-platform-spec-kernel-consistency.mjs` | Error code uniqueness, primitive completeness, compliance matrix, audit events, presets, profiles |
+| Realm | `check-realm-spec-kernel-consistency.mjs` | Vocabulary domains, tier pricing monotonicity, event types, share plan fields, primitive mapping status |
 
 **什么必须在 CI 脚本中检查（不允许仅靠 LLM 审计）：**
 
