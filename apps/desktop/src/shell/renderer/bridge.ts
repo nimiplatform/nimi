@@ -97,7 +97,7 @@ export type {
   RuntimeLocalManifestSummary,
 };
 
-export { logRendererEvent, toRendererLogMessage };
+export { logRendererEvent, stopRuntimeBridge, toRendererLogMessage };
 
 export const desktopBridge = {
   hasTauriInvoke: runtimeDesktopBridge.hasTauriInvoke,

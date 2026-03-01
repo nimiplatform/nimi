@@ -24,7 +24,7 @@ export type RuntimeExecutionDefaults = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
+  connectorId: string;
   targetType: string;
   targetAccountId: string;
   agentId: string;
@@ -44,6 +44,7 @@ export type RuntimeBridgeDaemonStatus = {
   launchMode: 'RUNTIME' | 'RELEASE' | 'INVALID';
   grpcAddr: string;
   pid?: number;
+  version?: string;
   lastError?: string;
 };
 
@@ -418,7 +419,7 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
         'runtime.localOpenAiEndpoint',
         'runtime_defaults',
       ),
-      credentialRefId: String(runtimeRecord.credentialRefId || '').trim(),
+      connectorId: String(runtimeRecord.connectorId || '').trim(),
       targetType: parseRequiredString(runtimeRecord.targetType, 'runtime.targetType', 'runtime_defaults'),
       targetAccountId: String(runtimeRecord.targetAccountId || '').trim(),
       agentId: String(runtimeRecord.agentId || '').trim(),
@@ -441,6 +442,7 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
     launchMode,
     grpcAddr: parseRequiredString(record.grpcAddr, 'grpcAddr', 'runtime_bridge_status'),
     pid: parseOptionalNumber(record.pid),
+    version: parseOptionalString(record.version),
     lastError: parseOptionalString(record.lastError),
   };
 }

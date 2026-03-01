@@ -39,6 +39,9 @@ import {
   resyncExternalAgentActionDescriptors,
 } from '@runtime/external-agent';
 import { registerExternalAgentTier1Actions } from '@runtime/external-agent/tier1-actions';
+import { startAuthStateWatcher } from './auth-state-watcher';
+import { checkDaemonVersion } from './version-check';
+import { registerExitHandler } from './exit-handler';
 
 let bootstrapPromise: Promise<void> | null = null;
 
@@ -89,6 +92,29 @@ export function bootstrapRuntime(): Promise<void> {
       fetchImpl: proxyFetch,
     });
 
+    dataSync.setAuthCallbacks({
+      setAuth: (user, token, refreshToken) => {
+        useAppStore.getState().setAuthSession(user, token, refreshToken);
+      },
+      clearAuth: () => {
+        useAppStore.getState().clearAuthSession();
+      },
+      getCurrentUser: () => {
+        return useAppStore.getState().auth.user;
+      },
+      isFriend: () => false,
+    });
+
+    startAuthStateWatcher();
+
+    const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+    const versionResult = checkDaemonVersion(daemonStatus.version);
+    if (!versionResult.ok) {
+      throw new Error(versionResult.message);
+    }
+
+    registerExitHandler({ managed: daemonStatus.managed });
+
     let runtimeModFailures: RuntimeModRegisterFailure[] = [];
     let manifestCount = 0;
 
@@ -131,7 +157,7 @@ export function bootstrapRuntime(): Promise<void> {
             localProviderEndpoint: runtime.localProviderEndpoint,
             localProviderModel: runtime.localProviderModel,
             localOpenAiEndpoint: runtime.localOpenAiEndpoint,
-            credentialRefId: runtime.credentialRefId,
+            connectorId: runtime.connectorId,
           };
         }),
       );
