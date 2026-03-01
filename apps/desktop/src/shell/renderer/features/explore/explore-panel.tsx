@@ -97,6 +97,7 @@ export function ExplorePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -176,9 +177,11 @@ export function ExplorePanel() {
         agentId,
         worldId: target?.worldId || '',
       });
+      // Open mod workspace tab before setting active tab
+      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
       setActiveTab('mod:local-chat');
     },
-    [agents, setActiveTab, setRuntimeFields],
+    [agents, setActiveTab, setRuntimeFields, openModWorkspaceTab],
   );
 
   const onToggleCategory = useCallback(

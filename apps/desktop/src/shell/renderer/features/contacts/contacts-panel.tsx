@@ -61,6 +61,7 @@ export function ContactsPanel() {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState<TabFilter>(() => loadStoredContactsFilter('humans'));
@@ -353,6 +354,8 @@ export function ContactsPanel() {
         agentId: contact.id,
         worldId,
       });
+      // Open mod workspace tab before setting active tab
+      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
       setActiveTab('mod:local-chat');
       return;
     }
@@ -377,7 +380,7 @@ export function ContactsPanel() {
         message: toErrorMessage(error, 'Failed to open chat'),
       });
     }
-  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, setStatusBanner]);
+  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, setStatusBanner, openModWorkspaceTab]);
 
   return (
     <>

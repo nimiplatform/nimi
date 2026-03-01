@@ -271,8 +271,8 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
   };
 
   const handleSubmit = useCallback(async () => {
-    // Must have either a file or caption text to post
-    if (!selectedFile && !caption.trim()) return;
+    // API requires media, so we need at least a file
+    if (!selectedFile) return;
     
     // Optimistic UI: notify parent that upload has started
     onUploadStart?.();
@@ -282,42 +282,38 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     
     // Continue upload in background
     try {
-      let media: { type: PostMediaType; id: string }[] | undefined;
-
-      // Upload file if selected
-      if (selectedFile) {
-        let mediaId: string;
-        if (selectedFile.type === 'image') {
-          // 1. Get upload credentials
-          const upload = await dataSync.createImageDirectUpload();
-          // 2. Upload file to Cloudflare
-          const formData = new FormData();
-          formData.append('file', selectedFile.file);
-          await fetch(upload.uploadUrl, {
-            method: 'POST',
-            body: formData,
-          });
-          mediaId = upload.imageId;
-        } else {
-          // Video upload
-          const uploadData = await dataSync.createVideoDirectUpload();
-          const formData = new FormData();
-          formData.append('file', selectedFile.file);
-          await fetch(uploadData.uploadURL, {
-            method: 'POST',
-            body: formData,
-          });
-          mediaId = uploadData.uid;
-        }
-        media = [{
-          type: selectedFile.type === 'image' ? PostMediaType.IMAGE : PostMediaType.VIDEO,
-          id: mediaId,
-        }];
+      let mediaId: string;
+      
+      // Upload file
+      if (selectedFile.type === 'image') {
+        // 1. Get upload credentials
+        const upload = await dataSync.createImageDirectUpload();
+        // 2. Upload file to Cloudflare
+        const formData = new FormData();
+        formData.append('file', selectedFile.file);
+        await fetch(upload.uploadUrl, {
+          method: 'POST',
+          body: formData,
+        });
+        mediaId = upload.imageId;
+      } else {
+        // Video upload
+        const uploadData = await dataSync.createVideoDirectUpload();
+        const formData = new FormData();
+        formData.append('file', selectedFile.file);
+        await fetch(uploadData.uploadURL, {
+          method: 'POST',
+          body: formData,
+        });
+        mediaId = uploadData.uid;
       }
 
-      // 3. Create post (with or without media)
+      // 3. Create post (API requires media field)
       await dataSync.createPost({
-        media,
+        media: [{
+          type: selectedFile.type === 'image' ? PostMediaType.IMAGE : PostMediaType.VIDEO,
+          id: mediaId,
+        }],
         caption: stripHashtags(caption) || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
@@ -325,8 +321,10 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
       // Notify parent that post was created successfully
       onCreated();
     } catch (err) {
-      // Error is handled silently in background, user can retry if needed
+      // Notify parent about error so publishing state can be cleared
       console.error('Failed to create post:', err);
+      // Still call onCreated to clear the publishing state
+      onCreated();
     }
   }, [selectedFile, caption, tags, selectedLocation, handleClose, onCreated, onUploadStart]);
 
@@ -625,7 +623,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
           <button
             type="button"
             onClick={() => { void handleSubmit(); }}
-            disabled={(!selectedFile && !caption.trim()) || uploading}
+            disabled={!selectedFile || uploading}
             className="flex items-center gap-2 rounded-[10px] bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {uploading ? (

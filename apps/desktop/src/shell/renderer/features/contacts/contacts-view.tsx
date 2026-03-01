@@ -871,10 +871,10 @@ export function ContactsView(props: ContactsViewProps) {
               setRejectedRequests(prev => new Set(prev).add(req.userId));
             }}
           />
-        ) : selectedContact && selectedProfile ? (
+        ) : selectedContact ? (
           // 联系人 Profile - 使用 ProfileView
           <ProfileView
-            profile={selectedProfile}
+            profile={selectedProfile!}
             isOwnProfile={false}
             loading={profileLoading}
             error={profileError}

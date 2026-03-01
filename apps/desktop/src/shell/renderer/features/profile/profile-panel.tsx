@@ -28,6 +28,7 @@ export function ProfilePanel() {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
 
@@ -126,6 +127,8 @@ export function ProfilePanel() {
         agentId: profile.id,
         worldId: profile.agentWorldId || '',
       });
+      // Open mod workspace tab before setting active tab
+      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
       setActiveTab('mod:local-chat');
       return;
     }

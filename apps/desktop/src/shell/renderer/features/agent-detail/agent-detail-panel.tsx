@@ -25,6 +25,7 @@ export function AgentDetailPanel() {
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
 
   const agentIdentifier = String(selectedProfileId || '').trim();
@@ -93,6 +94,8 @@ export function AgentDetailPanel() {
       agentId: agent.id,
       worldId: agent.worldId || '',
     });
+    // Open mod workspace tab before setting active tab
+    openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
     setActiveTab('mod:local-chat');
   };
 
