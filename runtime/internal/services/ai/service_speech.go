@@ -20,11 +20,18 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
 		return nil, err
 	}
-	if err := validateCredentialSourceAtRequestBoundary(ctx, req.GetRoutePolicy()); err != nil {
+
+	// K-KEYSRC-004: parse and validate key-source
+	parsed := parseKeySource(ctx, req.GetConnectorId())
+	if err := validateKeySource(parsed); err != nil {
+		return nil, err
+	}
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	if err != nil {
 		return nil, err
 	}
 
-	selectedProvider, _, modelResolved, _, err := s.selector.resolveProvider(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, _, modelResolved, _, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +50,17 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 	if err := validateStreamSpeechSynthesisRequest(req); err != nil {
 		return err
 	}
-	if err := validateCredentialSourceAtRequestBoundary(stream.Context(), req.GetRoutePolicy()); err != nil {
+
+	// K-KEYSRC-004: parse and validate key-source
+	parsed := parseKeySource(stream.Context(), req.GetConnectorId())
+	if err := validateKeySource(parsed); err != nil {
 		return err
 	}
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	if err != nil {
+		return err
+	}
+
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
 	if acquireErr != nil {
 		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -56,14 +71,25 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 	requestCtx, cancel := withTimeout(stream.Context(), req.GetTimeoutMs(), defaultSynthesizeTimeout)
 	defer cancel()
 
-	selectedProvider, _, modelResolved, routeInfo, err := s.selector.resolveProvider(stream.Context(), req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, _, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(stream.Context(), req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return err
 	}
 	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
 
 	spec := req.GetSpeechSpec()
-	payload, usage, err := selectedProvider.SynthesizeSpeech(requestCtx, modelResolved, spec)
+	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
+	if !ok || mbp == nil {
+		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	backend, backendModelID := mbp.ResolveMediaBackend(modelResolved)
+	if backend == nil {
+		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backendModelID == "" {
+		backendModelID = modelResolved
+	}
+	payload, usage, err := backend.SynthesizeSpeech(requestCtx, backendModelID, spec)
 	if err != nil {
 		return err
 	}

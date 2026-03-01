@@ -2,21 +2,30 @@ package ai
 
 import (
 	"context"
+	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runtimev1.EmbedResponse, error) {
 	if err := validateEmbedRequest(req); err != nil {
 		return nil, err
 	}
-	if err := validateCredentialSourceAtRequestBoundary(ctx, req.GetRoutePolicy()); err != nil {
+
+	// K-KEYSRC-004: parse and validate key-source
+	parsed := parseKeySource(ctx, req.GetConnectorId())
+	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	if err != nil {
+		return nil, err
+	}
+
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
 	if acquireErr != nil {
 		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -27,13 +36,24 @@ func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 	requestCtx, cancel := withTimeout(ctx, req.GetTimeoutMs(), defaultEmbedTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return nil, err
 	}
 	s.recordRouteAutoSwitch(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved, routeInfo)
 
-	vectors, usage, err := selectedProvider.Embed(requestCtx, modelResolved, req.GetInputs())
+	// Use WithTarget if remote target is available
+	var vectors []*structpb.ListValue
+	var usage *runtimev1.UsageStats
+	if remoteTarget != nil {
+		if cp := s.selector.cloudProvider; cp != nil {
+			vectors, usage, err = cp.EmbedWithTarget(requestCtx, modelResolved, req.GetInputs(), remoteTarget)
+		} else {
+			vectors, usage, err = selectedProvider.Embed(requestCtx, modelResolved, req.GetInputs())
+		}
+	} else {
+		vectors, usage, err = selectedProvider.Embed(requestCtx, modelResolved, req.GetInputs())
+	}
 	if err != nil {
 		return nil, err
 	}

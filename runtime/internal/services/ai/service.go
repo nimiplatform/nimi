@@ -8,6 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -46,6 +47,7 @@ type Service struct {
 	registryPath string
 	scheduler    *scheduler.Scheduler
 	mediaJobs    *mediaJobStore
+	connStore    *connector.ConnectorStore
 }
 
 func New(logger *slog.Logger, cfg ...Config) *Service {
@@ -57,6 +59,11 @@ func NewWithRegistry(logger *slog.Logger, registry *modelregistry.Registry, cfg 
 }
 
 func NewWithDependencies(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, cfg ...Config) *Service {
+	return NewWithAllDependencies(logger, registry, aiHealth, auditStore, nil, cfg...)
+}
+
+// NewWithAllDependencies creates a Service with all dependencies including connector store.
+func NewWithAllDependencies(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg ...Config) *Service {
 	effectiveCfg := loadConfigFromEnv()
 	if len(cfg) > 0 {
 		effectiveCfg = cfg[0].normalized()
@@ -69,6 +76,7 @@ func NewWithDependencies(logger *slog.Logger, registry *modelregistry.Registry, 
 		registry:  registry,
 		scheduler: scheduler.New(scheduler.Config{GlobalConcurrency: 8, PerAppConcurrency: 2, StarvationThreshold: 30 * time.Second}),
 		mediaJobs: newMediaJobStore(),
+		connStore: connStore,
 	}
 }
 
@@ -76,13 +84,26 @@ func (s *Service) SetModelRegistryPersistencePath(path string) {
 	s.registryPath = strings.TrimSpace(path)
 }
 
+// CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).
+func (s *Service) CloudProvider() *nimillm.CloudProvider {
+	return s.selector.cloudProvider
+}
+
 func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {
 	if err := validateGenerateRequest(req); err != nil {
 		return nil, err
 	}
-	if err := validateCredentialSourceAtRequestBoundary(ctx, req.GetRoutePolicy()); err != nil {
+
+	// K-KEYSRC-004: parse and validate key-source
+	parsed := parseKeySource(ctx, req.GetConnectorId())
+	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	if err != nil {
+		return nil, err
+	}
+
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
 	if acquireErr != nil {
 		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -93,7 +114,7 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	requestCtx, cancel := withTimeout(ctx, req.GetTimeoutMs(), defaultGenerateTimeout)
 	defer cancel()
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +122,20 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 
 	traceID := ulid.Make().String()
 	inputText := nimillm.ComposeInputText(req.GetSystemPrompt(), req.GetInput())
-	outputText, usage, finishReason, err := selectedProvider.GenerateText(requestCtx, modelResolved, req, inputText)
+
+	// Use WithTarget if remote target is available and provider is CloudProvider
+	var outputText string
+	var usage *runtimev1.UsageStats
+	var finishReason runtimev1.FinishReason
+	if remoteTarget != nil {
+		if cp := s.selector.cloudProvider; cp != nil {
+			outputText, usage, finishReason, err = cp.GenerateTextWithTarget(requestCtx, modelResolved, req, inputText, remoteTarget)
+		} else {
+			outputText, usage, finishReason, err = selectedProvider.GenerateText(requestCtx, modelResolved, req, inputText)
+		}
+	} else {
+		outputText, usage, finishReason, err = selectedProvider.GenerateText(requestCtx, modelResolved, req, inputText)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -132,9 +166,17 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	if err := validateStreamGenerateRequest(req); err != nil {
 		return err
 	}
-	if err := validateCredentialSourceAtRequestBoundary(stream.Context(), req.GetRoutePolicy()); err != nil {
+
+	// K-KEYSRC-004: parse and validate key-source
+	parsed := parseKeySource(stream.Context(), req.GetConnectorId())
+	if err := validateKeySource(parsed); err != nil {
 		return err
 	}
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	if err != nil {
+		return err
+	}
+
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
 	if acquireErr != nil {
 		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -164,7 +206,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		})
 	}
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(stream.Context(), req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(stream.Context(), req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return err
 	}

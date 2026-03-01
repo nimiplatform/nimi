@@ -7,15 +7,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -35,7 +34,7 @@ func TestGenerateSuccess(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
 	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
@@ -107,7 +106,7 @@ func TestGenerateHonorsRequestTimeout(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
 	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
@@ -161,7 +160,7 @@ func TestStreamGenerateSequence(t *testing.T) {
 	defer streamServer.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: streamServer.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
@@ -230,7 +229,7 @@ func TestStreamGenerateUsesProviderNativeStream(t *testing.T) {
 	defer streamServer.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: streamServer.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
@@ -280,7 +279,7 @@ func TestStreamGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 	defer streamServer.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: streamServer.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
@@ -337,7 +336,7 @@ func TestStreamGenerateFirstPacketTimeoutEmitsFailedEvent(t *testing.T) {
 	defer streamServer.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: streamServer.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
@@ -384,7 +383,7 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 	defer streamServer.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: streamServer.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: streamServer.URL}},
 	})
 	stream := &streamGenerateCollector{ctx: context.Background()}
 
@@ -415,9 +414,11 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 	}
 }
 
-func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
-	nimiCalls := int32(0)
-	nimiServer := newChatServer(t, "from-nimillm", &nimiCalls)
+// TestGenerateRejectsUnhealthyHintedProvider verifies that when a model's
+// registry-hinted provider is unhealthy, the request fails with UNAVAILABLE
+// instead of falling back to another provider (NIMI-032).
+func TestGenerateRejectsUnhealthyHintedProvider(t *testing.T) {
+	nimiServer := newChatServer(t, "from-nimillm", new(int32))
 	defer nimiServer.Close()
 
 	registry := modelregistry.New()
@@ -431,22 +432,19 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 
 	healthTracker := providerhealth.New()
 	healthTracker.Mark("cloud-nimillm", true, "")
-	healthTracker.Mark("cloud-alibaba", false, "timeout")
+	healthTracker.Mark("cloud-dashscope", false, "timeout")
 
-	auditStore := auditlog.New(128, 128)
 	svc := NewWithDependencies(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		registry,
 		healthTracker,
-		auditStore,
+		auditlog.New(128, 128),
 		Config{
-			CloudNimiLLMBaseURL: nimiServer.URL,
+			CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: nimiServer.URL}},
 		},
 	)
-	registryPath := filepath.Join(t.TempDir(), "model-registry.json")
-	svc.SetModelRegistryPersistencePath(registryPath)
 
-	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
 		ModelId:       "cloud/qwen-max",
@@ -458,60 +456,11 @@ func TestGenerateRecordsRouteAutoSwitchAudit(t *testing.T) {
 		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		TimeoutMs:   30_000,
 	})
-	if err != nil {
-		t.Fatalf("generate: %v", err)
+	if err == nil {
+		t.Fatalf("expected UNAVAILABLE error when hinted provider is unhealthy")
 	}
-	if resp.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API {
-		t.Fatalf("unexpected route decision: %v", resp.GetRouteDecision())
-	}
-	if got := atomic.LoadInt32(&nimiCalls); got != 1 {
-		t.Fatalf("nimillm calls mismatch: got=%d want=1", got)
-	}
-
-	updated, exists := registry.Get("qwen-max")
-	if !exists {
-		t.Fatalf("registry entry qwen-max must exist")
-	}
-	if updated.ProviderHint != modelregistry.ProviderHintNimiLLM {
-		t.Fatalf("provider hint should auto-switch to nimillm, got=%s", updated.ProviderHint)
-	}
-	reloaded, err := modelregistry.NewFromFile(registryPath)
-	if err != nil {
-		t.Fatalf("reload registry from file: %v", err)
-	}
-	reloadedEntry, ok := reloaded.Get("qwen-max")
-	if !ok {
-		t.Fatalf("reloaded registry entry qwen-max must exist")
-	}
-	if reloadedEntry.ProviderHint != modelregistry.ProviderHintNimiLLM {
-		t.Fatalf("reloaded provider hint mismatch: %s", reloadedEntry.ProviderHint)
-	}
-
-	events := auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
-		AppId:  "nimi.desktop",
-		Domain: "runtime.ai",
-	})
-	found := false
-	for _, event := range events.GetEvents() {
-		if event.GetOperation() != "route.auto_switch" {
-			continue
-		}
-		found = true
-		if event.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-			t.Fatalf("unexpected reason code: %v", event.GetReasonCode())
-		}
-		if event.GetPayload() == nil {
-			t.Fatalf("route auto-switch event payload must exist")
-		}
-		if got := event.GetPayload().GetFields()["hintFrom"].GetStringValue(); got != string(modelregistry.ProviderHintAlibaba) {
-			t.Fatalf("hintFrom mismatch: got=%s", got)
-		}
-		if got := event.GetPayload().GetFields()["hintTo"].GetStringValue(); got != string(modelregistry.ProviderHintNimiLLM) {
-			t.Fatalf("hintTo mismatch: got=%s", got)
-		}
-	}
-	if !found {
-		t.Fatalf("route.auto_switch audit event must exist")
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected Unavailable, got=%v", status.Code(err))
 	}
 }
 

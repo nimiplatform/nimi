@@ -37,7 +37,7 @@ func TestSubmitMediaJobImageCompletes(t *testing.T) {
 	}))
 	defer server.Close()
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -95,7 +95,7 @@ func TestSubmitMediaJobIdempotencyReturnsSameJob(t *testing.T) {
 	}))
 	defer server.Close()
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 	req := &runtimev1.SubmitMediaJobRequest{
 		AppId:          "nimi.desktop",
@@ -144,8 +144,10 @@ func TestSubmitMediaJobBytedanceOpenSpeechTTS(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL:       server.URL,
-		CloudBytedanceSpeechBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine":            {BaseURL: server.URL},
+			"volcengine_openspeech": {BaseURL: server.URL},
+		},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -185,8 +187,10 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTT(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL:       server.URL,
-		CloudBytedanceSpeechBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine":            {BaseURL: server.URL},
+			"volcengine_openspeech": {BaseURL: server.URL},
+		},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -247,8 +251,10 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWS(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL:       server.URL,
-		CloudBytedanceSpeechBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine":            {BaseURL: server.URL},
+			"volcengine_openspeech": {BaseURL: server.URL},
+		},
 	})
 	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -317,8 +323,10 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSFailedMapsUnavailable(t *testing.
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL:       server.URL,
-		CloudBytedanceSpeechBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine":            {BaseURL: server.URL},
+			"volcengine_openspeech": {BaseURL: server.URL},
+		},
 	})
 	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -376,8 +384,10 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSReadTimeoutMapsProviderTimeout(t 
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL:       server.URL,
-		CloudBytedanceSpeechBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine":            {BaseURL: server.URL},
+			"volcengine_openspeech": {BaseURL: server.URL},
+		},
 	})
 	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -444,7 +454,7 @@ func TestSubmitMediaJobBytedanceARKVideoTask(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -488,7 +498,7 @@ func TestSubmitMediaJobBytedanceARKImage(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -560,7 +570,7 @@ func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudAlibabaBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: server.URL}},
 	})
 
 	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
@@ -687,7 +697,7 @@ func TestSubmitMediaJobBytedanceARKVideoTaskCustomPaths(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -739,7 +749,7 @@ func TestSubmitMediaJobBytedanceARKVideoTaskFailedMapsUnavailable(t *testing.T) 
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -786,7 +796,7 @@ func TestSubmitMediaJobAlibabaNativeImageTaskCustomPaths(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudAlibabaBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -838,7 +848,7 @@ func TestSubmitMediaJobAlibabaNativeVideoTaskFailedMapsUnavailable(t *testing.T)
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudAlibabaBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -903,7 +913,7 @@ func TestSubmitMediaJobGeminiOperation(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -978,7 +988,7 @@ func TestSubmitMediaJobGeminiImageOperation(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1037,7 +1047,7 @@ func TestSubmitMediaJobGeminiTTSOperation(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1105,7 +1115,7 @@ func TestSubmitMediaJobGeminiSTTOperation(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1165,7 +1175,7 @@ func TestSubmitMediaJobGeminiTTSOperationFailedMapsUnavailable(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1213,7 +1223,7 @@ func TestSubmitMediaJobGeminiOperationTimeoutMapsProviderTimeout(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1262,7 +1272,7 @@ func TestSubmitMediaJobGeminiSTTOperationFailedMapsUnavailable(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"gemini": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1324,7 +1334,7 @@ func TestSubmitMediaJobMiniMaxTask(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1383,7 +1393,7 @@ func TestSubmitMediaJobMiniMaxVideoTask(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1433,7 +1443,7 @@ func TestSubmitMediaJobMiniMaxTTSTask(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1489,7 +1499,7 @@ func TestSubmitMediaJobMiniMaxTTSTaskFallbackToOpenAISpeech(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1536,7 +1546,7 @@ func TestSubmitMediaJobMiniMaxSTTTask(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1574,7 +1584,7 @@ func TestSubmitMediaJobMiniMaxSTTTaskUnsupportedMapsRouteUnsupported(t *testing.
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1622,7 +1632,7 @@ func TestSubmitMediaJobMiniMaxImageTaskFailedMapsUnavailable(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1665,7 +1675,7 @@ func TestSubmitMediaJobMiniMaxTTSTaskUnavailableMapsProviderUnavailable(t *testi
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1706,7 +1716,7 @@ func TestSubmitMediaJobMiniMaxSTTTaskTimeoutMapsProviderTimeout(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"minimax": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1771,7 +1781,7 @@ func TestSubmitMediaJobGLMVideoTask(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"glm": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1832,7 +1842,7 @@ func TestSubmitMediaJobGLMImageNative(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"glm": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1881,7 +1891,7 @@ func TestSubmitMediaJobGLMTTSNative(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"glm": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1928,7 +1938,7 @@ func TestSubmitMediaJobGLMSTTNative(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"glm": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -1990,7 +2000,7 @@ func TestSubmitMediaJobKimiImageChatMultimodal(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"kimi": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2063,7 +2073,7 @@ func TestSubmitMediaJobKimiImageChatMultimodalInvalidOutput(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"kimi": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2103,7 +2113,7 @@ func TestSubmitMediaJobKimiTTSOpenAICompat(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"kimi": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2146,7 +2156,7 @@ func TestSubmitMediaJobKimiTTSUnavailableMapsProviderUnavailable(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"kimi": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2186,7 +2196,7 @@ func TestSubmitMediaJobKimiSTTOpenAICompat(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"kimi": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2230,7 +2240,7 @@ func TestSubmitMediaJobKimiSTTUnavailableMapsProviderUnavailable(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"kimi": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2290,7 +2300,7 @@ func TestSubmitMediaJobLocalAIModalities(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
 	videoResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
@@ -2408,7 +2418,7 @@ func TestSubmitMediaJobNimiLLMModalities(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudNimiLLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: server.URL}},
 	})
 
 	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
@@ -2525,7 +2535,7 @@ func TestSubmitMediaJobNimiLLMImageUnavailableMapsProviderUnavailable(t *testing
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudNimiLLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2566,7 +2576,7 @@ func TestSubmitMediaJobNimiLLMSTTTimeoutMapsProviderTimeout(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudNimiLLMBaseURL: server.URL,
+		CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: server.URL}},
 	})
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
@@ -2624,7 +2634,7 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalNexaBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"nexa": {BaseURL: server.URL}},
 	})
 
 	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -25,7 +26,7 @@ func TestEmbedLegacyWrapper(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
 	_, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{

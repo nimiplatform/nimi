@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -20,14 +19,16 @@ import (
 
 func TestCloudProviderPickBackend(t *testing.T) {
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
-		NimiLLMBaseURL:   "http://nimillm",
-		AlibabaBaseURL:   "http://alibaba",
-		BytedanceBaseURL: "http://bytedance",
-		GeminiBaseURL:    "http://gemini",
-		MiniMaxBaseURL:   "http://minimax",
-		KimiBaseURL:      "http://kimi",
-		GLMBaseURL:       "http://glm",
-		HTTPTimeout:      3 * time.Second,
+		Providers: map[string]nimillm.ProviderCredentials{
+			"nimillm":    {BaseURL: "http://nimillm"},
+			"dashscope":  {BaseURL: "http://alibaba"},
+			"volcengine": {BaseURL: "http://bytedance"},
+			"gemini":     {BaseURL: "http://gemini"},
+			"minimax":    {BaseURL: "http://minimax"},
+			"kimi":       {BaseURL: "http://kimi"},
+			"glm":        {BaseURL: "http://glm"},
+		},
+		HTTPTimeout: 3 * time.Second,
 	}, nil, nil)
 
 	type tc struct {
@@ -90,26 +91,6 @@ func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 	if _, _, err := p.Embed(context.Background(), "aliyun/text-embedding-1", []string{"hello"}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("embed explicit backend missing code mismatch: %v", status.Code(err))
 	}
-	if _, _, err := p.GenerateImage(context.Background(), "aliyun/image-1", &runtimev1.ImageGenerationSpec{
-		Prompt: "sunrise",
-	}); status.Code(err) != codes.Unavailable {
-		t.Fatalf("generateImage explicit backend missing code mismatch: %v", status.Code(err))
-	}
-	if _, _, err := p.GenerateVideo(context.Background(), "aliyun/video-1", &runtimev1.VideoGenerationSpec{
-		Prompt: "sunrise",
-	}); status.Code(err) != codes.Unavailable {
-		t.Fatalf("generateVideo explicit backend missing code mismatch: %v", status.Code(err))
-	}
-	if _, _, err := p.SynthesizeSpeech(context.Background(), "aliyun/tts-1", &runtimev1.SpeechSynthesisSpec{
-		Text: "hello",
-	}); status.Code(err) != codes.Unavailable {
-		t.Fatalf("synthesizeSpeech explicit backend missing code mismatch: %v", status.Code(err))
-	}
-	if _, _, err := p.Transcribe(context.Background(), "aliyun/stt-1", &runtimev1.SpeechTranscriptionSpec{
-		MimeType: "audio/wav",
-	}, []byte("audio"), "audio/wav"); status.Code(err) != codes.Unavailable {
-		t.Fatalf("transcribe explicit backend missing code mismatch: %v", status.Code(err))
-	}
 	_, _, err = p.StreamGenerateText(context.Background(), "aliyun/gpt-4o", &runtimev1.StreamGenerateRequest{
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
@@ -142,30 +123,6 @@ func TestCloudProviderFailCloseWithoutBackend(t *testing.T) {
 		t.Fatalf("embed fallback usage should be nil")
 	}
 
-	if _, _, err := p.GenerateImage(context.Background(), "fallback-image", &runtimev1.ImageGenerationSpec{
-		Prompt: "image prompt",
-	}); status.Code(err) != codes.Unavailable {
-		t.Fatalf("generateImage should fail-close: %v", status.Code(err))
-	}
-
-	if _, _, err := p.GenerateVideo(context.Background(), "fallback-video", &runtimev1.VideoGenerationSpec{
-		Prompt: "video prompt",
-	}); status.Code(err) != codes.Unavailable {
-		t.Fatalf("generateVideo should fail-close: %v", status.Code(err))
-	}
-
-	if _, _, err := p.SynthesizeSpeech(context.Background(), "fallback-tts", &runtimev1.SpeechSynthesisSpec{
-		Text: "speak this",
-	}); status.Code(err) != codes.Unavailable {
-		t.Fatalf("synthesizeSpeech should fail-close: %v", status.Code(err))
-	}
-
-	if _, _, err := p.Transcribe(context.Background(), "fallback-stt", &runtimev1.SpeechTranscriptionSpec{
-		MimeType: "audio/wav",
-	}, []byte("abcdefg"), "audio/wav"); status.Code(err) != codes.Unavailable {
-		t.Fatalf("transcribe should fail-close: %v", status.Code(err))
-	}
-
 	_, finishReason, err := p.StreamGenerateText(context.Background(), "fallback-text", &runtimev1.StreamGenerateRequest{
 		SystemPrompt: "system",
 		Input: []*runtimev1.ChatMessage{
@@ -180,12 +137,7 @@ func TestCloudProviderFailCloseWithoutBackend(t *testing.T) {
 	}
 }
 
-func TestCloudProviderNimiLLMAllModalities(t *testing.T) {
-	imageBytes := []byte("nimillm-image-bytes")
-	imageBase64 := jsonBase64(imageBytes)
-	videoBytes := []byte("nimillm-video-bytes")
-	videoBase64 := jsonBase64(videoBytes)
-	audioBytes := []byte("nimillm-audio-bytes")
+func TestCloudProviderNimiLLMTextAndEmbed(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/chat/completions":
@@ -217,35 +169,6 @@ func TestCloudProviderNimiLLMAllModalities(t *testing.T) {
 				},
 			})
 			return
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations":
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": []map[string]any{
-					{"b64_json": imageBase64},
-				},
-			})
-			return
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/video/generations":
-			http.NotFound(w, r)
-			return
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/videos/generations":
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": []map[string]any{
-					{"b64_mp4": videoBase64},
-				},
-			})
-			return
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
-			w.Header().Set("Content-Type", "audio/mpeg")
-			_, _ = w.Write(audioBytes)
-			return
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/transcriptions":
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"text": "nimillm stt text",
-			})
-			return
 		default:
 			http.NotFound(w, r)
 		}
@@ -253,8 +176,10 @@ func TestCloudProviderNimiLLMAllModalities(t *testing.T) {
 	defer server.Close()
 
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
-		NimiLLMBaseURL: server.URL,
-		HTTPTimeout:    3 * time.Second,
+		Providers: map[string]nimillm.ProviderCredentials{
+			"nimillm": {BaseURL: server.URL},
+		},
+		HTTPTimeout: 3 * time.Second,
 	}, nil, nil)
 
 	text, _, finishReason, err := p.GenerateText(context.Background(), "nimillm/gpt-4o-mini", &runtimev1.GenerateRequest{
@@ -276,46 +201,6 @@ func TestCloudProviderNimiLLMAllModalities(t *testing.T) {
 	if len(vectors) != 1 || len(vectors[0].GetValues()) != 2 {
 		t.Fatalf("nimillm embed vector mismatch")
 	}
-
-	imagePayload, _, err := p.GenerateImage(context.Background(), "nimillm/image-1", &runtimev1.ImageGenerationSpec{
-		Prompt: "skyline",
-	})
-	if err != nil {
-		t.Fatalf("nimillm generateImage: %v", err)
-	}
-	if string(imagePayload) != string(imageBytes) {
-		t.Fatalf("nimillm image payload mismatch: got=%q", string(imagePayload))
-	}
-
-	videoPayload, _, err := p.GenerateVideo(context.Background(), "nimillm/video-1", &runtimev1.VideoGenerationSpec{
-		Prompt: "ocean",
-	})
-	if err != nil {
-		t.Fatalf("nimillm generateVideo: %v", err)
-	}
-	if string(videoPayload) != string(videoBytes) {
-		t.Fatalf("nimillm video payload mismatch: got=%q", string(videoPayload))
-	}
-
-	speechPayload, _, err := p.SynthesizeSpeech(context.Background(), "nimillm/tts-1", &runtimev1.SpeechSynthesisSpec{
-		Text: "speak",
-	})
-	if err != nil {
-		t.Fatalf("nimillm synthesizeSpeech: %v", err)
-	}
-	if string(speechPayload) != string(audioBytes) {
-		t.Fatalf("nimillm speech payload mismatch: got=%q", string(speechPayload))
-	}
-
-	transcribedText, _, err := p.Transcribe(context.Background(), "nimillm/stt-1", &runtimev1.SpeechTranscriptionSpec{
-		MimeType: "audio/wav",
-	}, []byte("audio-bytes"), "audio/wav")
-	if err != nil {
-		t.Fatalf("nimillm transcribe: %v", err)
-	}
-	if transcribedText != "nimillm stt text" {
-		t.Fatalf("nimillm transcribe mismatch: %s", transcribedText)
-	}
 }
 
 func TestCloudProviderRoutesByPrefix(t *testing.T) {
@@ -331,10 +216,12 @@ func TestCloudProviderRoutesByPrefix(t *testing.T) {
 	defer byteServer.Close()
 
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
-		NimiLLMBaseURL:   nimiServer.URL,
-		AlibabaBaseURL:   aliServer.URL,
-		BytedanceBaseURL: byteServer.URL,
-		HTTPTimeout:      3 * time.Second,
+		Providers: map[string]nimillm.ProviderCredentials{
+			"nimillm":    {BaseURL: nimiServer.URL},
+			"dashscope":  {BaseURL: aliServer.URL},
+			"volcengine": {BaseURL: byteServer.URL},
+		},
+		HTTPTimeout: 3 * time.Second,
 	}, nil, nil)
 
 	req := &runtimev1.GenerateRequest{
@@ -397,9 +284,11 @@ func TestCloudProviderUsesRegistryHintForDefaultModel(t *testing.T) {
 	})
 
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
-		NimiLLMBaseURL: nimiServer.URL,
-		AlibabaBaseURL: aliServer.URL,
-		HTTPTimeout:    3 * time.Second,
+		Providers: map[string]nimillm.ProviderCredentials{
+			"nimillm":   {BaseURL: nimiServer.URL},
+			"dashscope": {BaseURL: aliServer.URL},
+		},
+		HTTPTimeout: 3 * time.Second,
 	}, registry, nil)
 
 	req := &runtimev1.GenerateRequest{
@@ -437,9 +326,11 @@ func TestCloudProviderSkipsUnhealthyBackend(t *testing.T) {
 	healthTracker.Mark("cloud-alibaba", true, "")
 
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
-		NimiLLMBaseURL: nimiServer.URL,
-		AlibabaBaseURL: aliServer.URL,
-		HTTPTimeout:    3 * time.Second,
+		Providers: map[string]nimillm.ProviderCredentials{
+			"nimillm":   {BaseURL: nimiServer.URL},
+			"dashscope": {BaseURL: aliServer.URL},
+		},
+		HTTPTimeout: 3 * time.Second,
 	}, nil, healthTracker)
 
 	req := &runtimev1.GenerateRequest{
@@ -491,6 +382,3 @@ func newChatServer(t *testing.T, text string, counter *int32) *httptest.Server {
 	}))
 }
 
-func jsonBase64(input []byte) string {
-	return base64.StdEncoding.EncodeToString(input)
-}

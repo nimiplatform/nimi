@@ -37,9 +37,16 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	if err := validateSubmitMediaJobRequest(req); err != nil {
 		return nil, err
 	}
-	if err := validateCredentialSourceAtRequestBoundary(ctx, req.GetRoutePolicy()); err != nil {
+	// K-KEYSRC-004: parse and validate key-source
+	parsed := parseKeySource(ctx, req.GetConnectorId())
+	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	if err != nil {
+		return nil, err
+	}
+
 	idempotencyScope, err := buildMediaJobIdempotencyScope(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
@@ -57,7 +64,7 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("submit_media_job", req.GetAppId(), acquireResult)
 
-	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProvider(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId())
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -209,55 +216,39 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 
 	switch adapterName {
 	case adapterBytedanceOpenSpeech:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudBytedanceSpeechBaseURL,
-			APIKey:  s.config.CloudBytedanceSpeechAPIKey,
-		}
+		creds := s.config.CloudProviders["volcengine_openspeech"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceOpenSpeech(ctx, cfg, req, modelResolved)
 	case adapterBytedanceARKTask:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudBytedanceBaseURL,
-			APIKey:  s.config.CloudBytedanceAPIKey,
-		}
+		creds := s.config.CloudProviders["volcengine"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceARKTask(ctx, cfg, s, jobID, req, modelResolved)
 	case adapterAlibabaNative:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudAlibabaBaseURL,
-			APIKey:  s.config.CloudAlibabaAPIKey,
-		}
+		creds := s.config.CloudProviders["dashscope"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteAlibabaNative(ctx, cfg, s, jobID, req, modelResolved)
 	case adapterGeminiOperation:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudGeminiBaseURL,
-			APIKey:  s.config.CloudGeminiAPIKey,
-		}
+		creds := s.config.CloudProviders["gemini"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
 	case adapterMiniMaxTask:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudMiniMaxBaseURL,
-			APIKey:  s.config.CloudMiniMaxAPIKey,
-		}
+		creds := s.config.CloudProviders["minimax"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
 	case adapterGLMTask:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudGLMBaseURL,
-			APIKey:  s.config.CloudGLMAPIKey,
-		}
+		creds := s.config.CloudProviders["glm"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteGLMTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
 	case adapterGLMNative:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudGLMBaseURL,
-			APIKey:  s.config.CloudGLMAPIKey,
-		}
+		creds := s.config.CloudProviders["glm"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteGLMNative(ctx, cfg, req, modelResolved)
 	case adapterKimiChatMultimodal:
-		cfg := nimillm.MediaAdapterConfig{
-			BaseURL: s.config.CloudKimiBaseURL,
-			APIKey:  s.config.CloudKimiAPIKey,
-		}
+		creds := s.config.CloudProviders["kimi"]
+		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 		artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
 	default:
-		artifacts, usage, providerJobID, err = executeProviderSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName)
+		artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName)
 	}
 
 	if err != nil {
@@ -290,23 +281,35 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 	})
 }
 
-func executeProviderSyncMedia(
+// executeBackendSyncMedia routes sync media operations through the underlying
+// Backend (via MediaBackendProvider) rather than the Provider interface.
+// This is the OpenAI-compat fallback adapter path.
+func executeBackendSyncMedia(
 	ctx context.Context,
 	req *runtimev1.SubmitMediaJobRequest,
 	selectedProvider provider,
 	modelResolved string,
 	adapterName string,
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
-	if selectedProvider == nil {
+	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
+	if !ok || mbp == nil {
 		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
 	}
+	backend, backendModelID := mbp.ResolveMediaBackend(modelResolved)
+	if backend == nil {
+		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	}
+	if backendModelID == "" {
+		backendModelID = modelResolved
+	}
+
 	switch req.GetModal() {
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
-		payload, usage, err := selectedProvider.GenerateImage(ctx, modelResolved, spec)
+		payload, usage, err := backend.GenerateImage(ctx, backendModelID, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -331,7 +334,7 @@ func executeProviderSyncMedia(
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
-		payload, usage, err := selectedProvider.GenerateVideo(ctx, modelResolved, spec)
+		payload, usage, err := backend.GenerateVideo(ctx, backendModelID, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -356,7 +359,7 @@ func executeProviderSyncMedia(
 		if spec == nil {
 			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
 		}
-		payload, usage, err := selectedProvider.SynthesizeSpeech(ctx, modelResolved, spec)
+		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -379,7 +382,7 @@ func executeProviderSyncMedia(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text, usage, err := selectedProvider.Transcribe(ctx, modelResolved, spec, audioBytes, mimeType)
+		text, usage, err := backend.Transcribe(ctx, backendModelID, spec, audioBytes, mimeType)
 		if err != nil {
 			return nil, nil, "", err
 		}

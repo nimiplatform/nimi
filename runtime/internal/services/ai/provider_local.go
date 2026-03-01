@@ -74,51 +74,10 @@ func (p *localProvider) Embed(ctx context.Context, modelID string, inputs []stri
 	return nimillm.FallbackEmbed(inputs), nil, nil
 }
 
-func (p *localProvider) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
-	if explicit && !ok {
-		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-	}
-	if backend != nil {
-		return backend.GenerateImage(ctx, resolvedModelID, spec)
-	}
-	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-}
-
-func (p *localProvider) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok, usingNexa := p.pickBackend(modelID)
-	if explicit && !ok {
-		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-	}
-	if usingNexa {
-		return nil, nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
-	}
-	if backend != nil {
-		return backend.GenerateVideo(ctx, resolvedModelID, spec)
-	}
-	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-}
-
-func (p *localProvider) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
-	if explicit && !ok {
-		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-	}
-	if backend != nil {
-		return backend.SynthesizeSpeech(ctx, resolvedModelID, spec)
-	}
-	return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-}
-
-func (p *localProvider) Transcribe(ctx context.Context, modelID string, spec *runtimev1.SpeechTranscriptionSpec, audio []byte, mimeType string) (string, *runtimev1.UsageStats, error) {
-	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
-	if explicit && !ok {
-		return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
-	}
-	if backend != nil {
-		return backend.Transcribe(ctx, resolvedModelID, spec, audio, mimeType)
-	}
-	return "", nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+// ResolveMediaBackend returns the underlying Backend for sync media operations.
+func (p *localProvider) ResolveMediaBackend(modelID string) (*nimillm.Backend, string) {
+	backend, resolvedModelID, _, _, _ := p.pickBackend(modelID)
+	return backend, resolvedModelID
 }
 
 func (p *localProvider) StreamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {

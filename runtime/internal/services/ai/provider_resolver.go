@@ -11,7 +11,22 @@ import (
 )
 
 func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
+	return s.resolveProviderWithTarget(ctx, requested, fallback, modelID, nil)
+}
+
+func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
+
+	// If a RemoteTarget is provided, force cloud/TOKEN_API route
+	if remoteTarget != nil {
+		decision := nimillm.RouteDecisionInfo{BackendName: "cloud-" + remoteTarget.ProviderType}
+		if s.cloud == nil {
+			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		}
+		modelResolved := s.cloud.ResolveModelID(rawModel)
+		return s.cloud, runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, modelResolved, decision, nil
+	}
+
 	preferred := preferredRoute(rawModel)
 
 	target := s.local
@@ -23,9 +38,6 @@ func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1
 
 	if requested != preferred && fallback != runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW {
 		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED.String())
-	}
-	if err := validateCredentialSourceAtResolvedRoute(ctx, preferred); err != nil {
-		return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, err
 	}
 
 	modelResolved := target.ResolveModelID(rawModel)

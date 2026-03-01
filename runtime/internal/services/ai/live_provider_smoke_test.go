@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 func TestLiveSmokeLocalGenerateText(t *testing.T) {
@@ -18,10 +19,10 @@ func TestLiveSmokeLocalGenerateText(t *testing.T) {
 	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL:   baseURL,
-		LocalAIAPIKey:    apiKey,
-		LocalNexaBaseURL: baseURL,
-		LocalNexaAPIKey:  apiKey,
+		LocalProviders: map[string]nimillm.ProviderCredentials{
+			"localai": {BaseURL: baseURL, APIKey: apiKey},
+			"nexa":    {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
@@ -52,8 +53,9 @@ func TestLiveSmokeNimiLLMGenerateText(t *testing.T) {
 	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_NIMILLM_API_KEY"))
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudNimiLLMBaseURL: baseURL,
-		CloudNimiLLMAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"nimillm": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
@@ -88,10 +90,10 @@ func TestLiveSmokeLocalSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL:   baseURL,
-		LocalAIAPIKey:    apiKey,
-		LocalNexaBaseURL: baseURL,
-		LocalNexaAPIKey:  apiKey,
+		LocalProviders: map[string]nimillm.ProviderCredentials{
+			"localai": {BaseURL: baseURL, APIKey: apiKey},
+			"nexa":    {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -187,8 +189,9 @@ func TestLiveSmokeNimiLLMSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudNimiLLMBaseURL: baseURL,
-		CloudNimiLLMAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"nimillm": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -292,10 +295,10 @@ func TestLiveSmokeBytedanceSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL:       baseURL,
-		CloudBytedanceAPIKey:        apiKey,
-		CloudBytedanceSpeechBaseURL: speechBaseURL,
-		CloudBytedanceSpeechAPIKey:  speechAPIKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine":           {BaseURL: baseURL, APIKey: apiKey},
+			"volcengine_openspeech": {BaseURL: speechBaseURL, APIKey: speechAPIKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -391,8 +394,9 @@ func TestLiveSmokeAlibabaSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudAlibabaBaseURL: baseURL,
-		CloudAlibabaAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -488,8 +492,9 @@ func TestLiveSmokeGeminiSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGeminiBaseURL: baseURL,
-		CloudGeminiAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"gemini": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -585,8 +590,9 @@ func TestLiveSmokeMiniMaxSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudMiniMaxBaseURL: baseURL,
-		CloudMiniMaxAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"minimax": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -682,8 +688,9 @@ func TestLiveSmokeKimiSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudKimiBaseURL: baseURL,
-		CloudKimiAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"kimi": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {
@@ -759,8 +766,9 @@ func TestLiveSmokeGLMSubmitMediaJobModalities(t *testing.T) {
 	}
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudGLMBaseURL: baseURL,
-		CloudGLMAPIKey:  apiKey,
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"glm": {BaseURL: baseURL, APIKey: apiKey},
+		},
 	})
 
 	t.Run("image", func(t *testing.T) {

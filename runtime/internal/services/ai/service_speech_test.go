@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -16,8 +17,7 @@ import (
 
 func TestGetSpeechVoicesReturnsPresets(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudNimiLLMBaseURL: "http://example.com",
-		CloudNimiLLMAPIKey:  "test-key",
+		CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
@@ -43,8 +43,7 @@ func TestGetSpeechVoicesReturnsPresets(t *testing.T) {
 
 func TestGetSpeechVoicesDashScopePresets(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudAlibabaBaseURL: "http://example.com",
-		CloudAlibabaAPIKey:  "test-key",
+		CloudProviders: map[string]nimillm.ProviderCredentials{"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
@@ -93,7 +92,7 @@ func TestStreamSpeechSynthesisSuccess(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
 	collected := make([][]byte, 0)
@@ -174,7 +173,7 @@ func TestStreamSpeechSynthesisLargePayloadChunking(t *testing.T) {
 	defer server.Close()
 
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalAIBaseURL: server.URL,
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
 	})
 
 	chunkCount := 0
@@ -219,8 +218,7 @@ func TestStreamSpeechSynthesisLargePayloadChunking(t *testing.T) {
 
 func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudBytedanceBaseURL: "http://example.com",
-		CloudBytedanceAPIKey:  "test-key",
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
