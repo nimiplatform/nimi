@@ -60,6 +60,17 @@
 - `overwrite=true` 时先删除旧索引再构建新索引。
 - 索引存储为 in-memory，runtime 重启后丢失。此为 Phase 2 有意的设计约束（见 K-KNOW-006 deferred decisions）。
 
+## K-KNOW-005a 消费契约状态
+
+KnowledgeService 的跨域消费契约状态：
+
+| 消费层 | 当前状态 | Phase 2 启动前必须 |
+|---|---|---|
+| **SDK 方法投影** | Phase 2 deferred | 创建 SDK 方法投影（BuildIndex、SearchIndex、DeleteIndex），定义 gRPC→SDK 参数映射和错误投影 |
+| **Desktop UI Spec** | 完全缺失 | 创建 Knowledge UI spec，至少定义：(1) 索引构建触发 UI（K-KNOW-002 参数收集）；(2) 构建中不确定进度指示（K-KNOW-006 deferred：无进度回调）；(3) 搜索结果展示（K-KNOW-003 SearchHit 映射）；(4) 重启后索引丢失的用户告知（K-KNOW-006 deferred：in-memory only） |
+
+> **设计完整性注意**：K-KNOW-001~005 定义了完整的索引操作模型，但 SDK 和 Desktop 均无消费契约。Runtime 实现完成后，功能不可交付直到消费层就绪。
+
 ## K-KNOW-006 Deferred Decisions
 
 以下决策在 Phase 2 Draft 阶段有意推迟，实现期允许修正：
@@ -68,6 +79,6 @@
 |---|---|---|---|
 | **持久化策略** | in-memory only（K-KNOW-005），重启丢失 | 需评估嵌入模型规模与磁盘 I/O 成本后决定持久化格式（SQLite/mmap/文件系统） | **Desktop UI 必须向用户明确告知"索引在重启后丢失"**。SDK 消费方必须处理重启后 SearchIndex 返回空结果的场景（不应视为错误） |
 | **索引更新策略** | 仅支持全量覆盖（`overwrite=true`） | 增量更新需定义文档变更检测机制与部分重建协议 | Desktop 必须在 UI 中提示"更新索引将替换全部内容" |
-| **BuildIndex 进度上报** | 仅返回 `task_id`，无进度回调 | 需与 Workflow 事件流（K-WF-*）集成后统一设计 | Desktop/SDK 无法显示索引构建进度，只能显示"构建中"不确定进度指示 |
+| **BuildIndex 进度上报** | 仅返回 `task_id`，无进度回调。**当前无追踪 RPC**：task_id 既非 MediaJob（无 SubscribeMediaJobEvents 可用）也非 Workflow task（无 SubscribeWorkflowEvents 可用），且无 `GetIndexBuildStatus` 或 `SubscribeKnowledgeEvents` RPC | 需与 Workflow 事件流（K-WF-*）集成后统一设计。候选方案：(1) 纳入 Workflow 体系作为 INLINE 节点；(2) 新增 `GetBuildStatus(task_id)` 轮询 RPC；(3) 新增 `SubscribeKnowledgeEvents` 流 | Desktop/SDK 无法显示索引构建进度，只能显示"构建中"不确定进度指示。完成检测的临时方案：轮询 `SearchIndex` 判断是否返回非空结果 |
 | **SearchIndex 分页** | 无分页，`top_k` 限制返回数量 | 向量搜索的分页语义（score-based cursor）与标准 page_token 不同，需专门设计 | — |
 | **多索引联合搜索** | 不支持 | 需定义跨索引 score 归一化与合并策略 | — |

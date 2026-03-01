@@ -83,6 +83,17 @@ Desktop 存在两条 mod 间通信路径：
 - 需要 **审计追踪** 或 **跨重启持久化** 或 **跨进程** 时走 K-APP 路径。
 - 两条路径**不做消息去重**——发送方有责任选择唯一路径，同时使用两条路径发送同一消息的行为是应用层错误。
 
+## K-APP-006a 消费契约状态
+
+AppService 的跨域消费契约状态：
+
+| 消费层 | 当前状态 | Phase 2 启动前必须 |
+|---|---|---|
+| **SDK 方法投影** | Phase 2 deferred | 创建 SDK 方法投影（SendAppMessage、SubscribeAppMessages），定义 gRPC→SDK 参数映射和错误投影 |
+| **Desktop UI Spec** | D-HOOK interMod 路径已有（K-APP-006），K-APP 路径无 Desktop 消费 | 若 Desktop 需直接使用 K-APP 路径（跨进程、审计场景），创建相应 UI spec |
+
+> **设计完整性注意**：K-APP-001~005 定义了完整的消息传递模型。Desktop 当前主要通过 D-HOOK interMod 路径实现 mod 间通信，K-APP 的 gRPC 路径在 SDK 层无消费投影。
+
 ## K-APP-007 Deferred Decisions
 
 以下决策在 Phase 2 Draft 阶段有意推迟，实现期允许修正：
