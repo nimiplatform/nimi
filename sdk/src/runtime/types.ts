@@ -630,6 +630,7 @@ export type SpeechSynthesizeInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
@@ -692,6 +693,7 @@ export type SpeechListVoicesInput = {
   subjectUserId?: string;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
+  connectorId?: string;
   metadata?: Record<string, string>;
 };
 
@@ -721,6 +723,7 @@ export type SpeechStreamSynthesisInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
   providerOptions?: Record<string, unknown>;
 };

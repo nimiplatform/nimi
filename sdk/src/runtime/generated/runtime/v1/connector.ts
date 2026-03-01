@@ -262,6 +262,10 @@ export interface ConnectorModelDescriptor {
      * @generated from protobuf field: bool available = 3
      */
     available: boolean;
+    /**
+     * @generated from protobuf field: repeated string capabilities = 4
+     */
+    capabilities: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListConnectorModelsRequest
@@ -1260,7 +1264,8 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         super("nimi.runtime.v1.ConnectorModelDescriptor", [
             { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "model_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 3, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ConnectorModelDescriptor>): ConnectorModelDescriptor {
@@ -1268,6 +1273,7 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         message.modelId = "";
         message.modelLabel = "";
         message.available = false;
+        message.capabilities = [];
         if (value !== undefined)
             reflectionMergePartial<ConnectorModelDescriptor>(this, message, value);
         return message;
@@ -1285,6 +1291,9 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
                     break;
                 case /* bool available */ 3:
                     message.available = reader.bool();
+                    break;
+                case /* repeated string capabilities */ 4:
+                    message.capabilities.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1307,6 +1316,9 @@ class ConnectorModelDescriptor$Type extends MessageType<ConnectorModelDescriptor
         /* bool available = 3; */
         if (message.available !== false)
             writer.tag(3, WireType.Varint).bool(message.available);
+        /* repeated string capabilities = 4; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.capabilities[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

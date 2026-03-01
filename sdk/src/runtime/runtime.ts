@@ -1514,7 +1514,7 @@ export class Runtime {
       idempotencyKey: normalizeText((input.input as { idempotencyKey?: string }).idempotencyKey),
       labels: toLabels((input.input as { labels?: Record<string, string> }).labels),
       spec: { oneofKind: undefined },
-      connectorId: '',
+      connectorId: normalizeText((input.input as { connectorId?: string }).connectorId),
     };
 
     if (input.modal === 'image') {
@@ -1839,7 +1839,7 @@ export class Runtime {
       modelId: ensureText(input.model, 'model'),
       routePolicy: toRoutePolicy(input.route),
       fallback: toFallbackPolicy(input.fallback),
-      connectorId: '',
+      connectorId: normalizeText(input.connectorId),
     };
 
     const response = await this.#invokeWithClient(async (client) => client.ai.getSpeechVoices(
@@ -1882,7 +1882,7 @@ export class Runtime {
       routePolicy: toRoutePolicy(input.route),
       fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-      connectorId: '',
+      connectorId: normalizeText(input.connectorId),
     };
 
     return this.#invokeWithClient(async (client) => client.ai.synthesizeSpeechStream(
