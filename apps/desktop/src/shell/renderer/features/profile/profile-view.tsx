@@ -10,6 +10,7 @@ import { CollectionsTab } from './components/collections-tab';
 import { GiftsTab } from './components/gifts-tab';
 import { MediaLightbox } from './components/media-lightbox';
 import { dataSync } from '@runtime/data-sync';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 type ProfileViewProps = {
   profile: ProfileData;
@@ -22,6 +23,7 @@ type ProfileViewProps = {
   canAddFriend?: boolean;
   addFriendHint?: string | null;
   onSendGift: () => void;
+  showMessageButton?: boolean;
 };
 
 type MediaSelection = {
@@ -109,16 +111,42 @@ export function ProfileView(props: ProfileViewProps) {
       // Navigate back after blocking
       props.onBack();
     } catch (error) {
-      console.error('Failed to block user:', error);
+      logRendererEvent({
+        level: 'error',
+        area: 'profile',
+        message: 'action:block-user:failed',
+        details: { userId: props.profile.id, error: String(error) },
+      });
     } finally {
       setIsBlocking(false);
     }
   };
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDelete = () => {
     setShowMenu(false);
-    // TODO: Implement delete friend functionality
-    console.log('Delete friend:', props.profile.id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await dataSync.removeFriend(props.profile.id);
+      await queryClient.refetchQueries({ queryKey: ['contacts'], exact: false, type: 'all' });
+      setShowDeleteModal(false);
+      props.onBack();
+    } catch (error) {
+      logRendererEvent({
+        level: 'error',
+        area: 'profile',
+        message: 'action:delete-friend:failed',
+        details: { userId: props.profile.id, error: String(error) },
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (props.loading) {
@@ -157,7 +185,7 @@ export function ProfileView(props: ProfileViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
       {/* Top bar */}
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-white/50 bg-white/70 px-6 backdrop-blur-xl">
+      <div className="flex h-14 shrink-0 items-center gap-3 bg-white/70 px-6 backdrop-blur-xl">
         <h1 className="text-lg font-medium tracking-tight text-gray-800">{t('ProfileView.title')}</h1>
       </div>
 
@@ -224,23 +252,35 @@ export function ProfileView(props: ProfileViewProps) {
                   )}
                   
                   <div className="relative flex flex-col items-center">
-                    {/* Avatar with glass effect */}
+                    {/* Avatar with agent glow effect */}
                     <div className="relative">
-                      <div className="rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1">
+                      <div className={`${profile.isAgent ? '' : 'rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1'}`}>
                         {profile.avatarUrl ? (
                           <img
                             src={profile.avatarUrl}
                             alt={profile.displayName}
-                            className="h-24 w-24 rounded-2xl object-cover"
+                            className={`h-24 w-24 rounded-2xl object-cover ${profile.isAgent ? '' : ''}`}
+                            style={profile.isAgent ? {
+                              boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
+                            } : undefined}
                           />
                         ) : (
-                          <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-3xl font-bold text-[#4ECCA3]">
+                          <div 
+                            className={`flex h-24 w-24 items-center justify-center rounded-2xl text-3xl font-bold ${
+                              profile.isAgent 
+                                ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
+                                : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#4ECCA3]'
+                            }`}
+                            style={profile.isAgent ? {
+                              boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
+                            } : undefined}
+                          >
                             {getProfileInitial(profile.displayName)}
                           </div>
                         )}
                       </div>
                       {profile.isOnline && (
-                        <span className="absolute right-1 bottom-1 h-4 w-4 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
+                        <span className={`absolute h-4 w-4 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm ${profile.isAgent ? 'right-0 bottom-0' : 'right-1 bottom-1'}`} />
                       )}
                     </div>
 
@@ -274,14 +314,16 @@ export function ProfileView(props: ProfileViewProps) {
 
                     {/* Action Buttons - Icon Only */}
                     <div className="mt-5 flex items-center justify-center gap-3">
-                      <button
-                        type="button"
-                        onClick={props.onMessage}
-                        title="Chat"
-                        className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4ECCA3] text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] transition-all hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
-                      >
-                        <MessageIcon className="h-5 w-5" />
-                      </button>
+                      {props.showMessageButton !== false && (
+                        <button
+                          type="button"
+                          onClick={props.onMessage}
+                          title="Chat"
+                          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4ECCA3] text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] transition-all hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
+                        >
+                          <MessageIcon className="h-5 w-5" />
+                        </button>
+                      )}
                       {!props.isOwnProfile && (
                         <button
                           type="button"
@@ -397,6 +439,42 @@ export function ProfileView(props: ProfileViewProps) {
           initialMediaIndex={selectedMedia.mediaIndex}
           onClose={() => setSelectedMedia(null)}
         />
+      )}
+
+      {/* Delete Friend Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <svg className="h-6 w-6 text-red-600" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Remove Friend</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Are you sure you want to remove <span className="font-medium text-gray-900">{props.profile.displayName}</span> from your friends?
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Block Confirmation Modal */}

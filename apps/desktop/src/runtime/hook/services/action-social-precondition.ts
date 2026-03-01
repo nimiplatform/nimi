@@ -3,6 +3,7 @@ import type {
   HookActionRequestContext,
 } from '../contracts/action.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { emitRuntimeLog } from '@runtime/telemetry/logger';
 
 type SocialCheckInput = {
   descriptor: HookActionDescriptorView;
@@ -59,9 +60,11 @@ function resolveAgentAccountId(
 export class HookActionSocialPreconditionService {
   constructor(private readonly resolve: SocialCheckResolver | null) {
     if (!resolve) {
-      // Fail-close remains enforced; warn once to surface runtime wiring mistakes.
-      // eslint-disable-next-line no-console
-      console.warn('[hook-action] social precondition resolver unavailable; guarded actions will deny');
+      emitRuntimeLog({
+        level: 'warn',
+        area: 'hook',
+        message: 'social-precondition:resolver-unavailable; guarded actions will deny',
+      });
     }
   }
 

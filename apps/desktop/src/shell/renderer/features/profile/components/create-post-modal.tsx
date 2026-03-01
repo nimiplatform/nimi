@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 type CreatePostModalProps = {
   open: boolean;
@@ -321,9 +322,12 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
       // Notify parent that post was created successfully
       onCreated();
     } catch (err) {
-      // Notify parent about error so publishing state can be cleared
-      console.error('Failed to create post:', err);
-      // Still call onCreated to clear the publishing state
+      logRendererEvent({
+        level: 'error',
+        area: 'profile',
+        message: 'action:create-post:failed',
+        details: { error: String(err) },
+      });
       onCreated();
     }
   }, [selectedFile, caption, tags, selectedLocation, handleClose, onCreated, onUploadStart]);
@@ -345,8 +349,8 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [showEmojiPanel, showLocationPanel, showTagPanel]);
 
   // Update panel positions on window resize
@@ -527,7 +531,10 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
                   ref={emojiBtnRef}
                   type="button"
                   disabled={uploading}
-                  onClick={toggleEmojiPanel}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleEmojiPanel();
+                  }}
                   className={`emoji-btn group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
                     showEmojiPanel
                       ? 'bg-[#0066CC] text-white'
@@ -554,7 +561,10 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
                   ref={locationBtnRef}
                   type="button"
                   disabled={uploading}
-                  onClick={toggleLocationPanel}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLocationPanel();
+                  }}
                   className={`location-btn group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
                     showLocationPanel
                       ? 'bg-[#0066CC] text-white'
@@ -579,7 +589,10 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
                   ref={tagBtnRef}
                   type="button"
                   disabled={uploading}
-                  onClick={toggleTagPanel}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTagPanel();
+                  }}
                   className={`tag-btn group relative flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
                     showTagPanel
                       ? 'bg-[#0066CC] text-white'
@@ -791,7 +804,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
               </svg>
               <input
                 type="text"
-                placeholder="Search tags..."
+                placeholder="Search or create a tag..."
                 value={tagSearch}
                 onChange={(e) => setTagSearch(e.target.value)}
                 onKeyDown={(e) => {
@@ -805,52 +818,59 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
           </div>
           {/* Tag list */}
           <div className="max-h-48 overflow-y-auto py-2">
-            {filteredTags.length > 0 ? (
-              filteredTags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => insertTag(tag)}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                      <line x1="7" y1="7" x2="7.01" y2="7" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
-                  </div>
-                  {tags.includes(tag) && (
-                    <svg className="h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              ))
-            ) : (
-              tagSearch.trim() ? (
-                <button
-                  type="button"
-                  onClick={() => insertTag(tagSearch.trim())}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
-                >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-sm font-medium text-gray-900">Add #{tagSearch}</p>
-                  </div>
-                </button>
-              ) : (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">
-                  Type to search or add a tag
+            {/* Existing tags */}
+            {filteredTags.length > 0 && (
+              <div className="mb-1">
+                {filteredTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => insertTag(tag)}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                        <line x1="7" y1="7" x2="7.01" y2="7" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
+                    </div>
+                    {tags.includes(tag) && (
+                      <svg className="h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Create new tag option */}
+            {tagSearch.trim() && !tags.includes(tagSearch.trim()) && (
+              <button
+                type="button"
+                onClick={() => insertTag(tagSearch.trim())}
+                className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-[#4ECCA3]/10 border-t border-gray-100"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
                 </div>
-              )
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-sm font-medium text-[#4ECCA3]">Create tag &quot;{tagSearch.trim()}&quot;</p>
+                </div>
+              </button>
+            )}
+            
+            {/* Empty state */}
+            {!tagSearch.trim() && filteredTags.length === 0 && (
+              <div className="px-3 py-4 text-center text-sm text-gray-500">
+                Type to search or create a new tag
+              </div>
             )}
           </div>
         </div>
