@@ -9,40 +9,30 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	tokenProviderIDNimiLLM   = "nimillm"
-	tokenProviderIDAlibaba   = "alibaba"
-	tokenProviderIDBytedance = "bytedance"
-	tokenProviderIDGemini    = "gemini"
-	tokenProviderIDMiniMax   = "minimax"
-	tokenProviderIDKimi      = "kimi"
-	tokenProviderIDGLM       = "glm"
-)
-
 // NormalizeTokenProviderID canonicalizes public token provider identifiers.
 func NormalizeTokenProviderID(raw string) (string, error) {
 	token := normalizeProbeProviderToken(raw)
 	if token == "" {
-		return tokenProviderIDNimiLLM, nil
+		return "nimillm", nil
 	}
 
 	switch token {
 	case "litellm", "cloudlitellm", "cloudai":
 		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 	case "nimillm", "cloudnimillm":
-		return tokenProviderIDNimiLLM, nil
+		return "nimillm", nil
 	case "alibaba", "aliyun", "cloudalibaba", "dashscope":
-		return tokenProviderIDAlibaba, nil
+		return "dashscope", nil
 	case "bytedance", "byte", "cloudbytedance", "volcengine":
-		return tokenProviderIDBytedance, nil
+		return "volcengine", nil
 	case "gemini", "cloudgemini":
-		return tokenProviderIDGemini, nil
+		return "gemini", nil
 	case "minimax", "cloudminimax":
-		return tokenProviderIDMiniMax, nil
+		return "minimax", nil
 	case "kimi", "moonshot", "cloudkimi":
-		return tokenProviderIDKimi, nil
+		return "kimi", nil
 	case "glm", "zhipu", "bigmodel", "cloudglm":
-		return tokenProviderIDGLM, nil
+		return "glm", nil
 	default:
 		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
 	}
@@ -55,11 +45,8 @@ func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, 
 		return nil, "", err
 	}
 
-	template := p.backendByProviderID(canonicalProviderID)
+	template := p.backends[canonicalProviderID]
 	backendName := "cloud-" + canonicalProviderID
-	if canonicalProviderID == tokenProviderIDNimiLLM {
-		backendName = "cloud-nimillm"
-	}
 	backend := probeBackendFromTemplate(backendName, template, endpoint, apiKey, p.probeTimeout())
 	if backend == nil {
 		return nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
@@ -67,31 +54,10 @@ func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, 
 	return backend, canonicalProviderID, nil
 }
 
-func (p *CloudProvider) backendByProviderID(providerID string) *Backend {
-	switch providerID {
-	case tokenProviderIDNimiLLM:
-		return p.nimiLLM
-	case tokenProviderIDAlibaba:
-		return p.alibaba
-	case tokenProviderIDBytedance:
-		return p.bytedance
-	case tokenProviderIDGemini:
-		return p.gemini
-	case tokenProviderIDMiniMax:
-		return p.minimax
-	case tokenProviderIDKimi:
-		return p.kimi
-	case tokenProviderIDGLM:
-		return p.glm
-	default:
-		return nil
-	}
-}
-
 func (p *CloudProvider) probeTimeout() time.Duration {
-	for _, backend := range []*Backend{p.nimiLLM, p.alibaba, p.bytedance, p.gemini, p.minimax, p.kimi, p.glm} {
-		if backend != nil && backend.client != nil {
-			return backend.client.Timeout
+	for _, providerID := range knownProviders {
+		if b := p.backends[providerID]; b != nil && b.client != nil {
+			return b.client.Timeout
 		}
 	}
 	return defaultHTTPTimeout

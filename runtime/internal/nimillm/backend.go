@@ -28,6 +28,13 @@ type Backend struct {
 // NewBackend creates a new OpenAI-compatible backend.
 // Returns nil if baseURL is empty.
 func NewBackend(name string, baseURL string, apiKey string, timeout time.Duration) *Backend {
+	return NewBackendWithTransport(name, baseURL, apiKey, timeout, nil)
+}
+
+// NewBackendWithTransport creates a backend with an optional custom transport.
+// When transport is non-nil it is used for all HTTP requests (e.g. a pinned
+// transport from endpointsec). Returns nil if baseURL is empty.
+func NewBackendWithTransport(name string, baseURL string, apiKey string, timeout time.Duration, transport http.RoundTripper) *Backend {
 	trimmed := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
 	if trimmed == "" {
 		return nil
@@ -35,13 +42,15 @@ func NewBackend(name string, baseURL string, apiKey string, timeout time.Duratio
 	if timeout <= 0 {
 		timeout = defaultHTTPTimeout
 	}
+	client := &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}
 	return &Backend{
 		Name:    name,
 		baseURL: trimmed,
 		apiKey:  strings.TrimSpace(apiKey),
-		client: &http.Client{
-			Timeout: timeout,
-		},
+		client:  client,
 	}
 }
 
