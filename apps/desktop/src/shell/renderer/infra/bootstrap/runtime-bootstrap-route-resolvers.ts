@@ -1,14 +1,18 @@
-import { resolveRuntimeCapabilityConfigFromV11 } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
+import { resolveRuntimeCapabilityConfigFromStateV11 } from '@renderer/features/runtime-config/state/runtime-route-resolver-v11';
 import {
   normalizeCapabilityV11,
   type SourceIdV11,
 } from '@renderer/features/runtime-config/state/v11/types';
+import { createDefaultStateV11 } from '@renderer/features/runtime-config/state/v11/storage/defaults';
+import { applyRuntimeBridgeConfigToState } from '@renderer/features/runtime-config/runtime-bridge-config';
+import { desktopBridge } from '@renderer/bridge';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   buildRuntimeRouteResolveCacheKey,
   RUNTIME_ROUTE_RESOLVE_CACHE_TTL_MS,
   runtimeRouteResolveCache,
   safeErrorMessage,
+  toRecord,
 } from './runtime-bootstrap-utils';
 import type {
   ResolvedRuntimeRouteBinding,
@@ -31,8 +35,30 @@ function normalizeRouteOverrideSource(value: unknown): SourceIdV11 | undefined {
   return value === 'token-api' ? 'token-api' : value === 'local-runtime' ? 'local-runtime' : undefined;
 }
 
+async function loadBridgeMergedState(runtimeFields: RuntimeFields) {
+  const seed = {
+    provider: runtimeFields.provider,
+    runtimeModelType: runtimeFields.runtimeModelType,
+    localProviderEndpoint: runtimeFields.localProviderEndpoint,
+    localProviderModel: runtimeFields.localProviderModel,
+    localOpenAiEndpoint: runtimeFields.localOpenAiEndpoint,
+    connectorId: runtimeFields.connectorId,
+  };
+  const defaultState = createDefaultStateV11(seed);
+  if (!desktopBridge.hasTauriInvoke()) {
+    return { state: defaultState, seed };
+  }
+  try {
+    const result = await desktopBridge.getRuntimeBridgeConfig();
+    const config = toRecord(toRecord(result).config);
+    return { state: applyRuntimeBridgeConfigToState(defaultState, config), seed };
+  } catch {
+    return { state: defaultState, seed };
+  }
+}
+
 function toResolvedRuntimeRouteBinding(
-  resolved: ReturnType<typeof resolveRuntimeCapabilityConfigFromV11>,
+  resolved: ReturnType<typeof resolveRuntimeCapabilityConfigFromStateV11>,
 ): ResolvedRuntimeRouteBinding {
   if (resolved.source === 'local-runtime') {
     return {
@@ -180,8 +206,10 @@ export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields)
     });
 
     try {
-      const resolved = resolveRuntimeCapabilityConfigFromV11(
-        runtimeFieldsForCache,
+      const { state: bridgeState, seed } = await loadBridgeMergedState(runtimeFieldsForCache);
+      const resolved = resolveRuntimeCapabilityConfigFromStateV11(
+        bridgeState,
+        seed,
         capability,
         { modId, routeOverride: normalizedRouteOverride },
       );
@@ -365,8 +393,10 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
           ? { model: normalizedExplicitModel }
           : undefined;
 
-    const resolved = resolveRuntimeCapabilityConfigFromV11(
-      getRuntimeFields(),
+    const { state: bridgeState, seed } = await loadBridgeMergedState(getRuntimeFields());
+    const resolved = resolveRuntimeCapabilityConfigFromStateV11(
+      bridgeState,
+      seed,
       'tts',
       { modId, routeOverride },
     );

@@ -46,11 +46,10 @@ export function removeSelectedConnector(
   if (!selectedConnectorId) return prev;
   const remaining = prev.connectors.filter((connector) => connector.id !== selectedConnectorId);
   if (remaining.length === 0) {
-    const fallback = createConnectorV11('openrouter', 'Primary Connector');
     return {
       ...prev,
-      connectors: [fallback],
-      selectedConnectorId: fallback.id,
+      connectors: [],
+      selectedConnectorId: '',
     };
   }
   const fallback = remaining[0];

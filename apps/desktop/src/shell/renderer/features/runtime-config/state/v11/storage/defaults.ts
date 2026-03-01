@@ -30,8 +30,6 @@ export type StoredStateV11 = Partial<{
   activeSetupPage: RuntimeConfigStateV11['activeSetupPage'];
   diagnosticsCollapsed: boolean;
   localRuntime: Partial<RuntimeConfigStateV11['localRuntime']>;
-  connectors: Array<Partial<RuntimeConfigStateV11['connectors'][number]>>;
-  selectedConnectorId: string;
   uiMode: 'simple' | 'advanced';
 }>;
 
@@ -125,17 +123,8 @@ export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfig
     lastDetail: '',
   };
 
-  const connector = createConnectorV11('openrouter', 'Primary Connector');
-  const seedOpenAiEndpoint = String(seed.localOpenAiEndpoint || '').trim();
-  if (
-    seedOpenAiEndpoint
-    && (
-      sourceFromRuntime === 'token-api'
-      || /openrouter\.ai/i.test(seedOpenAiEndpoint)
-    )
-  ) {
-    connector.endpoint = normalizeEndpointV11(seedOpenAiEndpoint, connector.endpoint);
-  }
+  // No fallback connector — connectors come from runtime bridge config (providers).
+  // An empty list means the user has not configured any cloud providers yet.
   return {
     version: 11,
     initializedByV11: false,
@@ -146,8 +135,8 @@ export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfig
     selectedSource: preferTokenApi ? 'token-api' : sourceFromRuntime,
     activeCapability: normalizeCapabilityV11(seed.runtimeModelType),
     localRuntime,
-    connectors: [connector],
-    selectedConnectorId: connector.id,
+    connectors: [],
+    selectedConnectorId: '',
   };
 }
 

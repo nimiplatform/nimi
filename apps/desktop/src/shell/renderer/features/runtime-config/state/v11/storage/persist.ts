@@ -1,5 +1,5 @@
 import { loadStorageJsonFrom, saveStorageJsonTo } from '@nimiplatform/sdk/mod/utils';
-import { type RuntimeConfigStateV11 } from '../types';
+import type { RuntimeConfigStateV11 } from '../types';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
   createDefaultStateV11,
@@ -23,7 +23,9 @@ export function loadRuntimeConfigStateV11(seed: RuntimeConfigSeedV11): RuntimeCo
 }
 
 export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void {
-  const payload: RuntimeConfigStateV11 = {
+  // Connectors are NOT persisted to localStorage — runtime bridge config (config.json)
+  // is the single source of truth for provider/connector data.
+  const payload: StoredStateV11 = {
     version: 11,
     initializedByV11: Boolean(state.initializedByV11),
     activeSection: state.activeSection,
@@ -33,12 +35,6 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     selectedSource: state.selectedSource,
     activeCapability: state.activeCapability,
     localRuntime: state.localRuntime,
-    connectors: state.connectors.map((connector) => {
-      const { tokenApiKey, ...safe } = connector as Record<string, unknown> & typeof connector;
-      void tokenApiKey;
-      return safe;
-    }) as typeof state.connectors,
-    selectedConnectorId: state.selectedConnectorId,
   };
 
   saveStorageJsonTo(

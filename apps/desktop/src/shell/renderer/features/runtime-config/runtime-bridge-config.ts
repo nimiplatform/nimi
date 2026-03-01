@@ -33,6 +33,7 @@ const DEFAULT_PROVIDER_BASE_URL: Record<string, string> = {
   bytedance: 'https://ark.cn-beijing.volces.com',
   'bytedance-openspeech': 'https://openspeech.bytedance.com',
   gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
+  deepseek: 'https://api.deepseek.com/v1',
   minimax: 'https://api.minimax.io',
   kimi: 'https://api.moonshot.cn',
   glm: 'https://api.z.ai/api/paas/v4',
@@ -46,12 +47,13 @@ const DEFAULT_PROVIDER_API_KEY_ENV: Record<string, string> = {
   bytedance: 'ARK_API_KEY',
   'bytedance-openspeech': 'OPENSPEECH_API_KEY',
   gemini: 'GEMINI_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
   minimax: 'MINIMAX_API_KEY',
   kimi: 'MOONSHOT_API_KEY',
   glm: 'ZAI_API_KEY',
 };
 
-const UI_MANAGED_CLOUD_PROVIDER_KEYS = ['nimillm', 'alibaba', 'bytedance', 'gemini', 'minimax', 'kimi', 'glm'] as const;
+const UI_MANAGED_CLOUD_PROVIDER_KEYS = ['nimillm', 'alibaba', 'bytedance', 'gemini', 'deepseek', 'minimax', 'kimi', 'glm'] as const;
 const UI_UNMANAGED_PROVIDER_KEYS = ['local-nexa', 'bytedance-openspeech'] as const;
 
 type UiManagedCloudProviderKey = (typeof UI_MANAGED_CLOUD_PROVIDER_KEYS)[number];
@@ -83,6 +85,7 @@ function canonicalProviderKey(raw: string): string {
   if (token === 'minimax' || token === 'cloudminimax') return 'minimax';
   if (token === 'kimi' || token === 'moonshot' || token === 'cloudkimi') return 'kimi';
   if (token === 'glm' || token === 'zhipu' || token === 'bigmodel' || token === 'cloudglm') return 'glm';
+  if (token === 'deepseek' || token === 'clouddeepseek') return 'deepseek';
   return trimmed;
 }
 
@@ -126,6 +129,7 @@ function connectorLabelFromProvider(providerKey: string): string {
   if (providerKey === 'kimi') return 'Kimi Connector';
   if (providerKey === 'minimax') return 'MiniMax Connector';
   if (providerKey === 'glm') return 'GLM Connector';
+  if (providerKey === 'deepseek') return 'DeepSeek Connector';
   if (providerKey === 'nimillm') return 'NimiLLM Connector';
   return `Connector ${providerKey}`;
 }
@@ -149,6 +153,7 @@ function vendorFromProviderKey(providerKey: UiManagedCloudProviderKey, endpoint:
   if (providerKey === 'bytedance') return 'volcengine';
   if (providerKey === 'gemini') return 'gemini';
   if (providerKey === 'kimi') return 'kimi';
+  if (providerKey === 'deepseek') return 'deepseek';
   if (providerKey === 'minimax' || providerKey === 'glm') return 'custom';
   return inferVendorFromEndpoint(endpoint);
 }
@@ -158,8 +163,10 @@ function providerKeyFromConnector(connector: RuntimeConfigStateV11['connectors']
   if (connector.vendor === 'volcengine') return 'bytedance';
   if (connector.vendor === 'gemini') return 'gemini';
   if (connector.vendor === 'kimi') return 'kimi';
+  if (connector.vendor === 'deepseek') return 'deepseek';
 
   const normalizedEndpoint = readString(connector.endpoint).toLowerCase();
+  if (normalizedEndpoint.includes('api.deepseek.com')) return 'deepseek';
   if (normalizedEndpoint.includes('api.minimax.io')) return 'minimax';
   if (
     normalizedEndpoint.includes('api.z.ai')
@@ -211,14 +218,6 @@ function findExistingConnectorByProvider(
   return connectors.find((connector) => providerKeyFromConnector(connector) === providerKey) || null;
 }
 
-function connectorStableKey(
-  connector: RuntimeConfigStateV11['connectors'][number],
-): string {
-  const providerKey = providerKeyFromConnector(connector);
-  const endpoint = normalizeEndpointV11(connector.endpoint, connector.endpoint);
-  return `${providerKey}::${endpoint}`;
-}
-
 function sortProviderEntries(providers: Record<string, RuntimeBridgeProviderConfig>): Record<string, RuntimeBridgeProviderConfig> {
   const sortedKeys = Object.keys(providers).sort((left, right) => left.localeCompare(right));
   const output: Record<string, RuntimeBridgeProviderConfig> = {};
@@ -243,8 +242,10 @@ export function applyRuntimeBridgeConfigToState(
   state: RuntimeConfigStateV11,
   runtimeConfigRaw: Record<string, unknown>,
 ): RuntimeConfigStateV11 {
-  const aiRecord = asRecord(asRecord(runtimeConfigRaw).ai);
-  const providers = normalizeProviderConfigs(asRecord(aiRecord.providers));
+  // Go runtime stores providers at top level (config.providers), not nested under ai.
+  const providers = normalizeProviderConfigs(
+    asRecord(asRecord(runtimeConfigRaw).providers),
+  );
 
   const localProvider = providers.local;
   const nextLocalEndpoint = localProvider?.baseUrl
@@ -279,22 +280,14 @@ export function applyRuntimeBridgeConfigToState(
     })
     .filter((connector): connector is RuntimeConfigStateV11['connectors'][number] => Boolean(connector));
 
-  const selectedConnectorId = previousSelectedProviderKey
-    ? (connectorsFromConfig.find((connector) => providerKeyFromConnector(connector) === previousSelectedProviderKey)?.id
-      || connectorsFromConfig[0]?.id
-      || state.selectedConnectorId)
-    : (connectorsFromConfig[0]?.id || state.selectedConnectorId);
-
-  const configuredKeys = new Set(connectorsFromConfig.map((connector) => connectorStableKey(connector)));
-  const preservedConnectors = state.connectors.filter((connector) => !configuredKeys.has(connectorStableKey(connector)));
-  const nextConnectors = connectorsFromConfig.length > 0
-    ? [...connectorsFromConfig, ...preservedConnectors]
-    : state.connectors;
-  const nextSelectedConnectorId = nextConnectors.some((connector) => connector.id === state.selectedConnectorId)
-    ? state.selectedConnectorId
-    : nextConnectors.some((connector) => connector.id === selectedConnectorId)
-      ? selectedConnectorId
-      : (nextConnectors[0]?.id || state.selectedConnectorId);
+  // Runtime bridge config (config.json) is the single source of truth for connectors.
+  // No localStorage fallback — connectorsFromConfig IS the complete connector list.
+  const nextConnectors = connectorsFromConfig;
+  const nextSelectedConnectorId = previousSelectedProviderKey
+    ? (nextConnectors.find((connector) => providerKeyFromConnector(connector) === previousSelectedProviderKey)?.id
+      || nextConnectors[0]?.id
+      || '')
+    : (nextConnectors[0]?.id || '');
 
   return {
     ...state,
@@ -311,21 +304,14 @@ export function buildRuntimeBridgeConfigFromState(
   state: RuntimeConfigStateV11,
   baseConfigRaw: Record<string, unknown>,
 ): Record<string, unknown> {
+  // Go runtime FileConfig uses flat top-level fields (grpcAddr, providers, etc.),
+  // NOT nested runtime/ai objects.
   const configRecord = deepCloneRecord(baseConfigRaw);
   configRecord.schemaVersion = DEFAULT_RUNTIME_CONFIG.schemaVersion;
+  configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || DEFAULT_RUNTIME_CONFIG.runtime.grpcAddr;
+  configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.runtime.httpAddr;
 
-  const runtimeRecord = asRecord(configRecord.runtime);
-  runtimeRecord.grpcAddr = readString(runtimeRecord.grpcAddr) || DEFAULT_RUNTIME_CONFIG.runtime.grpcAddr;
-  runtimeRecord.httpAddr = readString(runtimeRecord.httpAddr) || DEFAULT_RUNTIME_CONFIG.runtime.httpAddr;
-  runtimeRecord.shutdownTimeout = readString(runtimeRecord.shutdownTimeout) || DEFAULT_RUNTIME_CONFIG.runtime.shutdownTimeout;
-  runtimeRecord.localRuntimeStatePath = readString(runtimeRecord.localRuntimeStatePath) || DEFAULT_RUNTIME_CONFIG.runtime.localRuntimeStatePath;
-  configRecord.runtime = runtimeRecord;
-
-  const aiRecord = asRecord(configRecord.ai);
-  aiRecord.httpTimeout = readString(aiRecord.httpTimeout) || DEFAULT_RUNTIME_CONFIG.ai.httpTimeout;
-  aiRecord.healthInterval = readString(aiRecord.healthInterval) || DEFAULT_RUNTIME_CONFIG.ai.healthInterval;
-
-  const existingProviders = normalizeProviderConfigs(asRecord(aiRecord.providers));
+  const existingProviders = normalizeProviderConfigs(asRecord(configRecord.providers));
   const nextProviders: Record<string, RuntimeBridgeProviderConfig> = {};
 
   for (const providerKey of UI_UNMANAGED_PROVIDER_KEYS) {
@@ -382,8 +368,7 @@ export function buildRuntimeBridgeConfigFromState(
     };
   }
 
-  aiRecord.providers = providersRecord;
-  configRecord.ai = aiRecord;
+  configRecord.providers = providersRecord;
   return configRecord;
 }
 

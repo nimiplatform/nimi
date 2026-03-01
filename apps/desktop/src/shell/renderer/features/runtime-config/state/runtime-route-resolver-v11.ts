@@ -8,7 +8,6 @@ import {
   type SourceIdV11,
 } from './v11/types';
 import {
-  loadRuntimeConfigStateV11,
   type RuntimeConfigSeedV11,
 } from './v11/storage';
 import {
@@ -371,14 +370,3 @@ export function resolveRuntimeCapabilityConfigFromStateV11(
   });
 }
 
-export function resolveRuntimeCapabilityConfigFromV11(
-  seed: RuntimeConfigSeedV11,
-  capabilityInput: CapabilityV11,
-  options?: {
-    modId?: string;
-    routeOverride?: RuntimeRouteOverrideInput;
-  },
-): ResolvedRuntimeCapabilityConfigV11 {
-  const state = loadRuntimeConfigStateV11(seed);
-  return resolveRuntimeCapabilityConfigFromStateV11(state, seed, capabilityInput, options);
-}

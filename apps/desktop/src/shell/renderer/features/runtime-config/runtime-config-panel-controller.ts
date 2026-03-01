@@ -507,6 +507,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         panelState.setState((previous) => {
           if (!previous) return previous;
           const next = applyRuntimeBridgeConfigToState(previous, runtimeBridgeConfigRef.current);
+          // localStorage no longer stores connectors — bridge config is the single source.
+          // Initial projection matches the merged state directly.
           runtimeBridgeProjectionRef.current = serializeRuntimeBridgeProjection(next);
           runtimeBridgeFailedProjectionRef.current = '';
           return next;

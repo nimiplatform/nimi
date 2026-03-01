@@ -1,7 +1,6 @@
 import {
   DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
   normalizeCapabilityV11,
-  normalizeConnectorV11,
   normalizeEndpointV11,
   normalizeLocalRuntimeModelV11,
   normalizeLocalRuntimeNodeMatrixEntryV11,
@@ -57,14 +56,8 @@ export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: Stor
   const parsedRecord = parsed as StoredStateV11 & Record<string, unknown>;
   const localRuntime = normalizeLocalRuntimeFromAny(seed, parsedRecord, fallback);
 
-  const connectors = (Array.isArray(parsed.connectors) ? parsed.connectors : [])
-    .map((raw) => normalizeConnectorV11(raw))
-    .filter((connector, index, arr) => connector.id && arr.findIndex((item) => item.id === connector.id) === index);
-  const nextConnectors = connectors.length > 0 ? connectors : fallback.connectors;
-  const selectedConnectorId = nextConnectors.some((item) => item.id === parsed.selectedConnectorId)
-    ? String(parsed.selectedConnectorId)
-    : nextConnectors[0]?.id || '';
-
+  // Connectors are NOT loaded from localStorage — runtime bridge config (config.json)
+  // is the single source of truth. Connectors start empty and are populated by bridge merge.
   return {
     version: 11,
     initializedByV11: Boolean(parsed.initializedByV11),
@@ -75,7 +68,7 @@ export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: Stor
     selectedSource: normalizeSourceV11(parsed.selectedSource || fallback.selectedSource),
     activeCapability: normalizeCapabilityV11(parsed.activeCapability || fallback.activeCapability),
     localRuntime,
-    connectors: nextConnectors,
-    selectedConnectorId,
+    connectors: [],
+    selectedConnectorId: '',
   };
 }
