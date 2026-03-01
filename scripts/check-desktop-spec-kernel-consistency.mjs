@@ -168,6 +168,30 @@ checkCriticalReasonCodeCoverage();
 
 checkStreamingRpcCoverage();
 
+// ── Check 18: No credentialRefId residual in source (D-LLM-003) ──
+
+checkNoCredentialRefIdResidual();
+
+// ── Check 19: No console.log/warn/error in source except telemetry fallback (D-TEL-003) ──
+
+checkNoConsoleLogInSource();
+
+// ── Check 20: No legacy store imports (D-STATE-001) ──
+
+checkNoLegacyStoreImports();
+
+// ── Check 21: Retry jitter presence (D-NET-002) ──
+
+checkRetryJitterPresence();
+
+// ── Check 22: Store slice count = 4 (D-STATE-001) ──
+
+checkStoreSliceCount();
+
+// ── Check 23: D-ERR-007 ReasonCode coverage in source bridge invoke ──
+
+checkBridgeReasonCodeCoverage();
+
 // ── Result ──
 
 if (failed) process.exit(1);
@@ -600,6 +624,10 @@ function checkCriticalReasonCodeCoverage() {
     'AI_FINISH_CONTENT_FILTER',
     'SESSION_EXPIRED',
     'AUTH_TOKEN_INVALID',
+    'AI_PROVIDER_AUTH_FAILED',
+    'AI_MEDIA_SPEC_INVALID',
+    'AI_MEDIA_JOB_NOT_CANCELLABLE',
+    'APP_MODE_DOMAIN_FORBIDDEN',
   ];
 
   const errBoundaryPath = 'spec/desktop/kernel/error-boundary-contract.md';
@@ -630,4 +658,117 @@ function checkStreamingRpcCoverage() {
   if (missing.length > 0) {
     fail(`streaming-consumption-contract.md missing consumption rules for streaming RPCs: ${missing.join(', ')}`);
   }
+}
+
+function checkNoCredentialRefIdResidual() {
+  const srcDir = path.join(cwd, 'apps/desktop/src');
+  if (!fs.existsSync(srcDir)) return;
+
+  const files = walkSync(srcDir, ['.ts', '.tsx']);
+  for (const filePath of files) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    if (content.includes('credentialRefId')) {
+      const rel = path.relative(cwd, filePath);
+      fail(`D-LLM-003 violation: credentialRefId found in ${rel}`);
+    }
+  }
+}
+
+function checkNoConsoleLogInSource() {
+  const srcDir = path.join(cwd, 'apps/desktop/src');
+  if (!fs.existsSync(srcDir)) return;
+
+  const allowedFiles = ['runtime/telemetry/logger.ts'];
+  const files = walkSync(srcDir, ['.ts', '.tsx']);
+  const consolePattern = /\bconsole\.(log|warn|error)\b/;
+
+  for (const filePath of files) {
+    const rel = path.relative(path.join(cwd, 'apps/desktop/src'), filePath);
+    if (allowedFiles.some((allowed) => rel.replace(/\\/g, '/').endsWith(allowed))) {
+      continue;
+    }
+    const content = fs.readFileSync(filePath, 'utf8');
+    if (consolePattern.test(content)) {
+      fail(`D-TEL-003 violation: console.* found in apps/desktop/src/${rel.replace(/\\/g, '/')}`);
+    }
+  }
+}
+
+function checkNoLegacyStoreImports() {
+  const srcDir = path.join(cwd, 'apps/desktop/src');
+  if (!fs.existsSync(srcDir)) return;
+
+  const files = walkSync(srcDir, ['.ts', '.tsx']);
+  for (const filePath of files) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    if (content.includes("from '@runtime/state'") || content.includes("from '@runtime/state/")) {
+      const rel = path.relative(cwd, filePath);
+      fail(`D-STATE-001 violation: legacy store import in ${rel}`);
+    }
+  }
+}
+
+function checkRetryJitterPresence() {
+  const retryPath = 'apps/desktop/src/runtime/net/request-with-retry.ts';
+  if (!fileExists(retryPath)) return;
+
+  const content = read(retryPath);
+  if (!content.includes('Math.random')) {
+    fail('D-NET-002 violation: request-with-retry.ts missing jitter (Math.random)');
+  }
+}
+
+function checkStoreSliceCount() {
+  const storePath = 'apps/desktop/src/shell/renderer/app-shell/providers/app-store.ts';
+  if (!fileExists(storePath)) return;
+
+  const content = read(storePath);
+  const sliceImports = content.match(/create\w+Slice/g) || [];
+  const uniqueSlices = new Set(sliceImports);
+
+  if (uniqueSlices.size !== 4) {
+    fail(`D-STATE-001 expects exactly 4 store slices, found ${uniqueSlices.size}: ${[...uniqueSlices].join(', ')}`);
+  }
+}
+
+function checkBridgeReasonCodeCoverage() {
+  const invokePath = 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts';
+  if (!fileExists(invokePath)) return;
+
+  const content = read(invokePath);
+
+  const phase1CriticalCodes = [
+    'AI_PROVIDER_TIMEOUT',
+    'AI_PROVIDER_UNAVAILABLE',
+    'AI_STREAM_BROKEN',
+    'AI_CONNECTOR_CREDENTIAL_MISSING',
+    'AI_MODEL_NOT_FOUND',
+    'AI_MEDIA_IDEMPOTENCY_CONFLICT',
+    'AI_LOCAL_MODEL_UNAVAILABLE',
+    'AUTH_TOKEN_INVALID',
+    'SESSION_EXPIRED',
+    'RUNTIME_UNAVAILABLE',
+  ];
+
+  const missing = phase1CriticalCodes.filter((code) => !content.includes(code));
+  if (missing.length > 0) {
+    fail(`D-ERR-007 bridge invoke.ts missing Phase 1 ReasonCodes: ${missing.join(', ')}`);
+  }
+}
+
+function walkSync(dir, extensions) {
+  const results = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist') {
+        continue;
+      }
+      results.push(...walkSync(fullPath, extensions));
+    } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
+      results.push(fullPath);
+    }
+  }
+  return results;
 }
