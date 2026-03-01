@@ -208,6 +208,8 @@ export type RuntimeStreamCallOptions = RuntimeCallOptions & {
   signal?: AbortSignal;
 };
 
+export type RuntimeResponseMetadataObserver = (metadata: Record<string, string>) => void;
+
 export type RuntimeNodeGrpcTransportConfig = {
   type: 'node-grpc';
   endpoint: string;
@@ -216,12 +218,16 @@ export type RuntimeNodeGrpcTransportConfig = {
     serverName?: string;
     rootCertPem?: string;
   };
+  /** @internal Side-channel for response metadata extraction (e.g. x-nimi-runtime-version). */
+  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeTauriIpcTransportConfig = {
   type: 'tauri-ipc';
   commandNamespace?: string;
   eventNamespace?: string;
+  /** @internal Side-channel for response metadata extraction (e.g. x-nimi-runtime-version). */
+  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeTransportConfig = RuntimeNodeGrpcTransportConfig | RuntimeTauriIpcTransportConfig;
@@ -441,8 +447,8 @@ export type RuntimeOptions = {
   defaults?: RuntimeClientDefaults;
   timeoutMs?: number;
   retry?: {
-    maxAttempts: number;
-    backoffMs: number;
+    maxAttempts?: number;
+    backoffMs?: number;
   };
   authContext?: RuntimeAuthContextProvider;
   telemetry?: {
@@ -795,8 +801,6 @@ export type RuntimeMediaModule = {
 export type RuntimeEventName =
   | 'runtime.connected'
   | 'runtime.disconnected'
-  | 'ai.route.decision'
-  | 'media.job.status'
   | 'auth.token.issued'
   | 'auth.token.revoked'
   | 'error';
@@ -804,8 +808,6 @@ export type RuntimeEventName =
 export type RuntimeEventPayloadMap = {
   'runtime.connected': { at: string };
   'runtime.disconnected': { at: string; reasonCode?: string };
-  'ai.route.decision': { route: NimiRoutePolicy; model: string; traceId?: string };
-  'media.job.status': { jobId: string; status: string; at: string };
   'auth.token.issued': { tokenId: string; at: string };
   'auth.token.revoked': { tokenId: string; at: string };
   error: { error: NimiError; at: string };

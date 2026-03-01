@@ -423,6 +423,16 @@ export class Runtime {
 
   readonly audit: RuntimeAuditClient;
 
+  readonly healthEvents: (
+    request?: import('./generated/runtime/v1/audit').SubscribeRuntimeHealthEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ) => Promise<AsyncIterable<import('./generated/runtime/v1/audit').RuntimeHealthEvent>>;
+
+  readonly providerHealthEvents: (
+    request?: import('./generated/runtime/v1/audit').SubscribeAIProviderHealthEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ) => Promise<AsyncIterable<import('./generated/runtime/v1/audit').AIProviderHealthEvent>>;
+
   readonly scope: RuntimeScopeModule;
 
   readonly events: RuntimeEventsModule;
@@ -438,6 +448,8 @@ export class Runtime {
   #state: RuntimeConnectionState = {
     status: 'idle',
   };
+
+  #runtimeVersion: string | null = null;
 
   readonly #options: RuntimeOptions;
 
@@ -465,9 +477,22 @@ export class Runtime {
       });
     }
     this.transport = options.transport;
+
+    const transportWithObserver = {
+      ...options.transport,
+      _responseMetadataObserver: (metadata: Record<string, string>) => {
+        const version = metadata['x-nimi-runtime-version'];
+        if (version && !this.#runtimeVersion) {
+          this.#runtimeVersion = version;
+          this.#emitTelemetry('runtime.version.detected', { version });
+        }
+      },
+    };
+
     this.#options = {
       ...options,
       appId: this.appId,
+      transport: transportWithObserver,
       connection: {
         mode: options.connection?.mode || 'auto',
         waitForReadyTimeoutMs: options.connection?.waitForReadyTimeoutMs,
@@ -488,6 +513,16 @@ export class Runtime {
     this.connector = this.#createPassthroughModule('connector') as RuntimeConnectorClient;
     this.knowledge = this.#createPassthroughModule('knowledge') as RuntimeKnowledgeClient;
     this.audit = this.#createPassthroughModule('audit') as RuntimeAuditClient;
+
+    this.healthEvents = async (request, optionsValue) => this.audit.subscribeRuntimeHealthEvents(
+      request || {},
+      optionsValue,
+    );
+
+    this.providerHealthEvents = async (request, optionsValue) => this.audit.subscribeAIProviderHealthEvents(
+      request || {},
+      optionsValue,
+    );
 
     this.app = {
       sendMessage: async (request, optionsValue) => this.#invokeWithClient(
@@ -729,6 +764,10 @@ export class Runtime {
 
   state(): RuntimeConnectionState {
     return { ...this.#state };
+  }
+
+  runtimeVersion(): string | null {
+    return this.#runtimeVersion;
   }
 
   async health(): Promise<RuntimeHealth> {
@@ -1153,7 +1192,7 @@ export class Runtime {
       routeDecision: response.routeDecision,
     });
 
-    this.#eventBus.emit('ai.route.decision', {
+    this.#emitTelemetry('ai.route.decision', {
       route: trace.routeDecision || 'local-runtime',
       model: request.modelId,
       traceId: trace.traceId,
@@ -1213,7 +1252,7 @@ export class Runtime {
             streamRouteDecision = routeDecision === RoutePolicy.TOKEN_API
               ? RoutePolicy.TOKEN_API
               : RoutePolicy.LOCAL_RUNTIME;
-            owner.#eventBus.emit('ai.route.decision', {
+            owner.#emitTelemetry('ai.route.decision', {
               route: fromRoutePolicy(streamRouteDecision),
               model: streamModelResolved || ensureText(input.model, 'model'),
               traceId: normalizeText(event.traceId) || undefined,
@@ -1308,7 +1347,7 @@ export class Runtime {
       routeDecision: response.routeDecision,
     });
 
-    this.#eventBus.emit('ai.route.decision', {
+    this.#emitTelemetry('ai.route.decision', {
       route: trace.routeDecision || 'local-runtime',
       model: ensureText(input.model, 'model'),
       traceId: trace.traceId,
@@ -1384,7 +1423,7 @@ export class Runtime {
       });
     }
 
-    this.#eventBus.emit('media.job.status', {
+    this.#emitTelemetry('media.job.status', {
       jobId: response.job.jobId,
       status: mediaStatusToString(response.job.status),
       at: nowIso(),
@@ -1426,7 +1465,7 @@ export class Runtime {
       });
     }
 
-    this.#eventBus.emit('media.job.status', {
+    this.#emitTelemetry('media.job.status', {
       jobId: response.job.jobId,
       status: mediaStatusToString(response.job.status),
       at: nowIso(),
@@ -1637,7 +1676,7 @@ export class Runtime {
 
       const job = await this.#getMediaJob(jobId);
 
-      this.#eventBus.emit('media.job.status', {
+      this.#emitTelemetry('media.job.status', {
         jobId,
         status: mediaStatusToString(job.status),
         at: nowIso(),
