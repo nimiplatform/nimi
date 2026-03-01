@@ -6,11 +6,13 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
@@ -105,7 +107,7 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 	appID := strings.TrimSpace(req.GetAppId())
 	parentID := strings.TrimSpace(req.GetParentTokenId())
 	if appID == "" || parentID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	s.mu.Lock()
@@ -113,21 +115,21 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 
 	parent, exists := s.tokens[parentID]
 	if !exists || parent.AppID != appID {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 	if parent.Revoked {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_TOKEN_REVOKED.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 	}
 	if time.Now().UTC().After(parent.ExpiresAt) {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_TOKEN_EXPIRED.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_TOKEN_EXPIRED)
 	}
 	if !parent.CanDelegate {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_DELEGATION_FORBIDDEN.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_DELEGATION_FORBIDDEN)
 	}
 
 	childDepth := parent.DelegationDepth + 1
 	if parent.MaxDelegationDepth > 0 && childDepth > parent.MaxDelegationDepth {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_DELEGATION_DEPTH_EXCEEDED.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_DELEGATION_DEPTH_EXCEEDED)
 	}
 
 	scopes := req.GetScopes()
@@ -135,10 +137,10 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 		scopes = append([]string(nil), parent.Scopes...)
 	}
 	if !scopesAllowed(parent.Scopes, scopes) {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if hasRealmScope(scopes) {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if validation := s.catalog.ValidateScopes(parent.IssuedScopeCatalog, scopes); validation != runtimev1.ReasonCode_ACTION_EXECUTED {
 		return nil, status.Error(codes.PermissionDenied, validation.String())
@@ -149,7 +151,7 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 		selectors = cloneSelectors(parent.ResourceSelectors)
 	}
 	if !selectorsWithin(parent.ResourceSelectors, selectors) {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
 	}
 
 	now := time.Now().UTC()
@@ -202,7 +204,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 	root := strings.TrimSpace(req.GetRootTokenId())
 	if root == "" {
 		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	s.mu.RLock()
@@ -210,7 +212,7 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 
 	if _, exists := s.tokens[root]; !exists {
 		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_APP_GRANT_INVALID)
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 
 	queue := []string{root}

@@ -8,14 +8,15 @@ import (
 	"sync"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
-	"github.com/nimiplatform/nimi/runtime/internal/workerproxy"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
+	"github.com/nimiplatform/nimi/runtime/internal/workerproxy"
 )
 
 const (
@@ -262,7 +263,7 @@ func (s *Service) CancelWorkflow(_ context.Context, req *runtimev1.CancelWorkflo
 func (s *Service) SubscribeWorkflowEvents(req *runtimev1.SubscribeWorkflowEventsRequest, stream grpc.ServerStreamingServer[runtimev1.WorkflowEvent]) error {
 	taskID := strings.TrimSpace(req.GetTaskId())
 	if taskID == "" {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	sub, backlog, terminal, err := s.addSubscriber(taskID)

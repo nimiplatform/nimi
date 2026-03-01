@@ -87,6 +87,19 @@ type Config struct {
 	// Valid values: "debug", "info", "warn", "error". Default: "info". (K-DAEMON-009)
 	LogLevel string
 
+	// AuthJWTIssuer is the expected JWT issuer (iss claim). If empty, issuer
+	// validation is skipped. (K-AUTHN-003, K-DAEMON-009)
+	AuthJWTIssuer string
+
+	// AuthJWTAudience is the expected JWT audience (aud claim). If empty,
+	// audience validation is skipped. (K-AUTHN-003, K-DAEMON-009)
+	AuthJWTAudience string
+
+	// AuthJWTPublicKeyPath is the file path to a PEM-encoded public key used
+	// for JWT signature verification. Supports RSA and EC keys.
+	// If empty, JWT verification is disabled (all tokens rejected). (K-AUTHN-004, K-DAEMON-009)
+	AuthJWTPublicKeyPath string
+
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
@@ -117,7 +130,20 @@ type FileConfig struct {
 	SessionTTLMaxSeconds    *int  `json:"sessionTtlMaxSeconds,omitempty"`
 	LogLevel                string `json:"logLevel,omitempty"`
 
+	Auth      *FileConfigAuth              `json:"auth,omitempty"`
 	Providers map[string]RuntimeFileTarget `json:"providers,omitempty"`
+}
+
+// FileConfigAuth holds JWT authentication configuration in the config file.
+type FileConfigAuth struct {
+	JWT *FileConfigJWT `json:"jwt,omitempty"`
+}
+
+// FileConfigJWT holds JWT-specific authentication configuration.
+type FileConfigJWT struct {
+	Issuer        string `json:"issuer,omitempty"`
+	Audience      string `json:"audience,omitempty"`
+	PublicKeyPath string `json:"publicKeyPath,omitempty"`
 }
 
 type RuntimeFileTarget struct {
@@ -184,6 +210,9 @@ func Load() (Config, error) {
 		UsageStatsBufferSize:          readIntWithFileConfigFallback("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", fileCfg.UsageStatsBufferSize, 50000),
 		LocalAuditCapacity:            readIntWithFileConfigFallback("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", fileCfg.LocalAuditCapacity, 5000),
 		LogLevel:                      readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
+		AuthJWTIssuer:                 readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_ISSUER", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Issuer }), ""),
+		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
+		AuthJWTPublicKeyPath:          expandUserPath(readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_PUBLIC_KEY_PATH", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.PublicKeyPath }), "")),
 		Providers:                     fileCfg.Providers,
 	}
 
@@ -774,6 +803,14 @@ func ResolveCanonicalProviderID(raw string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// fileConfigJWTField extracts a string field from the optional FileConfig Auth JWT section.
+func fileConfigJWTField(fileCfg FileConfig, getter func(*FileConfigJWT) string) string {
+	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
+		return getter(fileCfg.Auth.JWT)
+	}
+	return ""
 }
 
 func isLegacyProviderName(raw string) bool {

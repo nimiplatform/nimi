@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 // ProbeModel describes a model entry returned by provider model discovery.
@@ -28,7 +30,7 @@ type openAIModelsResponse struct {
 // ListModels probes provider model discovery endpoints.
 func (b *Backend) ListModels(ctx context.Context) ([]ProbeModel, error) {
 	if b == nil {
-		return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 
 	paths := []string{"/v1/models", "/models"}
@@ -47,7 +49,7 @@ func (b *Backend) ListModels(ctx context.Context) ([]ProbeModel, error) {
 	if lastErr != nil {
 		return nil, lastErr
 	}
-	return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 }
 
 // ProbeHealth resolves provider health status based on model-discovery reachability.

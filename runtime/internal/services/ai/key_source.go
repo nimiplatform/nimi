@@ -4,12 +4,15 @@ import (
 	"context"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
 const (
@@ -56,24 +59,24 @@ func validateKeySource(parsed ParsedKeySource) error {
 
 	// Conflict: connector_id + inline fields simultaneously
 	if parsed.ConnectorID != "" && (parsed.APIKey != "" || parsed.ProviderType != "" || parsed.Endpoint != "") {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_CONFLICT)
 	}
 
 	switch ks {
 	case keySourceManaged:
 		if parsed.ConnectorID == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED)
 		}
 	case keySourceInline:
 		if parsed.ProviderType == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 		}
 		if parsed.APIKey == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 		}
 		// Check if provider requires explicit endpoint
 		if entry, ok := connector.ProviderCatalog[parsed.ProviderType]; ok && entry.RequiresExplicitEndpoint && parsed.Endpoint == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 		}
 	case "":
 		// No explicit key-source: infer from presence of fields
@@ -84,15 +87,15 @@ func validateKeySource(parsed ParsedKeySource) error {
 		if parsed.APIKey != "" {
 			// Implicit inline — validate completeness
 			if parsed.ProviderType == "" {
-				return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING.String())
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 			}
 			if entry, ok := connector.ProviderCatalog[parsed.ProviderType]; ok && entry.RequiresExplicitEndpoint && parsed.Endpoint == "" {
-				return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING.String())
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
 			}
 		}
 		// No key-source, no connector_id, no inline fields = use runtime config
 	default:
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID)
 	}
 
 	return nil
@@ -100,7 +103,7 @@ func validateKeySource(parsed ParsedKeySource) error {
 
 // resolveKeySourceToTarget resolves parsed key-source into a RemoteTarget (K-KEYSRC-004 steps 5-8).
 // Returns nil if routing should use runtime config (local/cloud defaults).
-func resolveKeySourceToTarget(parsed ParsedKeySource, connStore *connector.ConnectorStore) (*nimillm.RemoteTarget, error) {
+func resolveKeySourceToTarget(parsed ParsedKeySource, connStore *connector.ConnectorStore, allowLoopback bool) (*nimillm.RemoteTarget, error) {
 	ks := parsed.KeySource
 
 	// Determine effective mode
@@ -108,19 +111,19 @@ func resolveKeySourceToTarget(parsed ParsedKeySource, connStore *connector.Conne
 	isInline := ks == keySourceInline || (ks == "" && parsed.APIKey != "" && parsed.ConnectorID == "")
 
 	if isManaged {
-		return resolveManagedTarget(parsed.ConnectorID, connStore)
+		return resolveManagedTarget(parsed.ConnectorID, connStore, allowLoopback)
 	}
 	if isInline {
-		return resolveInlineTarget(parsed)
+		return resolveInlineTarget(parsed, allowLoopback)
 	}
 
 	// No key-source specified, no connector_id, no inline fields → runtime config
 	return nil, nil
 }
 
-func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStore) (*nimillm.RemoteTarget, error) {
+func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStore, allowLoopback bool) (*nimillm.RemoteTarget, error) {
 	if connStore == nil {
-		return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 
 	rec, found, err := connStore.Get(connectorID)
@@ -128,10 +131,10 @@ func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStor
 		return nil, status.Errorf(codes.Internal, "load connector: %v", err)
 	}
 	if !found {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 	if rec.Status == runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED {
-		return nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED.String())
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
 
 	apiKey, err := connStore.LoadCredential(connectorID)
@@ -139,12 +142,18 @@ func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStor
 		return nil, status.Errorf(codes.Internal, "load credential: %v", err)
 	}
 	if apiKey == "" {
-		return nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING.String())
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 
 	endpoint := rec.Endpoint
 	if endpoint == "" {
 		endpoint = connector.ResolveEndpoint(rec.Provider, "")
+	}
+
+	// Endpoint security validation (K-SEC-004)
+	isLocal := rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL
+	if err := endpointsec.ValidateEndpoint(endpoint, allowLoopback || isLocal); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}
 
 	return &nimillm.RemoteTarget{
@@ -154,10 +163,15 @@ func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStor
 	}, nil
 }
 
-func resolveInlineTarget(parsed ParsedKeySource) (*nimillm.RemoteTarget, error) {
+func resolveInlineTarget(parsed ParsedKeySource, allowLoopback bool) (*nimillm.RemoteTarget, error) {
 	endpoint := parsed.Endpoint
 	if endpoint == "" {
 		endpoint = connector.ResolveEndpoint(parsed.ProviderType, "")
+	}
+
+	// Endpoint security validation (K-SEC-004)
+	if err := endpointsec.ValidateEndpoint(endpoint, allowLoopback); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}
 
 	return &nimillm.RemoteTarget{

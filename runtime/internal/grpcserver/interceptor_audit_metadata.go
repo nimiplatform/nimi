@@ -4,14 +4,16 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"strings"
+	"unicode"
+
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"strings"
-	"unicode"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func inferRequestIdentity(req any) (string, string, string) {
@@ -67,7 +69,7 @@ func validateAppIDConflict(ctx context.Context, req any) error {
 		return nil
 	}
 	if metadataAppID != requestAppID {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
 	}
 	return nil
 }

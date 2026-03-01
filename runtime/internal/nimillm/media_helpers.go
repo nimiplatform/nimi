@@ -12,11 +12,12 @@ import (
 	"strconv"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 // ---------------------------------------------------------------------------
@@ -59,7 +60,7 @@ func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string
 	}
 	raw, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	looksLikeJSON := len(raw) > 0 && (raw[0] == '{' || raw[0] == '[')
@@ -128,7 +129,7 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 		return nil
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return nil
 }
@@ -401,7 +402,7 @@ func ApplyTranscriptionSpecMetadata(artifact *runtimev1.MediaArtifact, spec *run
 // from a SpeechTranscriptionSpec, handling bytes, URI, and chunked sources.
 func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.SpeechTranscriptionSpec) ([]byte, string, string, error) {
 	if spec == nil {
-		return nil, "", "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	mimeType := strings.TrimSpace(spec.GetMimeType())
 	if source := spec.GetAudioSource(); source != nil {
@@ -409,13 +410,13 @@ func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.Speech
 		case *runtimev1.SpeechTranscriptionAudioSource_AudioBytes:
 			audio := append([]byte(nil), typed.AudioBytes...)
 			if len(audio) == 0 {
-				return nil, "", "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+				return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
 			return audio, mimeType, "", nil
 		case *runtimev1.SpeechTranscriptionAudioSource_AudioUri:
 			audioURI := strings.TrimSpace(typed.AudioUri)
 			if audioURI == "" {
-				return nil, "", "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+				return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
 			audio, detectedMIME, err := FetchAudioFromURI(ctx, audioURI)
 			if err != nil {
@@ -427,11 +428,11 @@ func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.Speech
 			return audio, mimeType, audioURI, nil
 		case *runtimev1.SpeechTranscriptionAudioSource_AudioChunks:
 			if typed.AudioChunks == nil {
-				return nil, "", "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+				return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
 			audio := JoinAudioChunks(typed.AudioChunks.GetChunks())
 			if len(audio) == 0 {
-				return nil, "", "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+				return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
 			return audio, mimeType, "", nil
 		}
@@ -449,7 +450,7 @@ func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.Speech
 		}
 		return audio, mimeType, uriText, nil
 	}
-	return nil, "", "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+	return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 }
 
 // FetchAudioFromURI downloads audio from a URI and returns the bytes, Content-Type,
@@ -457,23 +458,23 @@ func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.Speech
 func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(audioURI))
 	if err != nil || parsed == nil || parsed.Scheme == "" {
-		return nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, parsed.String(), nil)
 	if err != nil {
-		return nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	payload, err := io.ReadAll(response.Body)
 	if err != nil || len(payload) == 0 {
-		return nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return payload, strings.TrimSpace(response.Header.Get("Content-Type")), nil
 }

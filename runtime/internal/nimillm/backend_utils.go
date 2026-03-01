@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 // DecodeMedia decodes base64 or downloads from URL.
@@ -18,10 +19,10 @@ func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
 	if b64Data != "" {
 		payload, err := base64.StdEncoding.DecodeString(b64Data)
 		if err != nil {
-			return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if len(payload) == 0 {
-			return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		return payload, nil
 	}
@@ -41,14 +42,14 @@ func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
 		}
 		payload, err := io.ReadAll(response.Body)
 		if err != nil {
-			return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if len(payload) == 0 {
-			return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		return payload, nil
 	}
-	return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+	return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 }
 
 // FirstNonEmpty returns the first non-empty string.
@@ -210,22 +211,22 @@ func CheckModelAvailabilityWithScope(modelID string, route runtimev1.RoutePolicy
 	lower := strings.ToLower(modelID)
 	switch {
 	case strings.Contains(lower, "missing"), strings.Contains(lower, "not-found"):
-		return status.Error(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND.String())
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	case strings.Contains(lower, "not-ready"), strings.Contains(lower, "warming"):
-		return status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_NOT_READY.String())
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_NOT_READY)
 	case strings.Contains(lower, "provider-down"), strings.Contains(lower, "provider-unavailable"), strings.Contains(lower, "unavailable"):
-		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	case strings.Contains(lower, "provider-timeout"), strings.Contains(lower, "timeout"):
-		return status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	case strings.Contains(lower, "content-filter"), strings.Contains(lower, "blocked"):
-		return status.Error(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED.String())
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
 	}
 
 	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME && strings.Contains(lower, "cloud-only") {
-		return status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	if route == runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API && strings.Contains(lower, "local-only") {
-		return status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	return nil
 }

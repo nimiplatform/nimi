@@ -27,34 +27,21 @@ type Config struct {
 }
 
 // cloudProviderEnvBindings maps canonical provider IDs to their environment variable pairs.
-// Each entry lists: canonical first, then legacy fallback.
 var cloudProviderEnvBindings = []struct {
-	id              string
-	canonicalBase   string
-	canonicalKey    string
-	legacyBase      string
-	legacyKey       string
+	id      string
+	baseEnv string
+	keyEnv  string
 }{
-	{"nimillm", "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY", "", ""},
-	{"dashscope", "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL", "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY"},
-	{"volcengine", "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY"},
-	{"volcengine_openspeech", "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY"},
-	{"gemini", "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY"},
-	{"minimax", "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY"},
-	{"kimi", "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", "NIMI_RUNTIME_CLOUD_KIMI_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY"},
-	{"glm", "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", "NIMI_RUNTIME_CLOUD_GLM_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY"},
-	{"deepseek", "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY", "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_BASE_URL", "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_API_KEY"},
-	{"openrouter", "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY", "", ""},
-}
-
-func envOrFallback(canonical, legacy string) string {
-	if v := strings.TrimSpace(os.Getenv(canonical)); v != "" {
-		return v
-	}
-	if legacy != "" {
-		return strings.TrimSpace(os.Getenv(legacy))
-	}
-	return ""
+	{"nimillm", "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"},
+	{"dashscope", "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL", "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"},
+	{"volcengine", "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"},
+	{"volcengine_openspeech", "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY"},
+	{"gemini", "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"},
+	{"minimax", "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"},
+	{"kimi", "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", "NIMI_RUNTIME_CLOUD_KIMI_API_KEY"},
+	{"glm", "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
+	{"deepseek", "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"},
+	{"openrouter", "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
 }
 
 func loadConfigFromEnv() Config {
@@ -72,8 +59,8 @@ func loadConfigFromEnv() Config {
 
 	cloudProviders := make(map[string]nimillm.ProviderCredentials)
 	for _, b := range cloudProviderEnvBindings {
-		baseURL := envOrFallback(b.canonicalBase, b.legacyBase)
-		apiKey := envOrFallback(b.canonicalKey, b.legacyKey)
+		baseURL := strings.TrimSpace(os.Getenv(b.baseEnv))
+		apiKey := strings.TrimSpace(os.Getenv(b.keyEnv))
 		if baseURL != "" || apiKey != "" {
 			cloudProviders[b.id] = nimillm.ProviderCredentials{BaseURL: baseURL, APIKey: apiKey}
 		}

@@ -2,14 +2,17 @@ package grpcserver
 
 import (
 	"context"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"strings"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 )
 
 func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor {
@@ -28,6 +31,10 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 
 		domain, operation, capability := methodDescriptor(info.FullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(req)
+		// K-AUDIT-018: prefer JWT subject_user_id over request body (WP-6)
+		if identity := authn.IdentityFromContext(handlerCtx); identity != nil {
+			subjectUserID = identity.SubjectUserID
+		}
 		callerKind, callerID, surfaceID, traceID := readCallerMetadata(ctx)
 		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(ctx)
 		tokenID := accessTokenIDFromMetadata(ctx)
@@ -109,6 +116,10 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 
 		domain, operation, capability := methodDescriptor(info.FullMethod)
 		appID, subjectUserID, modelID := inferRequestIdentity(wrapped.request)
+		// K-AUDIT-018: prefer JWT subject_user_id over request body (WP-6)
+		if identity := authn.IdentityFromContext(streamCtx); identity != nil {
+			subjectUserID = identity.SubjectUserID
+		}
 		if wrapped.modelResolved != "" {
 			modelID = wrapped.modelResolved
 		}
@@ -179,7 +190,7 @@ func (s *auditStream) RecvMsg(m any) error {
 	}
 	if metadataAppID := strings.TrimSpace(s.metadataAppID); metadataAppID != "" {
 		if requestAppID := appIDFromRequest(m); requestAppID != "" && requestAppID != metadataAppID {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
 		}
 	}
 	if s.request == nil {

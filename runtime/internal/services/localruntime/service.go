@@ -11,12 +11,15 @@ import (
 	"time"
 	"unicode"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
-	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/oklog/ulid/v2"
 )
 
 const (
@@ -329,15 +332,27 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 }
 
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
-	return &runtimev1.RemoveLocalModelResponse{Model: s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, "model removed")}, nil
+	model, err := s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, "model removed")
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.RemoveLocalModelResponse{Model: model}, nil
 }
 
 func (s *Service) StartLocalModel(_ context.Context, req *runtimev1.StartLocalModelRequest) (*runtimev1.StartLocalModelResponse, error) {
-	return &runtimev1.StartLocalModelResponse{Model: s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")}, nil
+	model, err := s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.StartLocalModelResponse{Model: model}, nil
 }
 
 func (s *Service) StopLocalModel(_ context.Context, req *runtimev1.StopLocalModelRequest) (*runtimev1.StopLocalModelResponse, error) {
-	return &runtimev1.StopLocalModelResponse{Model: s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, "model stopped")}, nil
+	model, err := s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, "model stopped")
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.StopLocalModelResponse{Model: model}, nil
 }
 
 func (s *Service) CheckLocalModelHealth(_ context.Context, req *runtimev1.CheckLocalModelHealthRequest) (*runtimev1.CheckLocalModelHealthResponse, error) {
@@ -425,11 +440,19 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 }
 
 func (s *Service) StartLocalService(_ context.Context, req *runtimev1.StartLocalServiceRequest) (*runtimev1.StartLocalServiceResponse, error) {
-	return &runtimev1.StartLocalServiceResponse{Service: s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "service active")}, nil
+	svc, err := s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "service active")
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.StartLocalServiceResponse{Service: svc}, nil
 }
 
 func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalServiceRequest) (*runtimev1.StopLocalServiceResponse, error) {
-	return &runtimev1.StopLocalServiceResponse{Service: s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED, "service stopped")}, nil
+	svc, err := s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED, "service stopped")
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.StopLocalServiceResponse{Service: svc}, nil
 }
 
 func (s *Service) CheckLocalServiceHealth(_ context.Context, req *runtimev1.CheckLocalServiceHealthRequest) (*runtimev1.CheckLocalServiceHealthResponse, error) {
@@ -461,7 +484,11 @@ func (s *Service) CheckLocalServiceHealth(_ context.Context, req *runtimev1.Chec
 }
 
 func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLocalServiceRequest) (*runtimev1.RemoveLocalServiceResponse, error) {
-	return &runtimev1.RemoveLocalServiceResponse{Service: s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED, "service removed")}, nil
+	svc, err := s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED, "service removed")
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.RemoveLocalServiceResponse{Service: svc}, nil
 }
 
 func (s *Service) ListNodeCatalog(_ context.Context, req *runtimev1.ListNodeCatalogRequest) (*runtimev1.ListNodeCatalogResponse, error) {
@@ -629,24 +656,74 @@ func (s *Service) resolveCatalogItem(req *runtimev1.ResolveModelInstallPlanReque
 	return nil
 }
 
-func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalModelStatus, detail string) *runtimev1.LocalModelRecord {
+// validModelTransitions defines the allowed state machine transitions per K-LOCAL-005.
+var validModelTransitions = map[runtimev1.LocalModelStatus][]runtimev1.LocalModelStatus{
+	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED: {
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+	},
+	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE: {
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+	},
+	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY: {
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+	},
+}
+
+// validServiceTransitions defines the allowed state machine transitions per K-LOCAL-005.
+var validServiceTransitions = map[runtimev1.LocalServiceStatus][]runtimev1.LocalServiceStatus{
+	runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED: {
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE,
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED,
+	},
+	runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE: {
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY,
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED,
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED,
+	},
+	runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY: {
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE,
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED,
+		runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED,
+	},
+}
+
+func isValidModelTransition(from, to runtimev1.LocalModelStatus) bool {
+	for _, allowed := range validModelTransitions[from] {
+		if allowed == to {
+			return true
+		}
+	}
+	return false
+}
+
+func isValidServiceTransition(from, to runtimev1.LocalServiceStatus) bool {
+	for _, allowed := range validServiceTransitions[from] {
+		if allowed == to {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalModelStatus, detail string) (*runtimev1.LocalModelRecord, error) {
 	id := strings.TrimSpace(localModelID)
 	if id == "" {
-		return &runtimev1.LocalModelRecord{
-			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-			HealthDetail: "local_model_id required",
-		}
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	now := nowISO()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current := cloneLocalModel(s.models[id])
 	if current == nil {
-		return &runtimev1.LocalModelRecord{
-			LocalModelId: id,
-			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-			HealthDetail: "model not found",
-		}
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if !isValidModelTransition(current.GetStatus(), status) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
 	current.Status = status
 	current.UpdatedAt = now
@@ -661,27 +738,23 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalM
 		LocalModelId: current.GetLocalModelId(),
 		Detail:       detail,
 	})
-	return current
+	return current, nil
 }
 
-func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalServiceStatus, detail string) *runtimev1.LocalServiceDescriptor {
+func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalServiceStatus, detail string) (*runtimev1.LocalServiceDescriptor, error) {
 	id := strings.TrimSpace(serviceID)
 	if id == "" {
-		return &runtimev1.LocalServiceDescriptor{
-			Status: runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY,
-			Detail: "service_id required",
-		}
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	now := nowISO()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current := cloneServiceDescriptor(s.services[id])
 	if current == nil {
-		return &runtimev1.LocalServiceDescriptor{
-			ServiceId: id,
-			Status:    runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY,
-			Detail:    "service not found",
-		}
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if !isValidServiceTransition(current.GetStatus(), status) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
 	current.Status = status
 	current.UpdatedAt = now
@@ -698,7 +771,7 @@ func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalSe
 			"status":    current.GetStatus().String(),
 		}),
 	})
-	return current
+	return current, nil
 }
 
 func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {

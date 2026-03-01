@@ -7,9 +7,10 @@ import (
 	"io"
 	"net/http"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, responseBody any) error {
@@ -86,10 +87,10 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if len(body) == 0 {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return body, nil
 }
@@ -102,7 +103,7 @@ func DecodeResponseJSON(response *http.Response, target any) error {
 		return MapProviderHTTPError(response.StatusCode, payload)
 	}
 	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
-		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return nil
 }

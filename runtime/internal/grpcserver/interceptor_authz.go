@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
 type protectedCapabilityAuthorizer interface {
@@ -30,7 +31,7 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 			appID = appIDFromRequest(req)
 		}
 		if reasonCode, _, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability); !ok {
-			return nil, status.Error(codes.PermissionDenied, reasonCode.String())
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
 		}
 		return handler(ctx, req)
 	}
@@ -47,7 +48,7 @@ func newStreamAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.St
 		tokenID, secret, _ := envelope.ParseAccessTokenFromContext(ss.Context())
 		appID := appIDFromMetadata(ss.Context())
 		if reasonCode, _, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, "runtime.audit.export"); !ok {
-			return status.Error(codes.PermissionDenied, reasonCode.String())
+			return grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
 		}
 		return handler(srv, ss)
 	}

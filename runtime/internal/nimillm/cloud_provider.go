@@ -5,12 +5,13 @@ import (
 	"strings"
 	"sync"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // knownProviders lists the canonical provider IDs in priority order for default routing.
@@ -18,22 +19,22 @@ var knownProviders = []string{"nimillm", "dashscope", "volcengine", "gemini", "d
 
 // prefixToProvider maps model-ID prefix segments to canonical provider IDs.
 var prefixToProvider = map[string]string{
-	"nimillm":  "nimillm",
-	"aliyun":   "dashscope",
-	"alibaba":  "dashscope",
-	"dashscope": "dashscope",
-	"bytedance": "volcengine",
-	"byte":      "volcengine",
+	"nimillm":    "nimillm",
+	"aliyun":     "dashscope",
+	"alibaba":    "dashscope",
+	"dashscope":  "dashscope",
+	"bytedance":  "volcengine",
+	"byte":       "volcengine",
 	"volcengine": "volcengine",
-	"gemini":    "gemini",
-	"minimax":   "minimax",
-	"kimi":      "kimi",
-	"moonshot":  "kimi",
-	"glm":       "glm",
-	"zhipu":     "glm",
-	"bigmodel":  "glm",
-	"deepseek":    "deepseek",
-	"openrouter":  "openrouter",
+	"gemini":     "gemini",
+	"minimax":    "minimax",
+	"kimi":       "kimi",
+	"moonshot":   "kimi",
+	"glm":        "glm",
+	"zhipu":      "glm",
+	"bigmodel":   "glm",
+	"deepseek":   "deepseek",
+	"openrouter": "openrouter",
 }
 
 // hintToProvider maps modelregistry.ProviderHint to canonical provider IDs.
@@ -109,7 +110,7 @@ func (p *CloudProvider) CheckModelAvailability(modelID string) error {
 	}
 	_, _, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
-		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	return nil
 }
@@ -123,7 +124,7 @@ func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, req *r
 func (p *CloudProvider) GenerateTextWithTarget(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string, target *RemoteTarget) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	p.rememberDecision(modelID, backend.Name)
 	text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
@@ -137,7 +138,7 @@ func (p *CloudProvider) GenerateTextWithTarget(ctx context.Context, modelID stri
 func (p *CloudProvider) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
-		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if backend != nil {
 		p.rememberDecision(modelID, backend.Name)
@@ -151,7 +152,7 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 	if target != nil {
 		backend := p.backendFromTarget(target)
 		if backend == nil {
-			return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		resolvedModelID := p.ResolveModelID(modelID)
 		p.rememberDecision(modelID, backend.Name)
@@ -160,7 +161,7 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 	// Original Embed logic preserving explicit/default distinction
 	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
 	if explicit && !ok {
-		return nil, nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if backend != nil {
 		p.rememberDecision(modelID, backend.Name)
@@ -178,7 +179,7 @@ func (p *CloudProvider) StreamGenerateText(ctx context.Context, modelID string, 
 func (p *CloudProvider) StreamGenerateTextWithTarget(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error, target *RemoteTarget) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	p.rememberDecision(modelID, backend.Name)
 	return backend.StreamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)

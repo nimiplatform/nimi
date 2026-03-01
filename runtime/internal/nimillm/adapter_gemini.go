@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 const AdapterGeminiOperation = "gemini_operation_adapter"
@@ -36,7 +37,7 @@ func ExecuteGeminiOperation(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -55,7 +56,7 @@ func ExecuteGeminiOperation(
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		prompt = spec.GetPrompt()
 		defaultMIME = "image/png"
@@ -72,7 +73,7 @@ func ExecuteGeminiOperation(
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := req.GetVideoSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		prompt = spec.GetPrompt()
 		defaultMIME = "video/mp4"
@@ -89,7 +90,7 @@ func ExecuteGeminiOperation(
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		prompt = spec.GetText()
 		defaultMIME = ResolveSpeechArtifactMIME(spec, nil)
@@ -110,7 +111,7 @@ func ExecuteGeminiOperation(
 	case runtimev1.Modal_MODAL_STT:
 		spec := req.GetTranscriptionSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
 		if err != nil {
@@ -134,7 +135,7 @@ func ExecuteGeminiOperation(
 			submitPayload["audio_uri"] = audioURI
 		}
 	default:
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	if len(providerOptions) > 0 {
 		submitPayload["provider_options"] = providerOptions
@@ -151,7 +152,7 @@ func ExecuteGeminiOperation(
 		ValueAsString(submitResp["id"]),
 	)
 	if providerJobID == "" {
-		return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 	retryCount := int32(0)
@@ -178,12 +179,12 @@ func ExecuteGeminiOperation(
 		)))
 		if statusText == "failed" || statusText == "error" || statusText == "canceled" || statusText == "cancelled" {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(pollResp)
 		if len(artifactBytes) == 0 {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
-			return nil, nil, providerJobID, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if mimeType == "" {
 			mimeType = defaultMIME

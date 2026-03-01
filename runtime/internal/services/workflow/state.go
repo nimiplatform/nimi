@@ -3,11 +3,12 @@ package workflow
 import (
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func (s *Service) addSubscriber(taskID string) (subscriber, []*runtimev1.WorkflowEvent, bool, error) {
@@ -16,7 +17,7 @@ func (s *Service) addSubscriber(taskID string) (subscriber, []*runtimev1.Workflo
 
 	record, exists := s.tasks[taskID]
 	if !exists {
-		return subscriber{}, nil, false, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return subscriber{}, nil, false, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 
 	s.nextSubID++

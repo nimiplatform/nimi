@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runtimev1.EmbedResponse, error) {
@@ -21,14 +22,14 @@ func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
 	if err != nil {
 		return nil, err
 	}
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
 	if acquireErr != nil {
-		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
@@ -80,7 +81,7 @@ func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 
 func mediaJobStatusToError(job *runtimev1.MediaJob) error {
 	if job == nil {
-		return status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	reasonCode := job.GetReasonCode()
 	if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
@@ -88,16 +89,16 @@ func mediaJobStatusToError(job *runtimev1.MediaJob) error {
 	}
 	switch reasonCode {
 	case runtimev1.ReasonCode_AI_INPUT_INVALID:
-		return status.Error(codes.InvalidArgument, reasonCode.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, reasonCode)
 	case runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
-		return status.Error(codes.NotFound, reasonCode.String())
+		return grpcerr.WithReasonCode(codes.NotFound, reasonCode)
 	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
-		return status.Error(codes.DeadlineExceeded, reasonCode.String())
+		return grpcerr.WithReasonCode(codes.DeadlineExceeded, reasonCode)
 	case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, runtimev1.ReasonCode_AI_MODEL_NOT_READY:
-		return status.Error(codes.FailedPrecondition, reasonCode.String())
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, reasonCode)
 	case runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED:
-		return status.Error(codes.PermissionDenied, reasonCode.String())
+		return grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
 	default:
-		return status.Error(codes.Unavailable, reasonCode.String())
+		return grpcerr.WithReasonCode(codes.Unavailable, reasonCode)
 	}
 }

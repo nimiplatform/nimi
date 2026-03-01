@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -114,7 +114,7 @@ func first(md metadata.MD, key string) string {
 }
 
 func protocolError(reason runtimev1.ReasonCode) error {
-	return status.Error(codes.InvalidArgument, reason.String())
+	return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
 }
 
 func appIDFromRequest(req any) string {

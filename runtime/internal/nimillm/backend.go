@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 const defaultHTTPTimeout = 30 * time.Second
@@ -129,7 +130,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		})
 	}
 	if len(messages) == 0 {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
 	reqBody := chatRequest{
@@ -155,11 +156,11 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if len(respBody.Choices) == 0 {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	text := strings.TrimSpace(respBody.Choices[0].Message.Content)
 	if text == "" {
-		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	usage := &runtimev1.UsageStats{
 		InputTokens:  MaxInt64(0, respBody.Usage.PromptTokens),
@@ -225,7 +226,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		})
 	}
 	if len(messages) == 0 {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
 	reqBody := chatRequest{
@@ -313,7 +314,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 
 		var chunk streamResponse
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN.String())
+			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 		}
 		if len(chunk.Choices) > 0 {
 			delta := chunk.Choices[0].Delta.Content
@@ -343,9 +344,9 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	}
 	if err := scanner.Err(); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, status.Error(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN.String())
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 	}
 
 	outputText := outputBuilder.String()

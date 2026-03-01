@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -170,7 +171,7 @@ func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) *runtimev1.Lis
 	}
 	nextToken := ""
 	if end < len(filtered) {
-		nextToken = strconv.Itoa(end)
+		nextToken = pagination.Encode(strconv.Itoa(end), "")
 	}
 
 	return &runtimev1.ListAuditEventsResponse{
@@ -274,7 +275,7 @@ func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) *runtimev1.ListU
 	}
 	nextToken := ""
 	if end < len(records) {
-		nextToken = strconv.Itoa(end)
+		nextToken = pagination.Encode(strconv.Itoa(end), "")
 	}
 
 	return &runtimev1.ListUsageStatsResponse{
@@ -365,12 +366,15 @@ func truncateByWindow(ts time.Time, window runtimev1.UsageWindow) time.Time {
 }
 
 func parsePageToken(token string) int {
-	token = strings.TrimSpace(token)
-	if token == "" {
+	if strings.TrimSpace(token) == "" {
 		return 0
 	}
-	value, err := strconv.Atoi(token)
-	if err != nil || value < 0 {
+	cursor, _, err := pagination.Decode(token)
+	if err != nil {
+		return 0
+	}
+	value, convErr := strconv.Atoi(cursor)
+	if convErr != nil || value < 0 {
 		return 0
 	}
 	return value

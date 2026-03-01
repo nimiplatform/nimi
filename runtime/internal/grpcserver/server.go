@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
@@ -73,11 +74,20 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	h := grpcHealth.NewServer()
 	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog, grantservice.WithAuditStore(auditStore))
+
+	// AuthN validator — local public key mode (K-AUTHN-004)
+	authnValidator, authnErr := authn.NewValidator(cfg.AuthJWTPublicKeyPath, cfg.AuthJWTIssuer, cfg.AuthJWTAudience)
+	if authnErr != nil {
+		logger.Warn("JWT authn validator init failed; all JWT tokens will be rejected", "error", authnErr)
+		authnValidator, _ = authn.NewValidator("", "", "")
+	}
+
 	g := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			newUnaryVersionInterceptor(version),
 			newUnaryLifecycleInterceptor(state),
 			newUnaryProtocolInterceptor(idempotencyStore),
+			authn.NewUnaryInterceptor(authnValidator),
 			newUnaryAuthzInterceptor(grantSvc),
 			newUnaryAuditInterceptor(auditStore),
 		),
@@ -85,6 +95,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			newStreamVersionInterceptor(version),
 			newStreamLifecycleInterceptor(state),
 			newStreamProtocolInterceptor(),
+			authn.NewStreamInterceptor(authnValidator),
 			newStreamAuthzInterceptor(grantSvc),
 			newStreamAuditInterceptor(auditStore),
 		),

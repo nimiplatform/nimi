@@ -125,7 +125,7 @@ func TestResolveKeySourceManaged(t *testing.T) {
 		KeySource:   "managed",
 		ConnectorID: "conn-test",
 	}
-	target, err := resolveKeySourceToTarget(parsed, store)
+	target, err := resolveKeySourceToTarget(parsed, store, false)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestResolveKeySourceInline(t *testing.T) {
 		ProviderType: "gemini",
 		APIKey:       "sk-inline",
 	}
-	target, err := resolveKeySourceToTarget(parsed, nil)
+	target, err := resolveKeySourceToTarget(parsed, nil, false)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestResolveKeySourceInline(t *testing.T) {
 
 func TestResolveKeySourceRuntimeConfig(t *testing.T) {
 	parsed := ParsedKeySource{}
-	target, err := resolveKeySourceToTarget(parsed, nil)
+	target, err := resolveKeySourceToTarget(parsed, nil, false)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestResolveKeySourceManagedDisabled(t *testing.T) {
 		KeySource:   "managed",
 		ConnectorID: "conn-disabled",
 	}
-	_, err := resolveKeySourceToTarget(parsed, store)
+	_, err := resolveKeySourceToTarget(parsed, store, false)
 	if err == nil {
 		t.Fatal("expected error for disabled connector")
 	}
@@ -211,7 +211,7 @@ func TestResolveKeySourceManagedNotFound(t *testing.T) {
 		KeySource:   "managed",
 		ConnectorID: "nonexistent",
 	}
-	_, err := resolveKeySourceToTarget(parsed, store)
+	_, err := resolveKeySourceToTarget(parsed, store, false)
 	if err == nil {
 		t.Fatal("expected error for not found connector")
 	}

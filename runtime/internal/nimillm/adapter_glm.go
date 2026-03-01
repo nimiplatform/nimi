@@ -11,11 +11,12 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 const AdapterGLMTask = "glm_task_adapter"
@@ -34,15 +35,15 @@ func ExecuteGLMTask(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 	if req.GetModal() != runtimev1.Modal_MODAL_VIDEO {
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	spec := req.GetVideoSpec()
 	if spec == nil {
-		return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
 	submitPath, queryPrefix := resolveGLMTaskPaths(baseURL)
@@ -72,7 +73,7 @@ func ExecuteGLMTask(
 		ValueAsString(MapField(submitResp["data"], "id")),
 	))
 	if providerJobID == "" {
-		return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 	retryCount := int32(0)
@@ -99,13 +100,13 @@ func ExecuteGLMTask(
 			continue
 		case "failed", "error", "canceled", "cancelled":
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
-			return nil, nil, providerJobID, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 
 		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(pollResp)
 		if len(artifactBytes) == 0 {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
-			return nil, nil, providerJobID, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if mimeType == "" {
 			mimeType = "video/mp4"
@@ -134,7 +135,7 @@ func ExecuteGLMNative(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -142,7 +143,7 @@ func ExecuteGLMNative(
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload := map[string]any{
 			"model":  modelResolved,
@@ -169,7 +170,7 @@ func ExecuteGLMNative(
 			artifactBytes, mimeType, artifactURI = ExtractImageArtifactFromAny(responsePayload["data"])
 		}
 		if len(artifactBytes) == 0 {
-			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if mimeType == "" {
 			mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
@@ -197,7 +198,7 @@ func ExecuteGLMNative(
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload := map[string]any{
 			"model": modelResolved,
@@ -220,7 +221,7 @@ func ExecuteGLMNative(
 			return nil, nil, "", err
 		}
 		if body == nil || len(body.Bytes) == 0 || strings.TrimSpace(body.Text) != "" {
-			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		mimeType := ResolveSpeechArtifactMIME(spec, body.Bytes)
 		if normalized := strings.TrimSpace(body.MIME); strings.HasPrefix(normalized, "audio/") {
@@ -239,7 +240,7 @@ func ExecuteGLMNative(
 	case runtimev1.Modal_MODAL_STT:
 		spec := req.GetTranscriptionSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
 		if err != nil {
@@ -269,7 +270,7 @@ func ExecuteGLMNative(
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
 	default:
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 }
 
@@ -285,7 +286,7 @@ func ExecuteGLMTranscribe(
 	mimeType string,
 ) (string, error) {
 	if len(audio) == 0 {
-		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -370,7 +371,7 @@ func ExecuteGLMTranscribe(
 	}
 	payload := map[string]any{}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		return "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	text := strings.TrimSpace(FirstNonEmpty(
 		ValueAsString(payload["text"]),
@@ -378,7 +379,7 @@ func ExecuteGLMTranscribe(
 		ValueAsString(MapField(payload["data"], "text")),
 	))
 	if text == "" {
-		return "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return text, nil
 }

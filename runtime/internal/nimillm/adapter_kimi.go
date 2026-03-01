@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 const AdapterKimiChatMultimodal = "kimi_chat_multimodal_adapter"
@@ -23,14 +24,14 @@ func ExecuteKimiImageChatMultimodal(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if req.GetModal() != runtimev1.Modal_MODAL_IMAGE {
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	spec := req.GetImageSpec()
 	if spec == nil {
-		return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 	payload := buildKimiImageChatPayload(modelResolved, spec)
@@ -41,7 +42,7 @@ func ExecuteKimiImageChatMultimodal(
 
 	artifactBytes, mimeType, artifactURI := extractKimiImageArtifact(responsePayload)
 	if len(artifactBytes) == 0 {
-		return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if mimeType == "" {
 		mimeType = ResolveImageArtifactMIME(spec, artifactBytes)

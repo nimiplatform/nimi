@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -18,6 +16,10 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 const (
@@ -42,14 +44,14 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
 	if err != nil {
 		return nil, err
 	}
 
 	idempotencyScope, err := buildMediaJobIdempotencyScope(req)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if idempotencyScope != "" {
 		if existing, ok := s.mediaJobs.getByIdempotency(idempotencyScope); ok {
@@ -58,7 +60,7 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	}
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
 	if acquireErr != nil {
-		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
@@ -100,7 +102,7 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 	snapshot := s.mediaJobs.create(job, cancel)
 	if snapshot == nil {
 		cancel()
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	if idempotencyScope != "" {
 		s.mediaJobs.bindIdempotency(idempotencyScope, jobID)
@@ -113,11 +115,11 @@ func (s *Service) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMedia
 func (s *Service) GetMediaJob(_ context.Context, req *runtimev1.GetMediaJobRequest) (*runtimev1.GetMediaJobResponse, error) {
 	jobID := strings.TrimSpace(req.GetJobId())
 	if jobID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	job, ok := s.mediaJobs.get(jobID)
 	if !ok {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 	return &runtimev1.GetMediaJobResponse{Job: job}, nil
 }
@@ -125,7 +127,7 @@ func (s *Service) GetMediaJob(_ context.Context, req *runtimev1.GetMediaJobReque
 func (s *Service) CancelMediaJob(_ context.Context, req *runtimev1.CancelMediaJobRequest) (*runtimev1.CancelMediaJobResponse, error) {
 	jobID := strings.TrimSpace(req.GetJobId())
 	if jobID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	_, ok := s.mediaJobs.transition(
 		jobID,
@@ -137,7 +139,7 @@ func (s *Service) CancelMediaJob(_ context.Context, req *runtimev1.CancelMediaJo
 		},
 	)
 	if !ok {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 	s.mediaJobs.cancel(jobID)
 	job, _ := s.mediaJobs.get(jobID)
@@ -147,12 +149,12 @@ func (s *Service) CancelMediaJob(_ context.Context, req *runtimev1.CancelMediaJo
 func (s *Service) SubscribeMediaJobEvents(req *runtimev1.SubscribeMediaJobEventsRequest, stream grpc.ServerStreamingServer[runtimev1.MediaJobEvent]) error {
 	jobID := strings.TrimSpace(req.GetJobId())
 	if jobID == "" {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	subID, ch, backlog, terminal, ok := s.mediaJobs.subscribe(jobID, 32)
 	if !ok {
-		return status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 	defer s.mediaJobs.unsubscribe(jobID, subID)
 
@@ -186,11 +188,11 @@ func (s *Service) SubscribeMediaJobEvents(req *runtimev1.SubscribeMediaJobEvents
 func (s *Service) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaArtifactsRequest) (*runtimev1.GetMediaArtifactsResponse, error) {
 	jobID := strings.TrimSpace(req.GetJobId())
 	if jobID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	artifacts, traceID, ok := s.mediaJobs.listArtifacts(jobID)
 	if !ok {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
 	}
 	return &runtimev1.GetMediaArtifactsResponse{
 		JobId:     jobID,
@@ -299,11 +301,11 @@ func executeBackendSyncMedia(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
 	if !ok || mbp == nil {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	backend, backendModelID := mbp.ResolveMediaBackend(modelResolved)
 	if backend == nil {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if backendModelID == "" {
 		backendModelID = modelResolved
@@ -313,7 +315,7 @@ func executeBackendSyncMedia(
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload, usage, err := backend.GenerateImage(ctx, backendModelID, spec)
 		if err != nil {
@@ -338,7 +340,7 @@ func executeBackendSyncMedia(
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := req.GetVideoSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload, usage, err := backend.GenerateVideo(ctx, backendModelID, spec)
 		if err != nil {
@@ -363,7 +365,7 @@ func executeBackendSyncMedia(
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec)
 		if err != nil {
@@ -382,7 +384,7 @@ func executeBackendSyncMedia(
 	case runtimev1.Modal_MODAL_STT:
 		spec := req.GetTranscriptionSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		audioBytes, mimeType, audioURI, err := nimillm.ResolveTranscriptionAudioSource(ctx, spec)
 		if err != nil {
@@ -407,7 +409,7 @@ func executeBackendSyncMedia(
 		nimillm.ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
 	default:
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 }
 
@@ -446,69 +448,69 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 
 func validateSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) error {
 	if req == nil {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
 		return err
 	}
 	if len(req.GetIdempotencyKey()) > 256 {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	for key := range req.GetLabels() {
 		if strings.TrimSpace(key) == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	}
 	if req.GetModal() == runtimev1.Modal_MODAL_UNSPECIFIED {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	switch req.GetModal() {
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetN() < 0 || spec.GetN() > 16 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := req.GetVideoSpec()
 		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetDurationSec() < 0 || spec.GetDurationSec() > 600 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetFps() < 0 || spec.GetFps() > 120 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
 		if spec == nil || strings.TrimSpace(spec.GetText()) == "" {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetSampleRateHz() < 0 || spec.GetSampleRateHz() > 192000 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetSpeed() < 0 || spec.GetSpeed() > 4 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetPitch() < -24 || spec.GetPitch() > 24 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetVolume() < 0 || spec.GetVolume() > 4 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	case runtimev1.Modal_MODAL_STT:
 		spec := req.GetTranscriptionSpec()
 		if spec == nil || !hasTranscriptionAudioSource(spec) {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if spec.GetSpeakerCount() < 0 || spec.GetSpeakerCount() > 32 {
-			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	default:
-		return status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	return nil
 }

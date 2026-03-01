@@ -2,25 +2,27 @@ package ai
 
 import (
 	"context"
+	"log/slog"
+	"strings"
+	"sync/atomic"
+	"time"
+
+	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
-	"github.com/oklog/ulid/v2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
-	"log/slog"
-	"strings"
-	"sync/atomic"
-	"time"
 )
 
 const (
@@ -38,15 +40,16 @@ const (
 // Service implements RuntimeAiService with deterministic in-memory behavior.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAiServiceServer
-	logger                  *slog.Logger
-	config                  Config
-	selector                *routeSelector
-	audit                   *auditlog.Store
-	registry                *modelregistry.Registry
-	registryPath            string
-	scheduler               *scheduler.Scheduler
-	mediaJobs               *mediaJobStore
-	connStore               *connector.ConnectorStore
+	logger                   *slog.Logger
+	config                   Config
+	selector                 *routeSelector
+	audit                    *auditlog.Store
+	registry                 *modelregistry.Registry
+	registryPath             string
+	scheduler                *scheduler.Scheduler
+	mediaJobs                *mediaJobStore
+	connStore                *connector.ConnectorStore
+	allowLoopback            bool
 	streamFirstPacketTimeout time.Duration
 }
 
@@ -61,7 +64,9 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	if perAppConc <= 0 {
 		perAppConc = 2
 	}
-	return newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
+	svc := newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
+	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
+	return svc
 }
 
 // newFromProviderConfig is an internal constructor used by New and tests.
@@ -73,14 +78,14 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		perAppConc = 2
 	}
 	return &Service{
-		logger:                  logger,
-		config:                  cfg,
-		selector:                newRouteSelectorWithRegistry(cfg, registry, aiHealth),
-		audit:                   auditStore,
-		registry:                registry,
-		scheduler:               scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
-		mediaJobs:               newMediaJobStore(),
-		connStore:               connStore,
+		logger:                   logger,
+		config:                   cfg,
+		selector:                 newRouteSelectorWithRegistry(cfg, registry, aiHealth),
+		audit:                    auditStore,
+		registry:                 registry,
+		scheduler:                scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
+		mediaJobs:                newMediaJobStore(),
+		connStore:                connStore,
 		streamFirstPacketTimeout: defaultStreamFirstTimeout,
 	}
 }
@@ -104,14 +109,14 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
 	if err != nil {
 		return nil, err
 	}
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetAppId())
 	if acquireErr != nil {
-		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	defer release()
 	s.attachQueueWaitUnary(ctx, acquireResult)
@@ -145,7 +150,11 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 		return nil, err
 	}
 	if usage == nil {
-		usage = nimillm.EstimateUsage(inputText, outputText)
+		usage = &runtimev1.UsageStats{
+			InputTokens:  -1,
+			OutputTokens: -1,
+			ComputeMs:    -1,
+		}
 	}
 
 	output, err := structpb.NewStruct(map[string]any{
@@ -153,7 +162,7 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 		"modal": req.GetModal().String(),
 	})
 	if err != nil {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
 	resp := &runtimev1.GenerateResponse{
@@ -177,14 +186,14 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	if err := validateKeySource(parsed); err != nil {
 		return err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
 	if err != nil {
 		return err
 	}
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
 	if acquireErr != nil {
-		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	defer release()
 	waitMs := s.attachQueueWait(stream.Context(), acquireResult)
@@ -229,7 +238,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	}
 	failAndStop := func(cause error) error {
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
-			cause = status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
 		return send(&runtimev1.StreamGenerateEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
@@ -259,16 +268,44 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	var finishReason runtimev1.FinishReason
 	var outputBuilder strings.Builder
 
+	// K-STREAM-006: 32-byte chunk buffering
+	var chunkBuf strings.Builder
+	sendDelta := func(text string) error {
+		if text == "" {
+			return nil // K-STREAM-003: delta must be non-empty
+		}
+		chunkBuf.WriteString(text)
+		if chunkBuf.Len() < defaultChunkSize {
+			return nil // buffer until >= 32 bytes
+		}
+		chunk := chunkBuf.String()
+		chunkBuf.Reset()
+		return send(&runtimev1.StreamGenerateEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload: &runtimev1.StreamGenerateEvent_Delta{
+				Delta: &runtimev1.StreamDelta{Text: chunk},
+			},
+		})
+	}
+	flushDelta := func() error {
+		if chunkBuf.Len() == 0 {
+			return nil
+		}
+		chunk := chunkBuf.String()
+		chunkBuf.Reset()
+		return send(&runtimev1.StreamGenerateEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload: &runtimev1.StreamGenerateEvent_Delta{
+				Delta: &runtimev1.StreamDelta{Text: chunk},
+			},
+		})
+	}
+
 	if streamer, ok := selectedProvider.(streamingTextProvider); ok {
 		usage, finishReason, err = streamer.StreamGenerateText(requestCtx, modelResolved, req, func(part string) error {
 			firstPacketSeen.Store(true)
 			outputBuilder.WriteString(part)
-			return send(&runtimev1.StreamGenerateEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				Payload: &runtimev1.StreamGenerateEvent_Delta{
-					Delta: &runtimev1.StreamDelta{Text: part},
-				},
-			})
+			return sendDelta(part)
 		})
 		if err != nil {
 			return failAndStop(err)
@@ -284,20 +321,24 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		for _, part := range parts {
 			firstPacketSeen.Store(true)
 			outputBuilder.WriteString(part)
-			if err := send(&runtimev1.StreamGenerateEvent{
-				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				Payload: &runtimev1.StreamGenerateEvent_Delta{
-					Delta: &runtimev1.StreamDelta{Text: part},
-				},
-			}); err != nil {
+			if err := sendDelta(part); err != nil {
 				return err
 			}
 		}
 	}
 
-	outputText := outputBuilder.String()
+	// Flush remaining buffered delta before termframe
+	if err := flushDelta(); err != nil {
+		return err
+	}
+
+	// K-STREAM-003: usage fallback — if upstream lacks usage, fill -1
 	if usage == nil {
-		usage = nimillm.EstimateUsage(inputText, outputText)
+		usage = &runtimev1.UsageStats{
+			InputTokens:  -1,
+			OutputTokens: -1,
+			ComputeMs:    -1,
+		}
 	}
 
 	if len(req.GetTools()) > 0 {
@@ -330,15 +371,6 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		}
 	}
 
-	if err := send(&runtimev1.StreamGenerateEvent{
-		EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
-		Payload: &runtimev1.StreamGenerateEvent_Usage{
-			Usage: usage,
-		},
-	}); err != nil {
-		return err
-	}
-
 	if strings.Contains(strings.ToLower(modelResolved), "stream-fail") {
 		return send(&runtimev1.StreamGenerateEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
@@ -351,11 +383,13 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		})
 	}
 
+	// K-STREAM-003: single done=true termframe carrying usage + finish_reason
 	return send(&runtimev1.StreamGenerateEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 		Payload: &runtimev1.StreamGenerateEvent_Completed{
 			Completed: &runtimev1.StreamCompleted{
 				FinishReason: finishReason,
+				Usage:        usage,
 			},
 		},
 	})

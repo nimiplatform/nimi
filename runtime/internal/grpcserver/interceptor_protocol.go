@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
-	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
 func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInterceptor {
@@ -31,7 +32,7 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 			}
 			requestHash := hashRequest(req)
 			if replay, hit, conflict := store.Load(info.FullMethod, appID, meta.ParticipantID, meta.IdempotencyKey, requestHash); conflict {
-				return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 			} else if hit {
 				return replay, nil
 			}
@@ -85,7 +86,7 @@ func (s *protocolStream) RecvMsg(m any) error {
 		return nil
 	}
 	if requestAppID != s.metadataAppID {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
 	}
 	return nil
 }

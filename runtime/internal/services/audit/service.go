@@ -15,6 +15,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -526,16 +527,16 @@ func matchesAuditFilter(event *runtimev1.AuditEventRecord, req *runtimev1.ListAu
 }
 
 func parsePageToken(token string) int {
-	token = strings.TrimSpace(token)
-	if token == "" {
+	if strings.TrimSpace(token) == "" {
 		return 0
 	}
-	var value int
-	for _, r := range token {
-		if r < '0' || r > '9' {
-			return 0
-		}
-		value = value*10 + int(r-'0')
+	cursor, _, err := pagination.Decode(token)
+	if err != nil {
+		return 0
+	}
+	value, convErr := strconv.Atoi(cursor)
+	if convErr != nil || value < 0 {
+		return 0
 	}
 	return value
 }
@@ -544,7 +545,7 @@ func formatPageToken(offset int) string {
 	if offset <= 0 {
 		return ""
 	}
-	return strconv.Itoa(offset)
+	return pagination.Encode(strconv.Itoa(offset), "")
 }
 
 func marshalAuditEvents(events []*runtimev1.AuditEventRecord) ([]byte, error) {

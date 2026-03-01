@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 const AdapterBytedanceARKTask = "bytedance_ark_task_adapter"
@@ -22,7 +23,7 @@ func ExecuteBytedanceARKTask(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -30,7 +31,7 @@ func ExecuteBytedanceARKTask(
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := req.GetImageSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		providerOptions := StructToMap(spec.GetProviderOptions())
 		submitPath := resolveBytedanceARKImagePath(spec)
@@ -67,7 +68,7 @@ func ExecuteBytedanceARKTask(
 		}
 		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 		if len(artifactBytes) == 0 {
-			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		if mimeType == "" {
 			mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
@@ -96,7 +97,7 @@ func ExecuteBytedanceARKTask(
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := req.GetVideoSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		providerOptions := StructToMap(spec.GetProviderOptions())
 		submitPath := resolveBytedanceARKVideoSubmitPath(spec)
@@ -132,7 +133,7 @@ func ExecuteBytedanceARKTask(
 		if providerJobID == "" {
 			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 			if len(artifactBytes) == 0 {
-				return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+				return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 			}
 			if mimeType == "" {
 				mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
@@ -159,7 +160,7 @@ func ExecuteBytedanceARKTask(
 			map[string]any{"provider_options": providerOptions},
 		)
 	default:
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 }
 

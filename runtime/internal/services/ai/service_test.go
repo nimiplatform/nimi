@@ -180,8 +180,8 @@ func TestStreamGenerateSequence(t *testing.T) {
 		t.Fatalf("stream generate: %v", err)
 	}
 
-	if len(stream.events) < 4 {
-		t.Fatalf("expected >= 4 events, got %d", len(stream.events))
+	if len(stream.events) < 3 {
+		t.Fatalf("expected >= 3 events (STARTED + DELTA(s) + COMPLETED), got %d", len(stream.events))
 	}
 	if stream.events[0].GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_STARTED {
 		t.Fatalf("first event must be started, got %v", stream.events[0].GetEventType())
@@ -190,18 +190,15 @@ func TestStreamGenerateSequence(t *testing.T) {
 	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
 		t.Fatalf("last event must be completed, got %v", last.GetEventType())
 	}
-	foundUsage := false
 	for idx, event := range stream.events {
 		expected := uint64(idx + 1)
 		if event.GetSequence() != expected {
 			t.Fatalf("sequence must be contiguous: got=%d expected=%d", event.GetSequence(), expected)
 		}
-		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_USAGE {
-			foundUsage = true
-		}
 	}
-	if !foundUsage {
-		t.Fatalf("usage event must exist")
+	// K-STREAM-003: usage is carried in the COMPLETED termframe, not a separate USAGE event.
+	if last.GetCompleted().GetUsage() == nil {
+		t.Fatalf("completed event must carry usage stats")
 	}
 }
 
@@ -250,18 +247,20 @@ func TestStreamGenerateUsesProviderNativeStream(t *testing.T) {
 	}
 
 	joined := ""
-	var usage *runtimev1.UsageStats
+	var completedEvent *runtimev1.StreamGenerateEvent
 	for _, event := range stream.events {
 		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_DELTA {
 			joined += event.GetDelta().GetText()
 		}
-		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_USAGE {
-			usage = event.GetUsage()
+		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+			completedEvent = event
 		}
 	}
 	if strings.TrimSpace(joined) != "Hello stream" {
 		t.Fatalf("joined delta mismatch: %q", joined)
 	}
+	// K-STREAM-003: usage is in the COMPLETED termframe.
+	usage := completedEvent.GetCompleted().GetUsage()
 	if usage == nil || usage.GetInputTokens() != 7 || usage.GetOutputTokens() != 2 {
 		t.Fatalf("usage mismatch: %#v", usage)
 	}

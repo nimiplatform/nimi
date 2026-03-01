@@ -14,14 +14,16 @@ import (
 	"testing"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 func TestSubmitMediaJobImageCompletes(t *testing.T) {
@@ -2735,7 +2737,6 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 	}
 }
 
-
 func TestResolveMediaAdapterNameKimiImage(t *testing.T) {
 	adapter := resolveMediaAdapterName("moonshot/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE)
 	if adapter != adapterKimiChatMultimodal {
@@ -3043,7 +3044,7 @@ func TestReasonCodeFromMediaErrorMapping(t *testing.T) {
 		},
 		{
 			name: "message enum",
-			err:  status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String()),
+			err:  grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE),
 			want: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 		},
 		{

@@ -11,10 +11,11 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 // AdapterBytedanceOpenSpeech is the adapter identifier for Bytedance OpenSpeech TTS/STT.
@@ -31,7 +32,7 @@ func ExecuteBytedanceOpenSpeech(
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
-		return nil, nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
@@ -39,7 +40,7 @@ func ExecuteBytedanceOpenSpeech(
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload := map[string]any{
 			"model":       modelResolved,
@@ -76,7 +77,7 @@ func ExecuteBytedanceOpenSpeech(
 	case runtimev1.Modal_MODAL_STT:
 		spec := req.GetTranscriptionSpec()
 		if spec == nil {
-			return nil, nil, "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		audioBytes, mimeType, audioURI, resolveErr := ResolveTranscriptionAudioSource(ctx, spec)
 		if resolveErr != nil {
@@ -131,7 +132,7 @@ func ExecuteBytedanceOpenSpeech(
 		}
 		text := strings.TrimSpace(body.Text)
 		if text == "" {
-			return nil, nil, "", status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
 			"text":             text,
@@ -149,7 +150,7 @@ func ExecuteBytedanceOpenSpeech(
 		}, "", nil
 
 	default:
-		return nil, nil, "", status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 }
 
@@ -188,11 +189,11 @@ func executeBytedanceOpenSpeechWS(
 ) (string, map[string]any, error) {
 	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL, providerOptions)
 	if targetURL == "" {
-		return "", nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	config, err := websocket.NewConfig(targetURL, websocketOrigin(targetURL))
 	if err != nil {
-		return "", nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	config.Header = http.Header{}
 	config.Header.Set("Content-Type", "application/json")
@@ -276,7 +277,7 @@ func executeBytedanceOpenSpeechWS(
 				if finalText != "" || strings.TrimSpace(deltaBuilder.String()) != "" {
 					break
 				}
-				return "", responsePayload, status.Error(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+				return "", responsePayload, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 			}
 			return "", responsePayload, MapProviderRequestError(receiveErr)
 		}
@@ -290,7 +291,7 @@ func executeBytedanceOpenSpeechWS(
 			ValueAsString(MapField(payload["result"], "error")),
 		))
 		if errorMessage != "" {
-			return "", responsePayload, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return "", responsePayload, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		if delta := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(payload["delta"]),
@@ -312,7 +313,7 @@ func executeBytedanceOpenSpeechWS(
 		)))
 		doneFlag := ValueAsBool(FirstNonNil(payload["done"], MapField(payload["result"], "done")))
 		if lastStatus == "failed" || lastStatus == "error" {
-			return "", responsePayload, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return "", responsePayload, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		if doneFlag || lastStatus == "completed" || lastStatus == "finished" || lastStatus == "done" {
 			break
@@ -323,7 +324,7 @@ func executeBytedanceOpenSpeechWS(
 		finalText = strings.TrimSpace(deltaBuilder.String())
 	}
 	if finalText == "" {
-		return "", responsePayload, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return "", responsePayload, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return finalText, map[string]any{
 		"status":        lastStatus,

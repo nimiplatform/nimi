@@ -3,14 +3,17 @@ package grant
 import (
 	"context"
 	"fmt"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"strings"
+	"time"
+
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"strings"
-	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.AuthorizeExternalPrincipalRequest) (*runtimev1.AuthorizeExternalPrincipalResponse, error) {
@@ -18,27 +21,27 @@ func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.A
 	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if appID == "" || externalID == "" || subjectUserID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
 	if strings.TrimSpace(req.GetConsentId()) == "" || strings.TrimSpace(req.GetConsentVersion()) == "" {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_MISSING.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_MISSING)
 	}
 	if req.GetDecisionAt() == nil || req.GetDecisionAt().AsTime().IsZero() {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_CONSENT_INVALID)
 	}
 
 	record, exists := s.registry.Get(appID)
 	if !exists {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_NOT_REGISTERED.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 	}
 
 	effectiveScopes := resolveScopes(req)
 	if len(effectiveScopes) == 0 {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if hasRealmScope(effectiveScopes) {
-		return nil, status.Error(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String())
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 
 	if reasonCode, actionHint, ok := appregistry.ValidateDomainAndScopes(record.Manifest, req.GetDomain(), effectiveScopes); !ok {
@@ -48,7 +51,7 @@ func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.A
 
 	scopeCatalogVersion := strings.TrimSpace(req.GetScopeCatalogVersion())
 	if scopeCatalogVersion == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 	}
 	scopeValidation := s.catalog.ValidateScopes(scopeCatalogVersion, effectiveScopes)
 	if scopeValidation != runtimev1.ReasonCode_ACTION_EXECUTED {

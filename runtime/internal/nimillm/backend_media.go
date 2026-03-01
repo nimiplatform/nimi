@@ -9,10 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 // Embed sends an embeddings request.
@@ -40,7 +42,7 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 		reqInputs = append(reqInputs, trimmed)
 	}
 	if len(reqInputs) == 0 {
-		return nil, nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
 	var respBody embeddingsResponse
@@ -51,7 +53,7 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 		return nil, nil, err
 	}
 	if len(respBody.Data) == 0 {
-		return nil, nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
 	vectors := make([]*structpb.ListValue, 0, len(respBody.Data))
@@ -91,7 +93,7 @@ func (b *Backend) Transcribe(
 	mimeType string,
 ) (string, *runtimev1.UsageStats, error) {
 	if len(audio) == 0 {
-		return "", nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
 	body := &bytes.Buffer{}
@@ -181,7 +183,7 @@ func (b *Backend) Transcribe(
 	}
 	text := strings.TrimSpace(out.Text)
 	if text == "" {
-		return "", nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
 	usage := &runtimev1.UsageStats{
@@ -245,7 +247,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		return nil, nil, err
 	}
 	if len(respBody.Data) == 0 {
-		return nil, nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
+		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
 	payload, err := b.DecodeMedia(respBody.Data[0].B64JSON, respBody.Data[0].URL)
@@ -316,7 +318,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 		return nil, nil, err
 	}
 	if err != nil {
-		return nil, nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 
 	var b64Data string

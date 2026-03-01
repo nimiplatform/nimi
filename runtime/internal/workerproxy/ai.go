@@ -3,12 +3,14 @@ package workerproxy
 import (
 	"context"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 )
 
 const aiWorkerRole = "ai"
@@ -142,7 +144,7 @@ func (s *AIProxy) GetMediaArtifacts(ctx context.Context, req *runtimev1.GetMedia
 
 func (s *AIProxy) client() (runtimev1.RuntimeAiServiceClient, error) {
 	if s.pool == nil {
-		return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	conn, err := s.pool.Conn(aiWorkerRole)
 	if err != nil {
@@ -152,7 +154,7 @@ func (s *AIProxy) client() (runtimev1.RuntimeAiServiceClient, error) {
 }
 
 func unavailableAI(_ error) error {
-	return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+	return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 }
 
 func mapAIError(err error) error {

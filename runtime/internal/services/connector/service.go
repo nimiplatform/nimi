@@ -3,13 +3,18 @@ package connector
 import (
 	"context"
 	"log/slog"
+	"sort"
+	"strconv"
 	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
 const maxConnectorsPerUser = 128
@@ -42,17 +47,20 @@ func (s *Service) SetCloudProvider(cloud *nimillm.CloudProvider) {
 func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnectorRequest) (*runtimev1.CreateConnectorResponse, error) {
 	provider := strings.TrimSpace(req.GetProvider())
 	if provider == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 	if !IsKnownProvider(provider) {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	apiKey := strings.TrimSpace(req.GetApiKey())
+	if apiKey == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	if ownerID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	// Enforce per-user limit
@@ -67,7 +75,7 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 		}
 	}
 	if count >= maxConnectorsPerUser {
-		return nil, status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED.String())
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED)
 	}
 
 	endpoint := strings.TrimSpace(req.GetEndpoint())
@@ -77,7 +85,7 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 
 	// Validate endpoint requirement
 	if entry, ok := ProviderCatalog[provider]; ok && entry.RequiresExplicitEndpoint && endpoint == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	rec := ConnectorRecord{
@@ -112,7 +120,7 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorRequest) (*runtimev1.GetConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	rec, found, err := s.store.Get(connectorID)
@@ -123,7 +131,7 @@ func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorReq
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	// Information hiding: delete_pending or owner mismatch → NOT_FOUND
 	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
 	return &runtimev1.GetConnectorResponse{
@@ -138,28 +146,108 @@ func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnector
 	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
-	result := make([]*runtimev1.Connector, 0, len(records))
+	kindFilter := req.GetKindFilter()
+	statusFilter := req.GetStatusFilter()
+	providerFilter := strings.TrimSpace(req.GetProviderFilter())
+
+	// Build filter digest for pagination token validation (K-PAGE-003)
+	filterDigest := pagination.FilterDigest(
+		ownerID,
+		kindFilter.String(),
+		statusFilter.String(),
+		providerFilter,
+	)
+
+	// Validate page_token (K-PAGE-002)
+	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter
+	filtered := make([]ConnectorRecord, 0, len(records))
 	for _, r := range records {
-		// System connectors (local + system cloud) always visible to all
-		if r.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
-			result = append(result, recordToProto(r))
+		// Owner visibility: system connectors visible to all, user-owned filtered by owner
+		if r.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
+			if ownerID != "" && r.OwnerID != ownerID {
+				continue
+			}
+		}
+		// Kind filter
+		if kindFilter != runtimev1.ConnectorKind_CONNECTOR_KIND_UNSPECIFIED && r.Kind != kindFilter {
 			continue
 		}
-		// User-owned remote connectors filtered by owner
-		if ownerID == "" || r.OwnerID == ownerID {
-			result = append(result, recordToProto(r))
+		// Status filter
+		if statusFilter != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED && r.Status != statusFilter {
+			continue
+		}
+		// Provider filter
+		if providerFilter != "" && r.Provider != providerFilter {
+			continue
+		}
+		filtered = append(filtered, r)
+	}
+
+	// Sort (K-PAGE-004): LOCAL_MODEL first → category ASC → connector_id ASC;
+	// REMOTE_MANAGED → created_at DESC → connector_id ASC
+	sort.Slice(filtered, func(i, j int) bool {
+		ri, rj := filtered[i], filtered[j]
+		// Local connectors before remote
+		if ri.Kind != rj.Kind {
+			return ri.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL
+		}
+		if ri.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+			if ri.LocalCategory != rj.LocalCategory {
+				return ri.LocalCategory < rj.LocalCategory
+			}
+			return ri.ConnectorID < rj.ConnectorID
+		}
+		// REMOTE_MANAGED: created_at DESC, then connector_id ASC
+		if ri.CreatedAt != rj.CreatedAt {
+			return ri.CreatedAt > rj.CreatedAt
+		}
+		return ri.ConnectorID < rj.ConnectorID
+	})
+
+	// Apply cursor-based pagination
+	startIdx := 0
+	if cursor != "" {
+		if idx, convErr := strconv.Atoi(cursor); convErr == nil && idx > 0 && idx <= len(filtered) {
+			startIdx = idx
 		}
 	}
 
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 50
+	}
+
+	endIdx := startIdx + pageSize
+	if endIdx > len(filtered) {
+		endIdx = len(filtered)
+	}
+
+	page := filtered[startIdx:endIdx]
+	result := make([]*runtimev1.Connector, len(page))
+	for i, r := range page {
+		result[i] = recordToProto(r)
+	}
+
+	var nextPageToken string
+	if endIdx < len(filtered) {
+		nextPageToken = pagination.Encode(strconv.Itoa(endIdx), filterDigest)
+	}
+
 	return &runtimev1.ListConnectorsResponse{
-		Connectors: result,
+		Connectors:    result,
+		NextPageToken: nextPageToken,
 	}, nil
 }
 
 func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnectorRequest) (*runtimev1.UpdateConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
@@ -168,25 +256,25 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
 	}
 	if !found {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
 	// Owner check
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
 	// Immutability check for local connectors (only status can change)
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
 		if req.GetLabel() != "" || req.GetEndpoint() != "" || req.GetApiKey() != "" {
-			return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE.String())
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
 		}
 	}
 
 	// System cloud connectors are managed by config.json, not via API
 	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
 		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
 	}
 
 	var mutations ConnectorMutations
@@ -212,7 +300,7 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 	}
 
 	if !hasChange {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	// If api_key or endpoint changed, invalidate model cache
@@ -233,7 +321,7 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnectorRequest) (*runtimev1.DeleteConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	rec, found, err := s.store.Get(connectorID)
@@ -249,13 +337,13 @@ func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnec
 	// System connectors (local + system cloud) cannot be deleted via API
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL ||
 		rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
 	}
 
 	// Owner check
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	if ownerID != "" && rec.OwnerID != ownerID {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
 	if err := s.store.Delete(connectorID); err != nil {
@@ -272,7 +360,7 @@ func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnec
 func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnectorRequest) (*runtimev1.TestConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
@@ -337,7 +425,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListConnectorModelsRequest) (*runtimev1.ListConnectorModelsResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID.String())
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
@@ -346,11 +434,11 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
 	}
 	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
-		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String())
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
 	if rec.Status == runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED {
-		return nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED.String())
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
 
 	// Check cache (unless force_refresh)
@@ -371,7 +459,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		return nil, status.Errorf(codes.Internal, "load credential: %v", err)
 	}
 	if apiKey == "" {
-		return nil, status.Error(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING.String())
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 
 	// Fetch models via backend
@@ -379,12 +467,12 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	if s.cloud != nil {
 		backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
 		if probeErr != nil {
-			return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		rawModels, listErr := backend.ListModels(ctx)
 		if listErr != nil {
 			s.logger.Warn("list connector models failed", "connector_id", connectorID, "error", listErr)
-			return nil, status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		for _, m := range rawModels {
 			models = append(models, &runtimev1.ConnectorModelDescriptor{

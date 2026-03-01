@@ -4,12 +4,13 @@ import (
 	"context"
 	"strings"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
 const (
@@ -26,7 +27,7 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 	if err := validateKeySource(parsed); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +57,14 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 	if err := validateKeySource(parsed); err != nil {
 		return err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore)
+	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
 	if err != nil {
 		return err
 	}
 
 	release, acquireResult, acquireErr := s.scheduler.Acquire(stream.Context(), req.GetAppId())
 	if acquireErr != nil {
-		return status.Error(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	defer release()
 	s.logQueueWait("stream_speech_synthesis", req.GetAppId(), acquireResult)
@@ -80,11 +81,11 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 	spec := req.GetSpeechSpec()
 	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
 	if !ok || mbp == nil {
-		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	backend, backendModelID := mbp.ResolveMediaBackend(modelResolved)
 	if backend == nil {
-		return status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	if backendModelID == "" {
 		backendModelID = modelResolved
@@ -141,14 +142,14 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 
 func validateStreamSpeechSynthesisRequest(req *runtimev1.StreamSpeechSynthesisRequest) error {
 	if req == nil {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
 		return err
 	}
 	spec := req.GetSpeechSpec()
 	if spec == nil || strings.TrimSpace(spec.GetText()) == "" {
-		return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID.String())
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return nil
 }

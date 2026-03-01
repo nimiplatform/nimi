@@ -4,9 +4,10 @@ import (
 	"strings"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 // NormalizeTokenProviderID canonicalizes public token provider identifiers.
@@ -18,7 +19,7 @@ func NormalizeTokenProviderID(raw string) (string, error) {
 
 	switch token {
 	case "litellm", "cloudlitellm", "cloudai":
-		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case "nimillm", "cloudnimillm":
 		return "nimillm", nil
 	case "alibaba", "aliyun", "cloudalibaba", "dashscope":
@@ -38,7 +39,7 @@ func NormalizeTokenProviderID(raw string) (string, error) {
 	case "openrouter", "cloudopenrouter":
 		return "openrouter", nil
 	default:
-		return "", status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String())
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 }
 
@@ -53,7 +54,7 @@ func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, 
 	backendName := "cloud-" + canonicalProviderID
 	backend := probeBackendFromTemplate(backendName, template, endpoint, apiKey, p.probeTimeout())
 	if backend == nil {
-		return nil, "", status.Error(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE.String())
+		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	return backend, canonicalProviderID, nil
 }
