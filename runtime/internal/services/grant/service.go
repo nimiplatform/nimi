@@ -3,6 +3,7 @@ package grant
 import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	"log/slog"
 	"sync"
@@ -32,9 +33,10 @@ type tokenRecord struct {
 // Service implements RuntimeGrantService with in-memory token state.
 type Service struct {
 	runtimev1.UnimplementedRuntimeGrantServiceServer
-	logger   *slog.Logger
-	registry *appregistry.Registry
-	catalog  *scopecatalog.Catalog
+	logger     *slog.Logger
+	registry   *appregistry.Registry
+	catalog    *scopecatalog.Catalog
+	auditStore *auditlog.Store
 
 	mu           sync.RWMutex
 	tokens       map[string]tokenRecord
@@ -46,14 +48,14 @@ func New(logger *slog.Logger) *Service {
 	return NewWithDependencies(logger, appregistry.New(), scopecatalog.New())
 }
 
-func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, catalog *scopecatalog.Catalog) *Service {
+func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, catalog *scopecatalog.Catalog, opts ...func(*Service)) *Service {
 	if registry == nil {
 		registry = appregistry.New()
 	}
 	if catalog == nil {
 		catalog = scopecatalog.New()
 	}
-	return &Service{
+	svc := &Service{
 		logger:       logger,
 		registry:     registry,
 		catalog:      catalog,
@@ -61,4 +63,29 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, ca
 		policyIndex:  make(map[string]string),
 		policyTokens: make(map[string]map[string]bool),
 	}
+	for _, opt := range opts {
+		opt(svc)
+	}
+	return svc
+}
+
+// WithAuditStore sets the audit store for grant event tracking (K-GRANT-007).
+func WithAuditStore(store *auditlog.Store) func(*Service) {
+	return func(s *Service) {
+		s.auditStore = store
+	}
+}
+
+// emitAudit writes an audit event for grant operations (K-GRANT-007).
+func (s *Service) emitAudit(operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
+	if s.auditStore == nil {
+		return
+	}
+	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
+		Domain:        "runtime.grant",
+		Operation:     operation,
+		AppId:         appID,
+		SubjectUserId: subjectUserID,
+		ReasonCode:    reasonCode,
+	})
 }

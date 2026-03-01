@@ -2,20 +2,22 @@ package grant
 
 import (
 	"context"
+	"sort"
+	"strings"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"sort"
-	"strings"
-	"time"
 )
 
 func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
 	appID := strings.TrimSpace(req.GetAppId())
 	if tokenID == "" || appID == "" {
+		s.emitAudit("ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{
 			Valid:      false,
 			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
@@ -29,37 +31,48 @@ func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.Valid
 	s.mu.RUnlock()
 
 	if !exists || token.AppID != appID {
+		s.emitAudit("ValidateAppAccessToken", appID, "", runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "reauthorize_external_principal"}, nil
 	}
 	if token.Revoked {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED, ActionHint: "reauthorize_external_principal"}, nil
 	}
 	if time.Now().UTC().After(token.ExpiresAt) {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_EXPIRED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_TOKEN_EXPIRED, ActionHint: "refresh_authorization"}, nil
 	}
 	if currentPolicyVersion != "" && token.PolicyVersion != currentPolicyVersion {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "refresh_authorization_policy"}, nil
 	}
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	if subjectUserID != "" && subjectUserID != token.SubjectUserID {
+		s.emitAudit("ValidateAppAccessToken", appID, subjectUserID, runtimev1.ReasonCode_APP_GRANT_INVALID)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "set_matching_subject_user_id"}, nil
 	}
 	if !s.catalog.IsPublished(token.IssuedScopeCatalog) {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED, ActionHint: "use_published_scope_catalog_version"}, nil
 	}
 	if s.catalog.HasRevokedScope(token.IssuedScopeCatalog, token.Scopes) {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_REVOKED)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_REVOKED, ActionHint: "reauthorize_with_active_scopes"}, nil
 	}
 	if hasRealmScope(req.GetRequestedScopes()) {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "route_realm_scopes_via_realm_domain"}, nil
 	}
 	if !scopesAllowed(token.Scopes, req.GetRequestedScopes()) {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, ActionHint: "request_allowed_scopes_only"}, nil
 	}
 	if !selectorsWithin(token.ResourceSelectors, req.GetResourceSelectors()) {
+		s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE)
 		return &runtimev1.ValidateAppAccessTokenResponse{Valid: false, ReasonCode: runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE, ActionHint: "request_resources_within_selector"}, nil
 	}
 
+	s.emitAudit("ValidateAppAccessToken", appID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.ValidateAppAccessTokenResponse{
 		Valid:                     true,
 		ReasonCode:                runtimev1.ReasonCode_ACTION_EXECUTED,
@@ -73,16 +86,18 @@ func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.Valid
 func (s *Service) RevokeAppAccessToken(_ context.Context, req *runtimev1.RevokeAppAccessTokenRequest) (*runtimev1.Ack, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
 	if tokenID == "" {
+		s.emitAudit("RevokeAppAccessToken", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set token_id"}, nil
 	}
 
 	s.mu.Lock()
-	_, exists := s.tokens[tokenID]
+	token, exists := s.tokens[tokenID]
 	if exists {
 		s.cascadeRevokeLocked(tokenID)
 	}
 	s.mu.Unlock()
 
+	s.emitAudit("RevokeAppAccessToken", token.AppID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -173,6 +188,7 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 	}
 	s.policyTokens[key][tokenID] = true
 
+	s.emitAudit("IssueDelegatedAccessToken", parent.AppID, parent.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.IssueDelegatedAccessTokenResponse{
 		TokenId:         tokenID,
 		ParentTokenId:   parent.TokenID,
@@ -185,11 +201,17 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChainRequest) (*runtimev1.ListTokenChainResponse, error) {
 	root := strings.TrimSpace(req.GetRootTokenId())
 	if root == "" {
-		return &runtimev1.ListTokenChainResponse{Nodes: []*runtimev1.TokenChainNode{}}, nil
+		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	if _, exists := s.tokens[root]; !exists {
+		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_APP_GRANT_INVALID)
+		return nil, status.Error(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID.String())
+	}
 
 	queue := []string{root}
 	visited := map[string]bool{}
@@ -225,15 +247,17 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 		}
 	}
 
+	// Sort by issued_at DESC (K-GRANT-012).
 	sort.Slice(nodes, func(i, j int) bool {
 		left := nodes[i].GetIssuedAt().AsTime()
 		right := nodes[j].GetIssuedAt().AsTime()
 		if left.Equal(right) {
-			return nodes[i].GetTokenId() < nodes[j].GetTokenId()
+			return nodes[i].GetTokenId() > nodes[j].GetTokenId()
 		}
-		return left.Before(right)
+		return left.After(right)
 	})
 
+	s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.ListTokenChainResponse{Nodes: nodes}, nil
 }
 
