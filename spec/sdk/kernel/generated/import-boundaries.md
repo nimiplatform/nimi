@@ -4,23 +4,39 @@
 > Source: `spec/sdk/kernel/tables/import-boundaries.yaml`
 ## runtime
 
-Source Rule: `S-BOUNDARY-001`
+Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-002`
 
 Allowed: `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/runtime/transports/*`
 
-Forbidden: `sdk/src/runtime/generated/**`, `runtime/internal/**`
+Forbidden: `@nimiplatform/sdk/runtime/generated/*`, `runtime/internal/**`
+
+## ai-provider
+
+Source Rules: `S-BOUNDARY-001`
+
+Allowed: `@nimiplatform/sdk/ai-provider`, `@nimiplatform/sdk/runtime`
+
+Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/runtime/generated/*`, `runtime/internal/**`
 
 ## realm
 
-Source Rule: `S-BOUNDARY-002`
+Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-002`
 
 Allowed: `@nimiplatform/sdk/realm`
 
-Forbidden: `sdk/src/realm/generated/**`, `runtime/internal/**`
+Forbidden: `@nimiplatform/sdk/realm/generated/*`, `runtime/internal/**`
+
+## scope
+
+Source Rules: `S-BOUNDARY-001`
+
+Allowed: `@nimiplatform/sdk/scope`, `@nimiplatform/sdk/runtime`
+
+Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/realm/internal/**`, `runtime/internal/**`
 
 ## mod
 
-Source Rule: `S-BOUNDARY-003`
+Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-003`
 
 Allowed: `@nimiplatform/sdk/mod`
 

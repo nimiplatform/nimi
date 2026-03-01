@@ -5,6 +5,7 @@
 ## S-BOUNDARY-001 子路径导入边界
 
 各 SDK 子路径禁止跨域私有实现导入，所有跨域依赖必须通过公开导出面完成。
+`S-BOUNDARY-001` 是所有 surface 的基线规则，可与特化规则叠加绑定。
 
 ## S-BOUNDARY-002 Runtime/Realm 边界
 

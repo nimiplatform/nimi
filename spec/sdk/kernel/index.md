@@ -37,7 +37,23 @@
 - `tables/import-boundaries.yaml`
 - `tables/sdk-error-codes.yaml`
 
-## 6. 下游引用约束
+## 6. 结构约束
+
+- kernel 表（`tables/*.yaml`）的 `source_rule` 字段仅允许 `S-*` 格式的 kernel Rule ID，不允许 domain Rule ID（如 `SDKR-*`、`SDKAIP-*`、`SDKREALM-*`）。
+- domain 文档 Section 0 列出的 kernel 导入必须在 body 中至少显式引用一次对应 domain 的 Rule ID，否则应从导入列表移除。
+
+## 7. Domain 规则编号规范
+
+domain 规则编号采用 **段落式十位递增**：
+
+- `001`–`00x`：不变量
+- `010`–`01x`：第一增量段
+- `020`–`02x`：第二增量段
+- 依此类推
+
+段内连续，段间跳跃为预留空间。此规范适用于 `runtime.md`、`ai-provider.md`、`realm.md`、`scope.md`、`mod.md` 等所有 SDK domain 文档。
+
+## 8. 下游引用约束
 
 - `runtime.md`: Runtime SDK 投影（初始化、模块编排、与 runtime kernel 绑定）
 - `ai-provider.md`: AI Provider SDK 投影（AI SDK v3 兼容层）

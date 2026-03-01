@@ -5,20 +5,46 @@ rules:
       - "@nimiplatform/sdk/runtime"
       - "@nimiplatform/sdk/runtime/transports/*"
     forbidden:
-      - "sdk/src/runtime/generated/**"
+      - "@nimiplatform/sdk/runtime/generated/*"
       - "runtime/internal/**"
-    source_rule: S-BOUNDARY-001
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-002
+  - surface: ai-provider
+    allowed:
+      - "@nimiplatform/sdk/ai-provider"
+      - "@nimiplatform/sdk/runtime"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/runtime/generated/*"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
   - surface: realm
     allowed:
       - "@nimiplatform/sdk/realm"
     forbidden:
-      - "sdk/src/realm/generated/**"
+      - "@nimiplatform/sdk/realm/generated/*"
       - "runtime/internal/**"
-    source_rule: S-BOUNDARY-002
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-002
+  - surface: scope
+    allowed:
+      - "@nimiplatform/sdk/scope"
+      - "@nimiplatform/sdk/runtime"
+    forbidden:
+      - "@nimiplatform/sdk/runtime/internal/**"
+      - "@nimiplatform/sdk/realm/internal/**"
+      - "runtime/internal/**"
+    source_rules:
+      - S-BOUNDARY-001
   - surface: mod
     allowed:
       - "@nimiplatform/sdk/mod"
     forbidden:
       - "@nimiplatform/sdk/runtime/internal/**"
       - "@nimiplatform/sdk/realm/internal/**"
-    source_rule: S-BOUNDARY-003
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-003

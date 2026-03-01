@@ -1,6 +1,9 @@
 version: 1
 groups:
   - group: ai_service_projection
+    service: AIService
+    phase: 1
+    status: active
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - Generate
@@ -11,9 +14,14 @@ groups:
       - CancelMediaJob
       - SubscribeMediaJobEvents
       - GetMediaResult
+      - GetSpeechVoices
       - SynthesizeSpeechStream
     source_rule: S-SURFACE-002
   - group: connector_service_projection
+    service: ConnectorService
+    phase: 1
+    status: blocked
+    blocked_reason: "proto file not published"
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - CreateConnector
@@ -23,4 +31,124 @@ groups:
       - DeleteConnector
       - TestConnector
       - ListConnectorModels
-    source_rule: S-SURFACE-001
+    source_rule: S-SURFACE-002
+  - group: local_runtime_service_projection
+    service: RuntimeLocalRuntimeService
+    phase: 1
+    status: active
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ListLocalModels
+      - InstallLocalModel
+      - RemoveLocalModel
+      - StartLocalModel
+      - StopLocalModel
+      - CheckLocalModelHealth
+      - ListVerifiedModels
+      - SearchCatalogModels
+      - ResolveModelInstallPlan
+      - InstallVerifiedModel
+      - ImportLocalModel
+      - CollectDeviceProfile
+      - ListLocalServices
+      - InstallLocalService
+      - StartLocalService
+      - StopLocalService
+      - CheckLocalServiceHealth
+      - RemoveLocalService
+      - ListNodeCatalog
+      - ResolveDependencies
+      - ApplyDependencies
+      - ListLocalAudits
+      - AppendInferenceAudit
+      - AppendRuntimeAudit
+    source_rule: S-SURFACE-002
+  - group: auth_service_projection
+    service: RuntimeAuthService
+    phase: 1
+    status: active
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - RegisterApp
+      - OpenSession
+      - RefreshSession
+      - RevokeSession
+      - RegisterExternalPrincipal
+      - OpenExternalPrincipalSession
+      - RevokeExternalPrincipalSession
+    source_rule: S-SURFACE-002
+  - group: grant_service_projection
+    service: RuntimeGrantService
+    phase: 1
+    status: active
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - AuthorizeExternalPrincipal
+      - ValidateAppAccessToken
+      - RevokeAppAccessToken
+      - IssueDelegatedAccessToken
+      - ListTokenChain
+    source_rule: S-SURFACE-002
+  - group: workflow_service_projection
+    service: RuntimeWorkflowService
+    phase: 2
+    status: deferred
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - SubmitWorkflow
+      - GetWorkflow
+      - CancelWorkflow
+      - SubscribeWorkflowEvents
+    source_rule: S-SURFACE-002
+  - group: audit_service_projection
+    service: RuntimeAuditService
+    phase: 2
+    status: deferred
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ListAuditEvents
+      - ExportAuditEvents
+      - ListUsageStats
+      - GetRuntimeHealth
+      - ListAIProviderHealth
+      - SubscribeAIProviderHealthEvents
+      - SubscribeRuntimeHealthEvents
+    source_rule: S-SURFACE-002
+  - group: model_service_projection
+    service: RuntimeModelService
+    phase: 2
+    status: deferred
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - ListModels
+      - PullModel
+      - RemoveModel
+      - CheckModelHealth
+    source_rule: S-SURFACE-002
+  - group: knowledge_service_projection
+    service: RuntimeKnowledgeService
+    phase: 2
+    status: deferred
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - BuildIndex
+      - SearchIndex
+      - DeleteIndex
+    source_rule: S-SURFACE-002
+  - group: app_service_projection
+    service: RuntimeAppService
+    phase: 2
+    status: deferred
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - SendAppMessage
+      - SubscribeAppMessages
+    source_rule: S-SURFACE-002
+  - group: script_worker_service_projection
+    service: ScriptWorkerService
+    phase: 2
+    status: deferred
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - Execute
+    source_rule: S-SURFACE-002

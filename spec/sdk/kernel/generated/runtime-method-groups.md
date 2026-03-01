@@ -4,7 +4,7 @@
 > Source: `spec/sdk/kernel/tables/runtime-method-groups.yaml`
 ## ai_service_projection
 
-Source: `spec/runtime/kernel/tables/rpc-methods.yaml`
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 | Method | Source Rule |
 |---|---|
@@ -16,18 +16,139 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml`
 | `CancelMediaJob` | `S-SURFACE-002` |
 | `SubscribeMediaJobEvents` | `S-SURFACE-002` |
 | `GetMediaResult` | `S-SURFACE-002` |
+| `GetSpeechVoices` | `S-SURFACE-002` |
 | `SynthesizeSpeechStream` | `S-SURFACE-002` |
 
 ## connector_service_projection
 
-Source: `spec/runtime/kernel/tables/rpc-methods.yaml`
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 | Method | Source Rule |
 |---|---|
-| `CreateConnector` | `S-SURFACE-001` |
-| `GetConnector` | `S-SURFACE-001` |
-| `ListConnectors` | `S-SURFACE-001` |
-| `UpdateConnector` | `S-SURFACE-001` |
-| `DeleteConnector` | `S-SURFACE-001` |
-| `TestConnector` | `S-SURFACE-001` |
-| `ListConnectorModels` | `S-SURFACE-001` |
+| `CreateConnector` | `S-SURFACE-002` |
+| `GetConnector` | `S-SURFACE-002` |
+| `ListConnectors` | `S-SURFACE-002` |
+| `UpdateConnector` | `S-SURFACE-002` |
+| `DeleteConnector` | `S-SURFACE-002` |
+| `TestConnector` | `S-SURFACE-002` |
+| `ListConnectorModels` | `S-SURFACE-002` |
+
+## local_runtime_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
+
+| Method | Source Rule |
+|---|---|
+| `ListLocalModels` | `S-SURFACE-002` |
+| `InstallLocalModel` | `S-SURFACE-002` |
+| `RemoveLocalModel` | `S-SURFACE-002` |
+| `StartLocalModel` | `S-SURFACE-002` |
+| `StopLocalModel` | `S-SURFACE-002` |
+| `CheckLocalModelHealth` | `S-SURFACE-002` |
+| `ListVerifiedModels` | `S-SURFACE-002` |
+| `SearchCatalogModels` | `S-SURFACE-002` |
+| `ResolveModelInstallPlan` | `S-SURFACE-002` |
+| `InstallVerifiedModel` | `S-SURFACE-002` |
+| `ImportLocalModel` | `S-SURFACE-002` |
+| `CollectDeviceProfile` | `S-SURFACE-002` |
+| `ListLocalServices` | `S-SURFACE-002` |
+| `InstallLocalService` | `S-SURFACE-002` |
+| `StartLocalService` | `S-SURFACE-002` |
+| `StopLocalService` | `S-SURFACE-002` |
+| `CheckLocalServiceHealth` | `S-SURFACE-002` |
+| `RemoveLocalService` | `S-SURFACE-002` |
+| `ListNodeCatalog` | `S-SURFACE-002` |
+| `ResolveDependencies` | `S-SURFACE-002` |
+| `ApplyDependencies` | `S-SURFACE-002` |
+| `ListLocalAudits` | `S-SURFACE-002` |
+| `AppendInferenceAudit` | `S-SURFACE-002` |
+| `AppendRuntimeAudit` | `S-SURFACE-002` |
+
+## auth_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
+
+| Method | Source Rule |
+|---|---|
+| `RegisterApp` | `S-SURFACE-002` |
+| `OpenSession` | `S-SURFACE-002` |
+| `RefreshSession` | `S-SURFACE-002` |
+| `RevokeSession` | `S-SURFACE-002` |
+| `RegisterExternalPrincipal` | `S-SURFACE-002` |
+| `OpenExternalPrincipalSession` | `S-SURFACE-002` |
+| `RevokeExternalPrincipalSession` | `S-SURFACE-002` |
+
+## grant_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
+
+| Method | Source Rule |
+|---|---|
+| `AuthorizeExternalPrincipal` | `S-SURFACE-002` |
+| `ValidateAppAccessToken` | `S-SURFACE-002` |
+| `RevokeAppAccessToken` | `S-SURFACE-002` |
+| `IssueDelegatedAccessToken` | `S-SURFACE-002` |
+| `ListTokenChain` | `S-SURFACE-002` |
+
+## workflow_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `SubmitWorkflow` | `S-SURFACE-002` |
+| `GetWorkflow` | `S-SURFACE-002` |
+| `CancelWorkflow` | `S-SURFACE-002` |
+| `SubscribeWorkflowEvents` | `S-SURFACE-002` |
+
+## audit_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `ListAuditEvents` | `S-SURFACE-002` |
+| `ExportAuditEvents` | `S-SURFACE-002` |
+| `ListUsageStats` | `S-SURFACE-002` |
+| `GetRuntimeHealth` | `S-SURFACE-002` |
+| `ListAIProviderHealth` | `S-SURFACE-002` |
+| `SubscribeAIProviderHealthEvents` | `S-SURFACE-002` |
+| `SubscribeRuntimeHealthEvents` | `S-SURFACE-002` |
+
+## model_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `ListModels` | `S-SURFACE-002` |
+| `PullModel` | `S-SURFACE-002` |
+| `RemoveModel` | `S-SURFACE-002` |
+| `CheckModelHealth` | `S-SURFACE-002` |
+
+## knowledge_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `BuildIndex` | `S-SURFACE-002` |
+| `SearchIndex` | `S-SURFACE-002` |
+| `DeleteIndex` | `S-SURFACE-002` |
+
+## app_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `SendAppMessage` | `S-SURFACE-002` |
+| `SubscribeAppMessages` | `S-SURFACE-002` |
+
+## script_worker_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `Execute` | `S-SURFACE-002` |
