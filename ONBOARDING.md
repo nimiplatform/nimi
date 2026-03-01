@@ -85,28 +85,18 @@ pnpm build:runtime
 
 ## 4. Runtime 快速启动（推荐先做）
 
-### 4.1 初始化统一配置文件
+### 4.1 初始化配置文件
 
-Runtime 配置 SSOT 路径是 `~/.nimi/config.json`（可被 `NIMI_RUNTIME_CONFIG_PATH` 覆盖）。
+Runtime 配置文件路径是 `~/.nimi/config.json`（可被 `NIMI_RUNTIME_CONFIG_PATH` 覆盖）。
 
 ```bash
 pnpm runtime:config:init
 pnpm runtime:config:validate
 ```
 
-### 4.2 配置 Provider 密钥（示例：Gemini）
+### 4.2 启动与健康检查
 
-```bash
-export GEMINI_API_KEY="<your-gemini-key>"
-```
-
-说明：
-
-1. 禁止将明文 `apiKey` 写入配置文件。
-2. 使用 `apiKeyEnv` 引用环境变量。
-3. Gemini 在有 key 且未设置 base URL 时，默认走 `https://generativelanguage.googleapis.com/v1beta/openai`。
-
-### 4.3 启动与健康检查
+首次验证无需配置任何 provider 密钥。直接启动 runtime：
 
 ```bash
 pnpm runtime:serve
@@ -125,13 +115,35 @@ pnpm runtime:config:get
 1. gRPC: `127.0.0.1:46371`
 2. HTTP: `127.0.0.1:46372`
 
+### 4.3 配置 AI Provider 凭据（可选）
+
+如需调用云端 AI provider（如 Gemini），有两种方式配置凭据：
+
+**方式 A：通过 Desktop UI 管理 Connector（推荐）**
+
+启动 Desktop 后，在 Runtime Config 面板中添加 Connector 并填入 API Key。凭据由 Runtime ConnectorService 托管，Desktop renderer 不接触原始 key（K-KEYSRC-001、D-SEC-009）。
+
+**方式 B：通过 config.json 环境变量引用（CLI 场景）**
+
+适用于无 Desktop 的纯 CLI 开发/调试：
+
+```bash
+export GEMINI_API_KEY="<your-gemini-key>"
+pnpm runtime:cmd -- config set --set providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
+```
+
+说明：
+
+1. 禁止将明文 `apiKey` 写入配置文件（校验会拒绝）。
+2. `apiKeyEnv` 引用环境变量名，runtime 启动时从环境读取。
+3. 修改 config 后必须重启 runtime 才生效。
+4. Gemini 在有 key 且未设置 base URL 时，默认走 `https://generativelanguage.googleapis.com/v1beta/openai`。
+
 ### 4.4 首次 AI 调用
 
 ```bash
 pnpm runtime:run:hello
 ```
-
-注意：`nimi config set` 的修改是 `restart required`，重启 runtime 后才生效。
 
 ## 5. SDK 快速验证
 
@@ -157,6 +169,8 @@ const realm = new Realm({
 ```
 
 当前 SDK 主入口是 `Runtime` / `Realm`。不要使用 `createNimiClient`。
+
+Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`、`localRuntime`、`connector`、`knowledge`、`workflow`、`app`、`audit`、`scope`、`events`、`raw`。
 
 ## 6. Desktop 与 Web 开发
 
@@ -212,6 +226,14 @@ pnpm proto:generate
 pnpm proto:lint
 ```
 
+Spec 一致性检查（PR 提交前必须通过）：
+
+```bash
+pnpm check:runtime-spec-kernel-consistency
+pnpm check:sdk-spec-kernel-consistency
+pnpm check:desktop-spec-kernel-consistency
+```
+
 ## 8. 必读规范（开始改代码前）
 
 请先阅读以下文件：
@@ -220,14 +242,14 @@ pnpm proto:lint
 2. `runtime/AGENTS.md`（若改 Go runtime）
 3. `sdk/AGENTS.md`（若改 SDK）
 4. `apps/desktop/AGENTS.md`（若改 desktop）
-5. `ssot/README.md` 与相关 `ssot/*` 合同
+5. `spec/` 目录下对应域的 spec 文档
 
 高频边界规则：
 
 1. desktop/web 不得 import `runtime/internal/*`
 2. SDK 不得跨 realm/runtime 不当耦合
 3. mods 不得绕过 hook 直接调用 SDK runtime
-4. 新增能力优先走 SSOT 合同，再做实现
+4. 新增能力优先走 spec 契约定义，再做实现
 
 ## 9. 建议的开发流程
 
@@ -235,7 +257,8 @@ pnpm proto:lint
 2. 先跑最小验证（runtime health + 目标组件 lint/test）。
 3. 修改代码并运行对应局部测试。
 4. 变更跨组件时再跑根目录 `pnpm lint` 与 `pnpm test`。
-5. 提交时按“可独立审查/可独立回滚”的边界拆 commit。
+5. 变更 spec/源码对齐关系时，跑 `pnpm check:*-spec-kernel-consistency`。
+6. 提交时按"可独立审查/可独立回滚"的边界拆 commit。
 
 ## 10. 常见问题
 
@@ -243,13 +266,12 @@ pnpm proto:lint
 
 `nimi config set` 修改后必须重启 runtime；不支持热加载。
 
-### Q2: provider key 明明配置了但还是 fallback？
+### Q2: AI 调用报凭据错误？
 
-先检查：
+根据使用路径排查：
 
-1. `pnpm runtime:config:get`
-2. `apiKeyEnv` 是否配置正确
-3. 对应环境变量是否在启动 runtime 的同一 shell 中导出
+1. **Connector 路径**（Desktop UI 配置）：检查 Connector 是否为 `ACTIVE` 状态，凭据是否已填入。
+2. **Config 路径**（CLI `apiKeyEnv`）：运行 `pnpm runtime:config:get` 检查 `apiKeyEnv` 字段，确认环境变量已在启动 runtime 的 shell 中导出。
 
 ### Q3: 为什么 `git pull nimi-mods` 在主仓库会出问题？
 
@@ -267,7 +289,8 @@ git pull --rebase
 3. `runtime/README.md`
 4. `docs/runtime/README.md`
 5. `docs/sdk/README.md`
-6. `ssot/runtime/config-contract.md`
+6. `spec/runtime/connector-auth.md`（Connector 领域规范）
+7. `spec/runtime/kernel/key-source-routing.md`（凭据路由规范）
 
 ## 12. 附：统一 Runtime 命令入口
 
@@ -282,5 +305,5 @@ pnpm runtime:cmd -- <subcommand> [args]
 ```bash
 pnpm runtime:cmd -- health --source grpc
 pnpm runtime:cmd -- providers --source grpc
-pnpm runtime:cmd -- config set --set ai.providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
+pnpm runtime:cmd -- config set --set providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
 ```
