@@ -1,0 +1,141 @@
+version: 1
+primitives:
+  - name: timeflow
+    fields:
+      - field: ratio
+        type: number
+        constraint: ">0 && <=1440"
+      - field: tickSeconds
+        type: int
+        constraint: "1..3600"
+      - field: driftBudgetSecondsPerHour
+        type: int
+        constraint: "0..120"
+      - field: catchUpPolicy
+        type: enum
+        constraint: "PAUSE | FAST_FORWARD"
+      - field: rewindAllowed
+        type: boolean
+        constraint: "V0.1 fixed false"
+    rules:
+      - "世界时间必须单调"
+      - "时间漂移超预算必须触发审计事件"
+      - "回放时 Timeflow 结果必须可复现"
+    source: P-PROTO-100
+
+  - name: social
+    fields:
+      - field: relationshipTypes
+        type: "enum[]"
+        constraint: "至少包含 HUMAN_HUMAN, HUMAN_AGENT"
+      - field: preconditionModel
+        type: enum
+        constraint: "FRIENDSHIP_GATE | OPEN"
+      - field: reputationScale
+        type: object
+        constraint: "必填 min/max"
+      - field: decayWindowHours
+        type: int
+        constraint: ">=1"
+      - field: blockPolicy
+        type: enum
+        constraint: "HARD_DENY | SOFT_DENY"
+    rules:
+      - "社交准入必须可判定，拒绝必须可解释"
+      - "关系衰减必须可回放"
+      - "跨 World 关系映射必须声明规则"
+      - "V0.1 默认真相源为 Realm"
+    source: P-PROTO-101
+
+  - name: economy
+    fields:
+      - field: currencyNamespace
+        type: string
+        constraint: "全局稳定命名"
+      - field: transferMode
+        type: enum
+        constraint: "DIRECT | ESCROW"
+      - field: settlementWindowSeconds
+        type: int
+        constraint: "60..86400"
+      - field: conservationRequired
+        type: boolean
+        constraint: "V0.1 fixed true"
+      - field: inflationPolicy
+        type: enum
+        constraint: "FIXED_CAP | PROGRAMMATIC"
+    rules:
+      - "价值流转必须满足守恒约束"
+      - "结算窗口必须固定且可审计"
+      - "跨 World 结算映射必须可解释"
+      - "V0.1 默认真相源为 Realm"
+    source: P-PROTO-102
+
+  - name: transit
+    fields:
+      - field: ingressUserQuotaPerDay
+        type: int
+        constraint: ">=0"
+      - field: ingressWorldQuotaPerDay
+        type: int
+        constraint: ">=0"
+      - field: carryPolicy
+        type: enum
+        constraint: "IDENTITY_ONLY | IDENTITY_AND_AGENT | FULL"
+      - field: mappingPolicy
+        type: enum
+        constraint: "STRICT_MAP | ADAPTIVE_MAP"
+      - field: transitStateModel
+        type: enum
+        constraint: "ACTIVE_COMPLETED_ONLY (V0.1)"
+    rules:
+      - "Transit 必须满足双闸准入（用户闸 + 世界闸）"
+      - "状态转换必须合法且可追溯"
+      - "任意拒绝必须返回可执行 actionHint"
+    source: P-PROTO-103
+
+  - name: context
+    fields:
+      - field: contextScope
+        type: enum
+        constraint: "SESSION | WORLD | DEVICE"
+      - field: retentionTtlSeconds
+        type: int
+        constraint: ">=60"
+      - field: injectionPriority
+        type: "string[]"
+        constraint: "必填且有序"
+      - field: truncationPolicy
+        type: enum
+        constraint: "SUMMARY_FIRST | RECENCY_FIRST"
+      - field: handoffPolicy
+        type: enum
+        constraint: "EXPLICIT_ONLY | ASSISTED"
+    rules:
+      - "上下文裁剪必须可观测"
+      - "注入优先级必须稳定"
+      - "handoff 必须带审计信息"
+    source: P-PROTO-104
+
+  - name: presence
+    fields:
+      - field: presenceStates
+        type: "enum[]"
+        constraint: "至少包含 ACTIVE/IDLE/AWAY/OFFLINE"
+      - field: heartbeatSeconds
+        type: int
+        constraint: "5..120"
+      - field: ttlSeconds
+        type: int
+        constraint: ">= heartbeatSeconds * 2"
+      - field: staleTransition
+        type: enum
+        constraint: "FORCE_OFFLINE (V0.1)"
+      - field: deviceMergePolicy
+        type: enum
+        constraint: "LATEST_WINS | PRIORITY_ORDER"
+    rules:
+      - "Presence 状态必须可恢复"
+      - "过期状态必须自动收敛"
+      - "跨设备冲突必须有确定性合并策略"
+    source: P-PROTO-105

@@ -1,0 +1,49 @@
+version: 1
+profiles:
+  - participant_id: realm
+    profile_ref: "realm.core-profile.v1.0.0"
+    role: "六原语唯一执行方"
+    primitive_capabilities:
+      - primitive: timeflow
+        mode: PROVIDER
+      - primitive: social
+        mode: PROVIDER
+      - primitive: economy
+        mode: PROVIDER
+      - primitive: transit
+        mode: PROVIDER
+      - primitive: context
+        mode: PROVIDER
+      - primitive: presence
+        mode: PROVIDER
+    source: P-PROTO-002
+
+  - participant_id: runtime_local
+    profile_ref: "runtime.access-profile.v1.0.0"
+    role: "运行时访问层"
+    domain_capabilities:
+      - domain: app-auth
+        mode: PROVIDER
+    source: P-PROTO-002
+
+# participant_types 与 P-ALMI-003 Principal 模型映射：
+# human → Human, nimi-agent → NimiAgent, external-agent → ExternalAgent,
+# device → Device, service → Service.
+# external-app 与 external-service 是协议层对 Service Principal 的细化投影，
+# 不构成独立 Principal 类型。
+participant_types:
+  - human
+  - nimi-agent
+  - external-agent
+  - external-app
+  - external-service
+  - device
+  - service
+
+app_modes:
+  - name: render-app
+    description: "只读渲染，无 World 绑定"
+    source: P-PROTO-060
+  - name: extension-app
+    description: "World 扩展写入，需 1:1 绑定"
+    source: P-PROTO-050

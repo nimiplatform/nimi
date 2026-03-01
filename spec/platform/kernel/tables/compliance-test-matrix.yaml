@@ -1,0 +1,192 @@
+version: 1
+layers:
+  - layer: L0
+    label: "Core Envelope (全体强制)"
+    items:
+      - item: "版本协商"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-001
+      - item: "请求/响应封装"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-010
+      - item: "participantId 必填校验"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-010
+      - item: "domain 字段组合校验"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-010
+      - item: "错误码可解释性"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-001
+      - item: "审计字段完整性"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-001
+
+  - layer: L1
+    label: "能力画像层 (全体适用)"
+    items:
+      - item: "Realm/Runtime profile 一致性"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-002
+      - item: "Realm 六原语 profile 完整性"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-100
+      - item: "mode 合法性校验"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-002
+      - item: "非 Realm PROVIDER 拒绝校验"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-003
+      - item: "scopeCatalogVersion 一致性"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-040
+
+  - layer: L1_app_auth
+    label: "App 授权层 (ExternalPrincipal -> App)"
+    items:
+      - item: "AuthorizeExternalPrincipal 原子签发"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "preset(readOnly/full/delegate)"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "custom 策略解析"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "同一 ExternalPrincipal 跨 App token 隔离"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "非授权 token 访问拒绝"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "委托链路（子集 scopes + TTL）"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-035
+      - item: "资源级约束（resourceSelectors）"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "同意证据校验（consent fields）"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-030
+      - item: "scope/preset 自动映射一致性"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-021
+      - item: "scope 扩展 manifest 发布/审核/撤销链路"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-021
+
+  - layer: L1_world_app
+    label: "World-App 绑定层 (产品关系)"
+    items:
+      - item: "render-app 只读渲染路径"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-050
+      - item: "render-app 写入拒绝"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-050
+      - item: "extension-app worldId+appId 绑定命中"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-050
+      - item: "extension-app 无绑定拒绝"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-050
+      - item: "bindingStatus 状态机"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-050
+      - item: "Creator 变更绑定后即时生效"
+        positive: required
+        rejection: required
+        regression: required
+        source: P-PROTO-050
+
+  - layer: L2
+    label: "Realm 六原语层 (Realm 强制)"
+    items:
+      - item: Timeflow
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source: P-PROTO-100
+      - item: Social
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source: P-PROTO-101
+      - item: Economy
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source: P-PROTO-102
+      - item: Transit
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source: P-PROTO-103
+      - item: Context
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source: P-PROTO-104
+      - item: Presence
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source: P-PROTO-105

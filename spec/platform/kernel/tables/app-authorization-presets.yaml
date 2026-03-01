@@ -1,0 +1,38 @@
+version: 1
+presets:
+  - name: readOnly
+    description: "Read-only access to app capabilities"
+    default_scopes_pattern: "app.<appId>.*.read"
+    can_delegate: false
+    max_delegation_depth: 0
+    source: P-PROTO-030
+
+  - name: full
+    description: "Full read and write access to app capabilities"
+    default_scopes_pattern: "app.<appId>.*.read, app.<appId>.*.write"
+    can_delegate: false
+    max_delegation_depth: 0
+    source: P-PROTO-030
+
+  - name: delegate
+    description: "Full access with single-hop delegation"
+    default_scopes_pattern: "app.<appId>.*.read, app.<appId>.*.write"
+    can_delegate: true
+    max_delegation_depth: 1
+    source: P-PROTO-035
+
+delegation_rules:
+  - rule: "仅 canDelegate=true 的父 token 可申请子 token"
+    source: P-PROTO-035
+  - rule: "子 token scopes 必须是父 token 子集"
+    source: P-PROTO-035
+  - rule: "子 token expiresAt 必须早于父 token"
+    source: P-PROTO-035
+  - rule: "父 token 撤销时子 token 级联失效"
+    source: P-PROTO-035
+  - rule: "preset=delegate 默认 maxDelegationDepth=1"
+    source: P-PROTO-035
+  - rule: "子 token resourceSelectors 必须是父 token 子集"
+    source: P-PROTO-035
+  - rule: "preset=delegate 默认不允许二次委托"
+    source: P-PROTO-035
