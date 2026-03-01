@@ -35,14 +35,10 @@ import {
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
   GetMediaJobResponse,
-  CheckTokenProviderHealthRequest,
-  CheckTokenProviderHealthResponse,
   GetSpeechVoicesRequest,
   GetSpeechVoicesResponse,
   GenerateRequest,
   GenerateResponse,
-  ListTokenProviderModelsRequest,
-  ListTokenProviderModelsResponse,
   MediaJobEvent,
   StreamSpeechSynthesisRequest,
   SubmitMediaJobRequest,
@@ -231,21 +227,13 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: CancelMediaJobRequest,
     responseType: CancelMediaJobResponse,
   },
-  [RuntimeMethodIds.ai.getMediaArtifacts]: {
+  [RuntimeMethodIds.ai.getMediaResult]: {
     requestType: GetMediaArtifactsRequest,
     responseType: GetMediaArtifactsResponse,
   },
   [RuntimeMethodIds.ai.getSpeechVoices]: {
     requestType: GetSpeechVoicesRequest,
     responseType: GetSpeechVoicesResponse,
-  },
-  [RuntimeMethodIds.ai.listTokenProviderModels]: {
-    requestType: ListTokenProviderModelsRequest,
-    responseType: ListTokenProviderModelsResponse,
-  },
-  [RuntimeMethodIds.ai.checkTokenProviderHealth]: {
-    requestType: CheckTokenProviderHealthRequest,
-    responseType: CheckTokenProviderHealthResponse,
   },
   [RuntimeMethodIds.workflow.submit]: {
     requestType: SubmitWorkflowRequest,
@@ -414,7 +402,7 @@ export const RuntimeStreamMethodCodecs: Record<string, RuntimeStreamMethodCodec<
     requestType: SubscribeMediaJobEventsRequest,
     eventType: MediaJobEvent,
   },
-  [RuntimeMethodIds.ai.streamSpeechSynthesis]: {
+  [RuntimeMethodIds.ai.synthesizeSpeechStream]: {
     requestType: StreamSpeechSynthesisRequest,
     eventType: ArtifactChunk,
   },

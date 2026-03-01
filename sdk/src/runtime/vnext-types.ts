@@ -4,16 +4,12 @@ import type {
   CancelMediaJobResponse,
   EmbedRequest,
   EmbedResponse,
-  CheckTokenProviderHealthRequest,
-  CheckTokenProviderHealthResponse,
   GenerateRequest,
   GenerateResponse,
   GetMediaArtifactsRequest,
   GetMediaArtifactsResponse,
   GetMediaJobRequest,
   GetMediaJobResponse,
-  ListTokenProviderModelsRequest,
-  ListTokenProviderModelsResponse,
   MediaArtifact,
   MediaJob,
   MediaJobEvent,
@@ -392,18 +388,10 @@ export type RuntimeAiModule = {
     request: SubscribeMediaJobEventsRequest,
     options?: RuntimeStreamCallOptions,
   ): Promise<AsyncIterable<MediaJobEvent>>;
-  getMediaArtifacts(
+  getMediaResult(
     request: GetMediaArtifactsRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetMediaArtifactsResponse>;
-  listTokenProviderModels(
-    request: ListTokenProviderModelsRequest,
-    options?: RuntimeCallOptions,
-  ): Promise<ListTokenProviderModelsResponse>;
-  checkTokenProviderHealth(
-    request: CheckTokenProviderHealthRequest,
-    options?: RuntimeCallOptions,
-  ): Promise<CheckTokenProviderHealthResponse>;
   text: {
     generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     stream(input: TextStreamInput): Promise<TextStreamOutput>;

@@ -407,7 +407,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
           jobs.set(request.jobId, job);
           return CancelMediaJobResponse.toBinary(CancelMediaJobResponse.create({ job }));
         }
-        case RuntimeMethodIds.ai.getMediaArtifacts: {
+        case RuntimeMethodIds.ai.getMediaResult: {
           const request = GetMediaArtifactsRequest.fromBinary(input.request);
           const payloadText = `artifact-${request.jobId}`;
           return GetMediaArtifactsResponse.toBinary(GetMediaArtifactsResponse.create({
@@ -755,7 +755,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     assert.ok(lowLevelSubmit.job);
     const lowLevelGet = await runtime.ai.getMediaJob({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
     assert.ok(lowLevelGet.job);
-    const lowLevelArtifacts = await runtime.ai.getMediaArtifacts({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
+    const lowLevelArtifacts = await runtime.ai.getMediaResult({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
     assert.ok(lowLevelArtifacts.artifacts.length >= 1);
     const lowLevelCancel = await runtime.ai.cancelMediaJob({
       jobId: lowLevelSubmit.job?.jobId || 'job-1',

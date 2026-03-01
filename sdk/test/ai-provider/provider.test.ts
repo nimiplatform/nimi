@@ -21,7 +21,7 @@ type RuntimeAiCore = Pick<Runtime['ai'],
   | 'getMediaJob'
   | 'cancelMediaJob'
   | 'subscribeMediaJobEvents'
-  | 'getMediaArtifacts'
+  | 'getMediaResult'
   | 'generateImage'
   | 'generateVideo'
   | 'synthesizeSpeech'
@@ -116,7 +116,7 @@ function createRuntimeStub(
       canceled: true,
     }),
     subscribeMediaJobEvents: async () => emptyAsyncIterable(),
-    getMediaArtifacts: async (request) => {
+    getMediaResult: async (request) => {
       const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
       return {
         jobId: entry?.job.jobId || '',
@@ -450,7 +450,7 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
     getMediaJob: async (request) => ({
       job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
     }),
-    getMediaArtifacts: async (request) => {
+    getMediaResult: async (request) => {
       const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
       return {
         jobId: entry?.job.jobId || '',
@@ -554,7 +554,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
     getMediaJob: async (request) => ({
       job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
     }),
-    getMediaArtifacts: async (request) => {
+    getMediaResult: async (request) => {
       const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
       return {
         jobId: entry?.job.jobId || '',
@@ -678,7 +678,7 @@ test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitMed
         traceId: 'trace-meta',
       },
     }),
-    getMediaArtifacts: async () => ({
+    getMediaResult: async () => ({
       jobId: 'job-meta-1',
       traceId: 'trace-meta',
       artifacts: [{

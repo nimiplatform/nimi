@@ -77,8 +77,8 @@ function resolveBaseUrl(value: unknown): string {
   const baseUrl = normalizeText(value);
   if (!baseUrl) {
     throw createNimiError({
-      message: 'realm baseUrl is required',
-      reasonCode: ReasonCode.SDK_REALM_BASE_URL_REQUIRED,
+      message: 'realm endpoint (baseUrl) is required',
+      reasonCode: ReasonCode.SDK_REALM_ENDPOINT_REQUIRED,
       actionHint: 'set_realm_base_url',
       source: 'sdk',
     });
@@ -295,6 +295,8 @@ function mapRealmError(error: unknown): NimiError {
 }
 
 export class Realm {
+  static readonly NO_AUTH = '__NIMI_REALM_NO_AUTH__';
+
   readonly auth: RealmAuthApi;
 
   readonly users: RealmUserApi;
@@ -331,6 +333,15 @@ export class Realm {
 
   constructor(options: RealmOptions) {
     this.baseUrl = resolveBaseUrl(options.baseUrl);
+    const accessToken = options.auth?.accessToken;
+    if (!accessToken) {
+      throw createNimiError({
+        message: 'realm token is required (use Realm.NO_AUTH for unauthenticated access)',
+        reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
+        actionHint: 'set_realm_auth_access_token',
+        source: 'sdk',
+      });
+    }
     this.#options = options;
 
     this.#openapiClient = createClient<paths>({

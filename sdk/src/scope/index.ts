@@ -165,6 +165,14 @@ function ensureInputAppId(appId: string, inputAppId?: string): void {
 }
 
 export function createScopeModule(input: { appId: string }): ScopeModule {
+  if (!input || typeof input !== 'object') {
+    throw createNimiError({
+      message: 'scope catalog input is invalid',
+      reasonCode: ReasonCode.SDK_SCOPE_CATALOG_INVALID,
+      actionHint: 'provide_valid_scope_catalog_input',
+      source: 'sdk',
+    });
+  }
   const appId = ensureAppId(input.appId);
 
   const state: ScopeModuleState = {

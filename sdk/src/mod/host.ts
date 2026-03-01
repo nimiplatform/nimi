@@ -1,3 +1,5 @@
+import { createNimiError } from '../runtime/errors.js';
+import { ReasonCode } from '../types/index.js';
 import type { ModSdkHost } from './internal/host-types';
 
 const MOD_SDK_HOST_KEY = '__NIMI_MOD_SDK_HOST__';
@@ -23,5 +25,10 @@ export function getModSdkHost(): ModSdkHost {
   if (host) {
     return host;
   }
-  throw new Error('MOD_SDK_HOST_NOT_READY');
+  throw createNimiError({
+    message: 'mod SDK host is not ready',
+    reasonCode: ReasonCode.SDK_MOD_HOST_MISSING,
+    actionHint: 'ensure_mod_host_initialized',
+    source: 'sdk',
+  });
 }

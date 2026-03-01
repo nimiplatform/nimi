@@ -130,6 +130,7 @@ test('Realm services facade uses instance config (no global OpenAPI mutation)', 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-service.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     await realm.services.AuthService.passwordLogin({
@@ -164,6 +165,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-error.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     let thrown: unknown = null;
@@ -204,6 +206,7 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-validation.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     let thrown: unknown = null;
@@ -247,6 +250,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-status-map.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     const expectations: Array<{
@@ -286,6 +290,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-network.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     let thrown: unknown = null;
@@ -329,6 +334,7 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
     const realm = new Realm({
       baseUrl: 'https://realm-timeout.nimi.local',
       timeoutMs: 10,
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     let thrown: unknown = null;
@@ -373,6 +379,7 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-abort.nimi.local',
       timeoutMs: 1000,
+      auth: { accessToken: Realm.NO_AUTH },
     });
     const controller = new AbortController();
     const requestPromise = realm.raw.request({
@@ -445,6 +452,7 @@ test('Realm services support path-first call pattern for mixed path/query method
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-params.nimi.local',
+      auth: { accessToken: Realm.NO_AUTH },
     });
 
     await realm.services.HumanChatService.listMessages('chat-123', 20);

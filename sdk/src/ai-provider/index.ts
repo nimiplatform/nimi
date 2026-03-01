@@ -66,7 +66,7 @@ type RuntimeAiBridge = Pick<Runtime['ai'],
   | 'getMediaJob'
   | 'cancelMediaJob'
   | 'subscribeMediaJobEvents'
-  | 'getMediaArtifacts'
+  | 'getMediaResult'
 >;
 
 type RuntimeForAiProvider = {
@@ -485,7 +485,7 @@ async function executeMediaJob(
     const job = asRecord(jobResponse.job);
     const status = Number(job.status || 0);
     if (status === MEDIA_JOB_STATUS_COMPLETED) {
-      const artifactsResponse = await runtime.ai.getMediaArtifacts(
+      const artifactsResponse = await runtime.ai.getMediaResult(
         { jobId } as never,
         toCallOptions(defaults, { timeoutMs }),
       );
@@ -564,11 +564,21 @@ function ensureRuntime(config: NimiAiProviderConfig): {
     });
   }
 
+  const subjectUserId = normalizeText(config.subjectUserId);
+  if (!subjectUserId) {
+    throw createNimiError({
+      message: 'subjectUserId is required',
+      reasonCode: ReasonCode.SDK_AI_PROVIDER_SUBJECT_USER_ID_REQUIRED,
+      actionHint: 'set_subject_user_id',
+      source: 'sdk',
+    });
+  }
+
   return {
     runtime: config.runtime,
     defaults: {
       appId: ensureText(config.appId, 'appId'),
-      subjectUserId: ensureText(config.subjectUserId, 'subjectUserId'),
+      subjectUserId,
       routePolicy: config.routePolicy || 'local-runtime',
       fallback: config.fallback || 'deny',
       timeoutMs: config.timeoutMs,

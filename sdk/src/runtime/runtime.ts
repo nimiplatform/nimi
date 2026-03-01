@@ -443,7 +443,24 @@ export class Runtime {
   readonly #eventBus = createEventBus<RuntimeEventPayloadMap>();
 
   constructor(options: RuntimeOptions) {
-    this.appId = ensureText(options.appId, 'appId');
+    const normalizedAppId = normalizeText(options.appId);
+    if (!normalizedAppId) {
+      throw createNimiError({
+        message: 'appId is required',
+        reasonCode: ReasonCode.SDK_APP_ID_REQUIRED,
+        actionHint: 'set_app_id',
+        source: 'sdk',
+      });
+    }
+    this.appId = normalizedAppId;
+    if (!options.transport) {
+      throw createNimiError({
+        message: 'transport is required (node-grpc or tauri-ipc)',
+        reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+        actionHint: 'set_transport',
+        source: 'sdk',
+      });
+    }
     this.transport = options.transport;
     this.#options = {
       ...options,
@@ -565,14 +582,8 @@ export class Runtime {
       subscribeMediaJobEvents: async (request, optionsValue) => this.#invokeWithClient(
         async (client) => client.ai.subscribeMediaJobEvents(request, optionsValue),
       ),
-      getMediaArtifacts: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.getMediaArtifacts(request, optionsValue),
-      ),
-      listTokenProviderModels: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.listTokenProviderModels(request, optionsValue),
-      ),
-      checkTokenProviderHealth: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.checkTokenProviderHealth(request, optionsValue),
+      getMediaResult: async (request, optionsValue) => this.#invokeWithClient(
+        async (client) => client.ai.getMediaResult(request, optionsValue),
       ),
       text: {
         generate: async (input) => this.#generateText(input),
@@ -1417,7 +1428,7 @@ export class Runtime {
   }
 
   async #getMediaArtifacts(jobId: string): Promise<{ artifacts: import('./generated/runtime/v1/ai').MediaArtifact[]; traceId?: string }> {
-    const response = await this.#invokeWithClient(async (client) => client.ai.getMediaArtifacts({
+    const response = await this.#invokeWithClient(async (client) => client.ai.getMediaResult({
       jobId: ensureText(jobId, 'jobId'),
     }));
 
@@ -1818,7 +1829,7 @@ export class Runtime {
       timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
     };
 
-    return this.#invokeWithClient(async (client) => client.ai.streamSpeechSynthesis(
+    return this.#invokeWithClient(async (client) => client.ai.synthesizeSpeechStream(
       request,
       this.#resolveRuntimeStreamOptions({
         timeoutMs: input.timeoutMs,
