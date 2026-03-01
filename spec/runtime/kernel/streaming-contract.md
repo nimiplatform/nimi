@@ -28,7 +28,7 @@
 
 `StreamGenerate`/`SynthesizeSpeechStream` 的建流边界固定为：
 
-- 在 AI consume 统一评估顺序 `step 1-9` 全部通过后，stream 才算建立。
+- K-KEYSRC-004 定义的 10 步评估链中，step 1-9（校验阶段）全部通过后，stream 才算建立；step 10（路由执行）即为流式推理的开始。
 - 建流前错误统一走 gRPC error。
 - 建流后业务/上游错误优先走终帧事件（`done=true + reason_code`）。
 

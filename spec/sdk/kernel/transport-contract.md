@@ -45,7 +45,7 @@ SDK 与 Runtime 的版本协商必须显式可判定：
 
 **blocked vs deferred 语义区分**：
 
-- `blocked`：Phase 1 服务但 proto 依赖未就绪（如 ConnectorService，`SDKR-050`），SDK 返回 `SDK_RUNTIME_METHOD_UNAVAILABLE`。blocked 服务的方法一旦 proto 发布即可实现，不需要版本协商。
+- `blocked`：Phase 1 服务但 proto 依赖未就绪，SDK 返回 `SDK_RUNTIME_METHOD_UNAVAILABLE`。blocked 服务的方法一旦 proto 发布即可实现，不需要版本协商。当前无 blocked 服务（ConnectorService proto 已就绪，`SDKR-050`）。
 - `deferred`：Phase 2 服务（如 WorkflowService），在版本兼容降级中标记为不可用。deferred 服务的可用性取决于 runtime 版本支持。
 
 ## S-TRANSPORT-006 Trace 与可观测性边界
@@ -62,6 +62,20 @@ SDK 必须将 runtime 流式终帧（`done=true`）中的 `reason_code` 和 `usa
 - `done=true + 错误 reason_code` = 业务错误（非 gRPC 错误），SDK 必须作为流级错误投影，不可静默丢弃。
 - 终帧语义权威定义：`K-STREAM-002`（建流阶段边界）、`K-STREAM-003`（文本流事件约束，含 usage 与 done 语义）、`K-STREAM-004`（语音流事件约束）。
 - `SubscribeMediaJobEvents` 不使用 `done=true` 语义（`K-STREAM-005`），终态后 server 关流。
+
+Mode B 投影规则（`SubscribeMediaJobEvents`、`SubscribeWorkflowEvents`）：
+
+- 终态事件（`K-JOB-002` 定义的 `COMPLETED`/`FAILED`/`CANCELLED`/`EXPIRED`）到达后，server 以 gRPC OK 正常关闭流（`K-STREAM-005`）。
+- SDK 必须在收到终态事件后停止流读取，将终态事件作为最终结果投影给消费者。
+- SDK 不得将 gRPC OK close 视为错误——终态事件即为流的语义终止信号。
+- `SubscribeWorkflowEvents` 为 Phase 2 服务，投影规则同上（`K-WF-004`）。
+
+Mode C 投影规则（`ExportAuditEvents`）：Phase 2 服务（`audit_service_projection`），当前不定义 SDK 投影规则。
+
+Mode D 投影规则按 Phase 分层：
+
+- **Phase 1 健康订阅流**（`SubscribeRuntimeHealthEvents`、`SubscribeAIProviderHealthEvents`）：属于 Phase 1 frozen 的 daemon 健康监控功能（`K-DAEMON-001`~`010`、`K-PROV-003`），归入 `health_monitoring_projection` 分组。SDK 必须投影为 `runtime.healthEvents` / `runtime.providerHealthEvents` 订阅接口。Desktop 通过 IPC 桥（`D-IPC-002`）消费等价数据，两条路径语义等价。独立 SDK 消费者通过此投影获得 Phase 1 健康事件订阅能力。流关闭语义遵循 `K-STREAM-010`。
+- **Phase 2 应用消息流**（`SubscribeAppMessages`）：属于 Phase 2 服务（`app_service_projection`），当前不定义 SDK 投影规则。
 
 ## S-TRANSPORT-008 流式超时投影
 

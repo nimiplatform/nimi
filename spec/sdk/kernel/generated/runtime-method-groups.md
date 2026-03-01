@@ -101,6 +101,17 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 | `CancelWorkflow` | `S-SURFACE-002` |
 | `SubscribeWorkflowEvents` | `S-SURFACE-002` |
 
+## health_monitoring_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
+
+| Method | Source Rule |
+|---|---|
+| `GetRuntimeHealth` | `S-SURFACE-002` |
+| `ListAIProviderHealth` | `S-SURFACE-002` |
+| `SubscribeAIProviderHealthEvents` | `S-SURFACE-002` |
+| `SubscribeRuntimeHealthEvents` | `S-SURFACE-002` |
+
 ## audit_service_projection
 
 Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
@@ -110,10 +121,6 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 | `ListAuditEvents` | `S-SURFACE-002` |
 | `ExportAuditEvents` | `S-SURFACE-002` |
 | `ListUsageStats` | `S-SURFACE-002` |
-| `GetRuntimeHealth` | `S-SURFACE-002` |
-| `ListAIProviderHealth` | `S-SURFACE-002` |
-| `SubscribeAIProviderHealthEvents` | `S-SURFACE-002` |
-| `SubscribeRuntimeHealthEvents` | `S-SURFACE-002` |
 
 ## model_service_projection
 

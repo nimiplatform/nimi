@@ -99,6 +99,22 @@ groups:
       - CancelWorkflow
       - SubscribeWorkflowEvents
     source_rule: S-SURFACE-002
+  - group: health_monitoring_projection
+    service: RuntimeAuditService
+    phase: 1
+    status: active
+    note: >
+      Health monitoring RPCs are Phase 1 frozen (K-DAEMON-001~010, K-PROV-003).
+      Desktop consumes via IPC bridge (D-IPC-002); SDK projection enables
+      standalone SDK consumers to subscribe to health events.
+      Split from audit_service_projection per cross-domain audit C-2.
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetRuntimeHealth
+      - ListAIProviderHealth
+      - SubscribeAIProviderHealthEvents
+      - SubscribeRuntimeHealthEvents
+    source_rule: S-SURFACE-002
   - group: audit_service_projection
     service: RuntimeAuditService
     phase: 2
@@ -108,10 +124,6 @@ groups:
       - ListAuditEvents
       - ExportAuditEvents
       - ListUsageStats
-      - GetRuntimeHealth
-      - ListAIProviderHealth
-      - SubscribeAIProviderHealthEvents
-      - SubscribeRuntimeHealthEvents
     source_rule: S-SURFACE-002
   - group: model_service_projection
     service: RuntimeModelService
