@@ -72,6 +72,20 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 - 清除 auth session。
 - 日志级别：`error`。
 
+## D-BOOT-012 — Realm 可达性策略
+
+Realm SDK `ready()` 采用 fail-open 语义（`SDKREALM-019`）：探测失败不抛错，仅发射 error 事件。Runtime SDK `ready()` 采用 fail-close 语义（`SDKR-015`）：探测失败抛出 `RUNTIME_UNAVAILABLE`。Bootstrap 序列必须消化这一不对称性。
+
+**策略**：Bootstrap 不显式调用 `Realm.ready()`。Realm 可达性通过 `D-BOOT-010` 触发的 `loadInitialData()` 中的首个业务请求（`loadCurrentUser()`）隐式验证：
+
+- `loadCurrentUser()` 成功：Realm 可达，正常流程。
+- `loadCurrentUser()` 失败（网络错误）：Realm 不可达。DataSync 通过 `emitDataSyncError` 记录错误。UI 进入降级状态——`bootstrapReady=true` 但数据为空，用户可见空列表和加载失败提示。
+- 此设计意图：`bootstrapReady` 表示"应用骨架就绪"，不表示"所有后端可达"。Realm 不可达是运行时降级，不是启动失败。
+
+**与 Runtime fail-close 的对比**：Runtime 不可达是启动失败（D-BOOT-001/004 错误路径），因为 Desktop 核心功能（AI 推理）依赖 Runtime。Realm 不可达是运行时降级，因为 Realm 功能（社交、聊天、世界）可以在恢复后补偿加载。
+
+**跨层引用**：`SDKREALM-019`（fail-open 语义）、`SDKR-015`（fail-close 语义）。
+
 ## D-BOOT-010 — 初始数据加载触发
 
 `loadInitialData()`（`D-DSYNC-000`）不在 `bootstrapRuntime()` 内同步执行。触发时机：
