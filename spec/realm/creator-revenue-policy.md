@@ -31,3 +31,8 @@
 ## 5. 账本与对账
 
 双账本模型见 R-ECON-030。
+
+## 6. 验收门
+
+- CI 命令 `pnpm check:realm-spec-kernel-consistency` 与 `pnpm check:realm-spec-kernel-docs-drift` 必须通过。
+- 分成计划字段变更后需验证 `tables/share-plan-fields.yaml` 与 `tables/revenue-event-types.yaml` 一致性。

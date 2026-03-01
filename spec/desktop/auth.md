@@ -46,3 +46,7 @@ OAuth 命令：`oauth_token_exchange`（交换 authorization code）、`oauth_li
 ### Security (D-SEC-003)
 
 OAuth 安全：支持 PKCE 和 clientSecret 两种模式，通过 Tauri IPC 执行。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

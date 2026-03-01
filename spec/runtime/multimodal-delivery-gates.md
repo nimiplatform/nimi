@@ -1,9 +1,3 @@
----
-title: Multimodal Delivery Gates Domain Spec
-status: ACTIVE
-updated_at: 2026-03-01
----
-
 # Multimodal Delivery Gates Domain Spec
 
 > Status: Active

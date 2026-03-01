@@ -289,7 +289,7 @@ git pull --rebase
 3. `runtime/README.md`
 4. `docs/runtime/README.md`
 5. `docs/sdk/README.md`
-6. `spec/runtime/connector-auth.md`（Connector 领域规范）
+6. `spec/runtime/connector.md`（Connector 领域规范）
 7. `spec/runtime/kernel/key-source-routing.md`（凭据路由规范）
 
 ## 12. 附：统一 Runtime 命令入口

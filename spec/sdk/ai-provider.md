@@ -44,7 +44,11 @@
 - `SDKAIP-031`: provider metadata 仅承载可观测信息，不承载明文凭据。
 - `SDKAIP-032`: 应用层可重试 ReasonCode 语义遵循 `S-ERROR-007`；ai-provider 层调用方可使用 `isRetryableReasonCode()` 判定是否显式重试。
 
-## 5. 非目标
+## 5. 验收门
+
+验收门见 `spec/sdk/testing-gates.md`：SDKTEST-070~071（Provider 兼容矩阵）、SDKTEST-080~081（Live Smoke）。
+
+## 6. 非目标
 
 - 不重定义 runtime provider 业务规则
 - 不重定义 runtime stream/media 状态机

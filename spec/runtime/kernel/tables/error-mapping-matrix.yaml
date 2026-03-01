@@ -207,6 +207,11 @@ mappings:
     surface: import_local_model_manifest_parse_fail
     exit_shape: grpc_status
     source: K-LOCAL-009
+  - reason_code: AI_LOCAL_MODEL_INVALID_TRANSITION
+    grpc_code: FAILED_PRECONDITION
+    surface: local_model_or_service_state_transition
+    exit_shape: grpc_status
+    source: K-LOCAL-005
   - reason_code: AI_MODULE_CONFIG_INVALID
     grpc_code: FAILED_PRECONDITION
     surface: runtime_module_boot_or_reload

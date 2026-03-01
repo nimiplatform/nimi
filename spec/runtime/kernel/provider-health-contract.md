@@ -85,13 +85,15 @@ Gemini 隐式默认：当配置了 API Key 但未配置 Base URL 时，自动填
 |---|---|---|
 | `local` | `local` | LocalAI 引擎 |
 | `local-nexa` | `local` | Nexa 引擎 |
-| `cloud-nimillm` | — | NimiLLM 代理层（后端可为任意 provider） |
-| `cloud-alibaba` | `dashscope` | 阿里云 DashScope |
-| `cloud-bytedance` | `volcengine` | 字节跳动火山引擎 |
-| `cloud-bytedance-openspeech` | `volcengine` | 字节跳动开放语音 |
+| `cloud-nimillm` | `nimillm` | NimiLLM 代理层 |
+| `cloud-dashscope` | `dashscope` | 阿里云 DashScope |
+| `cloud-volcengine` | `volcengine` | 字节跳动火山引擎 |
+| `cloud-volcengine-openspeech` | `volcengine` | 字节跳动开放语音 |
 | `cloud-gemini` | `gemini` | Google Gemini |
-| `cloud-minimax` | `openai_compatible` | MiniMax |
-| `cloud-kimi` | `openai_compatible` | Moonshot Kimi |
-| `cloud-glm` | `openai_compatible` | 智谱 GLM |
+| `cloud-minimax` | `minimax` | MiniMax |
+| `cloud-kimi` | `kimi` | Moonshot Kimi |
+| `cloud-glm` | `glm` | 智谱 GLM |
+| `cloud-deepseek` | `deepseek` | DeepSeek |
+| `cloud-openrouter` | `openrouter` | OpenRouter |
 
 `openai`/`anthropic` 为直连 provider，不经过 Nimi 适配层，无独立探测目标。

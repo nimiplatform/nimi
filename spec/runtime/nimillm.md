@@ -26,6 +26,7 @@
   - inline remote（`x-nimi-key-source=inline`）
 - `NIMI-003`: 不处理 `LOCAL_MODEL` 执行。
 - `NIMI-004`: 不承担 connector CRUD、JWT 校验、CredentialStore 持久化职责。
+- NIMI-005~009: reserved.
 
 ## 2. 上游调用分工
 
@@ -108,7 +109,18 @@ provider 到执行模块/入口模式（managed vs inline）的映射以 `kernel
 - 不定义 LocalRuntime 模型安装与进程编排
 - 不定义 SDK 入参体验层 API
 
-## 11. 变更规则
+## 11. 验收门
+
+- `NIMI-100`: nimillm 模块单元测试必须覆盖以下场景：
+  1. 各 provider_type 的 backend family 选择（NIMI-030）
+  2. model_id 前缀校验（NIMI-040）返回 `AI_MODEL_PROVIDER_MISMATCH`
+  3. `TestRemoteEndpoint` 失败返回 `ProbeResult{ok=false}`（NIMI-051）
+  4. `ListRemoteModels` 上游失败映射（NIMI-052）
+  5. 流式回调满足 `K-STREAM-002`/`K-STREAM-003`/`K-STREAM-004`（NIMI-080）
+- `NIMI-101`: CI 命令 `pnpm check:runtime-spec-kernel-consistency` 必须通过。
+- `NIMI-102`: `go test ./internal/nimillm/...` 与 `go vet ./internal/nimillm/...` 必须零错误。
+
+## 12. 变更规则
 
 任何涉及以下主题的变更必须先改 kernel：
 

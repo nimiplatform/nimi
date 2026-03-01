@@ -260,7 +260,20 @@ local 健康与模型可见性通过 `ConnectorService.TestConnector(local)` 与
 - 不定义 SDK 层输入体验
 - 不定义 SUPERVISED 模式的进程管理实现细节
 
-## 15. 变更规则
+## 15. 验收门
+
+- `LOCAL-120`: local 子系统单元测试必须覆盖以下场景：
+  1. 三层抽象（Model/Service/Node）生命周期状态迁移（Section 7.1）
+  2. 安装/移除/启动/停止全路径（LOCAL-060~063）
+  3. 设备画像采集与硬件兼容性检查（LOCAL-070~072）
+  4. 流式降级模拟（LOCAL-082）含 `stream_fallback_simulated` 审计标记
+  5. model_id 前缀路由（LOCAL-083）
+  6. verified 安装与 manifest 导入（LOCAL-044~047）
+  7. 依赖解析 Apply 管道四阶段与回滚（LOCAL-050~053）
+- `LOCAL-121`: CI 命令 `pnpm check:runtime-spec-kernel-consistency` 必须通过。
+- `LOCAL-122`: `go test ./internal/services/localruntime/...` 与 `go vet ./internal/services/localruntime/...` 必须零错误。
+
+## 16. 变更规则
 
 若变更触及以下跨域主题，必须先改 kernel 再改本文件：
 

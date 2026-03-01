@@ -1,9 +1,3 @@
----
-title: Proto Governance Domain Spec
-status: ACTIVE
-updated_at: 2026-03-01
----
-
 # Proto Governance Domain Spec
 
 > Status: Active

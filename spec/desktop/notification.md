@@ -23,3 +23,7 @@
 
 - `activeTab = 'notification'` 时渲染通知面板。
 - 未读计数在导航栏显示 badge。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

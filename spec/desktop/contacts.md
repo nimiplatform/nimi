@@ -26,3 +26,7 @@
 ### Bootstrap (D-BOOT-003)
 
 联系人数据在 `loadInitialData()` 中加载（`D-DSYNC-004`）。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

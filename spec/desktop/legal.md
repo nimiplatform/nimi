@@ -22,3 +22,7 @@
 ### Shell (D-SHELL-001)
 
 Legal tabs 属于 `detail` 导航组，不在 sidebar 显示，通过设置页面或 URL 导航进入。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

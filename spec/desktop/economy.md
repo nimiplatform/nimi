@@ -46,3 +46,7 @@
 ### Security (D-SEC-002)
 
 经济操作属于敏感域，所有请求需有效 Bearer Token。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

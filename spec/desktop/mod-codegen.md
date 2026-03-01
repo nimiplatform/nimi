@@ -1,9 +1,3 @@
----
-title: Mod Codegen Domain Spec
-status: ACTIVE
-updated_at: 2026-03-01
----
-
 # Mod Codegen Domain Spec
 
 > Status: Active

@@ -30,3 +30,7 @@ Explore 作为导航入口触发以下数据流，数据流所有权归各自 do
 - `activeTab = 'explore'` 时渲染 ExplorePanel。
 - `navigateToProfile(id, 'agent-detail')` 导航到 Agent 详情。
 - `navigateToWorld(worldId)` 导航到 World 详情。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

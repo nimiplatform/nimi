@@ -30,7 +30,11 @@
 - `SDKMOD-020`: Mod 间通信存在两条路径：D-HOOK interMod（renderer 进程内）和 K-APP SendAppMessage（Runtime gRPC 跨进程）。路由规则见 `K-APP-006`。
 - `SDKMOD-021`: Mod SDK 的 `interMod` client（`SDKMOD-011`）仅封装 D-HOOK 路径。若 mod 需要走 K-APP 路径，必须通过 Runtime SDK 的 AppMessaging 方法（Phase 2），不允许绕过 Mod SDK 直接调用。
 
-## 4. 非目标
+## 4. 验收门
+
+验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（mod 注入路径单元测试）、SDKTEST-040 #5（mod-runtime-context vNext 矩阵）。
+
+## 5. 非目标
 
 - 不定义 desktop 内部执行内核实现
 - 不定义 runtime 业务规则

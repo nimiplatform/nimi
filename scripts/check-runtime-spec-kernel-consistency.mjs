@@ -55,7 +55,7 @@ const kernelFiles = [
 ];
 
 const domainFiles = [
-  'spec/runtime/connector-auth.md',
+  'spec/runtime/connector.md',
   'spec/runtime/nimillm.md',
   'spec/runtime/local-model.md',
 ];
@@ -339,7 +339,7 @@ function checkStateTransitionCoverage(kernelRuleSet) {
 function checkDomainProviderTableAnchors() {
   const requirements = [
     {
-      file: 'spec/runtime/connector-auth.md',
+      file: 'spec/runtime/connector.md',
       mustInclude: ['kernel/tables/provider-catalog.yaml', 'kernel/tables/provider-capabilities.yaml'],
     },
     {

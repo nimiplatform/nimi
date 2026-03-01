@@ -213,6 +213,9 @@ if (!hasRealmErrorFamily) {
   fail('sdk-error-codes must include at least one SDK_REALM family code');
 }
 
+// ── Check: testing-gates provider names vs provider-catalog alignment ──
+checkProviderNameAlignment();
+
 if (failed) process.exit(1);
 console.log('sdk-spec-kernel-consistency: OK');
 
@@ -285,4 +288,29 @@ function boundarySourceRules(rule) {
   if (fromArray.length > 0) return fromArray;
   const fromSingle = String(rule?.source_rule || '').trim();
   return fromSingle ? [fromSingle] : [];
+}
+
+function checkProviderNameAlignment() {
+  // Verify testing-gates SDKTEST-070 references provider-catalog or has a name mapping
+  const testingGatesPath = 'spec/sdk/testing-gates.md';
+  const providerCatalogPath = 'spec/runtime/kernel/tables/provider-catalog.yaml';
+  const mappingReportPath = 'dev/report/sdk-provider-compatibility.md';
+
+  if (!fs.existsSync(path.join(cwd, testingGatesPath))) return;
+  if (!fs.existsSync(path.join(cwd, providerCatalogPath))) return;
+
+  const testingGates = read(testingGatesPath);
+
+  // SDKTEST-070 must reference provider-catalog.yaml or maintain a name mapping
+  if (!testingGates.includes('provider-catalog.yaml')) {
+    fail('SDKTEST-070 must reference provider-catalog.yaml for provider name alignment');
+  }
+
+  // If the mapping report exists, verify it references provider-catalog.yaml
+  if (fs.existsSync(path.join(cwd, mappingReportPath))) {
+    const mappingReport = read(mappingReportPath);
+    if (!mappingReport.includes('provider-catalog.yaml')) {
+      fail('dev/report/sdk-provider-compatibility.md must reference provider-catalog.yaml');
+    }
+  }
 }

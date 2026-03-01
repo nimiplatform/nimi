@@ -111,6 +111,10 @@ codes:
     value: 357
     family: MODEL
     source: K-LOCAL-009
+  - name: AI_LOCAL_MODEL_INVALID_TRANSITION
+    value: 358
+    family: MODEL
+    source: K-LOCAL-005
   - name: AI_FINISH_LENGTH
     value: 370
     family: FINISH

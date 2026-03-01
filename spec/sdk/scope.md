@@ -25,7 +25,11 @@
 - `SDKSCOPE-010`: 目录输入非法必须 fail-close（`SDK_SCOPE_CATALOG_INVALID`），错误码来源遵循 `S-ERROR-003`（SDK 本地错误码事实源）。
 - `SDKSCOPE-011`: catalog 版本冲突必须显式报错（`SDK_SCOPE_CATALOG_VERSION_CONFLICT`），不做静默覆盖。
 
-## 3. 非目标
+## 3. 验收门
+
+验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（scope 绑定单元测试）、SDKTEST-030 #5（scope catalog drift 检查）。
+
+## 4. 非目标
 
 - 不定义 realm/runtime/mod 的业务规则
 - 不定义服务端授权策略语义

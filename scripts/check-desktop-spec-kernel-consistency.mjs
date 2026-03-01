@@ -649,6 +649,13 @@ function checkStreamingRpcCoverage() {
     'SubscribeMediaJobEvents',
   ];
 
+  // Mode D long-lived subscription flows (K-STREAM-010) — must have consumption
+  // rules or explicit IPC equivalence declaration in streaming-consumption-contract.md
+  const modeDRpcs = [
+    'SubscribeRuntimeHealthEvents',
+    'SubscribeAIProviderHealthEvents',
+  ];
+
   const strmPath = 'spec/desktop/kernel/streaming-consumption-contract.md';
   if (!fileExists(strmPath)) return;
 
@@ -657,6 +664,11 @@ function checkStreamingRpcCoverage() {
 
   if (missing.length > 0) {
     fail(`streaming-consumption-contract.md missing consumption rules for streaming RPCs: ${missing.join(', ')}`);
+  }
+
+  const missingModeD = modeDRpcs.filter((rpc) => !content.includes(rpc));
+  if (missingModeD.length > 0) {
+    fail(`streaming-consumption-contract.md missing Mode D consumption/equivalence rules for: ${missingModeD.join(', ')}`);
   }
 }
 

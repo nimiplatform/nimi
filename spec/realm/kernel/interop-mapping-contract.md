@@ -21,3 +21,14 @@
 从 MISSING → PARTIAL 的前提条件：至少有一个代码锚点（code_anchor）且具备基础数据能力。
 
 毕业评估由 `primitive-mapping-status.yaml` 的 `status` 字段记录，变更需同步更新 `gap` 字段说明。
+
+### R-INTEROP-002a — Per-Primitive 毕业验收条件
+
+| Primitive | PARTIAL → COVERED 具体验收条件 |
+|---|---|
+| timeflow | `tick`/`driftBudget`/`catchUpPolicy` 三个协议字段的统一合同层映射 + contract test |
+| social | 跨 World 社交关系映射 + 拒绝语义统一 primitive 适配层 + contract test |
+| economy | `conservationRequired`/`settlementWindow` 协议级验证点绑定 + contract test |
+| transit | 跨 world 迁移状态模型/拒绝语义/跨原语一致性校验 + contract test |
+| context | `contextScope`/`injectionPriority`/`handoffPolicy` 统一适配 + contract test |
+| presence | `heartbeat`/`ttl`/`device merge` 规则统一执行 + contract test |

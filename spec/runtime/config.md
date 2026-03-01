@@ -1,9 +1,3 @@
----
-title: Runtime Config Domain Spec
-status: ACTIVE
-updated_at: 2026-03-01
----
-
 # Runtime Config Domain Spec
 
 > Status: Active

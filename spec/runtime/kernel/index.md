@@ -12,7 +12,7 @@
 ## 2. One Fact One Home
 
 - 单一事实源：同一规则只允许在一个 kernel 文件定义。
-- 下游投影：`spec/runtime/connector-auth.md`、`spec/runtime/nimillm.md`、`spec/runtime/local-model.md` 只能引用 kernel Rule ID。
+- 下游投影：`spec/runtime/connector.md`、`spec/runtime/nimillm.md`、`spec/runtime/local-model.md` 只能引用 kernel Rule ID。
 - 冲突处理：若下游与 kernel 冲突，以 kernel 为准；下游必须在同次变更中修正。
 
 ## 3. Rule ID 规范
@@ -76,7 +76,7 @@
 
 ## 6. 下游引用约束
 
-- `connector-auth.md`：仅保留 Connector 领域增量规则，导入 kernel。
+- `connector.md`：仅保留 Connector 领域增量规则，导入 kernel。
 - `nimillm.md`：仅保留 remote 执行模块增量规则，导入 kernel。
 - `local-model.md`：仅保留 local 执行模块增量规则，导入 kernel。
 
@@ -94,7 +94,7 @@ domain 规则编号采用 **段落式十位递增**：
 - `020`–`02x`：第二增量段
 - 依此类推
 
-段内连续，段间跳跃为预留空间。此规范适用于 `connector-auth.md`、`nimillm.md`、`local-model.md` 等所有 runtime domain 文档。
+段内连续，段间跳跃为预留空间。此规范适用于 `connector.md`、`nimillm.md`、`local-model.md` 等所有 runtime domain 文档。
 
 ## 9. Scope 与 Deferred
 

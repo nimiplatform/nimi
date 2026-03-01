@@ -1,9 +1,3 @@
----
-title: SDK Testing Gates Domain Spec
-status: ACTIVE
-updated_at: 2026-03-01
----
-
 # SDK Testing Gates Domain Spec
 
 > Status: Active
@@ -84,19 +78,10 @@ updated_at: 2026-03-01
 
 ## 4. Provider 兼容矩阵
 
-- `SDKTEST-070`: 当前测试事实矩阵：
-
-| Provider 场景 | Text | Embedding | Image | Video | TTS | STT |
-|---|---|---|---|---|---|---|
-| nimiLLM | Yes | Yes | Yes | Yes | Yes | Yes |
-| Nexa | Yes | Yes | Yes | Fail-Close | Yes | Yes |
-| OpenAI-compatible | Yes | - | - | Yes/Fail-Close | - | - |
-| Gemini | - | - | Yes | Yes | - | - |
-| GLM | - | - | Yes | Yes | Yes | Yes |
-| MiniMax | - | - | Yes | Yes | - | - |
-| Kimi | - | - | Yes | - | - | - |
-| Bytedance OpenSpeech | - | - | - | - | Yes | Yes |
-
+- `SDKTEST-070`: Provider 兼容矩阵门禁规则：
+  - 矩阵结构：Provider × Capability（Text/Embedding/Image/Video/TTS/STT），结果为 Yes / Fail-Close / `-`（未覆盖）。
+  - Provider 名称集合必须与 `spec/runtime/kernel/tables/provider-catalog.yaml` 对齐（或维护显式名称映射表）。
+  - 矩阵数据为执行态快照，维护在 `dev/report/sdk-provider-compatibility.md`。
 - `SDKTEST-071`: Fail-Close 场景必须返回结构化错误（对齐 `S-ERROR-001` 双层错误投影）。
 
 ## 5. Live Smoke

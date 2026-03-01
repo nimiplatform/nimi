@@ -56,6 +56,11 @@ ExternalPrincipal 授权规则见 P-PROTO-020–040。三种预设见 `tables/ap
 
 L0-L2 合规测试矩阵见 `tables/compliance-test-matrix.yaml`。
 
-## 10. 决策收敛
+## 10. 验收门
+
+- CI 命令 `pnpm check:platform-spec-kernel-consistency` 与 `pnpm check:platform-spec-kernel-docs-drift` 必须通过。
+- 合规测试矩阵（`tables/compliance-test-matrix.yaml`）变更后需同步验证覆盖率。
+
+## 11. 决策收敛
 
 已决策：不允许 legacy-readonly、不允许 per-primitive 独立版本号、固定参与方不远程下发、不允许二次委托、策略更新立即失效、extension-app 固定 1:1、scope 采用 SDK 单入口。

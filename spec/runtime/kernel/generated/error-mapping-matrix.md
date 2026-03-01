@@ -45,6 +45,7 @@
 | `AI_LOCAL_ENDPOINT_REQUIRED` | `INVALID_ARGUMENT` | `install_or_start_local_model_nexa_no_endpoint` | `grpc_status` | `K-LENG-005` |
 | `AI_LOCAL_TEMPLATE_NOT_FOUND` | `NOT_FOUND` | `install_verified_model_template_missing` | `grpc_status` | `K-LOCAL-010` |
 | `AI_LOCAL_MANIFEST_INVALID` | `INVALID_ARGUMENT` | `import_local_model_manifest_parse_fail` | `grpc_status` | `K-LOCAL-009` |
+| `AI_LOCAL_MODEL_INVALID_TRANSITION` | `FAILED_PRECONDITION` | `local_model_or_service_state_transition` | `grpc_status` | `K-LOCAL-005` |
 | `AI_MODULE_CONFIG_INVALID` | `FAILED_PRECONDITION` | `runtime_module_boot_or_reload` | `grpc_status` | `K-ERR-006` |
 | `APP_MODE_DOMAIN_FORBIDDEN` | `PERMISSION_DENIED` | `app_mode_gate` | `grpc_status` | `K-AUTHSVC-009` |
 | `APP_MODE_SCOPE_FORBIDDEN` | `PERMISSION_DENIED` | `app_mode_gate` | `grpc_status` | `K-AUTHSVC-009` |

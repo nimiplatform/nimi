@@ -28,3 +28,7 @@ World 详情功能域 — World 详情页、语义数据、穿越管理、关卡
 
 - `activeTab = 'world-detail'` 时渲染 World 详情面板。
 - 从 Explore 导航到 World 详情：`navigateToWorld(worldId)`。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

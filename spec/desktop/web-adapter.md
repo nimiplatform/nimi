@@ -79,3 +79,7 @@ Web 模式的 bootstrap 序列是 Desktop bootstrap 的子集，跳过所有 Run
 ### Shell Mode Detection (D-SHELL-008)
 
 Shell 模式检测规则（检测优先级见 `D-SHELL-008`）。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

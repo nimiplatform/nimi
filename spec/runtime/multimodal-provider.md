@@ -1,9 +1,3 @@
----
-title: Multimodal Provider Domain Spec
-status: ACTIVE
-updated_at: 2026-03-01
----
-
 # Multimodal Provider Domain Spec
 
 > Status: Active

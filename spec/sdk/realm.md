@@ -61,7 +61,11 @@
 - `SDKREALM-036`: 实时连接断线重连策略为实现定义，SDK spec 不规定具体策略。约束：重连不得静默丢失已投递事件（Desktop D-NET-006 通过 `chat:session.sync_required` 增量同步保证）。
 - `SDKREALM-037`: SDK 不维护 Realm 实时事件名称枚举。事件名称由 Realm 后端定义，Desktop 层在 D-NET-006 描述当前使用的事件集。
 
-## 6. 非目标
+## 6. 验收门
+
+验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（realm facade 实例隔离与错误映射，SDKTEST-090）。
+
+## 7. 非目标
 
 - 不定义 runtime gRPC 规则
 - 不定义 scope/mod 领域规则

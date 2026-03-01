@@ -33,3 +33,7 @@ Marketplace Tab 受 `enableMarketplaceTab` feature flag 门控。仅 desktop 模
 ### State (D-STATE-004)
 
 - `activeTab = 'marketplace'` 时渲染 MarketplaceView。
+
+## CI 门禁引用
+
+本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。

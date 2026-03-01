@@ -125,7 +125,31 @@ interface RuntimeOptions {
 }
 ```
 
-## 10. 非目标
+## 10. Phase 2 投影预留
+
+### 10.1 WorkflowService 投影（deferred）
+
+Runtime `K-WF-*` 定义了完整的 WorkflowService DAG 模型（13 种节点类型、7 个状态、Mode B 流关闭语义）。SDK 投影规则（SDKR-023）标记为 Phase 2 deferred，实现时需覆盖：
+
+- Workflow Builder（DAG 构造 + 节点类型映射）
+- `SubscribeWorkflowEvents` Mode B 流消费（`S-TRANSPORT-007` 已定义投影规则）
+- Workflow 状态机错误码投影（`K-WF-012` 消费契约）
+
+**依赖链**：Runtime `K-WF-*` → SDK `S-TRANSPORT-007` Mode B → Desktop Workflow UI（待建）。
+
+### 10.2 AuditService 投影（deferred）
+
+`ExportAuditEvents` Mode C 流消费（`S-TRANSPORT-007` 标记为 Phase 2），实现时需覆盖 eof=true 流关闭语义。
+
+### 10.3 AppService 投影（deferred）
+
+`SubscribeAppMessages` Mode D 流消费（`S-TRANSPORT-007` 标记为 Phase 2），实现时需覆盖长生命周期订阅重建策略。
+
+## 11. 验收门
+
+验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（单元测试）、SDKTEST-030（合同边界门禁）、SDKTEST-060~061（Runtime 契约测试）。
+
+## 12. 非目标
 
 - 不定义 runtime proto 全量方法细节（见 runtime kernel）
 - 不定义 provider 业务语义（见 runtime domain 与 runtime kernel）
