@@ -125,6 +125,21 @@ message ListConnectorModelsResponse {
   repeated ConnectorModelDescriptor models = 1;
 }
 
+message ProviderCatalogEntry {
+  string provider = 1;
+  string default_endpoint = 2;
+  bool requires_explicit_endpoint = 3;
+  string runtime_plane = 4;
+  string execution_module = 5;
+  bool managed_supported = 6;
+}
+
+message ListProviderCatalogRequest {}
+
+message ListProviderCatalogResponse {
+  repeated ProviderCatalogEntry providers = 1;
+}
+
 service RuntimeConnectorService {
   rpc CreateConnector(CreateConnectorRequest) returns (CreateConnectorResponse);
   rpc GetConnector(GetConnectorRequest) returns (GetConnectorResponse);
@@ -133,4 +148,5 @@ service RuntimeConnectorService {
   rpc DeleteConnector(DeleteConnectorRequest) returns (DeleteConnectorResponse);
   rpc TestConnector(TestConnectorRequest) returns (TestConnectorResponse);
   rpc ListConnectorModels(ListConnectorModelsRequest) returns (ListConnectorModelsResponse);
+  rpc ListProviderCatalog(ListProviderCatalogRequest) returns (ListProviderCatalogResponse);
 }

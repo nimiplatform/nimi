@@ -26,6 +26,7 @@ const (
 	RuntimeConnectorService_DeleteConnector_FullMethodName     = "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector"
 	RuntimeConnectorService_TestConnector_FullMethodName       = "/nimi.runtime.v1.RuntimeConnectorService/TestConnector"
 	RuntimeConnectorService_ListConnectorModels_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels"
+	RuntimeConnectorService_ListProviderCatalog_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog"
 )
 
 // RuntimeConnectorServiceClient is the client API for RuntimeConnectorService service.
@@ -39,6 +40,7 @@ type RuntimeConnectorServiceClient interface {
 	DeleteConnector(ctx context.Context, in *DeleteConnectorRequest, opts ...grpc.CallOption) (*DeleteConnectorResponse, error)
 	TestConnector(ctx context.Context, in *TestConnectorRequest, opts ...grpc.CallOption) (*TestConnectorResponse, error)
 	ListConnectorModels(ctx context.Context, in *ListConnectorModelsRequest, opts ...grpc.CallOption) (*ListConnectorModelsResponse, error)
+	ListProviderCatalog(ctx context.Context, in *ListProviderCatalogRequest, opts ...grpc.CallOption) (*ListProviderCatalogResponse, error)
 }
 
 type runtimeConnectorServiceClient struct {
@@ -119,6 +121,16 @@ func (c *runtimeConnectorServiceClient) ListConnectorModels(ctx context.Context,
 	return out, nil
 }
 
+func (c *runtimeConnectorServiceClient) ListProviderCatalog(ctx context.Context, in *ListProviderCatalogRequest, opts ...grpc.CallOption) (*ListProviderCatalogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProviderCatalogResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_ListProviderCatalog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeConnectorServiceServer is the server API for RuntimeConnectorService service.
 // All implementations should embed UnimplementedRuntimeConnectorServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type RuntimeConnectorServiceServer interface {
 	DeleteConnector(context.Context, *DeleteConnectorRequest) (*DeleteConnectorResponse, error)
 	TestConnector(context.Context, *TestConnectorRequest) (*TestConnectorResponse, error)
 	ListConnectorModels(context.Context, *ListConnectorModelsRequest) (*ListConnectorModelsResponse, error)
+	ListProviderCatalog(context.Context, *ListProviderCatalogRequest) (*ListProviderCatalogResponse, error)
 }
 
 // UnimplementedRuntimeConnectorServiceServer should be embedded to have
@@ -159,6 +172,9 @@ func (UnimplementedRuntimeConnectorServiceServer) TestConnector(context.Context,
 }
 func (UnimplementedRuntimeConnectorServiceServer) ListConnectorModels(context.Context, *ListConnectorModelsRequest) (*ListConnectorModelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListConnectorModels not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) ListProviderCatalog(context.Context, *ListProviderCatalogRequest) (*ListProviderCatalogResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListProviderCatalog not implemented")
 }
 func (UnimplementedRuntimeConnectorServiceServer) testEmbeddedByValue() {}
 
@@ -306,6 +322,24 @@ func _RuntimeConnectorService_ListConnectorModels_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeConnectorService_ListProviderCatalog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProviderCatalogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).ListProviderCatalog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_ListProviderCatalog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).ListProviderCatalog(ctx, req.(*ListProviderCatalogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeConnectorService_ServiceDesc is the grpc.ServiceDesc for RuntimeConnectorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -340,6 +374,10 @@ var RuntimeConnectorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListConnectorModels",
 			Handler:    _RuntimeConnectorService_ListConnectorModels_Handler,
+		},
+		{
+			MethodName: "ListProviderCatalog",
+			Handler:    _RuntimeConnectorService_ListProviderCatalog_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

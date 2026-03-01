@@ -49,9 +49,6 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 	}
 
 	apiKey := strings.TrimSpace(req.GetApiKey())
-	if apiKey == "" {
-		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING.String())
-	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	if ownerID == "" {
@@ -403,6 +400,22 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	return &runtimev1.ListConnectorModelsResponse{
 		Models: models,
 	}, nil
+}
+
+func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProviderCatalogRequest) (*runtimev1.ListProviderCatalogResponse, error) {
+	entries := make([]*runtimev1.ProviderCatalogEntry, 0, len(ProviderCatalog))
+	for provider, entry := range ProviderCatalog {
+		cap := ProviderCapabilities[provider]
+		entries = append(entries, &runtimev1.ProviderCatalogEntry{
+			Provider:                 provider,
+			DefaultEndpoint:          entry.DefaultEndpoint,
+			RequiresExplicitEndpoint: entry.RequiresExplicitEndpoint,
+			RuntimePlane:             cap.RuntimePlane,
+			ExecutionModule:          cap.ExecutionModule,
+			ManagedSupported:         cap.ManagedSupported,
+		})
+	}
+	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil
 }
 
 func (s *Service) Store() *ConnectorStore {
