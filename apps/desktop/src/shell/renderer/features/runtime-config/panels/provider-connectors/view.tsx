@@ -17,7 +17,6 @@ export function ProviderConnectorsPanelView({
   onRenameSelectedConnector,
   onChangeConnectorEndpoint,
   onChangeConnectorToken,
-  onChangeConnectorTokenEnv,
   onChangeConnectorVendor,
 }: ProviderConnectorsPanelViewProps) {
   const { state, selectedConnector, orderedConnectors } = stateModel;
@@ -142,7 +141,6 @@ export function ProviderConnectorsPanelView({
               onRenameSelectedConnector={onRenameSelectedConnector}
               onChangeConnectorEndpoint={onChangeConnectorEndpoint}
               onChangeConnectorToken={onChangeConnectorToken}
-              onChangeConnectorTokenEnv={onChangeConnectorTokenEnv}
               onChangeConnectorVendor={onChangeConnectorVendor}
               onTestSelectedConnector={testSelectedConnector}
             />

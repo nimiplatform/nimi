@@ -1,8 +1,5 @@
-import { createProviderAdapter } from '@runtime/llm-adapter';
 import { DEFAULT_TEMPLATES } from '@runtime/llm-adapter/registry/templates';
-import type { ModelProfile } from '@runtime/llm-adapter/types';
 import type { ResolvedRuntimeRouteBinding } from '@nimiplatform/sdk/mod/types';
-import { TauriCredentialVault } from '@runtime/llm-adapter/credential-vault.js';
 import {
   dedupeStringsV11,
   normalizeEndpointV11,
@@ -239,31 +236,6 @@ function toProfilesFromModelNames(
   );
 }
 
-function toProfileFromModelProfile(profile: ModelProfile): RuntimeRouteModelProfilePayload | null {
-  const model = String(profile.model || '').trim();
-  if (!model) return null;
-  const directContext = toPositiveInt(profile.constraints.maxContextTokens ?? profile.fingerprint?.maxInputTokens);
-  const templateContext = resolveTemplateContextTokens(model);
-  const maxContextTokens = directContext ?? templateContext;
-  const maxOutputTokens = toPositiveInt(profile.constraints.maxOutputTokens);
-  const discoveredFrom = normalizeContextSource(profile.fingerprint?.discoveredFrom);
-  const contextSource = (() => {
-    if (typeof directContext === 'number') {
-      return discoveredFrom === 'provider-api' || discoveredFrom === 'template'
-        ? discoveredFrom
-        : 'provider-api';
-    }
-    if (typeof templateContext === 'number') return 'template';
-    return 'unknown';
-  })();
-  return {
-    model,
-    ...(typeof maxContextTokens === 'number' ? { maxContextTokens } : {}),
-    ...(typeof maxOutputTokens === 'number' ? { maxOutputTokens } : {}),
-    contextSource,
-  };
-}
-
 function buildHydratedPayload(
   models: string[],
   profiles: RuntimeRouteModelProfilePayload[],
@@ -329,32 +301,22 @@ export async function hydrateConnectorModels(input: {
 
   const task = (async () => {
     try {
-      const vault = new TauriCredentialVault();
-      let secret = '';
-      try { secret = await vault.getCredentialSecret(connectorId); } catch { /* no secret */ }
-      if (!secret) return currentPayload;
-      const adapter = createProviderAdapter('OPENAI_COMPATIBLE', {
-        name: `runtime-route-options:${input.connectorId}`,
-        endpoint,
-        headers: {
-          Authorization: `Bearer ${secret}`,
-        },
-      });
-      const listed = await adapter.listModels();
-      const discoveredProfiles = dedupeModelProfiles(
-        listed
-          .map((profile) => toProfileFromModelProfile(profile))
-          .filter((profile): profile is RuntimeRouteModelProfilePayload => Boolean(profile)),
+      const { sdkListConnectorModels } = await import(
+        '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
       );
-      const discovered = buildHydratedPayload(
-        [...current, ...listed.map((profile) => String(profile.model || '').trim())],
-        discoveredProfiles,
-      );
-      runtimeRouteConnectorModelCache.set(cacheKey, {
-        expiresAt: now + RUNTIME_ROUTE_CONNECTOR_MODEL_CACHE_TTL_MS,
-        value: discovered,
-      });
-      return discovered;
+      const sdkModels = await sdkListConnectorModels(connectorId, true);
+      if (sdkModels.length > 0) {
+        const discovered = buildHydratedPayload(
+          [...current, ...sdkModels],
+          toProfilesFromModelNames([...current, ...sdkModels]),
+        );
+        runtimeRouteConnectorModelCache.set(cacheKey, {
+          expiresAt: now + RUNTIME_ROUTE_CONNECTOR_MODEL_CACHE_TTL_MS,
+          value: discovered,
+        });
+        return discovered;
+      }
+      return currentPayload;
     } catch {
       return currentPayload;
     } finally {

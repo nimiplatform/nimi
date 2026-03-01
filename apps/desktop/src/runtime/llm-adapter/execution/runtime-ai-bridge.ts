@@ -2,7 +2,6 @@ import { getPlatformClient } from '@runtime/platform-client';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
 import { resolveProviderExecutionPlan } from './provider-plan';
 import type { FetchImpl, LocalAiProviderHints, ProviderPlan } from './types';
-import { TauriCredentialVault } from '../credential-vault.js';
 
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 const ROUTE_POLICY_TOKEN_API = 2;
@@ -87,18 +86,6 @@ export function getRuntimeClient() {
     throw new Error('RUNTIME_CLIENT_NOT_READY: runtime sdk client unavailable');
   }
   return runtime;
-}
-
-const credentialVault = new TauriCredentialVault();
-
-export async function resolveProviderApiKeyFromCredentialRef(connectorId: string | undefined): Promise<string> {
-  const ref = String(connectorId || '').trim();
-  if (!ref) return '';
-  try {
-    return await credentialVault.getCredentialSecret(ref);
-  } catch {
-    return '';
-  }
 }
 
 export function resolveRuntimeAiCall(input: {

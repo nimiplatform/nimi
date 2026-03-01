@@ -269,11 +269,10 @@ function resolveTokenApiCapabilityConfig(input: {
     );
   }
 
-  const credentialRef = String(connector.id || '').trim();
-  if (!credentialRef) {
+  if (!connector.hasCredential) {
     throwRouteError(
       'RUNTIME_ROUTE_CONNECTOR_TOKEN_MISSING',
-      `Token API connector credential reference is missing for capability: ${input.capability}`,
+      `Token API connector credential is missing for capability: ${input.capability}, connector: ${connector.id}`,
     );
   }
 

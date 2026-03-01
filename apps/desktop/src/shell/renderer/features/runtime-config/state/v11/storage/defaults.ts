@@ -1,7 +1,6 @@
 import {
   CAPABILITIES_V11,
   DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
-  createConnectorV11,
   dedupeStringsV11,
   normalizeCapabilityV11,
   normalizeEndpointV11,

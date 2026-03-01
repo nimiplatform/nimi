@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { TauriCredentialVault } from '@runtime/llm-adapter';
 import {
   localAiRuntime,
   type LocalAiDependenciesDeclarationDescriptor,
@@ -43,7 +42,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const localManifestSummaries = useAppStore((state) => state.localManifestSummaries);
 
-  const credentialVault = useMemo(() => new TauriCredentialVault(), []);
   const panelState = useRuntimeConfigPanelState();
   const derived = useRuntimeConfigPanelDerived({
     state: panelState.state,
@@ -466,7 +464,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeFields,
     setRuntimeFields,
     setStatusBanner,
-    credentialVault,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,
     discoverLocalRuntimeModels: commands.discoverLocalRuntimeModels,
@@ -538,6 +535,30 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       cancelled = true;
     };
   }, [panelState.hydrated, panelState.setState, setStatusBanner, bridgeRetryCount]);
+
+  // Load connectors from SDK after bridge config is ready
+  useEffect(() => {
+    if (!panelState.hydrated || !runtimeBridgeReadyRef.current) return;
+    let cancelled = false;
+    const loadConnectors = async () => {
+      try {
+        const { sdkListConnectors } = await import('./domain/provider-connectors/connector-sdk-service');
+        const connectors = await sdkListConnectors();
+        if (cancelled) return;
+        const { replaceConnectorsInState } = await import('./panels/provider-connectors/connector-actions');
+        panelState.setState((previous) => {
+          if (!previous) return previous;
+          return replaceConnectorsInState(previous, connectors);
+        });
+      } catch {
+        // SDK connector load failed — connectors will remain empty until next attempt
+      }
+    };
+    void loadConnectors();
+    return () => {
+      cancelled = true;
+    };
+  }, [panelState.hydrated, panelState.setState, bridgeRetryCount]);
 
   useEffect(() => {
     const stateSnapshot = panelState.state;

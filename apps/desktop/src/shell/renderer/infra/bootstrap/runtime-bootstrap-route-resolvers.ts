@@ -35,6 +35,24 @@ function normalizeRouteOverrideSource(value: unknown): SourceIdV11 | undefined {
   return value === 'token-api' ? 'token-api' : value === 'local-runtime' ? 'local-runtime' : undefined;
 }
 
+async function loadConnectorsFromSdk(
+  state: ReturnType<typeof createDefaultStateV11>,
+): Promise<ReturnType<typeof createDefaultStateV11>> {
+  try {
+    const { sdkListConnectors } = await import(
+      '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
+    );
+    const connectors = await sdkListConnectors();
+    if (connectors.length > 0) {
+      const { replaceConnectorsInState } = await import(
+        '@renderer/features/runtime-config/panels/provider-connectors/connector-actions'
+      );
+      return replaceConnectorsInState(state, connectors);
+    }
+  } catch { /* SDK unavailable — keep empty connectors */ }
+  return state;
+}
+
 async function loadBridgeMergedState(runtimeFields: RuntimeFields) {
   const seed = {
     provider: runtimeFields.provider,
@@ -51,7 +69,9 @@ async function loadBridgeMergedState(runtimeFields: RuntimeFields) {
   try {
     const result = await desktopBridge.getRuntimeBridgeConfig();
     const config = toRecord(toRecord(result).config);
-    return { state: applyRuntimeBridgeConfigToState(defaultState, config), seed };
+    const bridgeState = applyRuntimeBridgeConfigToState(defaultState, config);
+    const stateWithConnectors = await loadConnectorsFromSdk(bridgeState);
+    return { state: stateWithConnectors, seed };
   } catch {
     return { state: defaultState, seed };
   }

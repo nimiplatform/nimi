@@ -18,7 +18,6 @@ type RuntimeConfigPanelEffectsInput = {
   runtimeFields: RuntimeFieldMap;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
-  credentialVault: { listCredentialEntries: (providerType: string) => Promise<Array<Record<string, unknown>>> };
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
   discoverLocalRuntimeModels: () => Promise<void>;
@@ -72,7 +71,6 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
 
   useRuntimeConfigVaultSyncEffect({
     state: input.state,
-    credentialVault: input.credentialVault,
     setVaultEntryCount: input.setVaultEntryCount,
     vaultVersion: input.vaultVersion,
   });

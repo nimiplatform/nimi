@@ -38,7 +38,6 @@ export type ResolvedRoute = {
   providerType: ProviderType;
   endpoint: string;
   connectorId?: string;
-  apiKey?: string;
   model: string;
 };
 

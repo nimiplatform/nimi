@@ -14,7 +14,6 @@ function resolveEndpointForProvider(providerType: ProviderType, endpoint: string
 export async function synthesizeSpeech(input: {
   providerType: ProviderType;
   endpoint: string;
-  apiKey?: string;
   request: SpeechSynthesizeRequest;
   assetStore: SpeechAssetStore;
   fetchImpl?: typeof fetch;
@@ -25,7 +24,6 @@ export async function synthesizeSpeech(input: {
   const adapter = createSpeechAdapter(input.providerType, {
     name: String(input.providerType || '').toLowerCase(),
     endpoint: resolveEndpointForProvider(input.providerType, input.endpoint),
-    headers: input.apiKey ? { Authorization: `Bearer ${input.apiKey}` } : undefined,
     fetch: input.fetchImpl,
   });
   const response = await adapter.synthesize(input.request);

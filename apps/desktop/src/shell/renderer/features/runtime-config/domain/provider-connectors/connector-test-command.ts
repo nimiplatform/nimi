@@ -17,7 +17,6 @@ export async function runSelectedConnectorTestCommand(input: {
     health,
     normalizedStatus,
   } = await discoverConnectorModelsAndHealth({
-    state: input.state,
     connector: input.selectedConnector,
   });
 

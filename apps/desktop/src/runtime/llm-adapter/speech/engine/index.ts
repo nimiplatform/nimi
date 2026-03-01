@@ -22,7 +22,6 @@ type StreamPublisher = (
 type SynthesizeInput = {
   providerType: ProviderType;
   endpoint: string;
-  apiKey?: string;
   request: SpeechSynthesizeRequest;
 };
 
@@ -38,7 +37,6 @@ type OpenStreamInput = {
   };
   providerType: ProviderType;
   endpoint: string;
-  apiKey?: string;
 };
 
 export class NimiSpeechEngine {
@@ -70,7 +68,6 @@ export class NimiSpeechEngine {
     return synthesizeSpeech({
       providerType: input.providerType,
       endpoint: input.endpoint,
-      apiKey: input.apiKey,
       request: input.request,
       assetStore: this.assetStore,
       fetchImpl: this.fetchImpl,

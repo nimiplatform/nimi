@@ -68,14 +68,14 @@ export type ApiConnector = {
   id: string;
   label: string;
   vendor: ApiVendor;
+  provider: string;
   endpoint: string;
-  tokenApiKeyEnv: string;
+  hasCredential: boolean;
+  isSystemOwned: boolean;
   models: string[];
   status: ProviderStatusV11;
   lastCheckedAt: string | null;
   lastDetail: string;
-  catalogVersion: string;
-  catalogUpdatedAt: string;
 };
 
 export const DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11 = 'http://127.0.0.1:1234/v1';
@@ -233,14 +233,14 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
     id: randomIdV11('connector'),
     label: label || `${catalog.label} Connector`,
     vendor,
+    provider: '',
     endpoint: catalog.defaultEndpoint,
-    tokenApiKeyEnv: '',
+    hasCredential: false,
+    isSystemOwned: false,
     models: catalogModelsV11(vendor),
     status: 'idle',
     lastCheckedAt: null,
     lastDetail: '',
-    catalogVersion: catalog.version,
-    catalogUpdatedAt: catalog.updatedAt,
   };
 }
 
@@ -273,14 +273,14 @@ export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector 
     id: String(raw.id || randomIdV11('connector')),
     label: String(raw.label || `${catalog.label} Connector`),
     vendor,
+    provider: String(raw.provider || ''),
     endpoint: normalizeEndpointV11(String(raw.endpoint || catalog.defaultEndpoint), catalog.defaultEndpoint),
-    tokenApiKeyEnv: String(raw.tokenApiKeyEnv || ''),
+    hasCredential: Boolean(raw.hasCredential),
+    isSystemOwned: Boolean(raw.isSystemOwned),
     models: normalizeConnectorModelsV11(vendor, raw.models),
     status: normalizeStatusV11(raw.status),
     lastCheckedAt: raw.lastCheckedAt || null,
     lastDetail: String(raw.lastDetail || ''),
-    catalogVersion: String(raw.catalogVersion || catalog.version),
-    catalogUpdatedAt: String(raw.catalogUpdatedAt || catalog.updatedAt),
   };
 }
 

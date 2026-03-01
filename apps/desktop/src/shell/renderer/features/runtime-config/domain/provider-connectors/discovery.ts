@@ -1,17 +1,18 @@
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { getPlatformClient } from '@runtime/platform-client';
 import { desktopBridge } from '@renderer/bridge';
-import { TauriCredentialVault } from '@runtime/llm-adapter/credential-vault.js';
 import {
   DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
-  VENDOR_CATALOGS_V11,
-  catalogModelsV11,
   dedupeStringsV11,
   normalizeEndpointV11,
   normalizeStatusV11,
   type NodeCapabilityV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/state/v11/types';
+import {
+  sdkTestConnector,
+  sdkListConnectorModels,
+} from './connector-sdk-service';
 
 type LocalRuntimeHealthSummary = {
   status: 'healthy' | 'degraded' | 'unreachable' | 'unsupported' | 'idle';
@@ -205,104 +206,33 @@ export async function checkLocalRuntimeHealth(): Promise<{
   }
 }
 
-async function listModelsViaHttp(
-  endpoint: string,
-  token: string,
-): Promise<string[]> {
-  const modelsUrl = endpoint.replace(/\/+$/, '') + '/models';
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
-  try {
-    const response = await fetch(modelsUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-    if (!response.ok) return [];
-    const json = (await response.json()) as { data?: Array<{ id?: string }> };
-    return (json.data || [])
-      .map((item) => String(item.id || '').trim())
-      .filter(Boolean);
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function checkHealthViaHttp(
-  endpoint: string,
-  token: string,
-  model: string,
-): Promise<{ status: RuntimeConfigStateV11['connectors'][number]['status']; detail: string }> {
-  const chatUrl = endpoint.replace(/\/+$/, '') + '/chat/completions';
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
-  try {
-    const response = await fetch(chatUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: 'hi' }],
-        max_tokens: 1,
-      }),
-      signal: controller.signal,
-    });
-    if (response.ok) {
-      return { status: 'healthy', detail: 'provider reachable' };
-    }
-    if (response.status === 401 || response.status === 403) {
-      return { status: 'unreachable', detail: `auth failed (${response.status})` };
-    }
-    return { status: 'degraded', detail: `HTTP ${response.status}` };
-  } catch (error) {
-    return {
-      status: 'unreachable',
-      detail: error instanceof Error ? error.message : 'health check failed',
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
+/**
+ * Test a connector and discover its models via SDK.
+ * Replaces the old HTTP-based approach.
+ */
 export async function discoverConnectorModelsAndHealth(input: {
-  state: RuntimeConfigStateV11;
   connector: RuntimeConfigStateV11['connectors'][number];
 }) {
-  void input.state;
-  const vault = new TauriCredentialVault();
-  let token = '';
-  try { token = (await vault.getCredentialSecret(input.connector.id)).trim(); }
-  catch { token = ''; }
-  if (!token) {
-    throw new Error('token_api_key is required');
-  }
-
-  const endpoint = normalizeEndpointV11(
-    input.connector.endpoint,
-    VENDOR_CATALOGS_V11[input.connector.vendor].defaultEndpoint,
-  );
-
-  const listed = await listModelsViaHttp(endpoint, token);
-  const discovered = dedupeStringsV11([
-    ...input.connector.models,
-    ...catalogModelsV11(input.connector.vendor),
-    ...listed,
-  ]);
-  const firstModel = discovered[0] || 'model';
   const checkedAt = new Date().toISOString();
-  const healthResult = await checkHealthViaHttp(endpoint, token, firstModel);
+
+  const [testResult, models] = await Promise.all([
+    sdkTestConnector(input.connector.id),
+    sdkListConnectorModels(input.connector.id, true).catch(() => [] as string[]),
+  ]);
+
+  const discovered = dedupeStringsV11([
+    ...models,
+    ...input.connector.models,
+  ]);
+
   const health = {
-    status: healthResult.status,
-    detail: healthResult.detail,
+    status: testResult.ok ? 'healthy' as const : 'unreachable' as const,
+    detail: testResult.message,
     checkedAt,
   };
 
   return {
-    endpoint,
+    endpoint: input.connector.endpoint,
     discovered,
     health,
     normalizedStatus: normalizeStatusV11(health.status),

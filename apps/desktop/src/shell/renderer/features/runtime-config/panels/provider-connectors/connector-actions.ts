@@ -1,7 +1,7 @@
 import {
-  createConnectorV11,
   VENDOR_CATALOGS_V11,
   type ApiVendor,
+  type ApiConnector,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/state/v11/types';
 
@@ -30,12 +30,29 @@ export function inferVendorFromEndpoint(endpoint: string): ApiVendor | null {
   return null;
 }
 
-export function addConnector(prev: RuntimeConfigStateV11): RuntimeConfigStateV11 {
-  const connector = createConnectorV11('openrouter', `API Connector ${prev.connectors.length + 1}`);
+export function addConnectorToState(
+  prev: RuntimeConfigStateV11,
+  connector: ApiConnector,
+): RuntimeConfigStateV11 {
   return {
     ...prev,
     connectors: [...prev.connectors, connector],
     selectedConnectorId: connector.id,
+  };
+}
+
+export function replaceConnectorsInState(
+  prev: RuntimeConfigStateV11,
+  connectors: ApiConnector[],
+): RuntimeConfigStateV11 {
+  const previousSelectedId = prev.selectedConnectorId;
+  const selectedStillExists = connectors.some((c) => c.id === previousSelectedId);
+  return {
+    ...prev,
+    connectors,
+    selectedConnectorId: selectedStillExists
+      ? previousSelectedId
+      : (connectors[0]?.id || ''),
   };
 }
 

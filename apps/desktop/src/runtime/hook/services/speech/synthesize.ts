@@ -9,7 +9,6 @@ import {
 import {
   buildRuntimeRequestMetadata,
   getRuntimeClient,
-  resolveProviderApiKeyFromCredentialRef,
 } from '../../../llm-adapter/execution/runtime-ai-bridge';
 import type {
   ResolvedRoute,
@@ -61,7 +60,6 @@ async function resolveSpeechRoute(
       providerType: 'OPENAI_COMPATIBLE',
       endpoint: String(resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || '').trim(),
       connectorId: resolved.connectorId,
-      apiKey: (await resolveProviderApiKeyFromCredentialRef(resolved.connectorId)) || undefined,
       model,
     };
   }
@@ -77,7 +75,6 @@ async function resolveSpeechRoute(
     providerType,
     endpoint: String(resolved.localOpenAiEndpoint || '').trim(),
     connectorId: resolved.connectorId,
-    apiKey: await resolveProviderApiKeyFromCredentialRef(resolved.connectorId),
     model,
   };
 }

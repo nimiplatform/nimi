@@ -81,6 +81,5 @@ export type ProviderConnectorsPanelViewProps = ProviderConnectorsPanelProps & {
   onRenameSelectedConnector: (label: string) => void;
   onChangeConnectorEndpoint: (endpoint: string) => void;
   onChangeConnectorToken: (secret: string) => Promise<void>;
-  onChangeConnectorTokenEnv: (tokenApiKeyEnv: string) => void;
   onChangeConnectorVendor: (vendor: string) => void;
 };
