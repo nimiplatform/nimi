@@ -75,6 +75,7 @@ export async function synthesizeModSpeech(
       route: route.source,
       fallback: 'deny',
       timeoutMs: 60000,
+      connectorId: route.connectorId,
       metadata: await buildRuntimeRequestMetadata({
         source: route.source,
         connectorId: route.connectorId,

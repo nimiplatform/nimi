@@ -251,6 +251,17 @@ function resolveLocalRuntimeCapabilityConfig(input: {
   };
 }
 
+function capabilityToRuntimeCapability(cap: CapabilityV11): string | undefined {
+  switch (cap) {
+    case 'tts': return 'audio.synthesize';
+    case 'stt': return 'audio.transcribe';
+    case 'embedding': return 'text.embed';
+    case 'image': return 'image.understand';
+    case 'chat': return 'text.generate';
+    default: return undefined;
+  }
+}
+
 function resolveTokenApiCapabilityConfig(input: {
   state: RuntimeConfigStateV11;
   seed: RuntimeConfigSeedV11;
@@ -276,9 +287,18 @@ function resolveTokenApiCapabilityConfig(input: {
     );
   }
 
-  const connectorModels = connector.models
+  const allModels = connector.models
     .map((item) => String(item || '').trim())
     .filter(Boolean);
+
+  // Narrow model candidates using runtime-reported capabilities when available.
+  const runtimeCapKey = capabilityToRuntimeCapability(input.capability);
+  const caps = connector.modelCapabilities;
+  const capableModels = runtimeCapKey && caps
+    ? allModels.filter((m) => caps[m]?.includes(runtimeCapKey))
+    : [];
+  const connectorModels = capableModels.length > 0 ? capableModels : allModels;
+
   const overrideModel = String(input.override.model || '').trim();
   const overrideModelMatched = overrideModel && (
     connectorModels.length === 0
@@ -292,7 +312,8 @@ function resolveTokenApiCapabilityConfig(input: {
   if (!model) {
     throwRouteError(
       'RUNTIME_ROUTE_MODEL_MISSING',
-      `Token API model is missing for capability: ${input.capability}`,
+      `No ${input.capability} model found for connector ${connector.label} (${connector.vendor}). `
+      + `This connector may not support ${input.capability}.`,
     );
   }
 

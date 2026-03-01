@@ -11,7 +11,7 @@ import {
 } from '@renderer/features/runtime-config/state/v11/types';
 import {
   sdkTestConnector,
-  sdkListConnectorModels,
+  sdkListConnectorModelDescriptors,
 } from './connector-sdk-service';
 
 type LocalRuntimeHealthSummary = {
@@ -215,15 +215,23 @@ export async function discoverConnectorModelsAndHealth(input: {
 }) {
   const checkedAt = new Date().toISOString();
 
-  const [testResult, models] = await Promise.all([
+  const [testResult, descriptors] = await Promise.all([
     sdkTestConnector(input.connector.id),
-    sdkListConnectorModels(input.connector.id, true).catch(() => [] as string[]),
+    sdkListConnectorModelDescriptors(input.connector.id, true).catch(() => []),
   ]);
 
+  const modelIds = descriptors.map((d) => d.modelId);
   const discovered = dedupeStringsV11([
-    ...models,
+    ...modelIds,
     ...input.connector.models,
   ]);
+
+  const modelCapabilities: Record<string, string[]> = {};
+  for (const d of descriptors) {
+    if (d.modelId && d.capabilities.length > 0) {
+      modelCapabilities[d.modelId] = d.capabilities;
+    }
+  }
 
   const health = {
     status: testResult.ok ? 'healthy' as const : 'unreachable' as const,
@@ -234,6 +242,7 @@ export async function discoverConnectorModelsAndHealth(input: {
   return {
     endpoint: input.connector.endpoint,
     discovered,
+    modelCapabilities,
     health,
     normalizedStatus: normalizeStatusV11(health.status),
   };

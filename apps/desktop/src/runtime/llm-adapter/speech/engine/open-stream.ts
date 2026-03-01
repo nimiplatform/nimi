@@ -40,6 +40,7 @@ export async function openSpeechStream(input: {
       sampleRateHz: input.request.sampleRateHz,
       route: input.routeSource,
       fallback: 'deny',
+      connectorId: input.connectorId,
       metadata,
       providerOptions: input.request.providerParams,
     });

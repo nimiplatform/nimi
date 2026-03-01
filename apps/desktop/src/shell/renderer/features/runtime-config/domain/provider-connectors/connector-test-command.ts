@@ -14,6 +14,7 @@ export async function runSelectedConnectorTestCommand(input: {
   const {
     endpoint,
     discovered,
+    modelCapabilities,
     health,
     normalizedStatus,
   } = await discoverConnectorModelsAndHealth({
@@ -28,6 +29,7 @@ export async function runSelectedConnectorTestCommand(input: {
         ...connector,
         endpoint,
         models: discovered,
+        modelCapabilities,
         status: normalizedStatus,
         lastCheckedAt: health.checkedAt,
         lastDetail: health.detail,

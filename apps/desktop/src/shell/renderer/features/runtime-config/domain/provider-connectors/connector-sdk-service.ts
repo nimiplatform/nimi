@@ -181,3 +181,23 @@ export async function sdkListConnectorModels(
     .map((m) => m.modelId)
     .filter(Boolean);
 }
+
+export type ConnectorModelInfo = {
+  modelId: string;
+  capabilities: string[];
+};
+
+export async function sdkListConnectorModelDescriptors(
+  connectorId: string,
+  forceRefresh: boolean = false,
+): Promise<ConnectorModelInfo[]> {
+  const runtime = getPlatformClient().runtime;
+  const response = await runtime.connector.listConnectorModels(
+    { connectorId, ownerId: DESKTOP_OWNER_ID, forceRefresh },
+    CONNECTOR_CALL_OPTIONS,
+  );
+  return (response.models || [])
+    .filter((m) => m.available)
+    .map((m) => ({ modelId: m.modelId, capabilities: m.capabilities || [] }))
+    .filter((m) => Boolean(m.modelId));
+}

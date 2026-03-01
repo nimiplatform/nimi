@@ -73,6 +73,7 @@ export type ApiConnector = {
   hasCredential: boolean;
   isSystemOwned: boolean;
   models: string[];
+  modelCapabilities?: Record<string, string[]>;
   status: ProviderStatusV11;
   lastCheckedAt: string | null;
   lastDetail: string;
