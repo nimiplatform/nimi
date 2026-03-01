@@ -36,3 +36,7 @@ nimi-mods/
 .cache/
 
 _external/
+.claude/settings.local.json
+
+# AI session artifacts (plans, reports, research)
+dev/
