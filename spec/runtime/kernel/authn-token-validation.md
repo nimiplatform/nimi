@@ -49,6 +49,8 @@ Realm JWT 最小必校验集合：
 - gRPC code: `UNAUTHENTICATED`
 - reason code: `AUTH_TOKEN_INVALID`
 
+> **注脚**：K-AUTHSVC-013 为 ExternalPrincipal 场景定义了细分码 `AUTH_TOKEN_EXPIRED`（proof JWT 过期）和 `AUTH_UNSUPPORTED_PROOF_TYPE`（不支持的 proof_type），作为本规则在 ExternalPrincipal 上下文的例外。通用 AuthN 路径仍统一使用 `AUTH_TOKEN_INVALID`。
+
 ## K-AUTHN-008 上下文投影
 
 AuthN 成功后向下游投影最小身份上下文：

@@ -28,7 +28,7 @@ MediaJob 终态固定为：
 - `endpoint`
 - `credential`
 
-后续轮询/取消/结果获取使用 job 快照，不依赖 connector 当前状态。
+这三个字段对应 `K-KEYSRC-004` step 6 执行上下文三元组（`provider_type`/`endpoint`/`credential`）。快照在 job 创建时从执行上下文复制，后续轮询/取消/结果获取使用 job 快照，不依赖 connector 当前状态。
 
 ## K-JOB-004 凭据快照清理
 

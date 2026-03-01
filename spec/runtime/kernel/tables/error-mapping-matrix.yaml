@@ -10,6 +10,16 @@ mappings:
     surface: authn_all
     exit_shape: grpc_status
     source: K-AUTHN-007
+  - reason_code: AUTH_TOKEN_EXPIRED
+    grpc_code: UNAUTHENTICATED
+    surface: external_principal_proof_expired
+    exit_shape: grpc_status
+    source: K-AUTHSVC-013
+  - reason_code: AUTH_UNSUPPORTED_PROOF_TYPE
+    grpc_code: INVALID_ARGUMENT
+    surface: external_principal_registration
+    exit_shape: grpc_status
+    source: K-AUTHSVC-013
   - reason_code: AI_CONNECTOR_NOT_FOUND
     grpc_code: NOT_FOUND
     surface: consume_remote_or_hidden_connector

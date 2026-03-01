@@ -83,7 +83,7 @@ Phase 1 仅实现 `ATTACHED_ENDPOINT`；`SUPERVISED` 标记为 deferred。
 引擎相关配置项（endpoint、api_key 等）的来源按以下优先级合并（高优先覆盖低优先）：
 
 1. RPC 请求参数（`InstallLocalModel.endpoint` 等）
-2. 环境变量（`NIMI_LOCALAI_ENDPOINT`、`NIMI_NEXA_ENDPOINT` 等）
+2. 环境变量（`NIMI_RUNTIME_LOCAL_AI_BASE_URL`、`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` 等，命名与 `K-PROV-002` 一致）
 3. 配置文件（`K-DAEMON-009` 定义的配置路径，即 `~/.nimi/config.json` 的 provider 相关段）
 4. 引擎默认值（`K-LENG-005`）
 

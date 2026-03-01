@@ -19,6 +19,14 @@ codes:
     value: 300
     family: AUTH
     source: K-AUTHN-007
+  - name: AUTH_TOKEN_EXPIRED
+    value: 301
+    family: AUTH
+    source: K-AUTHSVC-013
+  - name: AUTH_UNSUPPORTED_PROOF_TYPE
+    value: 302
+    family: AUTH
+    source: K-AUTHSVC-013
   - name: AI_CONNECTOR_NOT_FOUND
     value: 310
     family: CONNECTOR

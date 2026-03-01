@@ -6,6 +6,8 @@
 |---|---|---|---|---|
 | `SESSION_EXPIRED` | `UNAUTHENTICATED` | `authn_session_check` | `grpc_status` | `K-AUTHN-006` |
 | `AUTH_TOKEN_INVALID` | `UNAUTHENTICATED` | `authn_all` | `grpc_status` | `K-AUTHN-007` |
+| `AUTH_TOKEN_EXPIRED` | `UNAUTHENTICATED` | `external_principal_proof_expired` | `grpc_status` | `K-AUTHSVC-013` |
+| `AUTH_UNSUPPORTED_PROOF_TYPE` | `INVALID_ARGUMENT` | `external_principal_registration` | `grpc_status` | `K-AUTHSVC-013` |
 | `AI_CONNECTOR_NOT_FOUND` | `NOT_FOUND` | `consume_remote_or_hidden_connector` | `grpc_status` | `K-ERR-004` |
 | `AI_CONNECTOR_DISABLED` | `FAILED_PRECONDITION` | `consume_or_connector_probe` | `grpc_status` | `K-ERR-004` |
 | `AI_CONNECTOR_CREDENTIAL_MISSING` | `FAILED_PRECONDITION` | `consume_or_list_models` | `grpc_status` | `K-ERR-004` |
