@@ -81,14 +81,40 @@ Runtime 错误通过三层投影到 Desktop UI：
 | `AI_FINISH_CONTENT_FILTER` | gRPC OK（非错误） | 消息气泡底部标注"内容因安全策略被截断"（非 toast，不阻断交互） |
 | `AI_MEDIA_IDEMPOTENCY_CONFLICT` | `S-ERROR-001` 上游错误 | "请求重复，请勿重复提交"（K-ERR-007 **强制显式处理**，不允许走通用兜底） |
 | `AI_MEDIA_JOB_NOT_FOUND` | `S-ERROR-001` 上游错误 | "媒体任务未找到" |
-| `AUTH_TOKEN_INVALID` | `S-ERROR-007` retryable | "认证令牌无效，请重新登录" |
+| `AI_PROVIDER_AUTH_FAILED` | `S-ERROR-001` 上游错误 | "AI 服务凭证已失效，请重新配置" |
+| `AI_MODEL_PROVIDER_MISMATCH` | `S-ERROR-001` 上游错误 | "模型与引擎类型不匹配，请检查模型配置" |
+| `AI_MEDIA_SPEC_INVALID` | `S-ERROR-001` 上游错误 | "媒体生成参数无效，请检查输入" |
+| `AI_MEDIA_OPTION_UNSUPPORTED` | `S-ERROR-001` 上游错误 | "当前不支持此媒体生成选项" |
+| `AI_MEDIA_JOB_NOT_CANCELLABLE` | `S-ERROR-001` 上游错误 | "任务已完成，无法取消" |
+| `AI_LOCAL_MODEL_PROFILE_MISSING` | `S-ERROR-001` 上游错误 | "本地模型缺少推理配置文件" |
+| `AI_LOCAL_MODEL_ALREADY_INSTALLED` | `S-ERROR-001` 上游错误 | "模型已安装，无需重复安装" |
+| `AI_LOCAL_ENDPOINT_REQUIRED` | `S-ERROR-001` 上游错误 | "本地引擎需要配置端点地址" |
+| `AI_LOCAL_TEMPLATE_NOT_FOUND` | `S-ERROR-001` 上游错误 | "模型模板未找到" |
+| `AI_LOCAL_MANIFEST_INVALID` | `S-ERROR-001` 上游错误 | "模型清单格式无效，请检查文件" |
+| `AI_CONNECTOR_INVALID` | `S-ERROR-001` 上游错误 | "连接器配置无效，请检查输入" |
+| `AI_CONNECTOR_IMMUTABLE` | `S-ERROR-001` 上游错误 | "该连接器字段不可修改" |
+| `AI_CONNECTOR_LIMIT_EXCEEDED` | `S-ERROR-001` 上游错误 | "连接器数量已达上限" |
+| `AUTH_TOKEN_INVALID` | `S-ERROR-001` 上游错误（**不可重试**） | "认证令牌无效，请重新登录" |
 | `SESSION_EXPIRED` | `S-ERROR-007` retryable | "会话已过期，请重新登录" |
+| `APP_MODE_DOMAIN_FORBIDDEN` | `S-ERROR-001` 上游错误（**不可重试**） | "应用权限不足，请检查应用模式配置" |
+| `APP_MODE_SCOPE_FORBIDDEN` | `S-ERROR-001` 上游错误（**不可重试**） | "应用权限不足，请检查应用模式配置" |
+| `APP_MODE_MANIFEST_INVALID` | `S-ERROR-001` 上游错误（**不可重试**） | "应用模式配置无效" |
 | `RUNTIME_UNAVAILABLE` | SDK 合成码 | "本地运行时不可用，请检查 daemon 状态" |
 | `RUNTIME_BRIDGE_DAEMON_UNAVAILABLE` | SDK 合成码 | "无法连接到运行时服务" |
 
-**非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 Runtime S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
+**非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 SDK S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
 
 **兜底规则**：未映射的 ReasonCode 走 D-ERR-005 两阶段归一化兜底路径，最终返回通用错误消息。
+
+**未覆盖 ReasonCode 族群声明**：以下 ReasonCode 族群当前走通用兜底路径（"操作失败，请稍后重试"），对用户无诊断价值。Phase 2 服务消费契约就绪时应补充专用映射：
+
+| ReasonCode 族群 | Runtime 来源 | 补充映射优先级 | 推荐消息方向 |
+|---|---|---|---|
+| `GRANT_*` 族 | K-GRANT-013 | 中（Phase 2 Grant UI 启动时） | 按具体 GRANT 错误分别映射 |
+| `PAGE_TOKEN_INVALID` | K-PAGE-002 | 低（分页错误罕见） | "分页参数无效，请刷新重试" |
+| `WORKFLOW_*` 族 | Phase 2 | 中（Workflow UI 启动时） | 待 K-WF-012 消费契约定义 |
+| `APP_MESSAGE_*` 族 | K-APP-005 | 中（AppMessage UI 启动时） | 待 K-APP-006a 消费契约定义 |
+| `SCRIPT_*` 族 | K-SCRIPT-004 | 低（Phase 2 后期） | 待 ScriptWorker 消费契约定义 |
 
 **映射治理规则**：
 
