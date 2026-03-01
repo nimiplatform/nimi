@@ -34,6 +34,7 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	httpAddr := fs.String("http-addr", baseCfg.HTTPAddr, "HTTP listen address")
 	shutdownTimeoutRaw := fs.String("shutdown-timeout", baseCfg.ShutdownTimeout.String(), "graceful shutdown timeout")
 	localRuntimeStatePath := fs.String("local-runtime-state-path", baseCfg.LocalRuntimeStatePath, "local runtime state persistence path")
+	logLevel := fs.String("log-level", baseCfg.LogLevel, "log level (debug, info, warn, error)")
 
 	if err := fs.Parse(args); err != nil {
 		return fmt.Errorf("parse flags: %w", err)
@@ -50,11 +51,16 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	cfg.HTTPAddr = *httpAddr
 	cfg.ShutdownTimeout = shutdownTimeout
 	cfg.LocalRuntimeStatePath = *localRuntimeStatePath
+	cfg.LogLevel = *logLevel
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slogLevel, err := config.ParseLogLevel(cfg.LogLevel)
+	if err != nil {
+		return err
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

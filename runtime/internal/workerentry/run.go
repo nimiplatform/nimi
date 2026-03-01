@@ -51,7 +51,8 @@ func Run(role string) error {
 	}
 	defer os.Remove(socketPath)
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slogLevel, _ := config.ParseLogLevel(os.Getenv("NIMI_RUNTIME_LOG_LEVEL"))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
 	server := grpc.NewServer()
 	switch role {
 	case "ai":

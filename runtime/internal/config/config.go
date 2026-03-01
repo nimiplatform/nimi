@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -81,6 +82,10 @@ type Config struct {
 	// LocalAuditCapacity is the capacity of the local runtime audit event
 	// buffer. Default: 5000. (K-DAEMON-009)
 	LocalAuditCapacity int
+
+	// LogLevel controls the minimum log level for the daemon logger.
+	// Valid values: "debug", "info", "warn", "error". Default: "info". (K-DAEMON-009)
+	LogLevel string
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
@@ -106,6 +111,7 @@ type FileConfig struct {
 	LocalAuditCapacity      *int  `json:"localAuditCapacity,omitempty"`
 	SessionTTLMinSeconds    *int  `json:"sessionTtlMinSeconds,omitempty"`
 	SessionTTLMaxSeconds    *int  `json:"sessionTtlMaxSeconds,omitempty"`
+	LogLevel                string `json:"logLevel,omitempty"`
 
 	Providers map[string]RuntimeFileTarget `json:"providers,omitempty"`
 }
@@ -173,6 +179,7 @@ func Load() (Config, error) {
 		AuditRingBufferSize:           readIntWithFileConfigFallback("NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE", fileCfg.AuditRingBufferSize, 20000),
 		UsageStatsBufferSize:          readIntWithFileConfigFallback("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", fileCfg.UsageStatsBufferSize, 50000),
 		LocalAuditCapacity:            readIntWithFileConfigFallback("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", fileCfg.LocalAuditCapacity, 5000),
+		LogLevel:                      readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
 	}
 
 	// shutdownTimeoutSeconds: env (duration string) > FileConfig (int seconds) > default 10
@@ -234,7 +241,37 @@ func (c Config) Validate() error {
 	if c.ShutdownTimeout <= 0 {
 		return fmt.Errorf("shutdown timeout must be > 0")
 	}
+	if _, err := ParseLogLevel(c.LogLevel); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ParseLogLevel converts a string log level to slog.Level.
+func ParseLogLevel(raw string) (slog.Level, error) {
+	switch strings.TrimSpace(strings.ToLower(raw)) {
+	case "debug":
+		return slog.LevelDebug, nil
+	case "info", "":
+		return slog.LevelInfo, nil
+	case "warn", "warning":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return slog.LevelInfo, fmt.Errorf("invalid log level %q: must be debug, info, warn, or error", raw)
+	}
+}
+
+// readStringWithFileConfigFallback implements three-level fallback: env > fileConfig > default.
+func readStringWithFileConfigFallback(envKey string, fileValue string, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(envKey)); value != "" {
+		return value
+	}
+	if strings.TrimSpace(fileValue) != "" {
+		return fileValue
+	}
+	return fallback
 }
 
 func readString(envKey string, fallback string) string {
