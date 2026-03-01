@@ -165,7 +165,7 @@ Apply 管道任一阶段失败时：
 
 - 写入使用原子操作：写临时文件 → rename（防止断电损坏）。
 - 文件格式包含 `schemaVersion`（当前 `1`），向前兼容时忽略未知字段。
-- 审计事件（`LocalAuditEvent`）追加存储，上限 5000 条，超出时按 FIFO 淘汰。
+- 审计事件（`LocalAuditEvent`）追加存储，上限默认 5000 条（可通过 `K-DAEMON-009` 配置 `localAuditCapacity` 覆盖），超出时按 FIFO 淘汰。
 - 每次状态变更（install/remove/start/stop/health）都触发持久化。
 
 ## K-LOCAL-017 适配器路由规则

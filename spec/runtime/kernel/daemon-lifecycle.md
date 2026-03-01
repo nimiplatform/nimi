@@ -59,6 +59,7 @@ Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervi
 - **重启策略**：2s base backoff + uniform jitter [0, 500ms]，context 取消时退出循环。
 - **环境注入**：`NIMI_RUNTIME_WORKER_ROLE=<name>`，`NIMI_RUNTIME_WORKER_SOCKET=<socket_path>`。
 - **Socket 路径**：`~/.nimi/runtime/worker-<name>.sock`（Unix Domain Socket）。
+- **存活检测**：supervisor 通过 `os.Process.Wait()` 检测 worker 进程退出。每个 worker 在独立 goroutine 中执行 `Wait()`，进程退出时立即触发状态回调与重启循环。
 - **状态回调**：worker 停止时触发 `onStateChange(name, running=false, err)`：
   - 若 daemon 非 `STOPPING`/`STOPPED`，健康状态降级为 `DEGRADED`（reason: `worker:<name> unavailable`）。
   - 所有 worker 恢复运行后，若当前为 worker 原因的 `DEGRADED`，恢复为 `READY`。
@@ -154,8 +155,12 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `auditRingBufferSize` | int | `20000` | 审计事件环形缓冲上限 | K-AUDIT-007 |
 | `usageStatsBufferSize` | int | `50000` | 使用量样本环形缓冲上限 | K-AUDIT-008 |
 | `localAuditCapacity` | int | `5000` | Local 审计事件存储上限 | K-LOCAL-016 |
+| `sessionTtlMinSeconds` | int | `60` | Session TTL 下限（秒） | K-AUTHSVC-004 |
+| `sessionTtlMaxSeconds` | int | `86400` | Session TTL 上限（秒） | K-AUTHSVC-004 |
 
 未知字段在解析时忽略（向前兼容）。
+
+> **设计决策**：Cloud provider 凭据（`K-PROV-002` 列出的 `NIMI_RUNTIME_*_API_KEY` / `NIMI_RUNTIME_*_BASE_URL` 环境变量）有意不纳入配置文件 schema。原因：凭据仅通过环境变量注入，避免明文持久化到磁盘（与 `K-LENG-009` 凭据安全策略一致）。实现者不应将此视为 schema 遗漏。
 
 ## K-DAEMON-010 HTTP 健康端点
 

@@ -63,21 +63,6 @@
 - `reason_code`：失败原因。
 - `action_hint`：建议操作（如 `restart`、`reinstall`）。
 
-## K-MODEL-008 ModelStatus 状态机
-
-`ModelStatus` 状态转换定义于 `tables/state-transitions.yaml` 的 `model_status` 机。合法转换：
-
-| 源状态 | 目标状态 | 触发条件 |
-|---|---|---|
-| `INSTALLED` | `PULLING` | 拉取模型更新 |
-| `PULLING` | `INSTALLED` | 拉取成功 |
-| `PULLING` | `FAILED` | 拉取失败 |
-| `INSTALLED` | `REMOVED` | 移除模型 |
-| `FAILED` | `PULLING` | 重试拉取 |
-| `FAILED` | `REMOVED` | 移除失败模型 |
-
-不在此表中的转换为非法，实现必须拒绝。
-
 ## K-MODEL-007 与 RuntimeLocalRuntimeService 的关系
 
 `RuntimeModelService` 和 `RuntimeLocalRuntimeService` 均涉及模型管理，但服务对象与抽象层次不同：
@@ -94,3 +79,18 @@
 - `RuntimeLocalRuntimeService.InstallLocalModel` 安装本地模型后，该模型应自动注册到 `RuntimeModelService` 的模型注册表（`ModelStatus=INSTALLED`）。
 - `RuntimeModelService.PullModel` 用于拉取远程模型资源（如下载权重文件），与 `InstallLocalModel`（配置本地引擎绑定）互补。
 - `RuntimeModelService.ListModels` 是模型的统一视图；`ListLocalModels` 是本地模型的详细视图（含引擎配置、端点等）。
+
+## K-MODEL-008 ModelStatus 状态机
+
+`ModelStatus` 状态转换定义于 `tables/state-transitions.yaml` 的 `model_status` 机。合法转换：
+
+| 源状态 | 目标状态 | 触发条件 |
+|---|---|---|
+| `INSTALLED` | `PULLING` | 拉取模型更新 |
+| `PULLING` | `INSTALLED` | 拉取成功 |
+| `PULLING` | `FAILED` | 拉取失败 |
+| `INSTALLED` | `REMOVED` | 移除模型 |
+| `FAILED` | `PULLING` | 重试拉取 |
+| `FAILED` | `REMOVED` | 移除失败模型 |
+
+不在此表中的转换为非法，实现必须拒绝。

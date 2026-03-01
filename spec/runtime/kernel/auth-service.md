@@ -26,7 +26,7 @@
 
 ## K-AUTHSVC-004 OpenSession / RefreshSession TTL 约束
 
-- `ttl_seconds` 必须落在服务端配置区间内。
+- `ttl_seconds` 必须落在服务端配置区间 `[sessionTtlMinSeconds, sessionTtlMaxSeconds]` 内（默认 `[60, 86400]` 秒，可通过 `K-DAEMON-009` 配置）。
 - 超出区间必须 fail-close（`INVALID_ARGUMENT`）。
 - `RefreshSession` 仅对仍有效的 `session_id` 生效。
 
@@ -78,4 +78,28 @@
 
 - 默认 TTL：3600 秒（1 小时）。
 - 客户端可通过 `ttl_seconds` 请求自定义 TTL，但必须落在服务端配置区间内（`K-AUTHSVC-004`）。
+- TTL 下限由 `sessionTtlMinSeconds`（默认 60s）控制，上限由 `sessionTtlMaxSeconds`（默认 86400s）控制，两者均通过 `K-DAEMON-009` 配置文件或环境变量设置。
 - 缺省 `ttl_seconds` 时使用默认值。
+
+## K-AUTHSVC-012 Session 存储与重启行为
+
+- Phase 1 session 存储使用进程内内存 map，不跨重启持久化。
+- daemon 重启后所有 session 失效，客户端需重新调用 `OpenSession` 或 `OpenExternalPrincipalSession` 建立新会话。
+- 客户端应实现 session 失效后的自动重连逻辑（检测到 `UNAUTHENTICATED` 后重新 `OpenSession`）。
+- 未来版本可引入持久化存储（如文件或嵌入式 KV），但 Phase 1 明确不要求。
+
+## K-AUTHSVC-013 ExternalPrincipal proof_type 枚举
+
+`RegisterExternalPrincipal` 和 `OpenExternalPrincipalSession` 中 `proof_type` 的支持值：
+
+| proof_type | Phase | 验证协议 |
+|---|---|---|
+| `JWT` | Phase 1 | JWT 签名验证 + `exp` 过期检查 + `iss` 签发者匹配 |
+
+**JWT 验证约束**：
+
+- `signature_key_id` 必须指向已注册的公钥（通过 `RegisterExternalPrincipal` 的 `signature_key_id` 关联）。
+- 签名算法限制：与 `K-AUTHN-003` 一致（RS256/ES256）。
+- `exp` 过期的 token 统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_EXPIRED`。
+- `iss` 不匹配统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
+- 不支持的 `proof_type` 返回 `INVALID_ARGUMENT` + `AUTH_UNSUPPORTED_PROOF_TYPE`。

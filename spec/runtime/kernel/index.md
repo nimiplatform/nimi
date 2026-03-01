@@ -1,6 +1,6 @@
 # Runtime Kernel Contracts
 
-> Status: Draft
+> Status: Phase 1 Normative — FROZEN (2026-03-01) · Phase 2 — Draft
 > Date: 2026-03-01
 > Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Audit / Model / Knowledge / App / ScriptWorker / Daemon 基础设施）。
 

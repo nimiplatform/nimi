@@ -98,7 +98,7 @@ provider 到执行模块/入口模式（managed vs inline）的映射以 `kernel
 
 ## 9. 审计责任
 
-- `NIMI-090`: `nimillm` 记录执行与探测审计，字段集合遵循 `K-AUDIT-001`（最小字段）与 `K-AUDIT-002`（事件覆盖面）。
+- `NIMI-090`: `nimillm` 记录执行与探测审计，字段集合遵循 `K-AUDIT-001`（通用底线）+ `K-AUDIT-018`（AI 执行扩展）与 `K-AUDIT-002`（事件覆盖面）。
 - `NIMI-091`: `request_id` 缺失时允许在模块边界补全；Phase 1 保持 `request_id==trace_id`。
 
 ## 10. 非目标

@@ -153,3 +153,38 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 - **立即失效触发**：`UpdateConnector` 中 `api_key` 或 `endpoint` 变化时、`DeleteConnector` 执行时。
 - **强制刷新**：调用方可通过 `ListConnectorModels(force_refresh=true)` 绕过缓存，强制出站查询。
 - **缓存未命中**：正常出站查询并回填缓存。
+
+## K-RPC-013 GetSpeechVoices 字段契约
+
+`GetSpeechVoices` 返回可用的语音合成声音列表。
+
+**请求字段**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `app_id` | string | 是 | 应用标识 |
+| `provider` | string | 否 | 按 provider 过滤 |
+| `language` | string | 否 | 按语言过滤（BCP-47 格式，如 `en-US`、`zh-CN`） |
+
+**响应字段**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `voices` | repeated SpeechVoiceDescriptor | 可用声音列表 |
+
+**SpeechVoiceDescriptor 字段**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `voice_id` | string | 声音唯一标识 |
+| `name` | string | 声音显示名称 |
+| `language` | string | 语言代码（BCP-47） |
+| `gender` | string | 性别（`male`/`female`/`neutral`） |
+| `provider` | string | 来源 provider |
+| `preview_url` | string | 预览音频 URL（可选，可为空） |
+
+**约束**：
+
+- 结果为有界小集合，不分页（无 `page_size`/`page_token`）。
+- 不需要 key-source 评估（声音目录为公共元数据）。
+- `provider`/`language` 过滤为客户端便利性设计，服务端做精确匹配（`language` 按 BCP-47 primary tag 匹配，如 `en` 匹配 `en-US`）。

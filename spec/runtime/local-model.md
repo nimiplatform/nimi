@@ -234,7 +234,7 @@ local 健康与模型可见性通过 `ConnectorService.TestConnector(local)` 与
 
 ## 12. 审计
 
-- `LOCAL-110`: 本地推理与生命周期操作必须写审计，字段集合遵循 `K-AUDIT-001`（最小字段）与 `K-AUDIT-002`（事件覆盖面）。
+- `LOCAL-110`: 本地推理与生命周期操作必须写审计。推理审计字段遵循 `K-AUDIT-001`（通用底线）+ `K-AUDIT-018`（AI 执行扩展）与 `K-AUDIT-002`（事件覆盖面）；生命周期审计仅需遵循 `K-AUDIT-001`（通用底线）与 `K-AUDIT-002`（事件覆盖面）。
 - `LOCAL-111`: 审计事件追加存储（`K-LOCAL-016`），上限 5000 条，超出时按 FIFO 淘汰。
 - `LOCAL-112`: `AppendInferenceAudit` 记录推理调用（含 provider/adapter/modality/policy_gate）。
 - `LOCAL-113`: `AppendRuntimeAudit` 记录生命周期事件（install/remove/start/stop/health）。`payload`（`google.protobuf.Struct`）承载事件专属字段：`install` 含 model_id/engine/endpoint；`remove` 含 model_id/reason；`start/stop` 含 model_id/endpoint；`health` 含 model_id/status/detail。
