@@ -23,6 +23,7 @@ const (
 	configReasonWriteLocked           = "CONFIG_WRITE_LOCKED"
 	configReasonSecretPolicyViolation = "CONFIG_SECRET_POLICY_VIOLATION"
 	configReasonRestartRequired       = "CONFIG_RESTART_REQUIRED"
+	configReasonApplied               = "CONFIG_APPLIED"
 )
 
 type configCommandError struct {
@@ -267,6 +268,7 @@ func runRuntimeConfigSet(args []string) error {
 	if err != nil {
 		return err
 	}
+	previous := mutated
 
 	if *fromStdin || strings.TrimSpace(*inputFile) != "" {
 		payloadBytes, readErr := readConfigInput(*fromStdin, strings.TrimSpace(*inputFile))
@@ -319,10 +321,17 @@ func runRuntimeConfigSet(args []string) error {
 		return newConfigCommandError(configReasonSchemaInvalid, "retry after fixing config payload", err)
 	}
 
+	reasonCode := configReasonApplied
+	actionHint := ""
+	if restartRequiredFieldsChanged(previous, mutated) {
+		reasonCode = configReasonRestartRequired
+		actionHint = "restart runtime to apply config changes"
+	}
+
 	payload := map[string]any{
 		"path":       path,
-		"reasonCode": configReasonRestartRequired,
-		"actionHint": "restart runtime to apply config changes",
+		"reasonCode": reasonCode,
+		"actionHint": actionHint,
 		"config":     mutated,
 	}
 	return printConfigPayload(payload, *jsonOutput)
@@ -765,6 +774,43 @@ func invokeConfigWriteLockHook(lockPath string) {
 	if hook != nil {
 		hook(lockPath)
 	}
+}
+
+// restartRequiredFieldsChanged compares fields classified as "restart" in
+// K-DAEMON-009. Only changes to these fields require a daemon restart;
+// all other fields (providers, concurrency limits, timeouts, etc.) are
+// hot-reloadable and take effect without restart.
+func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
+	if strings.TrimSpace(before.GRPCAddr) != strings.TrimSpace(after.GRPCAddr) {
+		return true
+	}
+	if strings.TrimSpace(before.HTTPAddr) != strings.TrimSpace(after.HTTPAddr) {
+		return true
+	}
+	if strings.TrimSpace(before.LocalRuntimeStatePath) != strings.TrimSpace(after.LocalRuntimeStatePath) {
+		return true
+	}
+	if intPtrValue(before.ShutdownTimeoutSeconds) != intPtrValue(after.ShutdownTimeoutSeconds) {
+		return true
+	}
+	if boolPtrValue(before.WorkerMode) != boolPtrValue(after.WorkerMode) {
+		return true
+	}
+	return false
+}
+
+func intPtrValue(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+func boolPtrValue(p *bool) bool {
+	if p == nil {
+		return false
+	}
+	return *p
 }
 
 func isSecretPolicyViolation(err error) bool {
