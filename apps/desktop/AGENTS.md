@@ -91,6 +91,29 @@ features/
 - No runtime internal package imports
 - No special "first-party" API shortcuts
 
+## Architecture: Thin Presentation Layer
+
+Desktop is a **presentation layer**. It renders data from runtime (via SDK) and realm (via SDK). It does NOT own domain data or business logic.
+
+**When a feature is broken or data is missing, trace the data flow before writing any fix:**
+
+```
+runtime (owns data/logic) → SDK (surfaces API) → desktop (renders UI)
+```
+
+Fix at the source layer. For example: if TTS connectors don't return TTS models, the fix belongs in the runtime model catalog or SDK connector capability surface — NOT in desktop by hardcoding a TTS model list.
+
+**Forbidden in desktop:**
+- Hardcoding model lists, provider capabilities, supported modalities, or feature gates that should come from runtime/SDK
+- Duplicating runtime logic (health evaluation, model filtering, provider routing, capability detection)
+- Working around a runtime/SDK data gap with a desktop-only shim — fix the upstream layer instead
+
+**Allowed in desktop:**
+- UI-only constants (layout, animation, color tokens)
+- Presentation transforms (formatting, truncating, display sorting)
+- Local UI state (panel open/closed, selected tab, scroll position)
+- Mapping SDK response data to UI view-models (but not inventing data the SDK doesn't provide)
+
 ## nimi-hook (Mod Host)
 
 Desktop hosts the mod ecosystem through 5 hook subsystems:
@@ -132,6 +155,7 @@ pnpm build            # Full production build with mods
 
 - Don't bypass SDK to call realm/runtime directly
 - Don't put platform logic in desktop — it belongs in runtime or realm
+- Don't hardcode domain data (model lists, provider capabilities, modality support) — if the data isn't available from SDK, the fix belongs upstream
 - Don't add hook capabilities that leak outside desktop
 - Don't modify `src-tauri/` Rust code without understanding Tauri security model
 - Don't import from `apps/web/` — dependency flows the other direction
