@@ -1,0 +1,31 @@
+# Desktop Retryable HTTP Status Codes
+# Source: apps/desktop/src/runtime/net/request-with-retry.ts (RETRYABLE_STATUS_CODES)
+
+codes:
+  - code: 408
+    reason: Request Timeout
+    source_rule: D-NET-001
+
+  - code: 425
+    reason: Too Early
+    source_rule: D-NET-001
+
+  - code: 429
+    reason: Too Many Requests
+    source_rule: D-NET-001
+
+  - code: 500
+    reason: Internal Server Error
+    source_rule: D-NET-001
+
+  - code: 502
+    reason: Bad Gateway
+    source_rule: D-NET-001
+
+  - code: 503
+    reason: Service Unavailable
+    source_rule: D-NET-001
+
+  - code: 504
+    reason: Gateway Timeout
+    source_rule: D-NET-001

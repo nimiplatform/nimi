@@ -1,0 +1,23 @@
+# Desktop Turn Hook Points
+# Source: apps/desktop/src/runtime/hook/contracts/capabilities.ts (DEFAULT_TURN_HOOK_POINTS)
+
+points:
+  - point: pre-policy
+    order: 1
+    description: Before policy evaluation — input validation and preprocessing
+    source_rule: D-HOOK-003
+
+  - point: pre-model
+    order: 2
+    description: Before model invocation — prompt augmentation, context injection
+    source_rule: D-HOOK-003
+
+  - point: post-state
+    order: 3
+    description: After state update — response postprocessing, side effects
+    source_rule: D-HOOK-003
+
+  - point: pre-commit
+    order: 4
+    description: Before commit to persistence — final validation, audit logging
+    source_rule: D-HOOK-003

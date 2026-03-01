@@ -1,0 +1,114 @@
+# Desktop Hook Capability Allowlists per Source Type
+# Source: apps/desktop/src/runtime/hook/contracts/capabilities.ts (DEFAULT_SOURCE_ALLOWLIST)
+
+source_types:
+  - source_type: core
+    allowlist:
+      - "*"
+    description: Full unrestricted access for core platform code
+    source_rule: D-HOOK-007
+
+  - source_type: builtin
+    allowlist:
+      - "event.publish.*"
+      - "event.subscribe.*"
+      - "data.query.*"
+      - "data.register.*"
+      - "turn.register.*"
+      - "ui.register.*"
+      - "inter-mod.request.*"
+      - "inter-mod.provide.*"
+      - "llm.text.generate"
+      - "llm.text.stream"
+      - "llm.image.generate"
+      - "llm.video.generate"
+      - "llm.embedding.generate"
+      - "llm.lifecycle.read"
+      - "llm.speech.providers.list"
+      - "llm.speech.voices.list"
+      - "llm.speech.synthesize"
+      - "llm.speech.stream.open"
+      - "llm.speech.stream.control"
+      - "llm.speech.stream.close"
+      - "llm.speech.transcribe"
+      - "action.discover.*"
+      - "action.dry-run.*"
+      - "action.verify.*"
+      - "action.commit.*"
+      - "audit.read.self"
+      - "meta.read.self"
+      - "meta.read.all"
+    description: Default desktop mods loaded via manifest+sideload pipeline
+    source_rule: D-HOOK-007
+
+  - source_type: injected
+    allowlist:
+      - "event.publish.*"
+      - "event.subscribe.*"
+      - "data.query.*"
+      - "data.register.*"
+      - "turn.register.pre-model"
+      - "turn.register.post-state"
+      - "ui.register.*"
+      - "inter-mod.request.*"
+      - "llm.text.generate"
+      - "llm.text.stream"
+      - "llm.image.generate"
+      - "llm.video.generate"
+      - "llm.embedding.generate"
+      - "llm.lifecycle.read"
+      - "llm.speech.providers.list"
+      - "llm.speech.voices.list"
+      - "llm.speech.synthesize"
+      - "llm.speech.stream.open"
+      - "llm.speech.stream.control"
+      - "llm.speech.stream.close"
+      - "llm.speech.transcribe"
+      - "action.discover.*"
+      - "action.dry-run.*"
+      - "action.verify.*"
+      - "action.commit.*"
+      - "audit.read.self"
+      - "meta.read.self"
+    description: Third-party injected mods with restricted turn hook access
+    source_rule: D-HOOK-007
+
+  - source_type: sideload
+    allowlist:
+      - "event.publish.*"
+      - "data.query.*"
+      - "ui.register.*"
+      - "inter-mod.request.*"
+      - "llm.text.generate"
+      - "llm.text.stream"
+      - "llm.image.generate"
+      - "llm.video.generate"
+      - "llm.embedding.generate"
+      - "llm.lifecycle.read"
+      - "llm.speech.providers.list"
+      - "llm.speech.voices.list"
+      - "llm.speech.synthesize"
+      - "llm.speech.stream.open"
+      - "llm.speech.stream.control"
+      - "llm.speech.stream.close"
+      - "llm.speech.transcribe"
+      - "action.discover.*"
+      - "action.dry-run.*"
+      - "action.verify.*"
+      - "action.commit.*"
+      - "audit.read.self"
+      - "meta.read.self"
+    description: Locally sideloaded mods with no subscribe/register/provide access
+    source_rule: D-HOOK-007
+
+  - source_type: codegen
+    allowlist:
+      - "llm.text.generate"
+      - "llm.text.stream"
+      - "ui.register.ui-extension.app.*"
+      - "data.register.data-api.user-*.*.*"
+      - "data.query.data-api.user-*.*.*"
+      - "audit.read.self"
+      - "meta.read.self"
+    description: AI-generated mods with minimal capabilities
+    source_rule: D-HOOK-007

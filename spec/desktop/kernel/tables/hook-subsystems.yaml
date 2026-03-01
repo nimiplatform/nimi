@@ -1,0 +1,28 @@
+# Desktop Hook Subsystems
+# Source: apps/desktop/src/runtime/hook/contracts/capabilities.ts
+
+subsystems:
+  - name: event
+    namespace: "event.publish.*|event.subscribe.*"
+    description: Pub/sub event bus for inter-mod and system event communication
+    source_rule: D-HOOK-001
+
+  - name: data
+    namespace: "data.query.*|data.register.*"
+    description: Shared data capability registration and querying
+    source_rule: D-HOOK-002
+
+  - name: turn
+    namespace: "turn.register.*"
+    description: Turn hook points for intercepting AI conversation lifecycle
+    source_rule: D-HOOK-003
+
+  - name: ui
+    namespace: "ui.register.*"
+    description: UI slot registration for visual extension points
+    source_rule: D-HOOK-004
+
+  - name: inter-mod
+    namespace: "inter-mod.request.*|inter-mod.provide.*"
+    description: Cross-mod RPC-style request/provide channels
+    source_rule: D-HOOK-005

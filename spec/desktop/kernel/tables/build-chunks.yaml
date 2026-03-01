@@ -1,0 +1,85 @@
+# Desktop Vite Build Chunks
+# Source: apps/desktop/vite.config.ts (manualChunks / lazy imports in main-layout-view.tsx)
+
+chunks:
+  - chunk: shell-core
+    includes:
+      - "@nimiplatform/shell-core"
+      - app-shell/providers
+      - app-shell/layouts
+    lazy: false
+    description: Shell framework, store, navigation config
+    source_rule: D-SHELL-004
+
+  - chunk: bridge
+    includes:
+      - bridge/runtime-bridge
+    lazy: false
+    description: Tauri IPC bridge and invoke layer
+    source_rule: D-SHELL-004
+
+  - chunk: chat
+    includes:
+      - features/chats
+      - features/turns
+    lazy: true
+    description: Chat list, message timeline, turn input
+    source_rule: D-SHELL-004
+
+  - chunk: contacts
+    includes:
+      - features/contacts
+    lazy: true
+    description: Contacts panel and friend management
+    source_rule: D-SHELL-004
+
+  - chunk: explore
+    includes:
+      - features/explore
+    lazy: true
+    description: Explore discovery feed
+    source_rule: D-SHELL-004
+
+  - chunk: settings
+    includes:
+      - features/settings
+    lazy: true
+    description: Settings panel and extensions
+    source_rule: D-SHELL-004
+
+  - chunk: profile
+    includes:
+      - features/profile
+    lazy: true
+    description: User profile view
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-view
+    includes:
+      - features/runtime
+    lazy: true
+    description: AI Runtime configuration panel
+    source_rule: D-SHELL-004
+
+  - chunk: mod-ui
+    includes:
+      - mod-ui
+    lazy: true
+    description: Mod UI extension renderer
+    source_rule: D-SHELL-004
+
+  - chunk: local-ai
+    includes:
+      - bridge/runtime-bridge/local-ai
+      - runtime/local-ai-runtime
+    lazy: true
+    description: Local AI model management (lazy-loaded bridge module)
+    source_rule: D-SHELL-004
+
+  - chunk: external-agent
+    includes:
+      - bridge/runtime-bridge/external-agent
+      - runtime/external-agent
+    lazy: true
+    description: External agent bridge (lazy-loaded bridge module)
+    source_rule: D-SHELL-004

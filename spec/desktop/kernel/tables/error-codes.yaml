@@ -1,0 +1,85 @@
+# Desktop Error Codes
+# Source: apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts (BRIDGE_ERROR_CODE_MAP)
+
+codes:
+  # Local AI errors
+  - code: LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT
+    domain: local-ai
+    description: Import path not within Local Runtime models directory
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID
+    domain: local-ai
+    description: Only model.manifest.json files may be imported
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND
+    domain: local-ai
+    description: Model manifest file not found at import path
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED
+    domain: local-ai
+    description: Model manifest JSON parsing failed
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_IMPORT_HASH_MISMATCH
+    domain: local-ai
+    description: Model file checksum verification failed
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ENDPOINT_NOT_LOOPBACK
+    domain: local-ai
+    description: Local runtime endpoint must be localhost/127.0.0.1/[::1]
+    source_rule: D-ERR-002
+
+  - code: LOCAL_AI_ENDPOINT_INVALID
+    domain: local-ai
+    description: Local runtime endpoint format invalid
+    source_rule: D-ERR-002
+
+  - code: LOCAL_AI_MODEL_NOT_FOUND
+    domain: local-ai
+    description: No installed/active model found
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_MODEL_HASHES_EMPTY
+    domain: local-ai
+    description: Model integrity check incomplete, cannot start
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_MODEL_CAPABILITY_INVALID
+    domain: local-ai
+    description: Model capability configuration invalid
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_QWEN_GPU_REQUIRED
+    domain: local-ai
+    description: Qwen TTS requires available NVIDIA GPU
+    source_rule: D-ERR-003
+
+  - code: LOCAL_AI_QWEN_PYTHON_REQUIRED
+    domain: local-ai
+    description: Qwen TTS requires Python 3.10+
+    source_rule: D-ERR-003
+
+  - code: LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED
+    domain: local-ai
+    description: Qwen TTS Python version too low
+    source_rule: D-ERR-003
+
+  - code: LOCAL_AI_QWEN_BOOTSTRAP_FAILED
+    domain: local-ai
+    description: Qwen TTS runtime dependency installation failed
+    source_rule: D-ERR-003
+
+  # Runtime route errors
+  - code: LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED
+    domain: runtime
+    description: Source has no permission for model lifecycle write operations
+    source_rule: D-ERR-004
+
+  - code: RUNTIME_ROUTE_CAPABILITY_MISMATCH
+    domain: runtime
+    description: Route-bound local model lacks required capability
+    source_rule: D-ERR-004

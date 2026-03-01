@@ -1,0 +1,45 @@
+# Desktop Shell Feature Flags
+# Source: apps/_libs/shell-core/src/shell-mode.ts (ShellFeatureFlags)
+
+flags:
+  - flag: enableRuntimeTab
+    default_desktop: true
+    default_web: false
+    description: Show AI Runtime tab in sidebar navigation
+    source_rule: D-SHELL-001
+
+  - flag: enableMarketplaceTab
+    default_desktop: true
+    default_web: false
+    description: Show Marketplace tab in quick navigation
+    source_rule: D-SHELL-001
+
+  - flag: enableModUi
+    default_desktop: true
+    default_web: false
+    description: Enable mod UI extension rendering
+    source_rule: D-SHELL-002
+
+  - flag: enableModWorkspaceTabs
+    default_desktop: true
+    default_web: false
+    description: Enable mod workspace tab management
+    source_rule: D-SHELL-002
+
+  - flag: enableSettingsExtensions
+    default_desktop: true
+    default_web: false
+    description: Enable settings panel extension sections
+    source_rule: D-SHELL-002
+
+  - flag: enableTitlebarDrag
+    default_desktop: true
+    default_web: false
+    description: Enable native window titlebar drag
+    source_rule: D-SHELL-003
+
+  - flag: enableRuntimeBootstrap
+    default_desktop: true
+    default_web: false
+    description: Execute full runtime bootstrap sequence (hook runtime, mods, external agent)
+    source_rule: D-BOOT-004

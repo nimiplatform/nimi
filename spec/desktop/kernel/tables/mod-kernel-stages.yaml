@@ -1,0 +1,43 @@
+# Desktop Mod Governance Kernel Stages
+# Source: apps/desktop/src/runtime/execution-kernel/contracts/types.ts (KernelStage)
+
+stages:
+  - stage: discovery
+    order: 1
+    description: Locate mod package and validate source reference
+    source_rule: D-MOD-001
+
+  - stage: manifest/compat
+    order: 2
+    description: Parse manifest, check nimi version compatibility
+    source_rule: D-MOD-002
+
+  - stage: signature/auth
+    order: 3
+    description: Verify mod signature and signer authentication
+    source_rule: D-MOD-003
+
+  - stage: dependency/build
+    order: 4
+    description: Resolve dependencies and build mod bundle
+    source_rule: D-MOD-004
+
+  - stage: sandbox/policy
+    order: 5
+    description: Evaluate capability policy and sandbox constraints
+    source_rule: D-MOD-005
+
+  - stage: load
+    order: 6
+    description: Load mod entry point into runtime context
+    source_rule: D-MOD-006
+
+  - stage: lifecycle
+    order: 7
+    description: Execute lifecycle transitions (enable, disable, uninstall)
+    source_rule: D-MOD-007
+
+  - stage: audit
+    order: 8
+    description: Write audit decision record and emit events
+    source_rule: D-MOD-008

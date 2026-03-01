@@ -1,0 +1,180 @@
+# Desktop IPC Commands (Tauri invoke)
+# Source: apps/desktop/src/shell/renderer/bridge/runtime-bridge/*.ts
+
+commands:
+  # Runtime lifecycle
+  - command: runtime_defaults
+    module: runtime-defaults
+    description: Get realm and runtime execution defaults
+    source_rule: D-IPC-001
+
+  - command: runtime_bridge_status
+    module: runtime-daemon
+    description: Get runtime daemon status (running, managed, launchMode, grpcAddr)
+    source_rule: D-IPC-002
+
+  - command: runtime_bridge_start
+    module: runtime-daemon
+    description: Start runtime daemon
+    source_rule: D-IPC-002
+
+  - command: runtime_bridge_stop
+    module: runtime-daemon
+    description: Stop runtime daemon
+    source_rule: D-IPC-002
+
+  - command: runtime_bridge_restart
+    module: runtime-daemon
+    description: Restart runtime daemon
+    source_rule: D-IPC-002
+
+  - command: runtime_bridge_config_get
+    module: runtime-daemon
+    description: Get runtime bridge configuration
+    source_rule: D-IPC-003
+
+  - command: runtime_bridge_config_set
+    module: runtime-daemon
+    description: Set runtime bridge configuration
+    source_rule: D-IPC-003
+
+  # HTTP proxy
+  - command: http_request
+    module: http
+    description: Proxy HTTP request through Tauri backend (bypasses browser CORS)
+    source_rule: D-IPC-004
+
+  # UI
+  - command: open_external_url
+    module: ui
+    description: Open external URL in system browser
+    source_rule: D-IPC-005
+
+  - command: confirm_private_sync
+    module: ui
+    description: Confirm private data sync for agent/session
+    source_rule: D-IPC-005
+
+  - command: start_window_drag
+    module: ui
+    description: Start native window drag operation
+    source_rule: D-IPC-005
+
+  # OAuth
+  - command: oauth_token_exchange
+    module: oauth
+    description: Exchange OAuth authorization code for tokens
+    source_rule: D-IPC-006
+
+  - command: oauth_listen_for_code
+    module: oauth
+    description: Listen for OAuth callback code on redirect URI
+    source_rule: D-IPC-006
+
+  # Mod local
+  - command: runtime_mod_list_local_manifests
+    module: mod-local
+    description: List local mod manifest summaries
+    source_rule: D-IPC-007
+
+  - command: runtime_mod_read_local_entry
+    module: mod-local
+    description: Read local mod entry source code
+    source_rule: D-IPC-007
+
+  # External agent
+  - command: external_agent_issue_token
+    module: external-agent
+    description: Issue external agent access token
+    source_rule: D-IPC-008
+
+  - command: external_agent_revoke_token
+    module: external-agent
+    description: Revoke external agent access token
+    source_rule: D-IPC-008
+
+  - command: external_agent_list_tokens
+    module: external-agent
+    description: List external agent tokens
+    source_rule: D-IPC-008
+
+  - command: external_agent_sync_action_descriptors
+    module: external-agent
+    description: Sync external agent action descriptors
+    source_rule: D-IPC-008
+
+  - command: external_agent_complete_execution
+    module: external-agent
+    description: Complete external agent action execution
+    source_rule: D-IPC-008
+
+  - command: external_agent_gateway_status
+    module: external-agent
+    description: Get external agent gateway status
+    source_rule: D-IPC-008
+
+  # Local AI
+  - command: local_ai_list_models
+    module: local-ai
+    description: List local AI models
+    source_rule: D-IPC-011
+
+  - command: local_ai_list_verified_models
+    module: local-ai
+    description: List verified local AI models
+    source_rule: D-IPC-011
+
+  - command: local_ai_install_model
+    module: local-ai
+    description: Install a local AI model
+    source_rule: D-IPC-011
+
+  - command: local_ai_install_verified_model
+    module: local-ai
+    description: Install a verified local AI model
+    source_rule: D-IPC-011
+
+  - command: local_ai_import_model
+    module: local-ai
+    description: Import a local AI model from file
+    source_rule: D-IPC-011
+
+  - command: local_ai_start_model
+    module: local-ai
+    description: Start a local AI model
+    source_rule: D-IPC-011
+
+  - command: local_ai_stop_model
+    module: local-ai
+    description: Stop a local AI model
+    source_rule: D-IPC-011
+
+  - command: local_ai_remove_model
+    module: local-ai
+    description: Remove a local AI model
+    source_rule: D-IPC-011
+
+  - command: local_ai_health_models
+    module: local-ai
+    description: Health check for local AI models
+    source_rule: D-IPC-011
+
+  - command: local_ai_list_audits
+    module: local-ai
+    description: List local AI inference audits
+    source_rule: D-IPC-011
+
+  - command: local_ai_append_inference_audit
+    module: local-ai
+    description: Append a local AI inference audit record
+    source_rule: D-IPC-011
+
+  - command: local_ai_pick_manifest_path
+    module: local-ai
+    description: Pick a local AI model manifest file path
+    source_rule: D-IPC-011
+
+  - command: local_ai_subscribe_download_progress
+    module: local-ai
+    description: Subscribe to local AI model download progress events
+    source_rule: D-IPC-011

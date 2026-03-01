@@ -1,0 +1,98 @@
+# Desktop App Tab Enumeration
+# Source: apps/desktop/src/shell/renderer/app-shell/providers/store-types.ts (AppTab)
+#         apps/desktop/src/shell/renderer/app-shell/layouts/navigation-config.tsx
+
+tabs:
+  # Core navigation (always visible unless feature-gated)
+  - id: home
+    nav_group: core
+    label: Home
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: chat
+    nav_group: core
+    label: Chat
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: contacts
+    nav_group: core
+    label: Contacts
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: world
+    nav_group: core
+    label: World
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: explore
+    nav_group: core
+    label: Explore
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: runtime
+    nav_group: core
+    label: AI Runtime
+    gated_by: enableRuntimeTab
+    source_rule: D-SHELL-001
+
+  - id: settings
+    nav_group: core
+    label: Settings
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  # Quick navigation (feature-gated)
+  - id: marketplace
+    nav_group: quick
+    label: Marketplace
+    gated_by: enableMarketplaceTab
+    source_rule: D-SHELL-001
+
+  # Detail tabs (navigated to, not in sidebar)
+  - id: profile
+    nav_group: detail
+    label: Profile
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: agent-detail
+    nav_group: detail
+    label: Agent Detail
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: world-detail
+    nav_group: detail
+    label: World Detail
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: notification
+    nav_group: detail
+    label: Notification
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: privacy-policy
+    nav_group: detail
+    label: Privacy Policy
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: terms-of-service
+    nav_group: detail
+    label: Terms of Service
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  # Dynamic mod tabs (pattern: mod:${modId})
+  - id: "mod:*"
+    nav_group: mod
+    label: Mod Workspace
+    gated_by: enableModWorkspaceTabs
+    source_rule: D-SHELL-001

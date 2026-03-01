@@ -1,0 +1,134 @@
+# Desktop DataSync Flow Enumeration
+# Source: apps/desktop/src/runtime/data-sync/facade.ts (DataSync class methods)
+
+flows:
+  - flow: auth
+    methods:
+      - login
+      - register
+      - logout
+    description: Authentication flows (credential exchange, session teardown)
+    source_rule: D-DSYNC-001
+
+  - flow: user
+    methods:
+      - loadCurrentUser
+      - updateUserProfile
+      - loadUserProfile
+    description: User profile read/write
+    source_rule: D-DSYNC-002
+
+  - flow: chat
+    methods:
+      - loadChats
+      - loadMoreChats
+      - startChat
+      - loadMessages
+      - loadMoreMessages
+      - sendMessage
+      - syncChatEvents
+      - flushChatOutbox
+      - markChatRead
+    description: Chat list, message timeline, outbox, event sync
+    source_rule: D-DSYNC-003
+
+  - flow: social
+    methods:
+      - loadContacts
+      - loadSocialSnapshot
+      - searchUser
+      - requestOrAcceptFriend
+      - rejectOrRemoveFriend
+      - removeFriend
+      - blockUser
+      - unblockUser
+      - loadFriendRequests
+    description: Contacts, friend requests, social graph
+    source_rule: D-DSYNC-004
+
+  - flow: world
+    methods:
+      - loadWorlds
+      - loadWorldDetailById
+      - loadWorldSemanticBundle
+      - loadMainWorld
+      - loadWorldLevelAudits
+    description: World listing, detail, semantic data
+    source_rule: D-DSYNC-005
+
+  - flow: transit
+    methods:
+      - loadSceneQuota
+      - startWorldTransit
+      - listWorldTransits
+      - getActiveWorldTransit
+      - startTransitSession
+      - addTransitCheckpoint
+      - completeWorldTransit
+      - abandonWorldTransit
+    description: World transit and scene management
+    source_rule: D-DSYNC-012
+
+  - flow: economy
+    methods:
+      - loadCurrencyBalances
+      - loadSparkTransactionHistory
+      - loadGemTransactionHistory
+      - loadSubscriptionStatus
+      - loadWithdrawalEligibility
+      - loadWithdrawalHistory
+      - createWithdrawal
+      - loadGiftCatalog
+      - sendGift
+      - claimGift
+      - rejectGift
+      - createGiftReview
+    description: Currency, transactions, subscriptions, gifts
+    source_rule: D-DSYNC-006
+
+  - flow: feed
+    methods:
+      - loadPostFeed
+      - createPost
+      - createImageDirectUpload
+      - createVideoDirectUpload
+    description: Social feed posts and media uploads
+    source_rule: D-DSYNC-007
+
+  - flow: explore
+    methods:
+      - loadExploreFeed
+      - loadMoreExploreFeed
+      - loadAgentDetails
+    description: Explore discovery feed and agent detail
+    source_rule: D-DSYNC-008
+
+  - flow: notification
+    methods:
+      - loadNotificationUnreadCount
+      - loadNotifications
+      - markNotificationsRead
+      - markNotificationRead
+    description: Notification listing and read status
+    source_rule: D-DSYNC-009
+
+  - flow: settings
+    methods:
+      - loadMySettings
+      - updateMySettings
+      - loadMyNotificationSettings
+      - updateMyNotificationSettings
+      - loadMyCreatorEligibility
+    description: User settings and notification preferences
+    source_rule: D-DSYNC-010
+
+  - flow: agent
+    methods:
+      - loadMyAgents
+      - recallAgentMemoryForEntity
+      - listAgentCoreMemories
+      - listAgentE2EMemories
+      - loadAgentMemoryStats
+      - resolveChatRoute
+    description: Agent listing, memory, chat routing
+    source_rule: D-DSYNC-011

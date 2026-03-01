@@ -1,0 +1,115 @@
+# Data Sync Contract
+
+> Authority: Desktop Kernel
+> Status: Draft
+> Date: 2026-03-01
+
+## Scope
+
+Desktop DataSync facade 契约。定义统一数据同步层的业务流规则，每条规则对应一个独立的数据流域。
+
+## D-DSYNC-000 — DataSync 基础设施
+
+DataSync facade 提供以下基础设施能力，业务流规则按需使用：
+
+- **API 初始化** — `dataSync.initApi(config)` 设置 realm 连接参数（`realmBaseUrl`、`accessToken`、`fetchImpl`），持久化到 `globalThis.__NIMI_DATA_SYNC_API_CONFIG__` 热状态。
+- **热状态** — `readDataSyncHotState()` / `writeDataSyncHotState()` 跨 HMR 重载保持 API 连接状态。Store 热状态通过 `globalThis` 键保持 HMR 连续性。
+- **上下文锁** — `callApi()` 内部使用 `withOpenApiContextLock` 确保同一时刻只有一个 Realm 客户端上下文激活，响应通过 JSON 解析归一化，错误通过 `normalizeApiError` 归一化（错误格式参考 `D-NET-005`）。
+- **轮询管理** — `DataSyncPollingManager` 提供 key-based 轮询：`startPolling(key, callback, intervalMs)`、`stopPolling(key)`、`stopAllPolling()`。
+- **错误日志** — `emitDataSyncError` 通过 runtime telemetry 记录错误（日志区域 `datasync`，消息格式 `action:${actionName}:failed`）。
+- **初始数据加载** — `loadInitialData()` 按序加载 `loadCurrentUser()` → `loadChats()` → `loadContacts()`。
+- **Facade 委托** — 所有业务操作委托给 `createDataSyncActions` 工厂创建的 actions 对象，注入 `callApiTask`、`emitFacadeError`、`setToken`、`clearAuth`、`stopAllPolling`、`isFriend`。
+- **分页基础设施** — 所有 `loadMore*` 方法遵循统一分页契约：
+  - 默认 `pageSize: 20`（可由调用方覆盖）。
+  - Cursor 传递：首次请求不传 cursor；后续请求传递上一次响应返回的 `nextCursor`。
+  - 末页检测：响应中 `hasMore=false` 或返回结果数量 < `pageSize` 时标记为末页，UI 停止触发加载。
+  - 适用方法：`loadMoreChats`、`loadMoreMessages`、`loadMoreExploreFeed` 及其他分页场景。
+
+## D-DSYNC-001 — Auth 数据流
+
+认证流方法：`login`、`register`、`logout`。
+
+- 使用基础设施：上下文锁、错误日志。
+- `login`/`register` 成功后通过 `setToken()` 更新热状态和 store。
+- `logout` 触发 `clearAuth()` + `stopAllPolling()`。
+
+## D-DSYNC-002 — User 数据流
+
+用户资料读写方法：`loadCurrentUser`、`updateUserProfile`、`loadUserProfile`。
+
+- 使用基础设施：上下文锁、错误日志、初始数据加载。
+- `loadCurrentUser` 在 `loadInitialData()` 中首先执行。
+
+## D-DSYNC-003 — Chat 数据流
+
+聊天数据流方法：`loadChats`、`loadMoreChats`、`startChat`、`loadMessages`、`loadMoreMessages`、`sendMessage`、`syncChatEvents`、`flushChatOutbox`、`markChatRead`。
+
+- 使用基础设施：上下文锁、轮询管理、错误日志、初始数据加载。
+- `syncChatEvents` 通过 `PollingManager` 定期轮询。
+- `flushChatOutbox` 处理离线消息队列。
+
+## D-DSYNC-004 — Social 数据流
+
+社交数据流方法：`loadContacts`、`loadSocialSnapshot`、`searchUser`、`requestOrAcceptFriend`、`rejectOrRemoveFriend`、`removeFriend`、`blockUser`、`unblockUser`、`loadFriendRequests`。
+
+- 使用基础设施：上下文锁、错误日志、初始数据加载。
+- 辅助方法：`isFriend(userId)` 在 contacts 状态中检查好友关系。
+
+## D-DSYNC-005 — World 数据流
+
+世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldSemanticBundle`、`loadMainWorld`、`loadWorldLevelAudits`。
+
+- 使用基础设施：上下文锁、错误日志。
+
+## D-DSYNC-006 — Economy 数据流
+
+经济数据流方法：
+
+- 余额：`loadCurrencyBalances`
+- 交易：`loadSparkTransactionHistory`、`loadGemTransactionHistory`
+- 订阅：`loadSubscriptionStatus`
+- 提现：`loadWithdrawalEligibility`、`loadWithdrawalHistory`、`createWithdrawal`
+- 礼物：`loadGiftCatalog`、`sendGift`、`claimGift`、`rejectGift`、`createGiftReview`
+
+- 使用基础设施：上下文锁、错误日志。
+
+## D-DSYNC-007 — Feed 数据流
+
+社交 feed 方法：`loadPostFeed`、`createPost`、`createImageDirectUpload`、`createVideoDirectUpload`。
+
+- 使用基础设施：上下文锁、错误日志。
+
+## D-DSYNC-008 — Explore 数据流
+
+探索发现方法：`loadExploreFeed`、`loadMoreExploreFeed`、`loadAgentDetails`。
+
+- 使用基础设施：上下文锁、错误日志。
+
+## D-DSYNC-009 — Notification 数据流
+
+通知方法：`loadNotificationUnreadCount`、`loadNotifications`、`markNotificationsRead`、`markNotificationRead`。
+
+- 使用基础设施：上下文锁、轮询管理、错误日志。
+- `loadNotificationUnreadCount` 通过 `PollingManager` 定期轮询。
+
+## D-DSYNC-010 — Settings 数据流
+
+设置方法：`loadMySettings`、`updateMySettings`、`loadMyNotificationSettings`、`updateMyNotificationSettings`、`loadMyCreatorEligibility`。
+
+- 使用基础设施：上下文锁、错误日志。
+
+## D-DSYNC-011 — Agent 数据流
+
+Agent 方法：`loadMyAgents`、`recallAgentMemoryForEntity`、`listAgentCoreMemories`、`listAgentE2EMemories`、`loadAgentMemoryStats`、`resolveChatRoute`。
+
+- 使用基础设施：上下文锁、错误日志。
+
+## D-DSYNC-012 — Transit 数据流
+
+世界穿越方法：`loadSceneQuota`、`startWorldTransit`、`listWorldTransits`、`getActiveWorldTransit`、`startTransitSession`、`addTransitCheckpoint`、`completeWorldTransit`、`abandonWorldTransit`。
+
+- 使用基础设施：上下文锁、错误日志。
+
+## Fact Sources
+
+- `tables/data-sync-flows.yaml` — DataSync 流枚举

@@ -1,0 +1,46 @@
+# Desktop Log Areas
+# Source: apps/desktop/src/runtime/telemetry/logger.ts (area field)
+#         apps/desktop/src/shell/renderer/bridge/runtime-bridge/invoke.ts (bridge area)
+#         apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts (bootstrap area)
+#         apps/desktop/src/runtime/data-sync/facade.ts (datasync area)
+
+areas:
+  - area: runtime
+    description: Default area for runtime subsystem logs
+    source_rule: D-TEL-001
+
+  - area: renderer-bootstrap
+    description: Bootstrap sequence phase logging
+    source_rule: D-TEL-001
+
+  - area: bridge
+    description: Tauri IPC invoke start/success/fail traces
+    source_rule: D-TEL-005
+
+  - area: datasync
+    description: DataSync facade action errors and API call traces
+    source_rule: D-TEL-001
+
+  - area: hook
+    description: Hook runtime capability checks and registration events
+    source_rule: D-TEL-001
+
+  - area: mod
+    description: Mod governance kernel stage execution and lifecycle events
+    source_rule: D-TEL-001
+
+  - area: local-ai
+    description: Local AI model lifecycle, inference audit, health probe
+    source_rule: D-TEL-001
+
+  - area: external-agent
+    description: External agent action bridge, token management
+    source_rule: D-TEL-001
+
+  - area: auth
+    description: Authentication session lifecycle events
+    source_rule: D-TEL-001
+
+  - area: net
+    description: Network retry events and error normalization
+    source_rule: D-TEL-007

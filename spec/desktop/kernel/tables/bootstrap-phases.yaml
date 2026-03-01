@@ -1,0 +1,60 @@
+# Desktop Bootstrap Phases
+# Source: apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts
+
+phases:
+  - phase: runtime-defaults
+    order: 1
+    description: Load realm base URL, access token, and execution defaults from Tauri bridge
+    source_rule: D-BOOT-001
+    async: true
+
+  - phase: platform-client
+    order: 2
+    description: Initialize platform client with realm endpoint and access token
+    source_rule: D-BOOT-002
+    async: true
+
+  - phase: datasync-init
+    order: 3
+    description: Initialize DataSync facade with realm config and proxy fetch
+    source_rule: D-BOOT-003
+    async: false
+
+  - phase: runtime-host
+    order: 4
+    description: Wire mod SDK host, hook runtime, speech route resolver, and data capabilities
+    source_rule: D-BOOT-004
+    async: true
+    gated_by: enableRuntimeBootstrap
+
+  - phase: runtime-mods
+    order: 5
+    description: Register bootstrap runtime mods from local manifests
+    source_rule: D-BOOT-005
+    async: true
+    gated_by: enableRuntimeBootstrap
+
+  - phase: external-agent
+    order: 6
+    description: Register tier-1 external agent actions and start action bridge
+    source_rule: D-BOOT-006
+    async: true
+    gated_by: enableRuntimeBootstrap
+
+  - phase: auth-session
+    order: 7
+    description: Bootstrap authentication session (token exchange or anonymous fallback)
+    source_rule: D-BOOT-007
+    async: true
+
+  - phase: bootstrap-ready
+    order: 8
+    description: Set bootstrapReady=true, clear bootstrapError, emit completion log
+    source_rule: D-BOOT-008
+    async: false
+
+# Cross-cutting constraints (not a phase)
+constraints:
+  - constraint: idempotency-guard
+    description: bootstrapRuntime() uses bootstrapPromise singleton to ensure exactly-once execution
+    source_rule: D-BOOT-009

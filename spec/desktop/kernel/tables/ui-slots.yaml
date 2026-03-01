@@ -1,0 +1,35 @@
+# Desktop UI Extension Slots
+# Source: apps/desktop/src/runtime/hook/contracts/capabilities.ts (DEFAULT_UI_SLOTS)
+
+slots:
+  - slot: auth.login.form.footer
+    description: Login form footer area for additional auth providers or links
+    source_rule: D-HOOK-004
+
+  - slot: chat.sidebar.header
+    description: Chat sidebar header for custom controls or branding
+    source_rule: D-HOOK-004
+
+  - slot: chat.chat.list.item.trailing
+    description: Trailing content in chat list item rows
+    source_rule: D-HOOK-004
+
+  - slot: chat.turn.input.toolbar
+    description: Turn input toolbar for custom action buttons
+    source_rule: D-HOOK-004
+
+  - slot: settings.panel.section
+    description: Settings panel additional section for mod settings
+    source_rule: D-HOOK-004
+
+  - slot: ui-extension.app.sidebar.mods
+    description: Sidebar mod navigation entries
+    source_rule: D-HOOK-004
+
+  - slot: ui-extension.app.content.routes
+    description: App content area for mod-provided routes
+    source_rule: D-HOOK-004
+
+  - slot: ui-extension.runtime.devtools.panel
+    description: Runtime devtools panel for debug/inspection tools
+    source_rule: D-HOOK-004

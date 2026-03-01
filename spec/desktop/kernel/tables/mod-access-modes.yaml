@@ -1,0 +1,27 @@
+# Desktop Mod Access Modes
+# Source: apps/desktop/src/runtime/execution-kernel/contracts/types.ts (AccessMode)
+
+modes:
+  - mode: local-dev
+    description: Local development mode — unrestricted access for debugging
+    trust_level: high
+    signature_required: false
+    source_rule: D-MOD-009
+
+  - mode: community
+    description: Community-contributed mods — standard verification required
+    trust_level: medium
+    signature_required: true
+    source_rule: D-MOD-009
+
+  - mode: official
+    description: Official Nimi mods — signed by platform authority
+    trust_level: high
+    signature_required: true
+    source_rule: D-MOD-009
+
+  - mode: sideload
+    description: Sideloaded mods — restricted capabilities, no signature required
+    trust_level: low
+    signature_required: false
+    source_rule: D-MOD-009

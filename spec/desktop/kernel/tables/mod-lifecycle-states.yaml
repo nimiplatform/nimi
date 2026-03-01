@@ -1,0 +1,43 @@
+# Desktop Mod Lifecycle States
+# Source: apps/desktop/src/runtime/execution-kernel/contracts/types.ts (LifecycleState)
+
+states:
+  - state: DISCOVERED
+    terminal: false
+    description: Mod package located but not yet verified
+    source_rule: D-MOD-001
+
+  - state: VERIFIED
+    terminal: false
+    description: Manifest parsed and signature/compat checks passed
+    source_rule: D-MOD-003
+
+  - state: INSTALLED
+    terminal: false
+    description: Dependencies resolved and mod bundle built
+    source_rule: D-MOD-004
+
+  - state: ENABLED
+    terminal: false
+    description: Mod loaded and active in runtime
+    source_rule: D-MOD-007
+
+  - state: DISABLED
+    terminal: false
+    description: Mod deactivated but still installed
+    source_rule: D-MOD-007
+
+  - state: UNINSTALLED
+    terminal: true
+    description: Mod removed from local storage
+    source_rule: D-MOD-007
+
+  - state: UPDATING
+    terminal: false
+    description: Mod transitioning between versions
+    source_rule: D-MOD-007
+
+  - state: ROLLBACK_DISABLED
+    terminal: false
+    description: Mod disabled due to failed update, awaiting rollback or removal
+    source_rule: D-MOD-007
