@@ -16,6 +16,12 @@ export type RealmTelemetryEvent = {
   data?: Record<string, unknown>;
 };
 
+export type RealmTokenRefreshResult = {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+};
+
 export type RealmFetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export type RealmOptions = {
@@ -23,6 +29,8 @@ export type RealmOptions = {
   auth?: {
     accessToken?: string | (() => Promise<string> | string);
     refreshToken?: string | (() => Promise<string> | string);
+    onTokenRefreshed?: (result: RealmTokenRefreshResult) => void;
+    onRefreshFailed?: (error: unknown) => void;
   };
   headers?: Record<string, string> | (() => Promise<Record<string, string>> | Record<string, string>);
   timeoutMs?: number;

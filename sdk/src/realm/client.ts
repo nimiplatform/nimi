@@ -19,6 +19,7 @@ import type {
   RealmRawModule,
   RealmSearchApi,
   RealmServiceRegistry,
+  RealmTokenRefreshResult,
   RealmTransitsApi,
   RealmUserApi,
   RealmWorldApi,
@@ -325,6 +326,8 @@ export class Realm {
     status: 'idle',
   };
 
+  #refreshPromise: Promise<RealmTokenRefreshResult> | null = null;
+
   readonly #options: RealmOptions;
 
   readonly #eventBus = createEventBus<RealmEventPayloadMap>();
@@ -533,6 +536,74 @@ export class Realm {
 
       if (isResponse(response)) {
         if (!response.ok) {
+          if (response.status === 401 && this.#options.auth?.refreshToken) {
+            try {
+              const refreshResult = await this.#attemptRefresh();
+              try {
+                this.#options.auth.onTokenRefreshed?.(refreshResult);
+              } catch { /* observer callback must not break retry */ }
+              this.#emitTelemetry('realm.token_refreshed');
+
+              const retryHeaders = await this.#resolveHeaders(input.headers);
+              retryHeaders.Authorization = `Bearer ${refreshResult.accessToken}`;
+
+              const retryResponse = await (method as (url: string, options?: Record<string, unknown>) => Promise<unknown>)(
+                path,
+                {
+                  params: input.query ? { query: input.query } : undefined,
+                  body: input.body,
+                  headers: retryHeaders,
+                  signal: requestAbortController.signal,
+                },
+              );
+
+              const retryRecord = asRecord(retryResponse);
+              const retryResp = retryRecord.response;
+              const retryError = retryRecord.error;
+              const retryData = retryRecord.data;
+
+              if (isResponse(retryResp)) {
+                if (!retryResp.ok) {
+                  const retryBody = await readErrorBody(retryError);
+                  const retryMapped = extractResponseReasonCode(retryBody, retryResp);
+                  throw createNimiError({
+                    message: retryMapped.message,
+                    code: retryMapped.code,
+                    reasonCode: retryMapped.reasonCode,
+                    actionHint: retryMapped.actionHint,
+                    traceId: retryMapped.traceId || undefined,
+                    retryable: retryMapped.retryable,
+                    source: 'realm',
+                    details: retryMapped.details,
+                  });
+                }
+                if (hasValue(retryData)) {
+                  return retryData;
+                }
+                if (retryResp.status === 204) {
+                  return undefined;
+                }
+                const retryContentType = normalizeText(retryResp.headers.get('content-type')).toLowerCase();
+                if (retryContentType.includes('application/json')) {
+                  return await retryResp.json();
+                }
+                return await retryResp.text();
+              }
+              if (hasValue(retryError)) {
+                throw retryError;
+              }
+              if (hasValue(retryData)) {
+                return retryData;
+              }
+              return retryResponse;
+            } catch (refreshError) {
+              try {
+                this.#options.auth.onRefreshFailed?.(refreshError);
+              } catch { /* observer callback must not break error flow */ }
+              // Fall through to throw the original 401 error
+            }
+          }
+
           const bodyRecord = await readErrorBody(errorPayload);
           const mapped = extractResponseReasonCode(bodyRecord, response);
           throw createNimiError({
@@ -621,6 +692,99 @@ export class Realm {
       return normalizeText(await accessToken());
     }
     return normalizeText(accessToken);
+  }
+
+  async #resolveRefreshToken(): Promise<string> {
+    const refreshToken = this.#options.auth?.refreshToken;
+    if (typeof refreshToken === 'function') {
+      return normalizeText(await refreshToken());
+    }
+    return normalizeText(refreshToken);
+  }
+
+  async #doRefresh(): Promise<RealmTokenRefreshResult> {
+    const refreshToken = await this.#resolveRefreshToken();
+    if (!refreshToken) {
+      throw createNimiError({
+        message: 'refresh token is not available',
+        reasonCode: ReasonCode.AUTH_DENIED,
+        actionHint: 'reauthenticate',
+        source: 'sdk',
+      });
+    }
+
+    const fetchFn = this.#options.fetchImpl || globalThis.fetch.bind(globalThis);
+    const response = await fetchFn(`${this.baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) {
+      const body = await readErrorBody(
+        await response.text().catch(() => ''),
+      );
+      const mapped = extractResponseReasonCode(body, response);
+      throw createNimiError({
+        message: mapped.message || 'token refresh failed',
+        code: mapped.code,
+        reasonCode: mapped.reasonCode,
+        actionHint: mapped.actionHint,
+        traceId: mapped.traceId || undefined,
+        source: 'realm',
+        details: mapped.details,
+      });
+    }
+
+    const data = asRecord(await response.json());
+    const tokens = asRecord(data.tokens || data);
+    const accessToken = normalizeText(tokens.accessToken);
+    if (!accessToken) {
+      throw createNimiError({
+        message: 'refresh response missing accessToken',
+        reasonCode: ReasonCode.AUTH_DENIED,
+        actionHint: 'reauthenticate',
+        source: 'realm',
+      });
+    }
+
+    return {
+      accessToken,
+      refreshToken: normalizeText(tokens.refreshToken) || undefined,
+      expiresIn: typeof tokens.expiresIn === 'number' ? tokens.expiresIn : undefined,
+    };
+  }
+
+  async #attemptRefresh(): Promise<RealmTokenRefreshResult> {
+    if (this.#refreshPromise) {
+      return this.#refreshPromise;
+    }
+    this.#refreshPromise = this.#doRefresh().finally(() => {
+      this.#refreshPromise = null;
+    });
+    return this.#refreshPromise;
+  }
+
+  static decodeTokenExpiry(jwt: string): { expiresAt: number; expiresInMs: number } | null {
+    try {
+      const parts = jwt.split('.');
+      if (parts.length !== 3) {
+        return null;
+      }
+      const payload = parts[1]!;
+      const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = atob(padded);
+      const parsed = JSON.parse(decoded) as Record<string, unknown>;
+      const exp = Number(parsed.exp);
+      if (!Number.isFinite(exp) || exp <= 0) {
+        return null;
+      }
+      const expiresAt = exp * 1000;
+      const expiresInMs = expiresAt - Date.now();
+      return { expiresAt, expiresInMs };
+    } catch {
+      return null;
+    }
   }
 
   async #resolveHeaders(overrides?: Record<string, string>): Promise<Record<string, string>> {

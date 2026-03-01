@@ -5398,6 +5398,8 @@ export type components = {
             receiverId: string;
             /** @description Post ID context */
             relatedPostId?: string;
+            /** @description Amount of gem to send (for gem gift type) */
+            amount?: number;
         };
         SendMessageInputDto: {
             clientMessageId: string;
