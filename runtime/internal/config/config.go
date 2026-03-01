@@ -715,6 +715,11 @@ func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
 			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_API_KEY",
 		}, true
+	case "openrouter", "cloudopenrouter":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
+		}, true
 	default:
 		return providerEnvBinding{}, false
 	}
@@ -764,6 +769,8 @@ func ResolveCanonicalProviderID(raw string) (string, bool) {
 		return "glm", true
 	case "deepseek", "clouddeepseek":
 		return "deepseek", true
+	case "openrouter", "cloudopenrouter":
+		return "openrouter", true
 	default:
 		return "", false
 	}

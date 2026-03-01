@@ -287,6 +287,7 @@ func configuredAIProviderTargets() []aiProviderTarget {
 	add("cloud-kimi", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY"))
 	add("cloud-glm", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY"))
 	add("cloud-deepseek", os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_API_KEY"))
+	add("cloud-openrouter", os.Getenv("NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"))
 	return targets
 }
 
