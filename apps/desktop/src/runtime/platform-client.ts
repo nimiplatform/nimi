@@ -32,10 +32,11 @@ export async function initializePlatformClient(input: PlatformClientRuntimeDefau
       eventNamespace: 'runtime_bridge',
     },
   });
+  const tokenValue = String(input.accessToken || '').trim();
   const realm = new sdk.Realm({
     baseUrl: String(input.realmBaseUrl || '').trim(),
     auth: {
-      accessToken: String(input.accessToken || '').trim() || undefined,
+      accessToken: tokenValue || sdk.Realm.NO_AUTH,
     },
   });
   const client: PlatformClient = {
