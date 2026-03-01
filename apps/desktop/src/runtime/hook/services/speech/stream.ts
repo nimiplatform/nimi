@@ -2,9 +2,8 @@ import type { SpeechStreamOpenResult } from '../../../llm-adapter/speech/types.j
 import { emitInferenceAudit, parseReasonCode } from '../../../llm-adapter/execution/inference-audit';
 import { createHookError } from '../../contracts/errors.js';
 import { createHookRecord } from '../utils.js';
-import { resolveSpeechRoute } from './resolve-route.js';
 import type {
-  ResolvedRoute,
+  RouteResolverResult,
   SpeechServiceInput,
   SpeechStreamControlInput,
   SpeechStreamCloseInput,
@@ -42,15 +41,20 @@ export async function openSpeechStream(
     startedAt,
   });
 
-  let route: ResolvedRoute | null = null;
+  let resolved: RouteResolverResult | null = null;
   try {
-    route = await resolveSpeechRoute(context, {
+    resolved = await context.resolveRoute({
       modId: input.modId,
       providerId: input.providerId,
       routeSource: input.routeSource,
       connectorId: input.connectorId,
       model: input.model,
     });
+    const source = String(resolved?.source || '').trim() as 'local-runtime' | 'token-api';
+    const model = String(resolved?.model || '').trim();
+    const connectorId = String(resolved?.connectorId || '').trim();
+    const endpoint = String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim();
+
     const providerParams: Record<string, unknown> = {
       targetId: input.targetId,
       sessionId: input.sessionId,
@@ -64,27 +68,27 @@ export async function openSpeechStream(
     emitInferenceAudit({
       eventType: 'inference_invoked',
       modId: input.modId,
-      source: route.source,
-      provider: route.provider,
+      source,
+      provider: resolved?.provider || 'openai-compatible',
       modality: 'tts',
-      adapter: route.adapter,
-      model: route.model,
-      endpoint: route.endpoint,
+      adapter: resolved?.adapter || 'openai_compat_adapter',
+      model,
+      endpoint,
       extra: { stream: true },
     });
     const result: SpeechStreamOpenResult = await context.speechEngine.openStream({
-      model: route.model,
-      routeSource: route.source,
-      connectorId: route.connectorId,
-      providerEndpoint: route.endpoint,
-      providerType: route.providerType,
-      endpoint: route.endpoint,
+      model,
+      routeSource: source,
+      connectorId,
+      providerEndpoint: endpoint,
+      providerType: 'OPENAI_COMPATIBLE',
+      endpoint,
       open: {
         format: input.format,
         sampleRateHz: input.sampleRateHz,
       },
       request: {
-        model: route.model,
+        model,
         text: input.text,
         voice: input.voiceId,
         format: input.format,
@@ -116,12 +120,12 @@ export async function openSpeechStream(
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source: route?.source || 'token-api',
-      provider: route?.provider || 'openai-compatible',
+      source: resolved?.source || 'token-api',
+      provider: resolved?.provider || 'openai-compatible',
       modality: 'tts',
-      adapter: route?.adapter || 'openai_compat_adapter',
-      model: route?.model,
-      endpoint: route?.endpoint,
+      adapter: resolved?.adapter || 'openai_compat_adapter',
+      model: resolved?.model,
+      endpoint: String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim(),
       reasonCode: parseReasonCode(detail),
       detail,
       extra: { stream: true },

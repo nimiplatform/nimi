@@ -6,7 +6,6 @@ import {
   getRuntimeClient,
 } from '../../../llm-adapter/execution/runtime-ai-bridge';
 import { toBase64 } from '../../../util/encoding.js';
-import { resolveSpeechRoute } from './resolve-route.js';
 import type {
   SpeechServiceInput,
   SpeechSynthesizeInput,
@@ -28,13 +27,18 @@ export async function synthesizeModSpeech(
     startedAt,
   });
 
-  const route = await resolveSpeechRoute(context, {
+  const resolved = await context.resolveRoute({
     modId: input.modId,
     providerId: input.providerId,
     routeSource: input.routeSource,
     connectorId: input.connectorId,
     model: input.model,
   });
+  const source = String(resolved?.source || '').trim() as 'local-runtime' | 'token-api';
+  const model = String(resolved?.model || '').trim();
+  const connectorId = String(resolved?.connectorId || '').trim();
+  const endpoint = String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim();
+
   const providerParams: Record<string, unknown> = {
     pitch: input.pitch,
     targetId: input.targetId,
@@ -49,12 +53,12 @@ export async function synthesizeModSpeech(
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
-    source: route.source,
-    provider: route.provider,
+    source,
+    provider: resolved?.provider || 'openai-compatible',
     modality: 'tts',
-    adapter: route.adapter,
-    model: route.model,
-    endpoint: route.endpoint,
+    adapter: resolved?.adapter || 'openai_compat_adapter',
+    model,
+    endpoint,
   });
 
   const runtime = getRuntimeClient();
@@ -64,7 +68,7 @@ export async function synthesizeModSpeech(
   try {
     const generated = await runtime.media.tts.synthesize({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-      model: route.model,
+      model,
       text: input.text,
       voice: input.voiceId,
       audioFormat: input.format,
@@ -72,14 +76,14 @@ export async function synthesizeModSpeech(
       speed: input.speakingRate,
       pitch: input.pitch,
       language: input.language,
-      route: route.source,
+      route: source,
       fallback: 'deny',
       timeoutMs: 60000,
-      connectorId: route.connectorId,
+      connectorId,
       metadata: await buildRuntimeRequestMetadata({
-        source: route.source,
-        connectorId: route.connectorId,
-        providerEndpoint: route.endpoint,
+        source,
+        connectorId,
+        providerEndpoint: endpoint,
       }),
       providerOptions: providerParams,
     });
@@ -96,12 +100,12 @@ export async function synthesizeModSpeech(
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source: route.source,
-      provider: route.provider,
+      source,
+      provider: resolved?.provider || 'openai-compatible',
       modality: 'tts',
-      adapter: route.adapter,
-      model: route.model,
-      endpoint: route.endpoint,
+      adapter: resolved?.adapter || 'openai_compat_adapter',
+      model,
+      endpoint,
       reasonCode: parseReasonCode(detail),
       detail,
     });
@@ -112,12 +116,12 @@ export async function synthesizeModSpeech(
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
-      source: route.source,
-      provider: route.provider,
+      source,
+      provider: resolved?.provider || 'openai-compatible',
       modality: 'tts',
-      adapter: route.adapter,
-      model: route.model,
-      endpoint: route.endpoint,
+      adapter: resolved?.adapter || 'openai_compat_adapter',
+      model,
+      endpoint,
       reasonCode: ReasonCode.PLAY_PROVIDER_UNAVAILABLE,
       detail: 'speech provider returned empty audioUri',
     });

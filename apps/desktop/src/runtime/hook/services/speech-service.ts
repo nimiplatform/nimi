@@ -9,7 +9,6 @@ import {
   openSpeechStream,
 } from './speech/stream.js';
 import { synthesizeModSpeech } from './speech/synthesize.js';
-import { resolveSpeechRoute } from './speech/resolve-route.js';
 import {
   normalizeSpeechProviderId,
 } from './speech/types.js';
@@ -107,18 +106,19 @@ export class HookRuntimeSpeechService {
     }));
 
     try {
-      const route = await resolveSpeechRoute(this.context, {
+      const resolved = await this.context.resolveRoute({
         modId: input.modId,
         providerId: input.providerId,
         routeSource: input.routeSource,
         connectorId: input.connectorId,
       });
+      const endpoint = String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim();
       const voices = await this.context.speechEngine.listVoices({
-        providerId: normalizeSpeechProviderId(input.providerId || route.provider || 'openai-compatible'),
-        model: route.model,
-        routeSource: route.source,
-        connectorId: route.connectorId,
-        providerEndpoint: route.endpoint,
+        providerId: normalizeSpeechProviderId(input.providerId || resolved?.provider || 'openai-compatible'),
+        model: resolved?.model,
+        routeSource: resolved?.source,
+        connectorId: resolved?.connectorId,
+        providerEndpoint: endpoint,
       });
       return voices.map((voice) => this.mapVoice(voice));
     } catch {
