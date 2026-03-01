@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -417,8 +416,4 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		CreatedAt:     r.CreatedAt,
 		UpdatedAt:     r.UpdatedAt,
 	}
-}
-
-func (s *Service) GetOwnerID() string {
-	return fmt.Sprintf("connector-service")
 }
