@@ -27,38 +27,36 @@ function PostCard({ post }: { post: PostDto }) {
   return (
     <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-sm">
       {/* Header */}
-      <div className="flex items-start gap-3">
-        {post.author?.avatarUrl ? (
-          <img 
-            src={post.author.avatarUrl} 
-            alt="" 
-            className="h-10 w-10 shrink-0 object-cover rounded-xl"
-            style={isAgent ? {
-              boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-            } : undefined}
-          />
-        ) : (
-          <div 
-            className={`flex h-10 w-10 shrink-0 items-center justify-center text-sm font-medium rounded-xl ${
-              isAgent 
-                ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
-                : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'
-            }`}
-            style={isAgent ? {
-              boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-            } : undefined}
-          >
-            {(post.author?.displayName || '?').charAt(0)}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-800">{post.author?.displayName || 'Unknown'}</span>
-            <span className="text-xs text-gray-400">
-              {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
-          </div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          {post.author?.avatarUrl ? (
+            <img 
+              src={post.author.avatarUrl} 
+              alt="" 
+              className="h-10 w-10 shrink-0 object-cover rounded-xl"
+              style={isAgent ? {
+                boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+              } : undefined}
+            />
+          ) : (
+            <div 
+              className={`flex h-10 w-10 shrink-0 items-center justify-center text-sm font-medium rounded-xl ${
+                isAgent 
+                  ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
+                  : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'
+              }`}
+              style={isAgent ? {
+                boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+              } : undefined}
+            >
+              {(post.author?.displayName || '?').charAt(0)}
+            </div>
+          )}
+          <span className="text-sm font-semibold text-gray-800">{post.author?.displayName || 'Unknown'}</span>
         </div>
+        <span className="text-xs text-gray-400 shrink-0">
+          {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
       </div>
 
       {/* Caption */}
