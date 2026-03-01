@@ -4,7 +4,6 @@ import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { StartChatInputDto } from '@nimiplatform/sdk/realm';
 import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
-import { store } from '@runtime/state';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -43,7 +42,7 @@ function getChatOutbox(chatId: string): Map<string, PendingChatOutboxEntry> {
   return created;
 }
 
-function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto): boolean {
+export function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto): boolean {
   if (String(left.id || '') === String(right.id || '')) {
     return true;
   }
@@ -56,39 +55,19 @@ function sameMessageIdentity(left: MessageViewDto, right: MessageViewDto): boole
   );
 }
 
-function upsertStoreMessage(chatId: string, message: MessageViewDto): void {
-  const current = store.getMessages(chatId);
-  const deduped = current.items.filter((item) => !sameMessageIdentity(item, message));
-  deduped.unshift(message);
-  deduped.sort((left, right) => {
-    const leftTime = Date.parse(String(left.createdAt || ''));
-    const rightTime = Date.parse(String(right.createdAt || ''));
-    const delta = (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
-    if (delta !== 0) {
-      return delta;
-    }
-    return String(right.id || '').localeCompare(String(left.id || ''));
-  });
-  store.setMessages(chatId, deduped, current.cursor, current.hasMore);
-}
-
 export async function loadChatList(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   limit = 20,
 ) {
-  store.setChatsLoading(true);
   try {
     const result = await callApi(
       (realm) => realm.services.HumanChatService.listChats(limit),
       '加载会话列表失败',
     );
-    const nextCursor = result.nextCursor ?? null;
-    store.setChats(result.items || [], nextCursor, nextCursor !== null);
     return result;
   } catch (error) {
     emitDataSyncError('load-chats', error);
-    store.setChatsLoading(false);
     throw error;
   }
 }
@@ -96,27 +75,18 @@ export async function loadChatList(
 export async function loadMoreChatList(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
+  cursor?: string,
 ) {
-  const chatsState =
-    store.getState<{ cursor: string | null; isLoading: boolean }>('chats') ?? {
-      cursor: null,
-      isLoading: false,
-    };
-  const { cursor, isLoading } = chatsState;
-  if (!cursor || isLoading) return undefined;
+  if (!cursor) return undefined;
 
-  store.setChatsLoading(true);
   try {
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.listChats(20, cursor || undefined),
+      (realm) => realm.services.HumanChatService.listChats(20, cursor),
       '加载更多会话失败',
     );
-    const nextCursor = result.nextCursor ?? null;
-    store.appendChats(result.items || [], nextCursor, nextCursor !== null);
     return result;
   } catch (error) {
     emitDataSyncError('load-more-chats', error);
-    store.setChatsLoading(false);
     throw error;
   }
 }
@@ -148,9 +118,7 @@ export async function startChatWithTarget(
       (realm) => realm.services.HumanChatService.getChatById(result.chatId),
       '加载新会话详情失败',
     );
-    const chats = store.getState<Array<typeof chat>>('chats.items') ?? [];
-    store.setChats([chat, ...chats]);
-    return result;
+    return { ...result, chat };
   } catch (error) {
     emitDataSyncError('start-chat', error, {
       targetAccountId,
@@ -165,30 +133,19 @@ export async function loadChatMessages(
   emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
   limit: number,
-  markChatRead: (chatId: string) => Promise<void>,
+  markChatRead?: (chatId: string) => Promise<void>,
 ) {
-  const messagesState = store.getMessages(chatId);
-  if (messagesState.isLoading) return undefined;
-
-  const chats = store.getState<{ items: Array<{ id: string; unreadCount?: number }> }>('chats');
-  const chat = chats?.items?.find((item) => item.id === chatId);
-  const hasUnread = (chat?.unreadCount ?? 0) > 0;
-
-  store.setMessagesLoading(chatId, true);
   try {
     const result = await callApi(
       (realm) => realm.services.HumanChatService.listMessages(chatId, limit),
       '加载消息失败',
     );
-    const nextBefore = result.nextBefore ?? null;
-    store.setMessages(chatId, result.items || [], nextBefore || undefined, nextBefore !== null);
-    if (hasUnread) {
+    if (markChatRead) {
       await markChatRead(chatId);
     }
     return result;
   } catch (error) {
     emitDataSyncError('load-messages', error, { chatId });
-    store.setMessagesLoading(chatId, false);
     throw error;
   }
 }
@@ -197,11 +154,10 @@ export async function loadMoreChatMessages(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   chatId: string,
+  cursor?: string,
 ) {
-  const messagesState = store.getMessages(chatId);
-  if (!messagesState.cursor || messagesState.isLoading) return undefined;
+  if (!cursor) return undefined;
 
-  store.setMessagesLoading(chatId, true);
   try {
     const result = await callApi(
       (realm) => realm.services.HumanChatService.listMessages(
@@ -209,16 +165,13 @@ export async function loadMoreChatMessages(
         50,
         undefined,
         undefined,
-        messagesState.cursor || undefined,
+        cursor,
       ),
       '加载更多消息失败',
     );
-    const nextBefore = result.nextBefore ?? null;
-    store.appendMessages(chatId, result.items || [], nextBefore, nextBefore !== null);
     return result;
   } catch (error) {
     emitDataSyncError('load-more-messages', error, { chatId });
-    store.setMessagesLoading(chatId, false);
     throw error;
   }
 }
@@ -252,7 +205,6 @@ export async function sendChatMessage(
       '发送消息失败',
     );
     outbox.delete(data.clientMessageId);
-    upsertStoreMessage(chatId, message);
     return message;
   } catch (error) {
     const outbox = getChatOutbox(chatId);
@@ -270,11 +222,13 @@ export async function flushPendingChatOutbox(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   chatId?: string,
-): Promise<void> {
+): Promise<MessageViewDto[]> {
   const normalizedChatId = String(chatId || '').trim();
   const targetChatIds = normalizedChatId
     ? [normalizedChatId]
     : Array.from(chatOutboxStore.keys());
+
+  const flushed: MessageViewDto[] = [];
 
   for (const targetId of targetChatIds) {
     const outbox = getChatOutbox(targetId);
@@ -290,7 +244,7 @@ export async function flushPendingChatOutbox(
           '重放聊天消息失败',
         );
         outbox.delete(entry.body.clientMessageId);
-        upsertStoreMessage(entry.chatId, message);
+        flushed.push(message);
       } catch (error) {
         const latest = outbox.get(entry.body.clientMessageId);
         if (latest) {
@@ -304,6 +258,8 @@ export async function flushPendingChatOutbox(
       }
     }
   }
+
+  return flushed;
 }
 
 export async function markChatAsRead(
@@ -313,7 +269,6 @@ export async function markChatAsRead(
 ) {
   try {
     await callApi((realm) => realm.services.HumanChatService.markChatRead(chatId));
-    store.updateChat(chatId, { unreadCount: 0 });
   } catch (error) {
     emitDataSyncError('mark-chat-read', error, { chatId });
   }

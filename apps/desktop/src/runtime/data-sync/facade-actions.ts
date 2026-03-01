@@ -96,6 +96,7 @@ import {
   createImageDirectUpload,
   createPost,
   createVideoDirectUpload,
+  deletePost,
   loadPostFeed,
 } from './flows/post-media-flow';
 import {
@@ -118,6 +119,7 @@ type CreateDataSyncActionsInput = {
   emitFacadeError: DataSyncEmitError;
   setToken: (token: string | null | undefined) => void;
   setRefreshToken: (token: string | null | undefined) => void;
+  setAuth: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
   clearAuth: () => void;
   stopAllPolling: () => void;
   isFriend: (userId: string) => boolean;
@@ -132,7 +134,7 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       updateCurrentUserProfile(input.callApiTask, input.emitFacadeError, data),
     loadChats: async (limit = 20) =>
       loadChatList(input.callApiTask, input.emitFacadeError, limit),
-    loadMoreChats: async () => loadMoreChatList(input.callApiTask, input.emitFacadeError),
+    loadMoreChats: async (cursor?: string) => loadMoreChatList(input.callApiTask, input.emitFacadeError, cursor),
     startChat: async (targetAccountId: string, initialMessage: string | null = null) =>
       startChatWithTarget(
         input.callApiTask,
@@ -143,17 +145,17 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     loadMessages: async (
       chatId: string,
       limit = 50,
-      markChatRead: (chatId: string) => Promise<void>,
+      markChatRead?: (chatId: string) => Promise<void>,
     ) =>
       loadChatMessages(
         input.callApiTask,
         input.emitFacadeError,
         chatId,
         limit,
-        (id) => markChatRead(id),
+        markChatRead,
       ),
-    loadMoreMessages: async (chatId: string) =>
-      loadMoreChatMessages(input.callApiTask, input.emitFacadeError, chatId),
+    loadMoreMessages: async (chatId: string, cursor?: string) =>
+      loadMoreChatMessages(input.callApiTask, input.emitFacadeError, chatId, cursor),
     sendMessage: async (
       chatId: string,
       content: string,
@@ -232,8 +234,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     loadFriendRequests: async () => loadPendingFriendRequests(input.callApiTask, input.emitFacadeError),
     loadExploreFeed: async (tag: string | null = null, limit = 20) =>
       loadExploreFeedItems(input.callApiTask, input.emitFacadeError, tag, limit),
-    loadMoreExploreFeed: async (limit = 20) =>
-      loadMoreExploreFeedItems(input.callApiTask, input.emitFacadeError, limit),
+    loadMoreExploreFeed: async (limit = 20, cursor?: string, tag?: string | null) =>
+      loadMoreExploreFeedItems(input.callApiTask, input.emitFacadeError, limit, cursor, tag),
     loadWorlds: async (status?: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED') =>
       loadWorldList(input.callApiTask, input.emitFacadeError, status),
     loadWorldDetailById: async (worldId: string) =>
@@ -293,6 +295,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createImageDirectUpload(input.callApiTask, input.emitFacadeError),
     createVideoDirectUpload: async () =>
       createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
+    deletePost: async (postId: string) =>
+      deletePost(input.callApiTask, input.emitFacadeError, postId),
     loadCurrencyBalances: async () =>
       loadCurrencyBalances(input.callApiTask, input.emitFacadeError),
     loadSparkTransactionHistory: async (limit = 30, cursor?: string) =>
@@ -366,9 +370,25 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     resolveChatRoute: async (data: DesktopChatRouteRequestDto): Promise<DesktopChatRouteResultDto> =>
       resolveChatRoute(input.callApiTask, data, input.emitFacadeError),
     login: async (identifier: string, password: string, debug?: PasswordAuthDebug) =>
-      loginWithPassword(input.callApiTask, (token) => input.setToken(token), identifier, password, debug, (token) => input.setRefreshToken(token)),
+      loginWithPassword(
+        input.callApiTask,
+        (token) => input.setToken(token),
+        identifier,
+        password,
+        debug,
+        (token) => input.setRefreshToken(token),
+        (user, token, refreshToken) => input.setAuth(user, token, refreshToken),
+      ),
     register: async (email: string, password: string, debug?: PasswordAuthDebug) =>
-      registerWithPassword(input.callApiTask, (token) => input.setToken(token), email, password, debug, (token) => input.setRefreshToken(token)),
+      registerWithPassword(
+        input.callApiTask,
+        (token) => input.setToken(token),
+        email,
+        password,
+        debug,
+        (token) => input.setRefreshToken(token),
+        (user, token, refreshToken) => input.setAuth(user, token, refreshToken),
+      ),
     logout: async () =>
       logoutWithCleanup({
         callApi: input.callApiTask,

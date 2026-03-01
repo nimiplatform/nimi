@@ -116,3 +116,19 @@ export async function createVideoDirectUpload(
     throw error;
   }
 }
+
+export async function deletePost(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  postId: string,
+): Promise<void> {
+  try {
+    await callApi(
+      (realm) => realm.services.PostService.deletePost(postId),
+      '删除帖子失败',
+    );
+  } catch (error) {
+    emitDataSyncError('delete-post', error, { postId });
+    throw error;
+  }
+}

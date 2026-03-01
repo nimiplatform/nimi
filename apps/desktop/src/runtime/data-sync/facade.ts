@@ -1,6 +1,4 @@
-import { store } from '@runtime/state';
 import { withOpenApiContextLock } from '@runtime/context/openapi-context';
-import type { AuthState } from '@runtime/state';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
@@ -75,12 +73,20 @@ function writeDataSyncHotState(state: DataSyncHotState) {
   };
 }
 
+export type DataSyncAuthCallbacks = {
+  setAuth: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  clearAuth: () => void;
+  getCurrentUser: () => Record<string, unknown> | null;
+  isFriend: (userId: string) => boolean;
+};
+
 export class DataSync {
   private realmBaseUrl = '';
   private accessToken = '';
   private refreshToken = '';
   private fetchImpl: FetchImpl | null = null;
   private proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private authCallbacks: DataSyncAuthCallbacks | null = null;
   private readonly polling = new DataSyncPollingManager();
   private readonly callApiTask = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) =>
     this.callApi(task, fallbackMessage);
@@ -94,14 +100,18 @@ export class DataSync {
     emitFacadeError: this.emitFacadeError,
     setToken: (token) => this.setToken(token),
     setRefreshToken: (token) => this.setRefreshToken(token),
-    clearAuth: () => store.clearAuth(),
+    setAuth: (user, token, refreshToken) => this.authCallbacks?.setAuth(user, token, refreshToken),
+    clearAuth: () => this.authCallbacks?.clearAuth(),
     stopAllPolling: () => this.stopAllPolling(),
     isFriend: (userId) => this.isFriend(userId),
   });
 
   constructor() {
     this.hydrateApiFromHotState();
-    this.setupStoreListeners();
+  }
+
+  setAuthCallbacks(callbacks: DataSyncAuthCallbacks) {
+    this.authCallbacks = callbacks;
   }
 
   private hydrateApiFromHotState(): boolean {
@@ -169,8 +179,8 @@ export class DataSync {
               this.refreshToken = refreshResult.refreshToken;
             }
             this.persistApiToHotState();
-            store.setAuth(
-              store.getCurrentUser(),
+            this.authCallbacks?.setAuth(
+              this.authCallbacks?.getCurrentUser() ?? null,
               refreshResult.accessToken,
               refreshResult.refreshToken,
             );
@@ -190,7 +200,7 @@ export class DataSync {
                 error: error instanceof Error ? error.message : String(error || ''),
               },
             });
-            store.clearAuth();
+            this.authCallbacks?.clearAuth();
             this.stopAllPolling();
             this.clearProactiveRefreshTimer();
           },
@@ -202,25 +212,6 @@ export class DataSync {
     } catch (error) {
       throw normalizeApiError(error, fallbackMessage);
     }
-  }
-
-  setupStoreListeners() {
-    store.on('authChange', (auth: AuthState) => {
-      if (auth.isAuthenticated) {
-        this.setToken(auth.token);
-        if (auth.refreshToken) {
-          this.setRefreshToken(auth.refreshToken);
-        }
-        if (auth.token) {
-          this.scheduleProactiveRefresh(auth.token);
-        }
-      } else {
-        this.setToken('');
-        this.setRefreshToken('');
-        this.stopAllPolling();
-        this.clearProactiveRefreshTimer();
-      }
-    });
   }
 
   private emitDataSyncError(action: string, error: unknown, details: Record<string, unknown> = {}) {
@@ -243,23 +234,23 @@ export class DataSync {
 
   loadCurrentUser() { return this.actions.loadCurrentUser(); }
   updateUserProfile(data: Record<string, unknown>) { return this.actions.updateUserProfile(data); }
-  loadChats(limit = 20) { return this.actions.loadChats(limit); }
-  loadMoreChats() { return this.actions.loadMoreChats(); }
+  loadChats(limit = 20) { return this.actions.loadChats(Math.min(limit, 100)); }
+  loadMoreChats(cursor?: string) { return this.actions.loadMoreChats(cursor); }
   startChat(targetAccountId: string, initialMessage: string | null = null) {
     return this.actions.startChat(targetAccountId, initialMessage);
   }
   loadMessages(chatId: string, limit = 50) {
-    return this.actions.loadMessages(chatId, limit, (id) => this.markChatRead(id));
+    return this.actions.loadMessages(chatId, Math.min(limit, 100), (id) => this.markChatRead(id));
   }
-  loadMoreMessages(chatId: string) { return this.actions.loadMoreMessages(chatId); }
+  loadMoreMessages(chatId: string, cursor?: string) { return this.actions.loadMoreMessages(chatId, cursor); }
   sendMessage(chatId: string, content: string, options: Partial<SendMessageInputDto> = {}) {
     return this.actions.sendMessage(chatId, content, options);
   }
-  syncChatEvents(chatId: string, afterSeq: number, limit = 200): Promise<ChatSyncResultDto> {
-    return this.actions.syncChatEvents(chatId, afterSeq, limit);
+  syncChatEvents(chatId: string, afterSeq: number, limit = 100): Promise<ChatSyncResultDto> {
+    return this.actions.syncChatEvents(chatId, afterSeq, Math.min(limit, 100));
   }
-  flushChatOutbox(chatId?: string): Promise<void> {
-    return this.actions.flushChatOutbox(chatId);
+  async flushChatOutbox(chatId?: string): Promise<void> {
+    await this.actions.flushChatOutbox(chatId);
   }
   async markChatRead(chatId: string) { await this.actions.markChatRead(chatId); }
   async loadContacts() { await this.actions.loadContacts(); }
@@ -267,8 +258,7 @@ export class DataSync {
   searchUser(identifierInput: string) { return this.actions.searchUser(identifierInput); }
 
   isFriend(userId: string): boolean {
-    const contacts = store.getState('contacts') as { friends?: Array<Record<string, unknown>> } | undefined;
-    return isFriendInContacts(contacts, userId);
+    return this.authCallbacks?.isFriend(userId) ?? false;
   }
 
   async removeFriend(userId: string) { await this.actions.removeFriend(userId); }
@@ -339,6 +329,7 @@ export class DataSync {
   createPost(payload: CreatePostDto) { return this.actions.createPost(payload); }
   createImageDirectUpload() { return this.actions.createImageDirectUpload(); }
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }
+  deletePost(postId: string) { return this.actions.deletePost(postId); }
   loadCurrencyBalances() { return this.actions.loadCurrencyBalances(); }
   loadSparkTransactionHistory(limit = 30, cursor?: string) {
     return this.actions.loadSparkTransactionHistory(limit, cursor);
@@ -387,8 +378,10 @@ export class DataSync {
   }
   loadMyAgents() { return this.actions.loadMyAgents(); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }
-  loadExploreFeed(tag: string | null = null, limit = 20) { return this.actions.loadExploreFeed(tag, limit); }
-  loadMoreExploreFeed(limit = 20) { return this.actions.loadMoreExploreFeed(limit); }
+  loadExploreFeed(tag: string | null = null, limit = 20) { return this.actions.loadExploreFeed(tag, Math.min(limit, 100)); }
+  loadMoreExploreFeed(limit = 20, cursor?: string, tag?: string | null) {
+    return this.actions.loadMoreExploreFeed(Math.min(limit, 100), cursor, tag);
+  }
   loadAgentDetails(agentIdentifier: string) { return this.actions.loadAgentDetails(agentIdentifier); }
   recallAgentMemoryForEntity(input: {
     agentId: string;
@@ -480,7 +473,11 @@ export class DataSync {
         this.refreshToken = newRefreshToken;
       }
       this.persistApiToHotState();
-      store.setAuth(store.getCurrentUser(), newAccessToken, newRefreshToken);
+      this.authCallbacks?.setAuth(
+        this.authCallbacks?.getCurrentUser() ?? null,
+        newAccessToken,
+        newRefreshToken,
+      );
       this.scheduleProactiveRefresh(newAccessToken);
       emitRuntimeLog({
         level: 'info',
@@ -496,7 +493,7 @@ export class DataSync {
           error: error instanceof Error ? error.message : String(error || ''),
         },
       });
-      store.clearAuth();
+      this.authCallbacks?.clearAuth();
       this.stopAllPolling();
       this.clearProactiveRefreshTimer();
     }

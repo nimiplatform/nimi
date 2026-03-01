@@ -28,13 +28,14 @@ export type RuntimeFieldMap = {
   targetType: string;
   targetAccountId: string;
   agentId: string;
+  targetId: string;
   worldId: string;
   provider: string;
   runtimeModelType: string;
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
-  credentialRefId: string;
+  connectorId: string;
   mode: 'STORY' | 'SCENE_TURN';
   turnIndex: number;
   userConfirmedUpload: boolean;
@@ -62,6 +63,7 @@ export type AppStoreState = {
     status: AuthStatus;
     user: Record<string, unknown> | null;
     token: string;
+    refreshToken: string;
   };
   runtimeFields: RuntimeFieldMap;
   activeTab: AppTab;
@@ -83,7 +85,7 @@ export type AppStoreState = {
   setBootstrapError: (message: string | null) => void;
   setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
   setAuthBootstrapping: () => void;
-  setAuthSession: (user: Record<string, unknown> | null, token: string) => void;
+  setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
   clearAuthSession: () => void;
   setRuntimeField: <K extends keyof RuntimeFieldMap>(key: K, value: RuntimeFieldMap[K]) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
@@ -116,13 +118,14 @@ export const INITIAL_RUNTIME_FIELDS: RuntimeFieldMap = {
   targetType: 'AGENT',
   targetAccountId: '',
   agentId: '',
+  targetId: '',
   worldId: '',
   provider: '',
   runtimeModelType: 'chat',
   localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   localProviderModel: 'local-model',
   localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-  credentialRefId: '',
+  connectorId: '',
   mode: 'STORY',
   turnIndex: 1,
   userConfirmedUpload: false,

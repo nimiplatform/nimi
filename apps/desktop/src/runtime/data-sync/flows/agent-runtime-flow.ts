@@ -1,5 +1,4 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
-import { store } from '@runtime/state';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { resolveChatRouteByPolicy } from '@runtime/chat';
 import { isDesktopChatRouteResultLike } from '@runtime/chat';
@@ -25,6 +24,22 @@ export type AgentMemoryRecallResult = {
   core: AgentMemoryRecord[];
   e2e: AgentMemoryRecord[];
 };
+
+// Module-level TTL cache (replaces legacy store.cacheGet/cacheSet)
+const profileCache = new Map<string, { value: unknown; expiresAt: number }>();
+
+function cacheGet(key: string): unknown | null {
+  const entry = profileCache.get(key);
+  if (!entry || Date.now() > entry.expiresAt) {
+    profileCache.delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function cacheSet(key: string, value: unknown, ttlMs: number) {
+  profileCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
 
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -111,7 +126,7 @@ export async function loadAgentDetails(
 
   try {
     const cacheKey = `agent-profile:${normalizedIdentifier}`;
-    const cached = store.cacheGet(cacheKey);
+    const cached = cacheGet(cacheKey);
     if (cached && typeof cached === 'object') {
       return cached;
     }
@@ -143,17 +158,17 @@ export async function loadAgentDetails(
 
     const resolvedId = toNonEmptyString(profile.id);
     if (resolvedId) {
-      store.cacheSet(`agent-profile:${resolvedId}`, profile, 5 * 60 * 1000);
+      cacheSet(`agent-profile:${resolvedId}`, profile, 5 * 60 * 1000);
     }
     const resolvedHandle = toNonEmptyString(profile.handle);
     if (resolvedHandle) {
-      store.cacheSet(`agent-profile:${resolvedHandle}`, profile, 5 * 60 * 1000);
+      cacheSet(`agent-profile:${resolvedHandle}`, profile, 5 * 60 * 1000);
       if (!resolvedHandle.startsWith('~') && !resolvedHandle.startsWith('@')) {
-        store.cacheSet(`agent-profile:~${resolvedHandle}`, profile, 5 * 60 * 1000);
-        store.cacheSet(`agent-profile:@${resolvedHandle}`, profile, 5 * 60 * 1000);
+        cacheSet(`agent-profile:~${resolvedHandle}`, profile, 5 * 60 * 1000);
+        cacheSet(`agent-profile:@${resolvedHandle}`, profile, 5 * 60 * 1000);
       }
     }
-    store.cacheSet(cacheKey, profile, 5 * 60 * 1000);
+    cacheSet(cacheKey, profile, 5 * 60 * 1000);
     return profile;
   } catch (error) {
     emitDataSyncError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
@@ -297,11 +312,9 @@ export async function resolveChatRoute(
       '解析聊天路由失败',
     );
 
-    store.setRoute(route);
     return route;
   } catch (error) {
     const fallbackRoute = resolveChatRouteByPolicy(data);
-    store.setRoute(fallbackRoute);
     emitDataSyncError('resolve-chat-route', error, {
       targetType: data.targetType,
       fallback: true,

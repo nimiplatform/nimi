@@ -1,6 +1,5 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { UserProfileDto } from '@nimiplatform/sdk/realm';
-import { store } from '@runtime/state';
 import { loadCreatorAgents } from './social-flow';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
@@ -28,6 +27,24 @@ export type SocialContactSnapshot = {
   pendingSent: Array<Record<string, unknown>>;
   blocked: Array<Record<string, unknown>>;
 };
+
+// Module-level contacts cache (replaces legacy store contact reads)
+let _cachedContacts: SocialContactSnapshot = {
+  friends: [],
+  agents: [],
+  groups: [],
+  pendingReceived: [],
+  pendingSent: [],
+  blocked: [],
+};
+
+function getCachedContacts(): SocialContactSnapshot {
+  return _cachedContacts;
+}
+
+function updateCachedContacts(snapshot: SocialContactSnapshot) {
+  _cachedContacts = { ...snapshot };
+}
 
 function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();
@@ -222,7 +239,6 @@ export async function loadCurrentUserProfile(
 ) {
   try {
     const user = await callApi((realm) => realm.services.MeService.getMe(), '获取当前用户失败');
-    store.updateState('auth.user', user);
     return user;
   } catch (error) {
     emitDataSyncError('load-current-user', error);
@@ -237,7 +253,6 @@ export async function updateCurrentUserProfile(
 ) {
   try {
     const user = await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
-    store.updateState('auth.user', user);
     return user;
   } catch (error) {
     emitDataSyncError('update-user-profile', error);
@@ -248,16 +263,15 @@ export async function updateCurrentUserProfile(
 type MergedSocialContactSnapshot = SocialContactSnapshot;
 
 function mergeWithLocalContacts(snapshot: SocialContactSnapshot): MergedSocialContactSnapshot {
-  // 获取本地的测试用户（ID 以 test- 开头）
-  const currentFriends = store.getState<Array<Record<string, unknown>>>('contacts.friends') || [];
+  const cached = getCachedContacts();
+  const currentFriends = cached.friends;
   const testUsers = currentFriends.filter((f) => String(f.id).startsWith('test-'));
   const fallbackUsers = currentFriends.filter((f) => {
     const fallbackUntil = Number(f.__localFallbackUntil || 0);
     return Number.isFinite(fallbackUntil) && fallbackUntil > Date.now();
   });
 
-  // 后端 block 列表 + 本地兼容 block（test-* 或历史本地数据）
-  const currentBlocked = store.getState<Array<Record<string, unknown>>>('contacts.blocked') || [];
+  const currentBlocked = cached.blocked;
   const mergedBlocked = [...snapshot.blocked];
   const mergedBlockedIds = new Set(mergedBlocked.map((item) => String(item.id || '')));
   for (const localBlocked of currentBlocked) {
@@ -271,15 +285,12 @@ function mergeWithLocalContacts(snapshot: SocialContactSnapshot): MergedSocialCo
     mergedBlockedIds.add(localId);
   }
 
-  // 合并数据：API 好友 + 本地测试用户
   const existingIds = new Set(snapshot.friends.map((f) => String(f.id)));
   const mergedFriends = [...snapshot.friends];
 
-  // 添加本地测试用户（如果不在 API 返回中且不在 blocked 列表中）
   for (const testUser of testUsers) {
     const testId = String(testUser.id);
     if (!existingIds.has(testId)) {
-      // 检查是否在 blocked 列表中
       const isBlocked = mergedBlockedIds.has(testId);
       if (!isBlocked) {
         mergedFriends.push(testUser);
@@ -287,7 +298,6 @@ function mergeWithLocalContacts(snapshot: SocialContactSnapshot): MergedSocialCo
     }
   }
 
-  // 添加短期本地回填用户（用于兼容历史 block->unblock 场景下后端关系延迟恢复）
   for (const fallbackUser of fallbackUsers) {
     const fallbackId = String(fallbackUser.id || '');
     if (!fallbackId || existingIds.has(fallbackId) || mergedBlockedIds.has(fallbackId)) {
@@ -308,15 +318,13 @@ export async function loadContactList(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
 ) {
-  store.setContactsLoading(true);
   try {
     const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError);
     const mergedSnapshot = mergeWithLocalContacts(snapshot);
-    store.setContacts(mergedSnapshot);
+    updateCachedContacts(mergedSnapshot);
     return mergedSnapshot;
   } catch (error) {
     emitDataSyncError('load-contacts', error);
-    store.setContactsLoading(false);
     throw error;
   }
 }
@@ -325,15 +333,13 @@ export async function loadSocialSnapshot(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
 ): Promise<MergedSocialContactSnapshot> {
-  store.setContactsLoading(true);
   try {
     const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError);
     const mergedSnapshot = mergeWithLocalContacts(snapshot);
-    store.setContacts(mergedSnapshot);
+    updateCachedContacts(mergedSnapshot);
     return mergedSnapshot;
   } catch (error) {
     emitDataSyncError('load-social-snapshot', error);
-    store.setContactsLoading(false);
     throw error;
   }
 }
@@ -439,26 +445,26 @@ export async function blockUser(
   }
   const isTestUser = contactId.startsWith('test-');
 
-  // 对于测试用户，直接从本地好友列表中移除
   if (isTestUser) {
-    const currentFriends = store.getState<Array<Record<string, unknown>>>('contacts.friends') || [];
-    const updatedFriends = currentFriends.filter((f) => String(f.id) !== contactId);
-    store.setContacts({
+    const cached = getCachedContacts();
+    const updatedFriends = cached.friends.filter((f) => String(f.id) !== contactId);
+    updateCachedContacts({
+      ...cached,
       friends: updatedFriends,
-      agents: store.getState<Array<Record<string, unknown>>>('contacts.agents') || [],
-      pendingReceived: store.getState<Array<Record<string, unknown>>>('contacts.pendingReceived') || [],
-      pendingSent: store.getState<Array<Record<string, unknown>>>('contacts.pendingSent') || [],
-      blocked: store.getState<Array<Record<string, unknown>>>('contacts.blocked') || [],
+      blocked: [...cached.blocked, contact],
     });
   } else {
     await callApi(
       (realm) => realm.services.MeService.blockUser(contactId),
       '拉黑用户失败',
     );
+    const cached = getCachedContacts();
+    updateCachedContacts({
+      ...cached,
+      blocked: [...cached.blocked, contact],
+    });
   }
 
-  // 添加到拉黑列表
-  store.addBlockedContact(contact);
   await reloadContacts();
   return { id: contactId };
 }
@@ -475,47 +481,41 @@ export async function unblockUser(
   const isTestUser = contactId.startsWith('test-');
 
   if (isTestUser) {
-    // 对于测试用户，直接从拉黑列表移除并回填到本地好友列表
-    store.removeBlockedContact(contactId);
-
-    // 对于测试用户，直接添加到本地好友列表
-    const currentFriends = store.getState<Array<Record<string, unknown>>>('contacts.friends') || [];
-    store.setContacts({
-      friends: [...currentFriends, contact],
-      agents: store.getState<Array<Record<string, unknown>>>('contacts.agents') || [],
-      pendingReceived: store.getState<Array<Record<string, unknown>>>('contacts.pendingReceived') || [],
-      pendingSent: store.getState<Array<Record<string, unknown>>>('contacts.pendingSent') || [],
-      blocked: store.getState<Array<Record<string, unknown>>>('contacts.blocked') || [],
+    const cached = getCachedContacts();
+    updateCachedContacts({
+      ...cached,
+      friends: [...cached.friends, contact],
+      blocked: cached.blocked.filter((b) => String(b.id) !== contactId),
     });
   } else {
     await callApi(
       (realm) => realm.services.MeService.unblockUser(contactId),
       '取消拉黑失败',
     );
-    store.removeBlockedContact(contactId);
-
-    // 兼容历史本地 block 流程：后端关系可能仍为非 ACTIVE，短期回填以保证列表立即可见
-    const currentFriends = store.getState<Array<Record<string, unknown>>>('contacts.friends') || [];
-    const hasFriend = currentFriends.some((friend) => String(friend.id || '') === contactId);
+    const cached = getCachedContacts();
+    const updatedBlocked = cached.blocked.filter((b) => String(b.id) !== contactId);
+    const hasFriend = cached.friends.some((friend) => String(friend.id || '') === contactId);
     if (!hasFriend) {
       const fallbackContact = {
         ...contact,
         __localFallbackUntil: Date.now() + 2 * 60 * 1000,
       };
-      store.setContacts({
-        friends: [...currentFriends, fallbackContact],
-        agents: store.getState<Array<Record<string, unknown>>>('contacts.agents') || [],
-        pendingReceived: store.getState<Array<Record<string, unknown>>>('contacts.pendingReceived') || [],
-        pendingSent: store.getState<Array<Record<string, unknown>>>('contacts.pendingSent') || [],
-        blocked: store.getState<Array<Record<string, unknown>>>('contacts.blocked') || [],
+      updateCachedContacts({
+        ...cached,
+        friends: [...cached.friends, fallbackContact],
+        blocked: updatedBlocked,
       });
 
-      // 尝试恢复好友关系（兼容旧版本“block 会 remove friend”的历史数据）
       try {
         await addFriendById(callApi, contactId);
       } catch {
-        // 可能受对方隐私策略限制，保持前端短期回填，等待用户后续手动处理
+        // May be restricted by privacy policy; keep short-term fallback
       }
+    } else {
+      updateCachedContacts({
+        ...cached,
+        blocked: updatedBlocked,
+      });
     }
   }
 
