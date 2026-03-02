@@ -3,33 +3,10 @@ import { createScopeModule, type ScopeModule } from '../scope/index.js';
 import { ReasonCode, type NimiError } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
 import {
-  FallbackPolicy,
-  FinishReason,
-  MediaJobEventType,
-  MediaJobStatus,
-  Modal,
   RoutePolicy,
-  type ArtifactChunk,
-  type CancelMediaJobRequest,
-  type GenerateRequest,
-  type GenerateResponse,
-  type GetMediaArtifactsResponse,
-  type GetSpeechVoicesRequest,
-  type GetSpeechVoicesResponse,
-  type MediaJob,
-  type MediaJobEvent,
-  type SpeechVoiceDescriptor,
-  type StreamGenerateEvent,
-  type StreamSpeechSynthesisRequest,
-  type SubmitMediaJobRequest,
 } from './generated/runtime/v1/ai';
-import {
-  WorkflowEventType,
-  type WorkflowEvent,
-} from './generated/runtime/v1/workflow';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit';
-import { Struct } from './generated/google/protobuf/struct.js';
-import { RuntimeMethodIds, isRuntimeStreamMethod } from './method-ids.js';
+import { RuntimeMethodIds } from './method-ids.js';
 import { createRuntimeClient } from './core/client.js';
 import type {
   RuntimeAppAuthClient,
@@ -47,420 +24,61 @@ import type {
   RuntimeWorkflowClient,
 } from './types.js';
 import type {
-  EmbeddingGenerateInput,
-  EmbeddingGenerateOutput,
-  ImageGenerateInput,
-  ImageGenerateOutput,
-  MediaJobSubmitInput,
-  NimiFallbackPolicy,
-  NimiFinishReason,
-  NimiRoutePolicy,
-  NimiTokenUsage,
-  NimiTraceInfo,
   RuntimeAiModule,
   RuntimeConnectionMode,
   RuntimeConnectionState,
   RuntimeEventPayloadMap,
-  RuntimeEventsModule,
   RuntimeHealth,
   RuntimeMediaModule,
   RuntimeMethod,
   RuntimeOptions,
   RuntimeRawModule,
   RuntimeScopeModule,
-  SpeechListVoicesInput,
-  SpeechListVoicesOutput,
-  SpeechStreamSynthesisInput,
-  SpeechSynthesizeInput,
-  SpeechSynthesizeOutput,
-  SpeechTranscribeInput,
-  SpeechTranscribeOutput,
-  TextGenerateInput,
-  TextGenerateOutput,
-  TextMessage,
-  TextStreamInput,
-  TextStreamOutput,
-  VideoGenerateInput,
-  VideoGenerateOutput,
+  RuntimeEventsModule,
 } from './types.js';
-
-type RuntimeMethodLookupEntry = {
-  moduleKey: keyof typeof RuntimeMethodIds;
-  methodKey: string;
-  stream: boolean;
-};
-
-const DEFAULT_WAIT_FOR_READY_TIMEOUT_MS = 10000;
-const DEFAULT_MEDIA_POLL_INTERVAL_MS = 250;
-const DEFAULT_MEDIA_TIMEOUT_MS = 120000;
-const DEFAULT_RETRY_MAX_ATTEMPTS = 3;
-const DEFAULT_RETRY_BACKOFF_MS = 200;
-const MAX_RETRY_BACKOFF_MS = 3000;
-
-const SDK_RUNTIME_MAJOR_VERSION = 0;
-
-const PHASE2_MODULE_KEYS: ReadonlySet<string> = new Set([
-  'workflow',
-  'model',
-  'knowledge',
-  'app',
-  'scriptWorker',
-]);
-
-const PHASE2_AUDIT_METHOD_IDS: ReadonlySet<string> = new Set([
-  RuntimeMethodIds.audit.listAuditEvents,
-  RuntimeMethodIds.audit.exportAuditEvents,
-  RuntimeMethodIds.audit.listUsageStats,
-]);
-
-function parseSemverMajor(version: string): number | null {
-  const match = /^v?(\d+)/.exec(version);
-  return match ? Number(match[1]) : null;
-}
-
-const RETRYABLE_RUNTIME_REASON_CODES: ReadonlySet<string> = new Set([
-  ReasonCode.RUNTIME_UNAVAILABLE,
-  ReasonCode.RUNTIME_BRIDGE_DAEMON_UNAVAILABLE,
-  ReasonCode.SDK_RUNTIME_NODE_GRPC_UNARY_FAILED,
-  ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED,
-  ReasonCode.SDK_RUNTIME_TAURI_UNARY_FAILED,
-  ReasonCode.SDK_RUNTIME_TAURI_STREAM_OPEN_FAILED,
-  ReasonCode.SDK_RUNTIME_TAURI_STREAM_FAILED,
-  ReasonCode.SDK_RUNTIME_TAURI_INVOKE_MISSING,
-  ReasonCode.SDK_RUNTIME_TAURI_LISTEN_MISSING,
-]);
-
-const RUNTIME_METHOD_LOOKUP: Readonly<Record<string, RuntimeMethodLookupEntry>> = buildRuntimeMethodLookup();
-
-function buildRuntimeMethodLookup(): Readonly<Record<string, RuntimeMethodLookupEntry>> {
-  const lookup: Record<string, RuntimeMethodLookupEntry> = {};
-  const groups = Object.entries(RuntimeMethodIds) as Array<
-    [keyof typeof RuntimeMethodIds, Record<string, string>]
-  >;
-
-  for (const [moduleKey, methods] of groups) {
-    for (const [methodKey, methodId] of Object.entries(methods)) {
-      lookup[methodId] = {
-        moduleKey,
-        methodKey,
-        stream: isRuntimeStreamMethod(methodId),
-      };
-    }
-  }
-
-  return Object.freeze(lookup);
-}
-
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
-
-function ensureText(value: unknown, fieldName: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw createNimiError({
-      message: `${fieldName} is required`,
-      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-      actionHint: `set_${fieldName}`,
-      source: 'sdk',
-    });
-  }
-  return normalized;
-}
-
-function toRoutePolicy(value: NimiRoutePolicy | undefined): RoutePolicy {
-  return value === 'token-api' ? RoutePolicy.TOKEN_API : RoutePolicy.LOCAL_RUNTIME;
-}
-
-function fromRoutePolicy(value: RoutePolicy): NimiRoutePolicy {
-  return value === RoutePolicy.TOKEN_API ? 'token-api' : 'local-runtime';
-}
-
-function toFallbackPolicy(value: NimiFallbackPolicy | undefined): FallbackPolicy {
-  return value === 'allow' ? FallbackPolicy.ALLOW : FallbackPolicy.DENY;
-}
-
-function toFinishReason(value: FinishReason): NimiFinishReason {
-  switch (value) {
-    case FinishReason.LENGTH:
-      return 'length';
-    case FinishReason.CONTENT_FILTER:
-      return 'content-filter';
-    case FinishReason.TOOL_CALL:
-      return 'tool-calls';
-    case FinishReason.ERROR:
-      return 'error';
-    case FinishReason.STOP:
-    default:
-      return 'stop';
-  }
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
-
-function parseCount(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
-    return value;
-  }
-  const parsed = Number(value);
-  if (Number.isFinite(parsed) && parsed >= 0) {
-    return parsed;
-  }
-  return undefined;
-}
-
-function toUsage(value: unknown): NimiTokenUsage {
-  const usage = asRecord(value);
-  const inputTokens = parseCount(usage.inputTokens);
-  const outputTokens = parseCount(usage.outputTokens);
-  const totalTokens = typeof inputTokens === 'number' && typeof outputTokens === 'number'
-    ? inputTokens + outputTokens
-    : undefined;
-
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens,
-  };
-}
-
-function toTraceInfo(input: {
-  traceId?: unknown;
-  modelResolved?: unknown;
-  routeDecision?: unknown;
-}): NimiTraceInfo {
-  return {
-    traceId: normalizeText(input.traceId) || undefined,
-    modelResolved: normalizeText(input.modelResolved) || undefined,
-    routeDecision: Number(input.routeDecision) === RoutePolicy.TOKEN_API ? 'token-api' : 'local-runtime',
-  };
-}
-
-function extractGenerateText(output: GenerateResponse['output']): string {
-  const fields = asRecord(asRecord(output).fields);
-  const text = asRecord(fields.text);
-  const kind = asRecord(text.kind);
-
-  if (kind.oneofKind === 'stringValue') {
-    return normalizeText(kind.stringValue);
-  }
-  if (typeof text.stringValue === 'string') {
-    return normalizeText(text.stringValue);
-  }
-  return '';
-}
-
-function toRuntimeMessages(input: string | TextMessage[], system?: string): {
-  systemPrompt: string;
-  input: Array<{ role: string; content: string; name: string }>;
-} {
-  if (typeof input === 'string') {
-    const content = normalizeText(input);
-    if (!content) {
-      throw createNimiError({
-        message: 'text input is required',
-        reasonCode: ReasonCode.AI_INPUT_INVALID,
-        actionHint: 'set_text_input',
-        source: 'sdk',
-      });
-    }
-    return {
-      systemPrompt: normalizeText(system),
-      input: [{ role: 'user', content, name: '' }],
-    };
-  }
-
-  const systemParts: string[] = [];
-  const messages: Array<{ role: string; content: string; name: string }> = [];
-
-  if (Array.isArray(input)) {
-    for (const message of input) {
-      const content = normalizeText(message.content);
-      if (!content) {
-        continue;
-      }
-      if (message.role === 'system') {
-        systemParts.push(content);
-        continue;
-      }
-      messages.push({
-        role: message.role,
-        content,
-        name: normalizeText(message.name),
-      });
-    }
-  }
-
-  const explicitSystem = normalizeText(system);
-  if (explicitSystem) {
-    systemParts.push(explicitSystem);
-  }
-
-  if (messages.length === 0) {
-    throw createNimiError({
-      message: 'text input must include at least one non-system message',
-      reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint: 'add_user_or_assistant_message',
-      source: 'sdk',
-    });
-  }
-
-  return {
-    systemPrompt: systemParts.join('\n\n'),
-    input: messages,
-  };
-}
-
-function toEmbeddingVectors(vectors: unknown): number[][] {
-  const items = Array.isArray(vectors) ? vectors : [];
-  return items.map((entry) => {
-    const values = Array.isArray(asRecord(entry).values)
-      ? asRecord(entry).values as unknown[]
-      : [];
-    return values
-      .map((value) => {
-        const kind = asRecord(asRecord(value).kind);
-        if (kind.oneofKind === 'numberValue') {
-          const parsed = Number(kind.numberValue);
-          return Number.isFinite(parsed) ? parsed : null;
-        }
-        return null;
-      })
-      .filter((value): value is number => value !== null);
-  });
-}
-
-function toProtoStruct(input: Record<string, unknown> | undefined): Struct | undefined {
-  if (!input || Object.keys(input).length === 0) {
-    return undefined;
-  }
-  try {
-    return Struct.fromJson(input as never);
-  } catch {
-    return undefined;
-  }
-}
-
-function toLabels(input: unknown): Record<string, string> {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) {
-    return {};
-  }
-
-  const labels: Record<string, string> = {};
-  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-    const normalizedKey = normalizeText(key);
-    const normalizedValue = normalizeText(value);
-    if (!normalizedKey || !normalizedValue) {
-      continue;
-    }
-    labels[normalizedKey] = normalizedValue;
-  }
-  return labels;
-}
-
-const MEDIA_JOB_TERMINAL_EVENT_TYPES: ReadonlySet<MediaJobEventType> = new Set([
-  MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED,
-  MediaJobEventType.MEDIA_JOB_EVENT_FAILED,
-  MediaJobEventType.MEDIA_JOB_EVENT_CANCELED,
-  MediaJobEventType.MEDIA_JOB_EVENT_TIMEOUT,
-]);
-
-const WORKFLOW_TERMINAL_EVENT_TYPES: ReadonlySet<WorkflowEventType> = new Set([
-  WorkflowEventType.WORKFLOW_EVENT_COMPLETED,
-  WorkflowEventType.WORKFLOW_EVENT_FAILED,
-  WorkflowEventType.WORKFLOW_EVENT_CANCELED,
-]);
-
-function wrapModeBMediaStream(source: AsyncIterable<MediaJobEvent>): AsyncIterable<MediaJobEvent> {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for await (const event of source) {
-        yield event;
-        if (MEDIA_JOB_TERMINAL_EVENT_TYPES.has(event.eventType)) {
-          return;
-        }
-      }
-    },
-  };
-}
-
-function wrapModeBWorkflowStream(source: AsyncIterable<WorkflowEvent>): AsyncIterable<WorkflowEvent> {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for await (const event of source) {
-        yield event;
-        if (WORKFLOW_TERMINAL_EVENT_TYPES.has(event.eventType)) {
-          return;
-        }
-      }
-    },
-  };
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-function toIsoFromTimestamp(value: unknown): string | undefined {
-  const record = asRecord(value);
-  if (Object.keys(record).length === 0) {
-    return undefined;
-  }
-
-  const secondsRaw = record.seconds;
-  const nanosRaw = record.nanos;
-  const seconds = Number(secondsRaw);
-  const nanos = Number(nanosRaw);
-  if (!Number.isFinite(seconds)) {
-    return undefined;
-  }
-
-  const millis = (seconds * 1000) + (Number.isFinite(nanos) ? Math.floor(nanos / 1_000_000) : 0);
-  const date = new Date(millis);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
-function mediaStatusToString(status: MediaJobStatus): string {
-  switch (status) {
-    case MediaJobStatus.SUBMITTED:
-      return 'SUBMITTED';
-    case MediaJobStatus.QUEUED:
-      return 'QUEUED';
-    case MediaJobStatus.RUNNING:
-      return 'RUNNING';
-    case MediaJobStatus.COMPLETED:
-      return 'COMPLETED';
-    case MediaJobStatus.FAILED:
-      return 'FAILED';
-    case MediaJobStatus.CANCELED:
-      return 'CANCELED';
-    case MediaJobStatus.TIMEOUT:
-      return 'TIMEOUT';
-    default:
-      return 'UNSPECIFIED';
-  }
-}
-
-function resolveHealthStatus(status: RuntimeHealthStatus): RuntimeHealth['status'] {
-  if (status === RuntimeHealthStatus.READY) {
-    return 'healthy';
-  }
-  if (status === RuntimeHealthStatus.DEGRADED) {
-    return 'degraded';
-  }
-  return 'unavailable';
-}
+import type { RuntimeInternalContext } from './internal-context.js';
+import {
+  DEFAULT_RETRY_BACKOFF_MS,
+  DEFAULT_RETRY_MAX_ATTEMPTS,
+  DEFAULT_WAIT_FOR_READY_TIMEOUT_MS,
+  MAX_RETRY_BACKOFF_MS,
+  PHASE2_AUDIT_METHOD_IDS,
+  PHASE2_MODULE_KEYS,
+  RETRYABLE_RUNTIME_REASON_CODES,
+  RUNTIME_METHOD_LOOKUP,
+  SDK_RUNTIME_MAJOR_VERSION,
+  normalizeText,
+  nowIso,
+  parseSemverMajor,
+  resolveHealthStatus,
+  sleep,
+  toIsoFromTimestamp,
+  wrapModeBMediaStream,
+  wrapModeBWorkflowStream,
+} from './helpers.js';
+import {
+  runtimeGenerateText,
+  runtimeStreamText,
+  runtimeGenerateEmbedding,
+} from './runtime-ai-text.js';
+import {
+  runtimeSubmitMediaJob,
+  runtimeGetMediaJob,
+  runtimeCancelMediaJob,
+  runtimeSubscribeMediaJob,
+  runtimeGetMediaArtifacts,
+} from './runtime-media.js';
+import {
+  runtimeGenerateImage,
+  runtimeGenerateVideo,
+  runtimeSynthesizeSpeech,
+  runtimeTranscribeSpeech,
+  runtimeStreamImage,
+  runtimeStreamVideo,
+  runtimeStreamSpeech,
+  runtimeListSpeechVoices,
+  runtimeStreamSpeechSynthesis,
+} from './runtime-modality.js';
 
 export class Runtime {
   readonly appId: string;
@@ -528,6 +146,8 @@ export class Runtime {
 
   readonly #eventBus = createEventBus<RuntimeEventPayloadMap>();
 
+  readonly #ctx: RuntimeInternalContext;
+
   constructor(options: RuntimeOptions) {
     const normalizedAppId = normalizeText(options.appId);
     if (!normalizedAppId) {
@@ -572,6 +192,17 @@ export class Runtime {
     };
 
     this.#scopeModule = createScopeModule({ appId: this.appId });
+
+    this.#ctx = {
+      appId: this.appId,
+      options: this.#options,
+      invoke: (op) => this.#invoke(op),
+      invokeWithClient: (op) => this.#invokeWithClient(op),
+      resolveRuntimeCallOptions: (input) => this.#resolveRuntimeCallOptions(input),
+      resolveRuntimeStreamOptions: (input) => this.#resolveRuntimeStreamOptions(input),
+      resolveSubjectUserId: (explicit) => this.#resolveSubjectUserId(explicit),
+      emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
+    };
 
     this.events = {
       on: (name, handler) => this.#eventBus.on(name, handler),
@@ -687,6 +318,8 @@ export class Runtime {
       list: async (input) => this.#invoke(async () => this.#scopeModule.listCatalog(input)),
     };
 
+    const ctx = this.#ctx;
+
     this.ai = {
       generate: async (request, optionsValue) => this.#invokeWithClient(
         async (client) => client.ai.generate(request, optionsValue),
@@ -716,38 +349,38 @@ export class Runtime {
         async (client) => client.ai.getMediaResult(request, optionsValue),
       ),
       text: {
-        generate: async (input) => this.#generateText(input),
-        stream: async (input) => this.#streamText(input),
+        generate: async (input) => runtimeGenerateText(ctx, input),
+        stream: async (input) => runtimeStreamText(ctx, input),
       },
       embedding: {
-        generate: async (input) => this.#generateEmbedding(input),
+        generate: async (input) => runtimeGenerateEmbedding(ctx, input),
       },
     };
 
     this.media = {
       image: {
-        generate: async (input) => this.#generateImage(input),
-        stream: async (input) => this.#streamImage(input),
+        generate: async (input) => runtimeGenerateImage(ctx, input),
+        stream: async (input) => runtimeStreamImage(ctx, input),
       },
       video: {
-        generate: async (input) => this.#generateVideo(input),
-        stream: async (input) => this.#streamVideo(input),
+        generate: async (input) => runtimeGenerateVideo(ctx, input),
+        stream: async (input) => runtimeStreamVideo(ctx, input),
       },
       tts: {
-        synthesize: async (input) => this.#synthesizeSpeech(input),
-        stream: async (input) => this.#streamSpeech(input),
-        listVoices: async (input) => this.#listSpeechVoices(input),
-        streamSynthesis: (input) => this.#streamSpeechSynthesis(input),
+        synthesize: async (input) => runtimeSynthesizeSpeech(ctx, input),
+        stream: async (input) => runtimeStreamSpeech(ctx, input),
+        listVoices: async (input) => runtimeListSpeechVoices(ctx, input),
+        streamSynthesis: (input) => runtimeStreamSpeechSynthesis(ctx, input),
       },
       stt: {
-        transcribe: async (input) => this.#transcribeSpeech(input),
+        transcribe: async (input) => runtimeTranscribeSpeech(ctx, input),
       },
       jobs: {
-        submit: async (input) => this.#submitMediaJob(input),
-        get: async (jobId) => this.#getMediaJob(jobId),
-        cancel: async (input) => this.#cancelMediaJob(input),
-        subscribe: async (jobId) => this.#subscribeMediaJob(jobId),
-        getArtifacts: async (jobId) => this.#getMediaArtifacts(jobId),
+        submit: async (input) => runtimeSubmitMediaJob(ctx, input),
+        get: async (jobId) => runtimeGetMediaJob(ctx, jobId),
+        cancel: async (input) => runtimeCancelMediaJob(ctx, input),
+        subscribe: async (jobId) => runtimeSubscribeMediaJob(ctx, jobId),
+        getArtifacts: async (jobId) => runtimeGetMediaArtifacts(ctx, jobId),
       },
     };
 
@@ -885,6 +518,8 @@ export class Runtime {
     const methodId = typeof method === 'string' ? method : method.methodId;
     return this.raw.call<TReq, TRes>(methodId, input, options);
   }
+
+  // ── Private infrastructure methods ──────────────────────────────────
 
   #resolveReadyTimeout(timeoutMs?: number): number {
     if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
@@ -1349,208 +984,6 @@ export class Runtime {
     });
   }
 
-  async #generateText(input: TextGenerateInput): Promise<TextGenerateOutput> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const prompt = toRuntimeMessages(input.input, input.system);
-    const request: GenerateRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      modal: Modal.TEXT,
-      input: prompt.input,
-      systemPrompt: prompt.systemPrompt,
-      tools: [],
-      temperature: Number(input.temperature || 0),
-      topP: Number(input.topP || 0),
-      maxTokens: Number(input.maxTokens || 0),
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-      connectorId: '',
-    };
-
-    const response = await this.#invokeWithClient(async (client) => client.ai.generate(
-      request,
-      this.#resolveRuntimeCallOptions({
-        timeoutMs: input.timeoutMs,
-        metadata: input.metadata,
-      }),
-    ));
-
-    const trace = toTraceInfo({
-      traceId: response.traceId,
-      modelResolved: response.modelResolved,
-      routeDecision: response.routeDecision,
-    });
-
-    this.#emitTelemetry('ai.route.decision', {
-      route: trace.routeDecision || 'local-runtime',
-      model: request.modelId,
-      traceId: trace.traceId,
-    });
-
-    return {
-      text: extractGenerateText(response.output),
-      finishReason: toFinishReason(response.finishReason),
-      usage: toUsage(response.usage),
-      trace,
-    };
-  }
-
-  async #streamText(input: TextStreamInput): Promise<TextStreamOutput> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const prompt = toRuntimeMessages(input.input, input.system);
-
-    const stream = await this.#invokeWithClient(async (client) => client.ai.streamGenerate(
-      {
-        appId: this.appId,
-        subjectUserId,
-        modelId: ensureText(input.model, 'model'),
-        modal: Modal.TEXT,
-        input: prompt.input,
-        systemPrompt: prompt.systemPrompt,
-        tools: [],
-        temperature: Number(input.temperature || 0),
-        topP: Number(input.topP || 0),
-        maxTokens: Number(input.maxTokens || 0),
-        routePolicy: toRoutePolicy(input.route),
-        fallback: toFallbackPolicy(input.fallback),
-        timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-        connectorId: '',
-      },
-      this.#resolveRuntimeStreamOptions({
-        timeoutMs: input.timeoutMs,
-        metadata: input.metadata,
-        signal: input.signal,
-      }),
-    ));
-
-    const owner = this;
-    const wrapped: AsyncIterable<TextStreamOutput['stream'] extends AsyncIterable<infer Part> ? Part : never> = {
-      async *[Symbol.asyncIterator]() {
-        let streamModelResolved = '';
-        let streamRouteDecision: RoutePolicy = RoutePolicy.LOCAL_RUNTIME;
-        let streamUsage: unknown = undefined;
-
-        yield { type: 'start' as const };
-        for await (const event of stream) {
-          const payloadKind = normalizeText(asRecord(event.payload).oneofKind);
-
-          if (payloadKind === 'started') {
-            const started = asRecord(asRecord(event.payload).started);
-            streamModelResolved = normalizeText(started.modelResolved);
-            const routeDecision = Number(started.routeDecision);
-            streamRouteDecision = routeDecision === RoutePolicy.TOKEN_API
-              ? RoutePolicy.TOKEN_API
-              : RoutePolicy.LOCAL_RUNTIME;
-            owner.#emitTelemetry('ai.route.decision', {
-              route: fromRoutePolicy(streamRouteDecision),
-              model: streamModelResolved || ensureText(input.model, 'model'),
-              traceId: normalizeText(event.traceId) || undefined,
-            });
-            continue;
-          }
-
-          if (payloadKind === 'delta') {
-            const delta = normalizeText(asRecord(asRecord(event.payload).delta).text);
-            if (delta) {
-              yield { type: 'delta' as const, text: delta };
-            }
-            continue;
-          }
-
-          if (payloadKind === 'usage') {
-            streamUsage = asRecord(asRecord(event.payload).usage);
-            continue;
-          }
-
-          if (payloadKind === 'completed') {
-            const trace = toTraceInfo({
-              traceId: event.traceId,
-              modelResolved: streamModelResolved,
-              routeDecision: streamRouteDecision,
-            });
-            yield {
-              type: 'finish' as const,
-              finishReason: toFinishReason(asRecord(asRecord(event.payload).completed).finishReason as FinishReason),
-              usage: toUsage(streamUsage),
-              trace,
-            };
-            continue;
-          }
-
-          if (payloadKind === 'failed') {
-            const failed = asRecord(asRecord(event.payload).failed);
-            yield {
-              type: 'error' as const,
-              error: createNimiError({
-                message: normalizeText(failed.actionHint) || 'runtime stream failed',
-                reasonCode: normalizeText(failed.reasonCode) || ReasonCode.AI_STREAM_BROKEN,
-                actionHint: 'retry_or_switch_route',
-                source: 'runtime',
-              }),
-            };
-          }
-        }
-      },
-    };
-
-    return {
-      stream: wrapped,
-    };
-  }
-
-  async #generateEmbedding(input: EmbeddingGenerateInput): Promise<EmbeddingGenerateOutput> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const values = Array.isArray(input.input)
-      ? input.input.map((value) => normalizeText(value)).filter((value) => value.length > 0)
-      : [normalizeText(input.input)].filter((value) => value.length > 0);
-
-    if (values.length === 0) {
-      throw createNimiError({
-        message: 'embedding input is required',
-        reasonCode: ReasonCode.AI_INPUT_INVALID,
-        actionHint: 'set_embedding_input',
-        source: 'sdk',
-      });
-    }
-
-    const response = await this.#invokeWithClient(async (client) => client.ai.embed(
-      {
-        appId: this.appId,
-        subjectUserId,
-        modelId: ensureText(input.model, 'model'),
-        inputs: values,
-        routePolicy: toRoutePolicy(input.route),
-        fallback: toFallbackPolicy(input.fallback),
-        timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-        connectorId: '',
-      },
-      this.#resolveRuntimeCallOptions({
-        timeoutMs: input.timeoutMs,
-        metadata: input.metadata,
-      }),
-    ));
-
-    const trace = toTraceInfo({
-      traceId: response.traceId,
-      modelResolved: response.modelResolved,
-      routeDecision: response.routeDecision,
-    });
-
-    this.#emitTelemetry('ai.route.decision', {
-      route: trace.routeDecision || 'local-runtime',
-      model: ensureText(input.model, 'model'),
-      traceId: trace.traceId,
-    });
-
-    return {
-      vectors: toEmbeddingVectors(response.vectors),
-      usage: toUsage(response.usage),
-      trace,
-    };
-  }
-
   async #rawCall<TReq, TRes>(
     methodId: string,
     input: TReq,
@@ -1592,591 +1025,5 @@ export class Runtime {
         callOptions?: RuntimeCallOptions,
       ) => Promise<TRes>)(input, options as RuntimeCallOptions | undefined);
     });
-  }
-
-  async #submitMediaJob(input: MediaJobSubmitInput): Promise<MediaJob> {
-    const request = await this.#buildSubmitMediaJobRequest(input);
-    const metadata = input.input.metadata;
-
-    const response = await this.#invokeWithClient(async (client) => client.ai.submitMediaJob(
-      request,
-      this.#resolveRuntimeCallOptions({
-        timeoutMs: request.timeoutMs,
-        idempotencyKey: request.idempotencyKey,
-        metadata,
-      }),
-    ));
-
-    if (!response.job) {
-      throw createNimiError({
-        message: 'submitMediaJob returned empty job',
-        reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
-        actionHint: 'retry_media_job_request',
-        source: 'runtime',
-      });
-    }
-
-    this.#emitTelemetry('media.job.status', {
-      jobId: response.job.jobId,
-      status: mediaStatusToString(response.job.status),
-      at: nowIso(),
-    });
-
-    return response.job;
-  }
-
-  async #getMediaJob(jobId: string): Promise<MediaJob> {
-    const response = await this.#invokeWithClient(async (client) => client.ai.getMediaJob({
-      jobId: ensureText(jobId, 'jobId'),
-    }));
-
-    if (!response.job) {
-      throw createNimiError({
-        message: `media job not found: ${jobId}`,
-        reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
-        actionHint: 'check_job_id_or_retry_submit',
-        source: 'runtime',
-      });
-    }
-
-    return response.job;
-  }
-
-  async #cancelMediaJob(input: { jobId: string; reason?: string }): Promise<MediaJob> {
-    const request: CancelMediaJobRequest = {
-      jobId: ensureText(input.jobId, 'jobId'),
-      reason: normalizeText(input.reason),
-    };
-
-    const response = await this.#invokeWithClient(async (client) => client.ai.cancelMediaJob(request));
-    if (!response.job) {
-      throw createNimiError({
-        message: `cancelMediaJob returned empty job: ${request.jobId}`,
-        reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
-        actionHint: 'retry_or_check_job_status',
-        source: 'runtime',
-      });
-    }
-
-    this.#emitTelemetry('media.job.status', {
-      jobId: response.job.jobId,
-      status: mediaStatusToString(response.job.status),
-      at: nowIso(),
-    });
-
-    return response.job;
-  }
-
-  async #subscribeMediaJob(jobId: string): Promise<AsyncIterable<import('./generated/runtime/v1/ai').MediaJobEvent>> {
-    const raw = await this.#invokeWithClient(async (client) => client.ai.subscribeMediaJobEvents({
-      jobId: ensureText(jobId, 'jobId'),
-    }));
-    return wrapModeBMediaStream(raw);
-  }
-
-  async #getMediaArtifacts(jobId: string): Promise<{ artifacts: import('./generated/runtime/v1/ai').MediaArtifact[]; traceId?: string }> {
-    const response = await this.#invokeWithClient(async (client) => client.ai.getMediaResult({
-      jobId: ensureText(jobId, 'jobId'),
-    }));
-
-    return {
-      artifacts: response.artifacts,
-      traceId: normalizeText(response.traceId) || undefined,
-    };
-  }
-
-  async #buildSubmitMediaJobRequest(input: MediaJobSubmitInput): Promise<SubmitMediaJobRequest> {
-    const timeoutMs = Number(
-      (input.input as { timeoutMs?: unknown }).timeoutMs || this.#options.timeoutMs || 0,
-    );
-    const route = toRoutePolicy((input.input as { route?: NimiRoutePolicy }).route);
-    const fallback = toFallbackPolicy((input.input as { fallback?: NimiFallbackPolicy }).fallback);
-
-    const subjectUserId = await this.#resolveSubjectUserId(
-      (input.input as { subjectUserId?: string }).subjectUserId,
-    );
-
-    const base: SubmitMediaJobRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText((input.input as { model: string }).model, 'model'),
-      modal: Modal.UNSPECIFIED,
-      routePolicy: route,
-      fallback,
-      timeoutMs,
-      requestId: normalizeText((input.input as { requestId?: string }).requestId),
-      idempotencyKey: normalizeText((input.input as { idempotencyKey?: string }).idempotencyKey),
-      labels: toLabels((input.input as { labels?: Record<string, string> }).labels),
-      spec: { oneofKind: undefined },
-      connectorId: normalizeText((input.input as { connectorId?: string }).connectorId),
-    };
-
-    if (input.modal === 'image') {
-      const value = input.input as ImageGenerateInput;
-      return {
-        ...base,
-        modal: Modal.IMAGE,
-        spec: {
-          oneofKind: 'imageSpec',
-          imageSpec: {
-            prompt: normalizeText(value.prompt),
-            negativePrompt: normalizeText(value.negativePrompt),
-            n: Number(value.n || 0),
-            size: normalizeText(value.size),
-            aspectRatio: normalizeText(value.aspectRatio),
-            quality: normalizeText(value.quality),
-            style: normalizeText(value.style),
-            seed: String(value.seed || 0),
-            referenceImages: Array.isArray(value.referenceImages) ? value.referenceImages : [],
-            providerOptions: toProtoStruct(value.providerOptions),
-            mask: normalizeText(value.mask),
-            responseFormat: normalizeText(value.responseFormat),
-          },
-        },
-      };
-    }
-
-    if (input.modal === 'video') {
-      const value = input.input as VideoGenerateInput;
-      return {
-        ...base,
-        modal: Modal.VIDEO,
-        spec: {
-          oneofKind: 'videoSpec',
-          videoSpec: {
-            prompt: normalizeText(value.prompt),
-            negativePrompt: normalizeText(value.negativePrompt),
-            durationSec: Number(value.durationSec || 0),
-            fps: Number(value.fps || 0),
-            resolution: normalizeText(value.resolution),
-            aspectRatio: normalizeText(value.aspectRatio),
-            seed: String(value.seed || 0),
-            firstFrameUri: normalizeText(value.firstFrameUri),
-            lastFrameUri: normalizeText(value.lastFrameUri),
-            cameraMotion: normalizeText(value.cameraMotion),
-            providerOptions: toProtoStruct(value.providerOptions),
-          },
-        },
-      };
-    }
-
-    if (input.modal === 'tts') {
-      const value = input.input as SpeechSynthesizeInput;
-      return {
-        ...base,
-        modal: Modal.TTS,
-        spec: {
-          oneofKind: 'speechSpec',
-          speechSpec: {
-            text: normalizeText(value.text),
-            voice: normalizeText(value.voice),
-            language: normalizeText(value.language),
-            audioFormat: normalizeText(value.audioFormat),
-            sampleRateHz: Number(value.sampleRateHz || 0),
-            speed: Number(value.speed || 0),
-            pitch: Number(value.pitch || 0),
-            volume: Number(value.volume || 0),
-            emotion: normalizeText(value.emotion),
-            providerOptions: toProtoStruct(value.providerOptions),
-          },
-        },
-      };
-    }
-
-    const value = input.input as SpeechTranscribeInput;
-    const audioSource = value.audio.kind === 'bytes'
-      ? {
-        source: {
-          oneofKind: 'audioBytes' as const,
-          audioBytes: value.audio.bytes,
-        },
-      }
-      : value.audio.kind === 'url'
-        ? {
-          source: {
-            oneofKind: 'audioUri' as const,
-            audioUri: normalizeText(value.audio.url),
-          },
-        }
-        : {
-          source: {
-            oneofKind: 'audioChunks' as const,
-            audioChunks: {
-              chunks: value.audio.chunks,
-            },
-          },
-        };
-
-    return {
-      ...base,
-      modal: Modal.STT,
-      spec: {
-        oneofKind: 'transcriptionSpec',
-        transcriptionSpec: {
-          audioBytes: value.audio.kind === 'bytes' ? value.audio.bytes : new Uint8Array(0),
-          audioUri: value.audio.kind === 'url' ? normalizeText(value.audio.url) : '',
-          mimeType: normalizeText(value.mimeType || 'audio/wav'),
-          language: normalizeText(value.language),
-          timestamps: Boolean(value.timestamps),
-          diarization: Boolean(value.diarization),
-          speakerCount: Number(value.speakerCount || 0),
-          prompt: normalizeText(value.prompt),
-          audioSource,
-          responseFormat: normalizeText(value.responseFormat),
-          providerOptions: toProtoStruct(value.providerOptions),
-        },
-      },
-    };
-  }
-
-  async #waitForMediaJobCompletion(
-    jobId: string,
-    input: {
-      timeoutMs?: number;
-      signal?: AbortSignal;
-    },
-  ): Promise<MediaJob> {
-    const timeoutMs = Number(input.timeoutMs || this.#options.timeoutMs || DEFAULT_MEDIA_TIMEOUT_MS)
-      || DEFAULT_MEDIA_TIMEOUT_MS;
-    const startedAt = Date.now();
-
-    let cancelRequested = false;
-
-    const cancel = async (reason: string): Promise<void> => {
-      if (cancelRequested) {
-        return;
-      }
-      cancelRequested = true;
-      try {
-        await this.#cancelMediaJob({
-          jobId,
-          reason,
-        });
-      } catch {
-        // best effort cancellation
-      }
-    };
-
-    while (true) {
-      if (input.signal?.aborted) {
-        await cancel('aborted_by_abort_signal');
-        throw createNimiError({
-          message: 'media job aborted',
-          reasonCode: ReasonCode.OPERATION_ABORTED,
-          actionHint: 'retry_media_job_request',
-          source: 'runtime',
-        });
-      }
-
-      const job = await this.#getMediaJob(jobId);
-
-      this.#emitTelemetry('media.job.status', {
-        jobId,
-        status: mediaStatusToString(job.status),
-        at: nowIso(),
-      });
-
-      if (job.status === MediaJobStatus.COMPLETED) {
-        return job;
-      }
-
-      if (
-        job.status === MediaJobStatus.FAILED
-        || job.status === MediaJobStatus.CANCELED
-        || job.status === MediaJobStatus.TIMEOUT
-      ) {
-        throw createNimiError({
-          message: normalizeText(job.reasonDetail) || `media job failed: ${job.reasonCode}`,
-          reasonCode: normalizeText(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE,
-          actionHint: 'retry_media_job_request',
-          source: 'runtime',
-        });
-      }
-
-      if ((Date.now() - startedAt) > timeoutMs) {
-        await cancel('aborted_by_sdk_timeout');
-        throw createNimiError({
-          message: 'media job timeout',
-          reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-          actionHint: 'retry_media_job_request',
-          source: 'runtime',
-        });
-      }
-
-      await sleep(DEFAULT_MEDIA_POLL_INTERVAL_MS);
-    }
-  }
-
-  async #generateImage(input: ImageGenerateInput): Promise<ImageGenerateOutput> {
-    const submitted = await this.#submitMediaJob({
-      modal: 'image',
-      input,
-    });
-
-    const job = await this.#waitForMediaJobCompletion(submitted.jobId, {
-      timeoutMs: input.timeoutMs,
-      signal: input.signal,
-    });
-    const artifacts = await this.#getMediaArtifacts(job.jobId);
-
-    const trace = toTraceInfo({
-      traceId: artifacts.traceId || job.traceId,
-      modelResolved: job.modelResolved,
-      routeDecision: job.routeDecision,
-    });
-
-    return {
-      job,
-      artifacts: artifacts.artifacts,
-      trace,
-    };
-  }
-
-  async #generateVideo(input: VideoGenerateInput): Promise<VideoGenerateOutput> {
-    const submitted = await this.#submitMediaJob({
-      modal: 'video',
-      input,
-    });
-
-    const job = await this.#waitForMediaJobCompletion(submitted.jobId, {
-      timeoutMs: input.timeoutMs,
-      signal: input.signal,
-    });
-    const artifacts = await this.#getMediaArtifacts(job.jobId);
-
-    const trace = toTraceInfo({
-      traceId: artifacts.traceId || job.traceId,
-      modelResolved: job.modelResolved,
-      routeDecision: job.routeDecision,
-    });
-
-    return {
-      job,
-      artifacts: artifacts.artifacts,
-      trace,
-    };
-  }
-
-  async #synthesizeSpeech(input: SpeechSynthesizeInput): Promise<SpeechSynthesizeOutput> {
-    const submitted = await this.#submitMediaJob({
-      modal: 'tts',
-      input,
-    });
-
-    const job = await this.#waitForMediaJobCompletion(submitted.jobId, {
-      timeoutMs: input.timeoutMs,
-      signal: input.signal,
-    });
-    const artifacts = await this.#getMediaArtifacts(job.jobId);
-
-    const trace = toTraceInfo({
-      traceId: artifacts.traceId || job.traceId,
-      modelResolved: job.modelResolved,
-      routeDecision: job.routeDecision,
-    });
-
-    return {
-      job,
-      artifacts: artifacts.artifacts,
-      trace,
-    };
-  }
-
-  async #transcribeSpeech(input: SpeechTranscribeInput): Promise<SpeechTranscribeOutput> {
-    const submitted = await this.#submitMediaJob({
-      modal: 'stt',
-      input,
-    });
-
-    const job = await this.#waitForMediaJobCompletion(submitted.jobId, {
-      timeoutMs: input.timeoutMs,
-      signal: input.signal,
-    });
-
-    const artifacts = await this.#getMediaArtifacts(job.jobId);
-    const first = artifacts.artifacts[0];
-    const text = first ? this.#decodeUtf8(first.bytes) : '';
-
-    const trace = toTraceInfo({
-      traceId: artifacts.traceId || job.traceId,
-      modelResolved: job.modelResolved,
-      routeDecision: job.routeDecision,
-    });
-
-    return {
-      job,
-      text,
-      trace,
-    };
-  }
-
-  async #streamImage(input: ImageGenerateInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const output = await this.#generateImage(input);
-    return this.#streamArtifactsFromMediaOutput(output);
-  }
-
-  async #streamVideo(input: VideoGenerateInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const output = await this.#generateVideo(input);
-    return this.#streamArtifactsFromMediaOutput(output);
-  }
-
-  async #streamSpeech(input: SpeechSynthesizeInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const output = await this.#synthesizeSpeech(input);
-    return this.#streamArtifactsFromMediaOutput(output);
-  }
-
-  async #listSpeechVoices(input: SpeechListVoicesInput): Promise<SpeechListVoicesOutput> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const request: GetSpeechVoicesRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      connectorId: normalizeText(input.connectorId),
-    };
-
-    const response = await this.#invokeWithClient(async (client) => client.ai.getSpeechVoices(
-      request,
-      this.#resolveRuntimeCallOptions({
-        metadata: input.metadata,
-      }),
-    ));
-
-    return {
-      voices: (response.voices || []).map((v: SpeechVoiceDescriptor) => ({
-        voiceId: normalizeText(v.voiceId),
-        name: normalizeText(v.name),
-        lang: normalizeText(v.lang),
-        supportedLangs: v.supportedLangs || [],
-      })),
-      modelResolved: normalizeText(response.modelResolved),
-      traceId: normalizeText(response.traceId),
-    };
-  }
-
-  async #streamSpeechSynthesis(input: SpeechStreamSynthesisInput): Promise<AsyncIterable<ArtifactChunk>> {
-    const subjectUserId = await this.#resolveSubjectUserId(input.subjectUserId);
-    const request: StreamSpeechSynthesisRequest = {
-      appId: this.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      speechSpec: {
-        text: normalizeText(input.text),
-        voice: normalizeText(input.voice),
-        language: normalizeText(input.language),
-        audioFormat: normalizeText(input.audioFormat),
-        sampleRateHz: Number(input.sampleRateHz || 0),
-        speed: Number(input.speed || 0),
-        pitch: Number(input.pitch || 0),
-        volume: Number(input.volume || 0),
-        emotion: normalizeText(input.emotion),
-        providerOptions: toProtoStruct(input.providerOptions),
-      },
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || this.#options.timeoutMs || 0),
-      connectorId: normalizeText(input.connectorId),
-    };
-
-    return this.#invokeWithClient(async (client) => client.ai.synthesizeSpeechStream(
-      request,
-      this.#resolveRuntimeStreamOptions({
-        timeoutMs: input.timeoutMs,
-        metadata: input.metadata,
-      }),
-    ));
-  }
-
-  #streamArtifactsFromMediaOutput(
-    output: {
-      job: MediaJob;
-      artifacts: Array<{
-        artifactId: string;
-        mimeType: string;
-        bytes: Uint8Array;
-      }>;
-      trace: NimiTraceInfo;
-    },
-  ): AsyncIterable<ArtifactChunk> {
-    const chunkSize = 64 * 1024;
-    const routeDecision = output.job.routeDecision || RoutePolicy.UNSPECIFIED;
-    const modelResolved = normalizeText(output.job.modelResolved);
-    const traceId = normalizeText(output.trace.traceId || output.job.traceId);
-    const usage = output.job.usage;
-    const fallbackArtifactId = normalizeText(output.job.jobId);
-    const fallbackMimeType = 'application/octet-stream';
-
-    const sourceArtifacts = output.artifacts.length > 0
-      ? output.artifacts
-      : [
-          {
-            artifactId: fallbackArtifactId,
-            mimeType: fallbackMimeType,
-            bytes: new Uint8Array(0),
-          },
-        ];
-
-    const items = sourceArtifacts.flatMap((artifact) => {
-      const artifactId = normalizeText(artifact.artifactId) || fallbackArtifactId;
-      const mimeType = normalizeText(artifact.mimeType) || fallbackMimeType;
-      const bytes = artifact.bytes ?? new Uint8Array(0);
-      if (bytes.length === 0) {
-        return [{
-          artifactId,
-          mimeType,
-          chunk: new Uint8Array(0),
-        }];
-      }
-
-      const parts: Array<{
-        artifactId: string;
-        mimeType: string;
-        chunk: Uint8Array;
-      }> = [];
-      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-        parts.push({
-          artifactId,
-          mimeType,
-          chunk: bytes.slice(offset, Math.min(bytes.length, offset + chunkSize)),
-        });
-      }
-      return parts;
-    });
-
-    return (async function* (): AsyncIterable<ArtifactChunk> {
-      for (let index = 0; index < items.length; index += 1) {
-        const item = items[index];
-        if (!item) {
-          continue;
-        }
-        const isLastChunk = index === items.length - 1;
-        yield {
-          artifactId: item.artifactId,
-          mimeType: item.mimeType,
-          sequence: String(index),
-          chunk: item.chunk,
-          eof: isLastChunk,
-          usage: isLastChunk ? usage : undefined,
-          routeDecision,
-          modelResolved,
-          traceId,
-        };
-      }
-    }());
-  }
-
-  #decodeUtf8(input: Uint8Array): string {
-    if (typeof Buffer !== 'undefined') {
-      return Buffer.from(input).toString('utf8');
-    }
-    if (typeof TextDecoder !== 'undefined') {
-      return new TextDecoder('utf-8').decode(input);
-    }
-    let output = '';
-    for (let index = 0; index < input.length; index += 1) {
-      output += String.fromCharCode(input[index] || 0);
-    }
-    return output;
   }
 }
