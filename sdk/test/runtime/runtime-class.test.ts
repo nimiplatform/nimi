@@ -19,9 +19,12 @@ import {
   FinishReason,
   GenerateRequest,
   GenerateResponse,
+  MediaJobEventType,
   Modal,
   RoutePolicy,
 } from '../../src/runtime/generated/runtime/v1/ai';
+import { MediaJobEvent } from '../../src/runtime/generated/runtime/v1/ai';
+import { WorkflowEvent, WorkflowEventType } from '../../src/runtime/generated/runtime/v1/workflow';
 import { Timestamp } from '../../src/runtime/generated/google/protobuf/timestamp';
 import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 
@@ -658,6 +661,226 @@ test('OPERATION_ABORTED reasonCode prevents retry even when retryable is true', 
     const nimiError = asNimiError(thrown, { source: 'runtime' });
     assert.equal(nimiError.reasonCode, ReasonCode.OPERATION_ABORTED);
     assert.equal(generateCalls, 1, 'OPERATION_ABORTED must not be retried');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+// --- S-TRANSPORT-005: Version Negotiation ---
+
+test('Runtime version negotiation: incompatible major version throws SDK_RUNTIME_VERSION_INCOMPATIBLE', async () => {
+  installNodeGrpcBridge({
+    invokeUnary: async (config, input) => {
+      if (config._responseMetadataObserver) {
+        config._responseMetadataObserver({ 'x-nimi-runtime-version': '1.0.0' });
+      }
+      return GenerateResponse.toBinary(
+        GenerateResponse.create({
+          output: Struct.fromJson({ text: 'never' } as never),
+          finishReason: FinishReason.STOP,
+          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          modelResolved: 'local/test',
+          traceId: 'trace-version',
+        }),
+      );
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+      authContext: { subjectUserId: 'version-user' },
+    });
+
+    let thrown: unknown = null;
+    try {
+      await runtime.ai.text.generate({ model: 'local/test', input: 'hi' });
+    } catch (error) {
+      thrown = error;
+    }
+    assert.ok(thrown, 'should throw on incompatible major version');
+    const nimiError = asNimiError(thrown, { source: 'sdk' });
+    assert.equal(nimiError.reasonCode, ReasonCode.SDK_RUNTIME_VERSION_INCOMPATIBLE);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Runtime version negotiation: compatible version 0.x.y proceeds normally', async () => {
+  installNodeGrpcBridge({
+    invokeUnary: async (config, input) => {
+      if (config._responseMetadataObserver) {
+        config._responseMetadataObserver({ 'x-nimi-runtime-version': '0.2.0' });
+      }
+      return GenerateResponse.toBinary(
+        GenerateResponse.create({
+          output: Struct.fromJson({ text: 'version-ok' } as never),
+          finishReason: FinishReason.STOP,
+          routeDecision: RoutePolicy.LOCAL_RUNTIME,
+          modelResolved: 'local/test',
+          traceId: 'trace-version-ok',
+        }),
+      );
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+      authContext: { subjectUserId: 'version-user' },
+    });
+
+    const output = await runtime.ai.text.generate({ model: 'local/test', input: 'hi' });
+    assert.equal(output.text, 'version-ok');
+    assert.equal(runtime.runtimeVersion(), '0.2.0');
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+// --- S-TRANSPORT-007: Mode B Terminal State Detection ---
+
+test('Mode B: subscribeMediaJobEvents stops after terminal COMPLETED event', async () => {
+  const events: MediaJobEvent[] = [
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED, sequence: '1' }),
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_RUNNING, sequence: '2' }),
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED, sequence: '3' }),
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED, sequence: '4' }),
+  ];
+
+  installNodeGrpcBridge({
+    invokeUnary: async () => {
+      throw new Error('unexpected unary call');
+    },
+    openStream: async (_config, input) => {
+      const wireEvents = events.map((e) => MediaJobEvent.toBinary(e));
+      return (async function* () {
+        for (const we of wireEvents) {
+          yield we;
+        }
+      })();
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+      authContext: { subjectUserId: 'mode-b-user' },
+    });
+
+    await runtime.connect();
+    const stream = await runtime.ai.subscribeMediaJobEvents({ jobId: 'job-1' });
+    const received: MediaJobEventType[] = [];
+    for await (const event of stream) {
+      received.push(event.eventType);
+    }
+
+    assert.deepEqual(received, [
+      MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED,
+      MediaJobEventType.MEDIA_JOB_EVENT_RUNNING,
+      MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED,
+    ]);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Mode B: subscribeMediaJobEvents stops after FAILED event', async () => {
+  const events: MediaJobEvent[] = [
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_RUNNING, sequence: '1' }),
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_FAILED, sequence: '2' }),
+    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED, sequence: '3' }),
+  ];
+
+  installNodeGrpcBridge({
+    invokeUnary: async () => {
+      throw new Error('unexpected unary call');
+    },
+    openStream: async () => {
+      const wireEvents = events.map((e) => MediaJobEvent.toBinary(e));
+      return (async function* () {
+        for (const we of wireEvents) {
+          yield we;
+        }
+      })();
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+      authContext: { subjectUserId: 'mode-b-user' },
+    });
+
+    await runtime.connect();
+    const stream = await runtime.ai.subscribeMediaJobEvents({ jobId: 'job-2' });
+    const received: MediaJobEventType[] = [];
+    for await (const event of stream) {
+      received.push(event.eventType);
+    }
+
+    assert.deepEqual(received, [
+      MediaJobEventType.MEDIA_JOB_EVENT_RUNNING,
+      MediaJobEventType.MEDIA_JOB_EVENT_FAILED,
+    ]);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+// --- S-ERROR-012: Mode D CANCELLED Handling ---
+
+test('Mode D: healthEvents emits runtime.disconnected on CANCELLED and stops stream', async () => {
+  let disconnectedEvents = 0;
+  let disconnectedReasonCode = '';
+
+  installNodeGrpcBridge({
+    invokeUnary: async () => {
+      throw new Error('unexpected unary call');
+    },
+    openStream: async () => {
+      return (async function* () {
+        yield new Uint8Array(0);
+        throw { reasonCode: ReasonCode.RUNTIME_GRPC_CANCELLED, message: 'stream cancelled by server', retryable: false };
+      })();
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+    });
+
+    runtime.events.on('runtime.disconnected', (event) => {
+      disconnectedEvents += 1;
+      disconnectedReasonCode = event.reasonCode || '';
+    });
+
+    await runtime.connect();
+    const stream = await runtime.healthEvents();
+    const received: unknown[] = [];
+    for await (const event of stream) {
+      received.push(event);
+    }
+
+    assert.equal(disconnectedEvents, 1, 'should emit runtime.disconnected on CANCELLED');
+    assert.equal(disconnectedReasonCode, ReasonCode.RUNTIME_GRPC_CANCELLED);
   } finally {
     clearNodeGrpcBridge();
   }
