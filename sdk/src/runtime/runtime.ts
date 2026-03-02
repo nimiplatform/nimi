@@ -1263,7 +1263,7 @@ export class Runtime {
     const keySourceRaw = normalizeText(
       metadataInput['x-nimi-key-source'] || metadataInput.keySource,
     ).toLowerCase();
-    const keySource = keySourceRaw === 'inline' || keySourceRaw === 'managed'
+    const keySource: 'inline' | 'managed' | undefined = keySourceRaw === 'inline' || keySourceRaw === 'managed'
       ? keySourceRaw
       : undefined;
     const providerType = normalizeText(
