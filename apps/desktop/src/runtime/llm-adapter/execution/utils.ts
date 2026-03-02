@@ -1,3 +1,6 @@
+import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
+
 export function buildLocalId(prefix: string) {
   return `local:${prefix}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -74,18 +77,38 @@ export async function withTimeout<T>(
   try {
     const result = await run(scopedAbort.signal);
     if (scopedAbort.wasTimedOut()) {
-      throw new Error(timeoutMessage);
+      throw createNimiError({
+        message: timeoutMessage,
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        actionHint: 'retry_or_switch_route',
+        source: 'runtime',
+      });
     }
     if (scopedAbort.wasExternallyAborted()) {
-      throw new Error('PLAY_PROVIDER_ABORTED');
+      throw createNimiError({
+        message: 'play provider aborted',
+        reasonCode: ReasonCode.OPERATION_ABORTED,
+        actionHint: 'none',
+        source: 'runtime',
+      });
     }
     return result;
   } catch (error) {
     if (scopedAbort.wasTimedOut()) {
-      throw new Error(timeoutMessage);
+      throw createNimiError({
+        message: timeoutMessage,
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        actionHint: 'retry_or_switch_route',
+        source: 'runtime',
+      });
     }
     if (scopedAbort.wasExternallyAborted()) {
-      throw new Error('PLAY_PROVIDER_ABORTED');
+      throw createNimiError({
+        message: 'play provider aborted',
+        reasonCode: ReasonCode.OPERATION_ABORTED,
+        actionHint: 'none',
+        source: 'runtime',
+      });
     }
     throw error;
   } finally {

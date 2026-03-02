@@ -1,5 +1,7 @@
-import { emitInferenceAudit, parseReasonCode } from './inference-audit';
+import { emitInferenceAudit } from './inference-audit';
 import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
   buildRuntimeCallOptions,
   extractTextFromGenerateOutput,
   getRuntimeClient,
@@ -9,8 +11,10 @@ import {
 } from './runtime-ai-bridge';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
-import { buildLocalId, formatProviderError } from './utils';
+import { buildLocalId } from './utils';
 import { emitRuntimeLog } from '../../telemetry/logger';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
   const resolved = resolveSourceAndModel(input);
@@ -54,9 +58,16 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       providerEndpoint: resolved.endpoint,
     }));
 
+    const responseTraceId = String((response as { traceId?: unknown }).traceId || '').trim();
     const text = extractTextFromGenerateOutput((response as { output?: unknown }).output);
     if (!text) {
-      throw new Error('LOCAL_AI_CAPABILITY_MISSING: provider returned empty content');
+      throw createNimiError({
+        message: 'provider returned empty content',
+        reasonCode: ReasonCode.AI_OUTPUT_INVALID,
+        actionHint: 'retry_or_switch_model',
+        traceId: responseTraceId,
+        source: 'runtime',
+      });
     }
 
     if (String(input.modId || '').trim().startsWith('world.nimi.')) {
@@ -76,11 +87,14 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
 
     return {
       text,
-      promptTraceId: String((response as { traceId?: unknown }).traceId || '').trim() || buildLocalId('prompt-trace'),
+      promptTraceId: responseTraceId || buildLocalId('prompt-trace'),
     };
   } catch (error) {
-    const normalizedError = formatProviderError(error);
-    const reasonCode = toLocalAiReasonCode(error) || parseReasonCode(normalizedError);
+    const normalizedError = asRuntimeInvokeError(error);
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -90,9 +104,10 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode,
-      detail: normalizedError,
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: localReasonCode ? { localReasonCode } : undefined,
     });
-    throw new Error(normalizedError);
+    throw normalizedError;
   }
 }

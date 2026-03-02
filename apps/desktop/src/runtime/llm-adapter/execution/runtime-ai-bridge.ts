@@ -1,5 +1,7 @@
 import { getPlatformClient } from '@runtime/platform-client';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
+import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 const ROUTE_POLICY_TOKEN_API = 2;
@@ -31,6 +33,8 @@ const AI_REASON_CODE_NUMERIC: Record<number, string> = {
   209: 'AI_CONTENT_FILTER_BLOCKED',
 };
 
+const DEFAULT_RUNTIME_ACTION_HINT = 'retry_or_check_runtime_status';
+
 export const RUNTIME_MODAL_TEXT = 1;
 export const RUNTIME_MODAL_IMAGE = 2;
 export const RUNTIME_MODAL_VIDEO = 3;
@@ -46,6 +50,10 @@ export type SourceAndModel = {
   provider: string;
   adapter: string;
 };
+
+export function createRuntimeTraceId(prefix = 'runtime-call'): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function normalizeModelRoot(model: string): string {
   const normalized = String(model || '').trim();
@@ -66,7 +74,12 @@ function ensureRouteModelId(model: string, routePolicy: number): string {
 export function getRuntimeClient() {
   const runtime = getPlatformClient().runtime;
   if (!runtime) {
-    throw new Error('RUNTIME_CLIENT_NOT_READY: runtime sdk client unavailable');
+    throw createNimiError({
+      message: 'runtime sdk client unavailable',
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      actionHint: 'check_runtime_client_bootstrap',
+      source: 'runtime',
+    });
   }
   return runtime;
 }
@@ -112,7 +125,12 @@ export async function buildRuntimeRequestMetadata(input: {
   providerEndpoint?: string;
 }): Promise<Record<string, string>> {
   void input;
-  return { keySource: 'managed' };
+  const traceId = createRuntimeTraceId();
+  return {
+    keySource: 'managed',
+    traceId,
+    'x-nimi-trace-id': traceId,
+  };
 }
 
 export async function buildRuntimeCallOptions(input: {
@@ -124,6 +142,7 @@ export async function buildRuntimeCallOptions(input: {
 }): Promise<{
   timeoutMs: number;
   metadata: {
+    traceId: string;
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
@@ -131,9 +150,11 @@ export async function buildRuntimeCallOptions(input: {
   };
 }> {
   const caller = resolveCaller(input.modId);
+  const traceId = createRuntimeTraceId();
   return {
     timeoutMs: input.timeoutMs,
     metadata: {
+      traceId,
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
@@ -155,6 +176,7 @@ export async function buildRuntimeStreamOptions(
   timeoutMs: number;
   signal?: AbortSignal;
   metadata: {
+    traceId: string;
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
@@ -162,10 +184,12 @@ export async function buildRuntimeStreamOptions(
   };
 }> {
   const caller = resolveCaller(input.modId);
+  const traceId = createRuntimeTraceId();
   return {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
     metadata: {
+      traceId,
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
@@ -252,33 +276,89 @@ export async function resolveTranscribeAudio(input: {
   if (rawBase64) {
     const parsed = parseDataUrl(rawBase64);
     if (parsed) {
-      if (!parsed.isBase64) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio data url must be base64');
+      if (!parsed.isBase64) {
+        throw createNimiError({
+          message: 'audio data url must be base64',
+          reasonCode: ReasonCode.AI_INPUT_INVALID,
+          actionHint: 'set_audio_base64_payload',
+          source: 'runtime',
+        });
+      }
       const decoded = decodeBase64Payload(parsed.payload);
-      if (decoded.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+      if (decoded.length === 0) {
+        throw createNimiError({
+          message: 'audio payload empty',
+          reasonCode: ReasonCode.AI_INPUT_INVALID,
+          actionHint: 'set_audio_payload',
+          source: 'runtime',
+        });
+      }
       return { audioBytes: decoded, mimeType: explicitMimeType || parsed.mimeType };
     }
     const decoded = decodeBase64Payload(rawBase64);
-    if (decoded.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+    if (decoded.length === 0) {
+      throw createNimiError({
+        message: 'audio payload empty',
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'set_audio_payload',
+        source: 'runtime',
+      });
+    }
     return { audioBytes: decoded, mimeType: explicitMimeType || 'audio/wav' };
   }
 
   const audioUri = String(input.audioUri || '').trim();
-  if (!audioUri) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio source required');
+  if (!audioUri) {
+    throw createNimiError({
+      message: 'audio source required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_audio_uri_or_base64',
+      source: 'runtime',
+    });
+  }
 
   const parsedDataUrl = parseDataUrl(audioUri);
   if (parsedDataUrl) {
-    if (!parsedDataUrl.isBase64) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio data url must be base64');
+    if (!parsedDataUrl.isBase64) {
+      throw createNimiError({
+        message: 'audio data url must be base64',
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'set_audio_base64_payload',
+        source: 'runtime',
+      });
+    }
     const decoded = decodeBase64Payload(parsedDataUrl.payload);
-    if (decoded.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+    if (decoded.length === 0) {
+      throw createNimiError({
+        message: 'audio payload empty',
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'set_audio_payload',
+        source: 'runtime',
+      });
+    }
     return { audioBytes: decoded, mimeType: explicitMimeType || parsedDataUrl.mimeType };
   }
 
   const fetchImpl = input.fetchImpl || fetch;
   const response = await fetchImpl(audioUri);
-  if (!response.ok) throw new Error(`LOCAL_AI_SERVICE_UNREACHABLE: fetch audio failed HTTP_${response.status}`);
+  if (!response.ok) {
+    throw createNimiError({
+      message: `fetch audio failed HTTP_${response.status}`,
+      reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
+      actionHint: 'check_audio_uri_or_network',
+      source: 'runtime',
+    });
+  }
   const arrayBuffer = await response.arrayBuffer();
   const audioBytes = new Uint8Array(arrayBuffer);
-  if (audioBytes.length === 0) throw new Error('LOCAL_AI_CAPABILITY_MISSING: audio payload empty');
+  if (audioBytes.length === 0) {
+    throw createNimiError({
+      message: 'audio payload empty',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_audio_payload',
+      source: 'runtime',
+    });
+  }
   const responseMimeType = String(response.headers.get('content-type') || '').trim();
   return { audioBytes, mimeType: explicitMimeType || responseMimeType || 'audio/wav' };
 }
@@ -295,6 +375,10 @@ function extractReasonCodeCandidate(value: unknown): string | null {
 }
 
 export function extractRuntimeReasonCode(error: unknown): string | null {
+  if (isRuntimeNimiError(error)) {
+    const fromNimiError = extractReasonCodeCandidate(error.reasonCode);
+    if (fromNimiError) return fromNimiError;
+  }
   const record = asRecord(error);
   const direct = extractReasonCodeCandidate(record.reasonCode);
   if (direct) return direct;
@@ -314,4 +398,26 @@ export function toLocalAiReasonCode(error: unknown): string | null {
   const runtimeCode = extractRuntimeReasonCode(error);
   if (!runtimeCode) return null;
   return RUNTIME_REASON_CODE_TO_LOCAL_AI[runtimeCode] || null;
+}
+
+function isRuntimeNimiError(error: unknown): error is NimiError {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as Record<string, unknown>;
+  return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
+}
+
+export function asRuntimeInvokeError(
+  error: unknown,
+  fallback: {
+    traceId?: string;
+    reasonCode?: string;
+    actionHint?: string;
+  } = {},
+): NimiError {
+  return asNimiError(error, {
+    reasonCode: fallback.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: fallback.actionHint || DEFAULT_RUNTIME_ACTION_HINT,
+    traceId: fallback.traceId || '',
+    source: 'runtime',
+  });
 }

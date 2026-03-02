@@ -1,5 +1,7 @@
-import { emitInferenceAudit, parseReasonCode } from './inference-audit';
+import { emitInferenceAudit } from './inference-audit';
 import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
   buildRuntimeStreamOptions,
   getRuntimeClient,
   resolveSourceAndModel,
@@ -8,7 +10,8 @@ import {
 } from './runtime-ai-bridge';
 import type { InvokeModLlmInput, InvokeModLlmStreamEvent } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
-import { createScopedAbortSignal, formatProviderError } from './utils';
+import { createScopedAbortSignal } from './utils';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function* invokeModLlmStream(
@@ -38,17 +41,32 @@ export async function* invokeModLlmStream(
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
       detail: 'prompt required',
-      extra: { stream: true },
+      extra: { stream: true, localReasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING },
     });
-    throw new Error('LOCAL_AI_CAPABILITY_MISSING: prompt required');
+    throw createNimiError({
+      message: 'prompt required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_prompt',
+      source: 'runtime',
+    });
   }
 
   const scopedAbort = createScopedAbortSignal(PRIVATE_PROVIDER_TIMEOUT_MS, input.abortSignal);
   let doneEmitted = false;
+  let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
+    const streamOptions = await buildRuntimeStreamOptions({
+      modId: input.modId,
+      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      signal: scopedAbort.signal,
+      source: resolved.source,
+      connectorId: input.connectorId,
+      providerEndpoint: resolved.endpoint,
+    });
+    runtimeTraceId = streamOptions.metadata.traceId;
     const stream = await runtime.ai.streamGenerate({
       appId: runtime.appId,
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
@@ -68,22 +86,17 @@ export async function* invokeModLlmStream(
       fallback: resolved.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       connectorId: String(input.connectorId || ''),
-    }, await buildRuntimeStreamOptions({
-      modId: input.modId,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      signal: scopedAbort.signal,
-      source: resolved.source,
-      connectorId: input.connectorId,
-      providerEndpoint: resolved.endpoint,
-    }));
+    }, streamOptions);
 
     for await (const event of stream as AsyncIterable<{
+      traceId?: unknown;
       payload?: {
         oneofKind?: string;
         delta?: { text?: string };
         failed?: { reasonCode?: unknown; actionHint?: unknown };
       };
     }>) {
+      runtimeTraceId = String(event?.traceId || '').trim() || runtimeTraceId;
       const payload = event?.payload;
       if (payload?.oneofKind === 'delta') {
         const textDelta = String(payload.delta?.text || '');
@@ -97,8 +110,15 @@ export async function* invokeModLlmStream(
         return;
       }
       if (payload?.oneofKind === 'failed') {
-        const reasonCode = toLocalAiReasonCode({ reasonCode: payload.failed?.reasonCode }) || 'LOCAL_AI_PROVIDER_INTERNAL_ERROR';
-        throw new Error(`${reasonCode}: ${String(payload.failed?.actionHint || 'stream failed')}`);
+        const runtimeReasonCode = extractRuntimeReasonCode({ reasonCode: payload.failed?.reasonCode })
+          || ReasonCode.AI_STREAM_BROKEN;
+        throw createNimiError({
+          message: String(payload.failed?.actionHint || 'stream failed'),
+          reasonCode: runtimeReasonCode,
+          actionHint: 'retry_or_switch_route',
+          traceId: runtimeTraceId,
+          source: 'runtime',
+        });
       }
     }
 
@@ -116,11 +136,20 @@ export async function* invokeModLlmStream(
         adapter: resolved.adapter,
         model: resolved.modelId,
         endpoint: resolved.endpoint,
-        reasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
         detail: `provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`,
-        extra: { stream: true },
+        extra: {
+          stream: true,
+          localReasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
+        },
       });
-      throw new Error(`LOCAL_AI_PROVIDER_TIMEOUT: provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`);
+      throw createNimiError({
+        message: `provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`,
+        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        actionHint: 'retry_or_switch_route',
+        traceId: runtimeTraceId,
+        source: 'runtime',
+      });
     }
     if (scopedAbort.wasExternallyAborted()) {
       emitInferenceAudit({
@@ -132,14 +161,23 @@ export async function* invokeModLlmStream(
         adapter: resolved.adapter,
         model: resolved.modelId,
         endpoint: resolved.endpoint,
-        reasonCode: ReasonCode.LOCAL_AI_PROVIDER_TIMEOUT,
+        reasonCode: ReasonCode.OPERATION_ABORTED,
         detail: 'stream aborted by caller',
         extra: { stream: true },
       });
-      throw new Error('LOCAL_AI_PROVIDER_TIMEOUT: stream aborted by caller');
+      throw createNimiError({
+        message: 'stream aborted by caller',
+        reasonCode: ReasonCode.OPERATION_ABORTED,
+        actionHint: 'none',
+        traceId: runtimeTraceId,
+        source: 'runtime',
+      });
     }
-    const normalizedError = formatProviderError(error);
-    const reasonCode = toLocalAiReasonCode(error) || parseReasonCode(normalizedError);
+    const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -149,11 +187,14 @@ export async function* invokeModLlmStream(
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode,
-      detail: normalizedError,
-      extra: { stream: true },
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: {
+        stream: true,
+        ...(localReasonCode ? { localReasonCode } : {}),
+      },
     });
-    throw new Error(normalizedError);
+    throw normalizedError;
   } finally {
     scopedAbort.dispose();
   }

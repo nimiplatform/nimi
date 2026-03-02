@@ -1,5 +1,7 @@
-import { emitInferenceAudit, parseReasonCode } from './inference-audit';
+import { emitInferenceAudit } from './inference-audit';
 import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
   buildRuntimeRequestMetadata,
   getRuntimeClient,
   resolveSourceAndModel,
@@ -8,7 +10,7 @@ import {
 } from './runtime-ai-bridge';
 import type { InvokeModTranscribeInput, InvokeModTranscribeOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
-import { formatProviderError } from './utils';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function invokeModTranscribe(input: InvokeModTranscribeInput): Promise<InvokeModTranscribeOutput> {
   const resolved = resolveSourceAndModel({
@@ -26,6 +28,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
     endpoint: resolved.endpoint,
   });
 
+  let runtimeTraceId = '';
   try {
     const audio = await resolveTranscribeAudio({
       audioUri: input.audioUri,
@@ -35,6 +38,12 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
     });
 
     const runtime = getRuntimeClient();
+    const metadata = await buildRuntimeRequestMetadata({
+      source: resolved.source,
+      connectorId: input.connectorId,
+      providerEndpoint: resolved.endpoint,
+    });
+    runtimeTraceId = String(metadata.traceId || metadata['x-nimi-trace-id'] || '').trim();
     const response = await runtime.media.stt.transcribe({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model: resolved.modelId,
@@ -48,11 +57,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       connectorId: String(input.connectorId || '').trim() || undefined,
       fallback: 'deny',
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      metadata: await buildRuntimeRequestMetadata({
-        source: resolved.source,
-        connectorId: input.connectorId,
-        providerEndpoint: resolved.endpoint,
-      }),
+      metadata,
       signal: input.abortSignal,
     });
 
@@ -60,8 +65,14 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       text: String((response as { text?: unknown }).text || '').trim(),
     };
   } catch (error) {
-    const normalizedError = formatProviderError(error);
-    const reasonCode = toLocalAiReasonCode(error) || parseReasonCode(normalizedError);
+    const normalizedError = asRuntimeInvokeError(error, {
+      traceId: runtimeTraceId,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+    });
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -71,9 +82,10 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode,
-      detail: normalizedError,
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: localReasonCode ? { localReasonCode } : undefined,
     });
-    throw new Error(normalizedError);
+    throw normalizedError;
   }
 }

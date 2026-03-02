@@ -1,5 +1,7 @@
-import { emitInferenceAudit, parseReasonCode } from './inference-audit';
+import { emitInferenceAudit } from './inference-audit';
 import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
   base64FromBytes,
   buildRuntimeRequestMetadata,
   getRuntimeClient,
@@ -8,7 +10,8 @@ import {
 } from './runtime-ai-bridge';
 import type { InvokeModImageInput, InvokeModImageOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
-import { formatProviderError } from './utils';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function invokeModImage(input: InvokeModImageInput): Promise<InvokeModImageOutput> {
   const resolved = resolveSourceAndModel({
@@ -26,8 +29,15 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
     endpoint: resolved.endpoint,
   });
 
+  let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
+    const metadata = await buildRuntimeRequestMetadata({
+      source: resolved.source,
+      connectorId: input.connectorId,
+      providerEndpoint: resolved.endpoint,
+    });
+    runtimeTraceId = String(metadata.traceId || metadata['x-nimi-trace-id'] || '').trim();
     const generated = await runtime.media.image.generate({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model: resolved.modelId,
@@ -38,11 +48,7 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       size: String(input.size || '').trim() || undefined,
       n: typeof input.n === 'number' ? input.n : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      metadata: await buildRuntimeRequestMetadata({
-        source: resolved.source,
-        connectorId: input.connectorId,
-        providerEndpoint: resolved.endpoint,
-      }),
+      metadata,
       signal: input.abortSignal,
     });
 
@@ -52,7 +58,13 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       bytes: artifact.bytes instanceof Uint8Array ? artifact.bytes : new Uint8Array(0),
     }));
     if (artifacts.length === 0) {
-      throw new Error('LOCAL_AI_CAPABILITY_MISSING: image response missing data');
+      throw createNimiError({
+        message: 'image response missing data',
+        reasonCode: ReasonCode.AI_OUTPUT_INVALID,
+        actionHint: 'retry_or_switch_model',
+        traceId: runtimeTraceId,
+        source: 'runtime',
+      });
     }
 
     return {
@@ -67,8 +79,11 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       }),
     };
   } catch (error) {
-    const normalizedError = formatProviderError(error);
-    const reasonCode = toLocalAiReasonCode(error) || parseReasonCode(normalizedError);
+    const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -78,9 +93,10 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode,
-      detail: normalizedError,
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: localReasonCode ? { localReasonCode } : undefined,
     });
-    throw new Error(normalizedError);
+    throw normalizedError;
   }
 }

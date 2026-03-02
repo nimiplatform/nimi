@@ -1,5 +1,7 @@
-import { emitInferenceAudit, parseReasonCode } from './inference-audit';
+import { emitInferenceAudit } from './inference-audit';
 import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
   base64FromBytes,
   buildRuntimeRequestMetadata,
   getRuntimeClient,
@@ -8,7 +10,8 @@ import {
 } from './runtime-ai-bridge';
 import type { InvokeModVideoInput, InvokeModVideoOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
-import { formatProviderError } from './utils';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export async function invokeModVideo(input: InvokeModVideoInput): Promise<InvokeModVideoOutput> {
   const resolved = resolveSourceAndModel({
@@ -26,8 +29,15 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
     endpoint: resolved.endpoint,
   });
 
+  let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
+    const metadata = await buildRuntimeRequestMetadata({
+      source: resolved.source,
+      connectorId: input.connectorId,
+      providerEndpoint: resolved.endpoint,
+    });
+    runtimeTraceId = String(metadata.traceId || metadata['x-nimi-trace-id'] || '').trim();
     const generated = await runtime.media.video.generate({
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model: resolved.modelId,
@@ -37,11 +47,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       fallback: 'deny',
       durationSec: typeof input.durationSeconds === 'number' ? input.durationSeconds : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      metadata: await buildRuntimeRequestMetadata({
-        source: resolved.source,
-        connectorId: input.connectorId,
-        providerEndpoint: resolved.endpoint,
-      }),
+      metadata,
       signal: input.abortSignal,
     });
 
@@ -50,7 +56,13 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       bytes: artifact.bytes instanceof Uint8Array ? artifact.bytes : new Uint8Array(0),
     }));
     if (artifacts.length === 0) {
-      throw new Error('LOCAL_AI_CAPABILITY_MISSING: video response missing data');
+      throw createNimiError({
+        message: 'video response missing data',
+        reasonCode: ReasonCode.AI_OUTPUT_INVALID,
+        actionHint: 'retry_or_switch_model',
+        traceId: runtimeTraceId,
+        source: 'runtime',
+      });
     }
 
     return {
@@ -64,8 +76,11 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       }),
     };
   } catch (error) {
-    const normalizedError = formatProviderError(error);
-    const reasonCode = toLocalAiReasonCode(error) || parseReasonCode(normalizedError);
+    const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -75,9 +90,10 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode,
-      detail: normalizedError,
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: localReasonCode ? { localReasonCode } : undefined,
     });
-    throw new Error(normalizedError);
+    throw normalizedError;
   }
 }

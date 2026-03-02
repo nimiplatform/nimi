@@ -14,6 +14,16 @@ export type RendererLogPayload = {
   details?: Record<string, unknown>;
 };
 
+export type RuntimeBridgeStructuredError = {
+  code?: string;
+  reasonCode?: string;
+  actionHint?: string;
+  traceId?: string;
+  retryable?: boolean;
+  message?: string;
+  details?: Record<string, unknown>;
+};
+
 export type RealmDefaults = {
   realmBaseUrl: string;
   realtimeUrl: string;

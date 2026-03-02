@@ -1,5 +1,8 @@
+import { asNimiError, createNimiError, isNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke } from './env';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from './logging';
+import type { RuntimeBridgeStructuredError } from './types';
 
 const BRIDGE_ERROR_CODE_MAP: Record<string, string> = {
   LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: '导入路径无效，请将模型放到 Local Runtime models 目录后重试',
@@ -88,24 +91,143 @@ const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED/i, message: '当前来源无权执行模型生命周期写操作' },
 ];
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseBridgeJsonPayload(input: unknown): RuntimeBridgeStructuredError | null {
+  if (!input) {
+    return null;
+  }
+  const directRecord = asRecord(input);
+  if (Object.keys(directRecord).length > 0) {
+    const reasonCode = String(directRecord.reasonCode || directRecord.reason_code || '').trim();
+    const actionHint = String(directRecord.actionHint || directRecord.action_hint || '').trim();
+    const traceId = String(directRecord.traceId || directRecord.trace_id || '').trim();
+    const message = String(directRecord.message || '').trim();
+    const retryableRaw = directRecord.retryable;
+    const retryable = typeof retryableRaw === 'boolean'
+      ? retryableRaw
+      : undefined;
+    const hasStructuredFields = Boolean(
+      reasonCode
+      || actionHint
+      || traceId
+      || typeof retryable === 'boolean',
+    );
+    if (!hasStructuredFields) {
+      return null;
+    }
+    return {
+      code: String(directRecord.code || '').trim() || undefined,
+      reasonCode: reasonCode || undefined,
+      actionHint: actionHint || undefined,
+      traceId: traceId || undefined,
+      retryable,
+      message: message || undefined,
+      details: asRecord(directRecord.details),
+    };
+  }
+
+  const raw = String(input || '').trim();
+  if (!raw) {
+    return null;
+  }
+  const parseObject = (candidate: string): RuntimeBridgeStructuredError | null => {
+    try {
+      return parseBridgeJsonPayload(JSON.parse(candidate));
+    } catch {
+      return null;
+    }
+  };
+
+  const directParsed = parseObject(raw);
+  if (directParsed) {
+    return directParsed;
+  }
+  const braceStart = raw.indexOf('{');
+  const braceEnd = raw.lastIndexOf('}');
+  if (braceStart >= 0 && braceEnd > braceStart) {
+    return parseObject(raw.slice(braceStart, braceEnd + 1));
+  }
+  return null;
+}
+
 function extractBridgeErrorCode(raw: string): string {
   const normalized = String(raw || '').trim();
   const matched = normalized.match(/^([A-Z0-9_]+):/);
   return matched?.[1] || '';
 }
 
-export function toBridgeUserError(error: unknown): Error {
+export function toBridgeUserMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error || '');
-  const errorCode = extractBridgeErrorCode(raw);
+  const codeFromNimiError = isNimiError(error) ? String(error.reasonCode || '').trim() : '';
+  const codeFromPayload = parseBridgeJsonPayload(error)?.reasonCode || '';
+  const errorCode = codeFromNimiError || codeFromPayload || extractBridgeErrorCode(raw);
   if (errorCode && BRIDGE_ERROR_CODE_MAP[errorCode]) {
-    return new Error(BRIDGE_ERROR_CODE_MAP[errorCode]);
+    return BRIDGE_ERROR_CODE_MAP[errorCode];
   }
   for (const entry of BRIDGE_ERROR_MAP) {
     if (entry.pattern.test(raw)) {
-      return new Error(entry.message);
+      return entry.message;
     }
   }
-  return error instanceof Error ? error : new Error('操作失败，请稍后重试');
+  return raw || '操作失败，请稍后重试';
+}
+
+export function toBridgeNimiError(error: unknown): NimiError {
+  const rawMessage = error instanceof Error ? error.message : String(error || '');
+  const normalized: NimiError = (() => {
+    if (isNimiError(error)) {
+      return error;
+    }
+
+    const parsedPayload = parseBridgeJsonPayload(error) || parseBridgeJsonPayload(rawMessage);
+    if (parsedPayload) {
+      return createNimiError({
+        message: parsedPayload.message || rawMessage || 'Runtime call failed',
+        code: parsedPayload.code || parsedPayload.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
+        reasonCode: parsedPayload.reasonCode || ReasonCode.RUNTIME_CALL_FAILED,
+        actionHint: parsedPayload.actionHint || 'retry_or_check_runtime_status',
+        traceId: parsedPayload.traceId || '',
+        retryable: parsedPayload.retryable ?? false,
+        source: 'runtime',
+        details: parsedPayload.details,
+      });
+    }
+
+    const prefixedCode = extractBridgeErrorCode(rawMessage);
+    if (prefixedCode) {
+      return createNimiError({
+        message: rawMessage || prefixedCode,
+        code: prefixedCode,
+        reasonCode: prefixedCode,
+        actionHint: 'check_runtime_bridge_logs',
+        source: 'runtime',
+      });
+    }
+
+    return asNimiError(error, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_or_check_runtime_status',
+      source: 'runtime',
+    });
+  })();
+
+  const userMessage = toBridgeUserMessage(normalized);
+  normalized.details = {
+    ...(normalized.details || {}),
+    userMessage,
+    rawMessage: rawMessage || normalized.message,
+  };
+  return normalized;
+}
+
+export function toBridgeUserError(error: unknown): NimiError {
+  return toBridgeNimiError(error);
 }
 
 function summarizeInvokePayload(command: string, payload: unknown): Record<string, unknown> {
@@ -133,7 +255,7 @@ type TauriInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 function resolveTauriInvoke(): TauriInvokeFn {
   const invokeFn = window.__TAURI__?.core?.invoke;
   if (typeof invokeFn !== 'function') {
-    throw toBridgeUserError(new Error('Tauri 运行时桥接不可用'));
+    throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE: Tauri 运行时桥接不可用'));
   }
   return invokeFn.bind(window.__TAURI__?.core);
 }
@@ -141,7 +263,7 @@ function resolveTauriInvoke(): TauriInvokeFn {
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   const startedAt = performance.now();
   if (!hasTauriInvoke()) {
-    throw toBridgeUserError(new Error('Tauri 运行时桥接不可用'));
+    throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE: Tauri 运行时桥接不可用'));
   }
   const tauriInvoke = resolveTauriInvoke();
   const invokeId = `${command}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -178,7 +300,9 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
     });
     return result;
   } catch (error) {
+    const bridgeError = toBridgeNimiError(error);
     const costMs = Number((performance.now() - startedAt).toFixed(2));
+    const rawMessage = String(bridgeError.details?.rawMessage || bridgeError.message || '').trim();
     void emitRendererLog({
       level: 'error',
       area: 'bridge',
@@ -189,11 +313,16 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
         costMs,
         sessionTraceId,
         ...payloadSummary,
-        error: error instanceof Error ? error.message : String(error || ''),
+        reasonCode: bridgeError.reasonCode,
+        actionHint: bridgeError.actionHint,
+        traceId: bridgeError.traceId || null,
+        retryable: bridgeError.retryable,
+        rawMessage,
+        userMessage: bridgeError.details?.userMessage,
       },
       costMs,
     });
-    throw toBridgeUserError(error);
+    throw bridgeError;
   }
 }
 

@@ -1,7 +1,13 @@
 import type { SpeechStreamOpenResult } from '../../../llm-adapter/speech/types.js';
-import { emitInferenceAudit, parseReasonCode } from '../../../llm-adapter/execution/inference-audit';
+import { emitInferenceAudit } from '../../../llm-adapter/execution/inference-audit';
 import { createHookError } from '../../contracts/errors.js';
 import { createHookRecord } from '../utils.js';
+import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
+  toLocalAiReasonCode,
+} from '../../../llm-adapter/execution/runtime-ai-bridge';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   RouteResolverResult,
   SpeechServiceInput,
@@ -114,7 +120,14 @@ export async function openSpeechStream(
       providerTraceId: result.providerTraceId,
     };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error || '');
+    const normalizedError = asRuntimeInvokeError(error, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_or_check_runtime_status',
+    });
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -124,11 +137,14 @@ export async function openSpeechStream(
       adapter: resolved?.adapter || 'openai_compat_adapter',
       model: resolved?.model,
       endpoint: String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim(),
-      reasonCode: parseReasonCode(detail),
-      detail,
-      extra: { stream: true },
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: {
+        stream: true,
+        ...(localReasonCode ? { localReasonCode } : {}),
+      },
     });
-    throw toSpeechStreamUnsupportedError(input.modId, error);
+    throw toSpeechStreamUnsupportedError(input.modId, normalizedError);
   }
 }
 

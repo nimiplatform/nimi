@@ -1,5 +1,7 @@
-import { emitInferenceAudit, parseReasonCode } from './inference-audit';
+import { emitInferenceAudit } from './inference-audit';
 import {
+  asRuntimeInvokeError,
+  extractRuntimeReasonCode,
   buildRuntimeCallOptions,
   extractEmbeddings,
   getRuntimeClient,
@@ -8,7 +10,7 @@ import {
 } from './runtime-ai-bridge';
 import type { InvokeModEmbeddingInput, InvokeModEmbeddingOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
-import { formatProviderError } from './utils';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 function normalizeEmbeddingInputs(input: string | string[]): string[] {
@@ -44,14 +46,29 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
       detail,
+      extra: { localReasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING },
     });
-    throw new Error(`LOCAL_AI_CAPABILITY_MISSING: ${detail}`);
+    throw createNimiError({
+      message: detail,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_embedding_input',
+      source: 'runtime',
+    });
   }
 
+  let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
+    const callOptions = await buildRuntimeCallOptions({
+      modId: input.modId,
+      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      source: resolved.source,
+      connectorId: input.connectorId,
+      providerEndpoint: resolved.endpoint,
+    });
+    runtimeTraceId = callOptions.metadata.traceId;
     const response = await runtime.ai.embed({
       appId: runtime.appId,
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
@@ -61,19 +78,16 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       fallback: resolved.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       connectorId: String(input.connectorId || ''),
-    }, await buildRuntimeCallOptions({
-      modId: input.modId,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      source: resolved.source,
-      connectorId: input.connectorId,
-      providerEndpoint: resolved.endpoint,
-    }));
+    }, callOptions);
     return {
       embeddings: extractEmbeddings((response as { vectors?: unknown }).vectors),
     };
   } catch (error) {
-    const normalizedError = formatProviderError(error);
-    const reasonCode = toLocalAiReasonCode(error) || parseReasonCode(normalizedError);
+    const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
+      || ReasonCode.RUNTIME_CALL_FAILED;
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
     emitInferenceAudit({
       eventType: 'inference_failed',
       modId: input.modId,
@@ -83,9 +97,10 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      reasonCode,
-      detail: normalizedError,
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: localReasonCode ? { localReasonCode } : undefined,
     });
-    throw new Error(normalizedError);
+    throw normalizedError;
   }
 }

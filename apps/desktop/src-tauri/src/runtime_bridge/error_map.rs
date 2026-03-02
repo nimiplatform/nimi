@@ -61,6 +61,38 @@ fn parse_json_object(input: &str) -> Option<serde_json::Value> {
     }
 }
 
+fn read_string_from_candidates(candidates: &[&serde_json::Value], keys: &[&str]) -> String {
+    for candidate in candidates {
+        for key in keys {
+            if let Some(value) = candidate.get(*key).and_then(|raw| raw.as_str()) {
+                let normalized = value.trim();
+                if !normalized.is_empty() {
+                    return normalized.to_string();
+                }
+            }
+        }
+    }
+    String::new()
+}
+
+fn read_retryable_from_candidates(candidates: &[&serde_json::Value]) -> Option<bool> {
+    for candidate in candidates {
+        if let Some(value) = candidate.get("retryable") {
+            if let Some(flag) = value.as_bool() {
+                return Some(flag);
+            }
+            if let Some(text) = value.as_str() {
+                match text.trim().to_ascii_lowercase().as_str() {
+                    "true" => return Some(true),
+                    "false" => return Some(false),
+                    _ => {}
+                }
+            }
+        }
+    }
+    None
+}
+
 fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayload> {
     let trimmed = message.trim();
     if trimmed.is_empty() {
@@ -76,33 +108,23 @@ fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayl
         parse_json_object(&trimmed[start..=end])
     })?;
 
-    let reason_code = parsed
-        .get("reasonCode")
-        .or_else(|| parsed.get("reason_code"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    let action_hint = parsed
-        .get("actionHint")
-        .or_else(|| parsed.get("action_hint"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    let trace_id = parsed
-        .get("traceId")
-        .or_else(|| parsed.get("trace_id"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    let retryable = parsed.get("retryable").and_then(|value| value.as_bool());
-    let normalized_message = parsed
-        .get("message")
-        .and_then(|value| value.as_str())
-        .unwrap_or(trimmed)
-        .trim();
+    let nested_error = parsed.get("error").filter(|value| value.is_object());
+    let mut candidates: Vec<&serde_json::Value> = vec![&parsed];
+    if let Some(error_payload) = nested_error {
+        candidates.push(error_payload);
+    }
+
+    let reason_code =
+        read_string_from_candidates(&candidates, &["reasonCode", "reason_code", "reason"]);
+    let action_hint = read_string_from_candidates(&candidates, &["actionHint", "action_hint"]);
+    let trace_id = read_string_from_candidates(&candidates, &["traceId", "trace_id"]);
+    let retryable = read_retryable_from_candidates(&candidates);
+    let normalized_message = read_string_from_candidates(&candidates, &["message"]);
+    let normalized_message = if normalized_message.is_empty() {
+        trimmed.to_string()
+    } else {
+        normalized_message
+    };
     let normalized_message = sanitize_error_message(normalized_message.as_ref());
 
     if reason_code.is_empty()
@@ -161,6 +183,8 @@ fn extract_trace_id_from_status(
     status
         .metadata()
         .get("x-nimi-trace-id")
+        .or_else(|| status.metadata().get("trace-id"))
+        .or_else(|| status.metadata().get("x-trace-id"))
         .and_then(|value| value.to_str().ok())
         .map(|value| value.trim().to_string())
         .unwrap_or_default()
@@ -194,7 +218,7 @@ pub fn bridge_error(code: &str, message: &str) -> String {
         action_hint: "check_runtime_bridge_logs".to_string(),
         trace_id: String::new(),
         retryable: false,
-        message: message.trim().to_string(),
+        message: sanitize_error_message(message),
     })
 }
 
@@ -385,6 +409,58 @@ mod tests {
         assert_eq!(
             payload.get("message").and_then(Value::as_str),
             Some("[REDACTED_PROVIDER_API_KEY]")
+        );
+    }
+
+    #[test]
+    fn bridge_status_error_accepts_reason_alias_field() {
+        let payload = parse_json(bridge_status_error(Status::new(
+            Code::Internal,
+            "{\"reason\":\"AI_PROVIDER_INTERNAL\",\"actionHint\":\"check_provider_logs\"}",
+        )));
+        assert_eq!(
+            payload.get("reasonCode").and_then(Value::as_str),
+            Some("AI_PROVIDER_INTERNAL")
+        );
+        assert_eq!(
+            payload.get("actionHint").and_then(Value::as_str),
+            Some("check_provider_logs")
+        );
+    }
+
+    #[test]
+    fn bridge_status_error_reads_nested_error_payload() {
+        let payload = parse_json(bridge_status_error(Status::new(
+            Code::Unavailable,
+            "{\"error\":{\"reasonCode\":\"AI_PROVIDER_TIMEOUT\",\"traceId\":\"trace-nested\",\"retryable\":true}}",
+        )));
+        assert_eq!(
+            payload.get("reasonCode").and_then(Value::as_str),
+            Some("AI_PROVIDER_TIMEOUT")
+        );
+        assert_eq!(
+            payload.get("traceId").and_then(Value::as_str),
+            Some("trace-nested")
+        );
+        assert_eq!(
+            payload.get("retryable").and_then(Value::as_bool),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn bridge_status_error_parses_string_retryable() {
+        let payload = parse_json(bridge_status_error(Status::new(
+            Code::PermissionDenied,
+            "{\"reasonCode\":\"APP_MODE_SCOPE_FORBIDDEN\",\"retryable\":\"false\"}",
+        )));
+        assert_eq!(
+            payload.get("reasonCode").and_then(Value::as_str),
+            Some("APP_MODE_SCOPE_FORBIDDEN")
+        );
+        assert_eq!(
+            payload.get("retryable").and_then(Value::as_bool),
+            Some(false)
         );
     }
 }
