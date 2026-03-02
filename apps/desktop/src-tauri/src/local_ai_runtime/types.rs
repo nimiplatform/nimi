@@ -640,7 +640,7 @@ pub fn slugify_local_model_id(input: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::now_iso_timestamp;
+    use super::{generate_ulid_string, now_iso_timestamp, slugify_local_model_id};
 
     #[test]
     fn now_iso_timestamp_returns_rfc3339_millis_utc() {
@@ -648,5 +648,53 @@ mod tests {
         assert!(ts.ends_with('Z'));
         assert!(ts.contains('T'));
         assert!(ts.contains('.'));
+    }
+
+    #[test]
+    fn slugify_local_model_id_colon_to_dash() {
+        assert_eq!(
+            slugify_local_model_id("hf:org/model-name"),
+            "hf-org-model-name"
+        );
+    }
+
+    #[test]
+    fn slugify_local_model_id_slash_to_dash() {
+        assert_eq!(slugify_local_model_id("org/model"), "org-model");
+    }
+
+    #[test]
+    fn slugify_local_model_id_empty_returns_fallback() {
+        assert_eq!(slugify_local_model_id(""), "local-model");
+    }
+
+    #[test]
+    fn slugify_local_model_id_consecutive_separators_collapsed() {
+        assert_eq!(slugify_local_model_id("hf:::org///model"), "hf-org-model");
+    }
+
+    #[test]
+    fn slugify_local_model_id_preserves_alphanumeric_lowercase() {
+        assert_eq!(slugify_local_model_id("MyModel-V2.1"), "mymodel-v2-1");
+    }
+
+    #[test]
+    fn generate_ulid_string_returns_26_char_crockford() {
+        let ulid = generate_ulid_string();
+        assert_eq!(ulid.len(), 26);
+        let crockford_chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+        for ch in ulid.chars() {
+            assert!(
+                crockford_chars.contains(ch),
+                "invalid crockford char: {ch}"
+            );
+        }
+    }
+
+    #[test]
+    fn generate_ulid_string_successive_calls_unique() {
+        let a = generate_ulid_string();
+        let b = generate_ulid_string();
+        assert_ne!(a, b);
     }
 }
