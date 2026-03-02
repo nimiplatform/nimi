@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
 
-import { asNimiError } from '../../src/runtime/errors';
+import { asNimiError, isNimiError } from '../../src/runtime/errors';
 import { createRuntimeClient } from '../../src/runtime/core/client';
 import { mergeRuntimeMetadata } from '../../src/runtime/core/metadata';
 import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transports/node-grpc/index';
@@ -528,6 +528,22 @@ test('asNimiError keeps provided defaults for plain Error objects', () => {
   assert.equal(error.actionHint, 'check_request_and_app_auth');
   assert.equal(error.source, 'runtime');
   assert.equal(error.message, 'permission denied');
+});
+
+test('isNimiError detects structured sdk/runtime errors', () => {
+  const normalized = asNimiError(
+    JSON.stringify({
+      reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+      actionHint: 'retry',
+      traceId: 'trace-123',
+      retryable: true,
+      message: 'timeout',
+    }),
+    { source: 'runtime' },
+  );
+
+  assert.equal(isNimiError(normalized), true);
+  assert.equal(isNimiError(new Error('plain error')), false);
 });
 
 test('node-grpc and tauri-ipc unary transports decode equivalent payloads', async () => {

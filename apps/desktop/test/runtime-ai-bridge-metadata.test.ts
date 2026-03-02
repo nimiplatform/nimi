@@ -30,9 +30,10 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
-    assert.deepEqual(metadata, {
-      keySource: 'managed',
-    });
+    assert.equal(metadata.keySource, 'managed');
+    assert.equal(typeof metadata.traceId, 'string');
+    assert.ok(String(metadata.traceId || '').trim().length > 0);
+    assert.equal(metadata['x-nimi-trace-id'], metadata.traceId);
 
     const callOptions = await runtimeAiBridge.buildRuntimeCallOptions({
       modId: 'mod.runtime.metadata',
@@ -41,12 +42,12 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
-    assert.deepEqual(callOptions.metadata, {
-      callerKind: 'desktop-mod',
-      callerId: 'mod:mod.runtime.metadata',
-      surfaceId: 'desktop.renderer',
-      keySource: 'managed',
-    });
+    assert.equal(callOptions.metadata.callerKind, 'desktop-mod');
+    assert.equal(callOptions.metadata.callerId, 'mod:mod.runtime.metadata');
+    assert.equal(callOptions.metadata.surfaceId, 'desktop.renderer');
+    assert.equal(callOptions.metadata.keySource, 'managed');
+    assert.equal(typeof callOptions.metadata.traceId, 'string');
+    assert.ok(callOptions.metadata.traceId.length > 0);
 
     const streamOptions = await runtimeAiBridge.buildRuntimeStreamOptions({
       modId: 'mod.runtime.metadata',
@@ -55,12 +56,12 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
       connectorId: 'connector-test',
       providerEndpoint: 'https://example.invalid/v1',
     });
-    assert.deepEqual(streamOptions.metadata, {
-      callerKind: 'desktop-mod',
-      callerId: 'mod:mod.runtime.metadata',
-      surfaceId: 'desktop.renderer',
-      keySource: 'managed',
-    });
+    assert.equal(streamOptions.metadata.callerKind, 'desktop-mod');
+    assert.equal(streamOptions.metadata.callerId, 'mod:mod.runtime.metadata');
+    assert.equal(streamOptions.metadata.surfaceId, 'desktop.renderer');
+    assert.equal(streamOptions.metadata.keySource, 'managed');
+    assert.equal(typeof streamOptions.metadata.traceId, 'string');
+    assert.ok(streamOptions.metadata.traceId.length > 0);
 
     assert.equal(
       calls.some((call) => call.command === 'credential_get_secret'),

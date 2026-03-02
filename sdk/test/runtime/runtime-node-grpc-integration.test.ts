@@ -318,6 +318,40 @@ test('node-grpc uses uppercase reason code from grpc details', async () => {
   }
 });
 
+test('node-grpc extracts reason code from CODE: prefixed grpc details', async () => {
+  setNodeGrpcBridge(null);
+
+  const server = await startRuntimeGrpcServer({
+    listModels: (_call, callback) => {
+      const error = Object.assign(new Error('provider timeout'), {
+        code: grpc.status.DEADLINE_EXCEEDED,
+        details: 'AI_PROVIDER_TIMEOUT: upstream deadline exceeded',
+        metadata: new grpc.Metadata(),
+      }) as grpc.ServiceError;
+      callback(error, null as unknown as Uint8Array);
+    },
+    streamGenerate: (call) => {
+      call.end();
+    },
+  });
+
+  try {
+    const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
+    let thrown: unknown = null;
+    try {
+      await client.model.list({});
+    } catch (error) {
+      thrown = error;
+    }
+
+    assert.ok(thrown);
+    const nimiError = asNimiError(thrown, { source: 'runtime' });
+    assert.equal(nimiError.reasonCode, 'AI_PROVIDER_TIMEOUT');
+  } finally {
+    await server.close();
+  }
+});
+
 test('node-grpc prefers structured reason payload from grpc details', async () => {
   setNodeGrpcBridge(null);
 

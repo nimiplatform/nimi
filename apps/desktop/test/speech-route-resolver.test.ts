@@ -58,7 +58,7 @@ test('createSpeechRouteResolver model override takes priority over fields.localP
   const resolve = createSpeechRouteResolver(() => fields);
   const result = await resolve({ modId: 'test-mod', model: 'custom-model' });
 
-  assert.equal(result.model, 'custom-model');
+  assert.equal(result.model, 'cloud/custom-model');
 });
 
 test('createSpeechRouteResolver infers local-runtime source for localai provider', async () => {

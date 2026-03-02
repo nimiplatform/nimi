@@ -29,7 +29,6 @@ import {
   getStreamState,
   clearStream,
   subscribeStream,
-  STREAM_FIRST_PACKET_TIMEOUT_MS,
 } from '../src/shell/renderer/features/turns/stream-controller';
 
 const TEST_CHAT = 'test-chat-stream';

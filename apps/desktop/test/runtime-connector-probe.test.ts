@@ -29,7 +29,7 @@ test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () =
   assert.equal(result.hasCredential, true);
   assert.equal(result.isSystemOwned, false);
   assert.equal(result.status, 'idle');
-  assert.ok(result.models.length > 0, 'should have catalog models');
+  assert.equal(result.models.length, 0, 'connector models must come from runtime SDK discovery');
 });
 
 test('sdkConnectorToApiConnector marks system-owned connectors', () => {
@@ -67,7 +67,7 @@ test('sdkConnectorToApiConnector uses provided models over catalog defaults', ()
   assert.deepEqual(result.models, ['deepseek-chat', 'deepseek-coder']);
 });
 
-test('sdkConnectorToApiConnector falls back to catalog models for empty model list', () => {
+test('sdkConnectorToApiConnector keeps model list empty when runtime has no models', () => {
   const sdkConnector = {
     connectorId: 'conn-789',
     provider: 'gemini',
@@ -80,7 +80,7 @@ test('sdkConnectorToApiConnector falls back to catalog models for empty model li
   };
 
   const result = sdkConnectorToApiConnector(sdkConnector, []);
-  assert.ok(result.models.length > 0, 'should fall back to catalog models');
+  assert.deepEqual(result.models, []);
 });
 
 test('sdkConnectorToApiConnector uses default endpoint from catalog when connector endpoint is empty', () => {
