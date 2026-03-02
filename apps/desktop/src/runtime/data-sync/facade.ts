@@ -278,6 +278,9 @@ export class DataSync {
   loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> {
     return this.actions.loadWorldAgents(worldId);
   }
+  loadWorldDetailWithAgents(worldId: string): Promise<Record<string, unknown> | null> {
+    return this.actions.loadWorldDetailWithAgents(worldId);
+  }
   loadWorldEvents(worldId: string): Promise<Array<Record<string, unknown>>> {
     return this.actions.loadWorldEvents(worldId);
   }

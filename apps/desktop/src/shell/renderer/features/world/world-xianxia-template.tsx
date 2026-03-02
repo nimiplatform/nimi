@@ -161,7 +161,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-[#4ECCA3]">"World Overview"</span>
+              <span className="text-sm text-[#4ECCA3]">World Overview</span>
             </div>
 
             {/* World Name */}
@@ -246,7 +246,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-5">
-              <span className="text-sm text-[#4ECCA3]">"Chronicle"</span>
+              <span className="text-sm text-[#4ECCA3]">Chronicle</span>
             </div>
 
             {/* Timeline */}

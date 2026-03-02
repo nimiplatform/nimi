@@ -223,8 +223,24 @@ export function WorldList() {
                   </div>
                 )}
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  {/* Title row with agent count */}
+                  <div className="flex items-center gap-3">
                     <h3 className="text-lg font-semibold text-gray-900">{mainWorld.name}</h3>
+                    {/* Agent icon + count */}
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="10" rx="2" />
+                        <circle cx="12" cy="5" r="2" />
+                        <path d="M12 7v4" />
+                        <line x1="8" y1="16" x2="8" y2="16" />
+                        <line x1="16" y1="16" x2="16" y2="16" />
+                      </svg>
+                      {mainWorld.agentCount}
+                    </span>
+                  </div>
+                  
+                  {/* Status badges below title */}
+                  <div className="flex items-center gap-2 mt-1.5">
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(mainWorld.status).bg} ${getStatusBadgeStyle(mainWorld.status).text}`}
                     >
@@ -236,6 +252,7 @@ export function WorldList() {
                       {mainWorld.nativeCreationState}
                     </span>
                   </div>
+                  
                   {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {mainWorld.genre && (
@@ -270,31 +287,7 @@ export function WorldList() {
                     </p>
                   )}
 
-                  {/* Stats Grid */}
-                  <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
-                    <div className="bg-white/50 rounded-lg p-2">
-                      <div className="text-gray-500">{t('WorldDetail.level')}</div>
-                      <div className="font-semibold text-gray-900">{mainWorld.level}</div>
-                    </div>
-                    <div className="bg-white/50 rounded-lg p-2">
-                      <div className="text-gray-500">{t('WorldDetail.agents')}</div>
-                      <div className="font-semibold text-gray-900">{mainWorld.agentCount}</div>
-                    </div>
-                    <div className="bg-white/50 rounded-lg p-2">
-                      <div className="text-gray-500">{t('WorldDetail.nativeAgentLimit')}</div>
-                      <div className="font-semibold text-gray-900">
-                        {mainWorld.nativeAgentLimit}
-                      </div>
-                    </div>
-                    <div className="bg-white/50 rounded-lg p-2">
-                      <div className="text-gray-500">{t('WorldDetail.lorebookLimit')}</div>
-                      <div className="font-semibold text-gray-900">
-                        {mainWorld.lorebookEntryLimit}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Time & Transit */}
+                  {/* Time & Transit -->
                   <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
                     <span>
                       {t('WorldDetail.timeFlowRatio', { ratio: mainWorld.timeFlowRatio })}

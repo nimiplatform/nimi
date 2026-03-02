@@ -537,6 +537,38 @@ export const WorldDetailType = {
 
 export type WorldDetailType = (typeof WorldDetailType)[keyof typeof WorldDetailType];
 
+export const WorldDetailWithAgentsFreezeReason = {
+  QUOTA_OVERFLOW: "QUOTA_OVERFLOW",
+  WORLD_INACTIVE: "WORLD_INACTIVE",
+  GOVERNANCE_LOCK: "GOVERNANCE_LOCK",
+} as const satisfies Record<string, components['schemas']['WorldDetailWithAgentsDto']['freezeReason']>;
+
+export type WorldDetailWithAgentsFreezeReason = (typeof WorldDetailWithAgentsFreezeReason)[keyof typeof WorldDetailWithAgentsFreezeReason];
+
+export const WorldDetailWithAgentsNativeCreationState = {
+  OPEN: "OPEN",
+  NATIVE_CREATION_FROZEN: "NATIVE_CREATION_FROZEN",
+} as const satisfies Record<string, components['schemas']['WorldDetailWithAgentsDto']['nativeCreationState']>;
+
+export type WorldDetailWithAgentsNativeCreationState = (typeof WorldDetailWithAgentsNativeCreationState)[keyof typeof WorldDetailWithAgentsNativeCreationState];
+
+export const WorldDetailWithAgentsStatus = {
+  DRAFT: "DRAFT",
+  PENDING_REVIEW: "PENDING_REVIEW",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  ARCHIVED: "ARCHIVED",
+} as const satisfies Record<string, components['schemas']['WorldDetailWithAgentsDto']['status']>;
+
+export type WorldDetailWithAgentsStatus = (typeof WorldDetailWithAgentsStatus)[keyof typeof WorldDetailWithAgentsStatus];
+
+export const WorldDetailWithAgentsType = {
+  MAIN: "MAIN",
+  SUB: "SUB",
+} as const satisfies Record<string, components['schemas']['WorldDetailWithAgentsDto']['type']>;
+
+export type WorldDetailWithAgentsType = (typeof WorldDetailWithAgentsType)[keyof typeof WorldDetailWithAgentsType];
+
 export const WorldDraftDetailSourceType = {
   TEXT: "TEXT",
   FILE: "FILE",

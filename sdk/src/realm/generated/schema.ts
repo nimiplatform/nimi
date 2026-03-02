@@ -2799,6 +2799,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/world/by-id/{id}/detail-with-agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get world detail with agent summaries */
+        get: operations["WorldController_getWorldDetailWithAgents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/world/by-id/{id}/level/audits": {
         parameters: {
             query?: never;
@@ -6045,8 +6062,60 @@ export type components = {
             records: components["schemas"]["WorldAccessRecordDto"][];
             userId: string;
         };
+        WorldAgentSummaryDto: {
+            avatarUrl?: string;
+            bio?: string;
+            /** Format: date-time */
+            createdAt: string;
+            handle?: string;
+            id: string;
+            name: string;
+            role?: string;
+        };
         WorldDetailDto: {
             agentCount: number;
+            bannerUrl?: string;
+            clockConfig?: Record<string, never>;
+            /** Format: date-time */
+            createdAt: string;
+            creatorId?: string;
+            description?: string;
+            era?: string;
+            /** @enum {string} */
+            freezeReason?: "QUOTA_OVERFLOW" | "WORLD_INACTIVE" | "GOVERNANCE_LOCK";
+            genre?: string;
+            iconUrl?: string;
+            id: string;
+            level: number;
+            /** Format: date-time */
+            levelUpdatedAt?: string;
+            lorebookEntryLimit: number;
+            name: string;
+            nativeAgentLimit: number;
+            /** @enum {string} */
+            nativeCreationState: "OPEN" | "NATIVE_CREATION_FROZEN";
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewedBy?: string;
+            sceneTimeConfig?: Record<string, never>;
+            scoreA: number;
+            scoreC: number;
+            scoreE: number;
+            scoreEwma: number;
+            scoreQ: number;
+            /** @enum {string} */
+            status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+            themes?: string[];
+            timeFlowRatio: number;
+            transitInLimit: number;
+            /** @enum {string} */
+            type: "MAIN" | "SUB";
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        WorldDetailWithAgentsDto: {
+            agentCount: number;
+            agents: components["schemas"]["WorldAgentSummaryDto"][];
             bannerUrl?: string;
             clockConfig?: Record<string, never>;
             /** Format: date-time */

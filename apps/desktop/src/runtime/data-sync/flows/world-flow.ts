@@ -173,6 +173,27 @@ export async function loadWorldAgents(
   }
 }
 
+export async function loadWorldDetailWithAgents(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<Record<string, unknown> | null> {
+  const normalizedWorldId = String(worldId || '').trim();
+  if (!normalizedWorldId) {
+    throw new Error('WORLD_ID_REQUIRED');
+  }
+  try {
+    const payload = await callApi(
+      (realm) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(normalizedWorldId),
+      '加载世界详情(含Agent)失败',
+    );
+    return toRecord(payload);
+  } catch (error) {
+    emitDataSyncError('load-world-detail-with-agents', error, { worldId: normalizedWorldId });
+    throw error;
+  }
+}
+
 export async function loadWorldSemanticBundle(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
