@@ -2,12 +2,15 @@ package localruntime
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"path/filepath"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func newTestService(t *testing.T) *Service {
@@ -634,5 +637,223 @@ func TestLocalRuntimeStateRestoresAfterRestart(t *testing.T) {
 	}
 	if len(servicesResp.GetServices()) == 0 {
 		t.Fatalf("expected restored services from persisted state")
+	}
+}
+
+// --- Engine RPC tests ---
+
+func TestEngineRPCsReturnFailedPreconditionWithoutManager(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	// ListEngines
+	_, err := svc.ListEngines(ctx, &runtimev1.ListEnginesRequest{})
+	assertGRPCCode(t, err, "ListEngines", codes.FailedPrecondition)
+
+	// EnsureEngine
+	_, err = svc.EnsureEngine(ctx, &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "EnsureEngine", codes.FailedPrecondition)
+
+	// StartEngine
+	_, err = svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "StartEngine", codes.FailedPrecondition)
+
+	// StopEngine
+	_, err = svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "StopEngine", codes.FailedPrecondition)
+
+	// GetEngineStatus
+	_, err = svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "GetEngineStatus", codes.FailedPrecondition)
+}
+
+func TestEngineRPCsWithMockManager(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+	ctx := context.Background()
+
+	// ListEngines should return the mock engines.
+	resp, err := svc.ListEngines(ctx, &runtimev1.ListEnginesRequest{})
+	if err != nil {
+		t.Fatalf("ListEngines: %v", err)
+	}
+	if len(resp.GetEngines()) != 1 {
+		t.Fatalf("expected 1 engine, got %d", len(resp.GetEngines()))
+	}
+	if resp.GetEngines()[0].GetEngine() != "localai" {
+		t.Errorf("expected engine localai, got %s", resp.GetEngines()[0].GetEngine())
+	}
+
+	// GetEngineStatus should return the mock engine status.
+	statusResp, err := svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: "localai"})
+	if err != nil {
+		t.Fatalf("GetEngineStatus: %v", err)
+	}
+	if statusResp.GetEngine().GetStatus() != runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_HEALTHY {
+		t.Errorf("expected healthy status, got %s", statusResp.GetEngine().GetStatus())
+	}
+}
+
+func TestEngineRPCsRequireEngineName(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+	ctx := context.Background()
+
+	// Empty engine name should return INVALID_ARGUMENT.
+	_, err := svc.EnsureEngine(ctx, &runtimev1.EnsureEngineRequest{Engine: ""})
+	assertGRPCCode(t, err, "EnsureEngine(empty)", codes.InvalidArgument)
+
+	_, err = svc.StartEngine(ctx, &runtimev1.StartEngineRequest{Engine: ""})
+	assertGRPCCode(t, err, "StartEngine(empty)", codes.InvalidArgument)
+
+	_, err = svc.StopEngine(ctx, &runtimev1.StopEngineRequest{Engine: ""})
+	assertGRPCCode(t, err, "StopEngine(empty)", codes.InvalidArgument)
+
+	_, err = svc.GetEngineStatus(ctx, &runtimev1.GetEngineStatusRequest{Engine: ""})
+	assertGRPCCode(t, err, "GetEngineStatus(empty)", codes.InvalidArgument)
+}
+
+// mockEngineManager implements EngineManager for testing with configurable errors.
+type mockEngineManager struct {
+	ensureErr error
+	startErr  error
+	stopErr   error
+	statusErr error
+}
+
+func (m *mockEngineManager) ListEngines() []EngineInfo {
+	return []EngineInfo{
+		{Engine: "localai", Version: "3.12.1", Status: "healthy", Port: 1234, Endpoint: "http://127.0.0.1:1234"},
+	}
+}
+
+func (m *mockEngineManager) EnsureEngine(_ context.Context, _ string, _ string) error {
+	return m.ensureErr
+}
+
+func (m *mockEngineManager) StartEngine(_ context.Context, _ string, _ int, _ string) error {
+	return m.startErr
+}
+
+func (m *mockEngineManager) StopEngine(_ string) error {
+	return m.stopErr
+}
+
+func (m *mockEngineManager) EngineStatus(engine string) (EngineInfo, error) {
+	if m.statusErr != nil {
+		return EngineInfo{}, m.statusErr
+	}
+	return EngineInfo{
+		Engine:   engine,
+		Version:  "3.12.1",
+		Status:   "healthy",
+		Port:     1234,
+		Endpoint: "http://127.0.0.1:1234",
+	}, nil
+}
+
+func assertGRPCCode(t *testing.T, err error, rpc string, wantCode codes.Code) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("%s: expected error, got nil", rpc)
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("%s: expected gRPC status error, got %T: %v", rpc, err, err)
+	}
+	if st.Code() != wantCode {
+		t.Errorf("%s: expected code %s, got %s (msg: %s)", rpc, wantCode, st.Code(), st.Message())
+	}
+}
+
+// --- Engine RPC success/error tests ---
+
+func TestEngineRPCEnsureEngineSuccess(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+
+	resp, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	if err != nil {
+		t.Fatalf("EnsureEngine: %v", err)
+	}
+	desc := resp.GetEngine()
+	if desc.GetEngine() != "localai" {
+		t.Errorf("expected engine localai, got %s", desc.GetEngine())
+	}
+	if desc.GetVersion() != "3.12.1" {
+		t.Errorf("expected version 3.12.1, got %s", desc.GetVersion())
+	}
+}
+
+func TestEngineRPCStartEngineSuccess(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+
+	resp, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{
+		Engine: "localai",
+		Port:   5000,
+	})
+	if err != nil {
+		t.Fatalf("StartEngine: %v", err)
+	}
+	desc := resp.GetEngine()
+	if desc.GetEngine() != "localai" {
+		t.Errorf("expected engine localai, got %s", desc.GetEngine())
+	}
+}
+
+func TestEngineRPCStopEngineSuccess(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+
+	resp, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "localai"})
+	if err != nil {
+		t.Fatalf("StopEngine: %v", err)
+	}
+	desc := resp.GetEngine()
+	if desc.GetStatus() != runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_STOPPED {
+		t.Errorf("expected STOPPED status, got %s", desc.GetStatus())
+	}
+}
+
+func TestEngineRPCGetEngineStatusNotFound(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		statusErr: fmt.Errorf("engine missing not started"),
+	})
+
+	_, err := svc.GetEngineStatus(context.Background(), &runtimev1.GetEngineStatusRequest{Engine: "missing"})
+	assertGRPCCode(t, err, "GetEngineStatus(not_found)", codes.NotFound)
+}
+
+func TestEngineRPCEnsureEngineError(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		ensureErr: fmt.Errorf("download failed"),
+	})
+
+	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Internal)
+}
+
+// --- Enum mapping test ---
+
+func TestEngineStatusToProtoMapping(t *testing.T) {
+	tests := []struct {
+		input string
+		want  runtimev1.LocalEngineStatus
+	}{
+		{"stopped", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_STOPPED},
+		{"starting", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_STARTING},
+		{"healthy", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_HEALTHY},
+		{"unhealthy", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_UNHEALTHY},
+		{"unknown", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_UNSPECIFIED},
+		{"", runtimev1.LocalEngineStatus_LOCAL_ENGINE_STATUS_UNSPECIFIED},
+	}
+	for _, tt := range tests {
+		got := engineStatusToProto(tt.input)
+		if got != tt.want {
+			t.Errorf("engineStatusToProto(%q) = %s, want %s", tt.input, got, tt.want)
+		}
 	}
 }
