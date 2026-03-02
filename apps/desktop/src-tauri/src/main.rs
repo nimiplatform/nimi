@@ -12,6 +12,7 @@ use tauri::Manager;
 
 mod external_agent_gateway;
 mod llm_adapter;
+mod local_ai_runtime;
 mod runtime_bridge;
 mod runtime_mod;
 
@@ -1058,7 +1059,32 @@ fn main() {
             runtime_bridge::runtime_bridge_stop,
             runtime_bridge::runtime_bridge_restart,
             runtime_bridge::runtime_bridge_config_get,
-            runtime_bridge::runtime_bridge_config_set
+            runtime_bridge::runtime_bridge_config_set,
+            local_ai_runtime::commands::local_ai_models_list,
+            local_ai_runtime::commands::local_ai_audits_list,
+            local_ai_runtime::commands::local_ai_pick_manifest_path,
+            local_ai_runtime::commands::local_ai_models_verified_list,
+            local_ai_runtime::commands::local_ai_models_catalog_search,
+            local_ai_runtime::commands::local_ai_models_catalog_resolve_install_plan,
+            local_ai_runtime::commands::local_ai_dependencies_resolve,
+            local_ai_runtime::commands::local_ai_device_profile_collect,
+            local_ai_runtime::commands::local_ai_dependencies_apply,
+            local_ai_runtime::commands::local_ai_services_list,
+            local_ai_runtime::commands::local_ai_services_install,
+            local_ai_runtime::commands::local_ai_services_start,
+            local_ai_runtime::commands::local_ai_services_stop,
+            local_ai_runtime::commands::local_ai_services_health,
+            local_ai_runtime::commands::local_ai_services_remove,
+            local_ai_runtime::commands::local_ai_nodes_catalog_list,
+            local_ai_runtime::commands::local_ai_models_install,
+            local_ai_runtime::commands::local_ai_models_install_verified,
+            local_ai_runtime::commands::local_ai_models_import,
+            local_ai_runtime::commands::local_ai_models_remove,
+            local_ai_runtime::commands::local_ai_models_start,
+            local_ai_runtime::commands::local_ai_models_stop,
+            local_ai_runtime::commands::local_ai_models_health,
+            local_ai_runtime::commands::local_ai_append_inference_audit,
+            local_ai_runtime::commands::local_ai_append_runtime_audit
         ])
         .run(tauri::generate_context!());
 
