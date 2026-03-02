@@ -837,8 +837,56 @@ pub fn resolve_install_plan(input: LocalAiCatalogResolveInput) -> Result<LocalAi
 
 #[cfg(test)]
 mod tests {
-    use super::{infer_capabilities, infer_engine, normalize_hf_repo_slug, runtime_mode_for_engine};
-    use crate::local_ai_runtime::types::LocalAiEngineRuntimeMode;
+    use super::{
+        infer_capabilities, infer_engine, infer_license, match_catalog_capability,
+        match_catalog_query, normalize_hf_file_path, normalize_hf_repo_slug,
+        normalize_install_limit, normalize_search_query, runtime_mode_for_engine,
+        select_entry_file, HfModelSibling,
+    };
+    use crate::local_ai_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
+    use std::collections::HashMap;
+
+    fn sibling(name: &str) -> HfModelSibling {
+        HfModelSibling {
+            rfilename: name.to_string(),
+            lfs: None,
+        }
+    }
+
+    fn catalog_item_fixture(
+        model_id: &str,
+        caps: &[&str],
+        verified: bool,
+    ) -> LocalAiCatalogItemDescriptor {
+        LocalAiCatalogItemDescriptor {
+            item_id: format!("test:{model_id}"),
+            source: "test".to_string(),
+            title: model_id.split('/').last().unwrap_or(model_id).to_string(),
+            description: "test model".to_string(),
+            model_id: model_id.to_string(),
+            repo: model_id.to_string(),
+            revision: "main".to_string(),
+            template_id: None,
+            capabilities: caps.iter().map(|c| c.to_string()).collect(),
+            engine: "localai".to_string(),
+            engine_runtime_mode: LocalAiEngineRuntimeMode::Supervised,
+            install_kind: "test".to_string(),
+            install_available: true,
+            endpoint: Some("http://127.0.0.1:1234/v1".to_string()),
+            provider_hints: None,
+            entry: Some("model.gguf".to_string()),
+            files: vec![],
+            license: Some("apache-2.0".to_string()),
+            hashes: HashMap::new(),
+            tags: vec![],
+            downloads: None,
+            likes: None,
+            last_modified: None,
+            verified,
+        }
+    }
+
+    // --- existing tests ---
 
     #[test]
     fn normalize_hf_repo_slug_supports_protocol_and_url() {
@@ -877,5 +925,242 @@ mod tests {
             runtime_mode_for_engine("localai"),
             LocalAiEngineRuntimeMode::Supervised
         );
+    }
+
+    // --- K-LOCAL-023 infer_capabilities full mapping ---
+
+    #[test]
+    fn infer_capabilities_text_generation_maps_to_chat() {
+        let caps = infer_capabilities(Some("text-generation"), &[]);
+        assert_eq!(caps, vec!["chat"]);
+    }
+
+    #[test]
+    fn infer_capabilities_text2text_generation_maps_to_chat() {
+        let caps = infer_capabilities(Some("text2text-generation"), &[]);
+        assert_eq!(caps, vec!["chat"]);
+    }
+
+    #[test]
+    fn infer_capabilities_text_to_image_maps_to_image() {
+        let caps = infer_capabilities(Some("text-to-image"), &[]);
+        assert_eq!(caps, vec!["image"]);
+    }
+
+    #[test]
+    fn infer_capabilities_image_to_image_maps_to_image() {
+        let caps = infer_capabilities(Some("image-to-image"), &[]);
+        assert_eq!(caps, vec!["image"]);
+    }
+
+    #[test]
+    fn infer_capabilities_text_to_video_maps_to_video() {
+        let caps = infer_capabilities(Some("text-to-video"), &[]);
+        assert_eq!(caps, vec!["video"]);
+    }
+
+    #[test]
+    fn infer_capabilities_text_to_speech_maps_to_tts() {
+        let caps = infer_capabilities(Some("text-to-speech"), &[]);
+        assert_eq!(caps, vec!["tts"]);
+    }
+
+    #[test]
+    fn infer_capabilities_text_to_audio_maps_to_tts() {
+        let caps = infer_capabilities(Some("text-to-audio"), &[]);
+        assert_eq!(caps, vec!["tts"]);
+    }
+
+    #[test]
+    fn infer_capabilities_asr_maps_to_stt() {
+        let caps = infer_capabilities(Some("automatic-speech-recognition"), &[]);
+        assert_eq!(caps, vec!["stt"]);
+    }
+
+    #[test]
+    fn infer_capabilities_feature_extraction_maps_to_embedding() {
+        let caps = infer_capabilities(Some("feature-extraction"), &[]);
+        assert_eq!(caps, vec!["embedding"]);
+    }
+
+    #[test]
+    fn infer_capabilities_sentence_similarity_maps_to_embedding() {
+        let caps = infer_capabilities(Some("sentence-similarity"), &[]);
+        assert_eq!(caps, vec!["embedding"]);
+    }
+
+    #[test]
+    fn infer_capabilities_unknown_pipeline_falls_back_to_chat() {
+        let caps = infer_capabilities(Some("zero-shot-classification"), &[]);
+        assert_eq!(caps, vec!["chat"]);
+    }
+
+    #[test]
+    fn infer_capabilities_tags_enrich_result() {
+        let tags = vec!["tts".to_string(), "chat".to_string()];
+        let caps = infer_capabilities(None, &tags);
+        assert!(caps.contains(&"tts".to_string()));
+        assert!(caps.contains(&"chat".to_string()));
+        assert_eq!(caps.len(), 2);
+    }
+
+    #[test]
+    fn infer_capabilities_combined_pipeline_and_tags_dedup() {
+        let tags = vec!["chat".to_string()];
+        let caps = infer_capabilities(Some("text-generation"), &tags);
+        assert_eq!(caps, vec!["chat"]);
+    }
+
+    // --- K-LOCAL-026 normalize_hf_file_path ---
+
+    #[test]
+    fn normalize_hf_file_path_rejects_absolute_path() {
+        assert_eq!(normalize_hf_file_path("/etc/passwd"), None);
+    }
+
+    #[test]
+    fn normalize_hf_file_path_rejects_parent_traversal() {
+        assert_eq!(normalize_hf_file_path("../../etc/shadow"), None);
+    }
+
+    #[test]
+    fn normalize_hf_file_path_converts_backslash() {
+        assert_eq!(
+            normalize_hf_file_path("subdir\\model.bin"),
+            Some("subdir/model.bin".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_hf_file_path_rejects_empty() {
+        assert_eq!(normalize_hf_file_path(""), None);
+    }
+
+    #[test]
+    fn normalize_hf_file_path_accepts_nested_relative() {
+        assert_eq!(
+            normalize_hf_file_path("speech_tokenizer/model.safetensors"),
+            Some("speech_tokenizer/model.safetensors".to_string())
+        );
+    }
+
+    // --- K-LOCAL-027 select_entry_file ---
+
+    #[test]
+    fn select_entry_file_prefers_gguf_for_localai() {
+        let siblings = vec![
+            sibling("config.json"),
+            sibling("model.safetensors"),
+            sibling("weights.gguf"),
+        ];
+        let entry = select_entry_file(&siblings, None, "localai");
+        assert_eq!(entry, Some("weights.gguf".to_string()));
+    }
+
+    #[test]
+    fn select_entry_file_prefers_model_safetensors_when_no_gguf() {
+        let siblings = vec![sibling("config.json"), sibling("model.safetensors")];
+        let entry = select_entry_file(&siblings, None, "localai");
+        assert_eq!(entry, Some("model.safetensors".to_string()));
+    }
+
+    #[test]
+    fn select_entry_file_falls_back_to_any_safetensors() {
+        let siblings = vec![sibling("config.json"), sibling("weights.safetensors")];
+        let entry = select_entry_file(&siblings, None, "localai");
+        assert_eq!(entry, Some("weights.safetensors".to_string()));
+    }
+
+    #[test]
+    fn select_entry_file_uses_manual_entry_when_provided() {
+        let siblings = vec![sibling("config.json"), sibling("model.safetensors")];
+        let entry = select_entry_file(&siblings, Some("custom.bin"), "localai");
+        assert_eq!(entry, Some("custom.bin".to_string()));
+    }
+
+    #[test]
+    fn select_entry_file_returns_none_for_empty_siblings() {
+        let entry = select_entry_file(&[], None, "localai");
+        assert_eq!(entry, None);
+    }
+
+    // --- K-LOCAL-021 match_catalog_query / match_catalog_capability ---
+
+    #[test]
+    fn match_catalog_query_empty_query_matches_all() {
+        let item = catalog_item_fixture("Qwen/Qwen2.5", &["chat"], false);
+        assert!(match_catalog_query(&item, ""));
+    }
+
+    #[test]
+    fn match_catalog_query_matches_model_id_case_insensitive() {
+        let item = catalog_item_fixture("Qwen/Qwen2.5", &["chat"], false);
+        assert!(match_catalog_query(&item, "qwen"));
+    }
+
+    #[test]
+    fn match_catalog_capability_empty_matches_all() {
+        let item = catalog_item_fixture("test/model", &["chat"], false);
+        assert!(match_catalog_capability(&item, ""));
+    }
+
+    #[test]
+    fn match_catalog_capability_exact_match() {
+        let item = catalog_item_fixture("test/model", &["chat", "embedding"], false);
+        assert!(match_catalog_capability(&item, "embedding"));
+    }
+
+    #[test]
+    fn match_catalog_capability_no_match() {
+        let item = catalog_item_fixture("test/model", &["chat"], false);
+        assert!(!match_catalog_capability(&item, "video"));
+    }
+
+    // --- helper functions ---
+
+    #[test]
+    fn normalize_install_limit_clamps_to_range() {
+        assert_eq!(normalize_install_limit(0), 1);
+        assert_eq!(normalize_install_limit(100), 80);
+        assert_eq!(normalize_install_limit(50), 50);
+    }
+
+    #[test]
+    fn normalize_search_query_defaults_to_llama() {
+        assert_eq!(normalize_search_query(None), "llama gguf");
+        assert_eq!(normalize_search_query(Some("")), "llama gguf");
+        assert_eq!(normalize_search_query(Some("  ")), "llama gguf");
+    }
+
+    #[test]
+    fn infer_license_extracts_from_tags() {
+        let tags = vec!["license:apache-2.0".to_string()];
+        assert_eq!(infer_license(&tags, None), "apache-2.0");
+    }
+
+    #[test]
+    fn infer_license_manual_overrides_tags() {
+        let tags = vec!["license:apache-2.0".to_string()];
+        assert_eq!(infer_license(&tags, Some("mit")), "mit");
+    }
+
+    #[test]
+    fn infer_license_defaults_to_unknown() {
+        assert_eq!(infer_license(&[], None), "unknown");
+    }
+
+    #[test]
+    fn infer_engine_nexa_for_npu_tags() {
+        let tags = vec!["npu".to_string()];
+        let caps = vec!["chat".to_string()];
+        let engine = infer_engine("org/model", &tags, &caps);
+        assert_eq!(engine, "nexa");
+    }
+
+    #[test]
+    fn infer_engine_localai_for_chat() {
+        let caps = vec!["chat".to_string()];
+        let engine = infer_engine("org/model", &[], &caps);
+        assert_eq!(engine, "localai");
     }
 }
