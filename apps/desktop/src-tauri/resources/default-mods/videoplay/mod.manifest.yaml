@@ -1,0 +1,48 @@
+id: world.nimi.videoplay
+name: VideoPlay
+version: 1.0.0
+kind: capability-mod
+icon: videoplay
+entry: ./dist/mods/videoplay/index.js
+description: >
+  Episode-based narrative video production workbench.
+  Consumes canonical narrative windows and outputs publish-ready release packages.
+capabilities:
+  - llm.text.generate
+  - llm.image.generate
+  - llm.video.generate
+  - data.query.data-api.runtime.route.options
+  - data.register.data-api.videoplay.episode.upsert
+  - data.query.data-api.videoplay.episode.upsert
+  - data.register.data-api.videoplay.asset.batch-upsert
+  - data.query.data-api.videoplay.asset.batch-upsert
+  - data.register.data-api.videoplay.release.publish
+  - data.query.data-api.videoplay.release.publish
+  - ui.register.ui-extension.app.sidebar.mods
+  - ui.register.ui-extension.app.content.routes
+ai:
+  consume:
+    - chat
+    - image
+    - video
+  dependencies:
+    required:
+      - dependencyId: videoplay/chat-default
+        kind: model
+        capability: chat
+        engine: openai-compatible
+        title: Default Chat Model (runtime-resolved)
+      - dependencyId: videoplay/image-default
+        kind: model
+        capability: image
+        engine: openai-compatible
+        title: Default Image Model (runtime-resolved)
+      - dependencyId: videoplay/video-default
+        kind: model
+        capability: video
+        engine: openai-compatible
+        title: Default Video Model (runtime-resolved)
+    preferred:
+      chat: videoplay/chat-default
+      image: videoplay/image-default
+      video: videoplay/video-default
