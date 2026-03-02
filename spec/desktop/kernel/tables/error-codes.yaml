@@ -73,6 +73,52 @@ codes:
     description: Qwen TTS runtime dependency installation failed
     source_rule: D-ERR-003
 
+  # File import errors
+  - code: LOCAL_AI_FILE_IMPORT_NOT_FOUND
+    domain: local-ai
+    description: Source file does not exist or is not a regular file
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY
+    domain: local-ai
+    description: At least one capability is required for file import
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_READ_FAILED
+    domain: local-ai
+    description: Cannot open or read source model file
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_WRITE_FAILED
+    domain: local-ai
+    description: Cannot create or write target file in models directory
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_DIR_FAILED
+    domain: local-ai
+    description: Cannot create model subdirectory in runtime models root
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_FLUSH_FAILED
+    domain: local-ai
+    description: Failed to flush written file to OS buffer
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_SYNC_FAILED
+    domain: local-ai
+    description: Failed to sync written file to disk
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED
+    domain: local-ai
+    description: Failed to serialize generated model manifest JSON
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED
+    domain: local-ai
+    description: Failed to write generated model.manifest.json to disk
+    source_rule: D-ERR-001
+
   # Runtime route errors
   - code: LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED
     domain: runtime
