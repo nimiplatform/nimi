@@ -5,7 +5,7 @@
 本轮完成了 Final State 文档落地，覆盖：
 
 1. 链路级 SSOT：运行协议、守卫治理、总入口索引更新。
-2. narrative/textplay：run orchestration 合同与 run-states 表。
+2. narrative-engine/textplay：run orchestration 合同与 run-states 表。
 3. videoplay：creator workflow、version lineage、prompt governance 合同与配套表。
 4. spec 生成与一致性校验脚本配置更新。
 
@@ -20,8 +20,8 @@
 模块级 SSOT/Spec：
 
 1. `nimi-mods/world-studio/SSOT.md`（UPDATE）
-2. `nimi-mods/narrative/spec/kernel/run-orchestration-contract.md`（ADD）
-3. `nimi-mods/narrative/spec/kernel/tables/run-states.yaml`（ADD）
+2. `nimi-mods/narrative-engine/spec/kernel/run-orchestration-contract.md`（ADD）
+3. `nimi-mods/narrative-engine/spec/kernel/tables/run-states.yaml`（ADD）
 4. `nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`（ADD）
 5. `nimi-mods/textplay/spec/kernel/tables/run-states.yaml`（ADD）
 6. `nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md`（ADD）
@@ -33,10 +33,10 @@
 12. `nimi-mods/videoplay/spec/kernel/tables/version-lineage-policy.yaml`（ADD）
 13. `nimi-mods/videoplay/spec/kernel/tables/forbidden-patterns.yaml`（ADD）
 14. `nimi-mods/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`（ADD）
-15. `nimi-mods/narrative/spec/INDEX.md`（UPDATE）
+15. `nimi-mods/narrative-engine/spec/INDEX.md`（UPDATE）
 16. `nimi-mods/textplay/spec/INDEX.md`（UPDATE）
 17. `nimi-mods/videoplay/spec/INDEX.md`（UPDATE）
-18. `nimi-mods/narrative/spec/narrative.md`（UPDATE）
+18. `nimi-mods/narrative-engine/spec/narrative-engine.md`（UPDATE）
 19. `nimi-mods/textplay/spec/textplay.md`（UPDATE）
 20. `nimi-mods/videoplay/spec/videoplay.md`（UPDATE）
 21. `nimi-mods/*/spec/kernel/index.md`（UPDATE）
@@ -54,7 +54,7 @@
 
 结果：通过
 
-- `[narrative] generated kernel docs (9 files)`
+- `[narrative-engine] generated kernel docs (10 files)`
 - `[textplay] generated kernel docs (8 files)`
 - `[videoplay] generated kernel docs (15 files)`
 
@@ -62,7 +62,7 @@
 
 结果：通过
 
-- `[narrative] kernel consistency checks passed`
+- `[narrative-engine] kernel consistency checks passed`
 - `[textplay] kernel consistency checks passed`
 - `[videoplay] kernel consistency checks passed`
 - 三模块 docs drift 均为 up-to-date
@@ -83,7 +83,7 @@
 ### 5.1 基线与输入
 
 1. `world-studio` 已有真实实现（`nimi-mods/world-studio/src/*`）。
-2. `narrative/textplay/videoplay` 当前为 contract-first（SSOT/spec 先行，尚无 `src`）。
+2. `narrative-engine/textplay/videoplay` 当前为 contract-first + implementation 并行（spec 持续先行，`src` 已存在并可运行）。
 3. 链路级 SSOT 已存在 3 份：rendering / run-protocol / guard-governance。
 4. 对标输入使用行业主流产品样本（外部样本仓，HEAD `eb18e92`，2026-03-01）。
 
@@ -103,11 +103,11 @@
 
 1. 目标：补 run/task 解耦、cancel 独立终态、`afterSeq + gapRefill` 恢复约束。
 2. 落地：
-   1. narrative：`run-orchestration-contract.md`、`run-states.yaml`、`reason-codes.yaml`、`acceptance-cases.yaml`
+   1. narrative-engine：`run-orchestration-contract.md`、`run-states.yaml`、`reason-codes.yaml`、`acceptance-cases.yaml`
    2. textplay：`run-orchestration-contract.md`、`run-states.yaml`、`reason-codes.yaml`、`acceptance-cases.yaml`
 3. 门禁：
-   1. `pnpm -C nimi-mods run generate:spec:narrative-kernel-docs` 通过
-   2. `pnpm -C nimi-mods run check:spec:narrative` 通过
+   1. `pnpm -C nimi-mods run generate:spec:narrative-engine-kernel-docs` 通过
+   2. `pnpm -C nimi-mods run check:spec:narrative-engine` 通过
    3. `pnpm -C nimi-mods run generate:spec:textplay-kernel-docs` 通过
    4. `pnpm -C nimi-mods run check:spec:textplay` 通过
 
@@ -169,11 +169,11 @@
    5. `nimi-mods/world-studio/spec/kernel/tables/reason-codes.yaml`
    6. `nimi-mods/world-studio/spec/kernel/tables/acceptance-cases.yaml`
 4. Narrative：
-   1. `nimi-mods/narrative/spec/INDEX.md`
-   2. `nimi-mods/narrative/spec/kernel/run-orchestration-contract.md`
-   3. `nimi-mods/narrative/spec/kernel/tables/run-states.yaml`
-   4. `nimi-mods/narrative/spec/kernel/tables/reason-codes.yaml`
-   5. `nimi-mods/narrative/spec/kernel/tables/acceptance-cases.yaml`
+   1. `nimi-mods/narrative-engine/spec/INDEX.md`
+   2. `nimi-mods/narrative-engine/spec/kernel/run-orchestration-contract.md`
+   3. `nimi-mods/narrative-engine/spec/kernel/tables/run-states.yaml`
+   4. `nimi-mods/narrative-engine/spec/kernel/tables/reason-codes.yaml`
+   5. `nimi-mods/narrative-engine/spec/kernel/tables/acceptance-cases.yaml`
 5. TextPlay：
    1. `nimi-mods/textplay/spec/INDEX.md`
    2. `nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`
@@ -197,7 +197,7 @@
 
 ### 5.4 约束符合性审计（增量）
 
-1. 保持主意图不变：worldstudio（基础事实）-> narrative（叙事事实）-> renderer（textplay/videoplay）。
+1. 保持主意图不变：worldstudio（基础事实）-> narrative-engine（叙事事实编译）-> renderer（textplay/videoplay）。
 2. 无 legacy 兼容层、迁移层、双轨协议。
 3. 新增规则均映射到现有接口/状态机/数据模型，未引入悬空规则。
 4. 所有新增表项均带 `source_rule` 并通过 consistency check。

@@ -4026,6 +4026,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/worlds/{worldId}/narrative-contexts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List world narrative contexts for story startup and diagnostics */
+        get: operations["WorldControlController_listWorldNarrativeContexts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/scenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List world scenes for narrative startup aggregation */
+        get: operations["WorldControlController_listWorldScenes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -5215,6 +5249,7 @@ export type components = {
         PublishWorldDraftResultDto: {
             draftId: string;
             publishedAt: string;
+            storyProjectionStats?: components["schemas"]["WorldStoryProjectionSummaryDto"];
             worldId: string;
             worldviewVersion: number;
         };
@@ -6244,6 +6279,7 @@ export type components = {
             editorSnapshotVersion?: string;
             eventSummary?: components["schemas"]["WorldEventGraphSummaryDto"];
             lorebooks: components["schemas"]["WorldLorebookDetailDto"][];
+            storyProjectionSummary?: components["schemas"]["WorldStoryProjectionSummaryDto"];
             world: components["schemas"]["WorldPatchDto"];
             worldview?: components["schemas"]["WorldviewPatchDto"];
         };
@@ -6261,6 +6297,33 @@ export type components = {
             targetPath: string;
             worldId: string;
         };
+        WorldNarrativeContextDetailDto: {
+            createdAt: string;
+            derivedFromSpineSeq?: number;
+            id: string;
+            narrativeSetting: {
+                [key: string]: unknown;
+            };
+            narrativeState: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            scope: "CANON" | "STORY" | "SUBJECT" | "RELATION";
+            scopeKey: string;
+            storyId?: string;
+            subjectId?: string;
+            /** @enum {string} */
+            subjectType?: "AGENT" | "PLAYER" | "FACTION";
+            targetSubjectId?: string;
+            /** @enum {string} */
+            targetSubjectType?: "AGENT" | "PLAYER" | "FACTION";
+            updatedAt: string;
+            worldId: string;
+        };
+        WorldNarrativeContextListDto: {
+            items: components["schemas"]["WorldNarrativeContextDetailDto"][];
+            worldId: string;
+        };
         WorldPatchDto: {
             bannerUrl?: string;
             description?: string;
@@ -6272,6 +6335,26 @@ export type components = {
             status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
             themes?: string[];
             timeFlowRatio?: number;
+        };
+        WorldSceneDetailDto: {
+            activeEntities: string[];
+            description: string;
+            id: string;
+            name: string;
+            setting: {
+                [key: string]: unknown;
+            };
+            updatedAt: string;
+            worldId: string;
+        };
+        WorldSceneListDto: {
+            items: components["schemas"]["WorldSceneDetailDto"][];
+            worldId: string;
+        };
+        WorldStoryProjectionSummaryDto: {
+            latestProjectedAt?: string;
+            missingContextCount: number;
+            storyCount: number;
         };
         WorldSummaryDto: {
             description?: string;

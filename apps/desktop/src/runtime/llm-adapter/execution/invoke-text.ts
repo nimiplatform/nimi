@@ -16,6 +16,34 @@ import { emitRuntimeLog } from '../../telemetry/logger';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function normalizeFinishReason(value: unknown): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 'UNKNOWN';
+  if (numeric === 1) return 'STOP';
+  if (numeric === 2) return 'LENGTH';
+  if (numeric === 3) return 'TOOL_CALL';
+  if (numeric === 4) return 'CONTENT_FILTER';
+  if (numeric === 5) return 'ERROR';
+  if (numeric === 0) return 'UNSPECIFIED';
+  return `UNKNOWN_${Math.trunc(numeric)}`;
+}
+
+function normalizeRouteDecision(value: unknown): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 'UNKNOWN';
+  if (numeric === 1) return 'LOCAL_RUNTIME';
+  if (numeric === 2) return 'TOKEN_API';
+  if (numeric === 0) return 'UNSPECIFIED';
+  return `UNKNOWN_${Math.trunc(numeric)}`;
+}
+
 export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
   const resolved = resolveSourceAndModel(input);
   emitInferenceAudit({
@@ -58,8 +86,16 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       providerEndpoint: resolved.endpoint,
     }));
 
-    const responseTraceId = String((response as { traceId?: unknown }).traceId || '').trim();
-    const text = extractTextFromGenerateOutput((response as { output?: unknown }).output);
+    const responseRecord = asRecord(response);
+    const responseTraceId = String(responseRecord.traceId || '').trim();
+    const responseModelResolved = String(responseRecord.modelResolved || '').trim();
+    const responseFinishReasonRaw = Number(responseRecord.finishReason);
+    const responseRouteDecisionRaw = Number(responseRecord.routeDecision);
+    const usageRecord = asRecord(responseRecord.usage);
+    const usageInputTokensRaw = Number(usageRecord.inputTokens);
+    const usageOutputTokensRaw = Number(usageRecord.outputTokens);
+    const usageComputeMsRaw = Number(usageRecord.computeMs);
+    const text = extractTextFromGenerateOutput(responseRecord.output);
     if (!text) {
       throw createNimiError({
         message: 'provider returned empty content',
@@ -74,9 +110,35 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       emitRuntimeLog({
         level: 'info',
         area: 'mods-test-diag',
+        message: '[MODS-TEST-DIAG] llm runtime generate meta',
+        details: {
+          modId: input.modId,
+          traceId: responseTraceId || null,
+          source: resolved.source,
+          provider: resolved.provider,
+          connectorId: String(input.connectorId || '').trim() || null,
+          modelRequested: resolved.modelId,
+          modelResolved: responseModelResolved || null,
+          routeDecision: normalizeRouteDecision(responseRouteDecisionRaw),
+          routeDecisionRaw: Number.isFinite(responseRouteDecisionRaw) ? responseRouteDecisionRaw : null,
+          finishReason: normalizeFinishReason(responseFinishReasonRaw),
+          finishReasonRaw: Number.isFinite(responseFinishReasonRaw) ? responseFinishReasonRaw : null,
+          maxTokensRequested: Number.isFinite(Number(input.maxTokens))
+            ? Number(input.maxTokens)
+            : null,
+          usageInputTokens: Number.isFinite(usageInputTokensRaw) ? usageInputTokensRaw : null,
+          usageOutputTokens: Number.isFinite(usageOutputTokensRaw) ? usageOutputTokensRaw : null,
+          usageComputeMs: Number.isFinite(usageComputeMsRaw) ? usageComputeMsRaw : null,
+          textLength: text.length,
+        },
+      });
+      emitRuntimeLog({
+        level: 'info',
+        area: 'mods-test-diag',
         message: '[MODS-TEST-DIAG] llm raw text output',
         details: {
           modId: input.modId,
+          traceId: responseTraceId || null,
           source: resolved.source,
           modelId: resolved.modelId,
           textLength: text.length,

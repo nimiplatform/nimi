@@ -42,6 +42,8 @@ export const WORLD_DATA_API_CAPABILITIES = {
   maintenanceGet: 'data-api.world.maintenance.get',
   maintenanceUpdate: 'data-api.world.maintenance.update',
   eventsList: 'data-api.world.events.list',
+  scenesList: 'data-api.world.scenes.list',
+  narrativeContextsList: 'data-api.world.narrative-contexts.list',
   eventsBatchUpsert: 'data-api.world.events.batch-upsert',
   eventsDelete: 'data-api.world.events.delete',
   lorebooksList: 'data-api.world.lorebooks.list',

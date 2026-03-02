@@ -12,6 +12,8 @@ capabilities:
   - data.query.data-api.world.access.me
   - data.query.data-api.world.events.list
   - data.query.data-api.world.lorebooks.list
+  - data.query.data-api.world.scenes.list
+  - data.query.data-api.world.narrative-contexts.list
   - data.query.data-api.core.agent.memory.recall.for-entity
   - data.register.data-api.textplay.render.persist
   - data.query.data-api.textplay.render.persist

@@ -12,6 +12,11 @@ capabilities:
   - llm.image.generate
   - llm.video.generate
   - data.query.data-api.runtime.route.options
+  - data.query.data-api.world.events.list
+  - data.query.data-api.world.lorebooks.list
+  - data.query.data-api.world.scenes.list
+  - data.query.data-api.world.narrative-contexts.list
+  - data.query.data-api.core.agent.memory.recall.for-entity
   - data.register.data-api.videoplay.episode.upsert
   - data.query.data-api.videoplay.episode.upsert
   - data.register.data-api.videoplay.asset.batch-upsert

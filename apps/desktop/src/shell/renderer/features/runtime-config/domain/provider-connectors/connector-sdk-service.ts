@@ -17,6 +17,7 @@ const CONNECTOR_CALL_OPTIONS = {
 };
 
 const DESKTOP_OWNER_ID = 'desktop';
+const SYSTEM_OWNER_ID = 'system';
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
@@ -199,10 +200,11 @@ export async function sdkTestConnector(connectorId: string): Promise<void> {
 export async function sdkListConnectorModels(
   connectorId: string,
   forceRefresh: boolean = false,
+  ownerId: string = DESKTOP_OWNER_ID,
 ): Promise<string[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listConnectorModels(
-    { connectorId, ownerId: DESKTOP_OWNER_ID, forceRefresh },
+    { connectorId, ownerId: String(ownerId || '').trim() || DESKTOP_OWNER_ID, forceRefresh },
     CONNECTOR_CALL_OPTIONS,
   );
   return (response.models || [])
@@ -219,14 +221,24 @@ export type ConnectorModelInfo = {
 export async function sdkListConnectorModelDescriptors(
   connectorId: string,
   forceRefresh: boolean = false,
+  ownerId: string = DESKTOP_OWNER_ID,
 ): Promise<ConnectorModelInfo[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listConnectorModels(
-    { connectorId, ownerId: DESKTOP_OWNER_ID, forceRefresh },
+    { connectorId, ownerId: String(ownerId || '').trim() || DESKTOP_OWNER_ID, forceRefresh },
     CONNECTOR_CALL_OPTIONS,
   );
   return (response.models || [])
     .filter((m) => m.available)
     .map((m) => ({ modelId: m.modelId, capabilities: m.capabilities || [] }))
     .filter((m) => Boolean(m.modelId));
+}
+
+export function ownerIdForConnector(input: {
+  isSystemOwned?: boolean;
+  ownerId?: string;
+}): string {
+  const explicit = String(input.ownerId || '').trim();
+  if (explicit) return explicit;
+  return input.isSystemOwned ? SYSTEM_OWNER_ID : DESKTOP_OWNER_ID;
 }
