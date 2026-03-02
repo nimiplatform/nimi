@@ -1,0 +1,422 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
+import { getContactInitial } from './contacts-model.js';
+import type { BlockedUserInfo } from './contacts-view-types.js';
+import { CATEGORIES } from './contacts-view-types.js';
+import { BlockedUsersList } from './contacts-blocked-users.js';
+
+// ---------- Highlight matched text in search results ----------
+
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const parts: (string | React.ReactNode)[] = [];
+  let lastIndex = 0;
+  let index = lowerText.indexOf(lowerQuery);
+
+  while (index !== -1) {
+    if (index > lastIndex) {
+      parts.push(text.slice(lastIndex, index));
+    }
+    parts.push(<span key={index} className="text-[#4ECCA3] font-medium">{text.slice(index, index + query.length)}</span>);
+    lastIndex = index + query.length;
+    index = lowerText.indexOf(lowerQuery, lastIndex);
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return <>{parts}</>;
+}
+
+// ---------- Search results panel ----------
+
+export function ContactsSearchResults({
+  searchText,
+  allFriends,
+  isUserBlocked,
+  selectedContactId,
+  onSelectContact,
+}: {
+  searchText: string;
+  allFriends: ContactRecord[];
+  isUserBlocked: (id: string) => boolean;
+  selectedContactId: string | null;
+  onSelectContact: (contact: ContactRecord, categoryId: TabFilter) => void;
+}) {
+  const { t } = useTranslation();
+  const query = searchText.trim().toLowerCase();
+  const allContacts = allFriends.filter(c => !isUserBlocked(c.id));
+
+  // 直接匹配的联系人
+  const directMatches = allContacts.filter(c =>
+    c.displayName.toLowerCase().includes(query) || c.handle.toLowerCase().includes(query)
+  );
+
+  // 按分类分组直接匹配
+  const humans = directMatches.filter(c => !c.isAgent);
+  const agents = directMatches.filter(c => c.isAgent && c.agentOwnershipType !== 'MASTER_OWNED');
+  const myAgents = directMatches.filter(c => c.isAgent && c.agentOwnershipType === 'MASTER_OWNED');
+
+  // 收集匹配联系人所属的 world
+  const matchedWorldIds = new Set<string>();
+  const matchedWorldNames = new Map<string, string>();
+  directMatches.forEach(c => {
+    if (c.worldId) {
+      matchedWorldIds.add(c.worldId);
+      if (c.worldName) matchedWorldNames.set(c.worldId, c.worldName);
+    }
+  });
+
+  // 查找同 world 的其他好友（排除已直接匹配的）
+  const directMatchIds = new Set(directMatches.map(c => c.id));
+  const worldRelatedContacts = allContacts.filter(c =>
+    c.worldId && matchedWorldIds.has(c.worldId) && !directMatchIds.has(c.id)
+  );
+
+  // 按 world 名称分组
+  const worldGroups = new Map<string, ContactRecord[]>();
+  worldRelatedContacts.forEach(c => {
+    if (c.worldId) {
+      if (!worldGroups.has(c.worldId)) {
+        worldGroups.set(c.worldId, []);
+      }
+      worldGroups.get(c.worldId)!.push(c);
+    }
+  });
+
+  const baseGroups: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = [
+    { id: 'humans', title: t('Contacts.tabHumans'), items: humans },
+    { id: 'agents', title: t('Contacts.tabAgents'), items: agents },
+    { id: 'myAgents', title: t('Contacts.tabMyAgents'), items: myAgents },
+  ];
+  const worldGroupList: Array<{id: TabFilter; title: string; items: ContactRecord[]; worldId?: string}> = worldGroups.size > 0
+    ? Array.from(worldGroups.entries()).map(([worldId, items]) => ({
+        id: 'world' as TabFilter,
+        title: matchedWorldNames.get(worldId) || t('world') || 'World',
+        items,
+        worldId,
+      }))
+    : [];
+  const groups = [...baseGroups, ...worldGroupList].filter(g => g.items.length > 0);
+
+  if (groups.length === 0) {
+    return (
+      <div className="px-4 py-6 text-center">
+        <div className="text-3xl mb-2">🔍</div>
+        <div className="text-sm text-gray-400">No contacts found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <div key={`${group.id}-${group.title}`}>
+          {/* 分组标题 */}
+          <div className="px-3 py-1.5 text-xs text-gray-500 font-medium flex items-center justify-between">
+            <span>{group.title}</span>
+            <span className="text-gray-400">({group.items.length})</span>
+          </div>
+          {/* 该分组下的联系人 */}
+          <div className="space-y-0.5">
+            {group.items.map((contact) => (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => onSelectContact(contact, group.id === 'world' ? (contact.isAgent ? 'agents' : 'humans') : group.id)}
+                className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
+                  selectedContactId === contact.id
+                    ? 'bg-green-100 text-green-800'
+                    : 'hover:bg-green-50/50 text-gray-700'
+                }`}
+              >
+                {contact.avatarUrl ? (
+                  <img
+                    src={contact.avatarUrl}
+                    alt={contact.displayName}
+                    className="h-10 w-10 rounded-lg object-cover"
+                    style={contact.isAgent ? {
+                      boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                    } : undefined}
+                  />
+                ) : (
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                      contact.isAgent
+                        ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
+                        : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                    }`}
+                    style={contact.isAgent ? {
+                      boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                    } : undefined}
+                  >
+                    {getContactInitial(contact.displayName)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-[15px] text-gray-900 truncate">
+                    <HighlightText text={contact.displayName} query={query} />
+                  </div>
+                  <div className="text-xs text-gray-400 truncate">
+                    {group.id === 'world' ? (
+                      <span className="text-[#4ECCA3]">{contact.handle}</span>
+                    ) : (
+                      <HighlightText text={contact.handle} query={query} />
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------- Category accordion (non-search mode) ----------
+
+export function ContactsCategoryAccordion({
+  counts,
+  expandedCategories,
+  filteredRequests,
+  acceptedRequests,
+  rejectedRequests,
+  currentContactId,
+  getContactsByCategory,
+  onToggleCategory,
+  onSelectContact,
+  onAcceptRequest,
+  onRejectRequest,
+  onUnblock,
+  onSelectRequests,
+}: {
+  counts: {
+    humansCount: number;
+    agentsCount: number;
+    myAgentsCount: number;
+    requestsCount: number;
+    blocksCount: number;
+  };
+  expandedCategories: Set<TabFilter>;
+  filteredRequests: ContactRequestRecord[];
+  acceptedRequests: Set<string>;
+  rejectedRequests: Set<string>;
+  currentContactId: string | null;
+  getContactsByCategory: (categoryId: TabFilter) => ContactRecord[];
+  onToggleCategory: (categoryId: TabFilter) => void;
+  onSelectContact: (contact: ContactRecord, categoryId: TabFilter) => void;
+  onAcceptRequest: (request: ContactRequestRecord) => void;
+  onRejectRequest: (request: ContactRequestRecord) => void;
+  onUnblock: (contact: ContactRecord) => void;
+  onSelectRequests: () => void;
+}) {
+  // 按字母分组联系人
+  const groupContactsByLetter = (contacts: ContactRecord[]) => {
+    const groups: Record<string, ContactRecord[]> = {};
+    contacts.forEach(contact => {
+      const firstChar = contact.displayName.charAt(0).toUpperCase();
+      const key = /^[A-Z]$/i.test(firstChar) ? firstChar : '#';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(contact);
+    });
+
+    Object.keys(groups).forEach(key => {
+      if (groups[key]) {
+        groups[key].sort((a, b) => a.displayName.localeCompare(b.displayName));
+      }
+    });
+
+    return groups;
+  };
+
+  return (
+    <>
+      {CATEGORIES.map((category) => {
+        const count = counts[category.countKey as keyof typeof counts] as number;
+        const isExpanded = expandedCategories.has(category.id);
+        const isRequests = category.id === 'requests';
+        const isBlocks = category.id === 'blocks';
+
+        // 获取该分类下的项目
+        const items = isRequests
+          ? filteredRequests
+          : getContactsByCategory(category.id);
+
+        // 按字母分组（仅联系人）
+        const groupedItems = isRequests ? {} : groupContactsByLetter(items as ContactRecord[]);
+        const sortedKeys = Object.keys(groupedItems).sort((a, b) => {
+          if (a === '#') return 1;
+          if (b === '#') return -1;
+          return a.localeCompare(b);
+        });
+
+        return (
+          <div key={category.id} className="px-2">
+            {/* 分类标题 - 可点击展开/折叠 */}
+            <button
+              type="button"
+              onClick={() => {
+                onToggleCategory(category.id);
+                // 点击 New Friends 时，在右侧显示列表
+                if (category.id === 'requests') {
+                  onSelectRequests();
+                }
+              }}
+              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left rounded-lg transition-all duration-150 ${
+                isExpanded
+                  ? 'bg-green-50 text-green-700'
+                  : 'hover:bg-green-50/60 text-gray-700'
+              }`}
+            >
+              {/* 展开/折叠箭头 */}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform duration-200 ${isExpanded ? 'rotate-90 text-green-600' : 'text-gray-400'}`}
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+
+              <span className="text-xl">{category.icon}</span>
+              <span className={`flex-1 text-[14px] font-medium ${isExpanded ? 'text-green-800' : 'text-gray-700'}`}>
+                {category.label}
+              </span>
+              {count > 0 && (
+                <span className={`text-xs ${isExpanded ? 'text-green-600' : 'text-gray-400'}`}>{count}</span>
+              )}
+            </button>
+
+            {/* 展开的列表内容 */}
+            {isExpanded && (
+              <div className="mt-1 py-1">
+                {isRequests ? (
+                  // 新的朋友列表 - 只显示待处理的 received 请求（未接受且未拒绝）
+                  (items as ContactRequestRecord[])
+                    .filter(r => r.direction === 'received' && !acceptedRequests.has(r.userId) && !rejectedRequests.has(r.userId))
+                    .map((request) => {
+                    return (
+                      <div
+                        key={`${request.direction}:${request.userId}`}
+                        className="flex w-full items-center gap-3 px-3 py-2.5 mx-1 rounded-lg transition-all duration-150 hover:bg-green-50/50 text-gray-700"
+                      >
+                        {/* 头像 */}
+                        {request.avatarUrl ? (
+                          <img src={request.avatarUrl} alt={request.displayName} className="h-10 w-10 rounded-lg object-cover" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 text-sm font-medium text-white">
+                            {getContactInitial(request.displayName)}
+                          </div>
+                        )}
+
+                        {/* 名字和留言 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[15px] text-gray-900 truncate">{request.displayName}</div>
+                          <div className="text-[13px] text-gray-500 truncate">{request.bio || 'Wants to add you as a friend'}</div>
+                        </div>
+
+                        {/* 操作按钮 - 只显示待处理的 received 请求 */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAcceptRequest(request);
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium bg-[#4ECCA3] text-white rounded-lg hover:bg-[#3DBA92] transition-colors"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRejectRequest(request);
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : isBlocks ? (
+                  // Blocks 列表
+                  <BlockedUsersList
+                    contacts={items as ContactRecord[]}
+                    currentContactId={currentContactId}
+                    onSelect={(contact) => onSelectContact(contact, 'blocks')}
+                    onUnblock={onUnblock}
+                  />
+                ) : (
+                  // 联系人按字母分组列表
+                  sortedKeys.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-400">No contacts</div>
+                  ) : (
+                    sortedKeys.map((key) => (
+                      <div key={key}>
+                        {/* 字母分组标题 */}
+                        <div className="px-4 py-1.5 text-xs text-gray-400 font-medium">
+                          {key}
+                        </div>
+                        {/* 该字母下的联系人 */}
+                        {(groupedItems[key] || []).map((contact) => (
+                          <button
+                            key={contact.id}
+                            type="button"
+                            onClick={() => onSelectContact(contact, category.id)}
+                            className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
+                              currentContactId === contact.id
+                                ? 'bg-green-100 text-green-800'
+                                : 'hover:bg-green-50/50 text-gray-700'
+                            }`}
+                          >
+                            {contact.avatarUrl ? (
+                              <img
+                                src={contact.avatarUrl}
+                                alt={contact.displayName}
+                                className="h-10 w-10 rounded-lg object-cover"
+                                style={contact.isAgent ? {
+                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                } : undefined}
+                              />
+                            ) : (
+                              <div
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                                  contact.isAgent
+                                    ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
+                                    : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
+                                }`}
+                                style={contact.isAgent ? {
+                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
+                                } : undefined}
+                              >
+                                {getContactInitial(contact.displayName)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-left">
+                              <div className="text-[15px] text-gray-900 truncate">{contact.displayName}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
