@@ -5,10 +5,6 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAiService } from "./ai";
-import type { CheckTokenProviderHealthResponse } from "./ai";
-import type { CheckTokenProviderHealthRequest } from "./ai";
-import type { ListTokenProviderModelsResponse } from "./ai";
-import type { ListTokenProviderModelsRequest } from "./ai";
 import type { ArtifactChunk } from "./ai";
 import type { StreamSpeechSynthesisRequest } from "./ai";
 import type { GetSpeechVoicesResponse } from "./ai";
@@ -33,6 +29,11 @@ import type { GenerateResponse } from "./ai";
 import type { GenerateRequest } from "./ai";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
+// Legacy messages removed: ListTokenProviderModelsRequest (fields 1-5),
+// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
+// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
+// CheckTokenProviderHealthResponse (fields 1-2).
+
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -77,17 +78,12 @@ export interface IRuntimeAiServiceClient {
      * @generated from protobuf rpc: StreamSpeechSynthesis
      */
     streamSpeechSynthesis(input: StreamSpeechSynthesisRequest, options?: RpcOptions): ServerStreamingCall<StreamSpeechSynthesisRequest, ArtifactChunk>;
-    /**
-     * @deprecated
-     * @generated from protobuf rpc: ListTokenProviderModels
-     */
-    listTokenProviderModels(input: ListTokenProviderModelsRequest, options?: RpcOptions): UnaryCall<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse>;
-    /**
-     * @deprecated
-     * @generated from protobuf rpc: CheckTokenProviderHealth
-     */
-    checkTokenProviderHealth(input: CheckTokenProviderHealthRequest, options?: RpcOptions): UnaryCall<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse>;
 }
+// Legacy messages removed: ListTokenProviderModelsRequest (fields 1-5),
+// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
+// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
+// CheckTokenProviderHealthResponse (fields 1-2).
+
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -166,21 +162,5 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
     streamSpeechSynthesis(input: StreamSpeechSynthesisRequest, options?: RpcOptions): ServerStreamingCall<StreamSpeechSynthesisRequest, ArtifactChunk> {
         const method = this.methods[9], opt = this._transport.mergeOptions(options);
         return stackIntercept<StreamSpeechSynthesisRequest, ArtifactChunk>("serverStreaming", this._transport, method, opt, input);
-    }
-    /**
-     * @deprecated
-     * @generated from protobuf rpc: ListTokenProviderModels
-     */
-    listTokenProviderModels(input: ListTokenProviderModelsRequest, options?: RpcOptions): UnaryCall<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse> {
-        const method = this.methods[10], opt = this._transport.mergeOptions(options);
-        return stackIntercept<ListTokenProviderModelsRequest, ListTokenProviderModelsResponse>("unary", this._transport, method, opt, input);
-    }
-    /**
-     * @deprecated
-     * @generated from protobuf rpc: CheckTokenProviderHealth
-     */
-    checkTokenProviderHealth(input: CheckTokenProviderHealthRequest, options?: RpcOptions): UnaryCall<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse> {
-        const method = this.methods[11], opt = this._transport.mergeOptions(options);
-        return stackIntercept<CheckTokenProviderHealthRequest, CheckTokenProviderHealthResponse>("unary", this._transport, method, opt, input);
     }
 }

@@ -107,6 +107,8 @@ export interface Ack {
  */
 export enum ReasonCode {
     /**
+     * General (0–8): stable, not in reason-codes.yaml but implementation-required.
+     *
      * @generated from protobuf enum value: REASON_CODE_UNSPECIFIED = 0;
      */
     REASON_CODE_UNSPECIFIED = 0,
@@ -143,6 +145,8 @@ export enum ReasonCode {
      */
     PRINCIPAL_UNAUTHORIZED = 8,
     /**
+     * App authorization (100–114, 117): stable legacy range.
+     *
      * @generated from protobuf enum value: APP_AUTHORIZATION_DENIED = 100;
      */
     APP_AUTHORIZATION_DENIED = 100,
@@ -159,18 +163,14 @@ export enum ReasonCode {
      */
     APP_TOKEN_REVOKED = 103,
     /**
-     * @generated from protobuf enum value: APP_SCOPE_FORBIDDEN = 104;
-     */
-    APP_SCOPE_FORBIDDEN = 104,
-    /**
+     * 104 → reserved (moved to APP_SCOPE_FORBIDDEN = 503)
+     *
      * @generated from protobuf enum value: APP_SCOPE_CATALOG_UNPUBLISHED = 105;
      */
     APP_SCOPE_CATALOG_UNPUBLISHED = 105,
     /**
-     * @generated from protobuf enum value: APP_SCOPE_REVOKED = 106;
-     */
-    APP_SCOPE_REVOKED = 106,
-    /**
+     * 106 → reserved (moved to APP_SCOPE_REVOKED = 504)
+     *
      * @generated from protobuf enum value: APP_DELEGATION_FORBIDDEN = 107;
      */
     APP_DELEGATION_FORBIDDEN = 107,
@@ -203,22 +203,14 @@ export enum ReasonCode {
      */
     EXTERNAL_PRINCIPAL_PROOF_INVALID = 114,
     /**
-     * @generated from protobuf enum value: APP_MODE_DOMAIN_FORBIDDEN = 115;
-     */
-    APP_MODE_DOMAIN_FORBIDDEN = 115,
-    /**
-     * @generated from protobuf enum value: APP_MODE_SCOPE_FORBIDDEN = 116;
-     */
-    APP_MODE_SCOPE_FORBIDDEN = 116,
-    /**
+     * 115, 116, 118 → reserved (moved to 500, 501, 502)
+     *
      * @generated from protobuf enum value: APP_MODE_WORLD_RELATION_FORBIDDEN = 117;
      */
     APP_MODE_WORLD_RELATION_FORBIDDEN = 117,
     /**
-     * @generated from protobuf enum value: APP_MODE_MANIFEST_INVALID = 118;
-     */
-    APP_MODE_MANIFEST_INVALID = 118,
-    /**
+     * AI legacy range (200–213): frozen per spec numbering_note.
+     *
      * @generated from protobuf enum value: AI_MODEL_NOT_FOUND = 200;
      */
     AI_MODEL_NOT_FOUND = 200,
@@ -231,10 +223,8 @@ export enum ReasonCode {
      */
     AI_PROVIDER_UNAVAILABLE = 202,
     /**
-     * @generated from protobuf enum value: AI_PROVIDER_TIMEOUT = 203;
-     */
-    AI_PROVIDER_TIMEOUT = 203,
-    /**
+     * 203 → reserved (moved to AI_PROVIDER_TIMEOUT = 394)
+     *
      * @generated from protobuf enum value: AI_ROUTE_UNSUPPORTED = 204;
      */
     AI_ROUTE_UNSUPPORTED = 204,
@@ -275,6 +265,22 @@ export enum ReasonCode {
      */
     AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN = 213,
     /**
+     * AUTH family (300+)
+     *
+     * @generated from protobuf enum value: AUTH_TOKEN_INVALID = 300;
+     */
+    AUTH_TOKEN_INVALID = 300,
+    /**
+     * @generated from protobuf enum value: AUTH_TOKEN_EXPIRED = 301;
+     */
+    AUTH_TOKEN_EXPIRED = 301,
+    /**
+     * @generated from protobuf enum value: AUTH_UNSUPPORTED_PROOF_TYPE = 302;
+     */
+    AUTH_UNSUPPORTED_PROOF_TYPE = 302,
+    /**
+     * CONNECTOR family (310+)
+     *
      * @generated from protobuf enum value: AI_CONNECTOR_NOT_FOUND = 310;
      */
     AI_CONNECTOR_NOT_FOUND = 310,
@@ -303,10 +309,14 @@ export enum ReasonCode {
      */
     AI_CONNECTOR_ID_REQUIRED = 316,
     /**
+     * REQUEST_CREDENTIAL family (330)
+     *
      * @generated from protobuf enum value: AI_REQUEST_CREDENTIAL_CONFLICT = 330;
      */
     AI_REQUEST_CREDENTIAL_CONFLICT = 330,
     /**
+     * APP family (340+)
+     *
      * @generated from protobuf enum value: AI_APP_ID_REQUIRED = 340;
      */
     AI_APP_ID_REQUIRED = 340,
@@ -315,6 +325,8 @@ export enum ReasonCode {
      */
     AI_APP_ID_CONFLICT = 341,
     /**
+     * MODEL family (350+)
+     *
      * @generated from protobuf enum value: AI_MODEL_ID_REQUIRED = 350;
      */
     AI_MODEL_ID_REQUIRED = 350,
@@ -351,21 +363,127 @@ export enum ReasonCode {
      */
     AI_LOCAL_MODEL_INVALID_TRANSITION = 358,
     /**
-     * @generated from protobuf enum value: AI_PROVIDER_ENDPOINT_FORBIDDEN = 360;
+     * FINISH family (370+)
+     *
+     * @generated from protobuf enum value: AI_FINISH_LENGTH = 370;
      */
-    AI_PROVIDER_ENDPOINT_FORBIDDEN = 360,
+    AI_FINISH_LENGTH = 370,
     /**
-     * @generated from protobuf enum value: AUTH_TOKEN_INVALID = 400;
+     * @generated from protobuf enum value: AI_FINISH_CONTENT_FILTER = 371;
      */
-    AUTH_TOKEN_INVALID = 400,
+    AI_FINISH_CONTENT_FILTER = 371,
     /**
-     * @generated from protobuf enum value: AUTH_TOKEN_EXPIRED = 401;
+     * MODEL_ROUTE family (380+)
+     *
+     * @generated from protobuf enum value: AI_MODEL_PROVIDER_MISMATCH = 380;
      */
-    AUTH_TOKEN_EXPIRED = 401,
+    AI_MODEL_PROVIDER_MISMATCH = 380,
     /**
-     * @generated from protobuf enum value: PAGE_TOKEN_INVALID = 500;
+     * PROVIDER family (390+)
+     *
+     * @generated from protobuf enum value: AI_PROVIDER_ENDPOINT_FORBIDDEN = 390;
      */
-    PAGE_TOKEN_INVALID = 500
+    AI_PROVIDER_ENDPOINT_FORBIDDEN = 390,
+    /**
+     * @generated from protobuf enum value: AI_PROVIDER_AUTH_FAILED = 391;
+     */
+    AI_PROVIDER_AUTH_FAILED = 391,
+    /**
+     * @generated from protobuf enum value: AI_PROVIDER_INTERNAL = 392;
+     */
+    AI_PROVIDER_INTERNAL = 392,
+    /**
+     * @generated from protobuf enum value: AI_PROVIDER_RATE_LIMITED = 393;
+     */
+    AI_PROVIDER_RATE_LIMITED = 393,
+    /**
+     * @generated from protobuf enum value: AI_PROVIDER_TIMEOUT = 394;
+     */
+    AI_PROVIDER_TIMEOUT = 394,
+    /**
+     * MEDIA family (410+)
+     *
+     * @generated from protobuf enum value: AI_MEDIA_SPEC_INVALID = 410;
+     */
+    AI_MEDIA_SPEC_INVALID = 410,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_OPTION_UNSUPPORTED = 411;
+     */
+    AI_MEDIA_OPTION_UNSUPPORTED = 411,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_JOB_NOT_FOUND = 412;
+     */
+    AI_MEDIA_JOB_NOT_FOUND = 412,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_JOB_NOT_CANCELLABLE = 413;
+     */
+    AI_MEDIA_JOB_NOT_CANCELLABLE = 413,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_IDEMPOTENCY_CONFLICT = 414;
+     */
+    AI_MEDIA_IDEMPOTENCY_CONFLICT = 414,
+    /**
+     * MODULE family (430+)
+     *
+     * @generated from protobuf enum value: AI_MODULE_CONFIG_INVALID = 430;
+     */
+    AI_MODULE_CONFIG_INVALID = 430,
+    /**
+     * WORKFLOW family (440+)
+     *
+     * @generated from protobuf enum value: WF_DAG_INVALID = 440;
+     */
+    WF_DAG_INVALID = 440,
+    /**
+     * @generated from protobuf enum value: WF_NODE_CONFIG_MISMATCH = 441;
+     */
+    WF_NODE_CONFIG_MISMATCH = 441,
+    /**
+     * @generated from protobuf enum value: WF_TIMEOUT = 442;
+     */
+    WF_TIMEOUT = 442,
+    /**
+     * @generated from protobuf enum value: WF_TASK_NOT_FOUND = 443;
+     */
+    WF_TASK_NOT_FOUND = 443,
+    /**
+     * APP_AUTH family (500+)
+     *
+     * @generated from protobuf enum value: APP_MODE_DOMAIN_FORBIDDEN = 500;
+     */
+    APP_MODE_DOMAIN_FORBIDDEN = 500,
+    /**
+     * @generated from protobuf enum value: APP_MODE_SCOPE_FORBIDDEN = 501;
+     */
+    APP_MODE_SCOPE_FORBIDDEN = 501,
+    /**
+     * @generated from protobuf enum value: APP_MODE_MANIFEST_INVALID = 502;
+     */
+    APP_MODE_MANIFEST_INVALID = 502,
+    /**
+     * @generated from protobuf enum value: APP_SCOPE_FORBIDDEN = 503;
+     */
+    APP_SCOPE_FORBIDDEN = 503,
+    /**
+     * @generated from protobuf enum value: APP_SCOPE_REVOKED = 504;
+     */
+    APP_SCOPE_REVOKED = 504,
+    /**
+     * GRANT family (510+)
+     *
+     * @generated from protobuf enum value: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510;
+     */
+    GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510,
+    /**
+     * @generated from protobuf enum value: GRANT_TOKEN_CHAIN_ROOT_REQUIRED = 511;
+     */
+    GRANT_TOKEN_CHAIN_ROOT_REQUIRED = 511,
+    /**
+     * PAGE family (520+)
+     *
+     * @generated from protobuf enum value: PAGE_TOKEN_INVALID = 520;
+     */
+    PAGE_TOKEN_INVALID = 520
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -19,18 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAiService_Generate_FullMethodName                 = "/nimi.runtime.v1.RuntimeAiService/Generate"
-	RuntimeAiService_StreamGenerate_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/StreamGenerate"
-	RuntimeAiService_Embed_FullMethodName                    = "/nimi.runtime.v1.RuntimeAiService/Embed"
-	RuntimeAiService_SubmitMediaJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob"
-	RuntimeAiService_GetMediaJob_FullMethodName              = "/nimi.runtime.v1.RuntimeAiService/GetMediaJob"
-	RuntimeAiService_CancelMediaJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob"
-	RuntimeAiService_SubscribeMediaJobEvents_FullMethodName  = "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents"
-	RuntimeAiService_GetMediaArtifacts_FullMethodName        = "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts"
-	RuntimeAiService_GetSpeechVoices_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/GetSpeechVoices"
-	RuntimeAiService_StreamSpeechSynthesis_FullMethodName    = "/nimi.runtime.v1.RuntimeAiService/StreamSpeechSynthesis"
-	RuntimeAiService_ListTokenProviderModels_FullMethodName  = "/nimi.runtime.v1.RuntimeAiService/ListTokenProviderModels"
-	RuntimeAiService_CheckTokenProviderHealth_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/CheckTokenProviderHealth"
+	RuntimeAiService_Generate_FullMethodName                = "/nimi.runtime.v1.RuntimeAiService/Generate"
+	RuntimeAiService_StreamGenerate_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/StreamGenerate"
+	RuntimeAiService_Embed_FullMethodName                   = "/nimi.runtime.v1.RuntimeAiService/Embed"
+	RuntimeAiService_SubmitMediaJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob"
+	RuntimeAiService_GetMediaJob_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/GetMediaJob"
+	RuntimeAiService_CancelMediaJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob"
+	RuntimeAiService_SubscribeMediaJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents"
+	RuntimeAiService_GetMediaArtifacts_FullMethodName       = "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts"
+	RuntimeAiService_GetSpeechVoices_FullMethodName         = "/nimi.runtime.v1.RuntimeAiService/GetSpeechVoices"
+	RuntimeAiService_StreamSpeechSynthesis_FullMethodName   = "/nimi.runtime.v1.RuntimeAiService/StreamSpeechSynthesis"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
@@ -47,10 +45,6 @@ type RuntimeAiServiceClient interface {
 	GetMediaArtifacts(ctx context.Context, in *GetMediaArtifactsRequest, opts ...grpc.CallOption) (*GetMediaArtifactsResponse, error)
 	GetSpeechVoices(ctx context.Context, in *GetSpeechVoicesRequest, opts ...grpc.CallOption) (*GetSpeechVoicesResponse, error)
 	StreamSpeechSynthesis(ctx context.Context, in *StreamSpeechSynthesisRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ArtifactChunk], error)
-	// Deprecated: Do not use.
-	ListTokenProviderModels(ctx context.Context, in *ListTokenProviderModelsRequest, opts ...grpc.CallOption) (*ListTokenProviderModelsResponse, error)
-	// Deprecated: Do not use.
-	CheckTokenProviderHealth(ctx context.Context, in *CheckTokenProviderHealthRequest, opts ...grpc.CallOption) (*CheckTokenProviderHealthResponse, error)
 }
 
 type runtimeAiServiceClient struct {
@@ -188,28 +182,6 @@ func (c *runtimeAiServiceClient) StreamSpeechSynthesis(ctx context.Context, in *
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_StreamSpeechSynthesisClient = grpc.ServerStreamingClient[ArtifactChunk]
 
-// Deprecated: Do not use.
-func (c *runtimeAiServiceClient) ListTokenProviderModels(ctx context.Context, in *ListTokenProviderModelsRequest, opts ...grpc.CallOption) (*ListTokenProviderModelsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListTokenProviderModelsResponse)
-	err := c.cc.Invoke(ctx, RuntimeAiService_ListTokenProviderModels_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Deprecated: Do not use.
-func (c *runtimeAiServiceClient) CheckTokenProviderHealth(ctx context.Context, in *CheckTokenProviderHealthRequest, opts ...grpc.CallOption) (*CheckTokenProviderHealthResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckTokenProviderHealthResponse)
-	err := c.cc.Invoke(ctx, RuntimeAiService_CheckTokenProviderHealth_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RuntimeAiServiceServer is the server API for RuntimeAiService service.
 // All implementations should embed UnimplementedRuntimeAiServiceServer
 // for forward compatibility.
@@ -224,10 +196,6 @@ type RuntimeAiServiceServer interface {
 	GetMediaArtifacts(context.Context, *GetMediaArtifactsRequest) (*GetMediaArtifactsResponse, error)
 	GetSpeechVoices(context.Context, *GetSpeechVoicesRequest) (*GetSpeechVoicesResponse, error)
 	StreamSpeechSynthesis(*StreamSpeechSynthesisRequest, grpc.ServerStreamingServer[ArtifactChunk]) error
-	// Deprecated: Do not use.
-	ListTokenProviderModels(context.Context, *ListTokenProviderModelsRequest) (*ListTokenProviderModelsResponse, error)
-	// Deprecated: Do not use.
-	CheckTokenProviderHealth(context.Context, *CheckTokenProviderHealthRequest) (*CheckTokenProviderHealthResponse, error)
 }
 
 // UnimplementedRuntimeAiServiceServer should be embedded to have
@@ -266,12 +234,6 @@ func (UnimplementedRuntimeAiServiceServer) GetSpeechVoices(context.Context, *Get
 }
 func (UnimplementedRuntimeAiServiceServer) StreamSpeechSynthesis(*StreamSpeechSynthesisRequest, grpc.ServerStreamingServer[ArtifactChunk]) error {
 	return status.Error(codes.Unimplemented, "method StreamSpeechSynthesis not implemented")
-}
-func (UnimplementedRuntimeAiServiceServer) ListTokenProviderModels(context.Context, *ListTokenProviderModelsRequest) (*ListTokenProviderModelsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListTokenProviderModels not implemented")
-}
-func (UnimplementedRuntimeAiServiceServer) CheckTokenProviderHealth(context.Context, *CheckTokenProviderHealthRequest) (*CheckTokenProviderHealthResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CheckTokenProviderHealth not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) testEmbeddedByValue() {}
 
@@ -452,42 +414,6 @@ func _RuntimeAiService_StreamSpeechSynthesis_Handler(srv interface{}, stream grp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_StreamSpeechSynthesisServer = grpc.ServerStreamingServer[ArtifactChunk]
 
-func _RuntimeAiService_ListTokenProviderModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListTokenProviderModelsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAiServiceServer).ListTokenProviderModels(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAiService_ListTokenProviderModels_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAiServiceServer).ListTokenProviderModels(ctx, req.(*ListTokenProviderModelsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAiService_CheckTokenProviderHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckTokenProviderHealthRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAiServiceServer).CheckTokenProviderHealth(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAiService_CheckTokenProviderHealth_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAiServiceServer).CheckTokenProviderHealth(ctx, req.(*CheckTokenProviderHealthRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RuntimeAiService_ServiceDesc is the grpc.ServiceDesc for RuntimeAiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -522,14 +448,6 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSpeechVoices",
 			Handler:    _RuntimeAiService_GetSpeechVoices_Handler,
-		},
-		{
-			MethodName: "ListTokenProviderModels",
-			Handler:    _RuntimeAiService_ListTokenProviderModels_Handler,
-		},
-		{
-			MethodName: "CheckTokenProviderHealth",
-			Handler:    _RuntimeAiService_CheckTokenProviderHealth_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -414,49 +414,10 @@ message StreamSpeechSynthesisRequest {
   string connector_id = 8;
 }
 
-message ListTokenProviderModelsRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string provider_id = 3;
-  string provider_endpoint = 4;
-  int32 timeout_ms = 5;
-}
-
-message TokenProviderModelDescriptor {
-  string model_id = 1;
-  string model_label = 2;
-  bool available = 3;
-}
-
-message ListTokenProviderModelsResponse {
-  string provider_id = 1;
-  string provider_endpoint = 2;
-  repeated TokenProviderModelDescriptor models = 3;
-  string trace_id = 4;
-}
-
-message CheckTokenProviderHealthRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string provider_id = 3;
-  string provider_endpoint = 4;
-  string model_id = 5;
-  int32 timeout_ms = 6;
-}
-
-message TokenProviderHealthSnapshot {
-  TokenProviderHealthStatus status = 1;
-  string detail = 2;
-  google.protobuf.Timestamp checked_at = 3;
-  string provider_id = 4;
-  string provider_endpoint = 5;
-  string model_id = 6;
-}
-
-message CheckTokenProviderHealthResponse {
-  TokenProviderHealthSnapshot health = 1;
-  string trace_id = 2;
-}
+// Legacy messages removed: ListTokenProviderModelsRequest (fields 1-5),
+// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
+// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
+// CheckTokenProviderHealthResponse (fields 1-2).
 
 service RuntimeAiService {
   rpc Generate(GenerateRequest) returns (GenerateResponse);
@@ -469,10 +430,4 @@ service RuntimeAiService {
   rpc GetMediaArtifacts(GetMediaArtifactsRequest) returns (GetMediaArtifactsResponse);
   rpc GetSpeechVoices(GetSpeechVoicesRequest) returns (GetSpeechVoicesResponse);
   rpc StreamSpeechSynthesis(StreamSpeechSynthesisRequest) returns (stream ArtifactChunk);
-  rpc ListTokenProviderModels(ListTokenProviderModelsRequest) returns (ListTokenProviderModelsResponse) {
-    option deprecated = true;
-  }
-  rpc CheckTokenProviderHealth(CheckTokenProviderHealthRequest) returns (CheckTokenProviderHealthResponse) {
-    option deprecated = true;
-  }
 }

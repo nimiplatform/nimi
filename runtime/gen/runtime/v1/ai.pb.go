@@ -3708,430 +3708,6 @@ func (x *StreamSpeechSynthesisRequest) GetConnectorId() string {
 	return ""
 }
 
-type ListTokenProviderModelsRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	AppId            string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId    string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ProviderId       string                 `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
-	ProviderEndpoint string                 `protobuf:"bytes,4,opt,name=provider_endpoint,json=providerEndpoint,proto3" json:"provider_endpoint,omitempty"`
-	TimeoutMs        int32                  `protobuf:"varint,5,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *ListTokenProviderModelsRequest) Reset() {
-	*x = ListTokenProviderModelsRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListTokenProviderModelsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListTokenProviderModelsRequest) ProtoMessage() {}
-
-func (x *ListTokenProviderModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListTokenProviderModelsRequest.ProtoReflect.Descriptor instead.
-func (*ListTokenProviderModelsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *ListTokenProviderModelsRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *ListTokenProviderModelsRequest) GetSubjectUserId() string {
-	if x != nil {
-		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *ListTokenProviderModelsRequest) GetProviderId() string {
-	if x != nil {
-		return x.ProviderId
-	}
-	return ""
-}
-
-func (x *ListTokenProviderModelsRequest) GetProviderEndpoint() string {
-	if x != nil {
-		return x.ProviderEndpoint
-	}
-	return ""
-}
-
-func (x *ListTokenProviderModelsRequest) GetTimeoutMs() int32 {
-	if x != nil {
-		return x.TimeoutMs
-	}
-	return 0
-}
-
-type TokenProviderModelDescriptor struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	ModelLabel    string                 `protobuf:"bytes,2,opt,name=model_label,json=modelLabel,proto3" json:"model_label,omitempty"`
-	Available     bool                   `protobuf:"varint,3,opt,name=available,proto3" json:"available,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TokenProviderModelDescriptor) Reset() {
-	*x = TokenProviderModelDescriptor{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[38]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TokenProviderModelDescriptor) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TokenProviderModelDescriptor) ProtoMessage() {}
-
-func (x *TokenProviderModelDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[38]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TokenProviderModelDescriptor.ProtoReflect.Descriptor instead.
-func (*TokenProviderModelDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{38}
-}
-
-func (x *TokenProviderModelDescriptor) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *TokenProviderModelDescriptor) GetModelLabel() string {
-	if x != nil {
-		return x.ModelLabel
-	}
-	return ""
-}
-
-func (x *TokenProviderModelDescriptor) GetAvailable() bool {
-	if x != nil {
-		return x.Available
-	}
-	return false
-}
-
-type ListTokenProviderModelsResponse struct {
-	state            protoimpl.MessageState          `protogen:"open.v1"`
-	ProviderId       string                          `protobuf:"bytes,1,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
-	ProviderEndpoint string                          `protobuf:"bytes,2,opt,name=provider_endpoint,json=providerEndpoint,proto3" json:"provider_endpoint,omitempty"`
-	Models           []*TokenProviderModelDescriptor `protobuf:"bytes,3,rep,name=models,proto3" json:"models,omitempty"`
-	TraceId          string                          `protobuf:"bytes,4,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *ListTokenProviderModelsResponse) Reset() {
-	*x = ListTokenProviderModelsResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[39]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListTokenProviderModelsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListTokenProviderModelsResponse) ProtoMessage() {}
-
-func (x *ListTokenProviderModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[39]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListTokenProviderModelsResponse.ProtoReflect.Descriptor instead.
-func (*ListTokenProviderModelsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{39}
-}
-
-func (x *ListTokenProviderModelsResponse) GetProviderId() string {
-	if x != nil {
-		return x.ProviderId
-	}
-	return ""
-}
-
-func (x *ListTokenProviderModelsResponse) GetProviderEndpoint() string {
-	if x != nil {
-		return x.ProviderEndpoint
-	}
-	return ""
-}
-
-func (x *ListTokenProviderModelsResponse) GetModels() []*TokenProviderModelDescriptor {
-	if x != nil {
-		return x.Models
-	}
-	return nil
-}
-
-func (x *ListTokenProviderModelsResponse) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
-type CheckTokenProviderHealthRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	AppId            string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId    string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ProviderId       string                 `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
-	ProviderEndpoint string                 `protobuf:"bytes,4,opt,name=provider_endpoint,json=providerEndpoint,proto3" json:"provider_endpoint,omitempty"`
-	ModelId          string                 `protobuf:"bytes,5,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	TimeoutMs        int32                  `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *CheckTokenProviderHealthRequest) Reset() {
-	*x = CheckTokenProviderHealthRequest{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[40]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CheckTokenProviderHealthRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CheckTokenProviderHealthRequest) ProtoMessage() {}
-
-func (x *CheckTokenProviderHealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[40]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CheckTokenProviderHealthRequest.ProtoReflect.Descriptor instead.
-func (*CheckTokenProviderHealthRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{40}
-}
-
-func (x *CheckTokenProviderHealthRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *CheckTokenProviderHealthRequest) GetSubjectUserId() string {
-	if x != nil {
-		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *CheckTokenProviderHealthRequest) GetProviderId() string {
-	if x != nil {
-		return x.ProviderId
-	}
-	return ""
-}
-
-func (x *CheckTokenProviderHealthRequest) GetProviderEndpoint() string {
-	if x != nil {
-		return x.ProviderEndpoint
-	}
-	return ""
-}
-
-func (x *CheckTokenProviderHealthRequest) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *CheckTokenProviderHealthRequest) GetTimeoutMs() int32 {
-	if x != nil {
-		return x.TimeoutMs
-	}
-	return 0
-}
-
-type TokenProviderHealthSnapshot struct {
-	state            protoimpl.MessageState    `protogen:"open.v1"`
-	Status           TokenProviderHealthStatus `protobuf:"varint,1,opt,name=status,proto3,enum=nimi.runtime.v1.TokenProviderHealthStatus" json:"status,omitempty"`
-	Detail           string                    `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
-	CheckedAt        *timestamppb.Timestamp    `protobuf:"bytes,3,opt,name=checked_at,json=checkedAt,proto3" json:"checked_at,omitempty"`
-	ProviderId       string                    `protobuf:"bytes,4,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
-	ProviderEndpoint string                    `protobuf:"bytes,5,opt,name=provider_endpoint,json=providerEndpoint,proto3" json:"provider_endpoint,omitempty"`
-	ModelId          string                    `protobuf:"bytes,6,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *TokenProviderHealthSnapshot) Reset() {
-	*x = TokenProviderHealthSnapshot{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[41]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TokenProviderHealthSnapshot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TokenProviderHealthSnapshot) ProtoMessage() {}
-
-func (x *TokenProviderHealthSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[41]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TokenProviderHealthSnapshot.ProtoReflect.Descriptor instead.
-func (*TokenProviderHealthSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{41}
-}
-
-func (x *TokenProviderHealthSnapshot) GetStatus() TokenProviderHealthStatus {
-	if x != nil {
-		return x.Status
-	}
-	return TokenProviderHealthStatus_TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED
-}
-
-func (x *TokenProviderHealthSnapshot) GetDetail() string {
-	if x != nil {
-		return x.Detail
-	}
-	return ""
-}
-
-func (x *TokenProviderHealthSnapshot) GetCheckedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CheckedAt
-	}
-	return nil
-}
-
-func (x *TokenProviderHealthSnapshot) GetProviderId() string {
-	if x != nil {
-		return x.ProviderId
-	}
-	return ""
-}
-
-func (x *TokenProviderHealthSnapshot) GetProviderEndpoint() string {
-	if x != nil {
-		return x.ProviderEndpoint
-	}
-	return ""
-}
-
-func (x *TokenProviderHealthSnapshot) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-type CheckTokenProviderHealthResponse struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	Health        *TokenProviderHealthSnapshot `protobuf:"bytes,1,opt,name=health,proto3" json:"health,omitempty"`
-	TraceId       string                       `protobuf:"bytes,2,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CheckTokenProviderHealthResponse) Reset() {
-	*x = CheckTokenProviderHealthResponse{}
-	mi := &file_runtime_v1_ai_proto_msgTypes[42]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CheckTokenProviderHealthResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CheckTokenProviderHealthResponse) ProtoMessage() {}
-
-func (x *CheckTokenProviderHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_ai_proto_msgTypes[42]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CheckTokenProviderHealthResponse.ProtoReflect.Descriptor instead.
-func (*CheckTokenProviderHealthResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{42}
-}
-
-func (x *CheckTokenProviderHealthResponse) GetHealth() *TokenProviderHealthSnapshot {
-	if x != nil {
-		return x.Health
-	}
-	return nil
-}
-
-func (x *CheckTokenProviderHealthResponse) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
 var File_runtime_v1_ai_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_ai_proto_rawDesc = "" +
@@ -4438,47 +4014,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\bfallback\x18\x06 \x01(\x0e2\x1f.nimi.runtime.v1.FallbackPolicyR\bfallback\x12\x1d\n" +
 	"\n" +
 	"timeout_ms\x18\a \x01(\x05R\ttimeoutMs\x12!\n" +
-	"\fconnector_id\x18\b \x01(\tR\vconnectorId\"\xcc\x01\n" +
-	"\x1eListTokenProviderModelsRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x1f\n" +
-	"\vprovider_id\x18\x03 \x01(\tR\n" +
-	"providerId\x12+\n" +
-	"\x11provider_endpoint\x18\x04 \x01(\tR\x10providerEndpoint\x12\x1d\n" +
-	"\n" +
-	"timeout_ms\x18\x05 \x01(\x05R\ttimeoutMs\"x\n" +
-	"\x1cTokenProviderModelDescriptor\x12\x19\n" +
-	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x1f\n" +
-	"\vmodel_label\x18\x02 \x01(\tR\n" +
-	"modelLabel\x12\x1c\n" +
-	"\tavailable\x18\x03 \x01(\bR\tavailable\"\xd1\x01\n" +
-	"\x1fListTokenProviderModelsResponse\x12\x1f\n" +
-	"\vprovider_id\x18\x01 \x01(\tR\n" +
-	"providerId\x12+\n" +
-	"\x11provider_endpoint\x18\x02 \x01(\tR\x10providerEndpoint\x12E\n" +
-	"\x06models\x18\x03 \x03(\v2-.nimi.runtime.v1.TokenProviderModelDescriptorR\x06models\x12\x19\n" +
-	"\btrace_id\x18\x04 \x01(\tR\atraceId\"\xe8\x01\n" +
-	"\x1fCheckTokenProviderHealthRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x1f\n" +
-	"\vprovider_id\x18\x03 \x01(\tR\n" +
-	"providerId\x12+\n" +
-	"\x11provider_endpoint\x18\x04 \x01(\tR\x10providerEndpoint\x12\x19\n" +
-	"\bmodel_id\x18\x05 \x01(\tR\amodelId\x12\x1d\n" +
-	"\n" +
-	"timeout_ms\x18\x06 \x01(\x05R\ttimeoutMs\"\x9d\x02\n" +
-	"\x1bTokenProviderHealthSnapshot\x12B\n" +
-	"\x06status\x18\x01 \x01(\x0e2*.nimi.runtime.v1.TokenProviderHealthStatusR\x06status\x12\x16\n" +
-	"\x06detail\x18\x02 \x01(\tR\x06detail\x129\n" +
-	"\n" +
-	"checked_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\x12\x1f\n" +
-	"\vprovider_id\x18\x04 \x01(\tR\n" +
-	"providerId\x12+\n" +
-	"\x11provider_endpoint\x18\x05 \x01(\tR\x10providerEndpoint\x12\x19\n" +
-	"\bmodel_id\x18\x06 \x01(\tR\amodelId\"\x83\x01\n" +
-	" CheckTokenProviderHealthResponse\x12D\n" +
-	"\x06health\x18\x01 \x01(\v2,.nimi.runtime.v1.TokenProviderHealthSnapshotR\x06health\x12\x19\n" +
-	"\btrace_id\x18\x02 \x01(\tR\atraceId*\x83\x01\n" +
+	"\fconnector_id\x18\b \x01(\tR\vconnectorId*\x83\x01\n" +
 	"\x05Modal\x12\x15\n" +
 	"\x11MODAL_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -4536,7 +4072,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x19MEDIA_JOB_EVENT_COMPLETED\x10\x04\x12\x1a\n" +
 	"\x16MEDIA_JOB_EVENT_FAILED\x10\x05\x12\x1c\n" +
 	"\x18MEDIA_JOB_EVENT_CANCELED\x10\x06\x12\x1b\n" +
-	"\x17MEDIA_JOB_EVENT_TIMEOUT\x10\a2\xe2\t\n" +
+	"\x17MEDIA_JOB_EVENT_TIMEOUT\x10\a2\xd7\a\n" +
 	"\x10RuntimeAiService\x12O\n" +
 	"\bGenerate\x12 .nimi.runtime.v1.GenerateRequest\x1a!.nimi.runtime.v1.GenerateResponse\x12`\n" +
 	"\x0eStreamGenerate\x12&.nimi.runtime.v1.StreamGenerateRequest\x1a$.nimi.runtime.v1.StreamGenerateEvent0\x01\x12F\n" +
@@ -4547,9 +4083,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x17SubscribeMediaJobEvents\x12/.nimi.runtime.v1.SubscribeMediaJobEventsRequest\x1a\x1e.nimi.runtime.v1.MediaJobEvent0\x01\x12j\n" +
 	"\x11GetMediaArtifacts\x12).nimi.runtime.v1.GetMediaArtifactsRequest\x1a*.nimi.runtime.v1.GetMediaArtifactsResponse\x12d\n" +
 	"\x0fGetSpeechVoices\x12'.nimi.runtime.v1.GetSpeechVoicesRequest\x1a(.nimi.runtime.v1.GetSpeechVoicesResponse\x12h\n" +
-	"\x15StreamSpeechSynthesis\x12-.nimi.runtime.v1.StreamSpeechSynthesisRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01\x12\x81\x01\n" +
-	"\x17ListTokenProviderModels\x12/.nimi.runtime.v1.ListTokenProviderModelsRequest\x1a0.nimi.runtime.v1.ListTokenProviderModelsResponse\"\x03\x88\x02\x01\x12\x84\x01\n" +
-	"\x18CheckTokenProviderHealth\x120.nimi.runtime.v1.CheckTokenProviderHealthRequest\x1a1.nimi.runtime.v1.CheckTokenProviderHealthResponse\"\x03\x88\x02\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x15StreamSpeechSynthesis\x12-.nimi.runtime.v1.StreamSpeechSynthesisRequest\x1a\x1e.nimi.runtime.v1.ArtifactChunk0\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_ai_proto_rawDescOnce sync.Once
@@ -4564,76 +4098,70 @@ func file_runtime_v1_ai_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_ai_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_runtime_v1_ai_proto_goTypes = []any{
-	(Modal)(0),                               // 0: nimi.runtime.v1.Modal
-	(RoutePolicy)(0),                         // 1: nimi.runtime.v1.RoutePolicy
-	(FallbackPolicy)(0),                      // 2: nimi.runtime.v1.FallbackPolicy
-	(FinishReason)(0),                        // 3: nimi.runtime.v1.FinishReason
-	(TokenProviderHealthStatus)(0),           // 4: nimi.runtime.v1.TokenProviderHealthStatus
-	(StreamEventType)(0),                     // 5: nimi.runtime.v1.StreamEventType
-	(MediaJobStatus)(0),                      // 6: nimi.runtime.v1.MediaJobStatus
-	(MediaJobEventType)(0),                   // 7: nimi.runtime.v1.MediaJobEventType
-	(*ChatMessage)(nil),                      // 8: nimi.runtime.v1.ChatMessage
-	(*ToolSpec)(nil),                         // 9: nimi.runtime.v1.ToolSpec
-	(*GenerateRequest)(nil),                  // 10: nimi.runtime.v1.GenerateRequest
-	(*GenerateResponse)(nil),                 // 11: nimi.runtime.v1.GenerateResponse
-	(*StreamGenerateRequest)(nil),            // 12: nimi.runtime.v1.StreamGenerateRequest
-	(*StreamStarted)(nil),                    // 13: nimi.runtime.v1.StreamStarted
-	(*StreamDelta)(nil),                      // 14: nimi.runtime.v1.StreamDelta
-	(*ToolCallEvent)(nil),                    // 15: nimi.runtime.v1.ToolCallEvent
-	(*ToolResultEvent)(nil),                  // 16: nimi.runtime.v1.ToolResultEvent
-	(*StreamCompleted)(nil),                  // 17: nimi.runtime.v1.StreamCompleted
-	(*StreamFailed)(nil),                     // 18: nimi.runtime.v1.StreamFailed
-	(*StreamGenerateEvent)(nil),              // 19: nimi.runtime.v1.StreamGenerateEvent
-	(*EmbedRequest)(nil),                     // 20: nimi.runtime.v1.EmbedRequest
-	(*EmbedResponse)(nil),                    // 21: nimi.runtime.v1.EmbedResponse
-	(*ImageGenerationSpec)(nil),              // 22: nimi.runtime.v1.ImageGenerationSpec
-	(*VideoGenerationSpec)(nil),              // 23: nimi.runtime.v1.VideoGenerationSpec
-	(*SpeechSynthesisSpec)(nil),              // 24: nimi.runtime.v1.SpeechSynthesisSpec
-	(*AudioChunks)(nil),                      // 25: nimi.runtime.v1.AudioChunks
-	(*SpeechTranscriptionAudioSource)(nil),   // 26: nimi.runtime.v1.SpeechTranscriptionAudioSource
-	(*SpeechTranscriptionSpec)(nil),          // 27: nimi.runtime.v1.SpeechTranscriptionSpec
-	(*MediaArtifact)(nil),                    // 28: nimi.runtime.v1.MediaArtifact
-	(*MediaJob)(nil),                         // 29: nimi.runtime.v1.MediaJob
-	(*SubmitMediaJobRequest)(nil),            // 30: nimi.runtime.v1.SubmitMediaJobRequest
-	(*SubmitMediaJobResponse)(nil),           // 31: nimi.runtime.v1.SubmitMediaJobResponse
-	(*GetMediaJobRequest)(nil),               // 32: nimi.runtime.v1.GetMediaJobRequest
-	(*GetMediaJobResponse)(nil),              // 33: nimi.runtime.v1.GetMediaJobResponse
-	(*CancelMediaJobRequest)(nil),            // 34: nimi.runtime.v1.CancelMediaJobRequest
-	(*CancelMediaJobResponse)(nil),           // 35: nimi.runtime.v1.CancelMediaJobResponse
-	(*MediaJobEvent)(nil),                    // 36: nimi.runtime.v1.MediaJobEvent
-	(*SubscribeMediaJobEventsRequest)(nil),   // 37: nimi.runtime.v1.SubscribeMediaJobEventsRequest
-	(*GetMediaArtifactsRequest)(nil),         // 38: nimi.runtime.v1.GetMediaArtifactsRequest
-	(*GetMediaArtifactsResponse)(nil),        // 39: nimi.runtime.v1.GetMediaArtifactsResponse
-	(*ArtifactChunk)(nil),                    // 40: nimi.runtime.v1.ArtifactChunk
-	(*SpeechVoiceDescriptor)(nil),            // 41: nimi.runtime.v1.SpeechVoiceDescriptor
-	(*GetSpeechVoicesRequest)(nil),           // 42: nimi.runtime.v1.GetSpeechVoicesRequest
-	(*GetSpeechVoicesResponse)(nil),          // 43: nimi.runtime.v1.GetSpeechVoicesResponse
-	(*StreamSpeechSynthesisRequest)(nil),     // 44: nimi.runtime.v1.StreamSpeechSynthesisRequest
-	(*ListTokenProviderModelsRequest)(nil),   // 45: nimi.runtime.v1.ListTokenProviderModelsRequest
-	(*TokenProviderModelDescriptor)(nil),     // 46: nimi.runtime.v1.TokenProviderModelDescriptor
-	(*ListTokenProviderModelsResponse)(nil),  // 47: nimi.runtime.v1.ListTokenProviderModelsResponse
-	(*CheckTokenProviderHealthRequest)(nil),  // 48: nimi.runtime.v1.CheckTokenProviderHealthRequest
-	(*TokenProviderHealthSnapshot)(nil),      // 49: nimi.runtime.v1.TokenProviderHealthSnapshot
-	(*CheckTokenProviderHealthResponse)(nil), // 50: nimi.runtime.v1.CheckTokenProviderHealthResponse
-	nil,                                      // 51: nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
-	(*structpb.Struct)(nil),                  // 52: google.protobuf.Struct
-	(*UsageStats)(nil),                       // 53: nimi.runtime.v1.UsageStats
-	(ReasonCode)(0),                          // 54: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),            // 55: google.protobuf.Timestamp
-	(*structpb.ListValue)(nil),               // 56: google.protobuf.ListValue
+	(Modal)(0),                             // 0: nimi.runtime.v1.Modal
+	(RoutePolicy)(0),                       // 1: nimi.runtime.v1.RoutePolicy
+	(FallbackPolicy)(0),                    // 2: nimi.runtime.v1.FallbackPolicy
+	(FinishReason)(0),                      // 3: nimi.runtime.v1.FinishReason
+	(TokenProviderHealthStatus)(0),         // 4: nimi.runtime.v1.TokenProviderHealthStatus
+	(StreamEventType)(0),                   // 5: nimi.runtime.v1.StreamEventType
+	(MediaJobStatus)(0),                    // 6: nimi.runtime.v1.MediaJobStatus
+	(MediaJobEventType)(0),                 // 7: nimi.runtime.v1.MediaJobEventType
+	(*ChatMessage)(nil),                    // 8: nimi.runtime.v1.ChatMessage
+	(*ToolSpec)(nil),                       // 9: nimi.runtime.v1.ToolSpec
+	(*GenerateRequest)(nil),                // 10: nimi.runtime.v1.GenerateRequest
+	(*GenerateResponse)(nil),               // 11: nimi.runtime.v1.GenerateResponse
+	(*StreamGenerateRequest)(nil),          // 12: nimi.runtime.v1.StreamGenerateRequest
+	(*StreamStarted)(nil),                  // 13: nimi.runtime.v1.StreamStarted
+	(*StreamDelta)(nil),                    // 14: nimi.runtime.v1.StreamDelta
+	(*ToolCallEvent)(nil),                  // 15: nimi.runtime.v1.ToolCallEvent
+	(*ToolResultEvent)(nil),                // 16: nimi.runtime.v1.ToolResultEvent
+	(*StreamCompleted)(nil),                // 17: nimi.runtime.v1.StreamCompleted
+	(*StreamFailed)(nil),                   // 18: nimi.runtime.v1.StreamFailed
+	(*StreamGenerateEvent)(nil),            // 19: nimi.runtime.v1.StreamGenerateEvent
+	(*EmbedRequest)(nil),                   // 20: nimi.runtime.v1.EmbedRequest
+	(*EmbedResponse)(nil),                  // 21: nimi.runtime.v1.EmbedResponse
+	(*ImageGenerationSpec)(nil),            // 22: nimi.runtime.v1.ImageGenerationSpec
+	(*VideoGenerationSpec)(nil),            // 23: nimi.runtime.v1.VideoGenerationSpec
+	(*SpeechSynthesisSpec)(nil),            // 24: nimi.runtime.v1.SpeechSynthesisSpec
+	(*AudioChunks)(nil),                    // 25: nimi.runtime.v1.AudioChunks
+	(*SpeechTranscriptionAudioSource)(nil), // 26: nimi.runtime.v1.SpeechTranscriptionAudioSource
+	(*SpeechTranscriptionSpec)(nil),        // 27: nimi.runtime.v1.SpeechTranscriptionSpec
+	(*MediaArtifact)(nil),                  // 28: nimi.runtime.v1.MediaArtifact
+	(*MediaJob)(nil),                       // 29: nimi.runtime.v1.MediaJob
+	(*SubmitMediaJobRequest)(nil),          // 30: nimi.runtime.v1.SubmitMediaJobRequest
+	(*SubmitMediaJobResponse)(nil),         // 31: nimi.runtime.v1.SubmitMediaJobResponse
+	(*GetMediaJobRequest)(nil),             // 32: nimi.runtime.v1.GetMediaJobRequest
+	(*GetMediaJobResponse)(nil),            // 33: nimi.runtime.v1.GetMediaJobResponse
+	(*CancelMediaJobRequest)(nil),          // 34: nimi.runtime.v1.CancelMediaJobRequest
+	(*CancelMediaJobResponse)(nil),         // 35: nimi.runtime.v1.CancelMediaJobResponse
+	(*MediaJobEvent)(nil),                  // 36: nimi.runtime.v1.MediaJobEvent
+	(*SubscribeMediaJobEventsRequest)(nil), // 37: nimi.runtime.v1.SubscribeMediaJobEventsRequest
+	(*GetMediaArtifactsRequest)(nil),       // 38: nimi.runtime.v1.GetMediaArtifactsRequest
+	(*GetMediaArtifactsResponse)(nil),      // 39: nimi.runtime.v1.GetMediaArtifactsResponse
+	(*ArtifactChunk)(nil),                  // 40: nimi.runtime.v1.ArtifactChunk
+	(*SpeechVoiceDescriptor)(nil),          // 41: nimi.runtime.v1.SpeechVoiceDescriptor
+	(*GetSpeechVoicesRequest)(nil),         // 42: nimi.runtime.v1.GetSpeechVoicesRequest
+	(*GetSpeechVoicesResponse)(nil),        // 43: nimi.runtime.v1.GetSpeechVoicesResponse
+	(*StreamSpeechSynthesisRequest)(nil),   // 44: nimi.runtime.v1.StreamSpeechSynthesisRequest
+	nil,                                    // 45: nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
+	(*structpb.Struct)(nil),                // 46: google.protobuf.Struct
+	(*UsageStats)(nil),                     // 47: nimi.runtime.v1.UsageStats
+	(ReasonCode)(0),                        // 48: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),          // 49: google.protobuf.Timestamp
+	(*structpb.ListValue)(nil),             // 50: google.protobuf.ListValue
 }
 var file_runtime_v1_ai_proto_depIdxs = []int32{
-	52, // 0: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
+	46, // 0: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
 	0,  // 1: nimi.runtime.v1.GenerateRequest.modal:type_name -> nimi.runtime.v1.Modal
 	8,  // 2: nimi.runtime.v1.GenerateRequest.input:type_name -> nimi.runtime.v1.ChatMessage
 	9,  // 3: nimi.runtime.v1.GenerateRequest.tools:type_name -> nimi.runtime.v1.ToolSpec
 	1,  // 4: nimi.runtime.v1.GenerateRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 5: nimi.runtime.v1.GenerateRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	52, // 6: nimi.runtime.v1.GenerateResponse.output:type_name -> google.protobuf.Struct
+	46, // 6: nimi.runtime.v1.GenerateResponse.output:type_name -> google.protobuf.Struct
 	3,  // 7: nimi.runtime.v1.GenerateResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	53, // 8: nimi.runtime.v1.GenerateResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	47, // 8: nimi.runtime.v1.GenerateResponse.usage:type_name -> nimi.runtime.v1.UsageStats
 	1,  // 9: nimi.runtime.v1.GenerateResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
 	0,  // 10: nimi.runtime.v1.StreamGenerateRequest.modal:type_name -> nimi.runtime.v1.Modal
 	8,  // 11: nimi.runtime.v1.StreamGenerateRequest.input:type_name -> nimi.runtime.v1.ChatMessage
@@ -4641,47 +4169,47 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	1,  // 13: nimi.runtime.v1.StreamGenerateRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 14: nimi.runtime.v1.StreamGenerateRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
 	1,  // 15: nimi.runtime.v1.StreamStarted.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	52, // 16: nimi.runtime.v1.ToolCallEvent.tool_input:type_name -> google.protobuf.Struct
-	52, // 17: nimi.runtime.v1.ToolResultEvent.tool_output:type_name -> google.protobuf.Struct
+	46, // 16: nimi.runtime.v1.ToolCallEvent.tool_input:type_name -> google.protobuf.Struct
+	46, // 17: nimi.runtime.v1.ToolResultEvent.tool_output:type_name -> google.protobuf.Struct
 	3,  // 18: nimi.runtime.v1.StreamCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	53, // 19: nimi.runtime.v1.StreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
-	54, // 20: nimi.runtime.v1.StreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	47, // 19: nimi.runtime.v1.StreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
+	48, // 20: nimi.runtime.v1.StreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	5,  // 21: nimi.runtime.v1.StreamGenerateEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
-	55, // 22: nimi.runtime.v1.StreamGenerateEvent.timestamp:type_name -> google.protobuf.Timestamp
+	49, // 22: nimi.runtime.v1.StreamGenerateEvent.timestamp:type_name -> google.protobuf.Timestamp
 	13, // 23: nimi.runtime.v1.StreamGenerateEvent.started:type_name -> nimi.runtime.v1.StreamStarted
 	14, // 24: nimi.runtime.v1.StreamGenerateEvent.delta:type_name -> nimi.runtime.v1.StreamDelta
 	15, // 25: nimi.runtime.v1.StreamGenerateEvent.tool_call:type_name -> nimi.runtime.v1.ToolCallEvent
 	16, // 26: nimi.runtime.v1.StreamGenerateEvent.tool_result:type_name -> nimi.runtime.v1.ToolResultEvent
-	53, // 27: nimi.runtime.v1.StreamGenerateEvent.usage:type_name -> nimi.runtime.v1.UsageStats
+	47, // 27: nimi.runtime.v1.StreamGenerateEvent.usage:type_name -> nimi.runtime.v1.UsageStats
 	17, // 28: nimi.runtime.v1.StreamGenerateEvent.completed:type_name -> nimi.runtime.v1.StreamCompleted
 	18, // 29: nimi.runtime.v1.StreamGenerateEvent.failed:type_name -> nimi.runtime.v1.StreamFailed
 	1,  // 30: nimi.runtime.v1.EmbedRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 31: nimi.runtime.v1.EmbedRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	56, // 32: nimi.runtime.v1.EmbedResponse.vectors:type_name -> google.protobuf.ListValue
-	53, // 33: nimi.runtime.v1.EmbedResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	50, // 32: nimi.runtime.v1.EmbedResponse.vectors:type_name -> google.protobuf.ListValue
+	47, // 33: nimi.runtime.v1.EmbedResponse.usage:type_name -> nimi.runtime.v1.UsageStats
 	1,  // 34: nimi.runtime.v1.EmbedResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	52, // 35: nimi.runtime.v1.ImageGenerationSpec.provider_options:type_name -> google.protobuf.Struct
-	52, // 36: nimi.runtime.v1.VideoGenerationSpec.provider_options:type_name -> google.protobuf.Struct
-	52, // 37: nimi.runtime.v1.SpeechSynthesisSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 35: nimi.runtime.v1.ImageGenerationSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 36: nimi.runtime.v1.VideoGenerationSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 37: nimi.runtime.v1.SpeechSynthesisSpec.provider_options:type_name -> google.protobuf.Struct
 	25, // 38: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
 	26, // 39: nimi.runtime.v1.SpeechTranscriptionSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
-	52, // 40: nimi.runtime.v1.SpeechTranscriptionSpec.provider_options:type_name -> google.protobuf.Struct
-	52, // 41: nimi.runtime.v1.MediaArtifact.provider_raw:type_name -> google.protobuf.Struct
+	46, // 40: nimi.runtime.v1.SpeechTranscriptionSpec.provider_options:type_name -> google.protobuf.Struct
+	46, // 41: nimi.runtime.v1.MediaArtifact.provider_raw:type_name -> google.protobuf.Struct
 	0,  // 42: nimi.runtime.v1.MediaJob.modal:type_name -> nimi.runtime.v1.Modal
 	1,  // 43: nimi.runtime.v1.MediaJob.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	1,  // 44: nimi.runtime.v1.MediaJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
 	6,  // 45: nimi.runtime.v1.MediaJob.status:type_name -> nimi.runtime.v1.MediaJobStatus
-	54, // 46: nimi.runtime.v1.MediaJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	55, // 47: nimi.runtime.v1.MediaJob.created_at:type_name -> google.protobuf.Timestamp
-	55, // 48: nimi.runtime.v1.MediaJob.updated_at:type_name -> google.protobuf.Timestamp
-	55, // 49: nimi.runtime.v1.MediaJob.next_poll_at:type_name -> google.protobuf.Timestamp
-	52, // 50: nimi.runtime.v1.MediaJob.provider_options:type_name -> google.protobuf.Struct
+	48, // 46: nimi.runtime.v1.MediaJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	49, // 47: nimi.runtime.v1.MediaJob.created_at:type_name -> google.protobuf.Timestamp
+	49, // 48: nimi.runtime.v1.MediaJob.updated_at:type_name -> google.protobuf.Timestamp
+	49, // 49: nimi.runtime.v1.MediaJob.next_poll_at:type_name -> google.protobuf.Timestamp
+	46, // 50: nimi.runtime.v1.MediaJob.provider_options:type_name -> google.protobuf.Struct
 	28, // 51: nimi.runtime.v1.MediaJob.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
-	53, // 52: nimi.runtime.v1.MediaJob.usage:type_name -> nimi.runtime.v1.UsageStats
+	47, // 52: nimi.runtime.v1.MediaJob.usage:type_name -> nimi.runtime.v1.UsageStats
 	0,  // 53: nimi.runtime.v1.SubmitMediaJobRequest.modal:type_name -> nimi.runtime.v1.Modal
 	1,  // 54: nimi.runtime.v1.SubmitMediaJobRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 55: nimi.runtime.v1.SubmitMediaJobRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	51, // 56: nimi.runtime.v1.SubmitMediaJobRequest.labels:type_name -> nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
+	45, // 56: nimi.runtime.v1.SubmitMediaJobRequest.labels:type_name -> nimi.runtime.v1.SubmitMediaJobRequest.LabelsEntry
 	22, // 57: nimi.runtime.v1.SubmitMediaJobRequest.image_spec:type_name -> nimi.runtime.v1.ImageGenerationSpec
 	23, // 58: nimi.runtime.v1.SubmitMediaJobRequest.video_spec:type_name -> nimi.runtime.v1.VideoGenerationSpec
 	24, // 59: nimi.runtime.v1.SubmitMediaJobRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
@@ -4690,10 +4218,10 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	29, // 62: nimi.runtime.v1.GetMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
 	29, // 63: nimi.runtime.v1.CancelMediaJobResponse.job:type_name -> nimi.runtime.v1.MediaJob
 	7,  // 64: nimi.runtime.v1.MediaJobEvent.event_type:type_name -> nimi.runtime.v1.MediaJobEventType
-	55, // 65: nimi.runtime.v1.MediaJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	49, // 65: nimi.runtime.v1.MediaJobEvent.timestamp:type_name -> google.protobuf.Timestamp
 	29, // 66: nimi.runtime.v1.MediaJobEvent.job:type_name -> nimi.runtime.v1.MediaJob
 	28, // 67: nimi.runtime.v1.GetMediaArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.MediaArtifact
-	53, // 68: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
+	47, // 68: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
 	1,  // 69: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
 	1,  // 70: nimi.runtime.v1.GetSpeechVoicesRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 71: nimi.runtime.v1.GetSpeechVoicesRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
@@ -4701,39 +4229,31 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	24, // 73: nimi.runtime.v1.StreamSpeechSynthesisRequest.speech_spec:type_name -> nimi.runtime.v1.SpeechSynthesisSpec
 	1,  // 74: nimi.runtime.v1.StreamSpeechSynthesisRequest.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	2,  // 75: nimi.runtime.v1.StreamSpeechSynthesisRequest.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	46, // 76: nimi.runtime.v1.ListTokenProviderModelsResponse.models:type_name -> nimi.runtime.v1.TokenProviderModelDescriptor
-	4,  // 77: nimi.runtime.v1.TokenProviderHealthSnapshot.status:type_name -> nimi.runtime.v1.TokenProviderHealthStatus
-	55, // 78: nimi.runtime.v1.TokenProviderHealthSnapshot.checked_at:type_name -> google.protobuf.Timestamp
-	49, // 79: nimi.runtime.v1.CheckTokenProviderHealthResponse.health:type_name -> nimi.runtime.v1.TokenProviderHealthSnapshot
-	10, // 80: nimi.runtime.v1.RuntimeAiService.Generate:input_type -> nimi.runtime.v1.GenerateRequest
-	12, // 81: nimi.runtime.v1.RuntimeAiService.StreamGenerate:input_type -> nimi.runtime.v1.StreamGenerateRequest
-	20, // 82: nimi.runtime.v1.RuntimeAiService.Embed:input_type -> nimi.runtime.v1.EmbedRequest
-	30, // 83: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:input_type -> nimi.runtime.v1.SubmitMediaJobRequest
-	32, // 84: nimi.runtime.v1.RuntimeAiService.GetMediaJob:input_type -> nimi.runtime.v1.GetMediaJobRequest
-	34, // 85: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:input_type -> nimi.runtime.v1.CancelMediaJobRequest
-	37, // 86: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:input_type -> nimi.runtime.v1.SubscribeMediaJobEventsRequest
-	38, // 87: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:input_type -> nimi.runtime.v1.GetMediaArtifactsRequest
-	42, // 88: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:input_type -> nimi.runtime.v1.GetSpeechVoicesRequest
-	44, // 89: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:input_type -> nimi.runtime.v1.StreamSpeechSynthesisRequest
-	45, // 90: nimi.runtime.v1.RuntimeAiService.ListTokenProviderModels:input_type -> nimi.runtime.v1.ListTokenProviderModelsRequest
-	48, // 91: nimi.runtime.v1.RuntimeAiService.CheckTokenProviderHealth:input_type -> nimi.runtime.v1.CheckTokenProviderHealthRequest
-	11, // 92: nimi.runtime.v1.RuntimeAiService.Generate:output_type -> nimi.runtime.v1.GenerateResponse
-	19, // 93: nimi.runtime.v1.RuntimeAiService.StreamGenerate:output_type -> nimi.runtime.v1.StreamGenerateEvent
-	21, // 94: nimi.runtime.v1.RuntimeAiService.Embed:output_type -> nimi.runtime.v1.EmbedResponse
-	31, // 95: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:output_type -> nimi.runtime.v1.SubmitMediaJobResponse
-	33, // 96: nimi.runtime.v1.RuntimeAiService.GetMediaJob:output_type -> nimi.runtime.v1.GetMediaJobResponse
-	35, // 97: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:output_type -> nimi.runtime.v1.CancelMediaJobResponse
-	36, // 98: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:output_type -> nimi.runtime.v1.MediaJobEvent
-	39, // 99: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:output_type -> nimi.runtime.v1.GetMediaArtifactsResponse
-	43, // 100: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:output_type -> nimi.runtime.v1.GetSpeechVoicesResponse
-	40, // 101: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:output_type -> nimi.runtime.v1.ArtifactChunk
-	47, // 102: nimi.runtime.v1.RuntimeAiService.ListTokenProviderModels:output_type -> nimi.runtime.v1.ListTokenProviderModelsResponse
-	50, // 103: nimi.runtime.v1.RuntimeAiService.CheckTokenProviderHealth:output_type -> nimi.runtime.v1.CheckTokenProviderHealthResponse
-	92, // [92:104] is the sub-list for method output_type
-	80, // [80:92] is the sub-list for method input_type
-	80, // [80:80] is the sub-list for extension type_name
-	80, // [80:80] is the sub-list for extension extendee
-	0,  // [0:80] is the sub-list for field type_name
+	10, // 76: nimi.runtime.v1.RuntimeAiService.Generate:input_type -> nimi.runtime.v1.GenerateRequest
+	12, // 77: nimi.runtime.v1.RuntimeAiService.StreamGenerate:input_type -> nimi.runtime.v1.StreamGenerateRequest
+	20, // 78: nimi.runtime.v1.RuntimeAiService.Embed:input_type -> nimi.runtime.v1.EmbedRequest
+	30, // 79: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:input_type -> nimi.runtime.v1.SubmitMediaJobRequest
+	32, // 80: nimi.runtime.v1.RuntimeAiService.GetMediaJob:input_type -> nimi.runtime.v1.GetMediaJobRequest
+	34, // 81: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:input_type -> nimi.runtime.v1.CancelMediaJobRequest
+	37, // 82: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:input_type -> nimi.runtime.v1.SubscribeMediaJobEventsRequest
+	38, // 83: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:input_type -> nimi.runtime.v1.GetMediaArtifactsRequest
+	42, // 84: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:input_type -> nimi.runtime.v1.GetSpeechVoicesRequest
+	44, // 85: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:input_type -> nimi.runtime.v1.StreamSpeechSynthesisRequest
+	11, // 86: nimi.runtime.v1.RuntimeAiService.Generate:output_type -> nimi.runtime.v1.GenerateResponse
+	19, // 87: nimi.runtime.v1.RuntimeAiService.StreamGenerate:output_type -> nimi.runtime.v1.StreamGenerateEvent
+	21, // 88: nimi.runtime.v1.RuntimeAiService.Embed:output_type -> nimi.runtime.v1.EmbedResponse
+	31, // 89: nimi.runtime.v1.RuntimeAiService.SubmitMediaJob:output_type -> nimi.runtime.v1.SubmitMediaJobResponse
+	33, // 90: nimi.runtime.v1.RuntimeAiService.GetMediaJob:output_type -> nimi.runtime.v1.GetMediaJobResponse
+	35, // 91: nimi.runtime.v1.RuntimeAiService.CancelMediaJob:output_type -> nimi.runtime.v1.CancelMediaJobResponse
+	36, // 92: nimi.runtime.v1.RuntimeAiService.SubscribeMediaJobEvents:output_type -> nimi.runtime.v1.MediaJobEvent
+	39, // 93: nimi.runtime.v1.RuntimeAiService.GetMediaArtifacts:output_type -> nimi.runtime.v1.GetMediaArtifactsResponse
+	43, // 94: nimi.runtime.v1.RuntimeAiService.GetSpeechVoices:output_type -> nimi.runtime.v1.GetSpeechVoicesResponse
+	40, // 95: nimi.runtime.v1.RuntimeAiService.StreamSpeechSynthesis:output_type -> nimi.runtime.v1.ArtifactChunk
+	86, // [86:96] is the sub-list for method output_type
+	76, // [76:86] is the sub-list for method input_type
+	76, // [76:76] is the sub-list for extension type_name
+	76, // [76:76] is the sub-list for extension extendee
+	0,  // [0:76] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_proto_init() }
@@ -4768,7 +4288,7 @@ func file_runtime_v1_ai_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_ai_proto_rawDesc), len(file_runtime_v1_ai_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   44,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
