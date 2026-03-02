@@ -304,10 +304,10 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
               Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.
             </p>
             <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={() => props.onNavigateToSetup?.('models')}>
+              <Button variant="secondary" size="sm" onClick={() => props.onNavigateToSetup?.('local')}>
                 Install Models
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => props.onNavigateToSetup?.('cloud-api')}>
+              <Button variant="ghost" size="sm" onClick={() => props.onNavigateToSetup?.('cloud')}>
                 Configure Cloud API
               </Button>
             </div>
