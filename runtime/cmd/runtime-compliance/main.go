@@ -257,6 +257,7 @@ func runtimeChecklist() []checklistItemSpec {
 		pkgGrant       = "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 		pkgGrpc        = "github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 		pkgModel       = "github.com/nimiplatform/nimi/runtime/internal/services/model"
+		pkgNimillm     = "github.com/nimiplatform/nimi/runtime/internal/nimillm"
 		pkgScheduler   = "github.com/nimiplatform/nimi/runtime/internal/scheduler"
 		pkgWorkflow    = "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	)
@@ -360,11 +361,14 @@ func runtimeChecklist() []checklistItemSpec {
 		},
 		{
 			ID:          "RS-11-14",
-			Requirement: "AI reason-code mapping (timeout/unavailable/filter/broken)",
+			Requirement: "AI reason-code mapping (timeout/unavailable/filter/auth/rate-limit/internal)",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestStreamGenerateTimeoutEmitsFailedEvent"},
 				{Package: pkgAI, Name: "TestMapProviderHTTPErrorContentFilter"},
 				{Package: pkgAI, Name: "TestOpenAIBackendStreamGenerateBrokenChunk"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderAuthFailed"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderRateLimited"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderInternal"},
 			},
 		},
 		{
@@ -455,6 +459,47 @@ func runtimeChecklist() []checklistItemSpec {
 					Binary: "node",
 					Args:   []string{"scripts/check-no-legacy-cloud-provider-keys.mjs"},
 				},
+			},
+		},
+		{
+			ID:          "RS-11-26",
+			Requirement: "error-mapping-matrix provider error classification",
+			Tests: []testRef{
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderAuthFailed"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderRateLimited"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderInternal"},
+				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderUnavailable"},
+				{Package: pkgNimillm, Name: "TestMapProviderRequestError_DeadlineExceeded"},
+			},
+		},
+		{
+			ID:          "RS-11-27",
+			Requirement: "media job reason code coverage",
+			Tests: []testRef{
+				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/GetMediaJob_NotFound_ReasonCode"},
+				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/CancelMediaJob_NotFound_ReasonCode"},
+				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/CancelMediaJob_NotCancellable_ReasonCode"},
+				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/SubmitMediaJob_SpecInvalid_MissingSpec"},
+				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/SubmitMediaJob_OptionUnsupported_ImageN"},
+			},
+		},
+		{
+			ID:          "RS-11-28",
+			Requirement: "workflow reason code coverage",
+			Tests: []testRef{
+				{Package: pkgWorkflow, Name: "TestValidateDefinitionRejectsDuplicateInputSlot"},
+				{Package: pkgWorkflow, Name: "TestValidateDefinitionRejectsCycle"},
+				{Package: pkgWorkflow, Name: "TestValidateDefinitionRejectsMergeNOfMOutOfRange"},
+				{Package: pkgWorkflow, Name: "TestGetWorkflowNotFoundReasonCode"},
+				{Package: pkgWorkflow, Name: "TestCancelWorkflowNotFoundReasonCode"},
+			},
+		},
+		{
+			ID:          "RS-11-29",
+			Requirement: "grant token chain reason code coverage",
+			Tests: []testRef{
+				{Package: pkgGrant, Name: "TestListTokenChainRootRequiredReasonCode"},
+				{Package: pkgGrant, Name: "TestListTokenChainRootNotFoundReasonCode"},
 			},
 		},
 	}
