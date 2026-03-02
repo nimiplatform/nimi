@@ -14,6 +14,9 @@ type NimiError = Error & {
 };
 ```
 
+Desktop bridge (`apps/desktop`) projects the same shape and may add UI-only fields in `details`
+(for example `userMessage`, `rawMessage`) without overriding `reasonCode` / `message`.
+
 ## Runtime Reason Codes
 
 Source of truth: `proto/runtime/v1/common.proto`.
@@ -151,7 +154,10 @@ Current retryable set:
 - `SESSION_EXPIRED`
 - `AI_PROVIDER_UNAVAILABLE`
 - `AI_PROVIDER_TIMEOUT`
+- `AI_PROVIDER_RATE_LIMITED`
 - `AI_STREAM_BROKEN`
+- `RUNTIME_UNAVAILABLE`
+- `RUNTIME_BRIDGE_DAEMON_UNAVAILABLE`
 
 ## Handling Example
 

@@ -54,3 +54,26 @@ Provider 上游失败（401/429/5xx/timeout）统一映射：`UNAVAILABLE` + `AI
 ## K-ERR-008 管理 RPC 的 NOT_FOUND 语义
 
 本地模型管理 RPC（`StartLocalModel`、`StopLocalModel`、`RemoveLocalModel` 等）在目标 `local_model_id` 不存在时返回 `NOT_FOUND`（无特定 reason code）。`AI_LOCAL_*` 系列 reason code 专用于 consume 路径和 probe 路径场景（见 error-mapping-matrix.yaml）。
+
+## K-ERR-009 结构化错误字段稳定性
+
+Runtime 对用户可触达失败（grant / connector / ai）必须输出可机器消费的结构化字段，不允许仅返回自由文本：
+
+- `reasonCode`（主判定码）
+- `actionHint`
+- `traceId`
+- `retryable`
+
+传输要求：
+
+- gRPC `ErrorInfo.Reason` 必须携带稳定 `reasonCode`
+- `ErrorInfo.Metadata` 至少包含 `action_hint`，并在可用时包含 `trace_id` 与 `retryable`
+- 对 bridge/sdk 兼容路径，status message 可携带 JSON 结构化体，但不得替代 `ErrorInfo` 语义
+
+## K-ERR-010 内部细节泄漏约束
+
+grant / connector / ai 关键路径禁止将内部实现错误（provider SDK 文本、存储层原始报错）直接暴露为用户判定依据。
+
+- 对外返回必须映射到稳定 `reasonCode`
+- 内部细节仅写入服务端日志（可用 `traceId` 关联）
+- 不允许以自由文本 message 作为唯一判据驱动客户端分支

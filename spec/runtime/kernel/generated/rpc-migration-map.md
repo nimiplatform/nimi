@@ -102,5 +102,3 @@
 
 | Proto Service | Proto Method | Reason |
 |---|---|---|
-| `RuntimeAiService` | `ListTokenProviderModels` | `legacy_proto_not_in_design_surface` |
-| `RuntimeAiService` | `CheckTokenProviderHealth` | `legacy_proto_not_in_design_surface` |

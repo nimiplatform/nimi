@@ -2,7 +2,7 @@
 
 > Authority: Desktop Kernel
 > Status: Draft
-> Date: 2026-03-01
+> Date: 2026-03-02
 
 ## Scope
 
@@ -39,11 +39,19 @@ Qwen TTS 引擎依赖检查错误：
 
 ## D-ERR-005 — Bridge 错误归一化
 
-`toBridgeUserError(error)` 两阶段错误转换：
+`toBridgeUserError(error)` 作为 `toBridgeNimiError(error)` 的别名，必须抛出结构化 `NimiError`，并遵循固定优先级：
 
-1. **精确码匹配**：`extractBridgeErrorCode` 提取 `CODE:` 前缀 → `BRIDGE_ERROR_CODE_MAP` 查表。
-2. **模式匹配**：`BRIDGE_ERROR_MAP` 正则数组依次匹配错误消息。
-3. **兜底**：返回通用 `'操作失败，请稍后重试'`。
+1. 输入已是 `NimiError`：保持结构化字段不变。
+2. 可解析 JSON payload：提取 `reasonCode/actionHint/traceId/retryable/message`。
+3. `CODE:` 前缀：提取前缀作为 `reasonCode`。
+4. 正则模式映射：仅用于用户展示文案推断。
+5. 兜底：`RUNTIME_CALL_FAILED`。
+
+显示层规则：
+
+- 中文提示仅写入 `details.userMessage`。
+- `message` 与 `reasonCode` 必须保留上游原值，不可被 UI 文案覆盖。
+- `details.rawMessage` 必须保留原始失败文本，便于排障。
 
 ## D-ERR-006 — Bootstrap 错误边界
 
@@ -59,7 +67,7 @@ Qwen TTS 引擎依赖检查错误：
 
 Runtime 错误通过三层投影到 Desktop UI：
 
-**投影路径**：Runtime K-ERR ReasonCode → SDK S-ERROR 投影 → Desktop `toBridgeUserError` 映射。
+**投影路径**：Runtime K-ERR ReasonCode → SDK S-ERROR 投影 → Desktop `toBridgeNimiError` 映射（`toBridgeUserError` 仅保留兼容别名）。
 
 **关键 ReasonCode UI 映射**：
 
@@ -120,7 +128,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 **非错误终态说明**：`AI_FINISH_LENGTH` 和 `AI_FINISH_CONTENT_FILTER` 通过 gRPC OK + `reason_code` 返回（参考 SDK S-ERROR-009），投影为 `finishReason` 而非异常。UI 不触发错误边界（D-ERR-006），仅在消息元信息区域展示提示标注。
 
-**兜底规则**：未映射的 ReasonCode 走 D-ERR-005 两阶段归一化兜底路径，最终返回通用错误消息。
+**兜底规则**：未映射的 ReasonCode 走 D-ERR-005 多阶段归一化兜底路径，最终返回通用错误消息。
 
 **未覆盖 ReasonCode 族群声明**：以下 ReasonCode 族群当前走通用兜底路径（"操作失败，请稍后重试"），对用户无诊断价值。Phase 2 服务消费契约就绪时应补充专用映射：
 
@@ -138,7 +146,7 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 - 评估标准：该 ReasonCode 是否可能在 Desktop 用户操作流中触达。可通过 UI 触达的码必须添加中文映射；仅内部使用的码（如 management RPC 专用码）可跳过。
 - 此评估应作为 reason-codes.yaml 变更 PR 的 review checklist 项。
 
-**跨层引用**：Runtime `K-ERR-001~008`、SDK `S-ERROR-001~010`。
+**跨层引用**：Runtime `K-ERR-001~010`、SDK `S-ERROR-001~014`。
 
 ## D-ERR-008 — 本地模型生命周期 NOT_FOUND 映射
 
@@ -153,6 +161,36 @@ Runtime K-ERR-008 规定 `StartLocalModel`、`StopLocalModel`、`RemoveLocalMode
 | `local_ai_remove_model` | `NOT_FOUND` | 静默处理（幂等语义），刷新模型列表 |
 
 **跨层引用**：Runtime K-ERR-008、K-LOCAL-009。
+
+## D-ERR-009 — runtime-config Fail-Fast 约束
+
+runtime-config 关键链路（connector discovery、provider/model 列表、route capabilities）必须 Fail-Fast：
+
+- 禁止静默吞错：不允许 `.catch(() => [])`、`.catch(() => {})`、空 `catch {}`
+- 失败必须抛 `NimiError`，UI 必须显示错误 banner
+- banner 至少包含 `reasonCode` 与 `traceId`（若存在）
+- 不允许以本地目录（`VENDOR_CATALOGS_V11`）作为 runtime 不可用时的模型事实源回退
+
+Runtime 不可用时，用户操作必须显式失败，不允许伪成功。
+
+## D-ERR-010 — LLM Adapter 主码规则
+
+Desktop LLM adapter（`invoke-{text,stream,image,video,embedding,transcribe}`）错误处理必须遵循：
+
+- 统一抛出 `NimiError`，禁止 `throw new Error(normalizedError)` 降维
+- 主判定码使用 Runtime `reasonCode`
+- `LOCAL_AI_*` 仅作为诊断别名记录在审计字段 `extra.localReasonCode`，不参与主流程分支
+- 每次 runtime 调用 metadata 必须携带 `traceId`，保证 renderer 日志、runtime 审计与异常对象可对齐
+
+## D-ERR-011 — Bridge 日志可观测字段
+
+Bridge invoke 失败日志必须输出结构化诊断字段：
+
+- `reasonCode`
+- `actionHint`
+- `traceId`
+- `retryable`
+- `rawMessage`
 
 ## Fact Sources
 

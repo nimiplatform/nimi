@@ -443,11 +443,4 @@ method_mappings:
     proto_method: Execute
     mapping_status: aligned
 
-excluded_proto_methods:
-  - proto_service: RuntimeAiService
-    proto_method: ListTokenProviderModels
-    reason: legacy_proto_not_in_design_surface
-  - proto_service: RuntimeAiService
-    proto_method: CheckTokenProviderHealth
-    reason: legacy_proto_not_in_design_surface
-
+excluded_proto_methods: []
