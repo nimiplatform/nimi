@@ -30,12 +30,17 @@ const SETUP_PAGES: Array<{
     label: 'Providers',
     description: 'Capability matrix and provider diagnostics.',
   },
+  {
+    id: 'audit',
+    label: 'Audit',
+    description: 'Event timeline, filter, and export audit trail.',
+  },
 ];
 
 export function RuntimeSetupTabs({ activePage, onChangePage }: RuntimeSetupTabsProps) {
   return (
     <div className="rounded-[10px] border border-gray-200 bg-white p-2">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         {SETUP_PAGES.map((page) => {
           const active = page.id === activePage;
           return (

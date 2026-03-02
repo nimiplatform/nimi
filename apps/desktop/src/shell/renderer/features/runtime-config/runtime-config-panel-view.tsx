@@ -208,14 +208,16 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               />
             ) : null}
 
-            <DiagnosticsPanel
-              state={state}
-              runtimeSectionMeta={RUNTIME_SECTION_META}
-              selectedConnector={model.selectedConnector}
-              vaultEntryCount={model.vaultEntryCount}
-              updateState={model.updateState}
-              compact={activeSetupPage !== 'providers'}
-            />
+            {activeSetupPage !== 'audit' ? (
+              <DiagnosticsPanel
+                state={state}
+                runtimeSectionMeta={RUNTIME_SECTION_META}
+                selectedConnector={model.selectedConnector}
+                vaultEntryCount={model.vaultEntryCount}
+                updateState={model.updateState}
+                compact={activeSetupPage !== 'providers'}
+              />
+            ) : null}
           </div>
         </div>
       </main>

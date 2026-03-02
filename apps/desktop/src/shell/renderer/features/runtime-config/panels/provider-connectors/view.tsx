@@ -5,6 +5,7 @@ import { RuntimeOverviewPage } from '../setup/runtime-overview-page';
 import { ExternalAgentAccessPanel } from '../setup/external-agent-access';
 import { TokenApiConnectorsPage } from '../setup/token-api-connectors-page';
 import { ProvidersPage } from '../setup/providers-page';
+import { AuditPage } from '../setup/audit-page';
 
 export function ProviderConnectorsPanelView({
   stateModel,
@@ -147,6 +148,9 @@ export function ProviderConnectorsPanelView({
           ) : null}
           {isRuntimeScope && effectiveSetupPage === 'providers' ? (
             <ProvidersPage state={state} onNavigate={handleNavigate} />
+          ) : null}
+          {isRuntimeScope && effectiveSetupPage === 'audit' ? (
+            <AuditPage />
           ) : null}
         </>
       )}

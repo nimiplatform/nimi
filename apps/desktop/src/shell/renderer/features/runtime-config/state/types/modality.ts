@@ -3,7 +3,7 @@ export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
 export type SourceIdV11 = 'local-runtime' | 'token-api';
 export type RuntimeSectionIdV11 = 'setup';
-export type RuntimeSetupPageIdV11 = 'overview' | 'models' | 'cloud-api' | 'providers';
+export type RuntimeSetupPageIdV11 = 'overview' | 'models' | 'cloud-api' | 'providers' | 'audit';
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
 export type ApiVendor =
@@ -27,7 +27,7 @@ export function normalizeSectionV11(value: unknown): RuntimeSectionIdV11 {
 }
 
 export function normalizeSetupPageV11(value: unknown): RuntimeSetupPageIdV11 {
-  if (value === 'cloud-api' || value === 'providers' || value === 'models') return value;
+  if (value === 'cloud-api' || value === 'providers' || value === 'models' || value === 'audit') return value;
   if (value === 'token-api') return 'cloud-api';
   return 'overview';
 }

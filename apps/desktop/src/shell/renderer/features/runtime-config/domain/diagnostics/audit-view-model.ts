@@ -125,6 +125,42 @@ export function summarizeAuditReasons(audits: LocalAiAuditEvent[]): Array<{ reas
     .sort((left, right) => right.count - left.count || left.reasonCode.localeCompare(right.reasonCode));
 }
 
+export function summarizeAuditEventTypes(audits: LocalAiAuditEvent[]): Array<{ eventType: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const event of audits) {
+    const eventType = String(event.eventType || '').trim();
+    if (!eventType) continue;
+    counts.set(eventType, (counts.get(eventType) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([eventType, count]) => ({ eventType, count }))
+    .sort((left, right) => right.count - left.count || left.eventType.localeCompare(right.eventType));
+}
+
+export function summarizeAuditSources(audits: LocalAiAuditEvent[]): Array<{ source: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const event of audits) {
+    const source = resolveAuditSource(event);
+    if (!source || source === '-') continue;
+    counts.set(source, (counts.get(source) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([source, count]) => ({ source, count }))
+    .sort((left, right) => right.count - left.count || left.source.localeCompare(right.source));
+}
+
+export function summarizeAuditModalities(audits: LocalAiAuditEvent[]): Array<{ modality: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const event of audits) {
+    const modality = resolveAuditModality(event);
+    if (!modality || modality === '-') continue;
+    counts.set(modality, (counts.get(modality) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([modality, count]) => ({ modality, count }))
+    .sort((left, right) => right.count - left.count || left.modality.localeCompare(right.modality));
+}
+
 export function buildAuditDiagnosticsText(audits: LocalAiAuditEvent[]): string {
   if (audits.length === 0) return 'No audit events.';
   return audits.map((event) => {
