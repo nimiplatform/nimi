@@ -324,19 +324,28 @@ for (const table of yamlTables) {
 //           in domain docs must resolve to kernel headings
 // ========================================================
 
-const domainDir = path.join(cwd, 'spec', 'platform');
-const domainDocs = [
-  'vision.md',
-  'architecture.md',
-  'protocol.md',
-  'ai-last-mile.md',
-  'open-source-governance.md',
-];
+const domainDocs = listDomainMarkdownFiles('spec/platform');
+if (domainDocs.length === 0) {
+  fail('platform domain markdown files are empty');
+}
 
-for (const doc of domainDocs) {
-  const docPath = path.join(domainDir, doc);
-  if (!fs.existsSync(docPath)) continue;
+for (const rel of domainDocs) {
+  const docPath = path.join(cwd, rel);
+  if (!fs.existsSync(docPath)) {
+    fail(`platform domain doc missing: ${rel}`);
+    continue;
+  }
   const content = fs.readFileSync(docPath, 'utf8');
+  if (!/^##\s+0\.\s+Normative Imports\b/mu.test(content)) {
+    fail(`${rel} must define Section 0 Normative Imports`);
+  }
+  if (!/\bP-[A-Z]+-\d{3}\b/u.test(content)) {
+    fail(`${rel} must reference at least one platform kernel Rule ID`);
+  }
+  if (/^##\s+P-[A-Z]+-\d{3}\b/gmu.test(content)) {
+    fail(`${rel} must not define kernel Rule IDs directly`);
+  }
+
   // Match individual P-*-NNN references (not ranges like P-PROTO-001–105)
   const refPattern = /\bP-[A-Z]{2,12}-(\d{3})\b/gu;
   let match;
@@ -350,10 +359,20 @@ for (const doc of domainDocs) {
     if (/[–\-]\s*$/.test(beforeRef)) continue;
 
     if (!definedRuleIds.has(ref)) {
-      fail(`${doc}: reference "${ref}" not found in any kernel contract heading`);
+      fail(`${rel}: reference "${ref}" not found in any kernel contract heading`);
     }
   }
 }
 
 if (failed) process.exit(1);
 console.log('platform-spec-kernel-consistency: OK');
+
+function listDomainMarkdownFiles(domainDirRel) {
+  const domainDir = path.join(cwd, domainDirRel);
+  if (!fs.existsSync(domainDir)) return [];
+  return fs.readdirSync(domainDir)
+    .filter((name) => name.endsWith('.md'))
+    .filter((name) => name !== 'index.md')
+    .map((name) => path.posix.join(domainDirRel, name))
+    .sort((a, b) => a.localeCompare(b));
+}

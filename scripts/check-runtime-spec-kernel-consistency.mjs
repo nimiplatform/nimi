@@ -54,11 +54,7 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/workflow-states.yaml',
 ];
 
-const domainFiles = [
-  'spec/runtime/connector.md',
-  'spec/runtime/nimillm.md',
-  'spec/runtime/local-model.md',
-];
+const domainFiles = listDomainMarkdownFiles('spec/runtime');
 
 const allRuntimeSpecs = walk(runtimeRoot).filter(isSpecDocFile);
 const runtimeMarkdownFiles = allRuntimeSpecs
@@ -103,6 +99,9 @@ for (const rel of domainFiles) {
   if (!/\bK-[A-Z]+-\d{3}\b/.test(content)) {
     fail(`${rel} must reference at least one kernel Rule ID`);
   }
+}
+if (domainFiles.length === 0) {
+  fail('runtime domain markdown files are empty');
 }
 
 const kernelRuleDefinitions = collectKernelRuleDefinitions();
@@ -1016,6 +1015,16 @@ function loadReasonCodeSet() {
 
 function isSpecDocFile(file) {
   return file.endsWith('.md') || file.endsWith('.yaml');
+}
+
+function listDomainMarkdownFiles(domainDirRel) {
+  const domainDir = path.join(cwd, domainDirRel);
+  if (!fs.existsSync(domainDir)) return [];
+  return fs.readdirSync(domainDir)
+    .filter((name) => name.endsWith('.md'))
+    .filter((name) => name !== 'index.md')
+    .map((name) => path.posix.join(domainDirRel, name))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 function walk(dir) {

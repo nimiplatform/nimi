@@ -21,6 +21,7 @@
 - `CFG-001`: Runtime Config 是 runtime 启动、provider 连接、CLI/desktop 配置交互的唯一配置真相。
 - `CFG-002`: 配置写入主权固定由 `nimi-cli` 持有；desktop 仅通过 tauri bridge 调用 CLI。
 - `CFG-003`: `daemon-config plane` 的配置变更采用 restart required 语义（对齐 `K-DAEMON-002` 启动序列）；禁止运行中热加载。
+- `CFG-004`: Config 领域对外服务范围以 `K-RPC-001` 为边界，错误投影语义以 `K-ERR-001` 为基础。
 
 ## 2. 路径解析与迁移
 
@@ -87,7 +88,7 @@
 | `CONFIG_SECRET_POLICY_VIOLATION` | 移除明文 apiKey，改为 apiKeyEnv/secretRef |
 | `CONFIG_RESTART_REQUIRED` | 重启 runtime 使配置生效 |
 
-- `CFG-080`: CLI 与 desktop bridge 返回错误时携带可识别 `reasonCode`（对齐 `K-ERR-*` 错误模型）。
+- `CFG-080`: CLI 与 desktop bridge 返回错误时携带可识别 `reasonCode`（对齐 `K-ERR-001` 错误模型）。
 - `CFG-081`: 每个 `reasonCode` 对应可执行 `actionHint`。
 
 ## 10. 验收门禁

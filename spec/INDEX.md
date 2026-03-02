@@ -101,6 +101,7 @@ Desktop 规范采用 kernel + domain 的两层结构：
   - `spec/desktop/profile.md`
   - `spec/desktop/economy.md`
   - `spec/desktop/explore.md`
+  - `spec/desktop/mod-codegen.md`
   - `spec/desktop/runtime-config.md`
   - `spec/desktop/settings.md`
   - `spec/desktop/marketplace.md`
@@ -181,6 +182,7 @@ SDK 规范采用 kernel + domain 的两层结构：
   - `spec/sdk/realm.md`
   - `spec/sdk/scope.md`
   - `spec/sdk/mod.md`
+  - `spec/sdk/testing-gates.md`
 
 ### 修改 SDK 跨域规则
 

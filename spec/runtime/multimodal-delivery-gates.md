@@ -38,8 +38,8 @@
 | MM-REQ-006 | Nexa 真实运行链路与门控 | `K-PROV-002`（探测目标 `local-nexa`） | integration test |
 | MM-REQ-007 | nimiLLM 稳定路由与健康回退 | `K-PROV-001`（健康状态机）、`K-PROV-003`（探测策略） | ai/provider tests |
 | MM-REQ-008 | nimiLLM 核心 provider 覆盖完整 | `K-PROV-006`（探测目标映射） | provider contract tests |
-| MM-REQ-009 | Workflow external async 节点语义 | `K-WF-*`（Workflow 契约） | workflow e2e |
-| MM-REQ-010 | 跨 provider x modality 测试矩阵 | `K-PROV-002`、`K-ERR-*` | matrix report |
+| MM-REQ-009 | Workflow external async 节点语义 | `K-WF-005`（Workflow 契约） | workflow e2e |
+| MM-REQ-010 | 跨 provider x modality 测试矩阵 | `K-PROV-002`、`K-ERR-001` | matrix report |
 | MM-REQ-011 | 覆盖率门禁升级 | 本文件 | CI gate |
 | MM-REQ-012 | 审计与可观测字段完整 | `K-PROV-004`（健康联动）、`K-STREAM-001`（流模式分类） | audit assertions |
 
@@ -90,13 +90,13 @@
 - `MMGATE-040`: LocalAI 完整链路可运行（对齐 `K-PROV-002` 探测目标 `local`）。
 - `MMGATE-041`: Nexa 完整链路可运行（对齐 `K-PROV-002` 探测目标 `local-nexa`）。
 - `MMGATE-042`: nimiLLM 路由、健康（`K-PROV-001` 状态机）、回退语义稳定。
-- `MMGATE-043`: 不可支持能力 fail-close（`K-ERR-*` reasonCode 映射）。
+- `MMGATE-043`: 不可支持能力 fail-close（`K-ERR-001` reasonCode 映射）。
 
 验证命令：`cd runtime && go test ./internal/services/ai ./internal/services/localruntime ./internal/daemon ./internal/httpserver`。
 
 ### G4：Workflow Async 门
 
-- `MMGATE-050`: external async node 语义完整（submit/poll/cancel/resume），对齐 `K-WF-*`。
+- `MMGATE-050`: external async node 语义完整（submit/poll/cancel/resume），对齐 `K-WF-005`。
 - `MMGATE-051`: workflow 事件可见外部任务生命周期。
 - `MMGATE-052`: 失败、重试、取消语义可审计。
 
@@ -117,7 +117,7 @@
 
 - `MMGATE-070`: provider 健康状态可订阅（`K-STREAM-010` 模式 D 长生命周期订阅流）、可审计。
 - `MMGATE-071`: route/fallback/auto-switch 有结构化审计字段。
-- `MMGATE-072`: timeout/unavailable/content-filter reasonCode 映射稳定（`K-ERR-*`）。
+- `MMGATE-072`: timeout/unavailable/content-filter reasonCode 映射稳定（`K-ERR-001`）。
 - `MMGATE-073`: 队列等待、任务状态（`K-JOB-002` 终态集合）、artifact 元数据可查询。
 
 验证命令：`cd runtime && go test ./internal/services/audit ./internal/providerhealth ./internal/httpserver ./cmd/nimi`。

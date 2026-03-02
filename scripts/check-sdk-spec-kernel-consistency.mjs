@@ -17,13 +17,7 @@ const kernelFiles = [
   'spec/sdk/kernel/tables/sdk-error-codes.yaml',
 ];
 
-const domainFiles = [
-  'spec/sdk/runtime.md',
-  'spec/sdk/ai-provider.md',
-  'spec/sdk/realm.md',
-  'spec/sdk/scope.md',
-  'spec/sdk/mod.md',
-];
+const domainFiles = listDomainMarkdownFiles('spec/sdk');
 
 let failed = false;
 function fail(msg) {
@@ -58,6 +52,9 @@ for (const rel of domainFiles) {
   if (/\b(listTokenProviderModels|checkTokenProviderHealth|TokenProvider[A-Za-z0-9_]*)\b/.test(content)) {
     fail(`${rel} must not expose token-provider legacy names`);
   }
+}
+if (domainFiles.length === 0) {
+  fail('sdk domain markdown files are empty');
 }
 
 checkDomainSection0ImportsCoveredInBody();
@@ -239,6 +236,16 @@ function walk(dir) {
     else out.push(full);
   }
   return out;
+}
+
+function listDomainMarkdownFiles(domainDirRel) {
+  const domainDir = path.join(cwd, domainDirRel);
+  if (!fs.existsSync(domainDir)) return [];
+  return fs.readdirSync(domainDir)
+    .filter((name) => name.endsWith('.md'))
+    .filter((name) => name !== 'index.md')
+    .map((name) => path.posix.join(domainDirRel, name))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 function checkDomainSection0ImportsCoveredInBody() {

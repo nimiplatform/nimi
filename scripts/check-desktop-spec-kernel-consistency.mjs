@@ -42,26 +42,7 @@ const kernelFiles = [
   'spec/desktop/kernel/tables/build-chunks.yaml',
 ];
 
-const domainFiles = [
-  'spec/desktop/chat.md',
-  'spec/desktop/contacts.md',
-  'spec/desktop/profile.md',
-  'spec/desktop/economy.md',
-  'spec/desktop/explore.md',
-  'spec/desktop/runtime-config.md',
-  'spec/desktop/settings.md',
-  'spec/desktop/marketplace.md',
-  'spec/desktop/mod-workspace.md',
-  'spec/desktop/external-agent.md',
-  'spec/desktop/local-ai.md',
-  'spec/desktop/web-adapter.md',
-  'spec/desktop/home.md',
-  'spec/desktop/notification.md',
-  'spec/desktop/auth.md',
-  'spec/desktop/agent-detail.md',
-  'spec/desktop/world-detail.md',
-  'spec/desktop/legal.md',
-];
+const domainFiles = listDomainMarkdownFiles('spec/desktop');
 
 let failed = false;
 
@@ -80,6 +61,16 @@ function readYaml(rel) {
 
 function fileExists(rel) {
   return fs.existsSync(path.join(cwd, rel));
+}
+
+function listDomainMarkdownFiles(domainDirRel) {
+  const domainDir = path.join(cwd, domainDirRel);
+  if (!fs.existsSync(domainDir)) return [];
+  return fs.readdirSync(domainDir)
+    .filter((name) => name.endsWith('.md'))
+    .filter((name) => name !== 'index.md')
+    .map((name) => path.posix.join(domainDirRel, name))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 // ── Check 1: File existence ──
@@ -102,6 +93,9 @@ for (const rel of domainFiles) {
   if (!/\bD-[A-Z]+-\d{3}\b/.test(content)) {
     fail(`${rel} must reference at least one kernel Rule ID`);
   }
+}
+if (domainFiles.length === 0) {
+  fail('desktop domain markdown files are empty');
 }
 
 // ── Check 2: source_rule format validation ──

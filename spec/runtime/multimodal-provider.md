@@ -23,7 +23,7 @@
 
 - `MMPROV-001`: 不是"最小公共子集"，而是"可表达主流厂商 80%+ 共性 + 可扩展兜底"。
 - `MMPROV-002`: 异步任务（尤其视频/长音频）必须是一等公民（对齐 `K-JOB-001` MediaJob 适用 RPC）。
-- `MMPROV-003`: 不支持的能力必须显式拒绝（`AI_MODALITY_NOT_SUPPORTED`），不得静默降级（对齐 `K-ERR-*`）。
+- `MMPROV-003`: 不支持的能力必须显式拒绝（`AI_MODALITY_NOT_SUPPORTED`），不得静默降级（对齐 `K-ERR-001`）。
 - `MMPROV-004`: SDK 和 Proto 不能成为 Runtime 扩展瓶颈。
 - `MMPROV-005`: 请求前必须可校验（字段支持、单位范围、策略门控）。
 
@@ -53,20 +53,20 @@
 2. `Provider Adapter Layer`
 3. `Job Orchestrator Layer`（对齐 `K-JOB-*`）
 4. `Artifact Store + Metadata Layer`
-5. `Workflow External-Async Bridge`（对齐 `K-WF-*`）
+5. `Workflow External-Async Bridge`（对齐 `K-WF-005`）
 
 每个 provider connector 必须实现：
 
 - `MMPROV-010`: `toProviderRequest(canonical, provider_options)` — 将 canonical 请求转换为 provider 原生格式。
 - `MMPROV-011`: `fromProviderResponse(raw) -> canonical status/artifacts` — 将 provider 原生响应归一化。
 - `MMPROV-012`: `capability negotiation` — 按模型 capability 协商可用能力。
-- `MMPROV-013`: `reasonCode normalization` — 将 provider 错误码归一化为 `K-ERR-*` 标准 reasonCode。
+- `MMPROV-013`: `reasonCode normalization` — 将 provider 错误码归一化为 `K-ERR-002` 标准 reasonCode。
 
 ## 4. Canonical 请求合同
 
 ### 4.1 公共头（MediaRequestCommon）
 
-- `MMPROV-020`: 最小字段集合：`app_id`、`subject_user_id`、`model_id`、`route_policy`、`fallback`、`timeout_ms`、`request_id`、`idempotency_key`、`labels`。
+- `MMPROV-020`: 最小字段集合：`app_id`、`subject_user_id`、`model_id`、`route_policy`、`fallback`、`timeout_ms`、`request_id`、`idempotency_key`、`labels`（对齐 `K-RPC-002`）。
 
 ### 4.2 ImageGenerationSpec
 
@@ -140,7 +140,7 @@
 
 ## 9. Workflow 外部任务语义
 
-- `MMPROV-080`: `RuntimeWorkflowService` 必须支持 external async node 语义（对齐 `K-WF-*`）。
+- `MMPROV-080`: `RuntimeWorkflowService` 必须支持 external async node 语义（对齐 `K-WF-005`）。
 - `MMPROV-081`: `execution_mode = INLINE | EXTERNAL_ASYNC`。
 - `MMPROV-082`: 事件最小集合：`NODE_EXTERNAL_SUBMITTED`、`NODE_EXTERNAL_RUNNING`、`NODE_EXTERNAL_COMPLETED`、`NODE_EXTERNAL_FAILED`。
 

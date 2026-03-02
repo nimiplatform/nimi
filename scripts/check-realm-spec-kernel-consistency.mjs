@@ -388,13 +388,27 @@ for (const file of kernelContractFiles) {
 
 // Scan domain documents for referenced rule IDs and verify they exist
 const domainDocFiles = fs.readdirSync(domainDocsDir)
-  .filter((f) => f.endsWith('.md') && !f.startsWith('kernel'));
+  .filter((f) => f.endsWith('.md') && f !== 'index.md')
+  .sort((a, b) => a.localeCompare(b));
+
+if (domainDocFiles.length === 0) {
+  fail('realm domain markdown files are empty');
+}
 
 for (const file of domainDocFiles) {
   const filePath = path.join(domainDocsDir, file);
   const stat = fs.statSync(filePath);
   if (!stat.isFile()) continue;
   const content = fs.readFileSync(filePath, 'utf8');
+  if (!/^##\s+0\.\s+Normative Imports\b/mu.test(content)) {
+    fail(`${file}: must define Section 0 Normative Imports`);
+  }
+  if (!/\bR-[A-Z]{2,12}-\d{3}\b/gu.test(content)) {
+    fail(`${file}: must reference at least one realm kernel Rule ID`);
+  }
+  if (/^##\s+R-[A-Z]{2,12}-\d{3}\b/gmu.test(content)) {
+    fail(`${file}: must not define kernel Rule IDs directly`);
+  }
   const ruleIdMatches = content.matchAll(/\bR-[A-Z]{2,12}-\d{3}\b/gu);
   for (const match of ruleIdMatches) {
     if (!definedRuleIds.has(match[0])) {

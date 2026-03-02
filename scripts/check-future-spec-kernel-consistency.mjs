@@ -7,7 +7,6 @@ import YAML from 'yaml';
 const cwd = process.cwd();
 
 let failed = false;
-let warned = false;
 
 function fail(msg) {
   failed = true;
@@ -15,7 +14,6 @@ function fail(msg) {
 }
 
 function warn(msg) {
-  warned = true;
   console.error(`WARNING: ${msg}`);
 }
 
@@ -162,7 +160,7 @@ for (const item of items) {
   // Validate source_ids resolve
   const sourceIds = Array.isArray(item?.source_ids) ? item.source_ids : [];
   if (sourceIds.length === 0) {
-    warn(`backlog-items.yaml ${itemId}: source_ids is empty (research sources may have been removed)`);
+    fail(`backlog-items.yaml ${itemId}: source_ids must not be empty`);
   }
   for (const sid of sourceIds) {
     const sidStr = String(sid).trim();
