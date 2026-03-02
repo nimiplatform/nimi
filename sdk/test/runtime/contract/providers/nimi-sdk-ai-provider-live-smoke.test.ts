@@ -278,3 +278,213 @@ test('nimi sdk ai-provider live smoke: nimillm generate text', {
     throw new Error(`sdk nimillm live smoke failed: ${detail}; output=${outputText}`);
   }
 });
+
+test('nimi sdk ai-provider live smoke: openai generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const apiKey = requiredEnvOrSkip(t, 'NIMI_LIVE_OPENAI_API_KEY');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_OPENAI_MODEL_ID');
+  if (!apiKey || !modelID) {
+    return;
+  }
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL: 'https://api.openai.com/v1',
+      NIMI_RUNTIME_CLOUD_OPENAI_API_KEY: apiKey,
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK OpenAI live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'openai live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk openai live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
+
+test('nimi sdk ai-provider live smoke: anthropic generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const apiKey = requiredEnvOrSkip(t, 'NIMI_LIVE_ANTHROPIC_API_KEY');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_ANTHROPIC_MODEL_ID');
+  if (!apiKey || !modelID) {
+    return;
+  }
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
+      NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY: apiKey,
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK Anthropic live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'anthropic live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk anthropic live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
+
+test('nimi sdk ai-provider live smoke: deepseek generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const apiKey = requiredEnvOrSkip(t, 'NIMI_LIVE_DEEPSEEK_API_KEY');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_DEEPSEEK_MODEL_ID');
+  if (!apiKey || !modelID) {
+    return;
+  }
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL: 'https://api.deepseek.com/v1',
+      NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY: apiKey,
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK DeepSeek live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'deepseek live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk deepseek live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
+
+test('nimi sdk ai-provider live smoke: dashscope generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const apiKey = requiredEnvOrSkip(t, 'NIMI_LIVE_ALIBABA_API_KEY');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_ALIBABA_CHAT_MODEL_ID');
+  if (!apiKey || !modelID) {
+    return;
+  }
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY: apiKey,
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK DashScope live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'dashscope live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk dashscope live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
+
+test('nimi sdk ai-provider live smoke: gemini generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const apiKey = requiredEnvOrSkip(t, 'NIMI_LIVE_GEMINI_API_KEY');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_GEMINI_MODEL_ID');
+  if (!apiKey || !modelID) {
+    return;
+  }
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+      NIMI_RUNTIME_CLOUD_GEMINI_API_KEY: apiKey,
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK Gemini live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'gemini live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk gemini live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
+
+test('nimi sdk ai-provider live smoke: volcengine generate text', {
+  skip: process.env.NIMI_SDK_LIVE !== '1',
+  timeout: 180_000,
+}, async (t) => {
+  const apiKey = requiredEnvOrSkip(t, 'NIMI_LIVE_VOLCENGINE_API_KEY');
+  const modelID = requiredEnvOrSkip(t, 'NIMI_LIVE_VOLCENGINE_MODEL_ID');
+  if (!apiKey || !modelID) {
+    return;
+  }
+
+  let outputText = '';
+
+  try {
+    await withRuntimeDaemon({
+      NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL: 'https://ark.cn-beijing.volces.com/api/v3',
+      NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY: apiKey,
+    }, async (endpoint) => {
+      const model = createSdkTextModel(endpoint, 'token-api', modelID);
+      const generated = await model.doGenerate({
+        prompt: promptFromText('Say hello from Nimi SDK Volcengine live smoke.'),
+        providerOptions: {},
+      });
+      outputText = generated.content
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text)
+        .join('')
+        .trim();
+      assert.ok(outputText.length > 0, 'volcengine live smoke output should not be empty');
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || '');
+    throw new Error(`sdk volcengine live smoke failed: ${detail}; output=${outputText}`);
+  }
+});
