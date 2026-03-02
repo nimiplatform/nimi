@@ -77,9 +77,11 @@ export function resolveSourceAndModel(input: {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
+  connectorId?: string;
 }): SourceAndModel {
   const endpoint = String(input.localProviderEndpoint || input.localOpenAiEndpoint || '').trim();
-  const source = inferRouteSourceFromEndpoint(endpoint);
+  const hasConnector = Boolean(String(input.connectorId || '').trim());
+  const source = hasConnector ? 'token-api' : inferRouteSourceFromEndpoint(endpoint);
   const routePolicy = source === 'local-runtime' ? ROUTE_POLICY_LOCAL_RUNTIME : ROUTE_POLICY_TOKEN_API;
   const model = String(input.model || input.localProviderModel || '').trim() || 'default';
   return {
@@ -87,7 +89,7 @@ export function resolveSourceAndModel(input: {
     routePolicy,
     fallbackPolicy: FALLBACK_POLICY_DENY,
     modelId: ensureRouteModelId(model, routePolicy),
-    endpoint,
+    endpoint: hasConnector ? '' : endpoint,
     provider: String(input.provider || '').trim() || 'openai-compatible',
     adapter: 'openai_compat_adapter',
   };

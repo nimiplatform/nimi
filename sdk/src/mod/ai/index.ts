@@ -54,7 +54,7 @@ function routeRuntimePayload(route: Awaited<ReturnType<typeof resolveModRouteBin
     provider: route.provider,
     localProviderEndpoint: '',
     localProviderModel: route.model,
-    localOpenAiEndpoint: route.localOpenAiEndpoint || route.endpoint,
+    localOpenAiEndpoint: '',
     connectorId: route.connectorId,
     providerHints: route.providerHints,
   };
