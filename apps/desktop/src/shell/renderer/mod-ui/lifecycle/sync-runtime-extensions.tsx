@@ -45,6 +45,30 @@ function normalizeExtension(entry: UiExtensionEntry): Record<string, unknown> {
   return entry.extension as Record<string, unknown>;
 }
 
+/**
+ * Look up the actual tabId that a mod's tab-page extension registered with.
+ * Mods may use a short tabId (e.g. `mod:local-chat`) instead of the full
+ * `mod:${modId}` (e.g. `mod:world.nimi.local-chat`). We must use the registered
+ * tabId to match the extension's visibility check in the render function.
+ */
+export function resolveModTabId(modId: string): `mod:${string}` {
+  const fallback = `mod:${modId}` as `mod:${string}`;
+  try {
+    const hookRuntime = getRuntimeHookRuntime();
+    const entries = hookRuntime.resolveUIExtensions('ui-extension.app.content.routes');
+    for (const entry of entries) {
+      if (entry.modId !== modId) continue;
+      const extension = normalizeExtension(entry);
+      if (String(extension.type || '').trim() !== 'tab-page') continue;
+      const tabId = String(extension.tabId || '').trim();
+      if (tabId && tabId.startsWith('mod:')) return tabId as `mod:${string}`;
+    }
+  } catch {
+    // fallback to default
+  }
+  return fallback;
+}
+
 function hasRouteTabPageForTabId(
   entries: UiExtensionEntry[],
   tabId: string,

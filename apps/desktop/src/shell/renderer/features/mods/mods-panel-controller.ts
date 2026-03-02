@@ -8,7 +8,10 @@ import {
   unregisterRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
-import { syncRuntimeUiExtensionsToRegistry } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
+import {
+  resolveModTabId,
+  syncRuntimeUiExtensionsToRegistry,
+} from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   SETTINGS_SELECTED_MOD_ID_STORAGE_KEY,
@@ -167,8 +170,9 @@ export function useModsPanelModel(): ModsPanelModel {
     if (!normalized) return;
     const targetMod = allMods.find((item) => item.id === normalized);
     const title = targetMod?.name || normalized;
-    openModWorkspaceTab(`mod:${normalized}` as `mod:${string}`, title, normalized);
-    setActiveTab(`mod:${normalized}` as AppTab);
+    const tabId = resolveModTabId(normalized);
+    openModWorkspaceTab(tabId, title, normalized);
+    setActiveTab(tabId as AppTab);
   }, [openModWorkspaceTab, allMods, setActiveTab]);
 
   const onOpenModSettings = useCallback((modId: string) => {
@@ -253,11 +257,11 @@ export function useModsPanelModel(): ModsPanelModel {
   const onDisableMod = useCallback((modId: string) => {
     void runAction(modId, 'disable', async () => {
       const normalized = normalizeModId(modId);
+      const modTabId = resolveModTabId(normalized);
       const appStore = useAppStore.getState();
       appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalized));
       unregisterRuntimeMods([normalized]);
       syncRuntimeModRegistryState();
-      const modTabId = `mod:${normalized}` as `mod:${string}`;
       if (appStore.activeTab === modTabId) {
         appStore.setActiveTab('mods');
       }
@@ -269,6 +273,7 @@ export function useModsPanelModel(): ModsPanelModel {
   const onUninstallMod = useCallback((modId: string) => {
     void runAction(modId, 'uninstall', async () => {
       const normalized = normalizeModId(modId);
+      const modTabId = resolveModTabId(normalized);
       const appStore = useAppStore.getState();
       appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalized));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalized));
@@ -277,7 +282,6 @@ export function useModsPanelModel(): ModsPanelModel {
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
       );
-      const modTabId = `mod:${normalized}` as `mod:${string}`;
       if (appStore.activeTab === modTabId) {
         appStore.setActiveTab('mods');
       }
