@@ -7,6 +7,7 @@ rules:
   - 本文件定义跨 mod 编排契约，不替代各业务 mod 的单体 SSOT。
   - 产品主链固定为 `world-studio -> narrative -> renderer`，其中 renderer 可为 textplay 或 videoplay。
   - 本文件必须同时提供“架构主链（系统内部）”与“玩家体验链（产品交互）”两种可读视角，供人类与 AI 共同使用。
+  - 链路合同采用 contract-first 模式：即使某 stage 尚未落地运行实现，也必须先满足本文件及对应 spec 的可验证合同，不得用“临时行为”替代合同定义。
   - Narrative 是事实编译内核，不是玩家直接交互入口；玩家主交互入口固定为 textplay，videoplay 用于把叙事事实窗口转成分集发布包。
   - realm world+agent 是唯一基础事实源；Narrative 是唯一叙事事实层；renderer 只能消费叙事事实投影，不得改写任何事实层。
   - world-studio 只负责世界资产生产与维护，不直接承担叙事回合执行。
@@ -19,6 +20,7 @@ rules:
   - 跨阶段运行协议以 `ssot/mod/worldstudio-narrative-chain-run-protocol.md` 为唯一入口；本文件不重复定义事件字段级细节。
   - 跨阶段自动守卫与回归门禁以 `ssot/mod/worldstudio-narrative-chain-guard-governance.md` 为唯一入口；本文件只声明链路目标。
   - videoplay 创作操作语义（插镜头/改镜头/变体/重生成/撤销/分支）以 `nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md` 为唯一入口。
+  - 对标外部工程时只允许迁移“机制级经验”，禁止迁移 vendor 耦合字段、启发式状态推断和路由爆炸式拆分策略。
   - 不考虑 legacy 兼容，按 final-state 一次性定义契约。
 ---
 
@@ -36,6 +38,12 @@ rules:
 
 1. 各 mod 内部实现细节（见各自 SSOT）。
 2. realm 私有治理算法。
+
+### 1.2 Contract-First 解释
+
+1. 本文件定义的是链路合同，不是“已上线实现清单”。
+2. 任何 stage 在实现前都必须先满足对应 spec 的规则、表源和验证命令。
+3. 禁止以临时运行行为反向定义 SSOT；实现必须追随 SSOT/spec，而不是相反。
 
 ### 1.1 双视角链路（人类与 AI 共读）
 

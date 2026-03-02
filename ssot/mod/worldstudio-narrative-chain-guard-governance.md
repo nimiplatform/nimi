@@ -6,6 +6,7 @@ updated_at: 2026-03-02
 rules:
   - 本文件定义 `world-studio -> narrative -> textplay|videoplay` 跨阶段守卫与回归门禁。
   - 禁止模式必须通过自动检查执行，不得只保留文档约定。
+  - 任何借鉴外部工程的规则都必须先通过“链路意图一致性审查”，不得把外部系统耦合点直接迁入本链路。
   - 任一规则若无法映射到当前接口、状态机或数据模型，视为过度设计并删除。
   - 项目未上线，不引入兼容层守卫或 legacy 双轨门禁。
 ---
@@ -31,6 +32,9 @@ rules:
 3. renderer 回写 narrative spine。
 4. 绕过 canonical `CoreOutput` 输入事实。
 5. 跳过强制 quality gate 直接生成 release package。
+6. 通过 `stage/message` 文本启发式推断 run 终态。
+7. `runId` 与 `taskId` 别名复用。
+8. 将 `run.canceled` 归一成 `run.error`。
 
 ## 3. 行为一致性守卫（MUST）
 
@@ -53,6 +57,12 @@ rules:
 5. creator operations 场景覆盖。
 6. prompt canary 场景覆盖。
 
+执行证据要求：
+
+1. 覆盖矩阵必须落地为机器可读资产（route/tasktype/requirements）。
+2. 每个矩阵项必须能回链到实际测试文件，缺失即门禁失败。
+3. 不允许“源码字符串包含断言”替代行为测试断言。
+
 ## 5. Prompt 治理基线（MUST）
 
 1. 模板必须有稳定 `PromptID`。
@@ -71,3 +81,9 @@ rules:
 4. 各模块 SSOT/spec（模块细则）
 
 同级冲突时，自动守卫可执行性优先于叙述完整性。
+
+## 7. 反照抄裁决（MUST）
+
+1. 外部项目中的路由拆分方式、数据库字段形态、日志习惯不构成可迁移合同。
+2. 仅以下三类内容可迁移：协议机制、恢复机制、测试治理机制。
+3. 任一提案若同时破坏“worldstudio 提供事实 / narrative 编译叙事 / renderer 消费渲染”主意图，必须驳回。

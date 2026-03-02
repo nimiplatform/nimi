@@ -6,6 +6,9 @@ updated_at: 2026-03-02
 rules:
   - 本文件定义 `world-studio -> narrative -> textplay|videoplay` 跨 mod 统一运行协议。
   - 事件协议固定为 `run/step/chunk` 分层；任一实现不得跳过 `seq` 单调性与幂等语义。
+  - `runId` 与 `taskId` 必须保持身份解耦，通过显式绑定字段关联，禁止别名化。
+  - 取消终态必须使用 `run.canceled + CANCELED`，禁止把取消归一为错误终态。
+  - 运行态转换禁止依赖启发式 stage 文本推断，必须依赖显式事件类型与字段合同。
   - 中断恢复必须依赖 `runSnapshot + checkpointToken + lastAckedSeq`，不得以“整链重跑”替代协议恢复。
   - 失败分流必须输出结构化 `reasonCode + actionHint + retryClass`，不得返回不可操作错误。
   - 项目未上线，不引入 legacy 运行协议兼容层。
@@ -46,6 +49,7 @@ rules:
 1. 写操作事件必须携带 `idempotencyKey`。
 2. 可恢复 step 事件必须携带 `checkpointToken`、`stepInputHash`、`lastCompletedUnit`。
 3. 失败事件必须携带 `reasonCode`、`actionHint`、`retryClass`。
+4. 由任务驱动的 run 事件必须携带 `taskId`，但不得复用 `runId`。
 
 ## 3. 运行状态机（MUST）
 
@@ -64,6 +68,7 @@ rules:
 1. 终态（`CANCELED|FAILED|COMPLETED`）不可回退。
 2. `step.complete` 之后允许新 `attempt`，但必须递增且保留原 attempt 轨迹。
 3. 同一 `idempotencyKey` 重放不得产生重复副作用。
+4. 取消路径终态只允许 `run.canceled -> CANCELED`，不得降级成 `run.error -> FAILED`。
 
 ## 4. 中断恢复协议（MUST）
 
@@ -117,3 +122,10 @@ rules:
 2. textplay 运行细节：`nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`
 3. videoplay 创作与重跑影响：`nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md`
 4. 跨阶段守卫治理：`ssot/mod/worldstudio-narrative-chain-guard-governance.md`
+
+## 8. Bridge Determinism（MUST）
+
+1. 若存在 task-event -> run-event 桥接，必须有显式映射表，且映射表随协议版本受控。
+2. 禁止使用 `stage`/`message` 文本关键词推断 `step.complete` 或 `run.complete`。
+3. 映射无法确定终态时必须保持 `RUNNING` 并等待显式终态事件，不得猜测完成或失败。
+4. `runId` 查询与恢复接口必须支持 `afterSeq` 增量补拉，且在发现断档时先 `gapRefill` 再应用新事件。

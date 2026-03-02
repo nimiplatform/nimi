@@ -291,3 +291,239 @@
 
 Final State 版升级的核心不是“把文档写多”，而是把链路从“能生成”提升为“可运行、可恢复、可编辑、可守卫”。  
 `world-studio` 已有运行与恢复经验，`narrative + textplay + videoplay` 已有规则骨架；本方案要求一次性把执行层与创作层合同补齐，形成可实施、可验证、可回归的完整文档基线。
+
+---
+
+## 11. 2026-03-02 五轮增量迭代计划（新增，不替代第 1-10 节）
+
+说明：本节是 2026-03-02 当轮增量计划与执行记录，用于在不删除历史计划正文（第 1-10 节）的前提下，补充本轮新增机制和门禁闭环。
+
+### 11.1 输入基线（最新仓库事实）
+
+1. `world-studio` 当前存在真实 mod 实现（`nimi-mods/world-studio/src/*`）+ SSOT/spec。
+2. `narrative/textplay/videoplay` 当前以 SSOT/spec 为主，尚未有对应 `src` 运行实现。
+3. 链路级 SSOT 已有三份：
+   1. `ssot/mod/worldstudio-narrative-rendering.md`
+   2. `ssot/mod/worldstudio-narrative-chain-run-protocol.md`
+   3. `ssot/mod/worldstudio-narrative-chain-guard-governance.md`
+4. 项目未上线，严格 no-legacy/no-compat/no-migration shell。
+
+### 11.2 对标输入（行业主流产品）
+
+对标基线：外部行业样本仓，HEAD `eb18e92`（2026-03-01）。
+
+高价值可迁移经验（拟吸收）：
+
+1. 运行事件落库 + `seq` 增量补拉（`src/lib/run-runtime/service.ts`, `src/app/api/runs/[runId]/events/route.ts`）。
+2. 断线恢复 `afterSeq` + `gap refill` 客户端补齐（`src/lib/query/hooks/run-stream/recovered-run-subscription.ts`）。
+3. 任务去重与孤儿任务回收（`src/lib/task/service.ts` 的 `dedupeKey + orphan reconcile`）。
+4. Prompt 注册与模板变量检查（`src/lib/prompt-i18n/*`）。
+5. 路由/任务/需求三维行为测试矩阵与守卫（`tests/contracts/*`, `scripts/guards/*`）。
+
+不应照抄、需显式防止的设计：
+
+1. 用启发式 `stage` 字符串推断运行终态（脆弱）。
+2. 把 `runId` 与 `taskId` 混同或别名化。
+3. 将 `run.canceled` 归一为 `run.error`。
+4. API 路由横向爆炸并与业务阶段 1:1 绑定，导致链路演进成本过高。
+
+### 11.3 五轮执行清单（增量）
+
+#### 11.3.1 第 1 轮：基线收敛与边界澄清
+
+目标：
+
+1. 把链路文档中的“设计目标”与“当前实现状态”明确分层，避免误读为已全部上线实现。
+2. 清理“直接仿做”措辞，改为“机制借鉴 + 本地化约束”。
+
+落地范围：
+
+1. `ssot/mod/worldstudio-narrative-rendering.md`
+2. 本计划文档与证据文档
+
+门禁：
+
+1. `pnpm -C nimi-mods run generate:spec`
+2. `pnpm -C nimi-mods run check:spec`
+
+#### 11.3.2 第 2 轮：Run 协议可恢复性强化
+
+目标：
+
+1. 在 narrative/textplay run 合同内引入：
+   1. `runId/taskId` 身份解耦规则
+   2. `run.canceled` 独立终态语义
+   3. `afterSeq + gap refill` 恢复读取约束
+
+落地范围：
+
+1. `nimi-mods/narrative/spec/kernel/run-orchestration-contract.md`
+2. `nimi-mods/narrative/spec/kernel/tables/run-states.yaml`
+3. `nimi-mods/narrative/spec/kernel/tables/reason-codes.yaml`
+4. `nimi-mods/narrative/spec/kernel/tables/acceptance-cases.yaml`
+5. `nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`
+6. `nimi-mods/textplay/spec/kernel/tables/run-states.yaml`
+7. `nimi-mods/textplay/spec/kernel/tables/reason-codes.yaml`
+8. `nimi-mods/textplay/spec/kernel/tables/acceptance-cases.yaml`
+
+门禁：
+
+1. `pnpm -C nimi-mods run generate:spec:narrative-kernel-docs`
+2. `pnpm -C nimi-mods run check:spec:narrative`
+3. `pnpm -C nimi-mods run generate:spec:textplay-kernel-docs`
+4. `pnpm -C nimi-mods run check:spec:textplay`
+
+#### 11.3.3 第 3 轮：链路反模式硬闸
+
+目标：
+
+1. 在链路级 SSOT 固化“反照抄”规则：
+   1. 禁止启发式终态推断
+   2. 禁止 run/task ID 混用
+   3. 禁止 cancel 归一为 error
+2. 在 videoplay prompt 治理补齐 catalog/template 漂移守卫。
+
+落地范围：
+
+1. `ssot/mod/worldstudio-narrative-chain-run-protocol.md`
+2. `ssot/mod/worldstudio-narrative-chain-guard-governance.md`
+3. `nimi-mods/videoplay/spec/kernel/prompt-governance-contract.md`
+4. `nimi-mods/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`
+
+门禁：
+
+1. `pnpm -C nimi-mods run generate:spec:videoplay-kernel-docs`
+2. `pnpm -C nimi-mods run check:spec:videoplay`
+
+#### 11.3.4 第 4 轮：WorldStudio -> Narrative 交接合同强化
+
+目标：
+
+1. 在 world-studio kernel 中补齐“对 narrative 可消费投影”的交接约束与验收案例。
+2. 保持 worldstudio 提供基础事实、narrative 编译叙事、renderer 消费渲染的主意图不变。
+
+落地范围：
+
+1. `nimi-mods/world-studio/spec/kernel/pipeline-contract.md`
+2. `nimi-mods/world-studio/spec/kernel/tables/pipeline-states.yaml`
+3. `nimi-mods/world-studio/spec/kernel/tables/reason-codes.yaml`
+4. `nimi-mods/world-studio/spec/kernel/tables/acceptance-cases.yaml`
+
+门禁：
+
+1. `pnpm -C nimi-mods run generate:spec:world-studio-kernel-docs`
+2. `pnpm -C nimi-mods run check:spec:world-studio`
+
+#### 11.3.5 第 5 轮：全链路收敛与质量门禁闭环
+
+目标：
+
+1. 完成 SSOT 元数据门禁收敛（含 traceability）。
+2. 汇总 5 轮证据并形成最终深度对比报告。
+
+落地范围：
+
+1. `ssot/_meta/traceability-matrix.md`
+2. `dev/report/worldstudio-narrative-textplay-videoplay-doc-upgrade-evidence-2026-03-02.md`
+3. 本计划文档（最终版）
+
+门禁：
+
+1. `pnpm run check:ssot-frontmatter`
+2. `pnpm run check:ssot-links`
+3. `pnpm run check:ssot-boundary`
+4. `pnpm run check:ssot-traceability`
+5. `pnpm -C nimi-mods run generate:spec`
+6. `pnpm -C nimi-mods run check:spec`
+
+### 11.4 全链路已落地资产总表（统一口径）
+
+说明：本清单统一展示当前已落地资产，不区分“历史已落地”与“5 轮迭代已落地”来源。
+
+1. 链路级 SSOT：
+   1. `ssot/mod/worldstudio-narrative-rendering.md`
+   2. `ssot/mod/worldstudio-narrative-chain-run-protocol.md`
+   3. `ssot/mod/worldstudio-narrative-chain-guard-governance.md`
+2. SSOT 元数据：
+   1. `ssot/_meta/traceability-matrix.md`
+3. World-Studio：
+   1. `nimi-mods/world-studio/SSOT.md`
+   2. `nimi-mods/world-studio/spec/kernel/pipeline-contract.md`
+   3. `nimi-mods/world-studio/spec/kernel/acceptance-contract.md`
+   4. `nimi-mods/world-studio/spec/kernel/tables/pipeline-states.yaml`
+   5. `nimi-mods/world-studio/spec/kernel/tables/reason-codes.yaml`
+   6. `nimi-mods/world-studio/spec/kernel/tables/acceptance-cases.yaml`
+4. Narrative：
+   1. `nimi-mods/narrative/spec/INDEX.md`
+   2. `nimi-mods/narrative/spec/kernel/run-orchestration-contract.md`
+   3. `nimi-mods/narrative/spec/kernel/tables/run-states.yaml`
+   4. `nimi-mods/narrative/spec/kernel/tables/reason-codes.yaml`
+   5. `nimi-mods/narrative/spec/kernel/tables/acceptance-cases.yaml`
+5. TextPlay：
+   1. `nimi-mods/textplay/spec/INDEX.md`
+   2. `nimi-mods/textplay/spec/kernel/run-orchestration-contract.md`
+   3. `nimi-mods/textplay/spec/kernel/tables/run-states.yaml`
+   4. `nimi-mods/textplay/spec/kernel/tables/reason-codes.yaml`
+   5. `nimi-mods/textplay/spec/kernel/tables/acceptance-cases.yaml`
+6. VideoPlay：
+   1. `nimi-mods/videoplay/spec/INDEX.md`
+   2. `nimi-mods/videoplay/spec/kernel/creator-workflow-contract.md`
+   3. `nimi-mods/videoplay/spec/kernel/version-lineage-contract.md`
+   4. `nimi-mods/videoplay/spec/kernel/prompt-governance-contract.md`
+   5. `nimi-mods/videoplay/spec/kernel/tables/creator-operations.yaml`
+   6. `nimi-mods/videoplay/spec/kernel/tables/rebuild-impact-matrix.yaml`
+   7. `nimi-mods/videoplay/spec/kernel/tables/continuity-constraints.yaml`
+   8. `nimi-mods/videoplay/spec/kernel/tables/version-lineage-policy.yaml`
+   9. `nimi-mods/videoplay/spec/kernel/tables/forbidden-patterns.yaml`
+   10. `nimi-mods/videoplay/spec/kernel/tables/prompt-canary-cases.yaml`
+7. 过程文档：
+   1. `dev/plan/worldstudio-narrative-textplay-videoplay-doc-upgrade-plan-2026-03-02.md`
+   2. `dev/report/worldstudio-narrative-textplay-videoplay-doc-upgrade-evidence-2026-03-02.md`
+
+### 11.5 机制级变更说明（问题 -> 机制 -> 提升 -> 落点）
+
+| 机制 | 解决的问题 | 提升 | 落点 |
+|---|---|---|---|
+| 链路 contract-first 边界 | 容易把“文档目标”误读成“运行实现已全部上线” | 先定义可验证合同，再推进实现，避免临时行为反向定义规则 | `ssot/mod/worldstudio-narrative-rendering.md` |
+| 统一 RunEvent 信封（traceId/runId/stage/step/seq/attempt/eventType） | 跨 world-studio/narrative/textplay/videoplay 运行语义不统一 | 全链路事件可对齐、可追踪、可恢复 | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` |
+| run/task 身份解耦 | 把执行实例和任务单混成一个 ID，导致恢复与审计歧义 | 运行态与调度态职责分离，关联明确 | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` + narrative/textplay `run-orchestration-contract.md` |
+| cancel 独立终态（`run.canceled -> CANCELED`） | 用户主动取消被误记为失败，影响统计与重试决策 | 取消、失败、完成三种终态语义清晰 | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` + narrative/textplay `reason-codes.yaml` |
+| 禁止启发式终态推断 | 依赖 stage/message 文本猜终态，脆弱且不可验证 | 终态只由显式事件决定，降低误判 | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` + `ssot/mod/worldstudio-narrative-chain-guard-governance.md` |
+| `afterSeq + gapRefill` 恢复协议 | 断线后事件断档，客户端无法确定是否漏事件 | 先补洞再续流，恢复过程确定性更高 | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` + narrative/textplay `run-states.yaml` |
+| 结构化失败分流（`reasonCode + actionHint + retryClass`） | 错误提示不可执行，重试策略不一致 | 失败可操作、可路由、可自动化处理 | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` |
+| world -> narrative 交接投影束（`WS-PIPE-008`） | 发布后交接字段缺失/漂移，narrative ingest 失败或靠猜测 | 发布阶段 fail-close，保证下游可消费最小字段完整 | world-studio `pipeline-contract.md` + `pipeline-states.yaml` + `acceptance-cases.yaml(WS-013)` |
+| prompt catalog/template 漂移守卫（`V-PROMPT-006`） | 模板与注册表不一致导致运行期才爆错 | 漂移在 canary 阶段前置拦截 | videoplay `prompt-governance-contract.md` + `prompt-canary-cases.yaml` |
+| 反照抄硬闸 | 外部工程模式被直接复制进本链路，破坏主意图和边界 | 仅迁移机制，不迁移耦合字段/路由拆分习惯/启发式逻辑 | `ssot/mod/worldstudio-narrative-chain-guard-governance.md` |
+| 创作操作闭环（已落地并保留） | 分镜编辑能力零散、回放与审计难闭环 | 插镜头/变体/重生成/撤销/分支等操作合同化 | videoplay `creator-workflow-contract.md` + `creator-operations.yaml` |
+| 连续性约束（已落地并保留） | 镜头衔接、时序、依赖关系易断裂 | 连续性问题可规则化检查，不依赖单一 UI 形态 | videoplay `continuity-constraints.yaml` |
+| 重跑影响面矩阵（已落地并保留） | 任一改动都全量重跑，成本高、结果不可预期 | 按 shot/clip/episode 精确控制重跑扩散 | videoplay `rebuild-impact-matrix.yaml` |
+| 版本谱系与分支策略（已落地并保留） | 创作历史不可追踪，回退和合并语义不清 | 版本 lineage、分支语义、审计链清晰 | videoplay `version-lineage-contract.md` + `version-lineage-policy.yaml` |
+| SSOT traceability 收敛 | SSOT 文档存在但未登记矩阵，门禁失败 | 规范索引与门禁一致，防止“隐形 SSOT” | `ssot/_meta/traceability-matrix.md` |
+
+### 11.6 本轮机制落地的直接效果
+
+1. world-studio 到 narrative 的交接从“口头约定”变成“字段级硬合同”。
+2. narrative/textplay 的运行终态与恢复行为从“实现习惯”变成“可验证协议”。
+3. videoplay 的 prompt 风险从“运行期暴露”前移到“canary 阶段阻断”。
+4. 全链路规则、表源、验收、reason-code、门禁形成闭环，减少文档与实现漂移。
+
+### 11.7 五轮执行记录（2026-03-02）
+
+1. 第 1 轮完成：
+   1. 计划文档重构为 5 轮执行结构。
+   2. 链路 SSOT 补充 contract-first 边界，防止“临时行为替代合同”。
+   3. `pnpm -C nimi-mods run generate:spec` 通过；`pnpm -C nimi-mods run check:spec` 通过。
+2. 第 2 轮完成：
+   1. narrative/textplay run 合同与表新增 `run/task 解耦`、`cancel 终态独立`、`afterSeq+gap refill`。
+   2. narrative/textplay reason-codes 与 acceptance 同步补充。
+   3. 两模块生成与一致性门禁均通过。
+3. 第 3 轮完成：
+   1. 链路级 SSOT 增加反照抄硬闸（反启发式终态推断、反 run/task 别名、反 cancel->error）。
+   2. videoplay prompt 治理增加 catalog/template drift guard。
+   3. videoplay 生成与一致性门禁通过。
+4. 第 4 轮完成：
+   1. world-studio 增补 narrative handoff projection 合同、reason-code 与 acceptance。
+   2. world-studio 生成与一致性门禁通过。
+5. 第 5 轮完成：
+   1. SSOT traceability 缺口已补齐（3 个链路级 SSOT 条目）。
+   2. 全量 ssot/spec 门禁通过，证据文档已完成更新。

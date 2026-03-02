@@ -1,7 +1,7 @@
 ---
 title: SSOT Traceability Matrix
 status: ACTIVE
-updated_at: 2026-02-27
+updated_at: 2026-03-02
 rules:
   - 每个 public SSOT 文档都必须在本矩阵登记，包含来源与提升状态。
   - 矩阵中的 target 路径必须可解析到现存文件。
@@ -41,6 +41,9 @@ rules:
 | `desktop/runtime-contract.md` | `ssot/desktop/runtime-contract.md` | 2026-02-25 | renamed |
 | `mod/governance.md` | `ssot/mod/governance.md` | 2026-02-25 | promoted |
 | `mod/codegen.md` | `ssot/mod/codegen.md` | 2026-02-25 | canonicalized |
+| `mod/worldstudio-narrative-rendering.md` | `ssot/mod/worldstudio-narrative-rendering.md` | 2026-03-02 | canonicalized |
+| `mod/worldstudio-narrative-chain-run-protocol.md` | `ssot/mod/worldstudio-narrative-chain-run-protocol.md` | 2026-03-02 | canonicalized |
+| `mod/worldstudio-narrative-chain-guard-governance.md` | `ssot/mod/worldstudio-narrative-chain-guard-governance.md` | 2026-03-02 | canonicalized |
 | `economy/world-creator-economy.md` | `ssot/economy/world-creator-economy.md` | 2026-02-25 | canonicalized |
 | `economy/creator-revenue-policy.md` | `ssot/economy/creator-revenue-policy.md` | 2026-02-25 | canonicalized |
 | `economy/realm-interop-mapping.md` | `ssot/economy/realm-interop-mapping.md` | 2026-02-25 | canonicalized |
