@@ -344,7 +344,7 @@ pub fn manifest_to_model_record(
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_and_validate_capabilities, parse_and_validate_manifest,
+        manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
         validate_import_manifest_path, validate_loopback_endpoint,
     };
     use sha2::{Digest, Sha256};
@@ -474,5 +474,140 @@ mod tests {
 
         let invalid = normalize_and_validate_capabilities(&["voice".to_string()]);
         assert!(invalid.is_err());
+    }
+
+    // --- K-LOCAL-026 manifest schema field validation ---
+
+    #[test]
+    fn parse_manifest_rejects_empty_schema_version() {
+        let temp = unique_temp_dir("schema-ver");
+        let manifest_path = temp.join("model.manifest.json");
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "schemaVersion": "",
+                "modelId": "hf:test/model",
+                "capabilities": ["chat"],
+                "engine": "localai",
+                "entry": "model.gguf",
+                "files": ["model.gguf"],
+                "license": "apache-2.0",
+                "source": {"repo": "hf://test/model", "revision": "main"},
+                "hashes": {"model.gguf": "sha256:abc123"}
+            })
+            .to_string(),
+        )
+        .expect("write manifest");
+        let result = parse_and_validate_manifest(&manifest_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("SCHEMA_VERSION_MISSING"));
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn parse_manifest_rejects_empty_model_id() {
+        let temp = unique_temp_dir("model-id");
+        let manifest_path = temp.join("model.manifest.json");
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "schemaVersion": "1.0.0",
+                "modelId": "",
+                "capabilities": ["chat"],
+                "engine": "localai",
+                "entry": "model.gguf",
+                "files": ["model.gguf"],
+                "license": "apache-2.0",
+                "source": {"repo": "hf://test/model", "revision": "main"},
+                "hashes": {"model.gguf": "sha256:abc123"}
+            })
+            .to_string(),
+        )
+        .expect("write manifest");
+        let result = parse_and_validate_manifest(&manifest_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("MODEL_ID_MISSING"));
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn parse_manifest_rejects_entry_not_in_files() {
+        let temp = unique_temp_dir("entry-files");
+        let manifest_path = temp.join("model.manifest.json");
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "schemaVersion": "1.0.0",
+                "modelId": "hf:test/model",
+                "capabilities": ["chat"],
+                "engine": "localai",
+                "entry": "model.gguf",
+                "files": ["config.json"],
+                "license": "apache-2.0",
+                "source": {"repo": "hf://test/model", "revision": "main"},
+                "hashes": {"config.json": "sha256:abc123"}
+            })
+            .to_string(),
+        )
+        .expect("write manifest");
+        let result = parse_and_validate_manifest(&manifest_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("ENTRY_NOT_IN_FILES"));
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn parse_manifest_rejects_empty_hashes() {
+        let temp = unique_temp_dir("empty-hashes");
+        let manifest_path = temp.join("model.manifest.json");
+        fs::write(
+            &manifest_path,
+            serde_json::json!({
+                "schemaVersion": "1.0.0",
+                "modelId": "hf:test/model",
+                "capabilities": ["chat"],
+                "engine": "localai",
+                "entry": "model.gguf",
+                "files": ["model.gguf"],
+                "license": "apache-2.0",
+                "source": {"repo": "hf://test/model", "revision": "main"},
+                "hashes": {}
+            })
+            .to_string(),
+        )
+        .expect("write manifest");
+        let result = parse_and_validate_manifest(&manifest_path);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("HASHES_MISSING"));
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn manifest_to_model_record_generates_installed_status() {
+        use crate::local_ai_runtime::types::{
+            ImportedModelManifest, ImportedModelSource, LocalAiModelStatus,
+        };
+        use std::collections::HashMap;
+
+        let manifest = ImportedModelManifest {
+            schema_version: "1.0.0".to_string(),
+            model_id: "hf:test/model".to_string(),
+            capabilities: vec!["chat".to_string()],
+            engine: "localai".to_string(),
+            entry: "model.gguf".to_string(),
+            files: vec!["model.gguf".to_string()],
+            license: "apache-2.0".to_string(),
+            source: ImportedModelSource {
+                repo: "hf://test/model".to_string(),
+                revision: "main".to_string(),
+            },
+            hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc123".to_string())]),
+        };
+        let record = manifest_to_model_record(&manifest, None).expect("model record");
+        assert_eq!(record.status, LocalAiModelStatus::Installed);
+        assert!(record.local_model_id.starts_with("local_hf-test-model_"));
+        assert_eq!(record.model_id, "hf:test/model");
+        assert_eq!(record.capabilities, vec!["chat"]);
+        assert_eq!(record.engine, "localai");
     }
 }

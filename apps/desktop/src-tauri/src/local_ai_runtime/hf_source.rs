@@ -649,7 +649,8 @@ pub fn install_from_hf(
 mod tests {
     use super::{
         aggregate_progress, build_hf_download_url, build_manifest_from_install_request, is_hf_repo,
-        normalize_hf_repo_slug, normalize_install_files, resolve_expected_file_hash,
+        normalize_expected_hash, normalize_hf_repo_slug, normalize_install_files,
+        normalize_relative_file_path, resolve_expected_file_hash,
     };
     use crate::local_ai_runtime::types::LocalAiInstallRequest;
 
@@ -790,5 +791,64 @@ mod tests {
         let (dynamic_received, dynamic_total) = aggregate_progress(100, None, &progress);
         assert_eq!(dynamic_received, 300);
         assert_eq!(dynamic_total, Some(600));
+    }
+
+    // --- K-LOCAL-026 normalize_relative_file_path ---
+
+    #[test]
+    fn normalize_relative_file_path_rejects_absolute_path() {
+        let result = normalize_relative_file_path("/etc/passwd");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("absolute path"));
+    }
+
+    #[test]
+    fn normalize_relative_file_path_rejects_parent_traversal() {
+        let result = normalize_relative_file_path("../../../etc");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("parent traversal"));
+    }
+
+    #[test]
+    fn normalize_relative_file_path_converts_backslash() {
+        assert_eq!(
+            normalize_relative_file_path("subdir\\model.bin"),
+            Ok("subdir/model.bin".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_relative_file_path_rejects_empty() {
+        let result = normalize_relative_file_path("");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("empty"));
+    }
+
+    #[test]
+    fn normalize_relative_file_path_accepts_nested() {
+        assert_eq!(
+            normalize_relative_file_path("speech_tokenizer/model.safetensors"),
+            Ok("speech_tokenizer/model.safetensors".to_string())
+        );
+    }
+
+    // --- K-LOCAL-024 normalize_expected_hash ---
+
+    #[test]
+    fn normalize_expected_hash_strips_sha256_prefix() {
+        assert_eq!(normalize_expected_hash("sha256:ABC123"), "abc123");
+    }
+
+    #[test]
+    fn normalize_expected_hash_handles_plain_hex() {
+        assert_eq!(normalize_expected_hash("  abc123  "), "abc123");
+    }
+
+    // --- download URL ---
+
+    #[test]
+    fn build_hf_download_url_encodes_spaces() {
+        let url = build_hf_download_url("org/model", "main", "my model.gguf");
+        assert!(url.contains("my%20model.gguf"));
     }
 }
