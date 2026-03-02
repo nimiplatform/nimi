@@ -1,8 +1,7 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState, type MouseEvent } from 'react';
 import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import type { UiExtensionEntry } from '@runtime/hook/contracts/types';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -18,8 +17,6 @@ import {
   renderShellNavIcon,
 } from './navigation-config';
 
-const MOD_NAV_SLOT = 'ui-extension.app.sidebar.mods';
-const MOD_RECENT_STORAGE_KEY = 'nimi.shell.mod-nav-recent';
 const ChatList = lazy(async () => {
   const mod = await import('@renderer/features/chats/chat-list');
   return { default: mod.ChatList };
@@ -72,6 +69,10 @@ const MarketplacePage = lazy(async () => {
   const mod = await import('@renderer/features/marketplace/marketplace-page');
   return { default: mod.MarketplacePage };
 });
+const ModsPanel = lazy(async () => {
+  const mod = await import('@renderer/features/mods/mods-panel');
+  return { default: mod.ModsPanel };
+});
 const PrivacyPolicyView = lazy(async () => {
   const mod = await import('@renderer/features/legal/privacy-policy-view');
   return { default: mod.PrivacyPolicyView };
@@ -84,7 +85,6 @@ const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');
   return { default: mod.SlotHost };
 });
-type ModRecentClickMap = Record<string, number>;
 type SettingsSubmenuItemId =
   | 'profile'
   | 'wallet'
@@ -149,90 +149,6 @@ function parseUnreadCount(input: unknown): number {
     }
   }
   return 0;
-}
-
-type SidebarModNavItem = {
-  modId: string;
-  tabId: string;
-  label: string;
-  badge: string;
-  icon: string;
-  priority: number;
-  isFused: boolean;
-  isModTab: boolean;
-};
-
-function readModRecentClickMap(): ModRecentClickMap {
-  if (typeof window === 'undefined') {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(MOD_RECENT_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const normalized: ModRecentClickMap = {};
-    Object.entries(parsed).forEach(([key, value]) => {
-      const normalizedKey = String(key || '').trim();
-      if (!normalizedKey) {
-        return;
-      }
-      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-        return;
-      }
-      normalized[normalizedKey] = value;
-    });
-    return normalized;
-  } catch {
-    return {};
-  }
-}
-
-function normalizeSidebarModNavItems(input: {
-  entries: UiExtensionEntry[];
-  recentClickMap: ModRecentClickMap;
-  fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
-}): SidebarModNavItem[] {
-  const navItems: SidebarModNavItem[] = [];
-  for (const entry of input.entries) {
-    const extension = entry.extension || {};
-    if (String(extension.type || '').trim() !== 'nav-item') {
-      continue;
-    }
-    const tabId = String(extension.tabId || `mod:${entry.modId}`).trim();
-    if (!tabId) {
-      continue;
-    }
-    const label = String(extension.label || entry.modId || tabId).trim();
-    if (!label) {
-      continue;
-    }
-    const badge = String(extension.badge || 'MOD').trim();
-    const icon = String(extension.icon || 'puzzle').trim().toLowerCase();
-    navItems.push({
-      modId: entry.modId,
-      tabId,
-      label,
-      badge,
-      icon,
-      priority: Number(entry.priority || 0),
-      isFused: Boolean(input.fusedRuntimeMods[entry.modId]),
-      isModTab: tabId.startsWith('mod:'),
-    });
-  }
-  navItems.sort((a, b) => {
-    const recentA = input.recentClickMap[a.tabId] || 0;
-    const recentB = input.recentClickMap[b.tabId] || 0;
-    if (recentB !== recentA) {
-      return recentB - recentA;
-    }
-    if (b.priority !== a.priority) {
-      return b.priority - a.priority;
-    }
-    return a.label.localeCompare(b.label);
-  });
-  return navItems;
 }
 
 // Sidebar Tooltip Button Component - Green background, white text
@@ -320,27 +236,19 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const authStatus = useAppStore((state) => state.auth.status);
-  const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
-  const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
-  const [modsMenuOpen, setModsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [createPostRequestKey, setCreatePostRequestKey] = useState(0);
-  const [recentModClicks, setRecentModClicks] = useState<ModRecentClickMap>(() => readModRecentClickMap());
-  const [collapsedModsMenuPosition, setCollapsedModsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const [modNavItems, setModNavItems] = useState<SidebarModNavItem[]>([]);
-  const modsTriggerRef = useRef<HTMLDivElement>(null);
-  const modsMenuRef = useRef<HTMLDivElement>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
-  const modsEntryItem: NavItem = useMemo(() => ({
+  const modsNavItem: NavItem = {
     id: 'mods',
     label: t('Navigation.mods'),
     icon: renderShellNavIcon('puzzle'),
-  }), [t]);
+  };
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
   const activeModTab = props.activeTab.startsWith('mod:');
@@ -368,75 +276,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const sparkBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.sparkBalance);
   const gemBalance = parseBalanceValue((balancesQuery.data as Record<string, unknown> | undefined)?.gemBalance);
   const unreadCount = parseUnreadCount(unreadCountQuery.data);
-
-  useEffect(() => {
-    if (!flags.enableModUi) {
-      setModsMenuOpen(false);
-    }
-  }, [flags.enableModUi]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!flags.enableModUi) {
-      setModNavItems([]);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    void import('@runtime/mod')
-      .then(({ getRuntimeHookRuntime }) => {
-        if (cancelled) {
-          return;
-        }
-        const entries = getRuntimeHookRuntime().resolveUIExtensions(MOD_NAV_SLOT);
-        setModNavItems(normalizeSidebarModNavItems({
-          entries,
-          recentClickMap: recentModClicks,
-          fusedRuntimeMods,
-        }));
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-        setModNavItems([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [flags.enableModUi, fusedRuntimeMods, recentModClicks, registeredRuntimeModIds]);
-
-  useEffect(() => {
-    if (!modsMenuOpen) {
-      return;
-    }
-    const onMouseDown = (event: globalThis.MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target) {
-        return;
-      }
-      if (modsTriggerRef.current?.contains(target)) {
-        return;
-      }
-      if (modsMenuRef.current?.contains(target)) {
-        return;
-      }
-      setModsMenuOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setModsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [modsMenuOpen]);
 
   useEffect(() => {
     if (!settingsMenuOpen) {
@@ -469,32 +308,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   }, [settingsMenuOpen]);
 
   useEffect(() => {
-    setModsMenuOpen(false);
     setSettingsMenuOpen(false);
   }, [props.activeTab]);
-
-  useEffect(() => {
-    if (!modsMenuOpen) {
-      return;
-    }
-    const updatePosition = () => {
-      const rect = modsTriggerRef.current?.getBoundingClientRect();
-      if (!rect) {
-        return;
-      }
-      setCollapsedModsMenuPosition({
-        top: Math.max(12, rect.top),
-        left: rect.right + 4,
-      });
-    };
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [modsMenuOpen]);
 
   useEffect(() => {
     if (!settingsMenuOpen) {
@@ -525,17 +340,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     };
   }, [settingsMenuOpen]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(MOD_RECENT_STORAGE_KEY, JSON.stringify(recentModClicks));
-    } catch {
-      // no-op
-    }
-  }, [recentModClicks]);
-
   const avatarNode = props.userAvatarUrl ? (
     <img
       src={props.userAvatarUrl}
@@ -555,19 +359,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       style={{ mixBlendMode: 'multiply' }}
     />
   );
-
-  const openModNavItem = (item: SidebarModNavItem) => {
-    setRecentModClicks((previous) => ({
-      ...previous,
-      [item.tabId]: Date.now(),
-    }));
-    setModsMenuOpen(false);
-    if (item.isModTab) {
-      props.context.openModTab(item.tabId as `mod:${string}`, item.modId, item.label);
-      return;
-    }
-    props.onNav(item.tabId);
-  };
 
   const isSettingsMenuItemActive = (itemId: SettingsSubmenuItemId): boolean => {
     if (itemId === 'profile') {
@@ -631,13 +422,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     props.onNav('notification');
   };
   const openCreatePostFromTitlebar = () => {
-    setModsMenuOpen(false);
     setSettingsMenuOpen(false);
     props.onNav('home');
     setCreatePostRequestKey((value) => value + 1);
   };
   const toggleSettingsMenuFromTitlebar = () => {
-    setModsMenuOpen(false);
     setSettingsMenuOpen((value) => !value);
   };
 
@@ -665,7 +454,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             <SidebarTooltipButton
               label="Home"
               onClick={() => {
-                setModsMenuOpen(false);
                 setSettingsMenuOpen(false);
                 props.onNav('home');
               }}
@@ -710,66 +498,15 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </SidebarTooltipButton>
               </div>
               {flags.enableModUi ? (
-                <div className="relative" ref={modsTriggerRef}>
-                  <NavLink
-                    item={modsEntryItem}
-                    active={modsMenuOpen || activeModTab}
-                    collapsed
-                    onClick={() => {
-                      setSettingsMenuOpen(false);
-                      setModsMenuOpen((value) => !value);
-                    }}
-                  />
-                </div>
+                <NavLink
+                  item={modsNavItem}
+                  active={props.activeTab === 'mods' || activeModTab}
+                  collapsed
+                  onClick={() => props.onNav('mods')}
+                />
               ) : null}
             </div>
           </nav>
-
-          {flags.enableModUi && modsMenuOpen ? (
-            <div
-              ref={modsMenuRef}
-              className="fixed z-50 w-56 max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-xl shadow-black/8"
-              style={{
-                top: `${collapsedModsMenuPosition?.top ?? 76}px`,
-                left: `${collapsedModsMenuPosition?.left ?? 81}px`,
-              }}
-            >
-              {modNavItems.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-gray-500">{t('Navigation.noMods')}</p>
-              ) : (
-                modNavItems.map((item) => {
-                  const badgeValue = item.isFused ? 'CRASH' : item.badge;
-                  const active = props.activeTab === item.tabId;
-                  return (
-                    <button
-                      key={`${item.modId}:${item.tabId}`}
-                      type="button"
-                      onClick={() => {
-                        openModNavItem(item);
-                      }}
-                      className={`flex w-full items-center gap-2.5 px-3 py-2 text-[13px] ${
-                        active ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className={`w-4 shrink-0 ${active ? 'text-brand-700' : 'text-gray-400'}`}>
-                        {renderShellNavIcon(item.icon)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-                      {badgeValue ? (
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                            item.isFused ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
-                          }`}
-                        >
-                          {badgeValue}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          ) : null}
 
           {settingsMenuOpen ? (
             <div
@@ -882,6 +619,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             {props.activeTab === 'marketplace' && flags.enableMarketplaceTab ? (
               <div className="flex min-h-0 flex-1 flex-col">
                 <MarketplacePage />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'mods' && flags.enableModUi ? (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <ModsPanel />
               </div>
             ) : null}
 

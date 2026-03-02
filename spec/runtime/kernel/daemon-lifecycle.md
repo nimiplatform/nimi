@@ -25,19 +25,21 @@ Daemon 启动固定为以下阶段：
 1. **Config**：加载配置（`K-DAEMON-009`），校验地址与超时。
 2. **Workers**：若 worker 模式启用，启动 worker supervisor（`K-DAEMON-004`）。失败则状态置 `STOPPED`，写审计（`runtime.lifecycle` / `startup.failed`），返回错误。
 3. **Servers**：并行启动 gRPC server 与 HTTP server。
-4. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
-5. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
+4. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004d`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`。
+5. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
+6. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
 
 ## K-DAEMON-003 优雅停机
 
 收到 shutdown 信号后：
 
 1. 状态迁移到 `STOPPING`，同步 gRPC health serving status。
-2. 停止 worker supervisor。
-3. 停止资源采样与 AI Provider 探测。
-4. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
-5. 带超时关闭 gRPC server（GracefulStop，同一超时后 ForceStop）。
-6. 状态迁移到 `STOPPED`。
+2. 停止 supervised 引擎（`engineMgr.StopAll()`，`K-LENG-004b`）。
+3. 停止 worker supervisor。
+4. 停止资源采样与 AI Provider 探测。
+5. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
+6. 带超时关闭 gRPC server（GracefulStop，同一超时后 ForceStop）。
+7. 状态迁移到 `STOPPED`。
 
 停机期间只读方法允许通过 lifecycle 拦截器（`K-DAEMON-005`）。
 
@@ -49,7 +51,8 @@ Daemon 启动固定为以下阶段：
 | 活跃 Workflow（K-WF-003） | 同 MediaJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 5 |
 | 活跃 StreamGenerate/SynthesizeSpeechStream | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 5 |
 | 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
-| Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 3 |
+| Supervised 引擎（K-LENG-004b） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 worker/gRPC 关闭前执行 | K-DAEMON-003 step 2 |
+| Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 4 |
 | Session 内存 map（K-AUTHSVC-012） | 进程退出后丢失，所有 session 失效 | K-AUTHSVC-012 |
 
 **设计决策**：Phase 1 不实现 in-flight 任务的优雅排空（drain）——GracefulStop 超时到期后直接 ForceStop。此决策基于：桌面端 daemon 重启预期为低频事件，AI 推理任务可由客户端重试恢复。若未来引入服务端持久化队列，可在此基础上添加排空协议。
@@ -175,6 +178,12 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `sessionTtlMinSeconds` | int | `60` | hot | Session TTL 下限（秒） | K-AUTHSVC-004 |
 | `sessionTtlMaxSeconds` | int | `86400` | hot | Session TTL 上限（秒） | K-AUTHSVC-004 |
 | `providers` | map | `{}` | hot | AI Provider 路由表（key=provider name） | K-DAEMON-009 |
+| `engines.localai.enabled` | bool | `false` | restart | 启用 LocalAI 引擎 SUPERVISED 模式 | K-LENG-004d |
+| `engines.localai.version` | string | `3.12.1` | restart | LocalAI 二进制版本 | K-LENG-004d |
+| `engines.localai.port` | int | `1234` | restart | LocalAI 监听端口 | K-LENG-004d |
+| `engines.nexa.enabled` | bool | `false` | restart | 启用 Nexa 引擎 SUPERVISED 模式 | K-LENG-004d |
+| `engines.nexa.version` | string | `` | restart | Nexa 版本（空=系统安装） | K-LENG-004d |
+| `engines.nexa.port` | int | `8000` | restart | Nexa 监听端口 | K-LENG-004d |
 
 `providers` 值结构：`{ baseUrl: string, apiKeyEnv: string }`。`apiKey` 明文字段被禁止（写入校验拒绝，`CONFIG_SECRET_POLICY_VIOLATION`），仅允许 `apiKeyEnv` 引用环境变量名。
 

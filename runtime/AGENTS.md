@@ -13,15 +13,31 @@ runtime/
 ├── cmd/
 │   ├── nimi/            CLI entry (single binary: daemon + client)
 ├── internal/
+│   ├── appregistry/     In-memory app manifest storage and validation
 │   ├── auditlog/        Audit event recording
+│   ├── authn/           JWT token extraction and validation from gRPC metadata
 │   ├── config/          Configuration loading
 │   ├── daemon/          Daemon lifecycle management
+│   ├── endpointsec/     SSRF prevention (HTTPS enforcement, private address blocking)
+│   ├── engine/          Local inference engine lifecycle (LocalAI, Nexa)
 │   ├── entrypoint/      Bootstrap and wiring
+│   ├── grpcerr/         gRPC Status error construction with ReasonCode details
 │   ├── grpcserver/      gRPC server setup and interceptors
 │   ├── health/          Health state projection
 │   ├── httpserver/      HTTP diagnostics (/livez, /readyz, /healthz)
+│   ├── idempotency/     LRU-based write-call replay cache with TTL
 │   ├── modelregistry/   Model state persistence
+│   ├── nimillm/         OpenAI-compatible multi-cloud AI inference client
+│   ├── pagination/      Opaque base64url page token encoding/decoding
+│   ├── protocol/        Protocol version negotiation
 │   ├── providerhealth/  AI provider health tracking
+│   ├── scheduler/       Global and per-app concurrency limiter
+│   ├── scopecatalog/    OAuth scope catalog versioning and revocation
+│   ├── usagemetrics/    Per-request queue wait metrics via context/trailers
+│   ├── workerentry/     Worker subprocess boot with Unix socket listener
+│   ├── workeripc/       Worker IPC path utilities (socket location, dial targets)
+│   ├── workerproxy/     Request forwarding to isolated worker processes
+│   ├── workers/         Worker supervisor with restart and backoff
 │   └── services/        gRPC service implementations
 │       ├── ai/          RuntimeAiService (inference routing)
 │       ├── app/         RuntimeAppService (inter-app messaging)
@@ -33,7 +49,7 @@ runtime/
 │       ├── model/       RuntimeModelService (model lifecycle)
 │       └── workflow/    RuntimeWorkflowService (DAG execution)
 ├── proto/               Contract documentation
-├── gen/                 Generated protobuf Go stubs
+├── gen/                 Generated protobuf Go stubs (READ-ONLY, see Proto Conventions)
 └── go.mod               Module: github.com/nimiplatform/nimi/runtime
 ```
 
@@ -47,6 +63,14 @@ runtime/
 - No `log.Println` — use structured logging
 - No global state — pass dependencies through constructors
 - Error wrapping with `fmt.Errorf("operation: %w", err)`
+
+## Test Placement
+
+Tests are colocated with their source files as `*_test.go` in the same package directory. For example, `internal/services/ai/service_test.go` tests `internal/services/ai/service.go`. Live smoke tests follow the same convention (`live_provider_smoke_test.go`).
+
+## Generated Directories (READ-ONLY)
+
+- `gen/runtime/v1/` — Generated Go protobuf + gRPC stubs from `proto/runtime/v1/`. Never edit manually; regenerate with `buf generate` from the `proto/` directory.
 
 ## Proto Conventions
 

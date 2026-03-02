@@ -54,6 +54,8 @@ import {
   loadWorldLevelAudits,
   loadWorldList,
   loadWorldSemanticBundle,
+  loadWorldAgents,
+  loadWorldEvents,
 } from './flows/world-flow';
 import {
   abandonWorldTransit,
@@ -246,6 +248,10 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadMainWorld(input.callApiTask, input.emitFacadeError),
     loadWorldLevelAudits: async (worldId: string, limit = 20) =>
       loadWorldLevelAudits(input.callApiTask, input.emitFacadeError, worldId, limit),
+    loadWorldAgents: async (worldId: string) =>
+      loadWorldAgents(input.callApiTask, input.emitFacadeError, worldId),
+    loadWorldEvents: async (worldId: string) =>
+      loadWorldEvents(input.callApiTask, input.emitFacadeError, worldId),
     loadSceneQuota: async (): Promise<SceneQuotaDto> =>
       loadSceneQuota(input.callApiTask, input.emitFacadeError),
     startWorldTransit: async (payload: {

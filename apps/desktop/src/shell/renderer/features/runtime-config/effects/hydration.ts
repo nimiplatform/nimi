@@ -4,8 +4,8 @@ import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetr
 import {
   loadRuntimeConfigStateV11,
   RUNTIME_CONFIG_STORAGE_KEY_V11,
-} from '@renderer/features/runtime-config/state/v11/storage';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/storage';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import {
   markRuntimeConfigV11ResetLogged,
   wasRuntimeConfigV11ResetLogged,

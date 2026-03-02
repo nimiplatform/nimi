@@ -37,4 +37,7 @@
 | `local_ai_list_audits` | `local-ai` | List local AI inference audits | `D-IPC-011` |
 | `local_ai_append_inference_audit` | `local-ai` | Append a local AI inference audit record | `D-IPC-011` |
 | `local_ai_pick_manifest_path` | `local-ai` | Pick a local AI model manifest file path | `D-IPC-011` |
+| `local_ai_pick_model_file` | `local-ai` | Pick a local model file for import via native file dialog | `D-IPC-011` |
+| `local_ai_models_import_file` | `local-ai` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
+| `local_ai_models_reveal_in_folder` | `local-ai` | Reveal installed model files in system file manager | `D-IPC-011` |
 | `local_ai_subscribe_download_progress` | `local-ai` | Subscribe to local AI model download progress events | `D-IPC-011` |

@@ -64,6 +64,11 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `ListLocalAudits` | `S-SURFACE-002` |
 | `AppendInferenceAudit` | `S-SURFACE-002` |
 | `AppendRuntimeAudit` | `S-SURFACE-002` |
+| `ListEngines` | `S-SURFACE-002` |
+| `EnsureEngine` | `S-SURFACE-002` |
+| `StartEngine` | `S-SURFACE-002` |
+| `StopEngine` | `S-SURFACE-002` |
+| `GetEngineStatus` | `S-SURFACE-002` |
 
 ## auth_service_projection
 

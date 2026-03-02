@@ -8,7 +8,10 @@ import {
   unregisterRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
-import { syncRuntimeUiExtensionsToRegistry } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
+import {
+  resolveModTabId,
+  syncRuntimeUiExtensionsToRegistry,
+} from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   SETTINGS_SELECTED_MOD_ID_STORAGE_KEY,
@@ -162,8 +165,9 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     if (!normalized) return;
     const targetMod = runtimeMods.find((item) => item.id === normalized);
     const title = targetMod?.name || normalized;
-    openModWorkspaceTab(`mod:${normalized}` as `mod:${string}`, title, normalized);
-    setActiveTab(`mod:${normalized}` as AppTab);
+    const tabId = resolveModTabId(normalized);
+    openModWorkspaceTab(tabId, title, normalized);
+    setActiveTab(tabId as AppTab);
   }, [openModWorkspaceTab, runtimeMods, setActiveTab]);
 
   const onOpenModSettings = useCallback((modId: string) => {
@@ -298,13 +302,13 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const onDisableMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'disable', async () => {
       const normalizedModId = normalizeModId(modId);
+      const modTabId = resolveModTabId(normalizedModId);
       const appStore = useAppStore.getState();
       appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalizedModId));
       unregisterRuntimeMods([normalizedModId]);
       syncRuntimeModRegistryState();
-      const modTabId = `mod:${normalizedModId}` as `mod:${string}`;
       if (appStore.activeTab === modTabId) {
-        appStore.setActiveTab('marketplace');
+        appStore.setActiveTab('mods');
       }
       appStore.closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({
@@ -317,6 +321,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const onUninstallMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'uninstall', async () => {
       const normalizedModId = normalizeModId(modId);
+      const modTabId = resolveModTabId(normalizedModId);
       const appStore = useAppStore.getState();
       appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
@@ -325,9 +330,8 @@ export function useMarketplacePageModel(): MarketplacePageModel {
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
-      const modTabId = `mod:${normalizedModId}` as `mod:${string}`;
       if (appStore.activeTab === modTabId) {
-        appStore.setActiveTab('marketplace');
+        appStore.setActiveTab('mods');
       }
       closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({

@@ -212,6 +212,46 @@ func (s *LocalRuntimeProxy) AppendRuntimeAudit(ctx context.Context, req *runtime
 	return client.AppendRuntimeAudit(ctx, req)
 }
 
+func (s *LocalRuntimeProxy) ListEngines(ctx context.Context, req *runtimev1.ListEnginesRequest) (*runtimev1.ListEnginesResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.ListEngines(ctx, req)
+}
+
+func (s *LocalRuntimeProxy) EnsureEngine(ctx context.Context, req *runtimev1.EnsureEngineRequest) (*runtimev1.EnsureEngineResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.EnsureEngine(ctx, req)
+}
+
+func (s *LocalRuntimeProxy) StartEngine(ctx context.Context, req *runtimev1.StartEngineRequest) (*runtimev1.StartEngineResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.StartEngine(ctx, req)
+}
+
+func (s *LocalRuntimeProxy) StopEngine(ctx context.Context, req *runtimev1.StopEngineRequest) (*runtimev1.StopEngineResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.StopEngine(ctx, req)
+}
+
+func (s *LocalRuntimeProxy) GetEngineStatus(ctx context.Context, req *runtimev1.GetEngineStatusRequest) (*runtimev1.GetEngineStatusResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.GetEngineStatus(ctx, req)
+}
+
 func (s *LocalRuntimeProxy) client() (runtimev1.RuntimeLocalRuntimeServiceClient, error) {
 	if s.pool == nil {
 		return nil, status.Error(codes.Unavailable, "worker_localruntime_unavailable")

@@ -15,6 +15,7 @@ export type AppTab =
   | 'runtime'
   | 'settings'
   | 'marketplace'
+  | 'mods'
   | 'profile'
   | 'agent-detail'
   | 'world-detail'

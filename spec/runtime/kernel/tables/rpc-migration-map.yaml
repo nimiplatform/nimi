@@ -269,6 +269,31 @@ method_mappings:
     proto_service: RuntimeLocalRuntimeService
     proto_method: AppendRuntimeAudit
     mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: ListEngines
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: ListEngines
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: EnsureEngine
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: EnsureEngine
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: StartEngine
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: StartEngine
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: StopEngine
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: StopEngine
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
+    design_method: GetEngineStatus
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: GetEngineStatus
+    mapping_status: aligned
 
   - design_service: RuntimeAuthService
     design_method: RegisterApp

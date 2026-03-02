@@ -4,7 +4,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   normalizeCapabilityV11,
   normalizeSourceV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { logRendererEvent } from '@nimiplatform/sdk/mod/logging';
 import {
@@ -86,13 +86,6 @@ async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
   }
 }
 
-async function listConnectorModelsFromSdk(connectorId: string): Promise<string[]> {
-  const { sdkListConnectorModels } = await import(
-    '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
-  );
-  return sdkListConnectorModels(connectorId, true);
-}
-
 export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.runtimeRouteOptions, async (query) => {
     const payload = toRecord(query);
@@ -129,7 +122,37 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       );
       const sdkConnectors = await sdkListConnectors();
       const connectors = await Promise.all(sdkConnectors.map(async (connector) => {
-        const sdkModels = await listConnectorModelsFromSdk(connector.id);
+        let sdkModels: string[] = [];
+        try {
+          const { sdkListConnectorModels, ownerIdForConnector } = await import(
+            '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
+          );
+          sdkModels = await sdkListConnectorModels(
+            connector.id,
+            true,
+            ownerIdForConnector({ isSystemOwned: connector.isSystemOwned }),
+          );
+        } catch (error) {
+          const normalized = asNimiError(error, {
+            reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+            actionHint: 'check_connector_config',
+            source: 'runtime',
+          });
+          safeLogRuntimeRouteOptionsQuery({
+            level: 'warn',
+            area: 'mods-test-diag',
+            message: '[MODS-TEST-DIAG] runtime-route-options connector-models failed',
+            details: {
+              connectorId: connector.id,
+              isSystemOwned: connector.isSystemOwned,
+              reasonCode: normalized.reasonCode,
+              actionHint: normalized.actionHint,
+              traceId: normalized.traceId || null,
+              retryable: normalized.retryable,
+              message: normalized.message,
+            },
+          });
+        }
         return {
           id: connector.id,
           label: connector.label || '',

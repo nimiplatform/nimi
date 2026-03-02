@@ -5,7 +5,28 @@ export * from './workflow-builder';
 export { Modal, RoutePolicy, FallbackPolicy, StreamEventType, MediaJobStatus, MediaJobEventType } from './generated/runtime/v1/ai';
 export { ModelStatus } from './generated/runtime/v1/model';
 export type { ProviderCatalogEntry } from './generated/runtime/v1/connector';
-export { RuntimeHealthStatus } from './generated/runtime/v1/audit';
+export { RuntimeHealthStatus, UsageWindow } from './generated/runtime/v1/audit';
+export type {
+  AuditEventRecord,
+  ListAuditEventsRequest,
+  ListAuditEventsResponse,
+  AuditExportChunk,
+  ExportAuditEventsRequest,
+  UsageStatRecord,
+  ListUsageStatsRequest,
+  ListUsageStatsResponse,
+  GetRuntimeHealthRequest,
+  GetRuntimeHealthResponse,
+  ListAIProviderHealthRequest,
+  ListAIProviderHealthResponse,
+  AIProviderHealthSnapshot,
+  AIProviderSubHealth,
+  RuntimeHealthEvent,
+  AIProviderHealthEvent,
+  SubscribeRuntimeHealthEventsRequest,
+  SubscribeAIProviderHealthEventsRequest,
+} from './generated/runtime/v1/audit';
+export { CallerKind } from './generated/runtime/v1/common';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common';
 export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth';
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant';

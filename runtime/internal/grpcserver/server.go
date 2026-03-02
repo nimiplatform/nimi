@@ -36,14 +36,15 @@ import (
 
 // Server wraps the gRPC serving stack for the runtime daemon.
 type Server struct {
-	addr         string
-	state        *health.State
-	logger       *slog.Logger
-	grpcServer   *grpc.Server
-	healthServer *grpcHealth.Server
-	aiHealth     *providerhealth.Tracker
-	auditStore   *auditlog.Store
-	workerPool   *workerproxy.ConnPool
+	addr            string
+	state           *health.State
+	logger          *slog.Logger
+	grpcServer      *grpc.Server
+	healthServer    *grpcHealth.Server
+	aiHealth        *providerhealth.Tracker
+	auditStore      *auditlog.Store
+	workerPool      *workerproxy.ConnPool
+	localRuntimeSvc *localruntimeservice.Service
 }
 
 func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) *Server {
@@ -104,6 +105,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditservice.New(state, logger, aiHealth, auditStore))
 
 	var workerPool *workerproxy.ConnPool
+	var localSvc *localruntimeservice.Service
 	if cfg.WorkerMode {
 		workerPool = workerproxy.NewConnPool(logger)
 		runtimev1.RegisterRuntimeAiServiceServer(g, workerproxy.NewAIProxy(workerPool))
@@ -135,7 +137,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		modelSvc := modelservice.New(logger, modelRegistry)
 		modelSvc.SetPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
-		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath, cfg.LocalAuditCapacity))
+		localSvc = localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath, cfg.LocalAuditCapacity)
+		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localSvc)
 		logger.Info("runtime in-process mode enabled")
 	}
 
@@ -148,14 +151,15 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger))
 
 	s := &Server{
-		addr:         addr,
-		state:        state,
-		logger:       logger,
-		grpcServer:   g,
-		healthServer: h,
-		aiHealth:     aiHealth,
-		auditStore:   auditStore,
-		workerPool:   workerPool,
+		addr:            addr,
+		state:           state,
+		logger:          logger,
+		grpcServer:      g,
+		healthServer:    h,
+		aiHealth:        aiHealth,
+		auditStore:      auditStore,
+		workerPool:      workerPool,
+		localRuntimeSvc: localSvc,
 	}
 	s.SyncServingState()
 	return s
@@ -167,6 +171,12 @@ func (s *Server) AIHealthTracker() *providerhealth.Tracker {
 
 func (s *Server) AuditStore() *auditlog.Store {
 	return s.auditStore
+}
+
+// LocalRuntimeService returns the in-process local runtime service for engine
+// manager injection. Returns nil in worker mode.
+func (s *Server) LocalRuntimeService() *localruntimeservice.Service {
+	return s.localRuntimeSvc
 }
 
 func (s *Server) Serve() error {

@@ -3,7 +3,7 @@ import {
   type ApiVendor,
   type ApiConnector,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 
 export function inferVendorFromEndpoint(endpoint: string): ApiVendor | null {
   const normalized = String(endpoint || '').trim().toLowerCase().replace(/\/+$/, '');

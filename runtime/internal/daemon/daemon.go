@@ -13,10 +13,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	localruntime "github.com/nimiplatform/nimi/runtime/internal/services/localruntime"
 	"github.com/nimiplatform/nimi/runtime/internal/workers"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -33,6 +35,7 @@ type Daemon struct {
 	aiHealth   *providerhealth.Tracker
 	auditStore *auditlog.Store
 	workers    *workers.Supervisor
+	engineMgr  *engine.Manager
 }
 
 var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "localruntime"}
@@ -84,6 +87,9 @@ func (d *Daemon) Run(ctx context.Context) error {
 	go func() {
 		errCh <- d.http.Serve()
 	}()
+
+	// Start supervised engines if configured.
+	d.startSupervisedEngines(ctx)
 
 	d.state.SetStatus(health.StatusReady, "ready")
 	d.grpc.SyncServingState()
@@ -139,6 +145,12 @@ func (d *Daemon) onWorkerStateChange(name string, running bool, err error) {
 func (d *Daemon) shutdown() error {
 	d.state.SetStatus(health.StatusStopping, "shutting down")
 	d.grpc.SyncServingState()
+
+	// Stop supervised engines before servers.
+	if d.engineMgr != nil {
+		d.logger.Info("stopping supervised engines")
+		d.engineMgr.StopAll()
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.ShutdownTimeout)
 	defer cancel()
@@ -355,6 +367,160 @@ func appendStartupFailureAudit(store *auditlog.Store, reason string) {
 		CallerId:   "runtime-daemon",
 		SurfaceId:  "daemon",
 	})
+}
+
+func (d *Daemon) startSupervisedEngines(ctx context.Context) {
+	if !d.cfg.EngineLocalAIEnabled && !d.cfg.EngineNexaEnabled {
+		return
+	}
+
+	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
+		d.onEngineStateChange(string(kind), string(status), detail)
+	}
+
+	mgr, err := engine.NewManager(d.logger, "", onState)
+	if err != nil {
+		d.logger.Error("create engine manager failed", "error", err)
+		return
+	}
+	d.engineMgr = mgr
+
+	// Inject engine manager into localruntime service for gRPC access.
+	if svc := d.grpc.LocalRuntimeService(); svc != nil {
+		svc.SetEngineManager(newEngineManagerBridge(engine.NewServiceAdapter(mgr)))
+	}
+
+	if d.cfg.EngineLocalAIEnabled {
+		go d.startEngine(ctx, engine.EngineLocalAI, d.cfg.EngineLocalAIVersion, d.cfg.EngineLocalAIPort,
+			"NIMI_RUNTIME_LOCAL_AI_BASE_URL")
+	}
+
+	if d.cfg.EngineNexaEnabled {
+		go d.startEngine(ctx, engine.EngineNexa, d.cfg.EngineNexaVersion, d.cfg.EngineNexaPort,
+			"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL")
+	}
+}
+
+func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) {
+	var cfg engine.EngineConfig
+	switch kind {
+	case engine.EngineLocalAI:
+		cfg = engine.DefaultLocalAIConfig()
+	case engine.EngineNexa:
+		cfg = engine.DefaultNexaConfig()
+	}
+	if version != "" {
+		cfg.Version = version
+	}
+	if port > 0 {
+		cfg.Port = port
+	}
+
+	cfg, err := d.engineMgr.EnsureEngine(ctx, cfg)
+	if err != nil {
+		d.logger.Error("ensure engine failed",
+			"engine", kind,
+			"error", err,
+		)
+		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unavailable (%v)", kind, err))
+		d.grpc.SyncServingState()
+		return
+	}
+
+	if err := d.engineMgr.StartEngine(ctx, cfg); err != nil {
+		d.logger.Error("start engine failed",
+			"engine", kind,
+			"error", err,
+		)
+		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s start failed (%v)", kind, err))
+		d.grpc.SyncServingState()
+		return
+	}
+
+	// Set env var for existing AI provider auto-detection.
+	endpoint, err := d.engineMgr.EngineEndpoint(kind)
+	if err == nil && endpoint != "" {
+		_ = os.Setenv(envKey, endpoint+"/v1")
+		d.logger.Info("engine ready, env var set",
+			"engine", kind,
+			"endpoint", endpoint,
+			"env", envKey,
+		)
+	}
+}
+
+func (d *Daemon) onEngineStateChange(engineName string, status string, detail string) {
+	snapshot := d.state.Snapshot()
+	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
+		return
+	}
+
+	switch status {
+	case "unhealthy":
+		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
+		d.grpc.SyncServingState()
+	case "healthy":
+		current := d.state.Snapshot()
+		if current.Status == health.StatusDegraded && strings.HasPrefix(current.Reason, "engine:") {
+			d.state.SetStatus(health.StatusReady, "ready")
+			d.grpc.SyncServingState()
+		}
+	}
+}
+
+// engineManagerBridge adapts engine.ServiceAdapter to localruntime.EngineManager interface.
+type engineManagerBridge struct {
+	adapter *engine.ServiceAdapter
+}
+
+func newEngineManagerBridge(adapter *engine.ServiceAdapter) *engineManagerBridge {
+	return &engineManagerBridge{adapter: adapter}
+}
+
+func (b *engineManagerBridge) ListEngines() []localruntime.EngineInfo {
+	dtos := b.adapter.ListEngines()
+	result := make([]localruntime.EngineInfo, len(dtos))
+	for i, dto := range dtos {
+		result[i] = dtoToEngineInfo(dto)
+	}
+	return result
+}
+
+func (b *engineManagerBridge) EnsureEngine(ctx context.Context, engineName string, version string) error {
+	return b.adapter.EnsureEngine(ctx, engineName, version)
+}
+
+func (b *engineManagerBridge) StartEngine(ctx context.Context, engineName string, port int, version string) error {
+	return b.adapter.StartEngine(ctx, engineName, port, version)
+}
+
+func (b *engineManagerBridge) StopEngine(engineName string) error {
+	return b.adapter.StopEngine(engineName)
+}
+
+func (b *engineManagerBridge) EngineStatus(engineName string) (localruntime.EngineInfo, error) {
+	dto, err := b.adapter.EngineStatus(engineName)
+	if err != nil {
+		return localruntime.EngineInfo{}, err
+	}
+	return dtoToEngineInfo(dto), nil
+}
+
+func dtoToEngineInfo(dto engine.EngineInfoDTO) localruntime.EngineInfo {
+	return localruntime.EngineInfo{
+		Engine:              dto.Engine,
+		Version:             dto.Version,
+		Endpoint:            dto.Endpoint,
+		Port:                dto.Port,
+		Status:              dto.Status,
+		PID:                 dto.PID,
+		Platform:            dto.Platform,
+		BinaryPath:          dto.BinaryPath,
+		BinarySizeBytes:     dto.BinarySizeBytes,
+		StartedAt:           dto.StartedAt,
+		LastHealthyAt:       dto.LastHealthyAt,
+		ConsecutiveFailures: dto.ConsecutiveFailures,
+	}
 }
 
 func appendProviderHealthAudit(store *auditlog.Store, providerName string, before providerhealth.Snapshot, after providerhealth.Snapshot) {

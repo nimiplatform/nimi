@@ -1,5 +1,5 @@
-import type { LocalAiModelRecord } from './service';
-import { listLocalAiRuntimeModels } from './service';
+import type { LocalAiModelRecord } from './types';
+import { listLocalAiRuntimeModels } from './commands';
 
 export type LocalAiRuntimeCapability =
   | 'chat'

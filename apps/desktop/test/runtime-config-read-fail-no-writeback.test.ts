@@ -5,7 +5,7 @@ import {
   buildRuntimeBridgeConfigFromState,
   serializeRuntimeBridgeProjection,
 } from '../src/shell/renderer/features/runtime-config/runtime-bridge-config';
-import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/state/v11/storage/defaults';
+import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/state/storage/defaults';
 
 test('write-back guard: state changes should not be written when bridge read fails', () => {
   const state = createDefaultStateV11({

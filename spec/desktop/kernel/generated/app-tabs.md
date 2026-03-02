@@ -12,6 +12,7 @@
 | `runtime` | `core` | AI Runtime | `enableRuntimeTab` |
 | `settings` | `core` | Settings | `—` |
 | `marketplace` | `quick` | Marketplace | `enableMarketplaceTab` |
+| `mods` | `mod-nav` | Mods | `enableModUi` |
 | `profile` | `detail` | Profile | `—` |
 | `agent-detail` | `detail` | Agent Detail | `—` |
 | `world-detail` | `detail` | World Detail | `—` |

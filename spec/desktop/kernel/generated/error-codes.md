@@ -18,5 +18,14 @@
 | `LOCAL_AI_QWEN_PYTHON_REQUIRED` | `local-ai` | Qwen TTS requires Python 3.10+ | `D-ERR-003` |
 | `LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED` | `local-ai` | Qwen TTS Python version too low | `D-ERR-003` |
 | `LOCAL_AI_QWEN_BOOTSTRAP_FAILED` | `local-ai` | Qwen TTS runtime dependency installation failed | `D-ERR-003` |
+| `LOCAL_AI_FILE_IMPORT_NOT_FOUND` | `local-ai` | Source file does not exist or is not a regular file | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY` | `local-ai` | At least one capability is required for file import | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_READ_FAILED` | `local-ai` | Cannot open or read source model file | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_WRITE_FAILED` | `local-ai` | Cannot create or write target file in models directory | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_DIR_FAILED` | `local-ai` | Cannot create model subdirectory in runtime models root | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_FLUSH_FAILED` | `local-ai` | Failed to flush written file to OS buffer | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_SYNC_FAILED` | `local-ai` | Failed to sync written file to disk | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated model manifest JSON | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated model.manifest.json to disk | `D-ERR-001` |
 | `LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED` | `runtime` | Source has no permission for model lifecycle write operations | `D-ERR-004` |
 | `RUNTIME_ROUTE_CAPABILITY_MISMATCH` | `runtime` | Route-bound local model lacks required capability | `D-ERR-004` |

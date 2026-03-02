@@ -6,11 +6,12 @@ import {
   type LocalAiCatalogItemDescriptor,
   type LocalAiInstallPayload,
   type LocalAiInstallPlanDescriptor,
+  type LocalAiInstallAcceptedResponse,
 } from '@runtime/local-ai-runtime';
 import { desktopBridge, type RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { CapabilityV11, RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
-import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
+import type { CapabilityV11, RuntimeConfigStateV11, RuntimePageIdV11 } from '@renderer/features/runtime-config/state/types';
+import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/storage';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
@@ -184,11 +185,83 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     await commands.runLocalRuntimeHealthCheck();
   }, [commands]);
 
-  const runInstallPlanLifecycle = useCallback(async (
+  const pendingInstallsRef = useRef(new Map<string, {
+    accepted: LocalAiInstallAcceptedResponse;
+    plan: LocalAiInstallPlanDescriptor;
+    installSource: 'catalog' | 'manual' | 'verified';
+  }>());
+  const [pendingInstallVersion, setPendingInstallVersion] = useState(0);
+
+  const installSessionMeta = useMemo(() => {
+    const meta = new Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>();
+    for (const [sessionId, entry] of pendingInstallsRef.current) {
+      meta.set(sessionId, { plan: entry.plan, installSource: entry.installSource });
+    }
+    return meta;
+  }, [pendingInstallVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onDownloadComplete = useCallback(async (
+    installSessionId: string,
+    success: boolean,
+    message?: string,
+  ) => {
+    const session = pendingInstallsRef.current.get(installSessionId);
+    if (!session) return;
+
+    if (!success) {
+      // Keep entry in pendingInstallsRef so the Retry button can read session meta.
+      setStatusBanner({
+        kind: 'error',
+        message: `Download failed: ${message || 'unknown error'}`,
+      });
+      return;
+    }
+
+    // Download succeeded — remove from pending and run post-install lifecycle.
+    pendingInstallsRef.current.delete(installSessionId);
+    setPendingInstallVersion((v) => v + 1);
+
+    const { accepted, plan, installSource } = session;
+    try {
+      await localAiRuntime.start(accepted.localModelId, { caller: 'core' });
+      const healthRows = await localAiRuntime.health(accepted.localModelId);
+      const targetHealth = healthRows.find((item) => item.localModelId === accepted.localModelId)
+        || healthRows[0]
+        || null;
+      if (targetHealth?.status === 'unhealthy') {
+        throw new Error(targetHealth.detail || 'local runtime model unhealthy');
+      }
+      await localAiRuntime.appendAudit({
+        eventType: 'runtime_model_ready_after_install',
+        modelId: accepted.modelId,
+        localModelId: accepted.localModelId,
+        payload: {
+          source: installSource,
+          capabilities: plan.capabilities,
+          localModelId: accepted.localModelId,
+        },
+      });
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({
+        kind: 'success',
+        message: `Model installed and ready: ${accepted.modelId}`,
+      });
+    } catch (postError: unknown) {
+      setStatusBanner({
+        kind: 'error',
+        message: `Post-install failed: ${postError instanceof Error ? postError.message : String(postError || '')}`,
+      });
+    }
+  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+
+  const runInstallPlanLifecycle = useCallback((
     plan: LocalAiInstallPlanDescriptor,
     installSource: 'catalog' | 'manual' | 'verified',
   ) => {
-    const installed = await localAiRuntime.install({
+    // Install command returns immediately after preflight.
+    // Download runs on a background Rust thread; completion is signalled via progress events
+    // which are handled by the component's global subscription calling onDownloadComplete.
+    localAiRuntime.install({
       modelId: plan.modelId,
       repo: plan.repo,
       revision: plan.revision,
@@ -199,28 +272,33 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       license: plan.license,
       hashes: plan.hashes,
       endpoint: plan.endpoint,
-    }, { caller: 'core' });
-    await localAiRuntime.start(installed.localModelId, { caller: 'core' });
-    const healthRows = await localAiRuntime.health(installed.localModelId);
-    const targetHealth = healthRows.find((item) => item.localModelId === installed.localModelId)
-      || healthRows[0]
-      || null;
-    if (targetHealth?.status === 'unhealthy') {
-      throw new Error(targetHealth.detail || 'local runtime model unhealthy');
-    }
-    await localAiRuntime.appendAudit({
-      eventType: 'runtime_model_ready_after_install',
-      modelId: installed.modelId,
-      localModelId: installed.localModelId,
-      payload: {
-        source: installSource,
-        capabilities: plan.capabilities,
-        localModelId: installed.localModelId,
-      },
+    }, { caller: 'core' })
+      .then((accepted) => {
+        pendingInstallsRef.current.set(accepted.installSessionId, {
+          accepted,
+          plan,
+          installSource,
+        });
+        setPendingInstallVersion((v) => v + 1);
+      })
+      .catch((error: unknown) => {
+        setStatusBanner({
+          kind: 'error',
+          message: `Install lifecycle failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        });
+      });
+  }, [setStatusBanner]);
+
+  const retryInstall = useCallback((
+    plan: LocalAiInstallPlanDescriptor,
+    source: 'catalog' | 'manual' | 'verified',
+  ) => {
+    runInstallPlanLifecycle(plan, source);
+    setStatusBanner({
+      kind: 'info',
+      message: `Retrying install: ${plan.modelId}. Download progress will appear below.`,
     });
-    await refreshLocalRuntimeSnapshot();
-    return installed;
-  }, [refreshLocalRuntimeSnapshot]);
+  }, [runInstallPlanLifecycle, setStatusBanner]);
 
   const findManifestDependenciesByModId = useCallback((modId: string): LocalAiDependenciesDeclarationDescriptor | null => {
     const normalizedModId = String(modId || '').trim();
@@ -278,10 +356,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.setVaultVersion((v) => v + 1);
   }, [panelState.setVaultVersion]);
 
-  const onChangeSetupPage = useCallback((pageId: RuntimeSetupPageIdV11) => {
+  const onChangePage = useCallback((pageId: RuntimePageIdV11) => {
     panelState.updateState((prev) => ({
       ...prev,
-      activeSetupPage: pageId,
+      activePage: pageId,
     }));
   }, [panelState.updateState]);
 
@@ -295,10 +373,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         repo: item.repo,
         revision: item.revision,
       });
-      const installed = await runInstallPlanLifecycle(plan, 'catalog');
+      runInstallPlanLifecycle(plan, 'catalog');
       setStatusBanner({
-        kind: 'success',
-        message: `Catalog model installed and ready: ${installed.modelId}`,
+        kind: 'info',
+        message: `Catalog model install started: ${plan.modelId}. Download progress will appear below.`,
       });
     } catch (error) {
       setStatusBanner({
@@ -339,10 +417,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         hashes: payload.hashes && Object.keys(payload.hashes).length > 0 ? payload.hashes : resolved.hashes,
         endpoint: String(payload.endpoint || '').trim() || resolved.endpoint,
       };
-      const installed = await runInstallPlanLifecycle(plan, 'manual');
+      runInstallPlanLifecycle(plan, 'manual');
       setStatusBanner({
-        kind: 'success',
-        message: `Local model installed and ready: ${installed.modelId}`,
+        kind: 'info',
+        message: `Local model install started: ${plan.modelId}. Download progress will appear below.`,
       });
     } catch (error) {
       setStatusBanner({
@@ -363,10 +441,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         source: 'verified',
         templateId: normalizedTemplateId,
       });
-      const installed = await runInstallPlanLifecycle(plan, 'verified');
+      runInstallPlanLifecycle(plan, 'verified');
       setStatusBanner({
-        kind: 'success',
-        message: `Verified model installed and ready: ${installed.modelId}`,
+        kind: 'info',
+        message: `Verified model install started: ${plan.modelId}. Download progress will appear below.`,
       });
     } catch (error) {
       setStatusBanner({
@@ -397,6 +475,58 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       throw error;
     }
   }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+
+  const importLocalRuntimeModelFile = useCallback(async (capabilities: string[], engine?: string) => {
+    try {
+      const filePath = await localAiRuntime.pickModelFile();
+      if (!filePath) {
+        return;
+      }
+      const accepted = await localAiRuntime.importFile({
+        filePath,
+        capabilities,
+        engine: engine || undefined,
+      }, { caller: 'core' });
+
+      // File import completion is detected via the component's global download progress subscription
+      // which calls onDownloadComplete. Store the session so post-import refresh can happen.
+      pendingInstallsRef.current.set(accepted.installSessionId, {
+        accepted,
+        plan: {
+          planId: accepted.installSessionId,
+          itemId: accepted.modelId,
+          source: 'huggingface',
+          modelId: accepted.modelId,
+          repo: '',
+          revision: '',
+          capabilities,
+          engine: engine || '',
+          engineRuntimeMode: 'supervised',
+          installKind: 'file-import',
+          installAvailable: true,
+          entry: '',
+          files: [],
+          license: '',
+          hashes: {},
+          endpoint: '',
+          warnings: [],
+        } as LocalAiInstallPlanDescriptor,
+        installSource: 'manual',
+      });
+      setPendingInstallVersion((v) => v + 1);
+
+      setStatusBanner({
+        kind: 'info',
+        message: `File import started: ${accepted.modelId}. Progress will appear below.`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: `Model file import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
+    }
+  }, [setStatusBanner]);
 
   const startLocalRuntimeModel = useCallback(async (localModelId: string) => {
     try {
@@ -610,7 +740,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   return {
     state: panelState.state,
     runtimeStatus: derived.runtimeStatus,
-    activeSetupPage: panelState.state?.activeSetupPage || 'models',
+    activePage: panelState.state?.activePage || 'overview',
     showTokenApiKey: panelState.showTokenApiKey,
     localRuntimeModelQuery: panelState.localRuntimeModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
@@ -631,7 +761,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setShowTokenApiKey: panelState.setShowTokenApiKey,
     setLocalRuntimeModelQuery: panelState.setLocalRuntimeModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
-    onChangeSetupPage,
+    onChangePage,
     updateState: panelState.updateState,
     discoverLocalRuntimeModels: commands.discoverLocalRuntimeModels,
     runLocalRuntimeHealthCheck: commands.runLocalRuntimeHealthCheck,
@@ -642,6 +772,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     installLocalRuntimeModel,
     installVerifiedLocalRuntimeModel,
     importLocalRuntimeModel,
+    importLocalRuntimeModelFile,
     startLocalRuntimeModel,
     stopLocalRuntimeModel,
     restartLocalRuntimeModel,
@@ -651,5 +782,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     restartRuntimeDaemon,
     stopRuntimeDaemon,
     onVaultChanged,
+    onDownloadComplete,
+    retryInstall,
+    installSessionMeta,
   };
 }

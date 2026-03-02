@@ -1,15 +1,27 @@
-import type {
-  RuntimeSectionIdV11,
-} from './state/v11/types';
+import type { RuntimePageIdV11 } from './state/types';
 
-export const RUNTIME_SECTION_META: Record<RuntimeSectionIdV11, { name: string; description: string }> = {
-  setup: {
-    name: 'Model Management & Connectors',
-    description: 'Global model/service lifecycle + per-mod dependency setup (no global capability policy)',
+export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }> = {
+  overview: {
+    name: 'Overview',
+    description: 'Dashboard with system stats, capability coverage, and quick actions.',
+  },
+  local: {
+    name: 'Local Models',
+    description: 'Search, install, and manage local AI models.',
+  },
+  cloud: {
+    name: 'Cloud API',
+    description: 'Configure API keys for cloud provider connectors.',
+  },
+  runtime: {
+    name: 'Runtime',
+    description: 'Daemon lifecycle, health, audit log, EAA, and provider diagnostics.',
+  },
+  mods: {
+    name: 'Mods',
+    description: 'AI dependency management for registered mods.',
   },
 };
-
-export const RUNTIME_SECTION_META_V11 = RUNTIME_SECTION_META;
 
 const RESET_LOG_FLAG_KEY = '__nimiRuntimeConfigV11ResetLogged__';
 

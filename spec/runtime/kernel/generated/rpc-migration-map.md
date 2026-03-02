@@ -64,6 +64,11 @@
 | `RuntimeLocalRuntimeService` | `ListLocalAudits` | `RuntimeLocalRuntimeService` | `ListLocalAudits` | `aligned` |
 | `RuntimeLocalRuntimeService` | `AppendInferenceAudit` | `RuntimeLocalRuntimeService` | `AppendInferenceAudit` | `aligned` |
 | `RuntimeLocalRuntimeService` | `AppendRuntimeAudit` | `RuntimeLocalRuntimeService` | `AppendRuntimeAudit` | `aligned` |
+| `RuntimeLocalRuntimeService` | `ListEngines` | `RuntimeLocalRuntimeService` | `ListEngines` | `aligned` |
+| `RuntimeLocalRuntimeService` | `EnsureEngine` | `RuntimeLocalRuntimeService` | `EnsureEngine` | `aligned` |
+| `RuntimeLocalRuntimeService` | `StartEngine` | `RuntimeLocalRuntimeService` | `StartEngine` | `aligned` |
+| `RuntimeLocalRuntimeService` | `StopEngine` | `RuntimeLocalRuntimeService` | `StopEngine` | `aligned` |
+| `RuntimeLocalRuntimeService` | `GetEngineStatus` | `RuntimeLocalRuntimeService` | `GetEngineStatus` | `aligned` |
 | `RuntimeAuthService` | `RegisterApp` | `RuntimeAuthService` | `RegisterApp` | `aligned` |
 | `RuntimeAuthService` | `OpenSession` | `RuntimeAuthService` | `OpenSession` | `aligned` |
 | `RuntimeAuthService` | `RefreshSession` | `RuntimeAuthService` | `RefreshSession` | `aligned` |

@@ -6,9 +6,35 @@ engines:
     protocol: openai_compatible
     phase1: true
     source: K-LENG-005
+  - engine: localai
+    runtime_mode: supervised
+    protocol: openai_compatible
+    phase1: true
+    source: K-LENG-004
+    download_url_template: "https://github.com/mudler/LocalAI/releases/download/v{version}/{asset}"
+    supported_platforms:
+      - darwin/arm64
+      - darwin/amd64
+      - linux/amd64
+      - linux/arm64
+    health_path: "/readyz"
+    start_command: "run --address :{port} --models-path {models_path} --disable-webui --log-level info"
+    default_port: 1234
+    startup_timeout_seconds: 120
   - engine: nexa
     default_endpoint: ""
     runtime_mode: attached_endpoint
     protocol: openai_compatible
     phase1: true
     source: K-LENG-005
+  - engine: nexa
+    runtime_mode: supervised
+    protocol: openai_compatible
+    phase1: true
+    source: K-LENG-004
+    discovery: system_path
+    health_path: "/"
+    health_response: "Nexa SDK is running"
+    start_command: "server --host 127.0.0.1 --port {port}"
+    default_port: 8000
+    startup_timeout_seconds: 30

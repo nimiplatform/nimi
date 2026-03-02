@@ -114,6 +114,10 @@ Fix at the source layer. For example: if TTS connectors don't return TTS models,
 - Local UI state (panel open/closed, selected tab, scroll position)
 - Mapping SDK response data to UI view-models (but not inventing data the SDK doesn't provide)
 
+## Test Placement
+
+Tests live in `apps/desktop/test/` as flat test files. Test file names describe the feature under test (e.g., `runtime-daemon-state.test.ts`, `runtime-bridge-config.test.ts`). Tests import from `../src/` using relative paths.
+
 ## nimi-hook (Mod Host)
 
 Desktop hosts the mod ecosystem through 5 hook subsystems:

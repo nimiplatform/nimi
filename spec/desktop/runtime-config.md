@@ -2,16 +2,97 @@
 
 > Normative Imports: `spec/desktop/kernel/*`
 > Status: Draft
-> Date: 2026-03-01
+> Date: 2026-03-02
 
 ## Scope
 
-运行时配置功能域 — AI Runtime Tab、provider 选择、model 绑定、daemon 管理、本地引擎状态。
+运行时配置功能域 — AI Runtime 面板、provider 选择、model 绑定、daemon 管理、本地引擎状态、cloud connector CRUD、mod AI 依赖管理。
 
 ## Module Map
 
 - `features/runtime-config/` — Runtime 配置面板
+- `features/runtime-config/pages/` — 5 个页面组件（overview / local / cloud / runtime / mods）
+- `features/runtime-config/panels/sidebar.tsx` — 左侧边栏导航
+- `features/runtime-config/domain/` — 系统资源、费用预估 mock hooks
 - `runtime/data-sync/facade.ts` — resolveChatRoute
+
+## Navigation Model
+
+Runtime 配置面板采用 **左侧边栏 + 内容区** 两栏布局，不再使用 scope/tab 双层路由。
+
+### Page 枚举
+
+```typescript
+type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'runtime' | 'mods';
+```
+
+| Page | 组件 | 职责 |
+|------|------|------|
+| `overview` | `OverviewPage` | Dashboard：统计卡片、系统资源监控、费用预估、Capability 覆盖矩阵、Daemon 状态、快捷导航 |
+| `local` | `LocalPage` | 本地模型管理：搜索/安装/导入/启停/删除、下载进度、catalog、HuggingFace 搜索 |
+| `cloud` | `CloudPage` | Cloud Connector CRUD：添加/删除/编辑/测试 connector、vendor/endpoint/token 配置 |
+| `runtime` | `RuntimePage` | Runtime 管理：Endpoint 配置、Daemon 生命周期、健康探测、审计日志、EAA、Provider 诊断、Node Matrix |
+| `mods` | `ModsPage` | Mod AI 依赖：列出 AI 依赖 mods、capability 状态检查、依赖解析与 apply |
+
+### Page 元数据
+
+`RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }>` 定义每个页面的名称和描述，供 sidebar 和 header 使用。
+
+### Legacy 值迁移
+
+`normalizePageIdV11(value)` 处理旧版持久化值：
+
+| 旧值 | 映射目标 |
+|------|----------|
+| `'models'` | `'local'` |
+| `'cloud-api'` / `'token-api'` | `'cloud'` |
+| `'providers'` / `'audit'` | `'runtime'` |
+| 其他未知值 | `'overview'` |
+
+## Panel State
+
+`RuntimeConfigStateV11` 为面板 UI 状态，通过 localStorage 持久化（key: `nimi:runtime-config:v11`）。
+
+```typescript
+type RuntimeConfigStateV11 = {
+  version: 11;
+  initializedByV11: boolean;
+  activePage: RuntimePageIdV11;       // 当前选中页面
+  diagnosticsCollapsed: boolean;
+  selectedSource: SourceIdV11;        // 'local-runtime' | 'token-api'
+  activeCapability: CapabilityV11;    // 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'
+  uiMode: UiModeV11;                 // 'simple' | 'advanced'
+  localRuntime: LocalRuntimeStateV11; // 端点、模型列表、node matrix、状态
+  connectors: ApiConnector[];         // NOT persisted — bridge config 是 single source of truth
+  selectedConnectorId: string;        // NOT persisted — bridge config 是 single source of truth
+};
+```
+
+### 持久化策略
+
+- `activePage`、`diagnosticsCollapsed`、`uiMode`、`selectedSource`、`activeCapability`、`localRuntime` 持久化到 localStorage。
+- `connectors` 和 `selectedConnectorId` **不持久化**到 localStorage，通过 Tauri bridge config（`config.json`）作为 single source of truth，bridge merge 后填充。
+- `StoredStateV11` 是 localStorage 子集，不含 `connectors` / `selectedConnectorId`。
+
+### State 归一化
+
+`normalizeStoredStateV11(seed, parsed)` 从 localStorage 读取后归一化：
+- 支持 legacy 字段名 `activeSetupPage` → `activePage`
+- 每个字段通过对应 normalizer 校验（`normalizePageIdV11`、`normalizeSourceV11`、`normalizeCapabilityV11` 等）
+- connectors 始终初始化为 `[]`（不从 localStorage 加载）
+
+## Controller Model
+
+`RuntimeConfigPanelControllerModel` 是 view 层的唯一数据+操作接口：
+
+- `activePage: RuntimePageIdV11` — 当前页面
+- `onChangePage(page: RuntimePageIdV11)` — 切换页面
+- daemon lifecycle（start/stop/restart/refresh）
+- model management（install/remove/start/stop, catalog, HF search, file import）
+- connector CRUD（通过 connector-sdk-service + connector-actions）
+- EAA token management
+- audit data streaming
+- dependency resolution（mod AI 依赖）
 
 ## Kernel References
 

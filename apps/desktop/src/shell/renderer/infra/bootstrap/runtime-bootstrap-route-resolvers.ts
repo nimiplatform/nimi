@@ -5,7 +5,7 @@ import type {
   RuntimeRouteHint,
   RuntimeRouteOverride,
 } from '@nimiplatform/sdk/mod/types';
-import type { SourceIdV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { SourceIdV11 } from '@renderer/features/runtime-config/state/types';
 
 type RuntimeFields = {
   provider: string;

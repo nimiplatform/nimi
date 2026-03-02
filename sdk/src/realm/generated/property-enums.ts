@@ -638,6 +638,31 @@ export const WorldMutationSummaryMutationType = {
 
 export type WorldMutationSummaryMutationType = (typeof WorldMutationSummaryMutationType)[keyof typeof WorldMutationSummaryMutationType];
 
+export const WorldNarrativeContextDetailScope = {
+  CANON: "CANON",
+  STORY: "STORY",
+  SUBJECT: "SUBJECT",
+  RELATION: "RELATION",
+} as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['scope']>;
+
+export type WorldNarrativeContextDetailScope = (typeof WorldNarrativeContextDetailScope)[keyof typeof WorldNarrativeContextDetailScope];
+
+export const WorldNarrativeContextDetailSubjectType = {
+  AGENT: "AGENT",
+  PLAYER: "PLAYER",
+  FACTION: "FACTION",
+} as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['subjectType']>;
+
+export type WorldNarrativeContextDetailSubjectType = (typeof WorldNarrativeContextDetailSubjectType)[keyof typeof WorldNarrativeContextDetailSubjectType];
+
+export const WorldNarrativeContextDetailTargetSubjectType = {
+  AGENT: "AGENT",
+  PLAYER: "PLAYER",
+  FACTION: "FACTION",
+} as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['targetSubjectType']>;
+
+export type WorldNarrativeContextDetailTargetSubjectType = (typeof WorldNarrativeContextDetailTargetSubjectType)[keyof typeof WorldNarrativeContextDetailTargetSubjectType];
+
 export const WorldPatchStatus = {
   DRAFT: "DRAFT",
   PENDING_REVIEW: "PENDING_REVIEW",

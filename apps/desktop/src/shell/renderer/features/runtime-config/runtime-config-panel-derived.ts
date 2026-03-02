@@ -6,7 +6,7 @@ import {
   type CapabilityV11,
   type ProviderStatusV11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 import {
   selectAllLocalRuntimeModelsV11,
   selectFilteredConnectorModelsV11,

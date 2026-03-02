@@ -5,6 +5,16 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeLocalRuntimeService } from "./local_runtime";
+import type { GetEngineStatusResponse } from "./local_runtime";
+import type { GetEngineStatusRequest } from "./local_runtime";
+import type { StopEngineResponse } from "./local_runtime";
+import type { StopEngineRequest } from "./local_runtime";
+import type { StartEngineResponse } from "./local_runtime";
+import type { StartEngineRequest } from "./local_runtime";
+import type { EnsureEngineResponse } from "./local_runtime";
+import type { EnsureEngineRequest } from "./local_runtime";
+import type { ListEnginesResponse } from "./local_runtime";
+import type { ListEnginesRequest } from "./local_runtime";
 import type { AppendRuntimeAuditRequest } from "./local_runtime";
 import type { Ack } from "./common";
 import type { AppendInferenceAuditRequest } from "./local_runtime";
@@ -155,6 +165,28 @@ export interface IRuntimeLocalRuntimeServiceClient {
      * @generated from protobuf rpc: AppendRuntimeAudit
      */
     appendRuntimeAudit(input: AppendRuntimeAuditRequest, options?: RpcOptions): UnaryCall<AppendRuntimeAuditRequest, Ack>;
+    /**
+     * Engine management RPCs (K-LENG-004: SUPERVISED mode)
+     *
+     * @generated from protobuf rpc: ListEngines
+     */
+    listEngines(input: ListEnginesRequest, options?: RpcOptions): UnaryCall<ListEnginesRequest, ListEnginesResponse>;
+    /**
+     * @generated from protobuf rpc: EnsureEngine
+     */
+    ensureEngine(input: EnsureEngineRequest, options?: RpcOptions): UnaryCall<EnsureEngineRequest, EnsureEngineResponse>;
+    /**
+     * @generated from protobuf rpc: StartEngine
+     */
+    startEngine(input: StartEngineRequest, options?: RpcOptions): UnaryCall<StartEngineRequest, StartEngineResponse>;
+    /**
+     * @generated from protobuf rpc: StopEngine
+     */
+    stopEngine(input: StopEngineRequest, options?: RpcOptions): UnaryCall<StopEngineRequest, StopEngineResponse>;
+    /**
+     * @generated from protobuf rpc: GetEngineStatus
+     */
+    getEngineStatus(input: GetEngineStatusRequest, options?: RpcOptions): UnaryCall<GetEngineStatusRequest, GetEngineStatusResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeLocalRuntimeService
@@ -332,5 +364,42 @@ export class RuntimeLocalRuntimeServiceClient implements IRuntimeLocalRuntimeSer
     appendRuntimeAudit(input: AppendRuntimeAuditRequest, options?: RpcOptions): UnaryCall<AppendRuntimeAuditRequest, Ack> {
         const method = this.methods[23], opt = this._transport.mergeOptions(options);
         return stackIntercept<AppendRuntimeAuditRequest, Ack>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * Engine management RPCs (K-LENG-004: SUPERVISED mode)
+     *
+     * @generated from protobuf rpc: ListEngines
+     */
+    listEngines(input: ListEnginesRequest, options?: RpcOptions): UnaryCall<ListEnginesRequest, ListEnginesResponse> {
+        const method = this.methods[24], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListEnginesRequest, ListEnginesResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: EnsureEngine
+     */
+    ensureEngine(input: EnsureEngineRequest, options?: RpcOptions): UnaryCall<EnsureEngineRequest, EnsureEngineResponse> {
+        const method = this.methods[25], opt = this._transport.mergeOptions(options);
+        return stackIntercept<EnsureEngineRequest, EnsureEngineResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: StartEngine
+     */
+    startEngine(input: StartEngineRequest, options?: RpcOptions): UnaryCall<StartEngineRequest, StartEngineResponse> {
+        const method = this.methods[26], opt = this._transport.mergeOptions(options);
+        return stackIntercept<StartEngineRequest, StartEngineResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: StopEngine
+     */
+    stopEngine(input: StopEngineRequest, options?: RpcOptions): UnaryCall<StopEngineRequest, StopEngineResponse> {
+        const method = this.methods[27], opt = this._transport.mergeOptions(options);
+        return stackIntercept<StopEngineRequest, StopEngineResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetEngineStatus
+     */
+    getEngineStatus(input: GetEngineStatusRequest, options?: RpcOptions): UnaryCall<GetEngineStatusRequest, GetEngineStatusResponse> {
+        const method = this.methods[28], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetEngineStatusRequest, GetEngineStatusResponse>("unary", this._transport, method, opt, input);
     }
 }

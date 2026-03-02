@@ -5,6 +5,7 @@ import type {
   LocalAiDownloadProgressEvent,
   LocalAiInferenceAuditPayload,
   LocalAiImportPayload,
+  LocalAiInstallAcceptedResponse,
   LocalAiInstallPayload,
   LocalAiInstallVerifiedPayload,
   LocalAiModelRecord,
@@ -37,14 +38,14 @@ export async function pickLocalAiManifestPath(): Promise<string | null> {
 export async function installLocalAiModel(
   payload: LocalAiInstallPayload,
   options?: LocalAiWriteOptions,
-): Promise<LocalAiModelRecord> {
+): Promise<LocalAiInstallAcceptedResponse> {
   return localAiRuntime.install(payload, options);
 }
 
 export async function installLocalAiVerifiedModel(
   payload: LocalAiInstallVerifiedPayload,
   options?: LocalAiWriteOptions,
-): Promise<LocalAiModelRecord> {
+): Promise<LocalAiInstallAcceptedResponse> {
   return localAiRuntime.installVerified(payload, options);
 }
 

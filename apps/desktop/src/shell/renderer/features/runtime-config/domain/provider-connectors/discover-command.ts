@@ -1,4 +1,4 @@
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from '../../runtime-config-types';
 import { discoverLocalRuntimeModelsFromEndpoint } from './discovery';

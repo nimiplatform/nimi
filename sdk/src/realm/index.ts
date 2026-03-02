@@ -249,7 +249,12 @@ export type { WorldLorebookUpsertDto } from './generated/models/WorldLorebookUps
 export type { WorldMaintenanceDto } from './generated/models/WorldMaintenanceDto';
 export type { WorldMutationListDto } from './generated/models/WorldMutationListDto';
 export type { WorldMutationSummaryDto } from './generated/models/WorldMutationSummaryDto';
+export type { WorldNarrativeContextDetailDto } from './generated/models/WorldNarrativeContextDetailDto';
+export type { WorldNarrativeContextListDto } from './generated/models/WorldNarrativeContextListDto';
 export type { WorldPatchDto } from './generated/models/WorldPatchDto';
+export type { WorldSceneDetailDto } from './generated/models/WorldSceneDetailDto';
+export type { WorldSceneListDto } from './generated/models/WorldSceneListDto';
+export type { WorldStoryProjectionSummaryDto } from './generated/models/WorldStoryProjectionSummaryDto';
 export type { WorldSummaryDto } from './generated/models/WorldSummaryDto';
 export type { WorldSummaryListDto } from './generated/models/WorldSummaryListDto';
 export type { WorldviewDetailDto } from './generated/models/WorldviewDetailDto';

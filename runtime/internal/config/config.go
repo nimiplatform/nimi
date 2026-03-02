@@ -104,6 +104,30 @@ type Config struct {
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
+
+	// EngineLocalAIEnabled enables the supervised LocalAI engine.
+	// Default: false. (K-LENG-004)
+	EngineLocalAIEnabled bool
+
+	// EngineLocalAIVersion is the LocalAI release version to download/use.
+	// Default: "3.12.1". (K-LENG-004)
+	EngineLocalAIVersion string
+
+	// EngineLocalAIPort is the port for the supervised LocalAI instance.
+	// Default: 1234. (K-LENG-004)
+	EngineLocalAIPort int
+
+	// EngineNexaEnabled enables the supervised Nexa engine.
+	// Default: false. (K-LENG-004)
+	EngineNexaEnabled bool
+
+	// EngineNexaVersion is the expected Nexa version (informational).
+	// Default: "". (K-LENG-004)
+	EngineNexaVersion string
+
+	// EngineNexaPort is the port for the supervised Nexa instance.
+	// Default: 8000. (K-LENG-004)
+	EngineNexaPort int
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
@@ -133,6 +157,20 @@ type FileConfig struct {
 
 	Auth      *FileConfigAuth              `json:"auth,omitempty"`
 	Providers map[string]RuntimeFileTarget `json:"providers,omitempty"`
+	Engines   *FileConfigEngines           `json:"engines,omitempty"`
+}
+
+// FileConfigEngines holds supervised engine configuration in the config file.
+type FileConfigEngines struct {
+	LocalAI *FileConfigEngine `json:"localai,omitempty"`
+	Nexa    *FileConfigEngine `json:"nexa,omitempty"`
+}
+
+// FileConfigEngine holds configuration for a single supervised engine.
+type FileConfigEngine struct {
+	Enabled *bool  `json:"enabled,omitempty"`
+	Version string `json:"version,omitempty"`
+	Port    *int   `json:"port,omitempty"`
 }
 
 // FileConfigAuth holds JWT authentication configuration in the config file.
@@ -215,6 +253,12 @@ func Load() (Config, error) {
 		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
 		AuthJWTPublicKeyPath:          expandUserPath(readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_PUBLIC_KEY_PATH", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.PublicKeyPath }), "")),
 		Providers:                     fileCfg.Providers,
+		EngineLocalAIEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED", fileConfigEngineBool(fileCfg, "localai"), false),
+		EngineLocalAIVersion:          readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_VERSION", fileConfigEngineString(fileCfg, "localai", "version"), "3.12.1"),
+		EngineLocalAIPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_PORT", fileConfigEngineInt(fileCfg, "localai", "port"), 1234),
+		EngineNexaEnabled:             readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", fileConfigEngineBool(fileCfg, "nexa"), false),
+		EngineNexaVersion:             readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
+		EngineNexaPort:                readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", fileConfigEngineInt(fileCfg, "nexa", "port"), 8000),
 	}
 
 	// shutdownTimeoutSeconds: env (duration string) > FileConfig (int seconds) > default 10
@@ -692,4 +736,66 @@ func isCanonicalProviderName(raw string) bool {
 
 func canonicalProviderKey(raw string) string {
 	return strings.ToLower(strings.TrimSpace(raw))
+}
+
+// fileConfigEngineBool extracts the Enabled *bool for the named engine from FileConfig.
+func fileConfigEngineBool(fileCfg FileConfig, engine string) *bool {
+	if fileCfg.Engines == nil {
+		return nil
+	}
+	switch engine {
+	case "localai":
+		if fileCfg.Engines.LocalAI != nil {
+			return fileCfg.Engines.LocalAI.Enabled
+		}
+	case "nexa":
+		if fileCfg.Engines.Nexa != nil {
+			return fileCfg.Engines.Nexa.Enabled
+		}
+	}
+	return nil
+}
+
+// fileConfigEngineString extracts a string field for the named engine from FileConfig.
+func fileConfigEngineString(fileCfg FileConfig, engine string, field string) string {
+	if fileCfg.Engines == nil {
+		return ""
+	}
+	var cfg *FileConfigEngine
+	switch engine {
+	case "localai":
+		cfg = fileCfg.Engines.LocalAI
+	case "nexa":
+		cfg = fileCfg.Engines.Nexa
+	}
+	if cfg == nil {
+		return ""
+	}
+	switch field {
+	case "version":
+		return cfg.Version
+	}
+	return ""
+}
+
+// fileConfigEngineInt extracts a *int field for the named engine from FileConfig.
+func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
+	if fileCfg.Engines == nil {
+		return nil
+	}
+	var cfg *FileConfigEngine
+	switch engine {
+	case "localai":
+		cfg = fileCfg.Engines.LocalAI
+	case "nexa":
+		cfg = fileCfg.Engines.Nexa
+	}
+	if cfg == nil {
+		return nil
+	}
+	switch field {
+	case "port":
+		return cfg.Port
+	}
+	return nil
 }

@@ -49,6 +49,15 @@ import { ... } from '@nimiplatform/sdk/realm/services/...';
 
 对底层请求能力，一律走 `new Realm(...).raw.request(...)`。
 
+## Test Placement
+
+Tests live in `sdk/test/` mirroring the `sdk/src/` directory structure. For example, `sdk/src/runtime/` tests are in `sdk/test/runtime/`. Live smoke tests are in `sdk/test/runtime/contract/providers/`.
+
+## Generated Directories (READ-ONLY)
+
+- `sdk/src/runtime/generated/` — TypeScript protobuf client generated from `proto/runtime/v1/`. Never edit manually; regenerate with `buf generate` from the `proto/` directory.
+- `sdk/src/realm/generated/` — TypeScript realm client generated from backend OpenAPI spec. Never edit manually; regenerate with `pnpm generate:realm-sdk`.
+
 ## TypeScript Rules
 
 - ESM only，`.ts` 文件导入使用 `.js` 后缀

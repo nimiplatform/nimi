@@ -18,6 +18,22 @@ function toObjectOr<T extends Record<string, unknown>>(value: unknown, fallback:
   return value && typeof value === 'object' ? (value as T) : fallback;
 }
 
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || '').trim())
+      .filter((item) => item.length > 0);
+  }
+  const text = String(value || '').trim();
+  if (!text) {
+    return [];
+  }
+  return text
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 function resolveRequestPath(
   url: string,
   pathParams?: Record<string, string | number | boolean>,
@@ -180,6 +196,48 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     });
     return toObjectOr(payload, { worldId, items: [] });
   });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.scenesList, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    if (!worldId) return { worldId: '', items: [] };
+    const payload = await requestObject({
+      method: 'GET',
+      url: '/api/worlds/{worldId}/scenes',
+      path: { worldId },
+      query: {
+        ...(toStringArray(record.sceneIds).length > 0
+          ? { sceneIds: toStringArray(record.sceneIds) }
+          : {}),
+        ...(record.take != null ? { take: record.take } : {}),
+      },
+    });
+    return toObjectOr(payload, { worldId, items: [] });
+  });
+
+  await registerCoreDataCapability(
+    WORLD_DATA_API_CAPABILITIES.narrativeContextsList,
+    async (query) => {
+      const record = toRecord(query);
+      const worldId = String(record.worldId || '').trim();
+      if (!worldId) return { worldId: '', items: [] };
+      const payload = await requestObject({
+        method: 'GET',
+        url: '/api/worlds/{worldId}/narrative-contexts',
+        path: { worldId },
+        query: {
+          ...(record.storyId ? { storyId: record.storyId } : {}),
+          ...(record.scope ? { scope: record.scope } : {}),
+          ...(record.subjectType ? { subjectType: record.subjectType } : {}),
+          ...(record.subjectId ? { subjectId: record.subjectId } : {}),
+          ...(record.targetSubjectType ? { targetSubjectType: record.targetSubjectType } : {}),
+          ...(record.targetSubjectId ? { targetSubjectId: record.targetSubjectId } : {}),
+          ...(record.take != null ? { take: record.take } : {}),
+        },
+      });
+      return toObjectOr(payload, { worldId, items: [] });
+    },
+  );
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksBatchUpsert, async (query) => {
     const record = toRecord(query);

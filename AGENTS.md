@@ -29,7 +29,10 @@ Each component has its own AGENTS.md with specific conventions:
 - [`runtime/AGENTS.md`](runtime/AGENTS.md) — Go, gRPC, Buf CLI
 - [`sdk/AGENTS.md`](sdk/AGENTS.md) — TypeScript, ESM, package boundaries
 - [`spec/AGENTS.md`](spec/AGENTS.md) — Runtime/SDK spec contracts, generation, and acceptance checks
+- [`proto/AGENTS.md`](proto/AGENTS.md) — Protocol Buffers, Buf CLI, generation targets
+- [`scripts/AGENTS.md`](scripts/AGENTS.md) — CI checks, codegen, build, and release scripts
 - [`apps/desktop/AGENTS.md`](apps/desktop/AGENTS.md) — Tauri, React, nimi-hook
+- [`apps/web/AGENTS.md`](apps/web/AGENTS.md) — Web shell, desktop renderer reuse
 - [`nimi-mods/AGENTS.md`](nimi-mods/AGENTS.md) — External mod repo workflow and build contract
 
 ## AI-Native Planning Rules
@@ -47,6 +50,7 @@ This project uses AI as primary executor. **Do NOT default to MVP/phased approac
 - **No forwarding shells** outside `index.ts`. Inline the logic or use direct re-exports
 - **Explicit type signatures** on facade methods. No `Parameters<Service['method']>[0]`
 - **Maximum 3-hop debug trace.** From user-facing code to business logic: at most 3 files
+- **`apps/_libs/`** is the shared library directory for cross-app code (used by both desktop and web). It is not an independent package — treat it as internal shared code within the `apps/` workspace
 
 ## Cross-Component Boundaries
 

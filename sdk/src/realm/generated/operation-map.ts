@@ -4408,6 +4408,42 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
+  "WorldControlService.worldControlControllerListWorldNarrativeContexts": {
+    "operationId": "WorldControlController_listWorldNarrativeContexts",
+    "method": "GET",
+    "path": "/api/worlds/{worldId}/narrative-contexts",
+    "service": "WorldControlService",
+    "methodName": "worldControlControllerListWorldNarrativeContexts",
+    "tag": "World Control",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
+  "WorldControlService.worldControlControllerListWorldScenes": {
+    "operationId": "WorldControlController_listWorldScenes",
+    "method": "GET",
+    "path": "/api/worlds/{worldId}/scenes",
+    "service": "WorldControlService",
+    "methodName": "worldControlControllerListWorldScenes",
+    "tag": "World Control",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "WorldControlService.worldControlControllerPublishDraft": {
     "operationId": "WorldControlController_publishDraft",
     "method": "POST",
@@ -5193,6 +5229,8 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerListWorldEvents": "WorldControlService.worldControlControllerListWorldEvents",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
     "worldControlControllerListWorldMutations": "WorldControlService.worldControlControllerListWorldMutations",
+    "worldControlControllerListWorldNarrativeContexts": "WorldControlService.worldControlControllerListWorldNarrativeContexts",
+    "worldControlControllerListWorldScenes": "WorldControlService.worldControlControllerListWorldScenes",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft",

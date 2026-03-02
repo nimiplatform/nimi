@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { startLocalAiRuntimePolling, type LocalAiRuntimeSnapshot } from '@runtime/local-ai-runtime';
 import type { Dispatch, SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import { useRuntimeConfigHydrationEffect } from './effects/hydration';
 import { useRuntimeConfigVaultSyncEffect } from './effects/vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './effects/route-init';

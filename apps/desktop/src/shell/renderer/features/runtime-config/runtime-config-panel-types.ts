@@ -2,12 +2,13 @@ import type {
   CapabilityV11,
   ProviderStatusV11,
   RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type {
   LocalAiCatalogItemDescriptor,
   LocalAiDependencyResolutionPlan,
   LocalAiInstallPayload,
+  LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
 
 export type RuntimeDependencyTargetDescriptor = {
@@ -19,7 +20,7 @@ export type RuntimeDependencyTargetDescriptor = {
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   runtimeStatus: ProviderStatusV11 | null;
-  activeSetupPage: RuntimeConfigStateV11['activeSetupPage'];
+  activePage: RuntimeConfigStateV11['activePage'];
   showTokenApiKey: boolean;
   localRuntimeModelQuery: string;
   connectorModelQuery: string;
@@ -40,7 +41,7 @@ export type RuntimeConfigPanelControllerModel = {
   setShowTokenApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setLocalRuntimeModelQuery: (value: string) => void;
   setConnectorModelQuery: (value: string) => void;
-  onChangeSetupPage: (pageId: RuntimeConfigStateV11['activeSetupPage']) => void;
+  onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
   discoverLocalRuntimeModels: () => Promise<void>;
   runLocalRuntimeHealthCheck: () => Promise<void>;
@@ -57,6 +58,7 @@ export type RuntimeConfigPanelControllerModel = {
   installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
   installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
   importLocalRuntimeModel: () => Promise<void>;
+  importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalRuntimeModel: (localModelId: string) => Promise<void>;
   stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
   restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
@@ -66,4 +68,7 @@ export type RuntimeConfigPanelControllerModel = {
   restartRuntimeDaemon: () => Promise<void>;
   stopRuntimeDaemon: () => Promise<void>;
   onVaultChanged: () => void;
+  onDownloadComplete: (installSessionId: string, success: boolean, message?: string) => Promise<void>;
+  retryInstall: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
 };

@@ -1,0 +1,332 @@
+import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
+import { formatLocaleDateTime } from '@renderer/i18n';
+import {
+  buildAuditDiagnosticsText,
+  resolveAuditDetail,
+  resolveAuditModality,
+  resolveAuditPolicyGate,
+  resolveAuditReasonCode,
+  resolveAuditSource,
+} from '../../../domain/diagnostics/audit-view-model.js';
+import { Button, Card } from '../../primitives.js';
+import { useAuditPageData } from '../use-audit-page-data.js';
+
+function auditEventTypeColor(eventType: string): string {
+  if (eventType.endsWith('_failed')) return 'bg-red-50 text-red-700 border-red-200';
+  if (eventType.endsWith('_completed') || eventType.endsWith('_ready') || eventType.endsWith('_after_install'))
+    return 'bg-green-50 text-green-700 border-green-200';
+  if (eventType.endsWith('_started') || eventType.endsWith('_invoked'))
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+  if (eventType.startsWith('fallback_')) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+  return 'bg-gray-50 text-gray-700 border-gray-200';
+}
+
+function relativeTime(isoString: string): string {
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  if (Number.isNaN(then)) return isoString;
+  const diffMs = now - then;
+  if (diffMs < 0) return 'just now';
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+type LocalDebugSectionProps = {
+  collapsed: boolean;
+  onToggle: () => void;
+};
+
+export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProps) {
+  return (
+    <Card className="overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+      >
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Local AI Debug Audit</h3>
+          <p className="text-[11px] text-gray-500 mt-0.5">Local-only events (5k limit, for debugging)</p>
+        </div>
+        <span className="text-gray-400 text-sm">{collapsed ? '\u25B6' : '\u25BC'}</span>
+      </button>
+      {!collapsed ? <LocalDebugContent /> : null}
+    </Card>
+  );
+}
+
+function LocalDebugContent() {
+  const data = useAuditPageData(true);
+  const {
+    filteredAudits,
+    loadingAudits,
+    auditEventType,
+    setAuditEventType,
+    auditSource,
+    setAuditSource,
+    auditModality,
+    setAuditModality,
+    auditReasonCodeQuery,
+    setAuditReasonCodeQuery,
+    auditTimeFrom,
+    setAuditTimeFrom,
+    auditTimeTo,
+    setAuditTimeTo,
+    loadAudits,
+    eventTypeCounts,
+    sourceCounts,
+    modalityCounts,
+    reasonBuckets,
+  } = data;
+
+  const latestEvent = filteredAudits.length > 0 ? filteredAudits[0] : null;
+
+  return (
+    <div className="border-t border-gray-100 p-4 space-y-4">
+      {/* Summary */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span>{filteredAudits.length} events</span>
+            {latestEvent ? (
+              <span>latest: {formatLocaleDateTime(latestEvent.occurredAt)}</span>
+            ) : null}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
+            <p className="text-[11px] font-medium text-gray-500">Event Types</p>
+            <div className="flex flex-wrap gap-1">
+              {eventTypeCounts.length === 0 ? (
+                <span className="text-[11px] text-gray-400">-</span>
+              ) : (
+                eventTypeCounts.map((item) => (
+                  <span key={item.eventType} className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${auditEventTypeColor(item.eventType)}`}>
+                    {item.eventType}
+                    <span className="rounded-full bg-white/60 px-1 text-[9px]">{item.count}</span>
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
+            <p className="text-[11px] font-medium text-gray-500">Sources</p>
+            <div className="flex flex-wrap gap-1">
+              {sourceCounts.length === 0 ? (
+                <span className="text-[11px] text-gray-400">-</span>
+              ) : (
+                sourceCounts.map((item) => (
+                  <span key={item.source} className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+                    {item.source}
+                    <span className="rounded-full bg-gray-100 px-1 text-[9px]">{item.count}</span>
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
+            <p className="text-[11px] font-medium text-gray-500">Modalities</p>
+            <div className="flex flex-wrap gap-1">
+              {modalityCounts.length === 0 ? (
+                <span className="text-[11px] text-gray-400">-</span>
+              ) : (
+                modalityCounts.map((item) => (
+                  <span key={item.modality} className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+                    {item.modality}
+                    <span className="rounded-full bg-gray-100 px-1 text-[9px]">{item.count}</span>
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+        {reasonBuckets.length > 0 ? (
+          <p className="text-[11px] text-gray-600">
+            Reason Codes: {reasonBuckets.map((item) => `${item.reasonCode}(${item.count})`).join(', ')}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Filter bar */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={auditEventType}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAuditEventType(next);
+              void loadAudits({ eventType: next });
+            }}
+            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          >
+            <option value="all">all event types</option>
+            <option value="inference_invoked">inference_invoked</option>
+            <option value="inference_failed">inference_failed</option>
+            <option value="fallback_to_token_api">fallback_to_token_api</option>
+            <option value="engine_started">engine_started</option>
+            <option value="engine_stopped">engine_stopped</option>
+            <option value="model_catalog_search_invoked">model_catalog_search_invoked</option>
+            <option value="model_catalog_search_failed">model_catalog_search_failed</option>
+            <option value="engine_pack_download_started">engine_pack_download_started</option>
+            <option value="engine_pack_download_completed">engine_pack_download_completed</option>
+            <option value="engine_pack_download_failed">engine_pack_download_failed</option>
+            <option value="runtime_model_ready_after_install">runtime_model_ready_after_install</option>
+            <option value="dependency_resolve_invoked">dependency_resolve_invoked</option>
+            <option value="dependency_resolve_failed">dependency_resolve_failed</option>
+            <option value="dependency_apply_started">dependency_apply_started</option>
+            <option value="dependency_apply_completed">dependency_apply_completed</option>
+            <option value="dependency_apply_failed">dependency_apply_failed</option>
+            <option value="service_install_started">service_install_started</option>
+            <option value="service_install_completed">service_install_completed</option>
+            <option value="service_install_failed">service_install_failed</option>
+            <option value="node_catalog_listed">node_catalog_listed</option>
+          </select>
+          <select
+            value={auditSource}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAuditSource(next);
+              void loadAudits({ source: next });
+            }}
+            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          >
+            <option value="all">all sources</option>
+            <option value="local-runtime">local-runtime</option>
+            <option value="token-api">token-api</option>
+          </select>
+          <select
+            value={auditModality}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAuditModality(next);
+              void loadAudits({ modality: next });
+            }}
+            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          >
+            <option value="all">all modalities</option>
+            <option value="chat">chat</option>
+            <option value="image">image</option>
+            <option value="video">video</option>
+            <option value="tts">tts</option>
+            <option value="stt">stt</option>
+            <option value="embedding">embedding</option>
+          </select>
+          <Button variant="secondary" size="sm" disabled={loadingAudits} onClick={() => void loadAudits()}>
+            {loadingAudits ? 'Loading...' : 'Refresh'}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const text = buildAuditDiagnosticsText(filteredAudits);
+              if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+                void navigator.clipboard.writeText(text);
+              }
+            }}
+          >
+            Copy
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (typeof document === 'undefined') return;
+              const text = JSON.stringify(filteredAudits, null, 2);
+              const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const anchor = document.createElement('a');
+              anchor.href = url;
+              anchor.download = `local-ai-audits-${new Date().toISOString()}.json`;
+              anchor.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Export
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <input
+            value={auditReasonCodeQuery}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAuditReasonCodeQuery(next);
+              void loadAudits({ reasonCode: next });
+            }}
+            placeholder="Filter reasonCode..."
+            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          />
+          <input
+            type="datetime-local"
+            value={auditTimeFrom}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAuditTimeFrom(next);
+              void loadAudits({ timeFrom: next });
+            }}
+            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          />
+          <input
+            type="datetime-local"
+            value={auditTimeTo}
+            onChange={(event) => {
+              const next = event.target.value;
+              setAuditTimeTo(next);
+              void loadAudits({ timeTo: next });
+            }}
+            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          />
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div className="max-h-[calc(100vh-30rem)] overflow-y-auto rounded-lg border border-gray-100">
+        {filteredAudits.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-gray-500">No local audit events matching current filters.</p>
+        ) : (
+          filteredAudits.map((event) => (
+            <LocalAuditEventCard key={event.id} event={event} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LocalAuditEventCard({ event }: { event: LocalAiAuditEvent }) {
+  const source = resolveAuditSource(event);
+  const modality = resolveAuditModality(event);
+  const reasonCode = resolveAuditReasonCode(event);
+  const detail = resolveAuditDetail(event);
+  const policyGate = resolveAuditPolicyGate(event);
+  const colorClass = auditEventTypeColor(event.eventType);
+
+  return (
+    <div className="border-b border-gray-100 px-4 py-3 last:border-b-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className={`rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${colorClass}`}>
+            {event.eventType}
+          </span>
+          <span className="text-[11px] text-gray-500">{source}</span>
+          <span className="text-[11px] text-gray-400">{modality}</span>
+        </div>
+        <span className="shrink-0 text-[11px] text-gray-400" title={event.occurredAt}>
+          {relativeTime(event.occurredAt)}
+        </span>
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-600">
+        {event.modelId ? <span>model={event.modelId}</span> : null}
+        {event.localModelId ? <span>localModelId={event.localModelId}</span> : null}
+        {detail !== '-' ? <span>detail={detail}</span> : null}
+        {reasonCode !== '-' ? <span>reasonCode={reasonCode}</span> : null}
+        {policyGate !== '-' ? <span>policyGate={policyGate}</span> : null}
+      </div>
+    </div>
+  );
+}

@@ -174,6 +174,21 @@ commands:
     description: Pick a local AI model manifest file path
     source_rule: D-IPC-011
 
+  - command: local_ai_pick_model_file
+    module: local-ai
+    description: Pick a local model file for import via native file dialog
+    source_rule: D-IPC-011
+
+  - command: local_ai_models_import_file
+    module: local-ai
+    description: Import a model file with copy, hash, and manifest generation
+    source_rule: D-IPC-011
+
+  - command: local_ai_models_reveal_in_folder
+    module: local-ai
+    description: Reveal installed model files in system file manager
+    source_rule: D-IPC-011
+
   - command: local_ai_subscribe_download_progress
     module: local-ai
     description: Subscribe to local AI model download progress events

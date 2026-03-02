@@ -1,5 +1,5 @@
-import type { LocalAiRuntimeSnapshot } from './service';
-import { fetchLocalAiRuntimeSnapshot } from './service';
+import type { LocalAiRuntimeSnapshot } from './types';
+import { fetchLocalAiRuntimeSnapshot } from './commands';
 
 export type LocalAiRuntimePollingOptions = {
   localModelId?: string;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { WorldData } from './world-detail-model';
+import type { WorldData, WorldAgent } from './world-detail-model';
 import {
   formatWorldDate,
   formatWorldDateTime,
@@ -75,6 +75,7 @@ type WorldDetailViewProps = {
   world: WorldData;
   loading: boolean;
   error: boolean;
+  worldAgents: WorldAgent[];
   transitRuntime: WorldTransitRuntimeViewModel;
   onBack: () => void;
   onRetry?: () => void;
@@ -406,6 +407,62 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                     <span className="text-xs text-gray-500">EWMA Score</span>
                     <span className="text-sm font-bold text-gray-800">{world.scores.ewma.toFixed(2)}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* World Agents */}
+              <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-800">World Agents</h3>
+                    <span className="text-xs text-gray-500">
+                      {props.worldAgents.length} / {world.nativeAgentLimit}
+                    </span>
+                  </div>
+                  
+                  {props.worldAgents.length === 0 ? (
+                    <p className="text-sm text-gray-500">No agents in this world</p>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {props.worldAgents.map((agent) => (
+                        <div
+                          key={agent.id}
+                          className="flex items-center gap-3 p-2 rounded-xl border border-white/60 bg-white/60 hover:bg-white/80 transition-colors"
+                        >
+                          {agent.avatarUrl ? (
+                            <img
+                              src={agent.avatarUrl}
+                              alt={agent.displayName}
+                              className="h-10 w-10 rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-sm font-bold text-[#4ECCA3]">
+                              {agent.displayName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-800 truncate">
+                                {agent.displayName}
+                              </span>
+                              {agent.tier && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600">
+                                  {agent.tier}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">@{agent.handle}</span>
+                          </div>
+                          {agent.isPublic && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-600">
+                              Public
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

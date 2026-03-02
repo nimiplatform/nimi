@@ -275,6 +275,12 @@ export class DataSync {
   loadWorldLevelAudits(worldId: string, limit = 20): Promise<WorldLevelAuditEventDto[]> {
     return this.actions.loadWorldLevelAudits(worldId, limit);
   }
+  loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> {
+    return this.actions.loadWorldAgents(worldId);
+  }
+  loadWorldEvents(worldId: string): Promise<Array<Record<string, unknown>>> {
+    return this.actions.loadWorldEvents(worldId);
+  }
   loadSceneQuota(): Promise<SceneQuotaDto> {
     return this.actions.loadSceneQuota();
   }
