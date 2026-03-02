@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::fs::OpenOptions;
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -29,6 +29,24 @@ pub struct HfDownloadProgress {
     pub message: Option<String>,
 }
 
+/// Returns the base URL for HuggingFace downloads.
+/// Priority: NIMI_HF_MIRROR > HF_ENDPOINT > default "https://huggingface.co".
+pub(super) fn hf_download_base_url() -> String {
+    if let Ok(value) = std::env::var("NIMI_HF_MIRROR") {
+        let trimmed = value.trim().trim_end_matches('/').to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+    if let Ok(value) = std::env::var("HF_ENDPOINT") {
+        let trimmed = value.trim().trim_end_matches('/').to_string();
+        if !trimmed.is_empty() {
+            return trimmed;
+        }
+    }
+    "https://huggingface.co".to_string()
+}
+
 fn is_hf_repo(repo: &str) -> bool {
     let normalized = repo.trim();
     if normalized.is_empty() {
@@ -39,6 +57,13 @@ fn is_hf_repo(repo: &str) -> bool {
     }
     if normalized.contains("huggingface.co/") {
         return true;
+    }
+    // Also match mirror URLs (e.g. hf-mirror.com).
+    let base = hf_download_base_url();
+    if let Some(host) = base.strip_prefix("https://").or_else(|| base.strip_prefix("http://")) {
+        if normalized.contains(host) {
+            return true;
+        }
     }
     // Also allow canonical HF repo slug "org/model-name".
     normalized.split('/').count() == 2 && !normalized.contains("://")
@@ -55,7 +80,21 @@ fn normalize_hf_repo_slug(repo: &str) -> Option<String> {
     } else if let Some((_, suffix)) = normalized.split_once("huggingface.co/") {
         suffix
     } else {
-        normalized
+        // Try mirror host extraction.
+        let base = hf_download_base_url();
+        let mirror_host = base
+            .strip_prefix("https://")
+            .or_else(|| base.strip_prefix("http://"))
+            .unwrap_or("");
+        if !mirror_host.is_empty() && mirror_host != "huggingface.co" {
+            if let Some((_, suffix)) = normalized.split_once(&format!("{mirror_host}/")) {
+                suffix
+            } else {
+                normalized
+            }
+        } else {
+            normalized
+        }
     };
 
     let candidate = candidate
@@ -147,17 +186,19 @@ fn resolve_expected_file_hash(request: &LocalAiInstallRequest, file_path: &str) 
 }
 
 fn build_hf_download_url(repo_slug: &str, revision: &str, file_path: &str) -> String {
+    let base = hf_download_base_url();
     let normalized_revision = normalize_non_empty(revision, "main");
     let entry = file_path.trim().replace(' ', "%20");
     format!(
-        "https://huggingface.co/{repo}/resolve/{revision}/{entry}",
+        "{base}/{repo}/resolve/{revision}/{entry}",
+        base = base,
         repo = repo_slug.trim(),
         revision = normalized_revision,
         entry = entry
     )
 }
 
-const HF_RETRY_BACKOFF_MS: [u64; 8] = [300, 1_000, 5_000, 15_000, 30_000, 60_000, 120_000, 180_000];
+const HF_RETRY_BACKOFF_MS: [u64; 4] = [1_000, 5_000, 15_000, 30_000];
 
 fn download_file_with_resume<F>(
     url: &str,
@@ -168,7 +209,7 @@ where
     F: FnMut(HfDownloadProgress),
 {
     let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(600))
+        .timeout(Duration::from_secs(300))
         .build()
         .map_err(|error| {
             format!("LOCAL_AI_HF_DOWNLOAD_CLIENT_FAILED: 创建 HF 下载客户端失败: {error}")
@@ -331,6 +372,32 @@ fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     format!("{:x}", hasher.finalize())
+}
+
+/// Streaming SHA256: reads file in 64KB chunks to avoid loading entire file into memory.
+fn sha256_hex_streaming(path: &Path) -> Result<String, String> {
+    let file = fs::File::open(path).map_err(|error| {
+        format!(
+            "SHA256 streaming: failed to open file ({}): {error}",
+            path.display()
+        )
+    })?;
+    let mut reader = BufReader::with_capacity(64 * 1024, file);
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = reader.read(&mut buf).map_err(|error| {
+            format!(
+                "SHA256 streaming: failed to read file ({}): {error}",
+                path.display()
+            )
+        })?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 fn build_manifest_from_install_request(
@@ -541,14 +608,10 @@ pub fn install_from_hf(
             )),
         });
 
-        let file_bytes = fs::read(&staged_file_path).map_err(|error| {
+        let file_hash = sha256_hex_streaming(&staged_file_path).map_err(|error| {
             rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
-            format!(
-                "读取 HF 下载文件失败 ({}): {error}",
-                staged_file_path.display()
-            )
+            error
         })?;
-        let file_hash = sha256_hex(&file_bytes);
 
         if let Some(expected_hash) = resolve_expected_file_hash(request, file_path) {
             if expected_hash != file_hash {
@@ -560,7 +623,10 @@ pub fn install_from_hf(
             }
         }
 
-        total_verified_bytes = total_verified_bytes.saturating_add(file_bytes.len() as u64);
+        let file_size = fs::metadata(&staged_file_path)
+            .map(|meta| meta.len())
+            .unwrap_or(0);
+        total_verified_bytes = total_verified_bytes.saturating_add(file_size);
         computed_hashes.insert(file_path.to_string(), format!("sha256:{file_hash}"));
 
         on_progress(HfDownloadProgress {
@@ -648,11 +714,13 @@ pub fn install_from_hf(
 #[cfg(test)]
 mod tests {
     use super::{
-        aggregate_progress, build_hf_download_url, build_manifest_from_install_request, is_hf_repo,
-        normalize_expected_hash, normalize_hf_repo_slug, normalize_install_files,
-        normalize_relative_file_path, resolve_expected_file_hash,
+        aggregate_progress, build_hf_download_url, build_manifest_from_install_request,
+        hf_download_base_url, is_hf_repo, normalize_expected_hash, normalize_hf_repo_slug,
+        normalize_install_files, normalize_relative_file_path, resolve_expected_file_hash,
+        sha256_hex, sha256_hex_streaming,
     };
     use crate::local_ai_runtime::types::LocalAiInstallRequest;
+    use std::io::Write;
 
     #[test]
     fn hf_repo_detection_accepts_hf_protocol_and_urls() {
@@ -683,9 +751,10 @@ mod tests {
     #[test]
     fn hf_download_url_uses_revision_and_entry_path() {
         let url = build_hf_download_url("meta-llama/Llama-3.1-8B-Instruct", "main", "model.gguf");
+        let base = hf_download_base_url();
         assert_eq!(
             url,
-            "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/resolve/main/model.gguf"
+            format!("{base}/meta-llama/Llama-3.1-8B-Instruct/resolve/main/model.gguf")
         );
     }
 
@@ -850,5 +919,75 @@ mod tests {
     fn build_hf_download_url_encodes_spaces() {
         let url = build_hf_download_url("org/model", "main", "my model.gguf");
         assert!(url.contains("my%20model.gguf"));
+        let base = hf_download_base_url();
+        assert!(url.starts_with(&base));
+    }
+
+    // --- hf_download_base_url ---
+
+    #[test]
+    fn hf_download_base_url_returns_valid_https_url() {
+        let base = hf_download_base_url();
+        assert!(
+            base.starts_with("https://") || base.starts_with("http://"),
+            "base URL must start with https:// or http://, got: {base}"
+        );
+        assert!(
+            !base.ends_with('/'),
+            "base URL must not end with trailing slash, got: {base}"
+        );
+    }
+
+    // --- sha256_hex_streaming ---
+
+    #[test]
+    fn sha256_hex_streaming_matches_sha256_hex_for_same_content() {
+        let content = b"hello world test content for streaming sha256 verification";
+        let expected = sha256_hex(content);
+
+        let dir = std::env::temp_dir().join("nimi-test-sha256-streaming");
+        let _ = std::fs::create_dir_all(&dir);
+        let file_path = dir.join("test-sha256.bin");
+        {
+            let mut file = std::fs::File::create(&file_path).expect("create temp file");
+            file.write_all(content).expect("write temp file");
+        }
+
+        let streaming_result = sha256_hex_streaming(&file_path).expect("streaming hash");
+        assert_eq!(streaming_result, expected);
+
+        let _ = std::fs::remove_file(&file_path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn sha256_hex_streaming_handles_empty_file() {
+        let expected = sha256_hex(b"");
+
+        let dir = std::env::temp_dir().join("nimi-test-sha256-empty");
+        let _ = std::fs::create_dir_all(&dir);
+        let file_path = dir.join("empty.bin");
+        std::fs::File::create(&file_path).expect("create empty file");
+
+        let streaming_result = sha256_hex_streaming(&file_path).expect("streaming hash");
+        assert_eq!(streaming_result, expected);
+
+        let _ = std::fs::remove_file(&file_path);
+        let _ = std::fs::remove_dir(&dir);
+    }
+
+    #[test]
+    fn sha256_hex_streaming_returns_error_for_missing_file() {
+        let result = sha256_hex_streaming(std::path::Path::new("/nonexistent/path/file.bin"));
+        assert!(result.is_err());
+    }
+
+    // --- retry / timeout constants ---
+
+    #[test]
+    fn hf_retry_backoff_has_four_entries() {
+        assert_eq!(super::HF_RETRY_BACKOFF_MS.len(), 4);
+        assert_eq!(super::HF_RETRY_BACKOFF_MS[0], 1_000);
+        assert_eq!(super::HF_RETRY_BACKOFF_MS[3], 30_000);
     }
 }

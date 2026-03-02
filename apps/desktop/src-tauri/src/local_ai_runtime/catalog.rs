@@ -13,9 +13,13 @@ use super::types::{
     LocalAiInstallPlanDescriptor, LocalAiProviderHints, LocalAiVerifiedModelDescriptor,
     DEFAULT_LOCAL_RUNTIME_ENDPOINT,
 };
+use super::hf_source::hf_download_base_url;
 use super::verified_models::{find_verified_model, verified_model_list};
 
-const HF_API_BASE: &str = "https://huggingface.co/api/models";
+fn hf_api_base_url() -> String {
+    format!("{}/api/models", hf_download_base_url())
+}
+
 const HF_SEARCH_TIMEOUT_SECS: u64 = 20;
 const HF_SEARCH_LIMIT_MIN: usize = 1;
 const HF_SEARCH_LIMIT_MAX: usize = 80;
@@ -182,7 +186,21 @@ fn normalize_hf_repo_slug(input: &str) -> Option<String> {
     } else if let Some((_, suffix)) = raw.split_once("huggingface.co/") {
         suffix
     } else {
-        raw
+        // Try mirror host extraction.
+        let base = hf_download_base_url();
+        let mirror_host = base
+            .strip_prefix("https://")
+            .or_else(|| base.strip_prefix("http://"))
+            .unwrap_or("");
+        if !mirror_host.is_empty() && mirror_host != "huggingface.co" {
+            if let Some((_, suffix)) = raw.split_once(&format!("{mirror_host}/")) {
+                suffix
+            } else {
+                raw
+            }
+        } else {
+            raw
+        }
     };
 
     let candidate = candidate
@@ -326,8 +344,9 @@ fn build_hf_client() -> Result<reqwest::blocking::Client, String> {
 
 fn fetch_hf_search_models(query: &str, limit: usize) -> Result<Vec<HfSearchModel>, String> {
     let client = build_hf_client()?;
+    let api_base = hf_api_base_url();
     let response = client
-        .get(HF_API_BASE)
+        .get(&api_base)
         .query(&[
             ("search", query),
             ("limit", &limit.to_string()),
@@ -359,8 +378,9 @@ fn fetch_hf_search_models(query: &str, limit: usize) -> Result<Vec<HfSearchModel
 
 fn fetch_hf_model_details(repo: &str) -> Result<HfModelDetails, String> {
     let client = build_hf_client()?;
+    let api_base = hf_api_base_url();
     let repo_encoded = repo.replace('/', "%2F");
-    let url = format!("{HF_API_BASE}/{repo_encoded}");
+    let url = format!("{api_base}/{repo_encoded}");
     let response = client
         .get(url)
         .query(&[("full", "true")])
@@ -838,10 +858,10 @@ pub fn resolve_install_plan(input: LocalAiCatalogResolveInput) -> Result<LocalAi
 #[cfg(test)]
 mod tests {
     use super::{
-        infer_capabilities, infer_engine, infer_license, match_catalog_capability,
-        match_catalog_query, normalize_hf_file_path, normalize_hf_repo_slug,
-        normalize_install_limit, normalize_search_query, runtime_mode_for_engine,
-        select_entry_file, HfModelSibling,
+        hf_api_base_url, infer_capabilities, infer_engine, infer_license,
+        match_catalog_capability, match_catalog_query, normalize_hf_file_path,
+        normalize_hf_repo_slug, normalize_install_limit, normalize_search_query,
+        runtime_mode_for_engine, select_entry_file, HfModelSibling,
     };
     use crate::local_ai_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
     use std::collections::HashMap;
@@ -1162,5 +1182,16 @@ mod tests {
         let caps = vec!["chat".to_string()];
         let engine = infer_engine("org/model", &[], &caps);
         assert_eq!(engine, "localai");
+    }
+
+    // --- hf_api_base_url ---
+
+    #[test]
+    fn hf_api_base_url_ends_with_api_models() {
+        let url = hf_api_base_url();
+        assert!(
+            url.ends_with("/api/models"),
+            "hf_api_base_url must end with /api/models, got: {url}"
+        );
     }
 }
