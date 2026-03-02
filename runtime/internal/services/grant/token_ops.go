@@ -203,16 +203,16 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChainRequest) (*runtimev1.ListTokenChainResponse, error) {
 	root := strings.TrimSpace(req.GetRootTokenId())
 	if root == "" {
-		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED)
 	}
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	if _, exists := s.tokens[root]; !exists {
-		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_APP_GRANT_INVALID)
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
 	}
 
 	queue := []string{root}

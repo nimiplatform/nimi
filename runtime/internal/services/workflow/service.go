@@ -211,7 +211,7 @@ func (s *Service) GetWorkflow(_ context.Context, req *runtimev1.GetWorkflowReque
 			TaskId:     taskID,
 			Status:     runtimev1.WorkflowStatus_WORKFLOW_STATUS_UNSPECIFIED,
 			Nodes:      []*runtimev1.WorkflowNodeStatus{},
-			ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID,
+			ReasonCode: runtimev1.ReasonCode_WF_TASK_NOT_FOUND,
 		}, nil
 	}
 
@@ -244,7 +244,7 @@ func (s *Service) CancelWorkflow(_ context.Context, req *runtimev1.CancelWorkflo
 	record, exists := s.tasks[taskID]
 	if !exists {
 		s.mu.Unlock()
-		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "unknown task_id"}, nil
+		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_WF_TASK_NOT_FOUND, ActionHint: "unknown task_id"}, nil
 	}
 	if isTerminalStatus(record.Status) {
 		s.mu.Unlock()

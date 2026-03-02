@@ -37,12 +37,16 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	case http.StatusBadRequest:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	case http.StatusUnauthorized, http.StatusForbidden:
-		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
 	case http.StatusNotFound:
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
 		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
-	case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable:
+	case http.StatusTooManyRequests:
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+	case http.StatusInternalServerError:
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	case http.StatusBadGateway, http.StatusServiceUnavailable:
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	default:
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

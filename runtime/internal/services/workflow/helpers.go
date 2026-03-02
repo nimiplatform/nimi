@@ -51,13 +51,13 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 	for _, node := range def.GetNodes() {
 		nodeID := strings.TrimSpace(node.GetNodeId())
 		if nodeID == "" {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		if _, exists := graph.NodeByID[nodeID]; exists {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		if node.GetNodeType() == runtimev1.WorkflowNodeType_WORKFLOW_NODE_TYPE_UNSPECIFIED {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 		}
 		graph.NodeByID[nodeID] = node
 		dependencies[nodeID] = map[string]struct{}{}
@@ -74,10 +74,10 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 		for _, rawDep := range node.GetDependsOn() {
 			depID := strings.TrimSpace(rawDep)
 			if depID == "" || depID == nodeID {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 			if _, exists := graph.NodeByID[depID]; !exists {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 			if seen[depID] {
 				continue
@@ -95,19 +95,19 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			ToInput:    strings.TrimSpace(rawEdge.GetToInput()),
 		}
 		if edge.GetFromNodeId() == "" || edge.GetToNodeId() == "" || edge.GetFromOutput() == "" || edge.GetToInput() == "" {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		if edge.GetFromNodeId() == edge.GetToNodeId() {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		if _, exists := graph.NodeByID[edge.GetFromNodeId()]; !exists {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		if _, exists := graph.NodeByID[edge.GetToNodeId()]; !exists {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		if _, exists := graph.InputBinding[edge.GetToNodeId()][edge.GetToInput()]; exists {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 		}
 		graph.InputBinding[edge.GetToNodeId()][edge.GetToInput()] = edgeBinding{FromNodeID: edge.GetFromNodeId(), FromOutput: edge.GetFromOutput()}
 		graph.Incoming[edge.GetToNodeId()] = append(graph.Incoming[edge.GetToNodeId()], edge)
@@ -164,7 +164,7 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 		sort.Strings(queue)
 	}
 	if len(graph.Order) != len(graph.NodeByID) {
-		return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+		return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 	}
 
 	for _, nodeID := range graph.Order {
@@ -174,126 +174,126 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 		if mode != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_UNSPECIFIED &&
 			mode != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_INLINE &&
 			mode != runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 		}
 		switch node.GetNodeType() {
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_GENERATE:
 			if node.GetAiGenerateConfig() == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STREAM:
 			if node.GetAiStreamConfig() == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_EMBED:
 			cfg := node.GetAiEmbedConfig()
 			if cfg == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if len(cfg.GetInputs()) == 0 && !hasAnySlot(bindings, "inputs", "input", "text") {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE:
 			cfg := node.GetAiImageConfig()
 			if cfg == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
 				// valid: image node supports external async orchestration
 			}
 			if strings.TrimSpace(cfg.GetPrompt()) == "" && !hasAnySlot(bindings, "prompt", "text") {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO:
 			cfg := node.GetAiVideoConfig()
 			if cfg == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
 				// valid: video node supports external async orchestration
 			}
 			if strings.TrimSpace(cfg.GetPrompt()) == "" && !hasAnySlot(bindings, "prompt", "text") {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS:
 			cfg := node.GetAiTtsConfig()
 			if cfg == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
 				// valid: tts node supports external async orchestration
 			}
 			if strings.TrimSpace(cfg.GetText()) == "" && !hasAnySlot(bindings, "text", "prompt") {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
 			cfg := node.GetAiSttConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetMimeType()) == "" {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
 				// valid: stt node supports external async orchestration
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_EXTRACT:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			cfg := node.GetExtractConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetJsonPath()) == "" || strings.TrimSpace(cfg.GetSourceInput()) == "" {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if _, exists := bindings[strings.TrimSpace(cfg.GetSourceInput())]; !exists {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			cfg := node.GetTemplateConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetTemplate()) == "" {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_SCRIPT:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			cfg := node.GetScriptConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetRuntime()) == "" || strings.TrimSpace(cfg.GetCode()) == "" {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_BRANCH:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			cfg := node.GetBranchConfig()
 			if cfg == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			trueTarget := strings.TrimSpace(cfg.GetTrueTarget())
 			falseTarget := strings.TrimSpace(cfg.GetFalseTarget())
 			if strings.TrimSpace(cfg.GetCondition()) == "" || trueTarget == "" || falseTarget == "" {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if _, exists := graph.NodeByID[trueTarget]; !exists {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 			if _, exists := graph.NodeByID[falseTarget]; !exists {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 			if !containsString(graph.Downstream[nodeID], trueTarget) || !containsString(graph.Downstream[nodeID], falseTarget) {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_MERGE:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			cfg := node.GetMergeConfig()
 			if cfg == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			upstreamCount := len(graph.Upstream[nodeID])
 			if upstreamCount == 0 {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_DAG_INVALID
 			}
 			switch cfg.GetStrategy() {
 			case runtimev1.MergeStrategy_MERGE_STRATEGY_UNSPECIFIED, runtimev1.MergeStrategy_MERGE_STRATEGY_ALL, runtimev1.MergeStrategy_MERGE_STRATEGY_ANY:
@@ -301,20 +301,20 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			case runtimev1.MergeStrategy_MERGE_STRATEGY_N_OF_M:
 				minCompleted := int(cfg.GetMinCompleted())
 				if minCompleted <= 0 || minCompleted > upstreamCount {
-					return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+					return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 				}
 			default:
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_NOOP:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 			if node.GetNoopConfig() == nil {
-				return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		default:
-			return nil, runtimev1.ReasonCode_AI_INPUT_INVALID
+			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 		}
 	}
 
