@@ -60,10 +60,14 @@ export function ProviderConnectorsPanelView({
     installLocalRuntimeModel,
     installVerifiedLocalRuntimeModel,
     importLocalRuntimeModel,
+    importLocalRuntimeModelFile,
     startLocalRuntimeModel,
     stopLocalRuntimeModel,
     restartLocalRuntimeModel,
     removeLocalRuntimeModel,
+    onDownloadComplete,
+    retryInstall,
+    installSessionMeta,
   } = commandModel;
   const isRuntimeScope = activeConfigScope === 'runtime';
   const isEaaScope = activeConfigScope === 'eaa';
@@ -116,6 +120,7 @@ export function ProviderConnectorsPanelView({
               onInstall={installLocalRuntimeModel}
               onInstallVerified={installVerifiedLocalRuntimeModel}
               onImport={importLocalRuntimeModel}
+              onImportFile={importLocalRuntimeModelFile}
               onStart={startLocalRuntimeModel}
               onStop={stopLocalRuntimeModel}
               onRestart={restartLocalRuntimeModel}
@@ -123,6 +128,9 @@ export function ProviderConnectorsPanelView({
               onSetLocalRuntimeModelQuery={setLocalRuntimeModelQuery}
               onChangeLocalRuntimeEndpoint={onChangeLocalRuntimeEndpoint}
               onNavigateToSetup={handleNavigate}
+              onDownloadComplete={onDownloadComplete}
+              onRetryInstall={retryInstall}
+              installSessionMeta={installSessionMeta}
             />
           ) : null}
           {isRuntimeScope && effectiveSetupPage === 'cloud-api' ? (

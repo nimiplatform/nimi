@@ -4,6 +4,7 @@ import type {
   LocalAiCatalogItemDescriptor,
   LocalAiDependencyResolutionPlan,
   LocalAiInstallPayload,
+  LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
 import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
 
@@ -59,12 +60,16 @@ export type ProviderConnectorsCommandModel = {
   installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
   installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
   importLocalRuntimeModel: () => Promise<void>;
+  importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalRuntimeModel: (localModelId: string) => Promise<void>;
   stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
   restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
   removeLocalRuntimeModel: (localModelId: string) => Promise<void>;
   onVaultChanged: () => void;
   vaultEntryCount: number;
+  onDownloadComplete: (installSessionId: string, success: boolean, message?: string) => Promise<void>;
+  retryInstall: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
 };
 
 export type ProviderConnectorsPanelProps = {

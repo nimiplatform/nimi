@@ -3,6 +3,7 @@ import type {
   LocalAiDependencyResolutionPlan,
   LocalAiDownloadProgressEvent,
   LocalAiInstallPayload,
+  LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
 import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/types';
@@ -26,6 +27,7 @@ export type LocalRuntimeModelCenterProps = {
   onInstall: (payload: LocalAiInstallPayload) => Promise<void>;
   onInstallVerified: (templateId: string) => Promise<void>;
   onImport: () => Promise<void>;
+  onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
   onStart: (localModelId: string) => Promise<void>;
   onStop: (localModelId: string) => Promise<void>;
   onRestart: (localModelId: string) => Promise<void>;
@@ -33,6 +35,9 @@ export type LocalRuntimeModelCenterProps = {
   onSetLocalRuntimeModelQuery: (value: string) => void;
   onChangeLocalRuntimeEndpoint: (endpoint: string) => void;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
+  onDownloadComplete?: (installSessionId: string, success: boolean, message?: string) => Promise<void>;
+  onRetryInstall?: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta?: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
 };
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
@@ -40,6 +45,7 @@ export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
 export type ProgressSessionState = {
   event: LocalAiDownloadProgressEvent;
   updatedAtMs: number;
+  installSource?: 'catalog' | 'manual' | 'verified';
 };
 
 export const PROGRESS_SESSION_LIMIT = 6;

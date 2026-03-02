@@ -198,12 +198,16 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                   installLocalRuntimeModel: model.installLocalRuntimeModel,
                   installVerifiedLocalRuntimeModel: model.installVerifiedLocalRuntimeModel,
                   importLocalRuntimeModel: model.importLocalRuntimeModel,
+                  importLocalRuntimeModelFile: model.importLocalRuntimeModelFile,
                   startLocalRuntimeModel: model.startLocalRuntimeModel,
                   stopLocalRuntimeModel: model.stopLocalRuntimeModel,
                   restartLocalRuntimeModel: model.restartLocalRuntimeModel,
                   removeLocalRuntimeModel: model.removeLocalRuntimeModel,
                   onVaultChanged: model.onVaultChanged,
                   vaultEntryCount: model.vaultEntryCount,
+                  onDownloadComplete: model.onDownloadComplete,
+                  retryInstall: model.retryInstall,
+                  installSessionMeta: model.installSessionMeta,
                 }}
               />
             ) : null}

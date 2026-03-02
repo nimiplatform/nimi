@@ -102,6 +102,9 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
           },
         };
       });
+      if (event.done) {
+        void props.onDownloadComplete?.(event.installSessionId, event.success, event.message);
+      }
     }).then((off) => {
       if (disposed) {
         off();
@@ -115,7 +118,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
         unsubscribe();
       }
     };
-  }, [isModMode]);
+  }, [isModMode, props.onDownloadComplete]);
 
   useEffect(() => {
     if (props.runtimeDependencyTargets.length === 0) {
@@ -208,11 +211,19 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     [progressBySessionId],
   );
 
-  const activeFormModelProgress = useMemo(() => {
-    const key = String(modelId || '').trim();
-    if (!key) return null;
-    return progressEvents.find((event) => event.modelId === key) || null;
-  }, [modelId, progressEvents]);
+  const activeDownloads = useMemo(() => {
+    const nowMs = Date.now();
+    return progressEvents.filter((event) => {
+      if (!event.done) return true;
+      const session = progressBySessionId[event.installSessionId];
+      return session != null && (nowMs - session.updatedAtMs < 10_000);
+    });
+  }, [progressBySessionId, progressEvents]);
+
+  const recentSessions = useMemo(() => {
+    const activeIds = new Set(activeDownloads.map((e) => e.installSessionId));
+    return progressEvents.filter((event) => event.done && !activeIds.has(event.installSessionId));
+  }, [activeDownloads, progressEvents]);
 
   const toggleCapability = (capability: CapabilityOption) => {
     setSelectedCapabilities((prev) => {
@@ -333,55 +344,78 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
 
     </Card>
 
-      {activeFormModelProgress ? (
-        <div className="space-y-2 rounded-[10px] border border-gray-200 bg-white p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-700">
-              Install Progress · {activeFormModelProgress.modelId} ({activeFormModelProgress.phase})
-            </p>
-            <p className={`text-[11px] ${activeFormModelProgress.done ? (activeFormModelProgress.success ? 'text-emerald-700' : 'text-rose-700') : 'text-gray-500'}`}>
-              {activeFormModelProgress.done
-                ? (activeFormModelProgress.success ? 'Completed' : 'Failed')
-                : 'Running'}
-            </p>
-          </div>
-          {typeof activeFormModelProgress.bytesTotal === 'number' && activeFormModelProgress.bytesTotal > 0 ? (
-            <>
-              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                <div
-                  className={`h-full ${activeFormModelProgress.done && !activeFormModelProgress.success ? 'bg-rose-500' : 'bg-blue-500'}`}
-                  style={{
-                    width: `${Math.max(
-                      0,
-                      Math.min(100, Math.round((activeFormModelProgress.bytesReceived / activeFormModelProgress.bytesTotal) * 100)),
-                    )}%`,
-                  }}
-                />
+      {activeDownloads.length > 0 ? (
+        <div className="space-y-3">
+          {activeDownloads.map((event) => {
+            const sessionMeta = props.installSessionMeta?.get(event.installSessionId);
+            const isFailed = event.done && !event.success;
+            const isCompleted = event.done && event.success;
+            return (
+              <div key={`active-dl-${event.installSessionId}`} className="space-y-2 rounded-[10px] border border-gray-200 bg-white p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-700">
+                    {event.modelId} <span className="font-normal text-gray-500">({event.phase})</span>
+                  </p>
+                  <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                    isFailed ? 'bg-rose-50 text-rose-700' :
+                    isCompleted ? 'bg-emerald-50 text-emerald-700' :
+                    'bg-blue-50 text-blue-700'
+                  }`}>
+                    {isFailed ? 'Failed' : isCompleted ? 'Completed' : 'Running'}
+                  </span>
+                </div>
+                {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
+                  <>
+                    <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className={`h-full transition-all ${isFailed ? 'bg-rose-500' : isCompleted ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                        style={{
+                          width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
+                      <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
+                      {!event.done && <span>{formatSpeed(event.speedBytesPerSec)}</span>}
+                      {!event.done && <span>ETA {formatEta(event.etaSeconds)}</span>}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-gray-600">{formatBytes(event.bytesReceived)} downloaded</p>
+                )}
+                {event.message ? (
+                  <p className={`text-[11px] ${isFailed ? 'text-rose-700' : 'text-gray-500'}`}>
+                    {event.message}
+                  </p>
+                ) : null}
+                {isFailed && sessionMeta ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      props.onRetryInstall?.(
+                        sessionMeta.plan,
+                        sessionMeta.installSource as 'catalog' | 'manual' | 'verified',
+                      );
+                    }}
+                  >
+                    Retry
+                  </Button>
+                ) : null}
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
-                <span>{formatBytes(activeFormModelProgress.bytesReceived)} / {formatBytes(activeFormModelProgress.bytesTotal)}</span>
-                <span>{formatSpeed(activeFormModelProgress.speedBytesPerSec)}</span>
-                <span>ETA {formatEta(activeFormModelProgress.etaSeconds)}</span>
-              </div>
-            </>
-          ) : (
-            <p className="text-[11px] text-gray-600">{formatBytes(activeFormModelProgress.bytesReceived)} downloaded</p>
-          )}
-          {activeFormModelProgress.message ? (
-            <p className={`text-[11px] ${activeFormModelProgress.done && !activeFormModelProgress.success ? 'text-rose-700' : 'text-gray-500'}`}>
-              {activeFormModelProgress.message}
-            </p>
-          ) : null}
+            );
+          })}
         </div>
       ) : null}
 
-      {progressEvents.length > 0 ? (
+      {recentSessions.length > 0 ? (
         <div className="space-y-1 rounded-[10px] border border-gray-200 bg-white p-3">
-          <p className="text-xs font-semibold text-gray-700">Recent Install Sessions</p>
+          <p className="text-xs font-semibold text-gray-700">Recent Sessions</p>
           <div className="space-y-1">
-            {progressEvents.map((event) => (
-              <p key={`install-session-${event.installSessionId}`} className="text-[11px] text-gray-500">
-                {event.modelId} · {event.phase} · {event.done ? (event.success ? 'done' : 'failed') : 'running'}
+            {recentSessions.map((event) => (
+              <p key={`recent-session-${event.installSessionId}`} className="text-[11px] text-gray-500">
+                {event.modelId} · {event.phase} · {event.success ? 'done' : 'failed'}
+                {!event.success && event.message ? ` — ${event.message}` : ''}
               </p>
             ))}
           </div>
@@ -482,6 +516,23 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                 }}
               >
                 {importing ? 'Importing...' : 'Import from Local Manifest'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={importing}
+                onClick={() => {
+                  void (async () => {
+                    setImporting(true);
+                    try {
+                      await props.onImportFile(currentCapabilities, engine.trim() || undefined);
+                    } finally {
+                      setImporting(false);
+                    }
+                  })();
+                }}
+              >
+                {importing ? 'Importing...' : 'Import Model File'}
               </Button>
             </div>
             <Input
