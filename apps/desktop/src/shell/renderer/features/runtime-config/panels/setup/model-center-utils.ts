@@ -104,3 +104,18 @@ export function pruneProgressSessions(
   }
   return changed ? next : sessions;
 }
+
+export function filterInstalledModels<T extends { model?: string; localModelId?: string; capabilities?: string[]; engine?: string }>(
+  models: T[],
+  query: string,
+): T[] {
+  const normalized = (query || '').trim().toLowerCase();
+  if (!normalized) return models;
+  return models.filter((model) => {
+    const modelName = (model.model || '').toLowerCase();
+    const localId = (model.localModelId || '').toLowerCase();
+    const caps = (model.capabilities || []).join(' ').toLowerCase();
+    const eng = (model.engine || '').toLowerCase();
+    return modelName.includes(normalized) || localId.includes(normalized) || caps.includes(normalized) || eng.includes(normalized);
+  });
+}

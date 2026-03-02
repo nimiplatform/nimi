@@ -35,6 +35,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const [pendingHighlightModel, setPendingHighlightModel] = useState('');
   const [highlightLocalModelId, setHighlightLocalModelId] = useState('');
   const [progressBySessionId, setProgressBySessionId] = useState<Record<string, ProgressSessionState>>({});
+  const [installedSearchQuery, setInstalledSearchQuery] = useState('');
   const [internalSelectedDependencyModId, setInternalSelectedDependencyModId] = useState('');
   const [selectedDependencyCapability, setSelectedDependencyCapability] = useState<'auto' | CapabilityOption>('auto');
   const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
@@ -390,6 +391,8 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
       <ModelCenterInstalledList
         sortedModels={sortedModels}
         highlightLocalModelId={highlightLocalModelId}
+        searchQuery={installedSearchQuery}
+        onSearchQueryChange={setInstalledSearchQuery}
         onStart={props.onStart}
         onStop={props.onStop}
         onRestart={props.onRestart}
