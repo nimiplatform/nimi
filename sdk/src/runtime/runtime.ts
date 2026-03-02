@@ -5,6 +5,7 @@ import { asNimiError, createNimiError } from './errors.js';
 import {
   FallbackPolicy,
   FinishReason,
+  MediaJobEventType,
   MediaJobStatus,
   Modal,
   RoutePolicy,
@@ -16,11 +17,16 @@ import {
   type GetSpeechVoicesRequest,
   type GetSpeechVoicesResponse,
   type MediaJob,
+  type MediaJobEvent,
   type SpeechVoiceDescriptor,
   type StreamGenerateEvent,
   type StreamSpeechSynthesisRequest,
   type SubmitMediaJobRequest,
 } from './generated/runtime/v1/ai';
+import {
+  WorkflowEventType,
+  type WorkflowEvent,
+} from './generated/runtime/v1/workflow';
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit';
 import { Struct } from './generated/google/protobuf/struct.js';
 import { RuntimeMethodIds, isRuntimeStreamMethod } from './method-ids.js';
@@ -35,6 +41,7 @@ import type {
   RuntimeKnowledgeClient,
   RuntimeLocalRuntimeClient,
   RuntimeModelClient,
+  RuntimeScriptWorkerClient,
   RuntimeStreamCallOptions,
   RuntimeTransportConfig,
   RuntimeWorkflowClient,
@@ -89,6 +96,27 @@ const DEFAULT_MEDIA_TIMEOUT_MS = 120000;
 const DEFAULT_RETRY_MAX_ATTEMPTS = 3;
 const DEFAULT_RETRY_BACKOFF_MS = 200;
 const MAX_RETRY_BACKOFF_MS = 3000;
+
+const SDK_RUNTIME_MAJOR_VERSION = 0;
+
+const PHASE2_MODULE_KEYS: ReadonlySet<string> = new Set([
+  'workflow',
+  'model',
+  'knowledge',
+  'app',
+  'scriptWorker',
+]);
+
+const PHASE2_AUDIT_METHOD_IDS: ReadonlySet<string> = new Set([
+  RuntimeMethodIds.audit.listAuditEvents,
+  RuntimeMethodIds.audit.exportAuditEvents,
+  RuntimeMethodIds.audit.listUsageStats,
+]);
+
+function parseSemverMajor(version: string): number | null {
+  const match = /^v?(\d+)/.exec(version);
+  return match ? Number(match[1]) : null;
+}
 
 const RETRYABLE_RUNTIME_REASON_CODES: ReadonlySet<string> = new Set([
   ReasonCode.RUNTIME_UNAVAILABLE,
@@ -339,6 +367,45 @@ function toLabels(input: unknown): Record<string, string> {
   return labels;
 }
 
+const MEDIA_JOB_TERMINAL_EVENT_TYPES: ReadonlySet<MediaJobEventType> = new Set([
+  MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED,
+  MediaJobEventType.MEDIA_JOB_EVENT_FAILED,
+  MediaJobEventType.MEDIA_JOB_EVENT_CANCELED,
+  MediaJobEventType.MEDIA_JOB_EVENT_TIMEOUT,
+]);
+
+const WORKFLOW_TERMINAL_EVENT_TYPES: ReadonlySet<WorkflowEventType> = new Set([
+  WorkflowEventType.WORKFLOW_EVENT_COMPLETED,
+  WorkflowEventType.WORKFLOW_EVENT_FAILED,
+  WorkflowEventType.WORKFLOW_EVENT_CANCELED,
+]);
+
+function wrapModeBMediaStream(source: AsyncIterable<MediaJobEvent>): AsyncIterable<MediaJobEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for await (const event of source) {
+        yield event;
+        if (MEDIA_JOB_TERMINAL_EVENT_TYPES.has(event.eventType)) {
+          return;
+        }
+      }
+    },
+  };
+}
+
+function wrapModeBWorkflowStream(source: AsyncIterable<WorkflowEvent>): AsyncIterable<WorkflowEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for await (const event of source) {
+        yield event;
+        if (WORKFLOW_TERMINAL_EVENT_TYPES.has(event.eventType)) {
+          return;
+        }
+      }
+    },
+  };
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -423,6 +490,8 @@ export class Runtime {
 
   readonly audit: RuntimeAuditClient;
 
+  readonly scriptWorker: RuntimeScriptWorkerClient;
+
   readonly healthEvents: (
     request?: import('./generated/runtime/v1/audit').SubscribeRuntimeHealthEventsRequest,
     options?: RuntimeStreamCallOptions,
@@ -450,6 +519,8 @@ export class Runtime {
   };
 
   #runtimeVersion: string | null = null;
+
+  #versionChecked = false;
 
   readonly #options: RuntimeOptions;
 
@@ -485,6 +556,7 @@ export class Runtime {
         if (version && !this.#runtimeVersion) {
           this.#runtimeVersion = version;
           this.#emitTelemetry('runtime.version.detected', { version });
+          this.#checkVersionCompatibility(version);
         }
       },
     };
@@ -507,22 +579,38 @@ export class Runtime {
     };
 
     this.auth = this.#createPassthroughModule('auth') as RuntimeAuthClient;
-    this.workflow = this.#createPassthroughModule('workflow') as RuntimeWorkflowClient;
+    const workflowPassthrough = this.#createPassthroughModule('workflow') as RuntimeWorkflowClient;
+    this.workflow = {
+      submit: workflowPassthrough.submit,
+      get: workflowPassthrough.get,
+      cancel: workflowPassthrough.cancel,
+      subscribeEvents: async (request, optionsValue) => {
+        const raw = await workflowPassthrough.subscribeEvents(request, optionsValue);
+        return wrapModeBWorkflowStream(raw);
+      },
+    };
     this.model = this.#createPassthroughModule('model') as RuntimeModelClient;
     this.localRuntime = this.#createPassthroughModule('localRuntime') as RuntimeLocalRuntimeClient;
     this.connector = this.#createPassthroughModule('connector') as RuntimeConnectorClient;
     this.knowledge = this.#createPassthroughModule('knowledge') as RuntimeKnowledgeClient;
     this.audit = this.#createPassthroughModule('audit') as RuntimeAuditClient;
+    this.scriptWorker = this.#createPassthroughModule('scriptWorker') as RuntimeScriptWorkerClient;
 
-    this.healthEvents = async (request, optionsValue) => this.audit.subscribeRuntimeHealthEvents(
-      request || {},
-      optionsValue,
-    );
+    this.healthEvents = async (request, optionsValue) => {
+      const raw = await this.audit.subscribeRuntimeHealthEvents(
+        request || {},
+        optionsValue,
+      );
+      return this.#wrapModeDStream(raw);
+    };
 
-    this.providerHealthEvents = async (request, optionsValue) => this.audit.subscribeAIProviderHealthEvents(
-      request || {},
-      optionsValue,
-    );
+    this.providerHealthEvents = async (request, optionsValue) => {
+      const raw = await this.audit.subscribeAIProviderHealthEvents(
+        request || {},
+        optionsValue,
+      );
+      return this.#wrapModeDStream(raw);
+    };
 
     this.app = {
       sendMessage: async (request, optionsValue) => this.#invokeWithClient(
@@ -618,9 +706,12 @@ export class Runtime {
       cancelMediaJob: async (request, optionsValue) => this.#invokeWithClient(
         async (client) => client.ai.cancelMediaJob(request, optionsValue),
       ),
-      subscribeMediaJobEvents: async (request, optionsValue) => this.#invokeWithClient(
-        async (client) => client.ai.subscribeMediaJobEvents(request, optionsValue),
-      ),
+      subscribeMediaJobEvents: async (request, optionsValue) => {
+        const raw = await this.#invokeWithClient(
+          async (client) => client.ai.subscribeMediaJobEvents(request, optionsValue),
+        );
+        return wrapModeBMediaStream(raw);
+      },
       getMediaResult: async (request, optionsValue) => this.#invokeWithClient(
         async (client) => client.ai.getMediaResult(request, optionsValue),
       ),
@@ -866,7 +957,7 @@ export class Runtime {
   }
 
   #createPassthroughModule<Module extends Record<string, (...args: unknown[]) => Promise<unknown>>>(
-    moduleKey: keyof Pick<RuntimeClient, 'auth' | 'workflow' | 'model' | 'localRuntime' | 'connector' | 'knowledge' | 'audit'>,
+    moduleKey: keyof Pick<RuntimeClient, 'auth' | 'workflow' | 'model' | 'localRuntime' | 'connector' | 'knowledge' | 'audit' | 'scriptWorker'>,
   ): Module {
     return new Proxy({} as Module, {
       get: (_target, property: string | symbol) => {
@@ -874,7 +965,9 @@ export class Runtime {
           return undefined;
         }
 
-        return async (...args: unknown[]) => this.#invokeWithClient(async (client) => {
+        return async (...args: unknown[]) => {
+          this.#assertMethodAvailable(moduleKey, property);
+          return this.#invokeWithClient(async (client) => {
           const module = (client as unknown as Record<string, unknown>)[moduleKey] as Record<string, unknown>;
           const method = module[property];
           if (typeof method !== 'function') {
@@ -887,6 +980,7 @@ export class Runtime {
           }
           return await (method as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
         });
+        };
       },
     });
   }
@@ -1028,6 +1122,94 @@ export class Runtime {
       at: nowIso(),
       data,
     });
+  }
+
+  #checkVersionCompatibility(version: string): void {
+    if (this.#versionChecked) {
+      return;
+    }
+    this.#versionChecked = true;
+
+    const runtimeMajor = parseSemverMajor(version);
+    if (runtimeMajor === null) {
+      this.#emitTelemetry('runtime.version.unparseable', { version });
+      return;
+    }
+
+    if (runtimeMajor !== SDK_RUNTIME_MAJOR_VERSION) {
+      const error = createNimiError({
+        message: `runtime major version ${runtimeMajor} is incompatible with SDK major version ${SDK_RUNTIME_MAJOR_VERSION}`,
+        reasonCode: ReasonCode.SDK_RUNTIME_VERSION_INCOMPATIBLE,
+        actionHint: 'upgrade_sdk_or_runtime',
+        source: 'sdk',
+      });
+      this.#eventBus.emit('error', { error, at: nowIso() });
+      throw error;
+    }
+
+    this.#emitTelemetry('runtime.version.compatible', {
+      runtimeVersion: version,
+      sdkMajor: SDK_RUNTIME_MAJOR_VERSION,
+    });
+  }
+
+  #assertMethodAvailable(moduleKey: string, methodKey: string): void {
+    const isPhase2Module = PHASE2_MODULE_KEYS.has(moduleKey);
+    const isPhase2AuditMethod = moduleKey === 'audit'
+      && PHASE2_AUDIT_METHOD_IDS.has(
+        (RuntimeMethodIds.audit as Record<string, string>)[methodKey] || '',
+      );
+
+    if (!isPhase2Module && !isPhase2AuditMethod) {
+      return;
+    }
+
+    if (!this.#runtimeVersion) {
+      return;
+    }
+
+    const runtimeMajor = parseSemverMajor(this.#runtimeVersion);
+    if (runtimeMajor === null) {
+      return;
+    }
+
+    if (runtimeMajor < SDK_RUNTIME_MAJOR_VERSION) {
+      throw createNimiError({
+        message: `${moduleKey}.${methodKey} is unavailable: runtime version ${this.#runtimeVersion} does not support this Phase 2 method`,
+        reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+        actionHint: 'upgrade_runtime_to_support_method',
+        source: 'sdk',
+      });
+    }
+  }
+
+  #wrapModeDStream<T>(source: AsyncIterable<T>): AsyncIterable<T> {
+    const owner = this;
+    return {
+      async *[Symbol.asyncIterator]() {
+        try {
+          yield* source;
+        } catch (error) {
+          const normalized = asNimiError(error, {
+            reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+            source: 'runtime',
+          });
+          const isCancelled = normalized.reasonCode === ReasonCode.RUNTIME_GRPC_CANCELLED
+            || normalized.message.includes(ReasonCode.RUNTIME_GRPC_CANCELLED);
+          if (isCancelled) {
+            owner.#eventBus.emit('runtime.disconnected', {
+              at: nowIso(),
+              reasonCode: ReasonCode.RUNTIME_GRPC_CANCELLED,
+            });
+            owner.#emitTelemetry('runtime.mode-d.cancelled', {
+              at: nowIso(),
+            });
+            return;
+          }
+          throw normalized;
+        }
+      },
+    };
   }
 
   async #withTimeout<T>(
@@ -1375,6 +1557,8 @@ export class Runtime {
       });
     }
 
+    this.#assertMethodAvailable(binding.moduleKey, binding.methodKey);
+
     return this.#invokeWithClient(async (client) => {
       const module = (client as unknown as Record<string, unknown>)[binding.moduleKey] as Record<string, unknown>;
       const method = module[binding.methodKey];
@@ -1475,9 +1659,10 @@ export class Runtime {
   }
 
   async #subscribeMediaJob(jobId: string): Promise<AsyncIterable<import('./generated/runtime/v1/ai').MediaJobEvent>> {
-    return this.#invokeWithClient(async (client) => client.ai.subscribeMediaJobEvents({
+    const raw = await this.#invokeWithClient(async (client) => client.ai.subscribeMediaJobEvents({
       jobId: ensureText(jobId, 'jobId'),
     }));
+    return wrapModeBMediaStream(raw);
   }
 
   async #getMediaArtifacts(jobId: string): Promise<{ artifacts: import('./generated/runtime/v1/ai').MediaArtifact[]; traceId?: string }> {
