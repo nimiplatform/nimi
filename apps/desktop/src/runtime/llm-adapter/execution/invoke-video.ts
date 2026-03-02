@@ -33,6 +33,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       model: resolved.modelId,
       prompt: String(input.prompt || '').trim(),
       route: resolved.source,
+      connectorId: String(input.connectorId || '').trim() || undefined,
       fallback: 'deny',
       durationSec: typeof input.durationSeconds === 'number' ? input.durationSeconds : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,

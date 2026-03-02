@@ -33,6 +33,7 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       model: resolved.modelId,
       prompt: String(input.prompt || '').trim(),
       route: resolved.source,
+      connectorId: String(input.connectorId || '').trim() || undefined,
       fallback: 'deny',
       size: String(input.size || '').trim() || undefined,
       n: typeof input.n === 'number' ? input.n : undefined,

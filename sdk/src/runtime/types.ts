@@ -592,6 +592,7 @@ export type ImageGenerateInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
@@ -616,6 +617,7 @@ export type VideoGenerateInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;
@@ -665,6 +667,7 @@ export type SpeechTranscribeInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
   idempotencyKey?: string;
   requestId?: string;

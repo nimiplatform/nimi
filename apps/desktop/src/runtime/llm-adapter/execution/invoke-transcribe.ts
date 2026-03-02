@@ -45,6 +45,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       mimeType: audio.mimeType,
       language: String(input.language || '').trim() || undefined,
       route: resolved.source,
+      connectorId: String(input.connectorId || '').trim() || undefined,
       fallback: 'deny',
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata: await buildRuntimeRequestMetadata({
