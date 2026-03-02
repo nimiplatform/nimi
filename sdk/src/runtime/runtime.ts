@@ -1257,6 +1257,9 @@ export class Runtime {
       : this.#options.timeoutMs;
 
     const metadataInput = input.metadata || {};
+    const traceId = normalizeText(
+      metadataInput['x-nimi-trace-id'] || metadataInput.traceId,
+    ) || undefined;
     const keySource = normalizeText(
       metadataInput['x-nimi-key-source'] || metadataInput.keySource,
     ).toLowerCase() || 'managed';
@@ -1275,6 +1278,8 @@ export class Runtime {
         const normalizedKey = normalizeText(key).toLowerCase();
         return normalizedKey !== 'x-nimi-key-source'
           && normalizedKey !== 'keysource'
+          && normalizedKey !== 'x-nimi-trace-id'
+          && normalizedKey !== 'traceid'
           && normalizedKey !== 'x-nimi-provider-type'
           && normalizedKey !== 'providertype'
           && normalizedKey !== 'x-nimi-provider-endpoint'
@@ -1287,6 +1292,7 @@ export class Runtime {
       : undefined;
 
     const metadata = {
+      traceId,
       keySource: keySource as 'inline' | 'managed',
       providerType,
       providerEndpoint,

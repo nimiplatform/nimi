@@ -12,6 +12,20 @@ export type CreateNimiErrorInput = {
   details?: Record<string, unknown>;
 };
 
+export function isNimiError(error: unknown): error is NimiError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const record = error as Record<string, unknown>;
+  return (
+    typeof record.reasonCode === 'string'
+    && typeof record.actionHint === 'string'
+    && typeof record.traceId === 'string'
+    && typeof record.retryable === 'boolean'
+    && typeof record.source === 'string'
+  );
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
@@ -58,7 +72,7 @@ function parseEmbeddedRuntimeError(error: unknown): Partial<CreateNimiErrorInput
     return null;
   }
 
-  const reasonCode = readString(record, ['reasonCode', 'reason_code']);
+  const reasonCode = readString(record, ['reasonCode', 'reason_code', 'reason']);
   const code = readString(record, ['code']);
   const actionHint = readString(record, ['actionHint', 'action_hint']);
   const traceId = readString(record, ['traceId', 'trace_id']);
@@ -76,6 +90,10 @@ function parseEmbeddedRuntimeError(error: unknown): Partial<CreateNimiErrorInput
     || normalizedDetails,
   );
   if (!hasStructuredRuntimeFields) {
+    const nested = asRecord(record.error);
+    if (Object.keys(nested).length > 0) {
+      return parseEmbeddedRuntimeError(nested);
+    }
     return null;
   }
 
@@ -107,11 +125,7 @@ export function createNimiError(input: CreateNimiErrorInput): NimiError {
 }
 
 export function asNimiError(error: unknown, defaults?: Partial<CreateNimiErrorInput>): NimiError {
-  if (
-    error instanceof Error
-    && typeof (error as Partial<NimiError>).reasonCode === 'string'
-    && typeof (error as Partial<NimiError>).actionHint === 'string'
-  ) {
+  if (isNimiError(error)) {
     return error as NimiError;
   }
 

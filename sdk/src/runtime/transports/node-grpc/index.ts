@@ -161,6 +161,14 @@ function reasonCodeFromServiceError(grpc: GrpcModule, error: ServiceError): stri
     return structured.reasonCode;
   }
   const details = String(error.details || '').trim();
+  const prefixedReasonFromDetails = parseReasonCodeFromText(details);
+  if (prefixedReasonFromDetails) {
+    return prefixedReasonFromDetails;
+  }
+  const prefixedReasonFromMessage = parseReasonCodeFromText(error.message);
+  if (prefixedReasonFromMessage) {
+    return prefixedReasonFromMessage;
+  }
   if (details && /^[A-Z0-9_]+$/.test(details)) {
     return details;
   }
@@ -216,6 +224,18 @@ function parseJsonObject(input: string): Record<string, unknown> | null {
   }
 }
 
+function parseReasonCodeFromText(input: unknown): string {
+  const text = String(input || '').trim();
+  if (!text) {
+    return '';
+  }
+  const prefixed = text.match(/^([A-Z0-9_]+):/);
+  if (prefixed?.[1]) {
+    return prefixed[1];
+  }
+  return '';
+}
+
 function parseStructuredGrpcDetails(error: ServiceError): {
   reasonCode?: string;
   actionHint?: string;
@@ -224,17 +244,19 @@ function parseStructuredGrpcDetails(error: ServiceError): {
   message?: string;
 } | null {
   const details = String(error.details || '').trim();
-  if (!details) {
+  const message = String(error.message || '').trim();
+  const candidate = details || message;
+  if (!candidate) {
     return null;
   }
 
-  const directParsed = parseJsonObject(details);
-  const firstBraceIndex = details.indexOf('{');
-  const lastBraceIndex = details.lastIndexOf('}');
+  const directParsed = parseJsonObject(candidate);
+  const firstBraceIndex = candidate.indexOf('{');
+  const lastBraceIndex = candidate.lastIndexOf('}');
   const embeddedParsed = (
     firstBraceIndex >= 0
     && lastBraceIndex > firstBraceIndex
-  ) ? parseJsonObject(details.slice(firstBraceIndex, lastBraceIndex + 1)) : null;
+  ) ? parseJsonObject(candidate.slice(firstBraceIndex, lastBraceIndex + 1)) : null;
   const record = directParsed || embeddedParsed;
   if (!record) {
     return null;
@@ -243,7 +265,7 @@ function parseStructuredGrpcDetails(error: ServiceError): {
   const reasonCode = readString(record, ['reasonCode', 'reason_code']);
   const actionHint = readString(record, ['actionHint', 'action_hint']);
   const traceId = readString(record, ['traceId', 'trace_id']);
-  const message = readString(record, ['message']);
+  const structuredMessage = readString(record, ['message']);
   const retryable = readBoolean(record, ['retryable']);
   const hasStructuredFields = Boolean(reasonCode || actionHint || traceId || typeof retryable === 'boolean');
   if (!hasStructuredFields) {
@@ -255,7 +277,7 @@ function parseStructuredGrpcDetails(error: ServiceError): {
     actionHint: actionHint || undefined,
     traceId: traceId || undefined,
     retryable,
-    message: message || undefined,
+    message: structuredMessage || undefined,
   };
 }
 
