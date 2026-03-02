@@ -76,6 +76,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
     "/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
     "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
+    "/nimi.runtime.v1.ScriptWorkerService/Execute",
 ];
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[

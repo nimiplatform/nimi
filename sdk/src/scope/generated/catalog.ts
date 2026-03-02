@@ -40,13 +40,11 @@ export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
 
 export const GENERATED_RUNTIME_SCOPES: readonly ScopeName[] = Object.freeze([
   'runtime.ai.cancel_media_job' as ScopeName,
-  'runtime.ai.check_token_provider_health' as ScopeName,
   'runtime.ai.embed' as ScopeName,
   'runtime.ai.generate' as ScopeName,
   'runtime.ai.get_media_artifacts' as ScopeName,
   'runtime.ai.get_media_job' as ScopeName,
   'runtime.ai.get_speech_voices' as ScopeName,
-  'runtime.ai.list_token_provider_models' as ScopeName,
   'runtime.ai.read' as ScopeName,
   'runtime.ai.stream_generate' as ScopeName,
   'runtime.ai.stream_speech_synthesis' as ScopeName,
