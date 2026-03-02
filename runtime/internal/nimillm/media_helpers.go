@@ -644,6 +644,8 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 		ValueAsString(MapField(payload["data"], "audio")),
 		ValueAsString(MapField(payload["data"], "audio_base64")),
 		ValueAsString(MapField(payload["output"], "audio")),
+		// DashScope qwen3-tts: output.audio is a nested object with data field
+		ValueAsString(MapField(MapField(payload["output"], "audio"), "data")),
 	}
 	for _, raw := range paths {
 		trimmed := strings.TrimSpace(raw)
@@ -670,6 +672,8 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 		ValueAsString(MapField(payload["data"], "audio_url")),
 		ValueAsString(MapField(payload["output"], "url")),
 		ValueAsString(MapField(payload["output"], "audio_url")),
+		// DashScope qwen3-tts: output.audio is a nested object with url field
+		ValueAsString(MapField(MapField(payload["output"], "audio"), "url")),
 	))
 	if artifactURI != "" {
 		response, err := http.Get(artifactURI) //nolint:gosec

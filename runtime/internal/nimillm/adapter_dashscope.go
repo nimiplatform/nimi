@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -12,6 +13,21 @@ import (
 )
 
 const AdapterAlibabaNative = "alibaba_native_adapter"
+
+// nativeOriginURL extracts scheme://host from a URL, stripping any path
+// (e.g. /compatible-mode/v1). This prevents double-path when native adapters
+// append their own API paths (e.g. /api/v1/...).
+func nativeOriginURL(endpoint string) string {
+	trimmed := strings.TrimSpace(endpoint)
+	if trimmed == "" {
+		return ""
+	}
+	u, err := url.Parse(trimmed)
+	if err != nil || u.Host == "" {
+		return trimmed
+	}
+	return u.Scheme + "://" + u.Host
+}
 
 // ExecuteAlibabaNative executes a media job against the Alibaba native API.
 // It handles four modals: image generation, video generation, TTS, and STT.
@@ -23,7 +39,7 @@ func ExecuteAlibabaNative(
 	req *runtimev1.SubmitMediaJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	baseURL := nativeOriginURL(strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/"))
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
