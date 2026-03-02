@@ -2462,6 +2462,7 @@ dependencies = [
  "sha2",
  "tauri",
  "tauri-build",
+ "tempfile",
  "tokio",
  "tonic",
  "tonic-build",

@@ -146,6 +146,12 @@ export type LocalAiModelRecord = {
   healthDetail?: string;
 };
 
+export type LocalAiInstallAcceptedResponse = {
+  installSessionId: string;
+  modelId: string;
+  localModelId: string;
+};
+
 export type LocalAiModelHealth = {
   localModelId: string;
   status: LocalAiModelStatus;

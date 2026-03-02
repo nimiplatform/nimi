@@ -1,11 +1,13 @@
 import {
   appendLocalAiRuntimeInferenceAudit,
   appendLocalAiRuntimeAudit,
+  revealLocalAiRuntimeModelInFolder,
   subscribeLocalAiRuntimeDownloadProgress,
   fetchLocalAiRuntimeSnapshot,
   healthLocalAiRuntimeModels,
   installLocalAiRuntimeVerifiedModel,
   importLocalAiRuntimeModel,
+  importLocalAiRuntimeModelFile,
   installLocalAiRuntimeModel,
   searchLocalAiRuntimeCatalog,
   resolveLocalAiRuntimeInstallPlan,
@@ -23,6 +25,7 @@ import {
   listLocalAiRuntimeAudits,
   listLocalAiRuntimeModels,
   pickLocalAiRuntimeManifestPath,
+  pickLocalAiRuntimeModelFile,
   removeLocalAiRuntimeModel,
   startLocalAiRuntimeModel,
   stopLocalAiRuntimeModel,
@@ -40,8 +43,10 @@ import type {
   LocalAiDependencyApplyResult,
   LocalAiDeviceProfile,
   LocalAiDownloadProgressEvent,
+  LocalAiInstallAcceptedResponse,
   LocalAiInstallPlanDescriptor,
   LocalAiImportPayload,
+  LocalAiImportFilePayload,
   LocalAiInstallPayload,
   LocalAiInstallVerifiedPayload,
   LocalAiProviderAdapter,
@@ -78,8 +83,10 @@ export type {
   LocalAiDependencyApplyResult,
   LocalAiDeviceProfile,
   LocalAiDownloadProgressEvent,
+  LocalAiInstallAcceptedResponse,
   LocalAiInstallPlanDescriptor,
   LocalAiImportPayload,
+  LocalAiImportFilePayload,
   LocalAiInstallPayload,
   LocalAiInstallVerifiedPayload,
   LocalAiProviderAdapter,
@@ -131,16 +138,21 @@ export type LocalAiRuntimeFacade = {
   install: (
     payload: LocalAiInstallPayload,
     options?: LocalAiRuntimeWriteOptions,
-  ) => Promise<LocalAiModelRecord>;
+  ) => Promise<LocalAiInstallAcceptedResponse>;
   listVerified: () => Promise<LocalAiVerifiedModelDescriptor[]>;
   installVerified: (
     payload: LocalAiInstallVerifiedPayload,
     options?: LocalAiRuntimeWriteOptions,
-  ) => Promise<LocalAiModelRecord>;
+  ) => Promise<LocalAiInstallAcceptedResponse>;
   import: (
     payload: LocalAiImportPayload,
     options?: LocalAiRuntimeWriteOptions,
   ) => Promise<LocalAiModelRecord>;
+  pickModelFile: () => Promise<string | null>;
+  importFile: (
+    payload: LocalAiImportFilePayload,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiInstallAcceptedResponse>;
   remove: (
     localModelId: string,
     options?: LocalAiRuntimeWriteOptions,
@@ -163,6 +175,7 @@ export type LocalAiRuntimeFacade = {
   subscribeDownloadProgress: (
     listener: (event: LocalAiDownloadProgressEvent) => void,
   ) => Promise<() => void>;
+  revealInFolder: (localModelId: string) => Promise<void>;
 };
 
 export const localAiRuntime: LocalAiRuntimeFacade = {
@@ -183,6 +196,8 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   listVerified: listLocalAiRuntimeVerifiedModels,
   installVerified: installLocalAiRuntimeVerifiedModel,
   import: importLocalAiRuntimeModel,
+  pickModelFile: pickLocalAiRuntimeModelFile,
+  importFile: importLocalAiRuntimeModelFile,
   remove: removeLocalAiRuntimeModel,
   start: startLocalAiRuntimeModel,
   stop: stopLocalAiRuntimeModel,
@@ -194,6 +209,7 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   queryByCapability: queryLocalAiRuntimeModelsByCapability,
   pollSnapshot: fetchLocalAiRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalAiRuntimeDownloadProgress,
+  revealInFolder: revealLocalAiRuntimeModelInFolder,
 };
 
 export { startLocalAiRuntimePolling };

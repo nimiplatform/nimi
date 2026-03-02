@@ -23,6 +23,7 @@ import type {
   LocalAiModelHealth,
   LocalAiAuditEvent,
   LocalAiDownloadProgressEvent,
+  LocalAiInstallAcceptedResponse,
   LocalAiRuntimeWriteOptions,
 } from './types';
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
@@ -577,6 +578,15 @@ export function parseDownloadProgressEvent(value: unknown): LocalAiDownloadProgr
     message: asString(record.message) || undefined,
     done: Boolean(record.done),
     success: Boolean(record.success),
+  };
+}
+
+export function parseInstallAcceptedResponse(value: unknown): LocalAiInstallAcceptedResponse {
+  const record = asRecord(value);
+  return {
+    installSessionId: asString(record.installSessionId),
+    modelId: asString(record.modelId),
+    localModelId: asString(record.localModelId),
   };
 }
 

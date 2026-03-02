@@ -373,6 +373,14 @@ export type LocalAiImportPayload = {
   endpoint?: string;
 };
 
+export type LocalAiImportFilePayload = {
+  filePath: string;
+  modelName?: string;
+  capabilities: string[];
+  engine?: string;
+  endpoint?: string;
+};
+
 export type LocalAiInferenceAuditPayload = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_token_api';
   modId: string;
@@ -458,4 +466,10 @@ export type LocalAiDownloadProgressEvent = {
   message?: string;
   done: boolean;
   success: boolean;
+};
+
+export type LocalAiInstallAcceptedResponse = {
+  installSessionId: string;
+  modelId: string;
+  localModelId: string;
 };

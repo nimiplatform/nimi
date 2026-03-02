@@ -219,7 +219,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-model-and-repo',
         };
       }
-      const model = await localAiRuntime.install({
+      const accepted = await localAiRuntime.install({
         modelId,
         repo,
         revision: String(input.input.revision || '').trim() || undefined,
@@ -234,7 +234,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
-        output: { model },
+        output: { installSessionId: accepted.installSessionId, modelId: accepted.modelId },
       };
     },
   });

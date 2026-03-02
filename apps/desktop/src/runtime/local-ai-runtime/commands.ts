@@ -19,10 +19,12 @@ import type {
   LocalAiInstallPayload,
   LocalAiInstallVerifiedPayload,
   LocalAiImportPayload,
+  LocalAiImportFilePayload,
   LocalAiModelHealth,
   LocalAiInferenceAuditPayload,
   LocalAiRuntimeAuditPayload,
   LocalAiDownloadProgressEvent,
+  LocalAiInstallAcceptedResponse,
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
 } from './types';
@@ -40,6 +42,7 @@ import {
   parseAuditEvent,
   parseModelHealth,
   parseDownloadProgressEvent,
+  parseInstallAcceptedResponse,
   readGlobalTauriEventListen,
   assertLifecycleWriteAllowed,
 } from './parsers';
@@ -177,22 +180,37 @@ export async function pickLocalAiRuntimeManifestPath(): Promise<string | null> {
   return result || null;
 }
 
+export async function pickLocalAiRuntimeModelFile(): Promise<string | null> {
+  if (!hasTauriInvoke()) return null;
+  const result = await tauriInvoke<string | null>('local_ai_pick_model_file', {});
+  return result || null;
+}
+
+export async function importLocalAiRuntimeModelFile(
+  payload: LocalAiImportFilePayload,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiInstallAcceptedResponse> {
+  assertLifecycleWriteAllowed('local_runtime_models_import_file', options?.caller);
+  const result = await invokeLocalAiCommand<unknown>('local_ai_models_import_file', { payload });
+  return parseInstallAcceptedResponse(result);
+}
+
 export async function installLocalAiRuntimeModel(
   payload: LocalAiInstallPayload,
   options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+): Promise<LocalAiInstallAcceptedResponse> {
   assertLifecycleWriteAllowed('local_runtime_models_install', options?.caller);
   const result = await invokeLocalAiCommand<unknown>('local_ai_models_install', { payload });
-  return parseModelRecord(result);
+  return parseInstallAcceptedResponse(result);
 }
 
 export async function installLocalAiRuntimeVerifiedModel(
   payload: LocalAiInstallVerifiedPayload,
   options?: LocalAiRuntimeWriteOptions,
-): Promise<LocalAiModelRecord> {
+): Promise<LocalAiInstallAcceptedResponse> {
   assertLifecycleWriteAllowed('local_runtime_models_install_verified', options?.caller);
   const result = await invokeLocalAiCommand<unknown>('local_ai_models_install_verified', { payload });
-  return parseModelRecord(result);
+  return parseInstallAcceptedResponse(result);
 }
 
 export async function importLocalAiRuntimeModel(
@@ -251,6 +269,12 @@ export async function appendLocalAiRuntimeInferenceAudit(payload: LocalAiInferen
 
 export async function appendLocalAiRuntimeAudit(payload: LocalAiRuntimeAuditPayload): Promise<void> {
   await invokeLocalAiCommand<void>('local_ai_append_runtime_audit', { payload });
+}
+
+export async function revealLocalAiRuntimeModelInFolder(localModelId: string): Promise<void> {
+  await invokeLocalAiCommand<void>('local_ai_models_reveal_in_folder', {
+    payload: { localModelId },
+  });
 }
 
 const LOCAL_AI_DOWNLOAD_PROGRESS_EVENT = 'local-ai://download-progress';
