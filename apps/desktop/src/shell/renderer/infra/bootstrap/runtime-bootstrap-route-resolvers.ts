@@ -105,12 +105,8 @@ function ensureSpeechRouteModelId(model: string): string {
  * Thin passthrough for speech route resolution. No local route decision logic —
  * the Go runtime resolves model capabilities and provider routing via connectorId.
  *
- * Key differences from createResolveRouteBinding (chat):
- *  - Does NOT fall back to fields.connectorId — TTS/STT must use their own
- *    explicitly configured connector. The global connector may be a chat-only
- *    provider (e.g. DeepSeek) that does not support speech modalities.
- *  - Adds cloud/ model prefix for token-api routes so the Go runtime's
- *    preferredRoute() correctly identifies the model as cloud-routed.
+ * Adds cloud/ model prefix for token-api routes so the Go runtime's
+ * preferredRoute() correctly identifies the model as cloud-routed.
  */
 export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields) {
   return async ({
@@ -131,10 +127,7 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
       ? routeSource
       : inferSource(providerId || fields.provider);
     const rawModel = String(explicitModel || fields.localProviderModel || '').trim();
-    // Speech uses only the explicitly provided connectorId — never fall back to
-    // the global fields.connectorId which may be a chat-only connector that does
-    // not support TTS/STT modalities.
-    const resolvedConnectorId = String(connectorId || '').trim();
+    const resolvedConnectorId = String(connectorId || fields.connectorId || '').trim();
 
     if (source === 'local-runtime') {
       return {
