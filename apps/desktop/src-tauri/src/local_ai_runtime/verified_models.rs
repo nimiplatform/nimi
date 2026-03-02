@@ -146,4 +146,53 @@ mod tests {
         assert!(descriptor.files.contains(&"model.safetensors".to_string()));
         assert_eq!(descriptor.file_count, descriptor.files.len());
     }
+
+    #[test]
+    fn verified_model_has_all_required_fields_per_k_local_010() {
+        for model in verified_model_list() {
+            assert!(!model.template_id.trim().is_empty(), "template_id empty for {}", model.model_id);
+            assert!(!model.title.trim().is_empty(), "title empty for {}", model.model_id);
+            assert!(!model.model_id.trim().is_empty(), "model_id empty");
+            assert!(!model.repo.trim().is_empty(), "repo empty for {}", model.model_id);
+            assert!(!model.revision.trim().is_empty(), "revision empty for {}", model.model_id);
+            assert!(!model.capabilities.is_empty(), "capabilities empty for {}", model.model_id);
+            assert!(!model.engine.trim().is_empty(), "engine empty for {}", model.model_id);
+            assert!(!model.entry.trim().is_empty(), "entry empty for {}", model.model_id);
+            assert!(!model.files.is_empty(), "files empty for {}", model.model_id);
+            assert!(!model.license.trim().is_empty(), "license empty for {}", model.model_id);
+            assert!(!model.hashes.is_empty(), "hashes empty for {}", model.model_id);
+            assert!(!model.endpoint.trim().is_empty(), "endpoint empty for {}", model.model_id);
+        }
+    }
+
+    #[test]
+    fn verified_model_hashes_cover_all_files() {
+        for model in verified_model_list() {
+            for file in &model.files {
+                assert!(
+                    model.hashes.contains_key(file),
+                    "hash missing for file {} in model {}",
+                    file,
+                    model.model_id
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn verified_model_entry_is_in_files_list() {
+        for model in verified_model_list() {
+            assert!(
+                model.files.contains(&model.entry),
+                "entry {} not in files list for model {}",
+                model.entry,
+                model.model_id
+            );
+        }
+    }
+
+    #[test]
+    fn find_verified_model_returns_none_for_unknown_template() {
+        assert!(find_verified_model("nonexistent").is_none());
+    }
 }

@@ -90,7 +90,7 @@ pub fn remove_model(app: &AppHandle, local_model_id: &str) -> Result<LocalAiMode
 
 #[cfg(test)]
 mod tests {
-    use super::rebuild_capability_index;
+    use super::{find_model_index, rebuild_capability_index};
     use crate::local_ai_runtime::types::{
         LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
     };
@@ -153,5 +153,52 @@ mod tests {
             state.capability_index.get("tts"),
             Some(&vec!["local:model-a".to_string()]),
         );
+    }
+
+    #[test]
+    fn find_model_index_case_insensitive() {
+        let state = LocalAiRuntimeState {
+            version: 11,
+            models: vec![model_fixture(
+                "local:model-a",
+                &["chat"],
+                LocalAiModelStatus::Installed,
+            )],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            audits: Vec::new(),
+        };
+        assert_eq!(find_model_index(&state, "LOCAL:Model-A"), Some(0));
+    }
+
+    #[test]
+    fn find_model_index_returns_none_for_missing() {
+        let state = LocalAiRuntimeState {
+            version: 11,
+            models: vec![],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            audits: Vec::new(),
+        };
+        assert_eq!(find_model_index(&state, "local:model-a"), None);
+    }
+
+    #[test]
+    fn rebuild_capability_index_skips_empty_capabilities_and_ids() {
+        let mut state = LocalAiRuntimeState {
+            version: 11,
+            models: vec![
+                model_fixture("", &["chat"], LocalAiModelStatus::Installed),
+                model_fixture("local:model-a", &["", "  "], LocalAiModelStatus::Installed),
+            ],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            audits: Vec::new(),
+        };
+        rebuild_capability_index(&mut state);
+        assert!(state.capability_index.is_empty());
     }
 }
