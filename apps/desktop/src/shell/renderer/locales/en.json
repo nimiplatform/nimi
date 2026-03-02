@@ -646,8 +646,10 @@
     "timeFlow": "Time Flow",
     "lastUpdated": "Last Updated",
     "moreOptions": "More Options",
+    "id": "ID",
     "overview": "World Overview",
     "overviewDesc": "Complete coverage of World basic fields, status fields, resource fields and runtime parameters.",
+    "description": "Description",
     "templateArea": "Template Area · API-ready",
     "scoresDesc": "Visual display of Activity, Consensus, Engagement, Quality and overall trends.",
     "activityDesc": "Visual display of Activity, Consensus, Engagement, Quality and overall trends.",
@@ -667,10 +669,10 @@
     "oldestToLatest": "Oldest to Latest",
     "footerNote": "This is a single-file static template example: You can replace world, scores, agents, events with API response data and extend it as a React/Vue component page.",
     "section": {
-      "overview": "Overview",
-      "scores": "Scores",
-      "agents": "Agents",
-      "timeline": "Timeline"
+      "overview": "World Overview",
+      "scores": "World Scoring Matrix",
+      "agents": "Interactive Agent Directory",
+      "timeline": "Chronicle"
     },
     "noDescription": "No description",
     "xianxia": {
@@ -681,6 +683,12 @@
         "agentCount": "Agent Count",
         "lastUpdated": "Last Updated"
       },
+      "agentCount": "Agent Count",
+      "agentsInWorld": "Agents in this world",
+      "created": "Created",
+      "id": "ID",
+      "narrativeLabel": "World Narrative",
+      "online": "Online",
       "intro": {
         "kicker": "World Introduction",
         "title": "World Introduction",
@@ -729,7 +737,93 @@
       }
     }
   },
+  "ModsPanel": {
+    "title": "Mods",
+    "subtitle": "Manage your installed mods",
+    "searchPlaceholder": "Search mods...",
+    "open": "Open",
+    "enable": "Enable",
+    "disable": "Disable",
+    "uninstall": "Uninstall",
+    "settings": "Settings",
+    "retry": "Retry",
+    "crashed": "Crashed",
+    "enabledSection": "Enabled",
+    "disabledSection": "Disabled",
+    "noMods": "No mods installed",
+    "noModsHint": "Discover and install mods from the Marketplace.",
+    "openMarketplace": "Open Marketplace",
+    "noSearchResults": "No mods match your search"
+  },
   "AddContact": {
     "inputRequired": "Please input a user handle or ID."
+  },
+  "runtimeConfig": {
+    "sidebar": {
+      "overview": "Overview",
+      "overviewDesc": "Dashboard & quick actions",
+      "local": "Local Models",
+      "localDesc": "Install & manage models",
+      "cloud": "Cloud API",
+      "cloudDesc": "API key connectors",
+      "runtime": "Runtime",
+      "runtimeDesc": "Daemon, audit & EAA",
+      "mods": "Mods",
+      "modsDesc": "AI dependency setup"
+    },
+    "overview": {
+      "installedModels": "Installed Models",
+      "activeModels": "Active Models",
+      "cloudConnectors": "Cloud Connectors",
+      "healthy": "healthy",
+      "vaultEntries": "Vault Entries",
+      "credentialsStored": "credentials stored",
+      "aiMods": "AI Mods",
+      "withAiDeps": "with AI dependencies",
+      "systemResources": "System Resources",
+      "mockDataSysinfo": "Mock data — will connect to Tauri sysinfo",
+      "estimatedCost": "Estimated Cost",
+      "mockDataUsage": "Mock data — will derive from usage stats",
+      "daily": "Daily",
+      "monthly": "Monthly",
+      "capabilityCoverage": "Capability Coverage",
+      "capabilityCoverageDesc": "AI capabilities available via local runtime or cloud API fallback",
+      "runtimeDaemon": "Runtime Daemon",
+      "runtimeDaemonDesc": "Local AI runtime daemon status",
+      "manageModels": "Manage Models",
+      "configureClouds": "Configure Cloud",
+      "runtimeAudit": "Runtime & Audit",
+      "modDependencies": "Mod Dependencies"
+    },
+    "local": {
+      "searchInstall": "Search & Install Models",
+      "importModel": "Import Model",
+      "installedModels": "Installed Models"
+    },
+    "cloud": {
+      "connectors": "Cloud API Connectors",
+      "connectorsDesc": "Configure API keys for cloud-based AI providers. Used as fallback when local runtime is unavailable.",
+      "addConnector": "Add Connector",
+      "deleteConnector": "Delete",
+      "testConnector": "Test",
+      "connectorConfig": "Connector Configuration"
+    },
+    "runtime": {
+      "localEndpoint": "Local Runtime Endpoint",
+      "daemonLifecycle": "Daemon Lifecycle",
+      "daemonLifecycleDesc": "Manage the local AI runtime daemon process.",
+      "capabilitySummary": "Capability Summary",
+      "providerStatus": "Provider Runtime Status",
+      "nodeMatrix": "Node Capability Matrix"
+    },
+    "mods": {
+      "noAiMods": "No AI Mods",
+      "noAiModsDesc": "No installed mods have declared AI dependencies. Install a mod that uses AI capabilities to see its dependency configuration here.",
+      "modsWithAiDeps": "Mods with AI Dependencies",
+      "setupRequired": "Setup Required",
+      "setupRequiredDesc": "Some capabilities are not available locally. Install a local model or configure a cloud API connector.",
+      "installModels": "Install Models",
+      "configureCloudApi": "Configure Cloud API"
+    }
   }
 }

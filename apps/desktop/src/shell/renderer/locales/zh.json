@@ -646,8 +646,10 @@
     "timeFlow": "时间流速",
     "lastUpdated": "最后更新",
     "moreOptions": "更多选项",
+    "id": "ID",
     "overview": "World 介绍",
     "overviewDesc": "完整覆盖 World 的基础字段、状态字段、资源字段与运行参数。",
+    "description": "描述",
     "templateArea": "模板区域 · 可直连接口字段",
     "scoresDesc": "围绕活跃度、共识度、参与度、质量与综合趋势的可视化展示。",
     "activityDesc": "围绕活跃度、共识度、参与度、质量与综合趋势的可视化展示。",
@@ -667,10 +669,10 @@
     "oldestToLatest": "从旧到新",
     "footerNote": "这是一个单文件静态模板示例：你可以把 world、scores、agents、events 替换为接口返回数据，并继续扩展为 React / Vue 组件化页面。",
     "section": {
-      "overview": "世界介绍",
-      "scores": "评分指标",
-      "agents": "智能体",
-      "timeline": "大事件"
+      "overview": "世界概览",
+      "scores": "世界评分矩阵",
+      "agents": "智能体名录",
+      "timeline": "事件编年"
     },
     "noDescription": "暂无描述",
     "xianxia": {
@@ -681,6 +683,12 @@
         "agentCount": "智能体数量",
         "lastUpdated": "最后更新"
       },
+      "agentCount": "智能体数量",
+      "agentsInWorld": "个智能体在此世界",
+      "created": "创建于",
+      "id": "ID",
+      "narrativeLabel": "世界叙述",
+      "online": "在线",
       "intro": {
         "kicker": "World Introduction",
         "title": "世界介绍",
@@ -729,7 +737,93 @@
       }
     }
   },
+  "ModsPanel": {
+    "title": "Mods",
+    "subtitle": "管理你的已安装模块",
+    "searchPlaceholder": "搜索 Mod...",
+    "open": "打开",
+    "enable": "启用",
+    "disable": "禁用",
+    "uninstall": "卸载",
+    "settings": "设置",
+    "retry": "重试",
+    "crashed": "已崩溃",
+    "enabledSection": "已启用",
+    "disabledSection": "已禁用",
+    "noMods": "暂无已安装 Mod",
+    "noModsHint": "前往市场发现并安装 Mod。",
+    "openMarketplace": "打开市场",
+    "noSearchResults": "没有匹配的 Mod"
+  },
   "AddContact": {
     "inputRequired": "请输入用户账号或 ID"
+  },
+  "runtimeConfig": {
+    "sidebar": {
+      "overview": "概览",
+      "overviewDesc": "仪表盘与快捷操作",
+      "local": "本地模型",
+      "localDesc": "安装与管理模型",
+      "cloud": "云端 API",
+      "cloudDesc": "API 密钥连接器",
+      "runtime": "运行时",
+      "runtimeDesc": "守护进程、审计与 EAA",
+      "mods": "模组",
+      "modsDesc": "AI 依赖配置"
+    },
+    "overview": {
+      "installedModels": "已安装模型",
+      "activeModels": "活跃模型",
+      "cloudConnectors": "云端连接器",
+      "healthy": "健康",
+      "vaultEntries": "凭证条目",
+      "credentialsStored": "已存储凭证",
+      "aiMods": "AI 模组",
+      "withAiDeps": "含 AI 依赖",
+      "systemResources": "系统资源",
+      "mockDataSysinfo": "模拟数据 — 将接入 Tauri sysinfo",
+      "estimatedCost": "预估费用",
+      "mockDataUsage": "模拟数据 — 将从使用统计推导",
+      "daily": "每日",
+      "monthly": "每月",
+      "capabilityCoverage": "能力覆盖",
+      "capabilityCoverageDesc": "通过本地运行时或云端 API 回退可用的 AI 能力",
+      "runtimeDaemon": "运行时守护进程",
+      "runtimeDaemonDesc": "本地 AI 运行时守护进程状态",
+      "manageModels": "管理模型",
+      "configureClouds": "配置云端",
+      "runtimeAudit": "运行时与审计",
+      "modDependencies": "模组依赖"
+    },
+    "local": {
+      "searchInstall": "搜索与安装模型",
+      "importModel": "导入模型",
+      "installedModels": "已安装模型"
+    },
+    "cloud": {
+      "connectors": "云端 API 连接器",
+      "connectorsDesc": "配置云端 AI 提供商的 API 密钥。当本地运行时不可用时作为回退使用。",
+      "addConnector": "添加连接器",
+      "deleteConnector": "删除",
+      "testConnector": "测试",
+      "connectorConfig": "连接器配置"
+    },
+    "runtime": {
+      "localEndpoint": "本地运行时端点",
+      "daemonLifecycle": "守护进程生命周期",
+      "daemonLifecycleDesc": "管理本地 AI 运行时守护进程。",
+      "capabilitySummary": "能力摘要",
+      "providerStatus": "提供商运行状态",
+      "nodeMatrix": "节点能力矩阵"
+    },
+    "mods": {
+      "noAiMods": "无 AI 模组",
+      "noAiModsDesc": "当前没有已安装的模组声明了 AI 依赖。安装使用 AI 能力的模组后，可在此处配置其依赖。",
+      "modsWithAiDeps": "含 AI 依赖的模组",
+      "setupRequired": "需要配置",
+      "setupRequiredDesc": "部分能力在本地不可用。请安装本地模型或配置云端 API 连接器以启用。",
+      "installModels": "安装模型",
+      "configureCloudApi": "配置云端 API"
+    }
   }
 }
