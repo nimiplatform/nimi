@@ -6,7 +6,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
@@ -128,7 +127,9 @@ func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStor
 
 	rec, found, err := connStore.Get(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "load connector: %v", err)
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			ActionHint: "retry_or_check_runtime_logs",
+		})
 	}
 	if !found {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
@@ -139,7 +140,9 @@ func resolveManagedTarget(connectorID string, connStore *connector.ConnectorStor
 
 	apiKey, err := connStore.LoadCredential(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "load credential: %v", err)
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			ActionHint: "retry_or_check_runtime_logs",
+		})
 	}
 	if apiKey == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)

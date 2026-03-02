@@ -162,3 +162,16 @@ func resolveTTL(rawSeconds int32, fallbackSeconds int32) time.Duration {
 	}
 	return time.Duration(rawSeconds) * time.Second
 }
+
+func scopeValidationActionHint(reason runtimev1.ReasonCode) string {
+	switch reason {
+	case runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED:
+		return "use_published_scope_catalog_version"
+	case runtimev1.ReasonCode_APP_SCOPE_REVOKED:
+		return "reauthorize_with_active_scopes"
+	case runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN:
+		return "request_allowed_scopes_only"
+	default:
+		return "check_scope_catalog_and_requested_scopes"
+	}
+}

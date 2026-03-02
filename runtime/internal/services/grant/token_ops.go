@@ -8,7 +8,6 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -143,7 +142,9 @@ func (s *Service) IssueDelegatedAccessToken(_ context.Context, req *runtimev1.Is
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if validation := s.catalog.ValidateScopes(parent.IssuedScopeCatalog, scopes); validation != runtimev1.ReasonCode_ACTION_EXECUTED {
-		return nil, status.Error(codes.PermissionDenied, validation.String())
+		return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, validation, grpcerr.ReasonOptions{
+			ActionHint: scopeValidationActionHint(validation),
+		})
 	}
 
 	selectors := cloneSelectors(req.GetResourceSelectors())

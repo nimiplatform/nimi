@@ -1,6 +1,9 @@
 package grpcerr
 
 import (
+	"encoding/json"
+	"strconv"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -9,15 +12,76 @@ import (
 
 const domain = "nimi.runtime.v1"
 
+type ReasonOptions struct {
+	ActionHint string
+	TraceID    string
+	Retryable  *bool
+	Message    string
+	Metadata   map[string]string
+}
+
 // WithReasonCode builds a gRPC Status error carrying a google.rpc.ErrorInfo
 // detail with the given ReasonCode as Reason and Domain "nimi.runtime.v1".
 // This satisfies K-ERR-003: ReasonCode MUST be transported in ErrorInfo details,
 // not in the status message string.
 func WithReasonCode(code codes.Code, reason runtimev1.ReasonCode) error {
-	st := status.New(code, reason.String())
+	return WithReasonCodeOptions(code, reason, ReasonOptions{})
+}
+
+// WithReasonCodeOptions builds a gRPC status error with ErrorInfo details.
+// Extra transport-safe fields (action_hint/retryable/trace_id) are encoded in
+// ErrorInfo.Metadata and available to bridge/SDK layers.
+func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options ReasonOptions) error {
+	message := options.Message
+	if message == "" {
+		message = reason.String()
+	}
+
+	metadata := make(map[string]string)
+	for key, value := range options.Metadata {
+		trimmedKey := key
+		trimmedValue := value
+		if trimmedKey == "" || trimmedValue == "" {
+			continue
+		}
+		metadata[trimmedKey] = trimmedValue
+	}
+	if options.ActionHint != "" {
+		metadata["action_hint"] = options.ActionHint
+	}
+	if options.TraceID != "" {
+		metadata["trace_id"] = options.TraceID
+	}
+	if options.Retryable != nil {
+		metadata["retryable"] = strconv.FormatBool(*options.Retryable)
+	}
+
+	if options.ActionHint != "" || options.TraceID != "" || options.Retryable != nil {
+		payload := map[string]any{
+			"reasonCode": reason.String(),
+		}
+		if options.ActionHint != "" {
+			payload["actionHint"] = options.ActionHint
+		}
+		if options.TraceID != "" {
+			payload["traceId"] = options.TraceID
+		}
+		if options.Retryable != nil {
+			payload["retryable"] = *options.Retryable
+		}
+		if options.Message != "" {
+			payload["message"] = options.Message
+		}
+		if encoded, err := json.Marshal(payload); err == nil {
+			message = string(encoded)
+		}
+	}
+
+	st := status.New(code, message)
 	detailed, err := st.WithDetails(&errdetails.ErrorInfo{
-		Reason: reason.String(),
-		Domain: domain,
+		Reason:   reason.String(),
+		Domain:   domain,
+		Metadata: metadata,
 	})
 	if err != nil {
 		// WithDetails can only fail if the proto serialization fails,

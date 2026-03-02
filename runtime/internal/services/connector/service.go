@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -45,6 +44,17 @@ func (s *Service) SetCloudProvider(cloud *nimillm.CloudProvider) {
 	s.cloud = cloud
 }
 
+func (s *Service) internalProviderError(operation string, err error) error {
+	if err != nil {
+		s.logger.Error("connector service internal error", "operation", operation, "error", err)
+	} else {
+		s.logger.Error("connector service internal error", "operation", operation)
+	}
+	return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		ActionHint: "retry_or_check_runtime_logs",
+	})
+}
+
 func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnectorRequest) (*runtimev1.CreateConnectorResponse, error) {
 	provider := strings.TrimSpace(req.GetProvider())
 	if provider == "" {
@@ -67,7 +77,7 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 	// Enforce per-user limit
 	existing, err := s.store.Load()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "load connectors: %v", err)
+		return nil, s.internalProviderError("create_connector.load_connectors", err)
 	}
 	count := 0
 	for _, r := range existing {
@@ -100,13 +110,13 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 	}
 
 	if err := s.store.Create(rec, apiKey); err != nil {
-		return nil, status.Errorf(codes.Internal, "create connector: %v", err)
+		return nil, s.internalProviderError("create_connector.persist", err)
 	}
 
 	// Re-read to get the generated ID and timestamps
 	records, err := s.store.Load()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "reload connectors: %v", err)
+		return nil, s.internalProviderError("create_connector.reload_connectors", err)
 	}
 	for i := len(records) - 1; i >= 0; i-- {
 		if records[i].OwnerID == ownerID && records[i].Provider == provider {
@@ -115,7 +125,7 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 			}, nil
 		}
 	}
-	return nil, status.Error(codes.Internal, "connector created but not found in store")
+	return nil, s.internalProviderError("create_connector.reload_missing_record", nil)
 }
 
 func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorRequest) (*runtimev1.GetConnectorResponse, error) {
@@ -126,7 +136,7 @@ func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorReq
 
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
+		return nil, s.internalProviderError("get_connector.load", err)
 	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
@@ -143,7 +153,7 @@ func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorReq
 func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnectorsRequest) (*runtimev1.ListConnectorsResponse, error) {
 	records, err := s.store.Load()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list connectors: %v", err)
+		return nil, s.internalProviderError("list_connectors.load", err)
 	}
 
 	ownerID := strings.TrimSpace(req.GetOwnerId())
@@ -254,7 +264,7 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
+		return nil, s.internalProviderError("update_connector.load", err)
 	}
 	if !found {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
@@ -311,7 +321,7 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 
 	updated, err := s.store.Update(connectorID, mutations)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "update connector: %v", err)
+		return nil, s.internalProviderError("update_connector.persist", err)
 	}
 
 	return &runtimev1.UpdateConnectorResponse{
@@ -327,7 +337,7 @@ func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnec
 
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
+		return nil, s.internalProviderError("delete_connector.load", err)
 	}
 	if !found {
 		return &runtimev1.DeleteConnectorResponse{
@@ -348,7 +358,7 @@ func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnec
 	}
 
 	if err := s.store.Delete(connectorID); err != nil {
-		return nil, status.Errorf(codes.Internal, "delete connector: %v", err)
+		return nil, s.internalProviderError("delete_connector.persist", err)
 	}
 
 	s.modelCache.Invalidate(connectorID)
@@ -367,7 +377,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
+		return nil, s.internalProviderError("test_connector.load", err)
 	}
 	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
 		return &runtimev1.TestConnectorResponse{
@@ -392,7 +402,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 	// Credential check
 	apiKey, err := s.store.LoadCredential(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "load credential: %v", err)
+		return nil, s.internalProviderError("test_connector.load_credential", err)
 	}
 	if apiKey == "" {
 		return &runtimev1.TestConnectorResponse{
@@ -432,7 +442,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	ownerID := strings.TrimSpace(req.GetOwnerId())
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get connector: %v", err)
+		return nil, s.internalProviderError("list_connector_models.load", err)
 	}
 	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
@@ -457,7 +467,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	// Load credential
 	apiKey, err := s.store.LoadCredential(connectorID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "load credential: %v", err)
+		return nil, s.internalProviderError("list_connector_models.load_credential", err)
 	}
 	if apiKey == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)

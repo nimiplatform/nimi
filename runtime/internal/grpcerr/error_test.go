@@ -109,3 +109,36 @@ func TestWithReasonCode_MessageContainsReasonString(t *testing.T) {
 		t.Fatalf("expected message %q, got %q", reason.String(), st.Message())
 	}
 }
+
+func TestWithReasonCodeOptions_WritesActionHintAndRetryableMetadata(t *testing.T) {
+	retryable := true
+	err := WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, ReasonOptions{
+		ActionHint: "retry_or_restart_runtime",
+		TraceID:    "trace-test-001",
+		Retryable:  &retryable,
+	})
+	if err == nil {
+		t.Fatal("expected non-nil error")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected grpc status error")
+	}
+	details := st.Details()
+	if len(details) != 1 {
+		t.Fatalf("expected 1 detail, got %d", len(details))
+	}
+	info, ok := details[0].(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatal("expected ErrorInfo detail")
+	}
+	if info.GetMetadata()["action_hint"] != "retry_or_restart_runtime" {
+		t.Fatalf("unexpected action_hint: %q", info.GetMetadata()["action_hint"])
+	}
+	if info.GetMetadata()["trace_id"] != "trace-test-001" {
+		t.Fatalf("unexpected trace_id: %q", info.GetMetadata()["trace_id"])
+	}
+	if info.GetMetadata()["retryable"] != "true" {
+		t.Fatalf("unexpected retryable: %q", info.GetMetadata()["retryable"])
+	}
+}

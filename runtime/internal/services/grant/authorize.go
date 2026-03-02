@@ -2,13 +2,11 @@ package grant
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -45,8 +43,9 @@ func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.A
 	}
 
 	if reasonCode, actionHint, ok := appregistry.ValidateDomainAndScopes(record.Manifest, req.GetDomain(), effectiveScopes); !ok {
-		errBody := fmt.Sprintf(`{"reasonCode":"%s","actionHint":"%s"}`, reasonCode.String(), actionHint)
-		return nil, status.Error(codes.PermissionDenied, errBody)
+		return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, reasonCode, grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+		})
 	}
 
 	scopeCatalogVersion := strings.TrimSpace(req.GetScopeCatalogVersion())
@@ -55,7 +54,9 @@ func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.A
 	}
 	scopeValidation := s.catalog.ValidateScopes(scopeCatalogVersion, effectiveScopes)
 	if scopeValidation != runtimev1.ReasonCode_ACTION_EXECUTED {
-		return nil, status.Error(codes.PermissionDenied, scopeValidation.String())
+		return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, scopeValidation, grpcerr.ReasonOptions{
+			ActionHint: scopeValidationActionHint(scopeValidation),
+		})
 	}
 
 	issuedAt := time.Now().UTC()
