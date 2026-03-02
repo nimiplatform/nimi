@@ -1050,6 +1050,157 @@ export interface LocalAuditTimeRange {
     to: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalEngineDescriptor
+ */
+export interface LocalEngineDescriptor {
+    /**
+     * @generated from protobuf field: string engine = 1
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: string version = 2
+     */
+    version: string;
+    /**
+     * @generated from protobuf field: string endpoint = 3
+     */
+    endpoint: string;
+    /**
+     * @generated from protobuf field: int32 port = 4
+     */
+    port: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalEngineStatus status = 5
+     */
+    status: LocalEngineStatus;
+    /**
+     * @generated from protobuf field: int32 pid = 6
+     */
+    pid: number;
+    /**
+     * @generated from protobuf field: string platform = 7
+     */
+    platform: string;
+    /**
+     * @generated from protobuf field: int64 binary_size_bytes = 8
+     */
+    binarySizeBytes: string;
+    /**
+     * @generated from protobuf field: string started_at = 9
+     */
+    startedAt: string;
+    /**
+     * @generated from protobuf field: string last_healthy_at = 10
+     */
+    lastHealthyAt: string;
+    /**
+     * @generated from protobuf field: int32 consecutive_failures = 11
+     */
+    consecutiveFailures: number;
+    /**
+     * @generated from protobuf field: string binary_path = 12
+     */
+    binaryPath: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListEnginesRequest
+ */
+export interface ListEnginesRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListEnginesResponse
+ */
+export interface ListEnginesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalEngineDescriptor engines = 1
+     */
+    engines: LocalEngineDescriptor[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.EnsureEngineRequest
+ */
+export interface EnsureEngineRequest {
+    /**
+     * @generated from protobuf field: string engine = 1
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: string version = 2
+     */
+    version: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.EnsureEngineResponse
+ */
+export interface EnsureEngineResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalEngineDescriptor engine = 1
+     */
+    engine?: LocalEngineDescriptor;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartEngineRequest
+ */
+export interface StartEngineRequest {
+    /**
+     * @generated from protobuf field: string engine = 1
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: int32 port = 2
+     */
+    port: number;
+    /**
+     * @generated from protobuf field: string version = 3
+     */
+    version: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartEngineResponse
+ */
+export interface StartEngineResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalEngineDescriptor engine = 1
+     */
+    engine?: LocalEngineDescriptor;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StopEngineRequest
+ */
+export interface StopEngineRequest {
+    /**
+     * @generated from protobuf field: string engine = 1
+     */
+    engine: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StopEngineResponse
+ */
+export interface StopEngineResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalEngineDescriptor engine = 1
+     */
+    engine?: LocalEngineDescriptor;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetEngineStatusRequest
+ */
+export interface GetEngineStatusRequest {
+    /**
+     * @generated from protobuf field: string engine = 1
+     */
+    engine: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetEngineStatusResponse
+ */
+export interface GetEngineStatusResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalEngineDescriptor engine = 1
+     */
+    engine?: LocalEngineDescriptor;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListLocalModelsRequest
  */
 export interface ListLocalModelsRequest {
@@ -1770,6 +1921,33 @@ export enum LocalDependencyKind {
      * @generated from protobuf enum value: LOCAL_DEPENDENCY_KIND_NODE = 3;
      */
     NODE = 3
+}
+// Engine management messages (K-LENG-004: SUPERVISED mode)
+
+/**
+ * @generated from protobuf enum nimi.runtime.v1.LocalEngineStatus
+ */
+export enum LocalEngineStatus {
+    /**
+     * @generated from protobuf enum value: LOCAL_ENGINE_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_ENGINE_STATUS_STOPPED = 1;
+     */
+    STOPPED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_ENGINE_STATUS_STARTING = 2;
+     */
+    STARTING = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_ENGINE_STATUS_HEALTHY = 3;
+     */
+    HEALTHY = 3,
+    /**
+     * @generated from protobuf enum value: LOCAL_ENGINE_STATUS_UNHEALTHY = 4;
+     */
+    UNHEALTHY = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalModelSource$Type extends MessageType<LocalModelSource> {
@@ -4684,6 +4862,622 @@ class LocalAuditTimeRange$Type extends MessageType<LocalAuditTimeRange> {
  */
 export const LocalAuditTimeRange = new LocalAuditTimeRange$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalEngineDescriptor$Type extends MessageType<LocalEngineDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LocalEngineDescriptor", [
+            { no: 1, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "port", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalEngineStatus", LocalEngineStatus, "LOCAL_ENGINE_STATUS_"] },
+            { no: 6, name: "pid", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "platform", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "binary_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 9, name: "started_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "last_healthy_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "consecutive_failures", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 12, name: "binary_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalEngineDescriptor>): LocalEngineDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.engine = "";
+        message.version = "";
+        message.endpoint = "";
+        message.port = 0;
+        message.status = 0;
+        message.pid = 0;
+        message.platform = "";
+        message.binarySizeBytes = "0";
+        message.startedAt = "";
+        message.lastHealthyAt = "";
+        message.consecutiveFailures = 0;
+        message.binaryPath = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalEngineDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalEngineDescriptor): LocalEngineDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string engine */ 1:
+                    message.engine = reader.string();
+                    break;
+                case /* string version */ 2:
+                    message.version = reader.string();
+                    break;
+                case /* string endpoint */ 3:
+                    message.endpoint = reader.string();
+                    break;
+                case /* int32 port */ 4:
+                    message.port = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalEngineStatus status */ 5:
+                    message.status = reader.int32();
+                    break;
+                case /* int32 pid */ 6:
+                    message.pid = reader.int32();
+                    break;
+                case /* string platform */ 7:
+                    message.platform = reader.string();
+                    break;
+                case /* int64 binary_size_bytes */ 8:
+                    message.binarySizeBytes = reader.int64().toString();
+                    break;
+                case /* string started_at */ 9:
+                    message.startedAt = reader.string();
+                    break;
+                case /* string last_healthy_at */ 10:
+                    message.lastHealthyAt = reader.string();
+                    break;
+                case /* int32 consecutive_failures */ 11:
+                    message.consecutiveFailures = reader.int32();
+                    break;
+                case /* string binary_path */ 12:
+                    message.binaryPath = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalEngineDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string engine = 1; */
+        if (message.engine !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.engine);
+        /* string version = 2; */
+        if (message.version !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.version);
+        /* string endpoint = 3; */
+        if (message.endpoint !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.endpoint);
+        /* int32 port = 4; */
+        if (message.port !== 0)
+            writer.tag(4, WireType.Varint).int32(message.port);
+        /* nimi.runtime.v1.LocalEngineStatus status = 5; */
+        if (message.status !== 0)
+            writer.tag(5, WireType.Varint).int32(message.status);
+        /* int32 pid = 6; */
+        if (message.pid !== 0)
+            writer.tag(6, WireType.Varint).int32(message.pid);
+        /* string platform = 7; */
+        if (message.platform !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.platform);
+        /* int64 binary_size_bytes = 8; */
+        if (message.binarySizeBytes !== "0")
+            writer.tag(8, WireType.Varint).int64(message.binarySizeBytes);
+        /* string started_at = 9; */
+        if (message.startedAt !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.startedAt);
+        /* string last_healthy_at = 10; */
+        if (message.lastHealthyAt !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.lastHealthyAt);
+        /* int32 consecutive_failures = 11; */
+        if (message.consecutiveFailures !== 0)
+            writer.tag(11, WireType.Varint).int32(message.consecutiveFailures);
+        /* string binary_path = 12; */
+        if (message.binaryPath !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.binaryPath);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalEngineDescriptor
+ */
+export const LocalEngineDescriptor = new LocalEngineDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListEnginesRequest$Type extends MessageType<ListEnginesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListEnginesRequest", []);
+    }
+    create(value?: PartialMessage<ListEnginesRequest>): ListEnginesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListEnginesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListEnginesRequest): ListEnginesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListEnginesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListEnginesRequest
+ */
+export const ListEnginesRequest = new ListEnginesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListEnginesResponse$Type extends MessageType<ListEnginesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListEnginesResponse", [
+            { no: 1, name: "engines", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEngineDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<ListEnginesResponse>): ListEnginesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.engines = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListEnginesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListEnginesResponse): ListEnginesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalEngineDescriptor engines */ 1:
+                    message.engines.push(LocalEngineDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListEnginesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalEngineDescriptor engines = 1; */
+        for (let i = 0; i < message.engines.length; i++)
+            LocalEngineDescriptor.internalBinaryWrite(message.engines[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListEnginesResponse
+ */
+export const ListEnginesResponse = new ListEnginesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class EnsureEngineRequest$Type extends MessageType<EnsureEngineRequest> {
+    constructor() {
+        super("nimi.runtime.v1.EnsureEngineRequest", [
+            { no: 1, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<EnsureEngineRequest>): EnsureEngineRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.engine = "";
+        message.version = "";
+        if (value !== undefined)
+            reflectionMergePartial<EnsureEngineRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EnsureEngineRequest): EnsureEngineRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string engine */ 1:
+                    message.engine = reader.string();
+                    break;
+                case /* string version */ 2:
+                    message.version = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: EnsureEngineRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string engine = 1; */
+        if (message.engine !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.engine);
+        /* string version = 2; */
+        if (message.version !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.version);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.EnsureEngineRequest
+ */
+export const EnsureEngineRequest = new EnsureEngineRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class EnsureEngineResponse$Type extends MessageType<EnsureEngineResponse> {
+    constructor() {
+        super("nimi.runtime.v1.EnsureEngineResponse", [
+            { no: 1, name: "engine", kind: "message", T: () => LocalEngineDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<EnsureEngineResponse>): EnsureEngineResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<EnsureEngineResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EnsureEngineResponse): EnsureEngineResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalEngineDescriptor engine */ 1:
+                    message.engine = LocalEngineDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.engine);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: EnsureEngineResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalEngineDescriptor engine = 1; */
+        if (message.engine)
+            LocalEngineDescriptor.internalBinaryWrite(message.engine, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.EnsureEngineResponse
+ */
+export const EnsureEngineResponse = new EnsureEngineResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartEngineRequest$Type extends MessageType<StartEngineRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StartEngineRequest", [
+            { no: 1, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "port", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StartEngineRequest>): StartEngineRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.engine = "";
+        message.port = 0;
+        message.version = "";
+        if (value !== undefined)
+            reflectionMergePartial<StartEngineRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartEngineRequest): StartEngineRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string engine */ 1:
+                    message.engine = reader.string();
+                    break;
+                case /* int32 port */ 2:
+                    message.port = reader.int32();
+                    break;
+                case /* string version */ 3:
+                    message.version = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartEngineRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string engine = 1; */
+        if (message.engine !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.engine);
+        /* int32 port = 2; */
+        if (message.port !== 0)
+            writer.tag(2, WireType.Varint).int32(message.port);
+        /* string version = 3; */
+        if (message.version !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.version);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartEngineRequest
+ */
+export const StartEngineRequest = new StartEngineRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartEngineResponse$Type extends MessageType<StartEngineResponse> {
+    constructor() {
+        super("nimi.runtime.v1.StartEngineResponse", [
+            { no: 1, name: "engine", kind: "message", T: () => LocalEngineDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<StartEngineResponse>): StartEngineResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<StartEngineResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartEngineResponse): StartEngineResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalEngineDescriptor engine */ 1:
+                    message.engine = LocalEngineDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.engine);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartEngineResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalEngineDescriptor engine = 1; */
+        if (message.engine)
+            LocalEngineDescriptor.internalBinaryWrite(message.engine, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartEngineResponse
+ */
+export const StartEngineResponse = new StartEngineResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StopEngineRequest$Type extends MessageType<StopEngineRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StopEngineRequest", [
+            { no: 1, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StopEngineRequest>): StopEngineRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.engine = "";
+        if (value !== undefined)
+            reflectionMergePartial<StopEngineRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StopEngineRequest): StopEngineRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string engine */ 1:
+                    message.engine = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StopEngineRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string engine = 1; */
+        if (message.engine !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.engine);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StopEngineRequest
+ */
+export const StopEngineRequest = new StopEngineRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StopEngineResponse$Type extends MessageType<StopEngineResponse> {
+    constructor() {
+        super("nimi.runtime.v1.StopEngineResponse", [
+            { no: 1, name: "engine", kind: "message", T: () => LocalEngineDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<StopEngineResponse>): StopEngineResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<StopEngineResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StopEngineResponse): StopEngineResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalEngineDescriptor engine */ 1:
+                    message.engine = LocalEngineDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.engine);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StopEngineResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalEngineDescriptor engine = 1; */
+        if (message.engine)
+            LocalEngineDescriptor.internalBinaryWrite(message.engine, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StopEngineResponse
+ */
+export const StopEngineResponse = new StopEngineResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetEngineStatusRequest$Type extends MessageType<GetEngineStatusRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetEngineStatusRequest", [
+            { no: 1, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetEngineStatusRequest>): GetEngineStatusRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.engine = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetEngineStatusRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetEngineStatusRequest): GetEngineStatusRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string engine */ 1:
+                    message.engine = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetEngineStatusRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string engine = 1; */
+        if (message.engine !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.engine);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetEngineStatusRequest
+ */
+export const GetEngineStatusRequest = new GetEngineStatusRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetEngineStatusResponse$Type extends MessageType<GetEngineStatusResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetEngineStatusResponse", [
+            { no: 1, name: "engine", kind: "message", T: () => LocalEngineDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<GetEngineStatusResponse>): GetEngineStatusResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetEngineStatusResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetEngineStatusResponse): GetEngineStatusResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalEngineDescriptor engine */ 1:
+                    message.engine = LocalEngineDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.engine);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetEngineStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalEngineDescriptor engine = 1; */
+        if (message.engine)
+            LocalEngineDescriptor.internalBinaryWrite(message.engine, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetEngineStatusResponse
+ */
+export const GetEngineStatusResponse = new GetEngineStatusResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ListLocalModelsRequest$Type extends MessageType<ListLocalModelsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListLocalModelsRequest", []);
@@ -7311,5 +8105,10 @@ export const RuntimeLocalRuntimeService = new ServiceType("nimi.runtime.v1.Runti
     { name: "ListNodeCatalog", options: {}, I: ListNodeCatalogRequest, O: ListNodeCatalogResponse },
     { name: "ListLocalAudits", options: {}, I: ListLocalAuditsRequest, O: ListLocalAuditsResponse },
     { name: "AppendInferenceAudit", options: {}, I: AppendInferenceAuditRequest, O: Ack },
-    { name: "AppendRuntimeAudit", options: {}, I: AppendRuntimeAuditRequest, O: Ack }
+    { name: "AppendRuntimeAudit", options: {}, I: AppendRuntimeAuditRequest, O: Ack },
+    { name: "ListEngines", options: {}, I: ListEnginesRequest, O: ListEnginesResponse },
+    { name: "EnsureEngine", options: {}, I: EnsureEngineRequest, O: EnsureEngineResponse },
+    { name: "StartEngine", options: {}, I: StartEngineRequest, O: StartEngineResponse },
+    { name: "StopEngine", options: {}, I: StopEngineRequest, O: StopEngineResponse },
+    { name: "GetEngineStatus", options: {}, I: GetEngineStatusRequest, O: GetEngineStatusResponse }
 ]);
