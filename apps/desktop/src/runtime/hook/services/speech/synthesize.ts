@@ -16,100 +16,6 @@ import type {
 } from './types.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
-const DESKTOP_CONNECTOR_OWNER_ID = 'desktop';
-
-function normalizeModelRoot(model: string): string {
-  const normalized = String(model || '').trim();
-  if (!normalized) return '';
-  const lower = normalized.toLowerCase();
-  if (lower.startsWith('cloud/')) return normalized.slice('cloud/'.length).trim();
-  if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim();
-  if (lower.startsWith('token/')) return normalized.slice('token/'.length).trim();
-  return normalized;
-}
-
-function ensureTokenApiModelId(model: string): string {
-  const root = normalizeModelRoot(model);
-  return root ? `cloud/${root}` : '';
-}
-
-function hasTtsCapability(input: unknown): boolean {
-  if (typeof input !== 'string') return false;
-  const normalized = input.trim().toLowerCase();
-  if (!normalized) return false;
-  return normalized === 'tts' || normalized.includes('speech') || normalized.includes('audio');
-}
-
-async function resolveFallbackTtsModel(input: {
-  runtime: ReturnType<typeof getRuntimeClient>;
-  connectorId: string;
-  currentModel: string;
-  metadata: Record<string, string>;
-}): Promise<string> {
-  const connectorId = String(input.connectorId || '').trim();
-  if (!connectorId) return '';
-  const currentRoot = normalizeModelRoot(input.currentModel).toLowerCase();
-  const response = await input.runtime.connector.listConnectorModels(
-    {
-      connectorId,
-      ownerId: DESKTOP_CONNECTOR_OWNER_ID,
-      forceRefresh: true,
-    },
-    {
-      timeoutMs: 5000,
-      metadata: input.metadata,
-    },
-  );
-
-  const models = Array.isArray(response.models) ? response.models : [];
-  const availableModels = models.filter((item) => Boolean(item?.available));
-  const ttsCandidates = availableModels.filter((item) => (
-    Array.isArray(item?.capabilities) && item.capabilities.some((capability) => hasTtsCapability(capability))
-  ));
-  const ordered = ttsCandidates.length > 0 ? ttsCandidates : availableModels;
-  for (const descriptor of ordered) {
-    const modelId = ensureTokenApiModelId(String(descriptor?.modelId || '').trim());
-    if (!modelId) continue;
-    if (normalizeModelRoot(modelId).toLowerCase() === currentRoot) continue;
-    return modelId;
-  }
-  return '';
-}
-
-async function resolveFallbackConnectorIds(input: {
-  runtime: ReturnType<typeof getRuntimeClient>;
-  connectorId: string;
-  metadata: Record<string, string>;
-}): Promise<string[]> {
-  const preferred = String(input.connectorId || '').trim();
-  if (preferred) return [preferred];
-
-  const response = await input.runtime.connector.listConnectors(
-    {
-      ownerId: DESKTOP_CONNECTOR_OWNER_ID,
-      pageSize: 50,
-      pageToken: '',
-      kindFilter: 0,
-      statusFilter: 0,
-      providerFilter: '',
-    },
-    {
-      timeoutMs: 5000,
-      metadata: input.metadata,
-    },
-  );
-  const connectors = Array.isArray(response.connectors) ? response.connectors : [];
-  const activeConnectorIds = connectors
-    .filter((item) => Number(item?.status) !== 2)
-    .map((item) => String(item?.connectorId || '').trim())
-    .filter(Boolean);
-  const fallbackConnectorIds = connectors
-    .map((item) => String(item?.connectorId || '').trim())
-    .filter(Boolean);
-
-  return Array.from(new Set(activeConnectorIds.length > 0 ? activeConnectorIds : fallbackConnectorIds));
-}
-
 export async function synthesizeModSpeech(
   context: SpeechServiceInput,
   input: SpeechSynthesizeInput,
@@ -132,9 +38,8 @@ export async function synthesizeModSpeech(
     model: input.model,
   });
   const source = String(resolved?.source || '').trim() as 'local-runtime' | 'token-api';
-  let model = String(resolved?.model || '').trim();
+  const model = String(resolved?.model || '').trim();
   const connectorId = String(resolved?.connectorId || '').trim();
-  let runtimeConnectorId = connectorId;
   const endpoint = String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim();
 
   const providerParams: Record<string, unknown> = {
@@ -157,7 +62,7 @@ export async function synthesizeModSpeech(
     adapter: resolved?.adapter || 'openai_compat_adapter',
     model,
     endpoint,
-    extra: { connectorId: runtimeConnectorId },
+    extra: { connectorId },
   });
 
   const runtime = getRuntimeClient();
@@ -166,153 +71,71 @@ export async function synthesizeModSpeech(
     connectorId,
     providerEndpoint: endpoint,
   });
+
   let audioUri = '';
   let mimeType = 'audio/mpeg';
   let providerTraceId = '';
-  const synthesizeWithModel = async (
-    modelId: string,
-    connectorOverride = runtimeConnectorId,
-  ) => runtime.media.tts.synthesize({
-    subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
-    model: modelId,
-    text: input.text,
-    voice: input.voiceId,
-    audioFormat: input.format,
-    sampleRateHz: input.sampleRateHz,
-    speed: input.speakingRate,
-    pitch: input.pitch,
-    language: input.language,
-    route: source,
-    fallback: 'deny',
-    timeoutMs: 60000,
-    connectorId: connectorOverride,
-    metadata,
-    providerOptions: providerParams,
-  });
+
   try {
-    const generated = await synthesizeWithModel(model);
+    const generated = await runtime.media.tts.synthesize({
+      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
+      model,
+      text: input.text,
+      voice: input.voiceId,
+      audioFormat: input.format,
+      sampleRateHz: input.sampleRateHz,
+      speed: input.speakingRate,
+      pitch: input.pitch,
+      language: input.language,
+      route: source,
+      fallback: 'deny',
+      timeoutMs: 60000,
+      connectorId,
+      metadata,
+      providerOptions: providerParams,
+    });
+
     if (!generated) {
       throw new Error('speech provider returned empty response');
     }
+
     const artifact = generated.artifacts[0];
     if (!artifact || !(artifact.bytes instanceof Uint8Array)) {
       throw new Error('speech provider returned empty artifact');
     }
+
     mimeType = String(artifact.mimeType || '').trim() || 'audio/mpeg';
     const base64 = toBase64(artifact.bytes);
     audioUri = base64 ? `data:${mimeType};base64,${base64}` : '';
     providerTraceId = String(generated.trace.traceId || '').trim();
   } catch (error) {
-    const firstError = asRuntimeInvokeError(error, {
+    const normalizedError = asRuntimeInvokeError(error, {
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
       actionHint: 'retry_or_check_runtime_status',
     });
-    const firstReasonCode = extractRuntimeReasonCode(firstError)
-      || firstError.reasonCode
+    const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
+      || normalizedError.reasonCode
       || ReasonCode.RUNTIME_CALL_FAILED;
-    if (source === 'token-api' && firstReasonCode === ReasonCode.AI_MODEL_NOT_FOUND) {
-      try {
-        const fallbackConnectorIds = await resolveFallbackConnectorIds({
-          runtime,
-          connectorId: runtimeConnectorId,
-          metadata,
-        });
-        let fallbackModel = '';
-        let fallbackConnectorId = '';
-        for (const candidateConnectorId of fallbackConnectorIds) {
-          const candidateModel = await resolveFallbackTtsModel({
-            runtime,
-            connectorId: candidateConnectorId,
-            currentModel: model,
-            metadata,
-          });
-          if (!candidateModel) continue;
-          fallbackModel = candidateModel;
-          fallbackConnectorId = candidateConnectorId;
-          break;
-        }
-        if (fallbackModel && fallbackConnectorId) {
-          emitInferenceAudit({
-            eventType: 'fallback_to_token_api',
-            modId: input.modId,
-            source,
-            provider: resolved?.provider || 'openai-compatible',
-            modality: 'tts',
-            adapter: resolved?.adapter || 'openai_compat_adapter',
-            model: fallbackModel,
-            endpoint,
-            reasonCode: firstReasonCode,
-            detail: firstError.message,
-            extra: {
-              connectorId: fallbackConnectorId,
-              connectorFallbackFrom: runtimeConnectorId || null,
-              connectorFallbackTo: fallbackConnectorId,
-              modelFallbackFrom: model,
-              modelFallbackTo: fallbackModel,
-            },
-          });
-          const generated = await synthesizeWithModel(fallbackModel, fallbackConnectorId);
-          const artifact = generated.artifacts[0];
-          if (!artifact || !(artifact.bytes instanceof Uint8Array)) {
-            throw new Error('speech provider returned empty artifact');
-          }
-          model = fallbackModel;
-          runtimeConnectorId = fallbackConnectorId;
-          mimeType = String(artifact.mimeType || '').trim() || 'audio/mpeg';
-          const base64 = toBase64(artifact.bytes);
-          audioUri = base64 ? `data:${mimeType};base64,${base64}` : '';
-          providerTraceId = String(generated.trace.traceId || '').trim();
-        } else {
-          throw firstError;
-        }
-      } catch (retryError) {
-        const normalizedError = asRuntimeInvokeError(retryError, {
-          reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-          actionHint: 'retry_or_check_runtime_status',
-        });
-        const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
-          || normalizedError.reasonCode
-          || ReasonCode.RUNTIME_CALL_FAILED;
-        const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
-        emitInferenceAudit({
-          eventType: 'inference_failed',
-          modId: input.modId,
-          source,
-          provider: resolved?.provider || 'openai-compatible',
-          modality: 'tts',
-          adapter: resolved?.adapter || 'openai_compat_adapter',
-          model,
-          endpoint,
-          reasonCode: runtimeReasonCode,
-          detail: normalizedError.message,
-          extra: {
-            ...(localReasonCode ? { localReasonCode } : {}),
-            connectorId: runtimeConnectorId,
-          },
-        });
-        throw normalizedError;
-      }
-    } else {
-      const runtimeReasonCode = firstReasonCode;
-      const localReasonCode = toLocalAiReasonCode(firstError) || undefined;
-      emitInferenceAudit({
-        eventType: 'inference_failed',
-        modId: input.modId,
-        source,
-        provider: resolved?.provider || 'openai-compatible',
-        modality: 'tts',
-        adapter: resolved?.adapter || 'openai_compat_adapter',
-        model,
-        endpoint,
-        reasonCode: runtimeReasonCode,
-        detail: firstError.message,
-        extra: {
-          ...(localReasonCode ? { localReasonCode } : {}),
-          connectorId: runtimeConnectorId,
-        },
-      });
-      throw firstError;
-    }
+    const localReasonCode = toLocalAiReasonCode(normalizedError) || undefined;
+
+    emitInferenceAudit({
+      eventType: 'inference_failed',
+      modId: input.modId,
+      source,
+      provider: resolved?.provider || 'openai-compatible',
+      modality: 'tts',
+      adapter: resolved?.adapter || 'openai_compat_adapter',
+      model,
+      endpoint,
+      reasonCode: runtimeReasonCode,
+      detail: normalizedError.message,
+      extra: {
+        ...(localReasonCode ? { localReasonCode } : {}),
+        connectorId,
+      },
+    });
+
+    throw normalizedError;
   }
 
   if (!String(audioUri || '').trim()) {
@@ -327,7 +150,7 @@ export async function synthesizeModSpeech(
       endpoint,
       reasonCode: ReasonCode.PLAY_PROVIDER_UNAVAILABLE,
       detail: 'speech provider returned empty audioUri',
-      extra: { connectorId: runtimeConnectorId },
+      extra: { connectorId },
     });
     throw createHookError(
       'HOOK_LLM_SPEECH_PROVIDER_UNAVAILABLE',
