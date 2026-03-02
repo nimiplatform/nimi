@@ -23,7 +23,7 @@ slots:
     source_rule: D-HOOK-004
 
   - slot: ui-extension.app.sidebar.mods
-    description: Sidebar mod navigation entries
+    description: Mod-provided navigation entries (available for mods to register; primary mod navigation is via the Mods Panel)
     source_rule: D-HOOK-004
 
   - slot: ui-extension.app.content.routes

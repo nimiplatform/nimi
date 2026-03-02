@@ -61,6 +61,13 @@ chunks:
     description: AI Runtime configuration panel
     source_rule: D-SHELL-004
 
+  - chunk: mods-panel
+    includes:
+      - features/mods
+    lazy: true
+    description: Mods management panel (card grid, enable/disable/open)
+    source_rule: D-SHELL-004
+
   - chunk: mod-ui
     includes:
       - mod-ui

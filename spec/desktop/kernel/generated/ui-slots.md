@@ -9,6 +9,6 @@
 | `chat.chat.list.item.trailing` | Trailing content in chat list item rows | `D-HOOK-004` |
 | `chat.turn.input.toolbar` | Turn input toolbar for custom action buttons | `D-HOOK-004` |
 | `settings.panel.section` | Settings panel additional section for mod settings | `D-HOOK-004` |
-| `ui-extension.app.sidebar.mods` | Sidebar mod navigation entries | `D-HOOK-004` |
+| `ui-extension.app.sidebar.mods` | Mod-provided navigation entries (available for mods to register; primary mod navigation is via the Mods Panel) | `D-HOOK-004` |
 | `ui-extension.app.content.routes` | App content area for mod-provided routes | `D-HOOK-004` |
 | `ui-extension.runtime.devtools.panel` | Runtime devtools panel for debug/inspection tools | `D-HOOK-004` |

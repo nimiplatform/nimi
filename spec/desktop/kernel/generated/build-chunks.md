@@ -12,6 +12,7 @@
 | `settings` | `true` | `D-SHELL-004` |
 | `profile` | `true` | `D-SHELL-004` |
 | `runtime-view` | `true` | `D-SHELL-004` |
+| `mods-panel` | `true` | `D-SHELL-004` |
 | `mod-ui` | `true` | `D-SHELL-004` |
 | `local-ai` | `true` | `D-SHELL-004` |
 | `external-agent` | `true` | `D-SHELL-004` |

@@ -53,6 +53,13 @@ tabs:
     gated_by: enableMarketplaceTab
     source_rule: D-SHELL-001
 
+  # Mod navigation (sidebar, separately rendered)
+  - id: mods
+    nav_group: mod-nav
+    label: Mods
+    gated_by: enableModUi
+    source_rule: D-SHELL-002
+
   # Detail tabs (navigated to, not in sidebar)
   - id: profile
     nav_group: detail
