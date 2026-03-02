@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template.js';
-import type { WorldListItem } from './world-list.js';
-import type { WorldAgent, WorldEvent } from './world-detail-template.js';
+import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
+import type { WorldListItem } from './world-list';
+import type { WorldAgent, WorldEvent } from './world-detail-template';
 
 // Convert WorldListItem to XianxiaWorldData
 function toXianxiaWorldData(world: WorldListItem): XianxiaWorldData {

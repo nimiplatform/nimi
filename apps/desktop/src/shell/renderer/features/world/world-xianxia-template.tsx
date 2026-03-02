@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import type { WorldDetailData, WorldAgent, WorldEvent } from './world-detail-template.js';
-import { TimeFlowDynamics } from './time-flow-dynamics.js';
+import type { WorldDetailData, WorldAgent, WorldEvent } from './world-detail-template';
+import { TimeFlowDynamics } from './time-flow-dynamics';
 
 export type XianxiaWorldData = WorldDetailData & {
   subtitle?: string;
@@ -47,38 +47,39 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const levels = 5;
 
   // Score metadata with i18n - matching the reference image layout
-  const scoreMeta = [
+  const radarMeta = [
     {
       key: 'scoreA',
       label: 'Activity Score',
-      short: t('WorldDetail.scoresShort'),
-      desc: t('WorldDetail.scoresDesc'),
+      short: 'Activity',
+      desc: t('WorldDetail.activityDesc'),
     },
     {
       key: 'scoreC',
       label: 'Consensus Score',
-      short: t('WorldDetail.scoresShort'),
-      desc: t('WorldDetail.scoresDesc'),
+      short: 'Consensus',
+      desc: t('WorldDetail.consensusDesc'),
     },
     {
       key: 'scoreE',
       label: 'Engagement Score',
-      short: t('WorldDetail.scoresShort'),
-      desc: t('WorldDetail.scoresDesc'),
+      short: 'Engagement',
+      desc: t('WorldDetail.engagementDesc'),
     },
     {
       key: 'scoreQ',
       label: 'Quality Score',
-      short: t('WorldDetail.scoresShort'),
-      desc: t('WorldDetail.scoresDesc'),
+      short: 'Quality',
+      desc: t('WorldDetail.qualityDesc'),
     },
-    { key: 'scoreEwma', label: 'EWMA Score', short: 'EWMA', desc: t('WorldDetail.ewmaDesc') },
   ];
 
-  const angleStep = 360 / scoreMeta.length;
+  const ewmaMeta = { key: 'scoreEwma', label: 'EWMA Score', short: 'EWMA', desc: t('WorldDetail.ewmaDesc') };
 
-  // Calculate radar chart data
-  const metrics = scoreMeta.map((item) => ({
+  const angleStep = 360 / radarMeta.length;
+
+  // Calculate radar chart data (4 dimensions, excluding EWMA)
+  const metrics = radarMeta.map((item) => ({
     ...item,
     value: world[item.key as keyof WorldDetailData] as number,
   }));
@@ -169,29 +170,37 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               </span>
             </div>
 
-            {/* Bottom: icon + title */}
-            <div className="flex items-start gap-6">
-              {world.iconUrl ? (
-                <img
-                  src={world.iconUrl}
-                  alt={world.name}
-                  className="w-24 h-24 rounded-2xl object-cover border-2 border-[#4ECCA3]/30 shadow-lg"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-serif text-[#4ECCA3] border-2 border-[#4ECCA3]/30 bg-gradient-to-br from-[#4ECCA3]/20 to-transparent">
-                  {world.name ? world.name.charAt(0) : '凡'}
+            {/* Bottom: icon + title + TimeFlowDynamics */}
+            <div className="flex items-end justify-between gap-6">
+              {/* Left: Icon + Title */}
+              <div className="flex items-start gap-6 flex-1 min-w-0">
+                {world.iconUrl ? (
+                  <img
+                    src={world.iconUrl}
+                    alt={world.name}
+                    className="w-24 h-24 rounded-2xl object-cover border-2 border-[#4ECCA3]/30 shadow-lg flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-serif text-[#4ECCA3] border-2 border-[#4ECCA3]/30 bg-gradient-to-br from-[#4ECCA3]/20 to-transparent flex-shrink-0">
+                    {world.name ? world.name.charAt(0) : '凡'}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 pb-2">
+                  <h1
+                    className="text-[clamp(28px,4vw,48px)] leading-tight font-serif tracking-wide text-white drop-shadow-lg"
+                    style={{ fontFamily: '"Noto Serif SC", serif' }}
+                  >
+                    {displayValue(world.name)}
+                  </h1>
+                  <p className="mt-2 text-base text-white/70 leading-relaxed max-w-2xl">
+                    {displayValue(world.subtitle || world.description)}
+                  </p>
                 </div>
-              )}
-              <div className="flex-1">
-                <h1
-                  className="text-[clamp(28px,4vw,48px)] leading-tight font-serif tracking-wide text-white drop-shadow-lg"
-                  style={{ fontFamily: '"Noto Serif SC", serif' }}
-                >
-                  {displayValue(world.name)}
-                </h1>
-                <p className="mt-2 text-base text-white/70 leading-relaxed max-w-2xl">
-                  {displayValue(world.subtitle || world.description)}
-                </p>
+              </div>
+
+              {/* Right: Time Flow Dynamics */}
+              <div className="flex-shrink-0 w-[140px] h-[140px] -mt-4">
+                <TimeFlowDynamics ratio={world.timeFlowRatio || 1.0} className="h-full" variant="compact" />
               </div>
             </div>
           </div>
@@ -253,9 +262,15 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               </div>
             </div>
 
-            {/* Time Flow Dynamics */}
-            <div className="mb-4">
-              <TimeFlowDynamics ratio={world.timeFlowRatio || 1.0} className="h-[200px]" />
+            {/* EWMA Score - Comprehensive Index */}
+            <div className="mb-4 p-3 rounded-xl bg-[#4ECCA3]/10 border border-[#4ECCA3]/20">
+              <div className="text-xs text-[#4ECCA3] mb-1">{ewmaMeta.label}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold text-[#4ECCA3]">
+                  {world.scoreEwma !== undefined ? world.scoreEwma.toFixed(2) : 'N/A'}
+                </div>
+                <div className="text-xs text-[#e8f5ee]/50">Comprehensive trend index</div>
+              </div>
             </div>
 
             {/* Quote */}
