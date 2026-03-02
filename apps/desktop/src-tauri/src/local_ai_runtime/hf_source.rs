@@ -368,6 +368,7 @@ where
         .unwrap_or_else(|| "LOCAL_AI_HF_DOWNLOAD_FAILED: HF 下载失败: 未知错误".to_string()))
 }
 
+#[cfg(test)]
 fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
