@@ -8,6 +8,7 @@ import type {
   LocalAiCatalogItemDescriptor,
   LocalAiDependencyResolutionPlan,
   LocalAiInstallPayload,
+  LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
 
 export type RuntimeDependencyTargetDescriptor = {
@@ -57,6 +58,7 @@ export type RuntimeConfigPanelControllerModel = {
   installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
   installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
   importLocalRuntimeModel: () => Promise<void>;
+  importLocalRuntimeModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalRuntimeModel: (localModelId: string) => Promise<void>;
   stopLocalRuntimeModel: (localModelId: string) => Promise<void>;
   restartLocalRuntimeModel: (localModelId: string) => Promise<void>;
@@ -66,4 +68,7 @@ export type RuntimeConfigPanelControllerModel = {
   restartRuntimeDaemon: () => Promise<void>;
   stopRuntimeDaemon: () => Promise<void>;
   onVaultChanged: () => void;
+  onDownloadComplete: (installSessionId: string, success: boolean, message?: string) => Promise<void>;
+  retryInstall: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
+  installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
 };
