@@ -108,7 +108,7 @@ async function runKimiImageScenario(input: { invalidOutput: boolean }): Promise<
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_KIMI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({
@@ -132,7 +132,7 @@ async function runKimiImageScenario(input: { invalidOutput: boolean }): Promise<
           timeoutMs: 30_000,
         });
 
-        const result = await provider.image('moonshot/moonshot-v1-vision').doGenerate({
+        const result = await provider.image('kimi/moonshot-v1-vision').doGenerate({
           prompt: 'render a floating city',
           n: 1,
           size: undefined,

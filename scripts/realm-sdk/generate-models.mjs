@@ -9,6 +9,7 @@ import {
   toTypeIdentifier,
   uniqueSymbolName,
 } from './model-utils.mjs';
+import { normalizeModelSymbolName as normalizeLegacyModelSymbolName } from './legacy-normalization.mjs';
 
 export function writeGeneratedModels(repoRoot, spec) {
   const generatedDir = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH);
@@ -22,7 +23,8 @@ export function writeGeneratedModels(repoRoot, spec) {
 
   for (const schemaName of schemaNames) {
     const schema = asRecord(schemaMap[schemaName]);
-    const baseSymbol = isValidTypeIdentifier(schemaName) ? schemaName : toTypeIdentifier(schemaName);
+    const baseSymbolRaw = isValidTypeIdentifier(schemaName) ? schemaName : toTypeIdentifier(schemaName);
+    const baseSymbol = normalizeLegacyModelSymbolName(baseSymbolRaw);
     const symbolName = uniqueSymbolName(baseSymbol, usedSymbolNames);
     const filePath = path.join(modelsDir, `${symbolName}.ts`);
     const enumValues = Array.isArray(schema.enum) ? schema.enum : null;

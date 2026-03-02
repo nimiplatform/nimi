@@ -3,8 +3,8 @@
  *
  * 1) Start runtime with GLM adapter:
  *    cd runtime
- *    NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL=https://open.bigmodel.cn \
- *    NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY=xxx \
+ *    NIMI_RUNTIME_CLOUD_GLM_BASE_URL=https://open.bigmodel.cn \
+ *    NIMI_RUNTIME_CLOUD_GLM_API_KEY=xxx \
  *    go run ./cmd/nimi serve
  *
  * 2) Optional env in this shell:

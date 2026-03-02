@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type Auth2faVerifyDto = components['schemas']['Auth2faVerifyDto'];
+export type MeTwoFactorPrepareOutput = components['schemas']['Me2faPrepareResponseDto'];

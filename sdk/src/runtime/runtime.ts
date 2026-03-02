@@ -1260,9 +1260,12 @@ export class Runtime {
     const traceId = normalizeText(
       metadataInput['x-nimi-trace-id'] || metadataInput.traceId,
     ) || undefined;
-    const keySource = normalizeText(
+    const keySourceRaw = normalizeText(
       metadataInput['x-nimi-key-source'] || metadataInput.keySource,
-    ).toLowerCase() || 'managed';
+    ).toLowerCase();
+    const keySource = keySourceRaw === 'inline' || keySourceRaw === 'managed'
+      ? keySourceRaw
+      : undefined;
     const providerType = normalizeText(
       metadataInput['x-nimi-provider-type'] || metadataInput.providerType,
     ) || undefined;
@@ -1293,7 +1296,7 @@ export class Runtime {
 
     const metadata = {
       traceId,
-      keySource: keySource as 'inline' | 'managed',
+      keySource,
       providerType,
       providerEndpoint,
       providerApiKey,

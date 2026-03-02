@@ -51,6 +51,7 @@
   9. `pnpm check:no-create-nimi-client`（`S-BOUNDARY-004` 禁止旧入口）
   10. `pnpm check:no-global-openapi-config`（`S-BOUNDARY-004` 禁止全局配置）
   11. `pnpm check:no-openapi-singleton-import`
+  12. `pnpm check:sdk-realm-legacy-clean`（`S-SURFACE-005` realm 公开符号去 legacy）
 
 ### 2.4 vNext 固定矩阵门禁
 
@@ -68,6 +69,7 @@
 
 - `SDKTEST-050`: PR CI 必须执行 legacy/OpenAPI 禁令与 `sdk-vnext-matrix`。
 - `SDKTEST-051`: SDK release workflow 必须在 publish 前执行同级检查，不得降级或绕过。
+- `SDKTEST-052`: 发布判定采用 `CI+条件Live`：当 `NIMI_SDK_LIVE` 或 provider 环境变量缺失时，发布状态记为 `CONDITIONAL_READY`；若 live 环境齐全但任一 live smoke 失败，则记为 `NOT_READY`。
 
 ## 3. Runtime 契约测试
 
@@ -90,6 +92,7 @@
 
 - `SDKTEST-080`: 覆盖文件：`nimi-sdk-ai-provider-live-smoke.test.ts`。
 - `SDKTEST-081`: 当前场景：local provider 真实服务文本生成、nimiLLM 真实服务文本生成。
+- `SDKTEST-082`: 当 live 测试因环境变量缺失而跳过时，必须在发布审计报告中记录跳过原因与缺失变量列表（对应 `SDKTEST-052` 条件发布判定）。
 
 ## 6. 已知测试边界
 

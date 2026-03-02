@@ -66,6 +66,11 @@ for (const rel of ['spec/sdk/scope.md', 'spec/sdk/mod.md']) {
   }
 }
 
+const sdkTestingGates = read('spec/sdk/testing-gates.md');
+if (!sdkTestingGates.includes('check:sdk-realm-legacy-clean')) {
+  fail('spec/sdk/testing-gates.md must include check:sdk-realm-legacy-clean in SDKTEST-030');
+}
+
 const allSdkSpecs = walk(path.join(cwd, 'spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
 for (const abs of allSdkSpecs) {
   const rel = path.relative(cwd, abs);

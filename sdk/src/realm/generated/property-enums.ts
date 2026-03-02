@@ -316,7 +316,7 @@ export type NotificationType = (typeof NotificationType)[keyof typeof Notificati
 export const OAuthLoginState = {
   OK: "ok",
   NEEDS_ONBOARDING: "needs_onboarding",
-  NEEDS_2FA: "needs_2fa",
+  NEEDS_TWO_FACTOR: "needs_2fa",
   BLOCKED: "blocked",
 } as const satisfies Record<string, components['schemas']['OAuthLoginResultDto']['loginState']>;
 

@@ -127,7 +127,7 @@ test('provider_minimax_test.ts: minimax image/video task via nimi-sdk', {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({

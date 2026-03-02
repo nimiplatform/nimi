@@ -3,15 +3,15 @@
  *
  * 1) Start runtime with Kimi adapter:
  *    cd runtime
- *    NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL=https://api.moonshot.cn \
- *    NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY=xxx \
+ *    NIMI_RUNTIME_CLOUD_KIMI_BASE_URL=https://api.moonshot.cn \
+ *    NIMI_RUNTIME_CLOUD_KIMI_API_KEY=xxx \
  *    go run ./cmd/nimi serve
  *
  * 2) Optional env in this shell:
  *    export NIMI_RUNTIME_GRPC_ENDPOINT=127.0.0.1:46371
  *    export NIMI_APP_ID=example.providers.kimi
  *    export NIMI_SUBJECT_USER_ID=local-user
- *    export NIMI_KIMI_IMAGE_MODEL=moonshot/moonshot-v1-vision
+ *    export NIMI_KIMI_IMAGE_MODEL=kimi/moonshot-v1-vision
  *    export NIMI_KIMI_IMAGE_OUT=./tmp/kimi-image.png
  *    export NIMI_KIMI_REFERENCE_IMAGES=https://.../ref1.png,https://.../ref2.png
  *
@@ -37,7 +37,7 @@ function parseReferenceImages(raw: string): string[] {
 async function run(): Promise<void> {
   const appId = env('NIMI_APP_ID', 'example.providers.kimi');
   const subjectUserId = env('NIMI_SUBJECT_USER_ID', 'local-user');
-  const model = env('NIMI_KIMI_IMAGE_MODEL', 'moonshot/moonshot-v1-vision');
+  const model = env('NIMI_KIMI_IMAGE_MODEL', 'kimi/moonshot-v1-vision');
 
   const { endpoint, provider } = createProviderContext({
     appId,

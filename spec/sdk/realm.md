@@ -18,6 +18,7 @@
 - `SDKREALM-002`: endpoint/token/header 必须实例级隔离，不允许全局 OpenAPI 运行态写入。
 - `SDKREALM-003`: 生成 facade 是唯一权威调用面（`S-SURFACE-004`），禁止手工旁路契约。
 - `SDKREALM-004`: 传输与边界规则必须满足 `S-TRANSPORT-004` / `S-BOUNDARY-004`。
+- `SDKREALM-005`: realm 公开符号命名必须满足 `S-SURFACE-005`（全公开符号去 legacy）；协议字面量（path/schema key/enum value）可保留上游文本。
 
 ## 2. 请求引擎（领域增量）
 
@@ -36,7 +37,7 @@
 - `SDKREALM-022`: `raw.request<T>(input)` 旁路生成 facade 发起 HTTP 请求。
 - `SDKREALM-023`: raw 请求仍受实例级 header/timeout/auth 控制。
 - `SDKREALM-024`: `services` 属性提供按 OpenAPI operationId 分组的类型安全 API 句柄。
-- `SDKREALM-025`: 命名别名以 OpenAPI codegen 生成的 service 名称为权威，spec 有意不维护独立枚举（避免与 codegen 产出漂移）。完整列表由 codegen 自动生成，非 spec 管理范围。
+- `SDKREALM-025`: service/model/method/property-enum 公开命名由 realm codegen 归一化结果为权威（`S-SURFACE-005`）；不允许手写 alias 桥接。
 - `SDKREALM-026`: `RealmOptions.telemetry.enabled/onEvent` 控制遥测；遵循 S-TRANSPORT-006。
 - `SDKREALM-027`: `RealmOptions.auth.accessToken` 支持 `string | (() => Promise<string>)` 函数模式实现调用方手动刷新（SDKREALM-014 的实现方式）。
 - `SDKREALM-028`: `auth.refreshToken` 支持 `string | (() => Promise<string> | string)`。提供时，SDK 在收到 401 后尝试：(1) 直接 fetch `POST {baseUrl}/api/auth/refresh`（不经过 `#requestUnknown`，不附带过期 Authorization 头），(2) 成功后调用 `auth.onTokenRefreshed` 回调，(3) 使用新 token 单次重试原请求。刷新失败调用 `auth.onRefreshFailed`。符合 SDKREALM-015（单次重试 + 可观测）。

@@ -125,13 +125,8 @@ function validateAiCredentialMetadata(
   }
 
   if (request.routePolicy === RoutePolicy.TOKEN_API) {
-    if (!source) {
-      throwValidationError(
-        'SDK_RUNTIME_AI_CREDENTIAL_SOURCE_REQUIRED',
-        `${methodId} token-api route requires metadata.keySource`,
-        'set_key_source',
-      );
-    }
+    // token-api may use runtime default cloud credentials when keySource is omitted.
+    // keySource is only required for explicit inline/managed override.
     if (source === 'inline' && !apiKey) {
       throwValidationError(
         'SDK_RUNTIME_AI_CREDENTIAL_MISSING',

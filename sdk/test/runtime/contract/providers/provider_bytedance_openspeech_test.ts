@@ -92,8 +92,8 @@ test('provider_bytedance_openspeech_test.ts: bytedance openspeech tts/stt via ni
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL: fakeServer.url,
-        NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({
@@ -117,7 +117,7 @@ test('provider_bytedance_openspeech_test.ts: bytedance openspeech tts/stt via ni
           timeoutMs: 30_000,
         });
 
-        const ttsResult = await provider.tts('bytedance/tts-1').synthesize({
+        const ttsResult = await provider.tts('volcengine/tts-1').synthesize({
           text: 'hello bytedance',
         });
         assert.equal(ttsResult.artifacts.length, 1);
@@ -126,7 +126,7 @@ test('provider_bytedance_openspeech_test.ts: bytedance openspeech tts/stt via ni
           'bytedance-tts-audio',
         );
 
-        const sttResult = await provider.stt('bytedance/stt-1').transcribe({
+        const sttResult = await provider.stt('volcengine/stt-1').transcribe({
           audioBytes: Uint8Array.from([1, 2, 3, 4]),
           mimeType: 'audio/wav',
         });

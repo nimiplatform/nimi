@@ -30,6 +30,14 @@ SDK 对外契约层禁止出现以下旧接口名：
 - Scope SDK 以 in-memory catalog + publish/revoke 语义为最小稳定面。
 - Mod SDK 以 host 注入 facade + hook 客户端为最小稳定面。
 
+## S-SURFACE-005 Realm 公开命名去 Legacy
+
+Realm SDK 公开符号（类型名、service 名、公开方法名、property-enum 键名）必须使用规范命名，禁止暴露 legacy 命名。
+
+- 禁止：`*2fa*` / `*2Fa*` / `*2FA*`、`Me2FaService`、`SocialV1DefaultVisibilityService`、`SocialFourDimensionalAttributesService` 等旧命名。
+- 允许保留协议字面量（wire literal）用于与服务端契约对齐，例如路径 `/api/auth/2fa/*`、schema key `Auth2faVerifyDto`、枚举值 `needs_2fa`。
+- 命名归一化必须在 codegen 层完成，不允许在公开 facade 层依赖 legacy → new alias 桥接。
+
 ## S-SURFACE-009 Runtime 方法投影表治理
 
 `tables/runtime-method-groups.yaml` 是 SDK 对外方法投影的结构化事实源，采用”显式维护 + 一致性校验”模式：

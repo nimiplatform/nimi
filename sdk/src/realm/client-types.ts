@@ -49,11 +49,7 @@ type ServiceByName<Name extends string> = Name extends keyof RealmGeneratedServi
   ? RealmGeneratedServiceRegistry[Name]
   : Record<string, never>;
 
-export type RealmServiceRegistry = RealmGeneratedServiceRegistry & {
-  MeTwoFactorService?: ServiceByName<'Me2FaService'>;
-  SocialDefaultVisibilityService?: ServiceByName<'SocialV1DefaultVisibilityService'>;
-  SocialAttributesService?: ServiceByName<'SocialFourDimensionalAttributesService'>;
-};
+export type RealmServiceRegistry = RealmGeneratedServiceRegistry;
 
 export type MeTwoFactorService = NonNullable<RealmServiceRegistry['MeTwoFactorService']>;
 export type SocialDefaultVisibilityService = NonNullable<RealmServiceRegistry['SocialDefaultVisibilityService']>;

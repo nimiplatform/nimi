@@ -241,6 +241,45 @@ test('createRuntimeClient enforces explicit ai routePolicy', async () => {
   }
 });
 
+test('createRuntimeClient allows token-api route without explicit keySource metadata', async () => {
+  let captured: RuntimeUnaryCall<RuntimeWireMessage> | null = null;
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      captured = input;
+      return GenerateResponse.toBinary(
+        GenerateResponse.create({
+          finishReason: FinishReason.STOP,
+          routeDecision: RoutePolicy.TOKEN_API,
+          modelResolved: 'gemini/gemini-3-flash-preview',
+          traceId: 'trace-token-api-no-keysource',
+        }),
+      );
+    },
+    openStream: async () => {
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield new Uint8Array(0);
+        },
+      };
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = createRuntimeClient(runtimeConfig);
+    const response = await client.ai.generate({
+      ...createGenerateRequest(),
+      modelId: 'gemini/gemini-3-flash-preview',
+      routePolicy: RoutePolicy.TOKEN_API,
+    });
+    assert.equal(response.traceId, 'trace-token-api-no-keysource');
+    assert.ok(captured);
+    assert.equal(captured.metadata.keySource, undefined);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('createRuntimeClient defaults ai fallback policy to deny when unspecified', async () => {
   let captured: RuntimeUnaryCall<RuntimeWireMessage> | null = null;
   installNodeGrpcBridge({

@@ -3,8 +3,8 @@
  *
  * 1) Start runtime with MiniMax adapter:
  *    cd runtime
- *    NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL=https://your-minimax-endpoint \
- *    NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY=xxx \
+ *    NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL=https://your-minimax-endpoint \
+ *    NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY=xxx \
  *    go run ./cmd/nimi serve
  *
  * 2) Optional env in this shell:

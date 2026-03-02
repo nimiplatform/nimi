@@ -137,7 +137,7 @@ test('provider_glm_test.ts: glm task/native media via nimi-sdk', {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_GLM_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({

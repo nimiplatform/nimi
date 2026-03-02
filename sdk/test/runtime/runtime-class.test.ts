@@ -468,6 +468,60 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
   }
 });
 
+test('Runtime ai.text.generate omits x-nimi-key-source unless explicitly provided', async () => {
+  let capturedMetadata: Record<string, string> = {};
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.generate) {
+        capturedMetadata = {};
+        for (const [key, value] of Object.entries(input.metadata || {})) {
+          if (typeof value === 'string') {
+            capturedMetadata[key] = value;
+          }
+        }
+        return GenerateResponse.toBinary(
+          GenerateResponse.create({
+            output: Struct.fromJson({ text: 'metadata-default-ok' } as never),
+            finishReason: FinishReason.STOP,
+            routeDecision: RoutePolicy.TOKEN_API,
+            modelResolved: 'gemini/gemini-3-flash-preview',
+            traceId: 'trace-metadata-default',
+          }),
+        );
+      }
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      authContext: {
+        subjectUserId: 'metadata-default-user',
+      },
+    });
+
+    await runtime.ai.text.generate({
+      model: 'gemini/gemini-3-flash-preview',
+      input: 'metadata default test',
+      route: 'token-api',
+    });
+
+    assert.equal(capturedMetadata.keySource, undefined);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('RuntimeEventName does not include ai.route.decision or media.job.status (SDKR-028)', () => {
   // The Phase 1 event set is: runtime.connected, runtime.disconnected,
   // auth.token.issued, auth.token.revoked, error.

@@ -26,6 +26,7 @@ export type { AggregateMetricsDto } from './generated/models/AggregateMetricsDto
 export { ApiKeyType } from './generated/models/ApiKeyType';
 export type { ApproveRequestDto } from './generated/models/ApproveRequestDto';
 export type { AuthTokensDto } from './generated/models/AuthTokensDto';
+export type { AuthTwoFactorVerifyInput } from './generated/models/AuthTwoFactorVerifyInput';
 export type { BatchCreateAgentsRequestDto } from './generated/models/BatchCreateAgentsRequestDto';
 export type { BatchUpsertWorldEventsDto } from './generated/models/BatchUpsertWorldEventsDto';
 export type { BatchUpsertWorldLorebooksDto } from './generated/models/BatchUpsertWorldLorebooksDto';
@@ -107,6 +108,8 @@ export type { MarkNotificationsReadInputDto } from './generated/models/MarkNotif
 export type { MemoryStatsResponseDto } from './generated/models/MemoryStatsResponseDto';
 export { MessageType } from './generated/models/MessageType';
 export type { MessageViewDto } from './generated/models/MessageViewDto';
+export type { MeTwoFactorPrepareOutput } from './generated/models/MeTwoFactorPrepareOutput';
+export type { MeTwoFactorVerifyInput } from './generated/models/MeTwoFactorVerifyInput';
 export { ModerationStatusString } from './generated/models/ModerationStatusString';
 export type { MutationProposalDetailDto } from './generated/models/MutationProposalDetailDto';
 export type { NarrativeSpineBranchDetailDto } from './generated/models/NarrativeSpineBranchDetailDto';
@@ -254,10 +257,7 @@ export type { WorldviewEventDto } from './generated/models/WorldviewEventDto';
 export type { WorldviewPatchDto } from './generated/models/WorldviewPatchDto';
 export type { WorldviewSnapshotDto } from './generated/models/WorldviewSnapshotDto';
 
-// Naming-normalized facade exports (do not expose legacy names).
-export type { Auth2faVerifyDto as AuthTwoFactorVerifyInput } from './generated/models/Auth2faVerifyDto';
-export type { Me2faVerifyDto as MeTwoFactorVerifyInput } from './generated/models/Me2faVerifyDto';
-export type { Me2faPrepareResponseDto as MeTwoFactorPrepareOutput } from './generated/models/Me2faPrepareResponseDto';
+// Explicit service type exports for public naming checks.
 export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';
 
 // vNext realm client exports.

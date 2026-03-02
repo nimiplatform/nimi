@@ -147,7 +147,7 @@ test('provider_gemini_test.ts: gemini operation image/video via nimi-sdk', {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({

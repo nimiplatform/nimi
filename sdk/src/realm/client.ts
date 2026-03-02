@@ -332,16 +332,6 @@ export class Realm {
 
     this.services = createRealmServiceRegistry(async (input) => this.#requestUnknown(input)) as RealmServiceRegistry;
 
-    if (this.services.Me2FaService) {
-      this.services.MeTwoFactorService = this.services.Me2FaService;
-    }
-    if (this.services.SocialV1DefaultVisibilityService) {
-      this.services.SocialDefaultVisibilityService = this.services.SocialV1DefaultVisibilityService;
-    }
-    if (this.services.SocialFourDimensionalAttributesService) {
-      this.services.SocialAttributesService = this.services.SocialFourDimensionalAttributesService;
-    }
-
     this.auth = this.services.AuthService;
     this.users = mergeHandles(this.services.UserService, this.services.MeService);
     this.posts = this.services.PostService;

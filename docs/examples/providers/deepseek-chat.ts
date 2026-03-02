@@ -142,6 +142,7 @@ async function main(): Promise<void> {
   const response = await runtime.ai.generate({
     appId,
     subjectUserId,
+    connectorId,
     modelId: model,
     modal: MODAL_TEXT,
     input: [{ role: 'user', content: prompt, name: '' }],

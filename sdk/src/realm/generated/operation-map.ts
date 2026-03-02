@@ -902,24 +902,24 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
-  "AuthService.verify2Fa": {
-    "operationId": "verify2Fa",
-    "method": "POST",
-    "path": "/api/auth/2fa/verify",
-    "service": "AuthService",
-    "methodName": "verify2Fa",
-    "tag": "Auth",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
   "AuthService.verifyEmailOtp": {
     "operationId": "verifyEmailOtp",
     "method": "POST",
     "path": "/api/auth/email/otp/verify",
     "service": "AuthService",
     "methodName": "verifyEmailOtp",
+    "tag": "Auth",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
+  "AuthService.verifyTwoFactor": {
+    "operationId": "verifyTwoFactor",
+    "method": "POST",
+    "path": "/api/auth/2fa/verify",
+    "service": "AuthService",
+    "methodName": "verifyTwoFactor",
     "tag": "Auth",
     "parameters": [],
     "hasBody": true,
@@ -1898,41 +1898,6 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
-  "Me2FaService.disable2Fa": {
-    "operationId": "disable2Fa",
-    "method": "POST",
-    "path": "/api/auth/me/2fa/disable",
-    "service": "Me2FaService",
-    "methodName": "disable2Fa",
-    "tag": "Me2fa",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
-  "Me2FaService.enable2Fa": {
-    "operationId": "enable2Fa",
-    "method": "POST",
-    "path": "/api/auth/me/2fa/enable",
-    "service": "Me2FaService",
-    "methodName": "enable2Fa",
-    "tag": "Me2fa",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json"
-  },
-  "Me2FaService.prepare2Fa": {
-    "operationId": "prepare2Fa",
-    "method": "POST",
-    "path": "/api/auth/me/2fa/prepare",
-    "service": "Me2FaService",
-    "methodName": "prepare2Fa",
-    "tag": "Me2fa",
-    "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false
-  },
   "MediaService.createImageDirectUpload": {
     "operationId": "createImageDirectUpload",
     "method": "POST",
@@ -2283,6 +2248,41 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
+  },
+  "MeTwoFactorService.disableTwoFactor": {
+    "operationId": "disableTwoFactor",
+    "method": "POST",
+    "path": "/api/auth/me/2fa/disable",
+    "service": "MeTwoFactorService",
+    "methodName": "disableTwoFactor",
+    "tag": "Me2fa",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
+  "MeTwoFactorService.enableTwoFactor": {
+    "operationId": "enableTwoFactor",
+    "method": "POST",
+    "path": "/api/auth/me/2fa/enable",
+    "service": "MeTwoFactorService",
+    "methodName": "enableTwoFactor",
+    "tag": "Me2fa",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json"
+  },
+  "MeTwoFactorService.prepareTwoFactor": {
+    "operationId": "prepareTwoFactor",
+    "method": "POST",
+    "path": "/api/auth/me/2fa/prepare",
+    "service": "MeTwoFactorService",
+    "methodName": "prepareTwoFactor",
+    "tag": "Me2fa",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false
   },
   "NarrativeSpineService.narrativeSpineControllerAppendEvent": {
     "operationId": "NarrativeSpineController_appendEvent",
@@ -3303,11 +3303,11 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerCompareAttributes": {
+  "SocialAttributesService.fourDimensionAttributeControllerCompareAttributes": {
     "operationId": "FourDimensionAttributeController_compareAttributes",
     "method": "POST",
     "path": "/api/agent/four-dimension/compare",
-    "service": "SocialFourDimensionalAttributesService",
+    "service": "SocialAttributesService",
     "methodName": "fourDimensionAttributeControllerCompareAttributes",
     "tag": "Social - Four-Dimensional Attributes",
     "parameters": [],
@@ -3315,11 +3315,11 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
-  "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerGetAttributes": {
+  "SocialAttributesService.fourDimensionAttributeControllerGetAttributes": {
     "operationId": "FourDimensionAttributeController_getAttributes",
     "method": "GET",
     "path": "/api/agent/four-dimension/attributes/{accountId}",
-    "service": "SocialFourDimensionalAttributesService",
+    "service": "SocialAttributesService",
     "methodName": "fourDimensionAttributeControllerGetAttributes",
     "tag": "Social - Four-Dimensional Attributes",
     "parameters": [
@@ -3333,33 +3333,33 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerGetOwnAttributes": {
+  "SocialAttributesService.fourDimensionAttributeControllerGetOwnAttributes": {
     "operationId": "FourDimensionAttributeController_getOwnAttributes",
     "method": "GET",
     "path": "/api/agent/four-dimension/me",
-    "service": "SocialFourDimensionalAttributesService",
+    "service": "SocialAttributesService",
     "methodName": "fourDimensionAttributeControllerGetOwnAttributes",
     "tag": "Social - Four-Dimensional Attributes",
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerQueryByTier": {
+  "SocialAttributesService.fourDimensionAttributeControllerQueryByTier": {
     "operationId": "FourDimensionAttributeController_queryByTier",
     "method": "GET",
     "path": "/api/agent/four-dimension/query-by-tier",
-    "service": "SocialFourDimensionalAttributesService",
+    "service": "SocialAttributesService",
     "methodName": "fourDimensionAttributeControllerQueryByTier",
     "tag": "Social - Four-Dimensional Attributes",
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerApplyAgentDefaults": {
+  "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyAgentDefaults": {
     "operationId": "V1DefaultVisibilityController_applyAgentDefaults",
     "method": "POST",
     "path": "/api/agent/visibility/defaults/apply/agent/{agentId}",
-    "service": "SocialV1DefaultVisibilityService",
+    "service": "SocialDefaultVisibilityService",
     "methodName": "v1DefaultVisibilityControllerApplyAgentDefaults",
     "tag": "Social - V1 Default Visibility",
     "parameters": [
@@ -3373,11 +3373,11 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerApplyUserDefaults": {
+  "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyUserDefaults": {
     "operationId": "V1DefaultVisibilityController_applyUserDefaults",
     "method": "POST",
     "path": "/api/agent/visibility/defaults/apply/user/{userId}",
-    "service": "SocialV1DefaultVisibilityService",
+    "service": "SocialDefaultVisibilityService",
     "methodName": "v1DefaultVisibilityControllerApplyUserDefaults",
     "tag": "Social - V1 Default Visibility",
     "parameters": [
@@ -3391,11 +3391,11 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultForScope": {
+  "SocialDefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultForScope": {
     "operationId": "V1DefaultVisibilityController_getDefaultForScope",
     "method": "GET",
     "path": "/api/agent/visibility/defaults/defaults/{entityType}/{scope}",
-    "service": "SocialV1DefaultVisibilityService",
+    "service": "SocialDefaultVisibilityService",
     "methodName": "v1DefaultVisibilityControllerGetDefaultForScope",
     "tag": "Social - V1 Default Visibility",
     "parameters": [
@@ -3415,11 +3415,11 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultVisibility": {
+  "SocialDefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultVisibility": {
     "operationId": "V1DefaultVisibilityController_getDefaultVisibility",
     "method": "GET",
     "path": "/api/agent/visibility/defaults/defaults/{entityType}",
-    "service": "SocialV1DefaultVisibilityService",
+    "service": "SocialDefaultVisibilityService",
     "methodName": "v1DefaultVisibilityControllerGetDefaultVisibility",
     "tag": "Social - V1 Default Visibility",
     "parameters": [
@@ -3433,11 +3433,11 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerValidateAgentVisibility": {
+  "SocialDefaultVisibilityService.v1DefaultVisibilityControllerValidateAgentVisibility": {
     "operationId": "V1DefaultVisibilityController_validateAgentVisibility",
     "method": "GET",
     "path": "/api/agent/visibility/defaults/validate/agent/{agentId}",
-    "service": "SocialV1DefaultVisibilityService",
+    "service": "SocialDefaultVisibilityService",
     "methodName": "v1DefaultVisibilityControllerValidateAgentVisibility",
     "tag": "Social - V1 Default Visibility",
     "parameters": [
@@ -3451,11 +3451,11 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false
   },
-  "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerValidateUserVisibility": {
+  "SocialDefaultVisibilityService.v1DefaultVisibilityControllerValidateUserVisibility": {
     "operationId": "V1DefaultVisibilityController_validateUserVisibility",
     "method": "GET",
     "path": "/api/agent/visibility/defaults/validate/user/{userId}",
-    "service": "SocialV1DefaultVisibilityService",
+    "service": "SocialDefaultVisibilityService",
     "methodName": "v1DefaultVisibilityControllerValidateUserVisibility",
     "tag": "Social - V1 Default Visibility",
     "parameters": [
@@ -4943,8 +4943,8 @@ export const REALM_SERVICE_METHODS = {
     "requestEmailOtp": "AuthService.requestEmailOtp",
     "unlinkOauth": "AuthService.unlinkOauth",
     "updatePassword": "AuthService.updatePassword",
-    "verify2Fa": "AuthService.verify2Fa",
     "verifyEmailOtp": "AuthService.verifyEmailOtp",
+    "verifyTwoFactor": "AuthService.verifyTwoFactor",
     "walletChallenge": "AuthService.walletChallenge",
     "walletLogin": "AuthService.walletLogin"
   },
@@ -5027,11 +5027,6 @@ export const REALM_SERVICE_METHODS = {
     "invitationControllerListMyCodes": "InvitationsService.invitationControllerListMyCodes",
     "invitationControllerVerifyCode": "InvitationsService.invitationControllerVerifyCode"
   },
-  "Me2FaService": {
-    "disable2Fa": "Me2FaService.disable2Fa",
-    "enable2Fa": "Me2FaService.enable2Fa",
-    "prepare2Fa": "Me2FaService.prepare2Fa"
-  },
   "MediaService": {
     "createImageDirectUpload": "MediaService.createImageDirectUpload",
     "createVideoDirectUpload": "MediaService.createVideoDirectUpload",
@@ -5060,6 +5055,11 @@ export const REALM_SERVICE_METHODS = {
     "updateMyNotificationSettings": "MeService.updateMyNotificationSettings",
     "updateMyPPConfig": "MeService.updateMyPPConfig",
     "updateMySettings": "MeService.updateMySettings"
+  },
+  "MeTwoFactorService": {
+    "disableTwoFactor": "MeTwoFactorService.disableTwoFactor",
+    "enableTwoFactor": "MeTwoFactorService.enableTwoFactor",
+    "prepareTwoFactor": "MeTwoFactorService.prepareTwoFactor"
   },
   "NarrativeSpineService": {
     "narrativeSpineControllerAppendEvent": "NarrativeSpineService.narrativeSpineControllerAppendEvent",
@@ -5120,19 +5120,19 @@ export const REALM_SERVICE_METHODS = {
     "searchPosts": "SearchService.searchPosts",
     "searchUsers": "SearchService.searchUsers"
   },
-  "SocialFourDimensionalAttributesService": {
-    "fourDimensionAttributeControllerCompareAttributes": "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerCompareAttributes",
-    "fourDimensionAttributeControllerGetAttributes": "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerGetAttributes",
-    "fourDimensionAttributeControllerGetOwnAttributes": "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerGetOwnAttributes",
-    "fourDimensionAttributeControllerQueryByTier": "SocialFourDimensionalAttributesService.fourDimensionAttributeControllerQueryByTier"
+  "SocialAttributesService": {
+    "fourDimensionAttributeControllerCompareAttributes": "SocialAttributesService.fourDimensionAttributeControllerCompareAttributes",
+    "fourDimensionAttributeControllerGetAttributes": "SocialAttributesService.fourDimensionAttributeControllerGetAttributes",
+    "fourDimensionAttributeControllerGetOwnAttributes": "SocialAttributesService.fourDimensionAttributeControllerGetOwnAttributes",
+    "fourDimensionAttributeControllerQueryByTier": "SocialAttributesService.fourDimensionAttributeControllerQueryByTier"
   },
-  "SocialV1DefaultVisibilityService": {
-    "v1DefaultVisibilityControllerApplyAgentDefaults": "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerApplyAgentDefaults",
-    "v1DefaultVisibilityControllerApplyUserDefaults": "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerApplyUserDefaults",
-    "v1DefaultVisibilityControllerGetDefaultForScope": "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultForScope",
-    "v1DefaultVisibilityControllerGetDefaultVisibility": "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultVisibility",
-    "v1DefaultVisibilityControllerValidateAgentVisibility": "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerValidateAgentVisibility",
-    "v1DefaultVisibilityControllerValidateUserVisibility": "SocialV1DefaultVisibilityService.v1DefaultVisibilityControllerValidateUserVisibility"
+  "SocialDefaultVisibilityService": {
+    "v1DefaultVisibilityControllerApplyAgentDefaults": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyAgentDefaults",
+    "v1DefaultVisibilityControllerApplyUserDefaults": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyUserDefaults",
+    "v1DefaultVisibilityControllerGetDefaultForScope": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultForScope",
+    "v1DefaultVisibilityControllerGetDefaultVisibility": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerGetDefaultVisibility",
+    "v1DefaultVisibilityControllerValidateAgentVisibility": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerValidateAgentVisibility",
+    "v1DefaultVisibilityControllerValidateUserVisibility": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerValidateUserVisibility"
   },
   "SoulEvolutionService": {
     "soulEvolutionControllerAggregateMetrics": "SoulEvolutionService.soulEvolutionControllerAggregateMetrics",

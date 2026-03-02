@@ -11,6 +11,7 @@ import {
   toEnumMemberKey,
   toTypeIdentifier,
 } from './model-utils.mjs';
+import { normalizeEnumMemberKey } from './legacy-normalization.mjs';
 
 export function writePropertyEnums(repoRoot, spec) {
   const generatedDir = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH);
@@ -91,7 +92,7 @@ export function writePropertyEnums(repoRoot, spec) {
     const usedEnumMemberNames = new Map();
     for (let index = 0; index < entry.enumValues.length; index += 1) {
       const enumValue = entry.enumValues[index];
-      const memberName = toEnumMemberKey(enumValue, index, usedEnumMemberNames);
+      const memberName = normalizeEnumMemberKey(toEnumMemberKey(enumValue, index, usedEnumMemberNames));
       lines.push(`  ${memberName}: ${JSON.stringify(enumValue)},`);
     }
     lines.push(

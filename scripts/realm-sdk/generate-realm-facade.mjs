@@ -17,17 +17,9 @@ export function writeRealmFacade(repoRoot) {
   lines.push('/* eslint-disable */');
   lines.push('// AUTO-GENERATED FACADE from realm/generated/models/*.ts. DO NOT EDIT BY HAND.');
   lines.push('');
-  const legacyFacadeSymbols = new Set([
-    'Auth2faVerifyDto',
-    'Me2faVerifyDto',
-    'Me2faPrepareResponseDto',
-  ]);
 
   for (const fileName of modelFiles) {
     const symbol = fileName.replace(/\.ts$/, '');
-    if (legacyFacadeSymbols.has(symbol)) {
-      continue;
-    }
     const source = readFileSync(path.join(generatedModelsDir, fileName), 'utf8');
     const exportKind = classifyModelExport(source);
     if (exportKind === 'value') {
@@ -42,10 +34,7 @@ export function writeRealmFacade(repoRoot) {
   }
 
   lines.push('');
-  lines.push('// Naming-normalized facade exports (do not expose legacy names).');
-  lines.push("export type { Auth2faVerifyDto as AuthTwoFactorVerifyInput } from './generated/models/Auth2faVerifyDto';");
-  lines.push("export type { Me2faVerifyDto as MeTwoFactorVerifyInput } from './generated/models/Me2faVerifyDto';");
-  lines.push("export type { Me2faPrepareResponseDto as MeTwoFactorPrepareOutput } from './generated/models/Me2faPrepareResponseDto';");
+  lines.push('// Explicit service type exports for public naming checks.');
   lines.push("export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';");
   lines.push('');
   lines.push('// vNext realm client exports.');

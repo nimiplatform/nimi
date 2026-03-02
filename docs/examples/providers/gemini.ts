@@ -3,8 +3,8 @@
  *
  * 1) Start runtime with Gemini adapter:
  *    cd runtime
- *    NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL=https://your-gemini-endpoint \
- *    NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY=xxx \
+ *    NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL=https://your-gemini-endpoint \
+ *    NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=xxx \
  *    go run ./cmd/nimi serve
  *
  * 2) Optional env in this shell:
