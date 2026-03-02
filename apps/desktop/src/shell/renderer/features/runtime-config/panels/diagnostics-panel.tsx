@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { localAiRuntime, type LocalAiAuditEvent } from '@runtime/local-ai-runtime';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import { desktopBridge, type RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import {

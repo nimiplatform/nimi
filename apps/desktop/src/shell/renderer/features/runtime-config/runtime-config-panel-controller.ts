@@ -9,8 +9,8 @@ import {
 } from '@runtime/local-ai-runtime';
 import { desktopBridge, type RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { CapabilityV11, RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
-import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/v11/storage';
+import type { CapabilityV11, RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/types';
+import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/storage';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';

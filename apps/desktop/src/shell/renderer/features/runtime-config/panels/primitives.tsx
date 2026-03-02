@@ -3,7 +3,7 @@ import {
   statusClassV11,
   statusTextV11,
   type ProviderStatusV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 
 export function Card({
   children,

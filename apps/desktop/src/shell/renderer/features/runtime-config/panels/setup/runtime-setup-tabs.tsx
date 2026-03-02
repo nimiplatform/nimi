@@ -1,4 +1,4 @@
-import type { RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/types';
 
 type RuntimeSetupTabsProps = {
   activePage: RuntimeSetupPageIdV11;

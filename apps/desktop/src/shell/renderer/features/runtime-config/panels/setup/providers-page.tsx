@@ -3,7 +3,7 @@ import {
   CAPABILITIES_V11,
   type RuntimeConfigStateV11,
   type RuntimeSetupPageIdV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { Button, Card, StatusBadge } from '../primitives';
 

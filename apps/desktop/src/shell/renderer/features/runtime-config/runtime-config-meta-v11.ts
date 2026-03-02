@@ -1,6 +1,6 @@
 import type {
   RuntimeSectionIdV11,
-} from './state/v11/types';
+} from './state/types';
 
 export const RUNTIME_SECTION_META: Record<RuntimeSectionIdV11, { name: string; description: string }> = {
   setup: {

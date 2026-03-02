@@ -9,7 +9,7 @@ import {
   type LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
 import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
-import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/types';
 import { Button, Card, Input, StatusBadge, renderModelChips } from '../primitives';
 
 type LocalRuntimeModelCenterProps = {

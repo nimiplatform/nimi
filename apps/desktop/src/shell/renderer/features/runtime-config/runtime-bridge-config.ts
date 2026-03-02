@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 
 const DEFAULT_RUNTIME_CONFIG = {
   schemaVersion: 1,

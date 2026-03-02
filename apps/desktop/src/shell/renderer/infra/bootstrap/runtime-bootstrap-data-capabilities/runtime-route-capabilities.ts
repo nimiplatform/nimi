@@ -4,7 +4,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   normalizeCapabilityV11,
   normalizeSourceV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { logRendererEvent } from '@nimiplatform/sdk/mod/logging';
 import {

@@ -2,7 +2,7 @@ import {
   dedupeStringsV11,
   type ApiConnector,
   type RuntimeConfigStateV11,
-} from './v11/types';
+} from './types';
 
 export function selectOrderedConnectorsV11(
   state: RuntimeConfigStateV11 | null,

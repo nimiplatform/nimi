@@ -11,7 +11,7 @@ import {
   resolveProviderEndpoint,
   vendorToProvider,
 } from '../domain/provider-connectors/connector-sdk-service';
-import { VENDOR_CATALOGS_V11, randomIdV11, type ApiVendor } from '../state/v11/types';
+import { VENDOR_CATALOGS_V11, randomIdV11, type ApiVendor } from '../state/types';
 import { formatRuntimeConfigErrorBanner } from '../domain/provider-connectors/error';
 
 export function ProviderConnectorsPanel({

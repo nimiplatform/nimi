@@ -3,8 +3,8 @@ import test from 'node:test';
 
 import type { RuntimeBridgeDaemonStatus } from '../src/shell/renderer/bridge/runtime-bridge/types';
 import { applyRuntimeDaemonStatusToConfigState } from '../src/shell/renderer/features/runtime-config/runtime-daemon-state';
-import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/state/v11/storage/defaults';
-import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/state/v11/types';
+import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/state/storage/defaults';
+import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/state/types';
 
 const DEFAULT_GRPC_ADDR = '127.0.0.1:46371';
 const CHECKED_AT = '2026-02-24T12:00:00.000Z';

@@ -4,7 +4,7 @@ import {
   VENDOR_CATALOGS_V11,
   VENDOR_ORDER_V11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 import { Button, Card, Input, StatusBadge, renderModelChips } from '../primitives';
 
 type TokenApiConnectorsPageProps = {

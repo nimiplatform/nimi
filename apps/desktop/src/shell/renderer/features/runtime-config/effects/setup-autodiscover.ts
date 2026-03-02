@@ -3,7 +3,7 @@ import {
   shouldAutoDiscoverOnSetupEnterV11,
   type RuntimeConfigStateV11,
   type RuntimeSectionIdV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+} from '@renderer/features/runtime-config/state/types';
 
 type SetupAutodiscoverEffectInput = {
   state: RuntimeConfigStateV11 | null;

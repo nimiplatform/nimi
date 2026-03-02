@@ -1,4 +1,4 @@
-import type { RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/v11/types';
+import type { RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/types';
 import type { ProviderConnectorsPanelViewProps } from './types';
 import { LocalRuntimeModelCenter } from '../setup/local-runtime-model-center';
 import { RuntimeOverviewPage } from '../setup/runtime-overview-page';
