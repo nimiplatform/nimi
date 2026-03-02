@@ -5,4 +5,6 @@
 | Engine | Default Endpoint | Runtime Mode | Protocol | Phase 1 | Source |
 |---|---|---|---|---|---|
 | `localai` | `http://127.0.0.1:1234/v1` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
+| `localai` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |
 | `nexa` | `—` | `attached_endpoint` | `openai_compatible` | `true` | `K-LENG-005` |
+| `nexa` | `—` | `supervised` | `openai_compatible` | `true` | `K-LENG-004` |

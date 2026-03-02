@@ -212,6 +212,31 @@ mappings:
     surface: local_model_or_service_state_transition
     exit_shape: grpc_status
     source: K-LOCAL-005
+  - reason_code: AI_LOCAL_DOWNLOAD_FAILED
+    grpc_code: INTERNAL
+    surface: local_model_download
+    exit_shape: grpc_status
+    source: K-LOCAL-024
+  - reason_code: AI_LOCAL_DOWNLOAD_HASH_MISMATCH
+    grpc_code: DATA_LOSS
+    surface: local_model_download_verify
+    exit_shape: grpc_status
+    source: K-LOCAL-024
+  - reason_code: AI_LOCAL_HF_REPO_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: local_model_hf_repo_parse
+    exit_shape: grpc_status
+    source: K-LOCAL-023
+  - reason_code: AI_LOCAL_HF_SEARCH_FAILED
+    grpc_code: UNAVAILABLE
+    surface: local_model_hf_search
+    exit_shape: grpc_status
+    source: K-LOCAL-023
+  - reason_code: AI_LOCAL_MANIFEST_SCHEMA_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: local_model_manifest_schema_validate
+    exit_shape: grpc_status
+    source: K-LOCAL-026
   - reason_code: AI_MODULE_CONFIG_INVALID
     grpc_code: FAILED_PRECONDITION
     surface: runtime_module_boot_or_reload

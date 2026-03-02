@@ -65,10 +65,12 @@
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为事实源。
 
-### 4.2 ATTACHED_ENDPOINT 模式
+### 4.2 引擎运行模式
 
-- `LOCAL-030`: Phase 1 所有引擎均运行在 `ATTACHED_ENDPOINT` 模式（`K-LENG-002`/`K-LENG-003`）。runtime 不负责启动或停止引擎进程。
-- `LOCAL-031`: `SUPERVISED` 模式标记为 deferred（`K-LENG-004`）。
+- `LOCAL-030`: Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式（`K-LENG-002`/`K-LENG-003`/`K-LENG-004`）。
+  - `ATTACHED_ENDPOINT`：连接外部已运行的引擎进程，runtime 不管理其生命周期。
+  - `SUPERVISED`：runtime 管理引擎进程的完整生命周期（二进制下载/安装、启动、健康监控、重启、停止）。
+- `LOCAL-031`: `SUPERVISED` 模式通过 `engine.Manager` 子系统实现，详见 `K-LENG-004`。引擎启动失败不阻塞 daemon，标记 `DEGRADED` 直到就绪。
 
 ### 4.3 适配器路由
 
@@ -85,24 +87,45 @@
 ### 5.1 Verified 目录
 
 - `LOCAL-040`: `ListVerifiedModels` 返回进程内硬编码的可信模型列表（`K-LOCAL-010`/`K-LOCAL-011`）。
-- `LOCAL-041`: `SearchCatalogModels` 在 Phase 1 仅搜索 verified list，支持按 `query`（title/description 模糊匹配）和 `capability` 过滤，`limit` 控制返回上限（默认 50，最大 200，语义同 `K-PAGE-001`）。结果排序按 `K-LOCAL-021`。
+- `LOCAL-041`: `SearchCatalogModels` 搜索 verified list 与 HuggingFace Catalog（`K-LOCAL-011`），支持按 `query`（title/description 模糊匹配）和 `capability` 过滤，`limit` 控制返回上限（默认 50，最大 200，语义同 `K-PAGE-001`）。结果排序按 `K-LOCAL-021`（verified 置顶）。
 
-### 5.2 手动安装
+### 5.2 HuggingFace 搜索
+
+- `LOCAL-150`: `SearchHuggingFaceModels` 调用 HF REST API（`https://huggingface.co/api/models`），返回匹配结果。搜索参数包含 `search`（query）、`pipeline_tag`、`library` 过滤，超时 20s，结果数 1–80（`K-LOCAL-011`）。
+- `LOCAL-151`: 搜索结果与 verified list 合并时，verified 条目置顶，HF 结果在后（`K-LOCAL-021`）。同一 `model_id` 在两个来源均存在时，以 verified 版本为准。
+- `LOCAL-152`: 能力推断规则 — 从 HF `pipeline_tag` + `tags` 推导 capability，映射表见 `K-LOCAL-023`。未匹配的 `pipeline_tag` 回退为 `chat`。HF 搜索失败（网络超时/API 错误）返回 `AI_LOCAL_HF_SEARCH_FAILED`，但不阻塞 verified list 返回。
+
+### 5.3 下载管线
+
+- `LOCAL-153`: `DownloadModel` 按 `K-LOCAL-024` 执行完整下载流程：文件列表组装 → 逐文件下载（断点续传） → SHA256 校验 → 原子提交。HF repo 标识规范化按 `K-LOCAL-023`（接受三种格式）。repo 格式无效返回 `AI_LOCAL_HF_REPO_INVALID`。
+- `LOCAL-154`: 进度事件通过事件通道推送，结构包含 `install_session_id`（ULID）/ `phase`（`downloading` | `verifying` | `committing`）/ `bytes_received` / `bytes_total` / `speed`（bytes/s）/ `eta`（seconds）/ `message` / `done` / `success`。
+- `LOCAL-155`: 下载失败不影响已安装模型状态（隔离）。staging 目录在失败或取消时清理，不留残余。下载失败返回 `AI_LOCAL_DOWNLOAD_FAILED`，hash 校验失败返回 `AI_LOCAL_DOWNLOAD_HASH_MISMATCH`。
+
+### 5.4 存储布局
+
+- `LOCAL-156`: 模型目录结构按 `K-LOCAL-025`。模型根目录 `~/.nimi/models/`，每模型子目录 `{models_dir}/{local_model_id_slug}/`。嵌套目录保留原始结构。
+- `LOCAL-157`: Manifest 文件按 `K-LOCAL-026` schema 生成并持久化为 `model.manifest.json`，位于模型子目录根。manifest 校验失败返回 `AI_LOCAL_MANIFEST_SCHEMA_INVALID`。
+
+### 5.5 格式支持
+
+- `LOCAL-158`: 支持 GGUF + SafeTensors 格式（`K-LOCAL-027`）。不锁定单一格式。entry 选择优先级（localai 引擎）：`.gguf` → `model.safetensors` → 任意 `.safetensors`。
+
+### 5.6 手动安装
 
 - `LOCAL-042`: `InstallLocalModel` 接受完整模型元数据（model_id/repo/capabilities/engine/endpoint），执行注册 + 状态持久化（`K-LOCAL-009`）。
 - `LOCAL-043`: 重复安装同一 `model_id` + `engine` 组合返回 `ALREADY_EXISTS` + `AI_LOCAL_MODEL_ALREADY_INSTALLED`。
 
-### 5.3 Verified 安装
+### 5.7 Verified 安装
 
 - `LOCAL-044`: `InstallVerifiedModel` 接受 `template_id`，从 verified list 查找模板，展开为完整 `InstallLocalModel` 参数后执行安装。
 - `LOCAL-045`: `template_id` 不存在时返回 `NOT_FOUND` + `AI_LOCAL_TEMPLATE_NOT_FOUND`。
 
-### 5.4 Manifest 导入
+### 5.8 Manifest 导入
 
 - `LOCAL-046`: `ImportLocalModel` 接受 `manifest_path`，从本地文件系统读取模型清单文件，解析后执行安装。
 - `LOCAL-047`: manifest 文件不存在或解析失败返回 `INVALID_ARGUMENT` + `AI_LOCAL_MANIFEST_INVALID`。
 
-### 5.5 安装计划解析
+### 5.9 安装计划解析
 
 - `LOCAL-048`: `ResolveModelInstallPlan` 在安装前执行预检（`K-LOCAL-012`），返回 `LocalInstallPlanDescriptor`。
 - `LOCAL-049`: 预检包含设备画像采集（`K-DEV-001`）、硬件兼容性检查（`K-DEV-007`）、`install_available` 判定与 `LocalProviderHints` 填充。
@@ -227,10 +250,11 @@ local 健康与模型可见性通过 `ConnectorService.TestConnector(local)` 与
 
 ## 11. 存储与持久化
 
-- `LOCAL-100`: 本地状态持久化到 `~/.nimi/runtime/local-runtime-state.json`（`K-LOCAL-016`）。
+- `LOCAL-100`: 本地状态持久化到 `~/.nimi/state.json`（`K-LOCAL-016`）。
 - `LOCAL-101`: 写入使用原子操作（写临时文件 → rename），防止断电损坏。
 - `LOCAL-102`: 文件格式包含 `schemaVersion`（当前 `1`），读取时忽略未知字段以保证向前兼容。
 - `LOCAL-103`: 每次状态变更（install/remove/start/stop/health）都触发持久化写入。
+- `LOCAL-104`: 模型文件存储根目录为 `~/.nimi/models/`（`K-LOCAL-025`），与 `state.json` 同层形成 `~/.nimi/` 统一数据根。
 
 ## 12. 审计
 
@@ -250,6 +274,11 @@ local 健康与模型可见性通过 `ConnectorService.TestConnector(local)` 与
   - `AI_LOCAL_ENDPOINT_REQUIRED` — nexa 引擎缺 endpoint
   - `AI_LOCAL_TEMPLATE_NOT_FOUND` — verified template 不存在
   - `AI_LOCAL_MANIFEST_INVALID` — manifest 文件无效
+  - `AI_LOCAL_DOWNLOAD_FAILED` — 模型下载失败（网络/IO 错误）
+  - `AI_LOCAL_DOWNLOAD_HASH_MISMATCH` — 下载文件 SHA256 校验不匹配
+  - `AI_LOCAL_HF_REPO_INVALID` — HuggingFace repo 标识无效
+  - `AI_LOCAL_HF_SEARCH_FAILED` — HuggingFace 搜索 API 调用失败
+  - `AI_LOCAL_MANIFEST_SCHEMA_INVALID` — manifest schema 校验失败（字段缺失/无效）
 - 不允许在本文件重新分配全局 ReasonCode 编号。
 
 ## 14. 非目标
@@ -258,7 +287,7 @@ local 健康与模型可见性通过 `ConnectorService.TestConnector(local)` 与
 - 不定义 connector CRUD
 - 不定义 JWT/JWKS
 - 不定义 SDK 层输入体验
-- 不定义 SUPERVISED 模式的进程管理实现细节
+- 不定义 SUPERVISED 模式的模型文件管理（HuggingFace 搜索/下载/存储由 Desktop Tauri 层负责）
 
 ## 15. 验收门
 
@@ -270,6 +299,10 @@ local 健康与模型可见性通过 `ConnectorService.TestConnector(local)` 与
   5. model_id 前缀路由（LOCAL-083）
   6. verified 安装与 manifest 导入（LOCAL-044~047）
   7. 依赖解析 Apply 管道四阶段与回滚（LOCAL-050~053）
+  8. HuggingFace 搜索与结果合并（LOCAL-150~152）
+  9. 下载管线：断点续传、重试、SHA256 校验、原子提交（LOCAL-153~155）
+  10. 存储布局与 manifest 生成（LOCAL-156~157）
+  11. 格式选择与 entry 优先级（LOCAL-158）
 - `LOCAL-121`: CI 命令 `pnpm check:runtime-spec-kernel-consistency` 必须通过。
 - `LOCAL-122`: `go test ./internal/services/localruntime/...` 与 `go vet ./internal/services/localruntime/...` 必须零错误。
 

@@ -89,6 +89,14 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 23. `AppendInferenceAudit`
 24. `AppendRuntimeAudit`
 
+**Tier 4 — 引擎进程管理（K-LENG-004e）：**
+
+25. `ListEngines`
+26. `EnsureEngine`
+27. `StartEngine`
+28. `StopEngine`
+29. `GetEngineStatus`
+
 ## K-RPC-005 Design 名称与 Proto 名称映射
 
 `tables/rpc-migration-map.yaml` 是 design/proto 命名映射的唯一事实源：

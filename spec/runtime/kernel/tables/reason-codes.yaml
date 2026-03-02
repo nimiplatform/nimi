@@ -115,6 +115,26 @@ codes:
     value: 358
     family: MODEL
     source: K-LOCAL-005
+  - name: AI_LOCAL_DOWNLOAD_FAILED
+    value: 359
+    family: MODEL
+    source: K-LOCAL-024
+  - name: AI_LOCAL_DOWNLOAD_HASH_MISMATCH
+    value: 360
+    family: MODEL
+    source: K-LOCAL-024
+  - name: AI_LOCAL_HF_REPO_INVALID
+    value: 361
+    family: MODEL
+    source: K-LOCAL-023
+  - name: AI_LOCAL_HF_SEARCH_FAILED
+    value: 362
+    family: MODEL
+    source: K-LOCAL-023
+  - name: AI_LOCAL_MANIFEST_SCHEMA_INVALID
+    value: 363
+    family: MODEL
+    source: K-LOCAL-026
   - name: AI_FINISH_LENGTH
     value: 370
     family: FINISH

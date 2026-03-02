@@ -64,6 +64,11 @@ Source: `K-RPC-004`
 | `ListLocalAudits` | `unary` |
 | `AppendInferenceAudit` | `unary` |
 | `AppendRuntimeAudit` | `unary` |
+| `ListEngines` | `unary` |
+| `EnsureEngine` | `unary` |
+| `StartEngine` | `unary` |
+| `StopEngine` | `unary` |
+| `GetEngineStatus` | `unary` |
 
 ## RuntimeAuthService
 

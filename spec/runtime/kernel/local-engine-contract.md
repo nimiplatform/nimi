@@ -18,7 +18,7 @@ Phase 1 支持两种本地推理引擎：
 - `ATTACHED_ENDPOINT`：连接外部已运行的引擎进程，runtime 不管理其生命周期。
 - `SUPERVISED`：runtime 负责 spawn、监控与回收引擎进程。
 
-Phase 1 仅实现 `ATTACHED_ENDPOINT`；`SUPERVISED` 标记为 deferred。
+Phase 1 同时支持 `ATTACHED_ENDPOINT` 和 `SUPERVISED` 两种模式。
 
 ## K-LENG-003 ATTACHED_ENDPOINT 约束
 
@@ -29,16 +29,62 @@ Phase 1 仅实现 `ATTACHED_ENDPOINT`；`SUPERVISED` 标记为 deferred。
 - 健康探测协议见 `K-LENG-007`。
 - `endpoint` 缺失或空字符串时，按 `K-LENG-005` 注入默认端点。
 
-## K-LENG-004 SUPERVISED 约束（deferred）
-
-> Phase 1 不实现。以下为未来规范预留。
+## K-LENG-004 SUPERVISED 约束
 
 当 `engine_runtime_mode=SUPERVISED` 时：
 
 - runtime 负责 fork/exec 引擎二进制，传入端口与配置。
-- 信号处理：`SIGTERM` 优雅关闭，超时后 `SIGKILL`。
-- 重启策略：指数退避，最大重试 3 次，累计失败后标记 `UNHEALTHY`。
+- 信号处理：`SIGTERM` 优雅关闭，超时（默认 10 秒）后 `SIGKILL`。
+- 重启策略：指数退避（2s base + jitter），最大重试 5 次，累计失败后标记 `UNHEALTHY`。
 - 进程退出码非零视为异常，写审计并触发状态迁移。
+
+### K-LENG-004a 二进制管理
+
+- 二进制存储路径：`~/.nimi/engines/{engine}/{version}/{binary_name}`。
+- 注册表：`~/.nimi/engines/registry.json`，atomic write（temp→rename）。
+- LocalAI：从 GitHub Releases 下载，SHA256 校验，支持 darwin/arm64、darwin/amd64、linux/amd64、linux/arm64。
+- Nexa：系统安装（`exec.LookPath("nexa")`），不自动下载。未安装时返回 `FAILED_PRECONDITION` + 安装引导。
+
+### K-LENG-004b 进程管理
+
+- PID 文件：`~/.nimi/engines/{engine}/supervised.pid`，用于僵尸进程清理。
+- 端口分配：优先使用配置端口，冲突时 port+1 递增尝试最多 10 次。
+- 启动等待：LocalAI 默认 120 秒（首次下载 GPU backend 可能较慢），Nexa 默认 30 秒。
+- 健康探测：LocalAI 使用 `GET /readyz`（HTTP 200=健康），Nexa 使用 `GET /`（body 含 "Nexa SDK is running"=健康）。
+
+### K-LENG-004c env var 注入
+
+引擎就绪后，runtime 自动设置以下环境变量供现有 AI provider 层自动接管：
+
+- LocalAI：`NIMI_RUNTIME_LOCAL_AI_BASE_URL={endpoint}/v1`
+- Nexa：`NIMI_RUNTIME_LOCAL_NEXA_BASE_URL={endpoint}/v1`
+
+### K-LENG-004d 配置
+
+FileConfig `engines` 段：
+
+```json
+{
+  "engines": {
+    "localai": { "enabled": true, "version": "3.12.1", "port": 1234 },
+    "nexa":    { "enabled": false, "version": "", "port": 8000 }
+  }
+}
+```
+
+ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALAI_VERSION`、`NIMI_RUNTIME_ENGINE_LOCALAI_PORT`；Nexa 同理（`NEXA` 替代 `LOCALAI`）。
+
+### K-LENG-004e gRPC RPC
+
+`RuntimeLocalRuntimeService` 新增 5 个 Engine RPC：
+
+- `ListEngines` — 列出所有受管引擎状态。
+- `EnsureEngine` — 确保引擎二进制可用（下载如缺失）。
+- `StartEngine` — 启动引擎进程。
+- `StopEngine` — 停止引擎进程。
+- `GetEngineStatus` — 获取单个引擎状态。
+
+`engineMgr == nil` 时返回 `FAILED_PRECONDITION`。
 
 ## K-LENG-005 引擎默认端点
 

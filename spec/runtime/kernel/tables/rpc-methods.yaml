@@ -93,6 +93,16 @@ services:
         type: unary
       - name: AppendRuntimeAudit
         type: unary
+      - name: ListEngines
+        type: unary
+      - name: EnsureEngine
+        type: unary
+      - name: StartEngine
+        type: unary
+      - name: StopEngine
+        type: unary
+      - name: GetEngineStatus
+        type: unary
   - name: RuntimeAuthService
     source: K-AUTHSVC-002
     methods:
