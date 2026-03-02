@@ -31,6 +31,10 @@ export function MainLayout() {
       setActiveTab('chat');
       return;
     }
+    if (!flags.enableModUi && activeTab === 'mods') {
+      setActiveTab('chat');
+      return;
+    }
     if (!flags.enableModUi && activeTab.startsWith('mod:')) {
       setActiveTab('chat');
     }

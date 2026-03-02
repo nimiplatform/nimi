@@ -16,10 +16,6 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
     return null;
   }
 
-  if (modWorkspaceTabs.length === 1 && !isModActive) {
-    return null;
-  }
-
   if (placement === 'titlebar') {
     return (
       <div className="h-full max-w-full overflow-x-auto">

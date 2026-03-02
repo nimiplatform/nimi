@@ -15,11 +15,9 @@ import {
   SETTINGS_SELECTED_STORAGE_KEY,
 } from '@renderer/features/settings/settings-storage';
 import {
-  MOCK_MARKETPLACE_MODS,
   type MarketplaceMod,
-  type MarketplaceRuntimeAction,
   toRuntimeModRow,
-} from './marketplace-model';
+} from '@renderer/features/marketplace/marketplace-model';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
@@ -63,9 +61,7 @@ async function registerOneRuntimeMod(input: {
     },
   });
   if (discoverFailures.length > 0) {
-    return {
-      failure: discoverFailures[0] || null,
-    };
+    return { failure: discoverFailures[0] || null };
   }
   if (sideloadRegistrations.length === 0) {
     return {
@@ -92,27 +88,29 @@ function syncRuntimeModRegistryState(): void {
   syncRuntimeUiExtensionsToRegistry();
 }
 
-export type MarketplacePendingAction = {
-  modId: string;
-  action: MarketplaceRuntimeAction;
-} | null;
-
-export type MarketplacePageModel = {
-  searchQuery: string;
-  filteredMods: MarketplaceMod[];
-  pendingAction: MarketplacePendingAction;
-  onSearchQueryChange: (value: string) => void;
-  onOpenMod: (modId: string) => void;
-  onInstallMod: (modId: string) => void;
-  onUninstallMod: (modId: string) => void;
-  onEnableMod: (modId: string) => void;
-  onDisableMod: (modId: string) => void;
-  onOpenModSettings: (modId: string) => void;
+export type ModsPanelMod = MarketplaceMod & {
+  isCrashed: boolean;
+  crashReason: string;
 };
 
-export function useMarketplacePageModel(): MarketplacePageModel {
+export type ModsPanelModel = {
+  searchQuery: string;
+  enabledMods: ModsPanelMod[];
+  disabledMods: ModsPanelMod[];
+  pendingModId: string | null;
+  onSearchQueryChange: (value: string) => void;
+  onOpenMod: (modId: string) => void;
+  onEnableMod: (modId: string) => void;
+  onDisableMod: (modId: string) => void;
+  onUninstallMod: (modId: string) => void;
+  onRetryMod: (modId: string) => void;
+  onOpenModSettings: (modId: string) => void;
+  onOpenMarketplace: () => void;
+};
+
+export function useModsPanelModel(): ModsPanelModel {
   const [searchQuery, setSearchQuery] = useState('');
-  const [pendingAction, setPendingAction] = useState<MarketplacePendingAction>(null);
+  const [pendingModId, setPendingModId] = useState<string | null>(null);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
@@ -120,51 +118,58 @@ export function useMarketplacePageModel(): MarketplacePageModel {
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const runtimeModDisabledIds = useAppStore((state) => state.runtimeModDisabledIds);
   const runtimeModUninstalledIds = useAppStore((state) => state.runtimeModUninstalledIds);
+  const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
+  const clearRuntimeModFuse = useAppStore((state) => state.clearRuntimeModFuse);
 
-  const runtimeMods = useMemo(() => {
+  const allMods = useMemo(() => {
     const registeredSet = new Set(registeredRuntimeModIds.map((id) => normalizeModId(id)).filter(Boolean));
     const disabledSet = new Set(runtimeModDisabledIds.map((id) => normalizeModId(id)).filter(Boolean));
     const uninstalledSet = new Set(runtimeModUninstalledIds.map((id) => normalizeModId(id)).filter(Boolean));
 
     return localManifestSummaries
       .filter((item) => !String(item.id || '').startsWith('core.'))
+      .filter((item) => !uninstalledSet.has(normalizeModId(String(item.id || ''))))
       .map((item, index) => {
         const modId = normalizeModId(String(item.id || ''));
-        const isInstalled = !uninstalledSet.has(modId);
-        const isEnabled = isInstalled && !disabledSet.has(modId) && registeredSet.has(modId);
-        return toRuntimeModRow(item, index, {
-          isInstalled,
-          isEnabled,
-        });
+        const isInstalled = true;
+        const isEnabled = !disabledSet.has(modId) && registeredSet.has(modId);
+        const base = toRuntimeModRow(item, index, { isInstalled, isEnabled });
+        const fuseInfo = fusedRuntimeMods[modId];
+        return {
+          ...base,
+          isCrashed: Boolean(fuseInfo),
+          crashReason: fuseInfo ? fuseInfo.lastError : '',
+        } satisfies ModsPanelMod;
       });
   }, [
     localManifestSummaries,
     registeredRuntimeModIds,
     runtimeModDisabledIds,
     runtimeModUninstalledIds,
+    fusedRuntimeMods,
   ]);
 
-  const sourceMods = runtimeMods.length > 0 ? runtimeMods : MOCK_MARKETPLACE_MODS;
-
-  const filteredMods = useMemo(() => {
+  const filtered = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    if (!query) return sourceMods;
-    return sourceMods.filter(
+    if (!query) return allMods;
+    return allMods.filter(
       (mod) =>
         mod.name.toLowerCase().includes(query) ||
-        mod.description.toLowerCase().includes(query) ||
-        mod.author.toLowerCase().includes(query),
+        mod.description.toLowerCase().includes(query),
     );
-  }, [searchQuery, sourceMods]);
+  }, [searchQuery, allMods]);
+
+  const enabledMods = useMemo(() => filtered.filter((m) => m.isEnabled), [filtered]);
+  const disabledMods = useMemo(() => filtered.filter((m) => !m.isEnabled), [filtered]);
 
   const onOpenMod = useCallback((modId: string) => {
     const normalized = normalizeModId(modId);
     if (!normalized) return;
-    const targetMod = runtimeMods.find((item) => item.id === normalized);
+    const targetMod = allMods.find((item) => item.id === normalized);
     const title = targetMod?.name || normalized;
     openModWorkspaceTab(`mod:${normalized}` as `mod:${string}`, title, normalized);
     setActiveTab(`mod:${normalized}` as AppTab);
-  }, [openModWorkspaceTab, runtimeMods, setActiveTab]);
+  }, [openModWorkspaceTab, allMods, setActiveTab]);
 
   const onOpenModSettings = useCallback((modId: string) => {
     const normalized = normalizeModId(modId);
@@ -178,175 +183,151 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     setActiveTab('settings');
   }, [setActiveTab]);
 
-  const runRuntimeAction = useCallback(async (
+  const onOpenMarketplace = useCallback(() => {
+    setActiveTab('marketplace');
+  }, [setActiveTab]);
+
+  const runAction = useCallback(async (
     modId: string,
-    action: MarketplaceRuntimeAction,
+    action: string,
     task: () => Promise<void>,
   ) => {
-    const normalizedModId = normalizeModId(modId);
-    if (!normalizedModId) return;
-    setPendingAction({
-      modId: normalizedModId,
-      action,
-    });
+    const normalized = normalizeModId(modId);
+    if (!normalized) return;
+    setPendingModId(normalized);
     try {
       await task();
       logRendererEvent({
         level: 'info',
-        area: 'marketplace',
-        message: 'marketplace:runtime-mod:action-success',
-        details: {
-          modId: normalizedModId,
-          action,
-        },
+        area: 'mods-panel',
+        message: `mods-panel:action-success`,
+        details: { modId: normalized, action },
       });
     } catch (error) {
       const message = safeErrorMessage(error);
       useAppStore.getState().setStatusBanner({
         kind: 'error',
-        message: `Mod ${normalizedModId} 操作失败：${message}`,
+        message: `Mod ${normalized} 操作失败：${message}`,
       });
       logRendererEvent({
         level: 'warn',
-        area: 'marketplace',
-        message: 'marketplace:runtime-mod:action-failed',
-        details: {
-          modId: normalizedModId,
-          action,
-          error: message,
-        },
+        area: 'mods-panel',
+        message: `mods-panel:action-failed`,
+        details: { modId: normalized, action, error: message },
       });
     } finally {
-      setPendingAction((current) => (
-        current && current.modId === normalizedModId && current.action === action
-          ? null
-          : current
-      ));
+      setPendingModId((current) => (current === normalized ? null : current));
     }
   }, []);
 
-  const onInstallMod = useCallback((modId: string) => {
-    void runRuntimeAction(modId, 'install', async () => {
-      const normalizedModId = normalizeModId(modId);
-      const appStore = useAppStore.getState();
-      const manifest = appStore.localManifestSummaries.find((item) => normalizeModId(item.id || '') === normalizedModId);
-      if (!manifest) {
-        throw new Error('manifest not found');
-      }
-
-      appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
-      appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
-
-      const result = await registerOneRuntimeMod({
-        manifest,
-      });
-      if (result.failure) {
-        appStore.setRuntimeModFailures([
-          ...appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
-          result.failure,
-        ]);
-        throw new Error(result.failure.error);
-      }
-
-      appStore.setRuntimeModFailures(
-        appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
-      );
-      appStore.clearRuntimeModFuse(normalizedModId);
-      syncRuntimeModRegistryState();
-      appStore.setStatusBanner({
-        kind: 'success',
-        message: `Mod ${normalizedModId} 已安装并启用`,
-      });
-    });
-  }, [runRuntimeAction]);
-
   const onEnableMod = useCallback((modId: string) => {
-    void runRuntimeAction(modId, 'enable', async () => {
-      const normalizedModId = normalizeModId(modId);
+    void runAction(modId, 'enable', async () => {
+      const normalized = normalizeModId(modId);
       const appStore = useAppStore.getState();
-      const manifest = appStore.localManifestSummaries.find((item) => normalizeModId(item.id || '') === normalizedModId);
-      if (!manifest) {
-        throw new Error('manifest not found');
-      }
+      const manifest = appStore.localManifestSummaries.find(
+        (item) => normalizeModId(item.id || '') === normalized,
+      );
+      if (!manifest) throw new Error('manifest not found');
 
-      appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
-      appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
+      appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalized));
+      appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalized));
 
-      const result = await registerOneRuntimeMod({
-        manifest,
-      });
+      const result = await registerOneRuntimeMod({ manifest });
       if (result.failure) {
         appStore.setRuntimeModFailures([
-          ...appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
+          ...appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
           result.failure,
         ]);
         throw new Error(result.failure.error);
       }
 
       appStore.setRuntimeModFailures(
-        appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
+        appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
       );
-      appStore.clearRuntimeModFuse(normalizedModId);
+      appStore.clearRuntimeModFuse(normalized);
       syncRuntimeModRegistryState();
-      appStore.setStatusBanner({
-        kind: 'success',
-        message: `Mod ${normalizedModId} 已启用`,
-      });
+      appStore.setStatusBanner({ kind: 'success', message: `Mod ${normalized} 已启用` });
     });
-  }, [runRuntimeAction]);
+  }, [runAction]);
 
   const onDisableMod = useCallback((modId: string) => {
-    void runRuntimeAction(modId, 'disable', async () => {
-      const normalizedModId = normalizeModId(modId);
+    void runAction(modId, 'disable', async () => {
+      const normalized = normalizeModId(modId);
       const appStore = useAppStore.getState();
-      appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalizedModId));
-      unregisterRuntimeMods([normalizedModId]);
+      appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, normalized));
+      unregisterRuntimeMods([normalized]);
       syncRuntimeModRegistryState();
-      const modTabId = `mod:${normalizedModId}` as `mod:${string}`;
+      const modTabId = `mod:${normalized}` as `mod:${string}`;
       if (appStore.activeTab === modTabId) {
         appStore.setActiveTab('mods');
       }
       appStore.closeModWorkspaceTab(modTabId);
-      appStore.setStatusBanner({
-        kind: 'info',
-        message: `Mod ${normalizedModId} 已禁用`,
-      });
+      appStore.setStatusBanner({ kind: 'info', message: `Mod ${normalized} 已禁用` });
     });
-  }, [runRuntimeAction]);
+  }, [runAction]);
 
   const onUninstallMod = useCallback((modId: string) => {
-    void runRuntimeAction(modId, 'uninstall', async () => {
-      const normalizedModId = normalizeModId(modId);
+    void runAction(modId, 'uninstall', async () => {
+      const normalized = normalizeModId(modId);
       const appStore = useAppStore.getState();
-      appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalizedModId));
-      appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
-      unregisterRuntimeMods([normalizedModId]);
+      appStore.setRuntimeModUninstalledIds(withAddedModId(appStore.runtimeModUninstalledIds, normalized));
+      appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalized));
+      unregisterRuntimeMods([normalized]);
       syncRuntimeModRegistryState();
       appStore.setRuntimeModFailures(
-        appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
+        appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
       );
-      const modTabId = `mod:${normalizedModId}` as `mod:${string}`;
+      const modTabId = `mod:${normalized}` as `mod:${string}`;
       if (appStore.activeTab === modTabId) {
         appStore.setActiveTab('mods');
       }
       closeModWorkspaceTab(modTabId);
-      appStore.setStatusBanner({
-        kind: 'info',
-        message: `Mod ${normalizedModId} 已卸载`,
-      });
+      appStore.setStatusBanner({ kind: 'info', message: `Mod ${normalized} 已卸载` });
     });
-  }, [closeModWorkspaceTab, runRuntimeAction]);
+  }, [closeModWorkspaceTab, runAction]);
+
+  const onRetryMod = useCallback((modId: string) => {
+    const normalized = normalizeModId(modId);
+    if (!normalized) return;
+    clearRuntimeModFuse(normalized);
+    void runAction(modId, 'retry', async () => {
+      const appStore = useAppStore.getState();
+      const manifest = appStore.localManifestSummaries.find(
+        (item) => normalizeModId(item.id || '') === normalized,
+      );
+      if (!manifest) throw new Error('manifest not found');
+
+      appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalized));
+
+      const result = await registerOneRuntimeMod({ manifest });
+      if (result.failure) {
+        appStore.setRuntimeModFailures([
+          ...appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
+          result.failure,
+        ]);
+        throw new Error(result.failure.error);
+      }
+
+      appStore.setRuntimeModFailures(
+        appStore.runtimeModFailures.filter((item) => item.modId !== normalized),
+      );
+      syncRuntimeModRegistryState();
+      appStore.setStatusBanner({ kind: 'success', message: `Mod ${normalized} 已恢复` });
+    });
+  }, [clearRuntimeModFuse, runAction]);
 
   return {
     searchQuery,
-    filteredMods,
-    pendingAction,
+    enabledMods,
+    disabledMods,
+    pendingModId,
     onSearchQueryChange: setSearchQuery,
     onOpenMod,
-    onInstallMod,
-    onUninstallMod,
     onEnableMod,
     onDisableMod,
+    onUninstallMod,
+    onRetryMod,
     onOpenModSettings,
+    onOpenMarketplace,
   };
 }
