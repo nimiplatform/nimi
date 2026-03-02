@@ -79,8 +79,8 @@ export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields)
       provider: fields.provider,
       adapter: 'openai_compat_adapter',
       model,
-      endpoint: fields.localOpenAiEndpoint,
-      localOpenAiEndpoint: fields.localOpenAiEndpoint,
+      endpoint: '',
+      localOpenAiEndpoint: '',
       connectorId,
     };
   };
@@ -111,15 +111,28 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
     const model = String(explicitModel || fields.localProviderModel || '').trim();
     const resolvedConnectorId = String(connectorId || fields.connectorId || '').trim();
 
+    if (source === 'local-runtime') {
+      return {
+        source,
+        provider: fields.provider,
+        adapter: 'openai_compat_adapter',
+        localProviderEndpoint: fields.localProviderEndpoint,
+        localOpenAiEndpoint: fields.localOpenAiEndpoint,
+        connectorId: resolvedConnectorId,
+        model,
+        engine: (providerId || 'localai') as string,
+      };
+    }
+
     return {
       source,
       provider: fields.provider,
       adapter: 'openai_compat_adapter',
-      localProviderEndpoint: fields.localProviderEndpoint,
-      localOpenAiEndpoint: fields.localOpenAiEndpoint,
+      localProviderEndpoint: '',
+      localOpenAiEndpoint: '',
       connectorId: resolvedConnectorId,
       model,
-      engine: source === 'local-runtime' ? (providerId || 'localai') : undefined,
+      engine: undefined,
     };
   };
 }
