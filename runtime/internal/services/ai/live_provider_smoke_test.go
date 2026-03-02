@@ -11,6 +11,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestLiveSmokeLocalGenerateText(t *testing.T) {
@@ -852,6 +854,95 @@ func TestLiveSmokeGLMSubmitMediaJobModalities(t *testing.T) {
 		})
 		assertLiveMediaJobCompleted(t, job)
 	})
+}
+
+func TestLiveSmokeDashScopeGenerateText(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_BASE_URL")
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_ALIBABA_CHAT_MODEL_ID")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi DashScope live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live dashscope generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live dashscope generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeConnectorDashScopeTTS(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_DASHSCOPE_CONNECTOR_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_DASHSCOPE_CONNECTOR_TTS_MODEL_ID")
+
+	// Set up a temporary connector store with a dashscope connector.
+	store := connector.NewConnectorStore(t.TempDir())
+	connectorID := "smoke-dashscope-tts"
+	rec := connector.ConnectorRecord{
+		ConnectorID: connectorID,
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "smoke-user",
+		Provider:    "dashscope",
+		Endpoint:    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	if err := store.Create(rec, apiKey); err != nil {
+		t.Fatalf("create connector: %v", err)
+	}
+
+	svc := newFromProviderConfig(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		nil, nil, nil, store,
+		Config{}.normalized(),
+		8, 2,
+	)
+	svc.allowLoopback = true
+
+	// Inject managed key-source via gRPC metadata.
+	md := metadata.Pairs("x-nimi-key-source", "managed")
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	response, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		ConnectorId:   connectorID,
+		Modal:         runtimev1.Modal_MODAL_TTS,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     120_000,
+		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
+				Text:        "This is Nimi connector DashScope live smoke TTS test.",
+				AudioFormat: "mp3",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("live connector dashscope TTS submit failed: %v", err)
+	}
+
+	job := waitMediaJobTerminal(t, svc, response.GetJob().GetJobId(), 3*time.Minute)
+	assertLiveMediaJobCompleted(t, job)
 }
 
 func runLiveSmokeMediaJob(
