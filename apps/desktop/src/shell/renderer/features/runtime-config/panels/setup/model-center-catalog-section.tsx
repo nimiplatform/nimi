@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localAiRuntime,
   type LocalAiCatalogItemDescriptor,
@@ -27,6 +27,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
   const [verifiedModelQuery, setVerifiedModelQuery] = useState('');
   const [installingVerifiedTemplateId, setInstallingVerifiedTemplateId] = useState('');
+  const searchGenerationRef = useRef(0);
 
   const refreshVerifiedModels = useCallback(async () => {
     setLoadingVerifiedModels(true);
@@ -40,12 +41,13 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
     }
   }, []);
 
-  const refreshCatalogItems = useCallback(async (input?: {
-    query?: string;
-    capability?: 'all' | CapabilityOption;
+  const refreshCatalogItems = useCallback(async (input: {
+    query: string;
+    capability: 'all' | CapabilityOption;
   }) => {
-    const query = String(input?.query ?? catalogQuery).trim();
-    const capability = input?.capability ?? catalogCapability;
+    const generation = ++searchGenerationRef.current;
+    const query = String(input.query).trim();
+    const capability = input.capability;
     setLoadingCatalog(true);
     try {
       const rows = await localAiRuntime.searchCatalog({
@@ -53,21 +55,28 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
       });
+      if (searchGenerationRef.current !== generation) return;
       setCatalogItems(rows);
       if (rows.length === 0) {
         setSelectedCatalogItemId('');
         setPlanPreview(null);
-      } else if (!rows.some((item) => item.itemId === selectedCatalogItemId)) {
-        setSelectedCatalogItemId(rows[0]?.itemId || '');
+      } else {
+        setSelectedCatalogItemId((prev) => {
+          if (rows.some((item) => item.itemId === prev)) return prev;
+          return rows[0]?.itemId || '';
+        });
       }
     } catch {
+      if (searchGenerationRef.current !== generation) return;
       setCatalogItems([]);
       setSelectedCatalogItemId('');
       setPlanPreview(null);
     } finally {
-      setLoadingCatalog(false);
+      if (searchGenerationRef.current === generation) {
+        setLoadingCatalog(false);
+      }
     }
-  }, [catalogCapability, catalogQuery, selectedCatalogItemId]);
+  }, []);
 
   useEffect(() => {
     void refreshVerifiedModels();
@@ -75,8 +84,8 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      void refreshCatalogItems();
-    }, 180);
+      void refreshCatalogItems({ query: catalogQuery, capability: catalogCapability });
+    }, 500);
     return () => {
       clearTimeout(timer);
     };
@@ -153,7 +162,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
             variant="secondary"
             size="sm"
             disabled={loadingCatalog}
-            onClick={() => void refreshCatalogItems()}
+            onClick={() => void refreshCatalogItems({ query: catalogQuery, capability: catalogCapability })}
           >
             {loadingCatalog ? 'Searching...' : 'Search'}
           </Button>
