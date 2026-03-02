@@ -167,6 +167,46 @@ go test ./internal/services/ai/ -run TestGenerateSuccess -v
 go run ./cmd/runtime-compliance --gate
 ```
 
+### Live Smoke Tests
+
+Live smoke tests validate real API key → provider → response chains. They live in `internal/services/ai/live_provider_smoke_test.go` and auto-skip when env vars are missing (safe for default CI).
+
+**Naming convention:**
+
+| Interface | Pattern |
+|-----------|---------|
+| Generate text | `TestLiveSmoke{Provider}GenerateText` |
+| Embed | `TestLiveSmoke{Provider}Embed` |
+| Media jobs | `TestLiveSmoke{Provider}SubmitMediaJobModalities/{modal}` |
+| Connector TTS | `TestLiveSmokeConnector{Provider}TTS` |
+
+**Env var convention:** `NIMI_LIVE_{PROVIDER}_{FIELD}` where FIELD is `API_KEY`, `BASE_URL`, `MODEL_ID`, `EMBED_MODEL_ID`, etc. See `dev/live-test.env.example` for the full list.
+
+**Helper functions:**
+
+- `requiredLiveEnv(t, key)` — skips test if env var is empty
+- `liveEnvOrDefault(t, key, defaultValue)` — reads env var with fallback to provider catalog default
+
+**Running live tests:**
+
+```bash
+# All skip (no API keys) — must always pass
+go test ./internal/services/ai/ -run TestLiveSmoke -v -count=1
+
+# Single provider
+export NIMI_LIVE_OPENAI_API_KEY=sk-xxx
+export NIMI_LIVE_OPENAI_MODEL_ID=gpt-4o-mini
+go test ./internal/services/ai/ -run 'TestLiveSmokeOpenAI' -v -timeout 5m
+```
+
+**Adding a new provider live test:**
+
+1. Add `TestLiveSmoke{Provider}GenerateText` following the existing pattern (explicit `Config` with `CloudProviders` map)
+2. Use `liveEnvOrDefault` for base URL with the provider catalog default
+3. Use `requiredLiveEnv` for API key and model ID (test must skip without them)
+4. If the provider supports embedding, add `TestLiveSmoke{Provider}Embed`
+5. Update `dev/live-test.env.example` with the new env vars
+
 ## Build
 
 ```bash

@@ -103,6 +103,37 @@ if (err.reasonCode === ReasonCode.AI_PROVIDER_TIMEOUT) {
 - `pnpm check:sdk-consumer-smoke`
 - `pnpm --filter @nimiplatform/sdk test`
 
+### Live Smoke Tests
+
+SDK live tests validate the full SDK → runtime gRPC → cloud provider chain. They live in `test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts`.
+
+Tests use `withRuntimeDaemon` to spawn a real runtime process, then call SDK's `doGenerate` through the gRPC transport. They auto-skip when `NIMI_SDK_LIVE !== '1'` or when required env vars are missing.
+
+**Env var convention:**
+
+- `NIMI_SDK_LIVE=1` — master switch to enable SDK live tests
+- `NIMI_LIVE_{PROVIDER}_API_KEY` — provider API key (same vars as runtime live tests)
+- `NIMI_LIVE_{PROVIDER}_MODEL_ID` — model ID for generate text
+- `NIMI_RUNTIME_CLOUD_{PROVIDER}_*` — passed to the runtime daemon process
+
+**Running:**
+
+```bash
+# All skip (no NIMI_SDK_LIVE)
+npx tsx --test sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts
+
+# Enable with specific provider
+NIMI_SDK_LIVE=1 NIMI_LIVE_OPENAI_API_KEY=sk-xxx NIMI_LIVE_OPENAI_MODEL_ID=gpt-4o-mini \
+  npx tsx --test sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts
+```
+
+**Adding a new provider SDK live test:**
+
+1. Add a `test('nimi sdk ai-provider live smoke: {provider} generate text', ...)` block following the existing pattern
+2. Use `requiredEnvOrSkip(t, 'NIMI_LIVE_{PROVIDER}_API_KEY')` for the API key
+3. Pass `NIMI_RUNTIME_CLOUD_{PROVIDER}_BASE_URL` and `NIMI_RUNTIME_CLOUD_{PROVIDER}_API_KEY` to `withRuntimeDaemon`
+4. Ensure the provider's env binding exists in `runtime/internal/services/ai/provider.go` → `cloudProviderEnvBindings`
+
 ## What Not To Do
 
 - 不要新增任何 legacy 包名或兼容壳

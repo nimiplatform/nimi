@@ -84,6 +84,26 @@ nimi-mods──nimi-hook──→ desktop ──@nimiplatform/sdk──→ runti
 | AI | `**/ai/**`, `**/services/ai/**` | Inference correctness |
 | Audit | `**/audit/**`, `**/auditlog/**` | Compliance |
 
+## Live Test Matrix
+
+Cross-component live smoke tests validate real API key connectivity for all cloud providers. Tests auto-skip when env vars are missing, so they never break default CI.
+
+| Layer | Test file | Run command |
+|-------|-----------|-------------|
+| Runtime | `runtime/internal/services/ai/live_provider_smoke_test.go` | `cd runtime && go test ./internal/services/ai/ -run TestLiveSmoke -v` |
+| SDK | `sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts` | `NIMI_SDK_LIVE=1 npx tsx --test <file>` |
+
+**Coverage report:** `node scripts/run-live-test-matrix.mjs` runs both layers and outputs a YAML matrix to `dev/report/live-test-coverage.yaml`.
+
+**Env var template:** `dev/live-test.env.example` documents all required env vars per provider.
+
+**Key invariant:** Adding a new cloud provider to `runtime/internal/services/ai/provider.go` → `cloudProviderEnvBindings` MUST be accompanied by:
+1. A `TestLiveSmoke{Provider}GenerateText` in the runtime test file
+2. A corresponding SDK live test if the provider is routable via `token-api`
+3. An entry in `dev/live-test.env.example`
+
+See [`runtime/AGENTS.md` § Live Smoke Tests](runtime/AGENTS.md) and [`sdk/AGENTS.md` § Live Smoke Tests](sdk/AGENTS.md) for per-layer conventions.
+
 ## Documentation
 
 | Path | Content |
