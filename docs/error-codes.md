@@ -71,7 +71,6 @@ These are emitted by `nimi config *` commands and desktop runtime-config bridge 
 |------|-------------|-----------|
 | `CONFIG_PARSE_FAILED` | Runtime config JSON parsing failed or mutation payload invalid | No |
 | `CONFIG_SCHEMA_INVALID` | Runtime config schema or field validation failed | No |
-| `CONFIG_MIGRATION_FAILED` | Legacy config migration to new path failed | No |
 | `CONFIG_WRITE_LOCKED` | Config write lock already held by another writer | Yes |
 | `CONFIG_SECRET_POLICY_VIOLATION` | Plaintext `apiKey` detected; must use `apiKeyEnv` / `secretRef` | No |
 | `CONFIG_RESTART_REQUIRED` | Config write succeeded; runtime restart required to apply | No |

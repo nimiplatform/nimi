@@ -115,6 +115,7 @@ Desktop 规范采用 kernel + domain 的两层结构：
   - `spec/desktop/agent-detail.md`
   - `spec/desktop/world-detail.md`
   - `spec/desktop/legal.md`
+  - `spec/desktop/testing-gates.md`
 
 ### 修改启动序列 / feature flag
 
