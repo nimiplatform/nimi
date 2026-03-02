@@ -19,7 +19,3 @@ mod store;
 mod supervisor;
 mod types;
 mod verified_models;
-
-pub(crate) fn resolve_local_ai_runtime_api_key() -> String {
-    service_lifecycle::resolve_or_initialize_runtime_api_key()
-}
