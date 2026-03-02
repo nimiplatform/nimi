@@ -13,6 +13,19 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+const maxProviderErrorMessageLen = 240
+
+func normalizeProviderErrorMessage(input string) string {
+	normalized := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(input, "\n", " "), "\t", " "))
+	if normalized == "" {
+		return ""
+	}
+	if len(normalized) > maxProviderErrorMessageLen {
+		return strings.TrimSpace(normalized[:maxProviderErrorMessageLen]) + "..."
+	}
+	return normalized
+}
+
 // MapProviderRequestError maps a network/request error to gRPC status.
 func MapProviderRequestError(err error) error {
 	if err == nil {
@@ -29,8 +42,8 @@ func MapProviderRequestError(err error) error {
 
 // MapProviderHTTPError maps an HTTP status code to gRPC status.
 func MapProviderHTTPError(statusCode int, payload map[string]any) error {
-	message := strings.ToLower(strings.TrimSpace(ProviderErrorMessage(payload)))
-	if IsContentFilterMessage(message) {
+	providerMessage := normalizeProviderErrorMessage(ProviderErrorMessage(payload))
+	if IsContentFilterMessage(strings.ToLower(providerMessage)) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
 	}
 	switch statusCode {
@@ -39,6 +52,14 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
 	case http.StatusNotFound:
+		if providerMessage != "" {
+			return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+				Message: providerMessage,
+				Metadata: map[string]string{
+					"provider_message": providerMessage,
+				},
+			})
+		}
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
 		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)

@@ -116,6 +116,28 @@ func TestMapProviderHTTPError_Timeout(t *testing.T) {
 	}
 }
 
+func TestMapProviderHTTPError_ModelNotFoundIncludesProviderMessage(t *testing.T) {
+	err := MapProviderHTTPError(404, map[string]any{
+		"error": map[string]any{
+			"message": "model qwen3-tts-instruct-flash-2026-01-26 not found for this endpoint",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 404")
+	}
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("expected AI_MODEL_NOT_FOUND, got %v", reason)
+	}
+	if st.Message() == "" {
+		t.Fatal("expected provider message in status message")
+	}
+}
+
 func TestMapProviderRequestError_DeadlineExceeded(t *testing.T) {
 	err := MapProviderRequestError(context.DeadlineExceeded)
 	st, ok := status.FromError(err)
