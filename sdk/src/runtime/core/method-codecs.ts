@@ -160,6 +160,10 @@ import {
   SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
 } from '../generated/runtime/v1/audit';
+import {
+  ExecuteRequest,
+  ExecuteResponse,
+} from '../generated/runtime/v1/script_worker';
 import { Ack } from '../generated/runtime/v1/common';
 
 type BinaryMessageType<T> = {
@@ -440,6 +444,10 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.audit.listAIProviderHealth]: {
     requestType: ListAIProviderHealthRequest,
     responseType: ListAIProviderHealthResponse,
+  },
+  [RuntimeMethodIds.scriptWorker.execute]: {
+    requestType: ExecuteRequest,
+    responseType: ExecuteResponse,
   },
 };
 

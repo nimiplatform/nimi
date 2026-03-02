@@ -171,6 +171,10 @@ import type {
   SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
 } from './generated/runtime/v1/audit';
+import type {
+  ExecuteRequest,
+  ExecuteResponse,
+} from './generated/runtime/v1/script_worker';
 import type { Ack } from './generated/runtime/v1/common';
 
 export type RuntimeCallerKind =
@@ -368,6 +372,10 @@ export type RuntimeConnectorClient = {
   listProviderCatalog(request: ListProviderCatalogRequest, options?: RuntimeCallOptions): Promise<ListProviderCatalogResponse>;
 };
 
+export type RuntimeScriptWorkerClient = {
+  execute(request: ExecuteRequest, options?: RuntimeCallOptions): Promise<ExecuteResponse>;
+};
+
 export type RuntimeAuditClient = {
   listAuditEvents(request: ListAuditEventsRequest, options?: RuntimeCallOptions): Promise<ListAuditEventsResponse>;
   exportAuditEvents(request: ExportAuditEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AuditExportChunk>>;
@@ -391,6 +399,7 @@ export type RuntimeClient = {
   knowledge: RuntimeKnowledgeClient;
   app: RuntimeAppClient;
   audit: RuntimeAuditClient;
+  scriptWorker: RuntimeScriptWorkerClient;
   closeStream(streamId: string): Promise<void>;
 };
 

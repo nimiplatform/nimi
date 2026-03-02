@@ -84,6 +84,9 @@ export const RuntimeMethodIds = {
     listConnectorModels: '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels',
     listProviderCatalog: '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog',
   },
+  scriptWorker: {
+    execute: '/nimi.runtime.v1.ScriptWorkerService/Execute',
+  },
   audit: {
     listAuditEvents: '/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents',
     exportAuditEvents: '/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents',
@@ -152,6 +155,7 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.knowledge.deleteIndex,
   RuntimeMethodIds.app.sendAppMessage,
   RuntimeMethodIds.audit.exportAuditEvents,
+  RuntimeMethodIds.scriptWorker.execute,
 ]);
 
 export function isRuntimeStreamMethod(methodId: string): boolean {

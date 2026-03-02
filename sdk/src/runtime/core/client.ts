@@ -585,6 +585,9 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       subscribeAIProviderHealthEvents: stream(RuntimeMethodIds.audit.subscribeAIProviderHealthEvents),
       subscribeRuntimeHealthEvents: stream(RuntimeMethodIds.audit.subscribeRuntimeHealthEvents),
     },
+    scriptWorker: {
+      execute: unary(RuntimeMethodIds.scriptWorker.execute),
+    },
     closeStream: async (streamId: string) => {
       await transport.closeStream({ streamId });
     },
