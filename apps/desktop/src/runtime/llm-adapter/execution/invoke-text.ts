@@ -51,7 +51,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       source: resolved.source,
       connectorId: input.connectorId,
-      providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
+      providerEndpoint: resolved.endpoint,
     }));
 
     const text = extractTextFromGenerateOutput((response as { output?: unknown }).output);

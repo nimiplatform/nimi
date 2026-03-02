@@ -74,7 +74,7 @@ export async function* invokeModLlmStream(
       signal: scopedAbort.signal,
       source: resolved.source,
       connectorId: input.connectorId,
-      providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
+      providerEndpoint: resolved.endpoint,
     }));
 
     for await (const event of stream as AsyncIterable<{

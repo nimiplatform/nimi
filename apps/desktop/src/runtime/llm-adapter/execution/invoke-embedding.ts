@@ -66,7 +66,7 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       source: resolved.source,
       connectorId: input.connectorId,
-      providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
+      providerEndpoint: resolved.endpoint,
     }));
     return {
       embeddings: extractEmbeddings((response as { vectors?: unknown }).vectors),

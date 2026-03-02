@@ -40,7 +40,7 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
       metadata: await buildRuntimeRequestMetadata({
         source: resolved.source,
         connectorId: input.connectorId,
-        providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
+        providerEndpoint: resolved.endpoint,
       }),
       signal: input.abortSignal,
     });

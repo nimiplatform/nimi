@@ -39,7 +39,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       metadata: await buildRuntimeRequestMetadata({
         source: resolved.source,
         connectorId: input.connectorId,
-        providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
+        providerEndpoint: resolved.endpoint,
       }),
       signal: input.abortSignal,
     });

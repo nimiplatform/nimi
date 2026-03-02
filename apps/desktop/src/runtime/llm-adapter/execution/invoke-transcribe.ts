@@ -50,7 +50,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       metadata: await buildRuntimeRequestMetadata({
         source: resolved.source,
         connectorId: input.connectorId,
-        providerEndpoint: resolved.endpoint || input.localOpenAiEndpoint,
+        providerEndpoint: resolved.endpoint,
       }),
       signal: input.abortSignal,
     });
