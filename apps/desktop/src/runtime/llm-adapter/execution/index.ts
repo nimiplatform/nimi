@@ -2,7 +2,6 @@ export type {
   CheckLlmHealthInput,
   ExecuteLocalKernelTurnInput,
   ExecuteLocalKernelTurnResult,
-  FetchImpl,
   InvokeModImageInput,
   InvokeModImageOutput,
   InvokeModEmbeddingInput,

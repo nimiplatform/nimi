@@ -7,6 +7,7 @@ import type {
   SpeechProviderDescriptor,
 } from '../types';
 import { openSpeechStream } from './open-stream';
+import { getRuntimeClient, buildRuntimeRequestMetadata } from '../../execution/runtime-ai-bridge';
 
 type StreamPublisher = (
   topic: string,
@@ -23,8 +24,6 @@ type OpenStreamInput = {
     format?: 'mp3' | 'wav' | 'opus' | 'pcm';
     sampleRateHz?: number;
   };
-  providerType: string;
-  endpoint: string;
 };
 
 export type ListVoicesInput = {
@@ -55,8 +54,26 @@ export class NimiSpeechEngine {
     return [];
   }
 
-  async listVoices(_input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
-    return [];
+  async listVoices(input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
+    if (!input?.model) return [];
+    const runtime = getRuntimeClient();
+    const metadata = await buildRuntimeRequestMetadata({
+      source: input.routeSource || 'token-api',
+      connectorId: input.connectorId,
+      providerEndpoint: input.providerEndpoint,
+    });
+    const result = await runtime.media.tts.listVoices({
+      model: input.model,
+      connectorId: input.connectorId,
+      metadata,
+    });
+    return result.voices.map(v => ({
+      id: v.voiceId,
+      providerId: input.providerId || 'openai-compatible',
+      name: v.name,
+      lang: v.lang,
+      langs: v.supportedLangs,
+    }));
   }
 
   async openStream(input: OpenStreamInput): Promise<SpeechStreamOpenResult> {

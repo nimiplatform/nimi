@@ -6,7 +6,6 @@ import {
   invokeModTranscribe,
   invokeModVideo,
 } from '../../llm-adapter/execution';
-import type { LocalAiProviderHints } from '@nimiplatform/sdk/mod/types';
 import type { HookSourceType } from '../contracts/types.js';
 import { createHookRecord, type PermissionResolver } from './utils.js';
 import { HookAuditTrail } from '../audit/hook-audit.js';
@@ -32,7 +31,6 @@ export interface LlmTextInput {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
 }
 
 export interface LlmImageInput {
@@ -47,7 +45,6 @@ export interface LlmImageInput {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
 }
 
 export interface LlmVideoInput {
@@ -61,7 +58,6 @@ export interface LlmVideoInput {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
 }
 
 export interface LlmEmbeddingInput {
@@ -74,7 +70,6 @@ export interface LlmEmbeddingInput {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
 }
 
 export interface LlmSpeechTranscribeInput {
@@ -89,7 +84,6 @@ export interface LlmSpeechTranscribeInput {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
 }
 
 function appendAllowAudit(
@@ -169,7 +163,6 @@ export class HookRuntimeLlmService {
       localProviderModel: input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
       connectorId: input.connectorId,
-      providerHints: input.providerHints,
     });
 
     appendAllowAudit(this.context.audit, {
@@ -222,7 +215,7 @@ export class HookRuntimeLlmService {
       localProviderModel: input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
       connectorId: input.connectorId,
-      providerHints: input.providerHints,
+
     })) {
       yield event;
     }
@@ -251,7 +244,6 @@ export class HookRuntimeLlmService {
       localProviderModel: input.model || input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
       connectorId: input.connectorId,
-      providerHints: input.providerHints,
     });
 
     appendAllowAudit(this.context.audit, {
@@ -286,7 +278,6 @@ export class HookRuntimeLlmService {
       localProviderModel: input.model || input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
       connectorId: input.connectorId,
-      providerHints: input.providerHints,
     });
 
     appendAllowAudit(this.context.audit, {
@@ -326,7 +317,6 @@ export class HookRuntimeLlmService {
       localProviderModel: input.model || input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
       connectorId: input.connectorId,
-      providerHints: input.providerHints,
     });
   }
 
@@ -374,7 +364,6 @@ export class HookRuntimeLlmService {
       localProviderModel: input.localProviderModel,
       localOpenAiEndpoint: input.localOpenAiEndpoint,
       connectorId: input.connectorId,
-      providerHints: input.providerHints,
     });
   }
 }

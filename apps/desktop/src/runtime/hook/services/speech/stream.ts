@@ -81,8 +81,6 @@ export async function openSpeechStream(
       routeSource: source,
       connectorId,
       providerEndpoint: endpoint,
-      providerType: 'OPENAI_COMPATIBLE',
-      endpoint,
       open: {
         format: input.format,
         sampleRateHz: input.sampleRateHz,

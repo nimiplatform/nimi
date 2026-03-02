@@ -1,33 +1,6 @@
-export const DEFAULT_LOCAL_RUNTIME_ENDPOINT = 'http://127.0.0.1:1234/v1';
-export const DEFAULT_OPENAI_ENDPOINT = 'http://127.0.0.1:1234/v1';
 export const PRIVATE_PROVIDER_TIMEOUT_MS = 60_000;
 
 export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-
-export type LocalAiProviderHints = {
-  localai?: {
-    backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | string;
-    whisperVariant?: string;
-    stablediffusionPipeline?: string;
-    videoBackend?: string;
-  };
-  nexa?: {
-    backend?: string;
-    preferredAdapter?: 'openai_compat_adapter' | 'localai_native_adapter' | string;
-    pluginId?: string;
-    deviceId?: string;
-    modelType?: string;
-    npuMode?: string;
-    policyGate?: string;
-    hostNpuReady?: boolean;
-    modelProbeHasNpuCandidate?: boolean;
-    policyGateAllowsNpu?: boolean;
-    npuUsable?: boolean;
-    gateReason?: string;
-    gateDetail?: string;
-  };
-} & Record<string, unknown>;
 
 export type ProviderHealth = {
   provider: string;
@@ -44,7 +17,6 @@ export type CheckLlmHealthInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 
@@ -61,7 +33,6 @@ export type ExecuteLocalKernelTurnInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 
@@ -82,7 +53,6 @@ export type InvokeModLlmInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 
@@ -101,7 +71,6 @@ export type InvokeModEmbeddingInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 
@@ -122,7 +91,6 @@ export type InvokeModTranscribeInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 
@@ -138,7 +106,6 @@ export type InvokeModImageInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 
@@ -157,7 +124,6 @@ export type InvokeModVideoInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  providerHints?: LocalAiProviderHints;
   fetchImpl?: FetchImpl;
 };
 

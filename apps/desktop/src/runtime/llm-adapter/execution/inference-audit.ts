@@ -30,9 +30,6 @@ export type InferenceAuditInput = {
   detail?: string;
   policyGate?: string | Record<string, unknown>;
   persistMode?: InferencePersistMode;
-  adapterFamily?: string;
-  protocol?: string;
-  providerNamespace?: string;
   extra?: Record<string, unknown>;
 };
 
@@ -141,9 +138,6 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
       detail,
       policyGate,
       persistMode,
-      adapterFamily: input.adapterFamily || null,
-      protocol: input.protocol || null,
-      providerNamespace: input.providerNamespace || null,
       ...extra,
     },
   });
