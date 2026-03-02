@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { WorldDetailData, WorldAgent, WorldEvent } from './world-detail-template';
 import { TimeFlowDynamics } from './time-flow-dynamics';
+import { WorldScoringMatrix } from './world-scoring-matrix';
 
 export type XianxiaWorldData = WorldDetailData & {
   subtitle?: string;
@@ -14,6 +15,8 @@ export type XianxiaWorldTemplateProps = {
   events: WorldEvent[];
   loading?: boolean;
   error?: boolean;
+  agentsLoading?: boolean;
+  eventsLoading?: boolean;
   onBack?: () => void;
   onEnterEdit?: () => void;
   onCreateSubWorld?: () => void;
@@ -28,73 +31,16 @@ const displayValue = (value: unknown, fallback = 'N/A') => {
   return String(value);
 };
 
-// Generate radar chart coordinates
-function polarPoint(cx: number, cy: number, radius: number, angleDeg: number) {
-  const angle = (angleDeg - 90) * (Math.PI / 180);
-  return {
-    x: cx + radius * Math.cos(angle),
-    y: cy + radius * Math.sin(angle),
-  };
-}
-
 export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const { t } = useTranslation();
 
   const world = props.world;
-  const cx = 150;
-  const cy = 150;
-  const radius = 100;
-  const levels = 5;
-
-  // Score metadata with i18n - matching the reference image layout
-  const radarMeta = [
-    {
-      key: 'scoreA',
-      label: 'Activity Score',
-      short: 'Activity',
-      desc: t('WorldDetail.activityDesc'),
-    },
-    {
-      key: 'scoreC',
-      label: 'Consensus Score',
-      short: 'Consensus',
-      desc: t('WorldDetail.consensusDesc'),
-    },
-    {
-      key: 'scoreE',
-      label: 'Engagement Score',
-      short: 'Engagement',
-      desc: t('WorldDetail.engagementDesc'),
-    },
-    {
-      key: 'scoreQ',
-      label: 'Quality Score',
-      short: 'Quality',
-      desc: t('WorldDetail.qualityDesc'),
-    },
-  ];
-
-  const ewmaMeta = { key: 'scoreEwma', label: 'EWMA Score', short: 'EWMA', desc: t('WorldDetail.ewmaDesc') };
-
-  const angleStep = 360 / radarMeta.length;
-
-  // Calculate radar chart data (4 dimensions, excluding EWMA)
-  const metrics = radarMeta.map((item) => ({
-    ...item,
-    value: world[item.key as keyof WorldDetailData] as number,
-  }));
-
-  const polygonPoints = metrics
-    .map((m, i) => {
-      const p = polarPoint(cx, cy, radius * (m.value / 100), i * angleStep);
-      return `${p.x},${p.y}`;
-    })
-    .join(' ');
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
   const formatDateTime = (d: string) => {
     const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return d; // non-ISO string (e.g. "修仙纪元 11190年") — display as-is
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
@@ -103,7 +49,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
       <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-[#4ECCA3]">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
-          <span className="text-sm text-[#e8f5ee]/60">{t('WorldDetail.loading')}</span>
+          <span className="text-sm text-[#e8f5ee]/60">"Loading..."</span>
         </div>
       </div>
     );
@@ -112,7 +58,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   if (props.error || !world) {
     return (
       <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
-        <span className="text-sm text-red-400">{t('WorldDetail.error')}</span>
+        <span className="text-sm text-red-400">"Error loading world data"</span>
       </div>
     );
   }
@@ -151,7 +97,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             style={{
               background: world.bannerUrl
                 ? `linear-gradient(180deg, rgba(10,15,12,0.2) 0%, rgba(10,15,12,0.4) 50%, rgba(10,15,12,0.9) 100%), url(${world.bannerUrl}) center/cover no-repeat`
-                : `linear-gradient(120deg, #0d1f16 0%, #0a1410 50%, #050a08 100%)`,
+                : `linear-gradient(180deg, rgba(10,15,12,0.2) 0%, rgba(10,15,12,0.4) 50%, rgba(10,15,12,0.9) 100%), url(/images/worlds/xianxia-banner.png) center/cover no-repeat`,
             }}
           />
 
@@ -193,6 +139,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     {displayValue(world.name)}
                   </h1>
                   <p className="mt-2 text-base text-white/70 leading-relaxed max-w-2xl">
+                    {world.subtitle && <span className="text-[#4ECCA3]/50 text-xs mr-1" title="Sample data — no API field available">*</span>}
                     {displayValue(world.subtitle || world.description)}
                   </p>
                 </div>
@@ -214,17 +161,35 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-[#e8f5ee]/60">世界概览</span>
-              <span className="text-sm text-[#e8f5ee]/40">/</span>
-              <span className="text-sm text-[#4ECCA3]">World Overview</span>
+              <span className="text-sm text-[#4ECCA3]">"World Overview"</span>
             </div>
 
             {/* World Name */}
             <h3 className="text-xl font-bold text-[#e8f5ee] mb-2">{displayValue(world.name)}</h3>
 
             {/* ID Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 text-xs text-[#4ECCA3] mb-4 font-mono">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 text-xs text-[#4ECCA3] mb-2 font-mono">
               ID: {world.id || 'N/A'}
+            </div>
+
+            {/* Meta info row - Created At + Agent Count */}
+            <div className="flex items-center gap-4 mb-4 text-xs text-[#e8f5ee]/60">
+              <span className="inline-flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                {world.createdAt ? formatDateTime(world.createdAt) : 'N/A'}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                {world.agentCount !== undefined ? world.agentCount : 0} agents
+              </span>
             </div>
 
             {/* Description */}
@@ -235,173 +200,44 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               </p>
             </div>
 
-            {/* Narrative */}
-            <div className="mb-4">
-              <div className="text-xs text-[#e8f5ee]/40 mb-1">World Narrative</div>
-              <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
-                {displayValue(world.narrative || world.description)}
-              </p>
-            </div>
-
-            {/* Creation Date */}
-            <div className="mb-4">
-              <div className="text-xs text-[#e8f5ee]/40 mb-1">Creation Date</div>
-              <div className="text-sm text-[#e8f5ee]">
-                {world.createdAt ? formatDateTime(world.createdAt) : 'N/A'}
-              </div>
-            </div>
-
-            {/* Agent Count */}
-            <div className="mb-4">
-              <div className="text-xs text-[#e8f5ee]/40 mb-2">Agent Count</div>
-              <div className="flex items-center gap-3">
-                <div className="text-2xl font-bold text-[#4ECCA3]">
-                  {world.agentCount !== undefined ? world.agentCount : 'N/A'}
+            {/* Narrative — mock data, API 无对应字段 */}
+            {world.narrative && (
+              <div className="mb-4">
+                <div className="text-xs text-[#e8f5ee]/40 mb-1">
+                  World Narrative <span className="text-[#4ECCA3]/50" title="Sample data — no API field available">*</span>
                 </div>
-                <div className="text-xs text-[#e8f5ee]/50">Agents in this world</div>
+                <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
+                  {displayValue(world.narrative)}
+                </p>
               </div>
-            </div>
+            )}
 
-            {/* EWMA Score - Comprehensive Index */}
-            <div className="mb-4 p-3 rounded-xl bg-[#4ECCA3]/10 border border-[#4ECCA3]/20">
-              <div className="text-xs text-[#4ECCA3] mb-1">{ewmaMeta.label}</div>
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-[#4ECCA3]">
-                  {world.scoreEwma !== undefined ? world.scoreEwma.toFixed(2) : 'N/A'}
-                </div>
-                <div className="text-xs text-[#e8f5ee]/50">Comprehensive trend index</div>
+            {/* Quote — mock data, API 无对应字段 */}
+            {world.quote && (
+              <div className="p-4 rounded-xl bg-[#0a0f0c]/40 border border-[#4ECCA3]/10">
+                <p className="text-sm text-[#e8f5ee]/80 leading-relaxed italic">
+                  <span className="text-[#4ECCA3]/50 text-xs not-italic mr-1" title="Sample data — no API field available">*</span>
+                  {displayValue(world.quote)}
+                </p>
               </div>
-            </div>
-
-            {/* Quote */}
-            <div className="p-4 rounded-xl bg-[#0a0f0c]/40 border border-[#4ECCA3]/10">
-              <p className="text-sm text-[#e8f5ee]/80 leading-relaxed italic">
-                {displayValue(world.quote, t('WorldDetail.xianxia.noData.quote'))}
-              </p>
-            </div>
+            )}
           </section>
 
           {/* Middle Column - Scoring Matrix */}
-          <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/15 bg-[#0f1612]/60 backdrop-blur-sm p-5">
+          <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/15 bg-[#0f1612]/60 backdrop-blur-sm">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
 
-            {/* Section Title */}
-            <div className="text-center mb-4">
-              <h2 className="text-lg font-medium text-[#e8f5ee]">World Scoring Matrix</h2>
-            </div>
-
-            {/* Radar Chart */}
-            <div className="relative w-full aspect-square max-w-[320px] mx-auto">
-              <svg viewBox="0 0 300 300" className="w-full h-full">
-                <defs>
-                  <linearGradient id="scoreStroke" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#4ECCA3" />
-                    <stop offset="100%" stopColor="#3db892" />
-                  </linearGradient>
-                  <linearGradient id="scoreFill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="rgba(78,204,163,0.4)" />
-                    <stop offset="100%" stopColor="rgba(61,184,146,0.1)" />
-                  </linearGradient>
-                </defs>
-
-                {/* Background grid */}
-                {Array.from({ length: levels }, (_, idx) => {
-                  const r = radius * ((idx + 1) / levels);
-                  const pts = metrics
-                    .map((_, i) => {
-                      const p = polarPoint(cx, cy, r, i * angleStep);
-                      return `${p.x},${p.y}`;
-                    })
-                    .join(' ');
-                  return (
-                    <polygon
-                      key={idx}
-                      points={pts}
-                      fill="none"
-                      stroke="rgba(78,204,163,0.1)"
-                      strokeWidth="1"
-                    />
-                  );
-                })}
-
-                {/* Axis lines */}
-                {metrics.map((_, i) => {
-                  const p = polarPoint(cx, cy, radius, i * angleStep);
-                  return (
-                    <line
-                      key={i}
-                      x1={cx}
-                      y1={cy}
-                      x2={p.x}
-                      y2={p.y}
-                      stroke="rgba(78,204,163,0.15)"
-                      strokeWidth="1"
-                    />
-                  );
-                })}
-
-                {/* Data area */}
-                <polygon
-                  points={polygonPoints}
-                  fill="url(#scoreFill)"
-                  stroke="url(#scoreStroke)"
-                  strokeWidth="2"
-                />
-
-                {/* Data points */}
-                {metrics.map((m, i) => {
-                  const p = polarPoint(cx, cy, radius * (m.value / 100), i * angleStep);
-                  return (
-                    <circle
-                      key={i}
-                      cx={p.x}
-                      cy={p.y}
-                      r="4"
-                      fill="#4ECCA3"
-                      stroke="#0f1612"
-                      strokeWidth="2"
-                    />
-                  );
-                })}
-
-                {/* Center point */}
-                <circle cx={cx} cy={cy} r="4" fill="#4ECCA3" />
-              </svg>
-
-              {/* Labels positioned around the chart */}
-              {metrics.map((m, i) => {
-                const angle = i * angleStep;
-                const labelRadius = radius + 35;
-                const p = polarPoint(cx, cy, labelRadius, angle);
-                const value =
-                  m.value !== undefined && m.value !== null ? Number(m.value).toFixed(0) : '-';
-
-                // Position adjustments based on angle
-                let textAnchor: 'start' | 'middle' | 'end' = 'middle';
-                let dx = 0;
-                if (angle > 45 && angle < 135) textAnchor = 'start';
-                if (angle > 225 && angle < 315) textAnchor = 'end';
-
-                return (
-                  <div
-                    key={i}
-                    className="absolute transform -translate-x-1/2 -translate-y-1/2 text-center"
-                    style={{
-                      left: `${(p.x / 300) * 100}%`,
-                      top: `${(p.y / 300) * 100}%`,
-                    }}
-                  >
-                    <div className="text-xs text-[#4ECCA3] font-medium">{m.short}</div>
-                    <div className="text-lg font-bold text-[#4ECCA3]">{value}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom note */}
-            <p className="text-center text-xs text-[#e8f5ee]/40 mt-4">
-              {t('WorldDetail.xianxia.scores.chartNote')}
-            </p>
+            {/* 3D Crystal Scoring Matrix with EWMA */}
+            <WorldScoringMatrix 
+              data={{
+                scoreA: world.scoreA,
+                scoreC: world.scoreC,
+                scoreQ: world.scoreQ,
+                scoreE: world.scoreE,
+                scoreEwma: world.scoreEwma,
+              }} 
+              className="h-full"
+            />
           </section>
 
           {/* Right Column - Chronicle/Timeline */}
@@ -410,9 +246,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-5">
-              <span className="text-sm text-[#e8f5ee]/60">事件编年</span>
-              <span className="text-sm text-[#e8f5ee]/40">/</span>
-              <span className="text-sm text-[#4ECCA3]">Chronicle</span>
+              <span className="text-sm text-[#4ECCA3]">"Chronicle"</span>
             </div>
 
             {/* Timeline */}
@@ -420,8 +254,13 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               {/* Timeline line */}
               <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-[#4ECCA3] via-[#4ECCA3]/30 to-transparent" />
 
-              {props.events.length > 0 ? (
-                props.events.slice(0, 5).map((event, idx) => (
+              {props.eventsLoading ? (
+                <div className="pl-8 py-8 flex flex-col items-center gap-2">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
+                  <span className="text-xs text-[#e8f5ee]/40">Loading events...</span>
+                </div>
+              ) : props.events.length > 0 ? (
+                props.events.slice(0, 5).map((event) => (
                   <div key={event.id} className="relative pl-8">
                     {/* Timeline dot with icon */}
                     <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-[#0f1612] border-2 border-[#4ECCA3]/30 flex items-center justify-center">
@@ -446,7 +285,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                 ))
               ) : (
                 <div className="pl-8 p-4 text-center text-[#e8f5ee]/50 text-sm">
-                  {t('WorldDetail.xianxia.timeline.noData')}
+                  No events recorded yet
                 </div>
               )}
             </div>
@@ -459,14 +298,17 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
           {/* Section Title */}
           <div className="flex items-center gap-2 mb-5">
-            <span className="text-sm text-[#e8f5ee]/60">智能体名录</span>
-            <span className="text-sm text-[#e8f5ee]/40">/</span>
-            <span className="text-sm text-[#4ECCA3]">Interactive Agent Directory</span>
+            <span className="text-sm text-[#4ECCA3]">World Agents</span>
           </div>
 
           {/* Agent Grid - 3 columns */}
           <div className="grid grid-cols-3 gap-4">
-            {props.agents.length > 0 ? (
+            {props.agentsLoading ? (
+              <div className="col-span-3 py-16 flex flex-col items-center justify-center gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
+                <span className="text-xs text-[#e8f5ee]/40">Loading agents...</span>
+              </div>
+            ) : props.agents.length > 0 ? (
               props.agents.slice(0, 6).map((agent) => (
                 <article
                   key={agent.id}
@@ -503,7 +345,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
 
                   {/* Bio */}
                   <p className="text-xs text-[#e8f5ee]/60 leading-relaxed mb-3 line-clamp-2">
-                    {displayValue(agent.bio, t('WorldDetail.xianxia.noData.bio'))}
+                    {displayValue(agent.bio, 'No bio available')}
                   </p>
 
                   {/* Created date */}
@@ -529,7 +371,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                       >
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
-                      Chat
+                      "Chat"
                     </button>
                     <button
                       onClick={() => props.onVoiceAgent?.(agent)}
@@ -550,7 +392,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                         <line x1="20" y1="8" x2="20" y2="14" />
                         <line x1="23" y1="11" x2="17" y2="11" />
                       </svg>
-                      Add
+                      "Add Friend"
                     </button>
                   </div>
                 </article>
@@ -575,7 +417,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   </svg>
                 </div>
                 <p className="text-[#e8f5ee]/60 text-sm">
-                  {t('WorldDetail.xianxia.agents.noData')}
+                  No agents in this world yet
                 </p>
               </div>
             )}

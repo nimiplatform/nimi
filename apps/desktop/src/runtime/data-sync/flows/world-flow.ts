@@ -127,6 +127,31 @@ export async function loadWorldDetailById(
   }
 }
 
+export async function loadWorldEvents(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<Array<Record<string, unknown>>> {
+  const normalizedWorldId = String(worldId || '').trim();
+  if (!normalizedWorldId) {
+    throw new Error('WORLD_ID_REQUIRED');
+  }
+  try {
+    const payload = await callApi(
+      (realm) => realm.services.WorldControlService.worldControlControllerListWorldEvents(normalizedWorldId),
+      '加载世界事件列表失败',
+    );
+    const record = toRecord(payload);
+    if (record && Array.isArray(record.items)) {
+      return toRecordArray(record.items);
+    }
+    return toRecordArray(payload);
+  } catch (error) {
+    emitDataSyncError('load-world-events', error, { worldId: normalizedWorldId });
+    throw error;
+  }
+}
+
 export async function loadWorldAgents(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,

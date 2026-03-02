@@ -1,105 +1,105 @@
-import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
 import type { WorldListItem } from './world-list';
 import type { WorldAgent, WorldEvent } from './world-detail-template';
+import type { WorldDetailDto } from '@nimiplatform/sdk/realm';
 
-// Convert WorldListItem to XianxiaWorldData
-function toXianxiaWorldData(world: WorldListItem): XianxiaWorldData {
+// Build XianxiaWorldData from list item + optional full detail
+function toXianxiaWorldData(
+  world: WorldListItem,
+  detail?: WorldDetailDto | null,
+): XianxiaWorldData {
   return {
     id: world.id,
-    name: world.name, // Keep original name (Chinese)
-    description: world.description,
-    iconUrl: world.iconUrl,
-    bannerUrl: world.bannerUrl,
-    type: world.type === 'MAIN' ? 'MAIN' : 'SUB',
-    status: world.status as XianxiaWorldData['status'],
-    level: world.level,
-    levelUpdatedAt: world.levelUpdatedAt,
-    agentCount: world.agentCount,
-    createdAt: world.createdAt,
-    creatorId: world.creatorId,
-    freezeReason: world.freezeReason as XianxiaWorldData['freezeReason'],
-    lorebookEntryLimit: world.lorebookEntryLimit,
-    nativeAgentLimit: world.nativeAgentLimit,
-    nativeCreationState: world.nativeCreationState as XianxiaWorldData['nativeCreationState'],
-    scoreA: world.scoreA,
-    scoreC: world.scoreC,
-    scoreE: world.scoreE,
-    scoreEwma: world.scoreEwma,
-    scoreQ: world.scoreQ,
-    timeFlowRatio: world.timeFlowRatio,
-    transitInLimit: world.transitInLimit,
-    // Xianxia specific fields - Chinese quote/narrative for authenticity
+    name: detail?.name ?? world.name,
+    description: detail?.description ?? world.description,
+    iconUrl: detail?.iconUrl ?? world.iconUrl,
+    bannerUrl: detail?.bannerUrl ?? world.bannerUrl,
+    type: (detail?.type ?? world.type) === 'MAIN' ? 'MAIN' : 'SUB',
+    status: (detail?.status ?? world.status) as XianxiaWorldData['status'],
+    level: detail?.level ?? world.level,
+    levelUpdatedAt: (detail?.levelUpdatedAt as string | null) ?? world.levelUpdatedAt,
+    agentCount: detail?.agentCount ?? world.agentCount,
+    createdAt: (detail?.createdAt as string) ?? world.createdAt,
+    creatorId: detail?.creatorId ?? world.creatorId,
+    freezeReason: (detail?.freezeReason ?? world.freezeReason) as XianxiaWorldData['freezeReason'],
+    lorebookEntryLimit: detail?.lorebookEntryLimit ?? world.lorebookEntryLimit,
+    nativeAgentLimit: detail?.nativeAgentLimit ?? world.nativeAgentLimit,
+    nativeCreationState: (detail?.nativeCreationState ?? world.nativeCreationState) as XianxiaWorldData['nativeCreationState'],
+    scoreA: detail?.scoreA ?? world.scoreA,
+    scoreC: detail?.scoreC ?? world.scoreC,
+    scoreE: detail?.scoreE ?? world.scoreE,
+    scoreEwma: detail?.scoreEwma ?? world.scoreEwma,
+    scoreQ: detail?.scoreQ ?? world.scoreQ,
+    timeFlowRatio: detail?.timeFlowRatio ?? world.timeFlowRatio,
+    transitInLimit: detail?.transitInLimit ?? world.transitInLimit,
+    // Fields only available from detail API
+    genre: detail?.genre ?? world.genre,
+    era: detail?.era ?? world.era,
+    themes: detail?.themes ?? world.themes,
+    clockConfig: (detail as Record<string, unknown> | undefined)?.clockConfig as Record<string, unknown> | null ?? null,
+    sceneTimeConfig: (detail as Record<string, unknown> | undefined)?.sceneTimeConfig as Record<string, unknown> | null ?? null,
+    // Mock data — API 无对应字段，保留并标注 *
     subtitle: '山海暗涌，灵脉苏醒。一个凡人也能以心性、算计与机缘，穿越门派、秘境、乱星海与飞升之路。',
     quote: '凡人亦可问长生，天地无情，道途自争。',
     narrative: '这个 World 并不是一个静态的小说展厅，而是一个不断生长的修真生态。主世界以《凡人修仙传》的秩序感为底色：资源稀缺、机缘有限、修士谨慎、强者为尊、宗门与散修并存、秘境与拍卖场交替拉动剧情。\n\n在这里，用户并不只是旁观者，而是会影响世界变量的参与者。你可以让 Agent 扮演引路人、护法、执事、交易中介、秘境情报员、宗门长老或敌对势力代表；也可以让子世界承载特定地图、剧情线、宗门分舵、洞府系统、拍卖会系统和成长任务。\n\n整个首页模板强调"开放式"和"沉浸式"：世界信息清晰可读，评分总览一图展示，Agent 可随时进入聊天或语音，大事件沿时间轴推进，让用户一进入页面就有身处修真世界入口的感觉。',
   };
 }
 
-// Convert world agents data to WorldAgent format
-function getWorldAgents(world: WorldListItem): WorldAgent[] {
-  // If world has agents data from API, use it
-  if (world.agents && world.agents.length > 0) {
-    return world.agents.map((agent) => ({
-      id: agent.id,
-      name: agent.name,
-      handle: agent.handle || `@${agent.name.toLowerCase().replace(/\s+/g, '.')}`,
-      bio: agent.bio || 'No description available.',
-      createdAt: agent.createdAt || world.createdAt,
-      avatarUrl: agent.avatarUrl,
-    }));
+// Safely traverse nested object path
+function nested(obj: unknown, ...keys: string[]): unknown {
+  let cur: unknown = obj;
+  for (const k of keys) {
+    if (!cur || typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string, unknown>)[k];
   }
-  
-  // Return empty array if no agents - UI will show "暂时没有数据"
-  return [];
+  return cur;
 }
 
-// Generate Xianxia-style event data - Chinese titles, English descriptions
-function generateXianxiaEvents(world: WorldListItem): WorldEvent[] {
-  return [
-    {
-      id: `event-${world.id}-1`,
-      time: world.createdAt,
-      title: '主世界「天南灵域」开启',
-      tag: 'World Launch',
-      description: 'World foundation construction complete. Spiritual vein nodes, sect forces, independent cultivator markets, secret realm entrances, and initial Agents all online. Main world enters ACTIVE state.',
-    },
-    {
-      id: `event-${world.id}-2`,
-      time: new Date(Date.now() - 86400000 * 25).toISOString(),
-      title: '七玄门试炼场开放',
-      tag: 'Newbie Event',
-      description: 'Open to new users entering the world. Complete trials to unlock mortal cultivation growth routes, lightfoot techniques, and basic method branches.',
-    },
-    {
-      id: `event-${world.id}-3`,
-      time: new Date(Date.now() - 86400000 * 20).toISOString(),
-      title: '黄枫谷收徒季开启',
-      tag: 'Sect Route',
-      description: 'Sect faction storyline officially launched. Users can make their first world-level choice among sects, independent cultivators, and neutral chambers of commerce, affecting subsequent Agent interactions.',
-    },
-    {
-      id: `event-${world.id}-4`,
-      time: new Date(Date.now() - 86400000 * 15).toISOString(),
-      title: '血色禁地进入周期',
-      tag: 'Secret Realm',
-      description: 'Rare spiritual medicine and high-risk confrontation area opens. Activity Score and Engagement Score expected to enter high fluctuation range.',
-    },
-    {
-      id: `event-${world.id}-5`,
-      time: new Date(Date.now() - 86400000 * 10).toISOString(),
-      title: '乱星海航路稳定',
-      tag: 'Sub-world',
-      description: 'Sub-world interface opened, cross-sea exploration, long-distance trade, and exotic branch plots connected. World now has MAIN + SUB expansion capability.',
-    },
-    {
-      id: `event-${world.id}-6`,
-      time: new Date(Date.now() - 86400000 * 3).toISOString(),
-      title: '虚天殿异象预告',
-      tag: 'Version Preview',
-      description: 'High-level major event enters preview phase. Overall EWMA score rising. Auctions, contention battles, core formation resource drops, and governance voting systems to follow.',
-    },
-  ];
+// Convert API agent records to WorldAgent format
+// API structure: { id, description, dna: { identity: { name, role, summary }, personality: { summary }, appearance: { avatarUrl? } } }
+function toWorldAgent(raw: Record<string, unknown>, fallbackCreatedAt: string): WorldAgent {
+  const name = String(nested(raw, 'dna', 'identity', 'name') || raw.name || 'Unknown');
+  const role = String(nested(raw, 'dna', 'identity', 'role') || '');
+  const identitySummary = String(nested(raw, 'dna', 'identity', 'summary') || '');
+  const personalitySummary = String(nested(raw, 'dna', 'personality', 'summary') || '');
+  const description = typeof raw.description === 'string' ? raw.description : '';
+
+  // bio: prefer top-level description, fall back to identity summary or personality summary
+  const bio = description || identitySummary || personalitySummary || 'No description available.';
+
+  // avatarUrl: check appearance.avatarUrl, then top-level
+  const avatarUrl = String(nested(raw, 'dna', 'appearance', 'avatarUrl') || raw.avatarUrl || '');
+
+  return {
+    id: String(raw.id || ''),
+    name,
+    handle: role ? `@${role}` : `@${name}`,
+    bio,
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : fallbackCreatedAt,
+    avatarUrl: avatarUrl || undefined,
+  };
+}
+
+// Map eventHorizon to display tag
+const EVENT_HORIZON_TAG: Record<string, string> = {
+  PAST: 'Past',
+  ONGOING: 'Ongoing',
+  FUTURE: 'Future',
+};
+
+// Convert API event records to WorldEvent format
+function toWorldEvent(raw: Record<string, unknown>): WorldEvent {
+  const horizon = typeof raw.eventHorizon === 'string' ? raw.eventHorizon : '';
+  return {
+    id: String(raw.id || ''),
+    title: String(raw.title || 'Untitled Event'),
+    description: String(raw.summary || raw.cause || raw.process || raw.result || ''),
+    time: String(raw.timeRef || raw.createdAt || ''),
+    tag: EVENT_HORIZON_TAG[horizon] || horizon || 'Event',
+  };
 }
 
 type WorldDetailProps = {
@@ -108,11 +108,39 @@ type WorldDetailProps = {
 };
 
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
-  const { t } = useTranslation();
-  
-  const worldData = toXianxiaWorldData(world);
-  const agents = getWorldAgents(world);
-  const events = generateXianxiaEvents(world);
+  const authStatus = useAppStore((state) => state.auth.status);
+  const isReady = authStatus === 'authenticated' && !!world.id;
+
+  // Fetch full world detail (includes genre, era, themes, clockConfig, sceneTimeConfig)
+  const worldDetailQuery = useQuery({
+    queryKey: ['world-detail', world.id],
+    queryFn: () => dataSync.loadWorldDetailById(world.id),
+    enabled: isReady,
+  });
+
+  // Independent API call for world agents (mirrors WorldDetailPanel pattern)
+  const worldAgentsQuery = useQuery({
+    queryKey: ['world-agents', world.id],
+    queryFn: async () => {
+      const agents = await dataSync.loadWorldAgents(world.id);
+      return agents.map((raw) => toWorldAgent(raw, world.createdAt));
+    },
+    enabled: isReady,
+  });
+
+  // Independent API call for world events (Chronicle)
+  const worldEventsQuery = useQuery({
+    queryKey: ['world-events', world.id],
+    queryFn: async () => {
+      const events = await dataSync.loadWorldEvents(world.id);
+      return events.map(toWorldEvent);
+    },
+    enabled: isReady,
+  });
+
+  const worldData = toXianxiaWorldData(world, worldDetailQuery.data);
+  const agents = worldAgentsQuery.data || [];
+  const events = worldEventsQuery.data || [];
 
   const handleChatAgent = (agent: WorldAgent) => {
     console.log('Enter chat with agent:', agent);
@@ -142,14 +170,16 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
             <line x1="19" y1="12" x2="5" y2="12" />
             <polyline points="12 19 5 12 12 5" />
           </svg>
-          {t('WorldDetail.backToList')}
+          Back to List
         </button>
       </div>
-      
+
       <XianxiaWorldTemplate
         world={worldData}
         agents={agents}
         events={events}
+        agentsLoading={worldAgentsQuery.isPending}
+        eventsLoading={worldEventsQuery.isPending}
         onBack={onBack}
         onEnterEdit={handleEnterEdit}
         onCreateSubWorld={handleCreateSubWorld}

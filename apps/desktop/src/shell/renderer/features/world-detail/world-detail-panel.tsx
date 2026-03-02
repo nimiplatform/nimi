@@ -145,7 +145,7 @@ export function WorldDetailPanel() {
     queryFn: async () => {
       if (!selectedWorldId) return [];
       const agents = await dataSync.loadWorldAgents(selectedWorldId);
-      return agents.map((raw): WorldAgent => ({
+      return agents.map((raw: Record<string, unknown>): WorldAgent => ({
         id: String(raw.id || ''),
         handle: String(raw.handle || ''),
         displayName: String(raw.displayName || raw.handle || 'Unknown'),

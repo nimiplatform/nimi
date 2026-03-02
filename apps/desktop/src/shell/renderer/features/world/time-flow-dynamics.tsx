@@ -4,6 +4,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Text, Center, Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
+
 // Theme configuration based on time flow ratio
 const getTheme = (ratio: number) => {
   if (ratio < 0.9) return { 
@@ -30,7 +31,7 @@ const getTheme = (ratio: number) => {
 
 // SVG Ring with ticks - drawn procedurally
 const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFactor: number; isCompact?: boolean }) => {
-  const ringRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<any>(null);
   
   useFrame((_, delta) => {
     if (ringRef.current) {
@@ -40,7 +41,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
 
   // Generate ticks
   const ticks = useMemo(() => {
-    const items = [];
+    const items: any[] = [];
     const count = isCompact ? 40 : 60;
     const radius = isCompact ? 1.6 : 2.5;
     
@@ -76,7 +77,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
   const labels = useMemo(() => {
     if (isCompact) return []; // No labels in compact mode
     
-    const items = [];
+    const items: any[] = [];
     const positions = [
       { text: '1x', angle: -Math.PI / 2 },
       { text: '2x', angle: 0 },
@@ -120,7 +121,7 @@ const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
 
 // Inner rotating ring
 const InnerRing = ({ color, speedFactor, isCompact }: { color: string; speedFactor: number; isCompact?: boolean }) => {
-  const ringRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<any>(null);
   
   useFrame((_, delta) => {
     if (ringRef.current) {
@@ -142,7 +143,7 @@ const InnerRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
 // Main 3D Scene
 const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolean }) => {
   const { color, label, speedFactor } = useMemo(() => getTheme(ratio), [ratio]);
-  const particlesRef = useRef<THREE.Points>(null);
+  const particlesRef = useRef<any>(null);
   
   useFrame((state, delta) => {
     if (particlesRef.current) {
@@ -199,7 +200,7 @@ const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolea
       </Center>
 
       {/* Bloom effect for glow */}
-      <EffectComposer disableNormalPass>
+      <EffectComposer>
         <Bloom 
           luminanceThreshold={0.2}
           mipmapBlur 

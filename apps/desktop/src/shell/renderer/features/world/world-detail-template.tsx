@@ -27,6 +27,11 @@ export type WorldDetailData = {
   scoreQ: number;  // Quality Score
   timeFlowRatio: number;
   transitInLimit: number;
+  genre?: string | null;
+  era?: string | null;
+  themes?: string[] | null;
+  clockConfig?: Record<string, unknown> | null;
+  sceneTimeConfig?: Record<string, unknown> | null;
 };
 
 // 智能体数据类型
@@ -608,21 +613,20 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
             />
 
             {props.events
-              .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
               .map((event, index) => (
                 <div key={event.id} className="relative pl-7 mb-4 last:mb-0">
                   {/* 时间点标记 */}
-                  <div 
+                  <div
                     className="absolute left-1 top-3 w-5.5 h-5.5 rounded-full"
-                    style={{ 
+                    style={{
                       background: `linear-gradient(135deg, ${theme.primary}, #7fd7a8)`,
                       boxShadow: '0 0 0 6px rgba(47, 163, 106, 0.08)',
                     }}
                   />
-                  
+
                   <div className="p-4.5 rounded-3xl bg-white/95 border border-[rgba(47,163,106,0.12)]">
                     <div className="font-mono text-xs text-[#17784a] font-extrabold tracking-wide mb-2.5">
-                      {new Date(event.time).toLocaleString('zh-CN')}
+                      {(() => { const d = new Date(event.time); return Number.isNaN(d.getTime()) ? event.time : d.toLocaleString('zh-CN'); })()}
                     </div>
                     <div className="flex items-start justify-between gap-3 mb-2.5">
                       <h3 className="text-base font-bold tracking-tight">{event.title}</h3>
