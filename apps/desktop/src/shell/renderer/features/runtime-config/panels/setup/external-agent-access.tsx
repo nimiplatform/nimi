@@ -24,18 +24,20 @@ export function ExternalAgentAccessPanel() {
   const [tokens, setTokens] = useState<ExternalAgentTokenRecord[]>([]);
 
   const refreshGateway = async () => {
-    const status = await getExternalAgentGatewayStatus().catch(() => null);
-    if (!status) {
-      setStatusText('Gateway unavailable');
-    } else {
+    try {
+      const status = await getExternalAgentGatewayStatus();
+      const rows = await listExternalAgentTokens();
       setStatusText(
         status.enabled
           ? `Enabled @ ${status.bindAddress} · issuer=${status.issuer} · actions=${status.actionCount}`
           : 'Disabled',
       );
+      setTokens(rows);
+    } catch (error) {
+      setStatusText('Gateway unavailable');
+      setTokens([]);
+      setErrorMessage(error instanceof Error ? error.message : String(error || 'Gateway refresh failed'));
     }
-    const rows = await listExternalAgentTokens().catch(() => []);
-    setTokens(rows);
   };
 
   useEffect(() => {

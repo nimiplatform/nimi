@@ -1,8 +1,8 @@
 import { getPlatformClient } from '@runtime/platform-client';
-import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+import { createNimiError, RuntimeReasonCode, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   VENDOR_CATALOGS_V11,
-  catalogModelsV11,
   type ApiConnector,
   type ApiVendor,
 } from '@renderer/features/runtime-config/state/v11/types';
@@ -22,6 +22,17 @@ const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
+
+function runtimeReasonCodeName(value: unknown): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '';
+  }
+  const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[value];
+  if (!enumName || enumName === 'REASON_CODE_UNSPECIFIED') {
+    return '';
+  }
+  return String(enumName || '').trim();
+}
 
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
   if (cachedProviderCatalog) return cachedProviderCatalog;
@@ -87,7 +98,7 @@ export function sdkConnectorToApiConnector(
     endpoint: connector.endpoint || catalog.defaultEndpoint,
     hasCredential: connector.hasCredential,
     isSystemOwned: connector.ownerType === CONNECTOR_OWNER_TYPE_SYSTEM,
-    models: models && models.length > 0 ? models : catalogModelsV11(vendor),
+    models: models && models.length > 0 ? models : [],
     status: 'idle',
     lastCheckedAt: null,
     lastDetail: '',
@@ -151,20 +162,38 @@ export async function sdkDeleteConnector(connectorId: string): Promise<void> {
   );
 }
 
-export async function sdkTestConnector(connectorId: string): Promise<{ ok: boolean; message: string }> {
+export async function sdkTestConnector(connectorId: string): Promise<void> {
   const runtime = getPlatformClient().runtime;
-  try {
-    await runtime.connector.testConnector(
-      { connectorId, ownerId: DESKTOP_OWNER_ID },
-      CONNECTOR_CALL_OPTIONS,
-    );
-    return { ok: true, message: 'provider reachable' };
-  } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : String(error || 'test failed'),
-    };
+  const response = await runtime.connector.testConnector(
+    { connectorId, ownerId: DESKTOP_OWNER_ID },
+    CONNECTOR_CALL_OPTIONS,
+  );
+  const ack = response.ack;
+  if (!ack) {
+    throw createNimiError({
+      message: 'connector test failed: empty ack payload',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_or_check_runtime_status',
+      source: 'runtime',
+      details: {
+        connectorId,
+      },
+    });
   }
+  if (ack.ok) return;
+
+  const reasonCode = runtimeReasonCodeName(ack.reasonCode) || ReasonCode.RUNTIME_CALL_FAILED;
+  throw createNimiError({
+    message: `connector test failed: ${reasonCode}`,
+    reasonCode,
+    code: reasonCode,
+    actionHint: String(ack.actionHint || '').trim() || 'check_connector_config',
+    source: 'runtime',
+    details: {
+      connectorId,
+      ackReasonCode: ack.reasonCode,
+    },
+  });
 }
 
 export async function sdkListConnectorModels(

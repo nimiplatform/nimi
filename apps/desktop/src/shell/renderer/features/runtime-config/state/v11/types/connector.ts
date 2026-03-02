@@ -226,6 +226,7 @@ export function randomIdV11(prefix: string): string {
 }
 
 export function catalogModelsV11(vendor: ApiVendor): string[] {
+  // UI hint only. Runtime/SDK is the source of truth for connector models.
   return dedupeStringsV11([...VENDOR_CATALOGS_V11[vendor].models]);
 }
 
@@ -239,7 +240,7 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
     endpoint: catalog.defaultEndpoint,
     hasCredential: false,
     isSystemOwned: false,
-    models: catalogModelsV11(vendor),
+    models: [],
     status: 'idle',
     lastCheckedAt: null,
     lastDetail: '',
@@ -247,25 +248,8 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
 }
 
 export function normalizeConnectorModelsV11(vendor: ApiVendor, rawModels: unknown): string[] {
-  const catalog = catalogModelsV11(vendor);
-  const input = dedupeStringsV11(Array.isArray(rawModels) ? rawModels : []);
-  if (input.length === 0) return catalog;
-  if (vendor === 'custom') return input;
-
-  if (vendor === 'openrouter') {
-    const openRouterShaped = input.filter((model) => model.includes('/'));
-    return dedupeStringsV11([...(openRouterShaped.length > 0 ? openRouterShaped : []), ...catalog]);
-  }
-
-  const otherCatalogModels = dedupeStringsV11(
-    (Object.entries(VENDOR_CATALOGS_V11) as Array<[ApiVendor, VendorCatalogV11]>)
-      .filter(([key]) => key !== vendor && key !== 'custom')
-      .flatMap(([, item]) => item.models),
-  );
-  const otherSet = new Set(otherCatalogModels);
-  const filtered = input.filter((model) => !otherSet.has(model));
-
-  return dedupeStringsV11([...(filtered.length > 0 ? filtered : []), ...catalog]);
+  void vendor;
+  return dedupeStringsV11(Array.isArray(rawModels) ? rawModels : []);
 }
 
 export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector {

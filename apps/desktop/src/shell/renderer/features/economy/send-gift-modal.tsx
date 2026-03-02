@@ -53,7 +53,6 @@ export function SendGiftModal(props: SendGiftModalProps) {
       await dataSync.sendGift({
         receiverId: props.receiverId,
         giftId: 'gem',
-        amount: gemAmount,
         message: message.trim() || undefined,
       });
       props.onSent?.();

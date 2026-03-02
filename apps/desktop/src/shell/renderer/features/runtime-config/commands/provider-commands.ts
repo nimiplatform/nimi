@@ -9,6 +9,7 @@ import {
 } from '../domain/provider-connectors/connector-test-command';
 import { runDiscoverLocalRuntimeModelsCommand } from '../domain/provider-connectors/discover-command';
 import { runLocalRuntimeHealthCheckCommand } from '../domain/provider-connectors/health-command';
+import { formatRuntimeConfigErrorBanner } from '../domain/provider-connectors/error';
 
 export async function discoverLocalRuntimeModelsCommand(input: DiscoverProviderCommandContext) {
   if (!input.state || input.discovering) return;
@@ -21,7 +22,7 @@ export async function discoverLocalRuntimeModelsCommand(input: DiscoverProviderC
   } catch (error) {
     input.setStatusBanner({
       kind: 'error',
-      message: `LocalRuntime discovery failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      message: formatRuntimeConfigErrorBanner('LocalRuntime discovery failed', error),
     });
   }
 }
@@ -37,7 +38,7 @@ export async function runLocalRuntimeHealthCheckCommandWithGuard(input: HealthPr
   } catch (error) {
     input.setStatusBanner({
       kind: 'error',
-      message: `Health check failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      message: formatRuntimeConfigErrorBanner('Health check failed', error),
     });
   }
 }

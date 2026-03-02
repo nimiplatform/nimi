@@ -2,6 +2,8 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/st
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/state/v11/types/modality';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { getPlatformClient } from '@runtime/platform-client';
+import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   sdkTestConnector,
   sdkListConnectorModelDescriptors,
@@ -49,28 +51,23 @@ export async function checkLocalRuntimeHealth(): Promise<{
   health: HealthResult;
   normalizedStatus: ProviderStatusV11;
 }> {
-  try {
-    const runtime = getPlatformClient().runtime;
-    const result = await runtime.audit.getRuntimeHealth({}, { timeoutMs: 5000 });
-    const status = statusFromRuntimeHealth(result.status);
-    return {
-      health: {
-        status: status === 'idle' ? 'healthy' : status as HealthResult['status'],
-        detail: '',
-        checkedAt: new Date().toISOString(),
-      },
-      normalizedStatus: status,
-    };
-  } catch (error) {
-    return {
-      health: {
-        status: 'unreachable',
-        detail: error instanceof Error ? error.message : String(error || ''),
-        checkedAt: new Date().toISOString(),
-      },
-      normalizedStatus: 'unreachable',
-    };
-  }
+  const runtime = getPlatformClient().runtime;
+  const result = await runtime.audit.getRuntimeHealth({}, { timeoutMs: 5000 }).catch((error) => {
+    throw asNimiError(error, {
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      actionHint: 'check_runtime_daemon_health',
+      source: 'runtime',
+    });
+  });
+  const status = statusFromRuntimeHealth(result.status);
+  return {
+    health: {
+      status: status === 'idle' ? 'healthy' : status as HealthResult['status'],
+      detail: '',
+      checkedAt: new Date().toISOString(),
+    },
+    normalizedStatus: status,
+  };
 }
 
 export async function discoverConnectorModelsAndHealth(input: {
@@ -83,7 +80,7 @@ export async function discoverConnectorModelsAndHealth(input: {
   normalizedStatus: ProviderStatusV11;
 }> {
   const endpoint = input.connector.endpoint;
-  const testResult = await sdkTestConnector(input.connector.id);
+  await sdkTestConnector(input.connector.id);
   const descriptors = await sdkListConnectorModelDescriptors(input.connector.id, true);
   const discovered = descriptors.map((d) => d.modelId);
   const modelCapabilities: Record<string, string[]> = {};
@@ -92,16 +89,15 @@ export async function discoverConnectorModelsAndHealth(input: {
       modelCapabilities[d.modelId] = d.capabilities;
     }
   }
-  const status: HealthResult['status'] = testResult.ok ? 'healthy' : 'degraded';
   return {
     endpoint,
     discovered,
     modelCapabilities,
     health: {
-      status,
-      detail: testResult.ok ? '' : testResult.message,
+      status: 'healthy',
+      detail: '',
       checkedAt: new Date().toISOString(),
     },
-    normalizedStatus: status,
+    normalizedStatus: 'healthy',
   };
 }

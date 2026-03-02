@@ -3,6 +3,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/st
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from '../../runtime-config-types';
 import { discoverConnectorModelsAndHealth } from './discovery';
+import { formatRuntimeConfigErrorBanner, formatRuntimeConfigErrorDetail } from './error';
 
 export async function runSelectedConnectorTestCommand(input: {
   state: RuntimeConfigStateV11;
@@ -51,17 +52,9 @@ export async function runSelectedConnectorTestCommand(input: {
     },
   });
 
-  if (health.status === 'healthy') {
-    input.setStatusBanner({
-      kind: 'success',
-      message: `${input.selectedConnector.label} test passed (${discovered.length} models)`,
-    });
-    return;
-  }
-
   input.setStatusBanner({
-    kind: 'warning',
-    message: `${input.selectedConnector.label} models discovered (${discovered.length}) but health is ${health.status}`,
+    kind: 'success',
+    message: `${input.selectedConnector.label} test passed (${discovered.length} models)`,
   });
 }
 
@@ -73,7 +66,7 @@ export function markSelectedConnectorTestFailedCommand(input: {
   error: unknown;
 }) {
   const flowId = createRendererFlowId('runtime-config-connector');
-  const errorText = input.error instanceof Error ? input.error.message : String(input.error || '');
+  const errorText = formatRuntimeConfigErrorDetail(input.error);
 
   input.updateState((prev) => ({
     ...prev,
@@ -101,5 +94,8 @@ export function markSelectedConnectorTestFailedCommand(input: {
     },
   });
 
-  input.setStatusBanner({ kind: 'error', message: `Connector test failed: ${errorText}` });
+  input.setStatusBanner({
+    kind: 'error',
+    message: formatRuntimeConfigErrorBanner('Connector test failed', input.error),
+  });
 }
