@@ -1,6 +1,6 @@
 use std::fs::{self, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tauri::AppHandle;
 
@@ -29,12 +29,11 @@ pub fn runtime_state_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(runtime_root_dir(app)?.join(LOCAL_AI_RUNTIME_STATE_FILE))
 }
 
-pub fn load_state(app: &AppHandle) -> Result<LocalAiRuntimeState, String> {
-    let path = runtime_state_path(app)?;
+fn load_state_from_path(path: &Path) -> Result<LocalAiRuntimeState, String> {
     if !path.exists() {
         return Ok(LocalAiRuntimeState::default());
     }
-    let raw = fs::read_to_string(&path).map_err(|error| {
+    let raw = fs::read_to_string(path).map_err(|error| {
         format!(
             "读取 Local AI Runtime state 失败 ({}): {error}",
             path.display()
@@ -49,8 +48,12 @@ pub fn load_state(app: &AppHandle) -> Result<LocalAiRuntimeState, String> {
     Ok(parsed)
 }
 
-pub fn save_state(app: &AppHandle, state: &LocalAiRuntimeState) -> Result<(), String> {
+pub fn load_state(app: &AppHandle) -> Result<LocalAiRuntimeState, String> {
     let path = runtime_state_path(app)?;
+    load_state_from_path(&path)
+}
+
+fn save_state_to_path(path: &Path, state: &LocalAiRuntimeState) -> Result<(), String> {
     let serialized = serde_json::to_string_pretty(state)
         .map_err(|error| format!("序列化 Local AI Runtime state 失败: {error}"))?;
     serde_json::from_str::<LocalAiRuntimeState>(&serialized)
@@ -124,4 +127,105 @@ pub fn save_state(app: &AppHandle, state: &LocalAiRuntimeState) -> Result<(), St
     }
 
     Ok(())
+}
+
+pub fn save_state(app: &AppHandle, state: &LocalAiRuntimeState) -> Result<(), String> {
+    let path = runtime_state_path(app)?;
+    save_state_to_path(&path, state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{load_state_from_path, save_state_to_path};
+    use crate::local_ai_runtime::types::{
+        LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
+    };
+    use std::collections::HashMap;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn unique_temp_dir(prefix: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("nimi-store-{prefix}-{nanos}"));
+        let _ = fs::remove_dir_all(&path);
+        fs::create_dir_all(&path).expect("create temp dir");
+        path
+    }
+
+    fn model_fixture(local_model_id: &str) -> LocalAiModelRecord {
+        LocalAiModelRecord {
+            local_model_id: local_model_id.to_string(),
+            model_id: format!("hf:test/{local_model_id}"),
+            capabilities: vec!["chat".to_string()],
+            engine: "localai".to_string(),
+            entry: "model.gguf".to_string(),
+            license: "apache-2.0".to_string(),
+            source: LocalAiModelSource {
+                repo: "hf://test/model".to_string(),
+                revision: "main".to_string(),
+            },
+            hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc".to_string())]),
+            endpoint: "http://127.0.0.1:1234/v1".to_string(),
+            status: LocalAiModelStatus::Installed,
+            installed_at: "2026-01-01T00:00:00.000Z".to_string(),
+            updated_at: "2026-01-01T00:00:00.000Z".to_string(),
+            health_detail: None,
+        }
+    }
+
+    #[test]
+    fn save_and_load_state_roundtrip() {
+        let temp = unique_temp_dir("roundtrip");
+        let state_path = temp.join("state.json");
+        let state = LocalAiRuntimeState {
+            version: 11,
+            models: vec![model_fixture("model-a"), model_fixture("model-b")],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            audits: Vec::new(),
+        };
+        save_state_to_path(&state_path, &state).expect("save state");
+        let loaded = load_state_from_path(&state_path).expect("load state");
+        assert_eq!(loaded.version, state.version);
+        assert_eq!(loaded.models.len(), 2);
+        assert_eq!(loaded.models[0].local_model_id, "model-a");
+        assert_eq!(loaded.models[1].local_model_id, "model-b");
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn save_state_atomic_leaves_no_temp_file() {
+        let temp = unique_temp_dir("atomic");
+        let state_path = temp.join("state.json");
+        let state = LocalAiRuntimeState::default();
+        save_state_to_path(&state_path, &state).expect("save state");
+        let temp_file = state_path.with_extension("json.tmp");
+        assert!(!temp_file.exists(), "temp file should be cleaned up");
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn load_state_returns_default_when_file_missing() {
+        let temp = unique_temp_dir("missing");
+        let state_path = temp.join("nonexistent.json");
+        let state = load_state_from_path(&state_path).expect("default state");
+        assert_eq!(state.version, 11);
+        assert!(state.models.is_empty());
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn load_state_rejects_invalid_json() {
+        let temp = unique_temp_dir("invalid");
+        let state_path = temp.join("state.json");
+        fs::write(&state_path, "not json").expect("write invalid json");
+        let result = load_state_from_path(&state_path);
+        assert!(result.is_err());
+        let _ = fs::remove_dir_all(&temp);
+    }
 }
