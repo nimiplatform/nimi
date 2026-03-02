@@ -94,6 +94,50 @@ Desktop Rust 层实现完整下载管线（`K-LOCAL-024`）：
 - `AI_LOCAL_HF_SEARCH_FAILED` — HF 搜索 API 调用失败
 - `AI_LOCAL_MANIFEST_SCHEMA_INVALID` — manifest schema 校验失败
 
+## 文件导入管线
+
+### 概述
+
+用户可直接选择本地任意位置的模型文件（`.gguf`、`.safetensors`、`.bin`、`.pt`、`.onnx`、`.pth`），系统自动复制到 `~/.nimi/models/<slug>/`、单遍计算 SHA256、生成 `model.manifest.json`、注册到 `state.json`。
+
+### 流程
+
+1. **文件选择** — `local_ai_pick_model_file` 通过原生文件对话框选取模型文件（不限于 `~/.nimi/models/`）
+2. **校验阶段**（同步，返回前）:
+   - 源文件存在且是文件（`LOCAL_AI_FILE_IMPORT_NOT_FOUND`）
+   - capabilities 非空（`LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY`）
+   - endpoint 回环限制校验（`LOCAL_AI_ENDPOINT_*`）
+3. **同步返回** — 返回 `LocalAiInstallAcceptedResponse`（installSessionId, modelId, localModelId）
+4. **后台复制**（`std::thread::spawn`）:
+   - 创建 `~/.nimi/models/<slug>/` 目录
+   - `copy_and_hash_file()` 单遍复制 + SHA256（64KB 缓冲区），每 200ms 通过 `local-ai://download-progress` 事件报告进度
+   - 生成并写入 `model.manifest.json`
+   - `upsert_model()` 注册到 `state.json`
+   - 发出完成 progress event（`done: true, success: true`）
+   - 审计事件: `model_file_import_started` + `model_import_validated`
+5. **错误回滚** — 任何阶段失败清理已创建的目标目录，发出 `done: true, success: false` progress event
+
+### IPC Commands
+
+| Command | 方向 | 说明 |
+|---|---|---|
+| `local_ai_pick_model_file` | Frontend → Rust | 原生对话框选择模型文件 |
+| `local_ai_models_import_file` | Frontend → Rust | 触发文件导入（复制+hash+manifest+注册） |
+
+### Error（文件导入相关）
+
+文件导入错误码族 `LOCAL_AI_FILE_IMPORT_*`：
+
+- `LOCAL_AI_FILE_IMPORT_NOT_FOUND` — 源文件不存在或非文件
+- `LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY` — 至少需要一个 capability
+- `LOCAL_AI_FILE_IMPORT_READ_FAILED` — 无法读取源文件
+- `LOCAL_AI_FILE_IMPORT_WRITE_FAILED` — 无法写入目标文件
+- `LOCAL_AI_FILE_IMPORT_DIR_FAILED` — 无法创建模型子目录
+- `LOCAL_AI_FILE_IMPORT_FLUSH_FAILED` — flush 失败
+- `LOCAL_AI_FILE_IMPORT_SYNC_FAILED` — sync 落盘失败
+- `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` — manifest JSON 序列化失败
+- `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` — manifest 写盘失败
+
 ## CI 门禁引用
 
 本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`（Check 1, 11, 13~14, 18~19 相关规则）。

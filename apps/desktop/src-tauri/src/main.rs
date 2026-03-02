@@ -1079,12 +1079,15 @@ fn main() {
             local_ai_runtime::commands::local_ai_models_install,
             local_ai_runtime::commands::local_ai_models_install_verified,
             local_ai_runtime::commands::local_ai_models_import,
+            local_ai_runtime::commands::local_ai_pick_model_file,
+            local_ai_runtime::commands::local_ai_models_import_file,
             local_ai_runtime::commands::local_ai_models_remove,
             local_ai_runtime::commands::local_ai_models_start,
             local_ai_runtime::commands::local_ai_models_stop,
             local_ai_runtime::commands::local_ai_models_health,
             local_ai_runtime::commands::local_ai_append_inference_audit,
-            local_ai_runtime::commands::local_ai_append_runtime_audit
+            local_ai_runtime::commands::local_ai_append_runtime_audit,
+            local_ai_runtime::commands::local_ai_models_reveal_in_folder
         ])
         .run(tauri::generate_context!());
 

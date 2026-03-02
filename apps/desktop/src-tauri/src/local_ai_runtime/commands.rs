@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
+use std::io::{Read as IoRead, Write as IoWrite};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter};
 
 use super::audit::{
@@ -11,9 +13,9 @@ use super::audit::{
     EVENT_DEPENDENCY_RESOLVE_INVOKED, EVENT_FALLBACK_TO_TOKEN_API, EVENT_INFERENCE_FAILED,
     EVENT_INFERENCE_INVOKED, EVENT_MODEL_CATALOG_SEARCH_FAILED, EVENT_MODEL_CATALOG_SEARCH_INVOKED,
     EVENT_MODEL_DOWNLOAD_COMPLETED, EVENT_MODEL_DOWNLOAD_FAILED, EVENT_MODEL_DOWNLOAD_STARTED,
-    EVENT_MODEL_IMPORT_FAILED, EVENT_MODEL_IMPORT_VALIDATED, EVENT_NODE_CATALOG_LISTED,
-    EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL, EVENT_SERVICE_INSTALL_COMPLETED,
-    EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
+    EVENT_MODEL_FILE_IMPORT_STARTED, EVENT_MODEL_IMPORT_FAILED, EVENT_MODEL_IMPORT_VALIDATED,
+    EVENT_NODE_CATALOG_LISTED, EVENT_RUNTIME_MODEL_READY_AFTER_INSTALL,
+    EVENT_SERVICE_INSTALL_COMPLETED, EVENT_SERVICE_INSTALL_FAILED, EVENT_SERVICE_INSTALL_STARTED,
 };
 use super::capability_matrix::{
     refresh_state_capability_matrix_with_probe_and_device,
@@ -31,8 +33,8 @@ use super::dependency_resolver::{
 use super::device_profile::collect_device_profile;
 use super::hf_source::{install_from_hf, HfDownloadProgress};
 use super::import_validator::{
-    manifest_to_model_record, parse_and_validate_manifest, validate_import_manifest_path,
-    validate_loopback_endpoint,
+    manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
+    validate_import_manifest_path, validate_loopback_endpoint,
 };
 use super::model_registry::{list_models, remove_model, upsert_model};
 use super::node_catalog::list_nodes_from_services;
@@ -50,8 +52,8 @@ use super::service_lifecycle::{
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::supervisor::{health, start_model, stop_model};
 use super::types::{
-    now_iso_timestamp, slugify_local_model_id, LocalAiAuditEvent, LocalAiCatalogItemDescriptor,
-    LocalAiDependencyApplyResult, LocalAiDependencyKind,
+    now_iso_timestamp, slugify_local_model_id, LocalAiAuditEvent,
+    LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadProgressEvent,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
     LocalAiNodeDescriptor, LocalAiRuntimeState,
@@ -113,6 +115,16 @@ pub struct LocalAiModelsCatalogResolveInstallPlanPayload {
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiModelsImportPayload {
     pub manifest_path: String,
+    pub endpoint: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiModelsImportFilePayload {
+    pub file_path: String,
+    pub model_name: Option<String>,
+    pub capabilities: Vec<String>,
+    pub engine: Option<String>,
     pub endpoint: Option<String>,
 }
 
@@ -1200,7 +1212,7 @@ fn run_dependency_apply(
                     endpoint: Some(endpoint),
                     provider_hints: None,
                 };
-                let installed = execute_hf_install(
+                let installed = execute_hf_install_blocking(
                     app,
                     install_request,
                     Some(serde_json::json!({
@@ -1239,7 +1251,7 @@ fn run_dependency_apply(
                         endpoint: Some(endpoint),
                         provider_hints: None,
                     };
-                    let installed = execute_hf_install(
+                    let installed = execute_hf_install_blocking(
                         app,
                         install_request,
                         Some(serde_json::json!({
@@ -1666,7 +1678,17 @@ fn merge_json_object(
     serde_json::Value::Object(output)
 }
 
-fn execute_hf_install(
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiInstallAcceptedResponse {
+    pub install_session_id: String,
+    pub model_id: String,
+    pub local_model_id: String,
+}
+
+/// Blocking version used by dependency-apply which needs synchronous install + upsert
+/// to coordinate multi-dependency installs before starting services.
+fn execute_hf_install_blocking(
     app: &AppHandle,
     install_request: LocalAiInstallRequest,
     install_metadata: Option<serde_json::Value>,
@@ -1841,6 +1863,232 @@ fn execute_hf_install(
             Err(error)
         }
     }
+}
+
+fn execute_hf_install(
+    app: &AppHandle,
+    install_request: LocalAiInstallRequest,
+    install_metadata: Option<serde_json::Value>,
+) -> Result<LocalAiInstallAcceptedResponse, String> {
+    let install_session_id = next_install_session_id(install_request.model_id.as_str());
+    let install_model_id = install_request.model_id.clone();
+    let guessed_local_model_id =
+        format!("hf:{}", slugify_local_model_id(install_model_id.as_str()));
+
+    if let Err(error) = run_install_preflight(app, &install_request) {
+        let reason_code = extract_reason_code(error.as_str());
+        emit_download_progress_event(
+            app,
+            LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.clone(),
+                model_id: install_model_id.clone(),
+                local_model_id: Some(guessed_local_model_id.clone()),
+                phase: "preflight".to_string(),
+                bytes_received: 0,
+                bytes_total: Some(0),
+                speed_bytes_per_sec: None,
+                eta_seconds: Some(0.0),
+                message: Some(error.clone()),
+                done: true,
+                success: false,
+            },
+        );
+        append_app_audit_event_non_blocking(
+            app,
+            EVENT_MODEL_DOWNLOAD_FAILED,
+            Some(install_request.model_id.as_str()),
+            None,
+            Some(merge_json_object(
+                serde_json::json!({
+                    "phase": "preflight",
+                    "reasonCode": reason_code,
+                    "error": error,
+                }),
+                install_metadata.clone(),
+            )),
+        );
+        return Err(error);
+    }
+
+    append_app_audit_event_non_blocking(
+        app,
+        EVENT_MODEL_DOWNLOAD_STARTED,
+        Some(install_request.model_id.as_str()),
+        None,
+        Some(merge_json_object(
+            serde_json::json!({
+            "repo": install_request.repo,
+            "revision": install_request.revision,
+            "endpoint": install_request.endpoint,
+            }),
+            install_metadata.clone(),
+        )),
+    );
+
+    emit_download_progress_event(
+        app,
+        LocalAiDownloadProgressEvent {
+            install_session_id: install_session_id.clone(),
+            model_id: install_model_id.clone(),
+            local_model_id: Some(guessed_local_model_id.clone()),
+            phase: "download".to_string(),
+            bytes_received: 0,
+            bytes_total: None,
+            speed_bytes_per_sec: None,
+            eta_seconds: None,
+            message: Some("starting model install".to_string()),
+            done: false,
+            success: false,
+        },
+    );
+
+    let accepted = LocalAiInstallAcceptedResponse {
+        install_session_id: install_session_id.clone(),
+        model_id: install_model_id.clone(),
+        local_model_id: guessed_local_model_id.clone(),
+    };
+
+    // Spawn the download on a background thread so the Tauri command returns immediately.
+    // Progress and completion are communicated via the existing download-progress event.
+    let bg_app = app.clone();
+    let bg_install_session_id = install_session_id;
+    let bg_install_model_id = install_model_id;
+    let bg_guessed_local_model_id = guessed_local_model_id;
+    std::thread::spawn(move || {
+        let mut latest_phase = "download".to_string();
+        let mut latest_bytes_received = 0_u64;
+        let mut latest_bytes_total: Option<u64> = None;
+
+        let mut on_progress = |progress: HfDownloadProgress| {
+            latest_phase = progress.phase.clone();
+            latest_bytes_received = progress.bytes_received;
+            latest_bytes_total = progress.bytes_total;
+            emit_download_progress_event(
+                &bg_app,
+                LocalAiDownloadProgressEvent {
+                    install_session_id: bg_install_session_id.clone(),
+                    model_id: bg_install_model_id.clone(),
+                    local_model_id: Some(bg_guessed_local_model_id.clone()),
+                    phase: progress.phase,
+                    bytes_received: progress.bytes_received,
+                    bytes_total: progress.bytes_total,
+                    speed_bytes_per_sec: progress.speed_bytes_per_sec,
+                    eta_seconds: progress.eta_seconds,
+                    message: progress.message,
+                    done: false,
+                    success: false,
+                },
+            );
+        };
+
+        match install_from_hf(&bg_app, &install_request, &mut on_progress) {
+            Ok(model) => {
+                match upsert_model(&bg_app, model) {
+                    Ok(saved) => {
+                        emit_download_progress_event(
+                            &bg_app,
+                            LocalAiDownloadProgressEvent {
+                                install_session_id: bg_install_session_id.clone(),
+                                model_id: saved.model_id.clone(),
+                                local_model_id: Some(saved.local_model_id.clone()),
+                                phase: "verify".to_string(),
+                                bytes_received: latest_bytes_received,
+                                bytes_total: latest_bytes_total,
+                                speed_bytes_per_sec: None,
+                                eta_seconds: Some(0.0),
+                                message: Some("installation completed".to_string()),
+                                done: true,
+                                success: true,
+                            },
+                        );
+                        append_app_audit_event_non_blocking(
+                            &bg_app,
+                            EVENT_MODEL_DOWNLOAD_COMPLETED,
+                            Some(saved.model_id.as_str()),
+                            Some(saved.local_model_id.as_str()),
+                            Some(merge_json_object(
+                                serde_json::json!({
+                                    "engine": saved.engine,
+                                    "source": "huggingface",
+                                }),
+                                install_metadata.clone(),
+                            )),
+                        );
+                        append_app_audit_event_non_blocking(
+                            &bg_app,
+                            EVENT_MODEL_IMPORT_VALIDATED,
+                            Some(saved.model_id.as_str()),
+                            Some(saved.local_model_id.as_str()),
+                            None,
+                        );
+                    }
+                    Err(error) => {
+                        emit_download_progress_event(
+                            &bg_app,
+                            LocalAiDownloadProgressEvent {
+                                install_session_id: bg_install_session_id.clone(),
+                                model_id: bg_install_model_id.clone(),
+                                local_model_id: Some(bg_guessed_local_model_id.clone()),
+                                phase: "upsert".to_string(),
+                                bytes_received: latest_bytes_received,
+                                bytes_total: latest_bytes_total,
+                                speed_bytes_per_sec: None,
+                                eta_seconds: None,
+                                message: Some(error.clone()),
+                                done: true,
+                                success: false,
+                            },
+                        );
+                        append_app_audit_event_non_blocking(
+                            &bg_app,
+                            EVENT_MODEL_DOWNLOAD_FAILED,
+                            Some(install_request.model_id.as_str()),
+                            None,
+                            Some(merge_json_object(
+                                serde_json::json!({
+                                    "phase": "upsert",
+                                    "error": error,
+                                }),
+                                install_metadata.clone(),
+                            )),
+                        );
+                    }
+                }
+            }
+            Err(error) => {
+                emit_download_progress_event(
+                    &bg_app,
+                    LocalAiDownloadProgressEvent {
+                        install_session_id: bg_install_session_id.clone(),
+                        model_id: bg_install_model_id.clone(),
+                        local_model_id: Some(bg_guessed_local_model_id.clone()),
+                        phase: latest_phase.clone(),
+                        bytes_received: latest_bytes_received,
+                        bytes_total: latest_bytes_total,
+                        speed_bytes_per_sec: None,
+                        eta_seconds: None,
+                        message: Some(error.clone()),
+                        done: true,
+                        success: false,
+                    },
+                );
+                append_app_audit_event_non_blocking(
+                    &bg_app,
+                    EVENT_MODEL_DOWNLOAD_FAILED,
+                    Some(install_request.model_id.as_str()),
+                    None,
+                    Some(merge_json_object(
+                        serde_json::json!({
+                            "error": error,
+                        }),
+                        install_metadata.clone(),
+                    )),
+                );
+            }
+        }
+    });
+
+    Ok(accepted)
 }
 
 #[tauri::command]
@@ -2281,7 +2529,7 @@ pub fn local_ai_nodes_catalog_list(
 pub fn local_ai_models_install(
     app: AppHandle,
     payload: LocalAiModelsInstallPayload,
-) -> Result<LocalAiModelRecord, String> {
+) -> Result<LocalAiInstallAcceptedResponse, String> {
     let default_endpoint = default_runtime_endpoint_for(payload.engine.as_deref());
     let validated_endpoint = validate_loopback_endpoint(
         payload
@@ -2318,7 +2566,7 @@ pub fn local_ai_models_install(
 pub fn local_ai_models_install_verified(
     app: AppHandle,
     payload: LocalAiModelsInstallVerifiedPayload,
-) -> Result<LocalAiModelRecord, String> {
+) -> Result<LocalAiInstallAcceptedResponse, String> {
     let template_id = payload.template_id.trim();
     if template_id.is_empty() {
         return Err("LOCAL_AI_VERIFIED_TEMPLATE_REQUIRED: templateId is required".to_string());
@@ -2400,6 +2648,426 @@ pub fn local_ai_models_import(
             Err(error)
         }
     }
+}
+
+#[tauri::command]
+pub fn local_ai_pick_model_file(app: AppHandle) -> Result<Option<String>, String> {
+    let start_dir = dirs::home_dir()
+        .unwrap_or_else(|| runtime_models_dir(&app).unwrap_or_default());
+    let selected = rfd::FileDialog::new()
+        .set_directory(&start_dir)
+        .set_title("Select model file to import")
+        .add_filter("Model Files", &["gguf", "safetensors", "bin", "pt", "onnx", "pth"])
+        .add_filter("All Files", &["*"])
+        .pick_file();
+    Ok(selected.map(|p| p.to_string_lossy().to_string()))
+}
+
+fn copy_and_hash_file<F>(
+    source: &std::path::Path,
+    dest: &std::path::Path,
+    total_bytes: u64,
+    mut on_progress: F,
+) -> Result<String, String>
+where
+    F: FnMut(u64),
+{
+    let mut reader = std::fs::File::open(source).map_err(|e| {
+        format!("LOCAL_AI_FILE_IMPORT_READ_FAILED: cannot open source file: {e}")
+    })?;
+    let mut writer = std::fs::File::create(dest).map_err(|e| {
+        format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: cannot create target file: {e}")
+    })?;
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0u8; 64 * 1024];
+    let mut bytes_copied: u64 = 0;
+    loop {
+        let n = reader.read(&mut buffer).map_err(|e| {
+            format!("LOCAL_AI_FILE_IMPORT_READ_FAILED: read error at byte {bytes_copied}: {e}")
+        })?;
+        if n == 0 {
+            break;
+        }
+        writer.write_all(&buffer[..n]).map_err(|e| {
+            format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: write error at byte {bytes_copied}: {e}")
+        })?;
+        hasher.update(&buffer[..n]);
+        bytes_copied += n as u64;
+        on_progress(bytes_copied);
+    }
+    writer.flush().map_err(|e| {
+        format!("LOCAL_AI_FILE_IMPORT_FLUSH_FAILED: {e}")
+    })?;
+    writer.sync_all().map_err(|e| {
+        format!("LOCAL_AI_FILE_IMPORT_SYNC_FAILED: {e}")
+    })?;
+    let _ = total_bytes; // used by caller for progress ratio
+    let digest = hasher.finalize();
+    Ok(format!("sha256:{digest:x}"))
+}
+
+fn execute_file_import(
+    app: &AppHandle,
+    install_session_id: &str,
+    model_id: &str,
+    local_model_id: &str,
+    slug: &str,
+    source_path: &std::path::Path,
+    file_name: &str,
+    file_size: u64,
+    capabilities: &[String],
+    engine: &str,
+    endpoint: &str,
+) {
+    let models_root = match runtime_models_dir(app) {
+        Ok(dir) => dir,
+        Err(error) => {
+            emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.to_string(),
+                model_id: model_id.to_string(),
+                local_model_id: Some(local_model_id.to_string()),
+                phase: "copy".to_string(),
+                bytes_received: 0,
+                bytes_total: Some(file_size),
+                speed_bytes_per_sec: None,
+                eta_seconds: None,
+                message: Some(error.clone()),
+                done: true,
+                success: false,
+            });
+            return;
+        }
+    };
+    let dest_dir = models_root.join(slug);
+    if let Err(error) = std::fs::create_dir_all(&dest_dir) {
+        emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+            install_session_id: install_session_id.to_string(),
+            model_id: model_id.to_string(),
+            local_model_id: Some(local_model_id.to_string()),
+            phase: "copy".to_string(),
+            bytes_received: 0,
+            bytes_total: Some(file_size),
+            speed_bytes_per_sec: None,
+            eta_seconds: None,
+            message: Some(format!("LOCAL_AI_FILE_IMPORT_DIR_FAILED: {error}")),
+            done: true,
+            success: false,
+        });
+        return;
+    }
+    let dest_file = dest_dir.join(file_name);
+
+    // Copy file with progress reporting (throttled to ~200ms intervals).
+    let mut last_emit_ms: u64 = 0;
+    let copy_start = std::time::Instant::now();
+    let hash_result = copy_and_hash_file(source_path, &dest_file, file_size, |bytes_copied| {
+        let elapsed = copy_start.elapsed();
+        let elapsed_ms = elapsed.as_millis() as u64;
+        if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {
+            return;
+        }
+        last_emit_ms = elapsed_ms;
+        let speed = if elapsed.as_secs_f64() > 0.0 {
+            Some(bytes_copied as f64 / elapsed.as_secs_f64())
+        } else {
+            None
+        };
+        let eta = speed.and_then(|s| {
+            if s > 0.0 {
+                Some((file_size.saturating_sub(bytes_copied)) as f64 / s)
+            } else {
+                None
+            }
+        });
+        emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+            install_session_id: install_session_id.to_string(),
+            model_id: model_id.to_string(),
+            local_model_id: Some(local_model_id.to_string()),
+            phase: "copy".to_string(),
+            bytes_received: bytes_copied,
+            bytes_total: Some(file_size),
+            speed_bytes_per_sec: speed,
+            eta_seconds: eta,
+            message: None,
+            done: false,
+            success: false,
+        });
+    });
+
+    let hash = match hash_result {
+        Ok(hash) => hash,
+        Err(error) => {
+            let _ = std::fs::remove_dir_all(&dest_dir);
+            emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.to_string(),
+                model_id: model_id.to_string(),
+                local_model_id: Some(local_model_id.to_string()),
+                phase: "copy".to_string(),
+                bytes_received: 0,
+                bytes_total: Some(file_size),
+                speed_bytes_per_sec: None,
+                eta_seconds: None,
+                message: Some(error),
+                done: true,
+                success: false,
+            });
+            return;
+        }
+    };
+
+    // Write model.manifest.json
+    let manifest = serde_json::json!({
+        "model_id": model_id,
+        "capabilities": capabilities,
+        "engine": engine,
+        "entry": file_name,
+        "license": "unknown",
+        "source": {
+            "repo": format!("local-import/{}", slug),
+            "revision": "local"
+        },
+        "hashes": {
+            file_name: hash
+        },
+        "endpoint": endpoint
+    });
+    let manifest_path = dest_dir.join("model.manifest.json");
+    let manifest_json = match serde_json::to_string_pretty(&manifest) {
+        Ok(json) => json,
+        Err(error) => {
+            let _ = std::fs::remove_dir_all(&dest_dir);
+            emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.to_string(),
+                model_id: model_id.to_string(),
+                local_model_id: Some(local_model_id.to_string()),
+                phase: "manifest".to_string(),
+                bytes_received: file_size,
+                bytes_total: Some(file_size),
+                speed_bytes_per_sec: None,
+                eta_seconds: None,
+                message: Some(format!("LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED: {error}")),
+                done: true,
+                success: false,
+            });
+            return;
+        }
+    };
+    if let Err(error) = std::fs::write(&manifest_path, manifest_json) {
+        let _ = std::fs::remove_dir_all(&dest_dir);
+        emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+            install_session_id: install_session_id.to_string(),
+            model_id: model_id.to_string(),
+            local_model_id: Some(local_model_id.to_string()),
+            phase: "manifest".to_string(),
+            bytes_received: file_size,
+            bytes_total: Some(file_size),
+            speed_bytes_per_sec: None,
+            eta_seconds: None,
+            message: Some(format!("LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED: {error}")),
+            done: true,
+            success: false,
+        });
+        return;
+    }
+
+    // Register model via upsert
+    let hashes = std::collections::HashMap::from([
+        (file_name.to_string(), hash.clone()),
+    ]);
+    let record = LocalAiModelRecord {
+        local_model_id: local_model_id.to_string(),
+        model_id: model_id.to_string(),
+        capabilities: capabilities.to_vec(),
+        engine: engine.to_string(),
+        entry: file_name.to_string(),
+        license: "unknown".to_string(),
+        source: super::types::LocalAiModelSource {
+            repo: format!("local-import/{}", slug),
+            revision: "local".to_string(),
+        },
+        hashes,
+        endpoint: endpoint.to_string(),
+        status: super::types::LocalAiModelStatus::Installed,
+        installed_at: now_iso_timestamp(),
+        updated_at: now_iso_timestamp(),
+        health_detail: None,
+    };
+    match upsert_model(app, record) {
+        Ok(saved) => {
+            emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.to_string(),
+                model_id: saved.model_id.clone(),
+                local_model_id: Some(saved.local_model_id.clone()),
+                phase: "verify".to_string(),
+                bytes_received: file_size,
+                bytes_total: Some(file_size),
+                speed_bytes_per_sec: None,
+                eta_seconds: Some(0.0),
+                message: Some("file import completed".to_string()),
+                done: true,
+                success: true,
+            });
+            append_app_audit_event_non_blocking(
+                app,
+                EVENT_MODEL_FILE_IMPORT_STARTED,
+                Some(saved.model_id.as_str()),
+                Some(saved.local_model_id.as_str()),
+                Some(serde_json::json!({
+                    "source": "local-file",
+                    "engine": engine,
+                    "capabilities": capabilities,
+                    "hash": hash,
+                })),
+            );
+            append_app_audit_event_non_blocking(
+                app,
+                EVENT_MODEL_IMPORT_VALIDATED,
+                Some(saved.model_id.as_str()),
+                Some(saved.local_model_id.as_str()),
+                Some(serde_json::json!({
+                    "manifestPath": manifest_path.to_string_lossy().to_string(),
+                })),
+            );
+        }
+        Err(error) => {
+            let _ = std::fs::remove_dir_all(&dest_dir);
+            emit_download_progress_event(app, LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.to_string(),
+                model_id: model_id.to_string(),
+                local_model_id: Some(local_model_id.to_string()),
+                phase: "upsert".to_string(),
+                bytes_received: file_size,
+                bytes_total: Some(file_size),
+                speed_bytes_per_sec: None,
+                eta_seconds: None,
+                message: Some(error),
+                done: true,
+                success: false,
+            });
+        }
+    }
+}
+
+#[tauri::command]
+pub fn local_ai_models_import_file(
+    app: AppHandle,
+    payload: LocalAiModelsImportFilePayload,
+) -> Result<LocalAiInstallAcceptedResponse, String> {
+    // Validate source file exists
+    let source_path = std::path::PathBuf::from(&payload.file_path);
+    if !source_path.is_file() {
+        return Err(format!(
+            "LOCAL_AI_FILE_IMPORT_NOT_FOUND: file does not exist or is not a file: {}",
+            payload.file_path
+        ));
+    }
+
+    // Validate capabilities
+    let capabilities = normalize_and_validate_capabilities(&payload.capabilities)?;
+    if capabilities.is_empty() {
+        return Err(
+            "LOCAL_AI_FILE_IMPORT_CAPABILITIES_EMPTY: at least one capability is required"
+                .to_string(),
+        );
+    }
+
+    // Validate endpoint
+    let engine = payload
+        .engine
+        .as_deref()
+        .map(|v| v.trim())
+        .filter(|v| !v.is_empty())
+        .unwrap_or("localai");
+    let default_endpoint = default_runtime_endpoint_for(Some(engine));
+    let endpoint = validate_loopback_endpoint(
+        payload
+            .endpoint
+            .as_deref()
+            .unwrap_or(default_endpoint.as_str()),
+    )?;
+
+    // Derive model name from filename if not provided
+    let file_name = source_path
+        .file_name()
+        .and_then(|v| v.to_str())
+        .unwrap_or("model")
+        .to_string();
+    let model_name = payload
+        .model_name
+        .as_deref()
+        .map(|v| v.trim())
+        .filter(|v| !v.is_empty())
+        .map(|v| v.to_string())
+        .unwrap_or_else(|| {
+            // Strip known extensions to derive a friendly name
+            let stem = source_path
+                .file_stem()
+                .and_then(|v| v.to_str())
+                .unwrap_or("model");
+            stem.to_string()
+        });
+
+    let model_id = format!("local-import/{model_name}");
+    let slug = slugify_local_model_id(&model_id);
+    let local_model_id = format!("file:{slug}");
+    let install_session_id = next_install_session_id(&model_id);
+
+    // Get file size
+    let file_size = std::fs::metadata(&source_path)
+        .map(|m| m.len())
+        .unwrap_or(0);
+
+    // Emit initial progress
+    emit_download_progress_event(
+        &app,
+        LocalAiDownloadProgressEvent {
+            install_session_id: install_session_id.clone(),
+            model_id: model_id.clone(),
+            local_model_id: Some(local_model_id.clone()),
+            phase: "copy".to_string(),
+            bytes_received: 0,
+            bytes_total: Some(file_size),
+            speed_bytes_per_sec: None,
+            eta_seconds: None,
+            message: Some("starting file import".to_string()),
+            done: false,
+            success: false,
+        },
+    );
+
+    let accepted = LocalAiInstallAcceptedResponse {
+        install_session_id: install_session_id.clone(),
+        model_id: model_id.clone(),
+        local_model_id: local_model_id.clone(),
+    };
+
+    // Spawn copy on background thread
+    let bg_app = app.clone();
+    let bg_install_session_id = install_session_id;
+    let bg_model_id = model_id;
+    let bg_local_model_id = local_model_id;
+    let bg_slug = slug;
+    let bg_file_name = file_name;
+    let bg_capabilities = capabilities;
+    let bg_engine = engine.to_string();
+    let bg_endpoint = endpoint;
+    std::thread::spawn(move || {
+        execute_file_import(
+            &bg_app,
+            &bg_install_session_id,
+            &bg_model_id,
+            &bg_local_model_id,
+            &bg_slug,
+            &source_path,
+            &bg_file_name,
+            file_size,
+            &bg_capabilities,
+            &bg_engine,
+            &bg_endpoint,
+        );
+    });
+
+    Ok(accepted)
 }
 
 #[tauri::command]
@@ -2525,9 +3193,52 @@ pub fn local_ai_append_runtime_audit(
     )
 }
 
+#[tauri::command]
+pub fn local_ai_models_reveal_in_folder(
+    app: AppHandle,
+    payload: LocalAiModelIdPayload,
+) -> Result<(), String> {
+    let local_model_id = normalize_non_empty(payload.local_model_id.as_str())
+        .ok_or_else(|| "LOCAL_AI_MODEL_ID_REQUIRED".to_string())?;
+    let slug = slugify_local_model_id(local_model_id.as_str());
+    let models_root = runtime_models_dir(&app)?;
+    let model_dir = models_root.join(&slug);
+    let target = if model_dir.exists() {
+        &model_dir
+    } else {
+        &models_root
+    };
+    reveal_path_in_os(target)
+}
+
+fn reveal_path_in_os(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("reveal failed: {e}"))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(path)
+            .spawn()
+            .map_err(|e| format!("reveal failed: {e}"))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(path.parent().unwrap_or(path))
+            .spawn()
+            .map_err(|e| format!("reveal failed: {e}"))?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{extract_reason_code, run_install_preflight_with};
+    use super::{copy_and_hash_file, extract_reason_code, run_install_preflight_with};
     use crate::local_ai_runtime::types::LocalAiInstallRequest;
 
     fn install_request_fixture(engine: Option<&str>) -> LocalAiInstallRequest {
@@ -2571,5 +3282,135 @@ mod tests {
     fn install_preflight_preserves_reason_code_prefix() {
         let reason = extract_reason_code("LOCAL_AI_PROVIDER_TIMEOUT: provider timeout");
         assert_eq!(reason, "LOCAL_AI_PROVIDER_TIMEOUT");
+    }
+
+    // --- copy_and_hash_file tests ---
+
+    #[test]
+    fn copy_and_hash_file_copies_content_and_produces_correct_sha256() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("source.gguf");
+        let dst = tmp.path().join("dest.gguf");
+        let content = b"hello world model data for sha256 test";
+        std::fs::write(&src, content).expect("write source");
+
+        let hash = copy_and_hash_file(&src, &dst, content.len() as u64, |_| {})
+            .expect("copy should succeed");
+
+        // Verify content was copied
+        let copied = std::fs::read(&dst).expect("read dest");
+        assert_eq!(copied, content);
+
+        // Verify SHA256 hash
+        use sha2::{Digest, Sha256};
+        let expected = format!("sha256:{:x}", Sha256::digest(content));
+        assert_eq!(hash, expected);
+    }
+
+    #[test]
+    fn copy_and_hash_file_handles_empty_file() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("empty.bin");
+        let dst = tmp.path().join("empty_copy.bin");
+        std::fs::write(&src, b"").expect("write empty source");
+
+        let hash = copy_and_hash_file(&src, &dst, 0, |_| {})
+            .expect("copy should succeed for empty file");
+
+        let copied = std::fs::read(&dst).expect("read dest");
+        assert!(copied.is_empty());
+
+        use sha2::{Digest, Sha256};
+        let expected = format!("sha256:{:x}", Sha256::digest(b""));
+        assert_eq!(hash, expected);
+    }
+
+    #[test]
+    fn copy_and_hash_file_handles_large_content_across_multiple_chunks() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("large.bin");
+        let dst = tmp.path().join("large_copy.bin");
+        // 200KB = ~3 chunks of 64KB buffer
+        let content = vec![0xABu8; 200 * 1024];
+        std::fs::write(&src, &content).expect("write large source");
+
+        let hash = copy_and_hash_file(&src, &dst, content.len() as u64, |_| {})
+            .expect("copy should succeed");
+
+        let copied = std::fs::read(&dst).expect("read dest");
+        assert_eq!(copied.len(), content.len());
+        assert_eq!(copied, content);
+
+        use sha2::{Digest, Sha256};
+        let expected = format!("sha256:{:x}", Sha256::digest(&content));
+        assert_eq!(hash, expected);
+    }
+
+    #[test]
+    fn copy_and_hash_file_progress_callback_invoked() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("progress.bin");
+        let dst = tmp.path().join("progress_copy.bin");
+        let content = vec![0x42u8; 128 * 1024]; // 128KB = 2 chunks
+        std::fs::write(&src, &content).expect("write source");
+
+        let mut progress_calls = Vec::new();
+        let hash = copy_and_hash_file(
+            &src,
+            &dst,
+            content.len() as u64,
+            |bytes_copied| {
+                progress_calls.push(bytes_copied);
+            },
+        )
+        .expect("copy should succeed");
+
+        // Should have at least 2 progress callbacks (2 chunks)
+        assert!(
+            progress_calls.len() >= 2,
+            "expected >= 2 progress calls, got {}",
+            progress_calls.len()
+        );
+        // Progress should be monotonically increasing
+        for window in progress_calls.windows(2) {
+            assert!(window[1] >= window[0], "progress should be monotonically increasing");
+        }
+        // Final progress should equal total bytes
+        assert_eq!(
+            *progress_calls.last().unwrap(),
+            content.len() as u64,
+            "last progress should equal total bytes"
+        );
+        assert!(hash.starts_with("sha256:"));
+    }
+
+    #[test]
+    fn copy_and_hash_file_fails_on_missing_source() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("nonexistent.gguf");
+        let dst = tmp.path().join("dest.gguf");
+
+        let result = copy_and_hash_file(&src, &dst, 0, |_| {});
+        let error = result.expect_err("should fail for missing source");
+        assert!(
+            error.contains("LOCAL_AI_FILE_IMPORT_READ_FAILED"),
+            "error should contain reason code, got: {error}"
+        );
+    }
+
+    #[test]
+    fn copy_and_hash_file_fails_on_invalid_dest_path() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("source.bin");
+        std::fs::write(&src, b"data").expect("write source");
+        // Dest inside a non-existent directory
+        let dst = tmp.path().join("no-such-dir").join("deep").join("dest.bin");
+
+        let result = copy_and_hash_file(&src, &dst, 4, |_| {});
+        let error = result.expect_err("should fail for invalid dest path");
+        assert!(
+            error.contains("LOCAL_AI_FILE_IMPORT_WRITE_FAILED"),
+            "error should contain reason code, got: {error}"
+        );
     }
 }

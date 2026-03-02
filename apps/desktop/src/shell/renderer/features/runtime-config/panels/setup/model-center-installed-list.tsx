@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/state/types';
+import { localAiRuntime } from '@runtime/local-ai-runtime';
 import { Button, Card, Input, StatusBadge } from '../primitives';
 import { filterInstalledModels, statusLabel } from './model-center-utils';
 
@@ -151,6 +152,15 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                   }}
                 >
                   Restart
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    void localAiRuntime.revealInFolder(model.localModelId);
+                  }}
+                >
+                  Reveal
                 </Button>
                 <Button
                   variant="ghost"
