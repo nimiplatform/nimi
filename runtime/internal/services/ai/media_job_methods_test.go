@@ -2738,36 +2738,104 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 }
 
 func TestResolveMediaAdapterNameKimiImage(t *testing.T) {
-	adapter := resolveMediaAdapterName("moonshot/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE)
+	adapter := resolveMediaAdapterName("moonshot/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE, "")
 	if adapter != adapterKimiChatMultimodal {
 		t.Fatalf("adapter mismatch: got=%s want=%s", adapter, adapterKimiChatMultimodal)
 	}
 }
 
 func TestResolveMediaAdapterNameGLMNative(t *testing.T) {
-	if adapter := resolveMediaAdapterName("glm/cogview-3", "cogview-3", runtimev1.Modal_MODAL_IMAGE); adapter != adapterGLMNative {
+	if adapter := resolveMediaAdapterName("glm/cogview-3", "cogview-3", runtimev1.Modal_MODAL_IMAGE, ""); adapter != adapterGLMNative {
 		t.Fatalf("glm image adapter mismatch: got=%s want=%s", adapter, adapterGLMNative)
 	}
-	if adapter := resolveMediaAdapterName("bigmodel/asr-1", "asr-1", runtimev1.Modal_MODAL_STT); adapter != adapterGLMNative {
+	if adapter := resolveMediaAdapterName("bigmodel/asr-1", "asr-1", runtimev1.Modal_MODAL_STT, ""); adapter != adapterGLMNative {
 		t.Fatalf("glm stt adapter mismatch: got=%s want=%s", adapter, adapterGLMNative)
 	}
-	if adapter := resolveMediaAdapterName("zhipu/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO); adapter != adapterGLMTask {
+	if adapter := resolveMediaAdapterName("zhipu/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterGLMTask {
 		t.Fatalf("glm video adapter mismatch: got=%s want=%s", adapter, adapterGLMTask)
 	}
 }
 
 func TestResolveMediaAdapterNameAlibabaAndBytedance(t *testing.T) {
-	if adapter := resolveMediaAdapterName("aliyun/wanx-v2", "wanx-v2", runtimev1.Modal_MODAL_IMAGE); adapter != adapterAlibabaNative {
+	if adapter := resolveMediaAdapterName("aliyun/wanx-v2", "wanx-v2", runtimev1.Modal_MODAL_IMAGE, ""); adapter != adapterAlibabaNative {
 		t.Fatalf("alibaba image adapter mismatch: got=%s want=%s", adapter, adapterAlibabaNative)
 	}
-	if adapter := resolveMediaAdapterName("alibaba/wan2.2", "wan2.2", runtimev1.Modal_MODAL_VIDEO); adapter != adapterAlibabaNative {
+	if adapter := resolveMediaAdapterName("alibaba/wan2.2", "wan2.2", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterAlibabaNative {
 		t.Fatalf("alibaba video adapter mismatch: got=%s want=%s", adapter, adapterAlibabaNative)
 	}
-	if adapter := resolveMediaAdapterName("bytedance/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO); adapter != adapterBytedanceARKTask {
+	if adapter := resolveMediaAdapterName("bytedance/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterBytedanceARKTask {
 		t.Fatalf("bytedance video adapter mismatch: got=%s want=%s", adapter, adapterBytedanceARKTask)
 	}
-	if adapter := resolveMediaAdapterName("byte/stt-1", "stt-1", runtimev1.Modal_MODAL_STT); adapter != adapterBytedanceOpenSpeech {
+	if adapter := resolveMediaAdapterName("byte/stt-1", "stt-1", runtimev1.Modal_MODAL_STT, ""); adapter != adapterBytedanceOpenSpeech {
 		t.Fatalf("bytedance stt adapter mismatch: got=%s want=%s", adapter, adapterBytedanceOpenSpeech)
+	}
+}
+
+func TestResolveMediaAdapterNameProviderTypeFallback(t *testing.T) {
+	tests := []struct {
+		name         string
+		modelID      string
+		modal        runtimev1.Modal
+		providerType string
+		want         string
+	}{
+		{
+			name:         "dashscope provider + bare model + TTS",
+			modelID:      "qwen3-tts-instruct-flash-2026-01-26",
+			modal:        runtimev1.Modal_MODAL_TTS,
+			providerType: "dashscope",
+			want:         adapterAlibabaNative,
+		},
+		{
+			name:         "dashscope provider + bare model + IMAGE",
+			modelID:      "wanx-v2",
+			modal:        runtimev1.Modal_MODAL_IMAGE,
+			providerType: "dashscope",
+			want:         adapterAlibabaNative,
+		},
+		{
+			name:         "volcengine provider + bare model + TTS",
+			modelID:      "tts-model-1",
+			modal:        runtimev1.Modal_MODAL_TTS,
+			providerType: "volcengine",
+			want:         adapterBytedanceOpenSpeech,
+		},
+		{
+			name:         "volcengine provider + bare model + VIDEO",
+			modelID:      "video-model-1",
+			modal:        runtimev1.Modal_MODAL_VIDEO,
+			providerType: "volcengine",
+			want:         adapterBytedanceARKTask,
+		},
+		{
+			name:         "gemini provider + bare model + IMAGE",
+			modelID:      "imagen-3.0-generate-002",
+			modal:        runtimev1.Modal_MODAL_IMAGE,
+			providerType: "gemini",
+			want:         adapterGeminiOperation,
+		},
+		{
+			name:         "empty provider + bare model + TTS falls back to openai compat",
+			modelID:      "some-bare-model",
+			modal:        runtimev1.Modal_MODAL_TTS,
+			providerType: "",
+			want:         adapterOpenAICompat,
+		},
+		{
+			name:         "prefix still works with empty provider",
+			modelID:      "alibaba/xxx",
+			modal:        runtimev1.Modal_MODAL_TTS,
+			providerType: "",
+			want:         adapterAlibabaNative,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resolveMediaAdapterName(tc.modelID, tc.modelID, tc.modal, tc.providerType)
+			if got != tc.want {
+				t.Fatalf("adapter mismatch: got=%s want=%s", got, tc.want)
+			}
+		})
 	}
 }
 

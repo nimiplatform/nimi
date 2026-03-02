@@ -218,7 +218,11 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 		s.logger.Warn("media job transition to RUNNING failed", "job_id", jobID)
 	}
 
-	adapterName := resolveMediaAdapterName(req.GetModelId(), modelResolved, req.GetModal())
+	providerType := ""
+	if remoteTarget != nil {
+		providerType = remoteTarget.ProviderType
+	}
+	adapterName := resolveMediaAdapterName(req.GetModelId(), modelResolved, req.GetModal(), providerType)
 	var (
 		artifacts     []*runtimev1.MediaArtifact
 		usage         *runtimev1.UsageStats
@@ -228,36 +232,28 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 
 	switch adapterName {
 	case adapterBytedanceOpenSpeech:
-		creds := s.config.CloudProviders["volcengine_openspeech"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("volcengine_openspeech", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceOpenSpeech(ctx, cfg, req, modelResolved)
 	case adapterBytedanceARKTask:
-		creds := s.config.CloudProviders["volcengine"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("volcengine", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceARKTask(ctx, cfg, s, jobID, req, modelResolved)
 	case adapterAlibabaNative:
-		creds := s.config.CloudProviders["dashscope"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("dashscope", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteAlibabaNative(ctx, cfg, s, jobID, req, modelResolved)
 	case adapterGeminiOperation:
-		creds := s.config.CloudProviders["gemini"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
 	case adapterMiniMaxTask:
-		creds := s.config.CloudProviders["minimax"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("minimax", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
 	case adapterGLMTask:
-		creds := s.config.CloudProviders["glm"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteGLMTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
 	case adapterGLMNative:
-		creds := s.config.CloudProviders["glm"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteGLMNative(ctx, cfg, req, modelResolved)
 	case adapterKimiChatMultimodal:
-		creds := s.config.CloudProviders["kimi"]
-		cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
+		cfg := s.resolveNativeAdapterConfig("kimi", remoteTarget)
 		artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
 	default:
 		artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider)
@@ -429,29 +425,30 @@ func executeBackendSyncMedia(
 	}
 }
 
-func resolveMediaAdapterName(modelID string, modelResolved string, modal runtimev1.Modal) string {
+func resolveMediaAdapterName(modelID string, modelResolved string, modal runtimev1.Modal, providerType string) string {
 	raw := strings.ToLower(strings.TrimSpace(modelID))
 	resolved := strings.ToLower(strings.TrimSpace(modelResolved))
 	joined := raw + "::" + resolved
+	provider := strings.ToLower(strings.TrimSpace(providerType))
 	switch {
 	case strings.Contains(joined, "nexa/"):
 		return adapterNexaNative
-	case strings.Contains(joined, "alibaba/"), strings.Contains(joined, "aliyun/"):
+	case strings.Contains(joined, "alibaba/"), strings.Contains(joined, "aliyun/"), provider == "dashscope":
 		return adapterAlibabaNative
-	case strings.Contains(joined, "kimi/"), strings.Contains(joined, "moonshot/"):
+	case strings.Contains(joined, "kimi/"), strings.Contains(joined, "moonshot/"), provider == "kimi":
 		if modal == runtimev1.Modal_MODAL_IMAGE {
 			return adapterKimiChatMultimodal
 		}
-	case strings.Contains(joined, "gemini/"):
+	case strings.Contains(joined, "gemini/"), provider == "gemini":
 		return adapterGeminiOperation
-	case strings.Contains(joined, "minimax/"):
+	case strings.Contains(joined, "minimax/"), provider == "minimax":
 		return adapterMiniMaxTask
-	case strings.Contains(joined, "glm/"), strings.Contains(joined, "zhipu/"), strings.Contains(joined, "bigmodel/"):
+	case strings.Contains(joined, "glm/"), strings.Contains(joined, "zhipu/"), strings.Contains(joined, "bigmodel/"), provider == "glm":
 		if modal == runtimev1.Modal_MODAL_VIDEO {
 			return adapterGLMTask
 		}
 		return adapterGLMNative
-	case strings.Contains(joined, "bytedance/"), strings.Contains(joined, "byte/"):
+	case strings.Contains(joined, "bytedance/"), strings.Contains(joined, "byte/"), provider == "volcengine":
 		if modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
 			return adapterBytedanceOpenSpeech
 		}
@@ -460,6 +457,16 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		}
 	}
 	return adapterOpenAICompat
+}
+
+// resolveNativeAdapterConfig returns adapter credentials from remoteTarget when
+// available (connector path), falling back to the config-based cloud provider entry.
+func (s *Service) resolveNativeAdapterConfig(configKey string, remoteTarget *nimillm.RemoteTarget) nimillm.MediaAdapterConfig {
+	if remoteTarget != nil && remoteTarget.APIKey != "" {
+		return nimillm.MediaAdapterConfig{BaseURL: remoteTarget.Endpoint, APIKey: remoteTarget.APIKey}
+	}
+	creds := s.config.CloudProviders[configKey]
+	return nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey}
 }
 
 func validateSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) error {
