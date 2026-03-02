@@ -634,7 +634,96 @@
     "scores": "评分",
     "scoresShort": "评分",
     "nativeCreationState": "创建状态",
-    "status": "状态"
+    "status": "状态",
+    "subtitle": "适用于仙侠 / 科幻 / 都市 / 二次元世界的亮色主页模板",
+    "backToList": "返回列表",
+    "createSubWorld": "创建子世界",
+    "enterEdit": "进入编辑台",
+    "themeSwitch": "风格切换",
+    "keepGreenTone": "保持绿色主色调",
+    "snapshot": "世界快照",
+    "keyMetrics": "关键运行指标",
+    "timeFlow": "时间流速",
+    "lastUpdated": "最后更新",
+    "moreOptions": "更多选项",
+    "overview": "World 介绍",
+    "overviewDesc": "完整覆盖 World 的基础字段、状态字段、资源字段与运行参数。",
+    "templateArea": "模板区域 · 可直连接口字段",
+    "scoresDesc": "围绕活跃度、共识度、参与度、质量与综合趋势的可视化展示。",
+    "ewmaTitle": "综合趋势",
+    "ewmaDesc": "代表世界近阶段的综合趋势表现。这个模块适合放在运营看板或首页右侧概览区，用于快速判断世界是否处于上升期。",
+    "agentsList": "智能体列表",
+    "agentsDesc": "展示根据 world 生成的 Agent 卡片，支持聊天和语音入口占位。",
+    "agentCards": "个 Agent 卡片",
+    "startChat": "开始聊天",
+    "voiceInteraction": "语音互动",
+    "createdAt": "创建于",
+    "timeline": "大事件时间轴",
+    "timelineDesc": "按时间排序展示世界中的关键节点、演化事件与治理动作。",
+    "oldestToLatest": "从旧到新",
+    "footerNote": "这是一个单文件静态模板示例：你可以把 world、scores、agents、events 替换为接口返回数据，并继续扩展为 React / Vue 组件化页面。",
+    "section": {
+      "overview": "世界介绍",
+      "scores": "评分指标",
+      "agents": "智能体",
+      "timeline": "大事件"
+    },
+    "noDescription": "暂无描述",
+    "xianxia": {
+      "hero": {
+        "eyebrow": "开放式沉浸式世界模板",
+        "worldLevel": "世界等级",
+        "timeFlow": "时间流速",
+        "agentCount": "智能体数量",
+        "lastUpdated": "最后更新"
+      },
+      "intro": {
+        "kicker": "World Introduction",
+        "title": "世界介绍",
+        "desc": "以《凡人修仙传》的修真秩序为母题，构建一个可扩展、可沉浸、可持续演化的 World 首页模板。你可以直接替换底部的数据对象，将其改造成任意小说、游戏、神话或原创世界。",
+        "sideNote1": "主世界信息 / 状态 / 等级 / 时间流速",
+        "sideNote2": "字段展示支持按需显示"
+      },
+      "scores": {
+        "kicker": "One Chart · Five Metrics",
+        "title": "综合评分指标",
+        "desc": "将 Activity / Consensus / Engagement / Quality / EWMA 五项指标收束进同一张雷达图里，用于快速判断世界当前的热度、共识、参与度与整体走势。",
+        "sideNote": "评分范围示例：0 - 100\nEWMA 用来观察整体趋势是否持续抬升",
+        "chartNote": "同一张图内整合五个评分维度，适合做 world 主页的总览视图。"
+      },
+      "agents": {
+        "kicker": "Agent Roster",
+        "title": "智能体列表",
+        "desc": "这里展示由 world 生成或归属于该 world 的 Agent。每个 Agent 卡片包含姓名、handle、bio、创建时间。",
+        "sideNote": "卡片区适合继续接入：\n在线状态 / 模型标签 / 语音能力 / 权限等级",
+        "voiceCall": "语音通话",
+        "enterChat": "进入对话",
+        "chat": "聊天",
+        "addFriend": "加好友",
+        "createdAt": "创建于",
+        "noData": "暂时没有数据"
+      },
+      "timeline": {
+        "kicker": "Chronicle",
+        "title": "大事件时间轴",
+        "desc": "按照时间顺序展示 world 的关键节点、剧情跃迁、秘境开启、势力冲突、版本切换等大事件。",
+        "sideNote": "时间轴支持无限延长\n也可以拆成主线 / 支线 / 世界公告",
+        "noData": "暂无大事件数据"
+      },
+      "footer": {
+        "templateUsage": "模板使用方式：",
+        "templateDesc": "你只需要替换页面底部的 worldData 里的世界字段、评分、Agent 列表与事件数据，就可以把这份页面复用到任何 World。当前示例是「凡人修仙传 · 天南灵域」。"
+      },
+      "noData": {
+        "quote": "暂无引言",
+        "narrative": "暂无世界介绍",
+        "name": "暂无名称",
+        "handle": "暂无账号",
+        "bio": "暂无简介",
+        "tag": "暂无标签",
+        "description": "暂无描述"
+      }
+    }
   },
   "AddContact": {
     "inputRequired": "请输入用户账号或 ID"

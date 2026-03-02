@@ -1,5 +1,17 @@
 import { formatLocaleDate, formatLocaleDateTime } from '@renderer/i18n';
 
+export type WorldAgent = {
+  id: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  worldId: string;
+  tier?: string;
+  status?: string;
+  isPublic?: boolean;
+};
+
 export type WorldData = {
   id: string;
   name: string;

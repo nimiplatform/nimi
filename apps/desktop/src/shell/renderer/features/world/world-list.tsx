@@ -4,8 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getStatusBadgeStyle } from './shared.js';
+import { WorldDetail } from './world-detail.js';
 
-type WorldListItem = {
+export type WorldAgentItem = {
+  id: string;
+  name: string;
+  handle?: string;
+  bio?: string;
+  avatarUrl?: string | null;
+  createdAt?: string;
+};
+
+export type WorldListItem = {
   id: string;
   name: string;
   description: string | null;
@@ -33,9 +43,26 @@ type WorldListItem = {
   scoreQ: number;
   timeFlowRatio: number;
   transitInLimit: number;
+  agents?: WorldAgentItem[];
 };
 
 function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
+  // Parse agents if present
+  let parsedAgents: WorldAgentItem[] | undefined;
+  if (Array.isArray(raw.agents)) {
+    parsedAgents = raw.agents.map((a: unknown) => {
+      const agent = a as Record<string, unknown>;
+      return {
+        id: String(agent.id || ''),
+        name: String(agent.name || 'Unknown'),
+        handle: typeof agent.handle === 'string' ? agent.handle : undefined,
+        bio: typeof agent.bio === 'string' ? agent.bio : undefined,
+        avatarUrl: typeof agent.avatarUrl === 'string' ? agent.avatarUrl : null,
+        createdAt: typeof agent.createdAt === 'string' ? agent.createdAt : undefined,
+      };
+    });
+  }
+
   return {
     id: String(raw.id || ''),
     name: String(raw.name || 'Unknown World'),
@@ -64,6 +91,7 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
     timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
     transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
+    agents: parsedAgents,
   };
 }
 
@@ -71,6 +99,7 @@ export function WorldList() {
   const { t } = useTranslation();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [searchText, setSearchText] = useState('');
+  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
 
   const worldsQuery = useQuery({
     queryKey: ['worlds-list'],
@@ -91,6 +120,19 @@ export function WorldList() {
 
   const mainWorld = worlds.find((w) => w.type === 'MAIN');
   const subWorlds = filteredWorlds.filter((w) => w.type === 'SUB');
+
+  // Show detail view when a world is selected
+  if (selectedWorldId) {
+    const selectedWorld = worlds.find((w) => w.id === selectedWorldId);
+    if (selectedWorld) {
+      return (
+        <WorldDetail
+          world={selectedWorld}
+          onBack={() => setSelectedWorldId(null)}
+        />
+      );
+    }
+  }
 
   if (worldsQuery.isPending) {
     return (
@@ -141,7 +183,7 @@ export function WorldList() {
           <div className="mb-6">
             <h2 className="text-sm font-medium text-gray-500 mb-3">{t('World.mainWorld')}</h2>
             <div
-              onClick={() => navigateToWorld(mainWorld.id)}
+              onClick={() => setSelectedWorldId(mainWorld.id)}
               className="cursor-pointer rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
@@ -284,7 +326,7 @@ export function WorldList() {
                 return (
                   <div
                     key={world.id}
-                    onClick={() => navigateToWorld(world.id)}
+                    onClick={() => setSelectedWorldId(world.id)}
                     className="cursor-pointer rounded-2xl border border-white/60 bg-white/40 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                   >
                     {/* Banner */}

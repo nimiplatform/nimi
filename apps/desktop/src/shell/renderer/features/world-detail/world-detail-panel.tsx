@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { toWorldData } from './world-detail-model';
+import { toWorldData, type WorldAgent } from './world-detail-model';
 import { WorldDetailView } from './world-detail-view';
 
 type WorldSemanticPayload = {
@@ -140,6 +140,26 @@ export function WorldDetailPanel() {
     enabled: authStatus === 'authenticated' && !!selectedWorldId,
   });
 
+  const worldAgentsQuery = useQuery({
+    queryKey: ['world-agents', selectedWorldId],
+    queryFn: async () => {
+      if (!selectedWorldId) return [];
+      const agents = await dataSync.loadWorldAgents(selectedWorldId);
+      return agents.map((raw): WorldAgent => ({
+        id: String(raw.id || ''),
+        handle: String(raw.handle || ''),
+        displayName: String(raw.displayName || raw.handle || 'Unknown'),
+        avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : null,
+        bio: typeof raw.bio === 'string' ? raw.bio : null,
+        worldId: String(raw.worldId || raw.world_id || ''),
+        tier: typeof raw.tier === 'string' ? raw.tier : undefined,
+        status: typeof raw.status === 'string' ? raw.status : undefined,
+        isPublic: typeof raw.isPublic === 'boolean' ? raw.isPublic : undefined,
+      }));
+    },
+    enabled: authStatus === 'authenticated' && !!selectedWorldId,
+  });
+
   const world = useMemo(() => {
     const payload = worldSemanticQuery.data;
     if (!payload || !payload.world) return null;
@@ -242,13 +262,15 @@ export function WorldDetailPanel() {
       error={worldSemanticQuery.isError}
       onBack={navigateBack}
       onRetry={() => { void worldSemanticQuery.refetch(); }}
+      worldAgents={worldAgentsQuery.data || []}
       transitRuntime={{
         loading: Boolean(
           sceneQuotaQuery.isPending
           || activeTransitQuery.isPending
           || transitHistoryQuery.isPending
           || worldLevelAuditQuery.isPending
-          || myAgentsQuery.isPending,
+          || myAgentsQuery.isPending
+          || worldAgentsQuery.isPending,
         ),
         mutating: transitMutation.isPending,
         selectedAgentId,
