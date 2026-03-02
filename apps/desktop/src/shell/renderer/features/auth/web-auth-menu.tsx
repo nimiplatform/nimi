@@ -773,7 +773,7 @@ export function AuthMenu({
       return;
     }
 
-    if (result.loginState === OAuthLoginState.NEEDS_2FA) {
+    if (result.loginState === OAuthLoginState.NEEDS_TWO_FACTOR) {
       setTempToken(String(result.tempToken || ''));
       setTwoFactorCode('');
       setView('email_2fa');
@@ -1012,7 +1012,7 @@ export function AuthMenu({
     setLoginError(null);
     try {
       const tokens = await dataSync.callApi(
-        (realm) => realm.services.AuthService.verify2Fa({
+        (realm) => realm.services.AuthService.verifyTwoFactor({
           tempToken,
           code: twoFactorCode,
         }),

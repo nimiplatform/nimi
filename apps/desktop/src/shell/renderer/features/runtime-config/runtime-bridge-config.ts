@@ -6,10 +6,8 @@ import {
 
 const DEFAULT_RUNTIME_CONFIG = {
   schemaVersion: 1,
-  runtime: {
-    grpcAddr: '127.0.0.1:46371',
-    httpAddr: '127.0.0.1:46372',
-  },
+  grpcAddr: '127.0.0.1:46371',
+  httpAddr: '127.0.0.1:46372',
 } as const;
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -56,8 +54,8 @@ export function buildRuntimeBridgeConfigFromState(
 ): Record<string, unknown> {
   const configRecord = JSON.parse(JSON.stringify(baseConfigRaw)) as Record<string, unknown>;
   configRecord.schemaVersion = DEFAULT_RUNTIME_CONFIG.schemaVersion;
-  configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || DEFAULT_RUNTIME_CONFIG.runtime.grpcAddr;
-  configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.runtime.httpAddr;
+  configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || DEFAULT_RUNTIME_CONFIG.grpcAddr;
+  configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.httpAddr;
 
   const existingProviders = asRecord(configRecord.providers);
   const localEndpoint = normalizeEndpointV11(state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11);

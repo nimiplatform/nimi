@@ -26,7 +26,7 @@
     "build:renderer:with-mods": "pnpm run build:mods && pnpm run prepare:default-mod-resources && pnpm run build:renderer",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && pnpm run build:renderer:with-mods && (cd src-tauri && cargo check)",
-    "lint": "pnpm run typecheck && eslint . && (cd src-tauri && cargo check)",
+    "lint": "pnpm run typecheck && eslint . --max-warnings 0 && (cd src-tauri && cargo check)",
     "test:quality": "pnpm run i18n:check:all && pnpm run i18n:audit && pnpm run lint",
     "test:unit": "tsx --test test/**/*.test.ts",
     "test": "pnpm run test:quality && pnpm run test:unit",

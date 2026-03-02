@@ -59,68 +59,8 @@ interface BlockedUserInfo extends ContactRecord {
   blockedAt: number;
 }
 
-// Mock 好友请求数据
-const MOCK_REQUESTS: ContactRequestRecord[] = [
-  {
-    id: 'req-1',
-    userId: 'user-1',
-    displayName: 'Sarah Chen',
-    handle: '@sarah_chen',
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=b6e3f4',
-    bio: 'Hi! I would love to connect with you.',
-    isAgent: false,
-    direction: 'received',
-    requestedAt: new Date().toISOString(),
-  },
-  {
-    id: 'req-2',
-    userId: 'user-2',
-    displayName: 'Alex Morgan',
-    handle: '@alex_m',
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex&backgroundColor=c0aede',
-    bio: 'We met at the tech conference last week!',
-    isAgent: false,
-    direction: 'received',
-    requestedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: 'req-3',
-    userId: 'user-3',
-    displayName: 'TechBot Pro',
-    handle: '~techbot_pro',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=TechBot&backgroundColor=ffdfbf',
-    bio: 'Your AI assistant for coding tasks.',
-    isAgent: true,
-    direction: 'received',
-    requestedAt: new Date(Date.now() - 172800000).toISOString(),
-  },
-  {
-    id: 'req-4',
-    userId: 'user-4',
-    displayName: 'Emily Watson',
-    handle: '@emily_w',
-    avatarUrl: null,
-    bio: 'Hello, I am interested in connecting!',
-    isAgent: false,
-    direction: 'received',
-    requestedAt: new Date(Date.now() - 259200000).toISOString(),
-  },
-  {
-    id: 'req-5',
-    userId: 'user-5',
-    displayName: 'Creative AI',
-    handle: '~creative_ai',
-    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=Creative&backgroundColor=ffd5dc',
-    bio: 'An AI focused on creative writing and art.',
-    isAgent: true,
-    direction: 'received',
-    requestedAt: new Date(Date.now() - 345600000).toISOString(),
-  },
-];
-
 export function ContactsView(props: ContactsViewProps) {
   const { t } = useTranslation();
-  const [removingContact, setRemovingContact] = useState<ContactRecord | null>(null);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
@@ -151,10 +91,7 @@ export function ContactsView(props: ContactsViewProps) {
   const [acceptedRequests, setAcceptedRequests] = useState<Set<string>>(new Set());
   
   // 跟踪已拒绝的好友请求
-  const [rejectedRequests, setRejectedRequests] = useState<Set<string>>(new Set(['user-5'])); // mock: user-5 被拒绝
-  
-  // 从好友请求接受而来的联系人（需要添加到 Humans 列表）
-  const [newFriendsFromRequests, setNewFriendsFromRequests] = useState<ContactRecord[]>([]);
+  const [rejectedRequests, setRejectedRequests] = useState<Set<string>>(new Set());
   
   // 送礼物模态框状态
   const [giftModalOpen, setGiftModalOpen] = useState(false);
@@ -178,10 +115,6 @@ export function ContactsView(props: ContactsViewProps) {
 
   // 获取当前选中项
   const currentContact = selectedContact;
-  const currentRequest = selectedRequest;
-  
-  // 当前选中项所属的分类
-  const currentCategory = selectedCategory;
 
   // 判断用户是否被拉黑
   const isUserBlocked = (userId: string): boolean => {
@@ -202,8 +135,7 @@ export function ContactsView(props: ContactsViewProps) {
       return Array.from(blockedUsers.values());
     }
     
-    // 合并原始联系人和从好友请求添加的新联系人
-    const allContacts = [...props.allFriends, ...newFriendsFromRequests];
+    const allContacts = props.allFriends;
     
     return allContacts.filter(c => {
       // 如果被拉黑了，不在任何普通分类中显示
@@ -282,10 +214,7 @@ export function ContactsView(props: ContactsViewProps) {
   // 更新各分类的数量（包含本地拉黑状态）
   const getUpdatedCounts = () => {
     const blockedCount = blockedUsers.size;
-    // 计算待处理的好友请求数量（未接受的 received 请求）
-    const pendingRequestsCount = MOCK_REQUESTS.filter(
-      r => r.direction === 'received' && !acceptedRequests.has(r.userId)
-    ).length;
+    const pendingRequestsCount = Math.max(0, props.requestsCount - acceptedRequests.size - rejectedRequests.size);
     return {
       ...props,
       blocksCount: blockedCount,
@@ -330,7 +259,7 @@ export function ContactsView(props: ContactsViewProps) {
       try {
         const result = await dataSync.loadUserProfile(selectedContact.id);
         return toProfileData(result as Record<string, unknown>);
-      } catch (error) {
+      } catch (_error) {
         // 如果 API 失败，使用联系人数据构建基础 Profile
         return toProfileData({
           id: selectedContact.id,
@@ -463,7 +392,7 @@ export function ContactsView(props: ContactsViewProps) {
             // 搜索结果显示 - 按分组显示
             (() => {
               const query = props.searchText.trim().toLowerCase();
-              const allContacts = [...props.allFriends, ...newFriendsFromRequests].filter(c => !isUserBlocked(c.id));
+              const allContacts = props.allFriends.filter(c => !isUserBlocked(c.id));
               
               // 直接匹配的联系人
               const directMatches = allContacts.filter(c => 
@@ -622,9 +551,9 @@ export function ContactsView(props: ContactsViewProps) {
             const isRequests = category.id === 'requests';
             const isBlocks = category.id === 'blocks';
             
-            // 获取该分类下的项目（使用 mock 数据用于展示）
+            // 获取该分类下的项目
             const items = isRequests 
-              ? MOCK_REQUESTS 
+              ? props.filteredRequests
               : getContactsByCategory(category.id);
             
             // 按字母分组（仅联系人）
@@ -715,18 +644,6 @@ export function ContactsView(props: ContactsViewProps) {
                                   e.stopPropagation();
                                   props.onAcceptRequest(request);
                                   setAcceptedRequests(prev => new Set(prev).add(request.userId));
-                                  // 将接受的请求转换为联系人并添加到 Humans 列表
-                                  const newContact: ContactRecord = {
-                                    id: request.userId,
-                                    displayName: request.displayName,
-                                    handle: request.handle,
-                                    avatarUrl: request.avatarUrl,
-                                    bio: request.bio,
-                                    isAgent: request.isAgent,
-                                    friendsSince: new Date().toISOString(),
-                                    agentOwnershipType: request.isAgent ? 'WORLD_OWNED' : null,
-                                  };
-                                  setNewFriendsFromRequests(prev => [...prev, newContact]);
                                 }}
                                 className="px-3 py-1.5 text-xs font-medium bg-[#4ECCA3] text-white rounded-lg hover:bg-[#3DBA92] transition-colors"
                               >
@@ -883,24 +800,12 @@ export function ContactsView(props: ContactsViewProps) {
         ) : selectedCategory === 'requests' ? (
           // New Friends 列表页 - 显示所有请求（按时间排序）
           <FriendRequestsList 
-            requests={MOCK_REQUESTS.filter(r => r.direction === 'received')}
+            requests={props.filteredRequests.filter(r => r.direction === 'received')}
             acceptedRequests={acceptedRequests}
             rejectedRequests={rejectedRequests}
             onAccept={(req) => {
               props.onAcceptRequest(req);
               setAcceptedRequests(prev => new Set(prev).add(req.userId));
-              // 将接受的请求转换为联系人并添加到 Humans 列表
-              const newContact: ContactRecord = {
-                id: req.userId,
-                displayName: req.displayName,
-                handle: req.handle,
-                avatarUrl: req.avatarUrl,
-                bio: req.bio,
-                isAgent: req.isAgent,
-                friendsSince: new Date().toISOString(),
-                agentOwnershipType: req.isAgent ? 'WORLD_OWNED' : null,
-              };
-              setNewFriendsFromRequests(prev => [...prev, newContact]);
             }}
             onReject={(req) => {
               props.onRejectRequest(req);
@@ -1138,7 +1043,9 @@ function FriendRequestsList({
               <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
               
               <div className="relative">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Friend Requests</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Friend Requests ({pendingCount})
+                </h3>
                 
                 {/* 请求列表 */}
                 <div className="space-y-3">

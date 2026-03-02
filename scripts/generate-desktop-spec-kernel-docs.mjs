@@ -97,6 +97,11 @@ const specs = [
     output: 'build-chunks.md',
     render: renderBuildChunks,
   },
+  {
+    input: 'rule-evidence.yaml',
+    output: 'rule-evidence.md',
+    render: renderRuleEvidence,
+  },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -458,6 +463,44 @@ function renderBuildChunks(doc, sourceName) {
     const lazy = mdBool(Boolean(item?.lazy));
     const sourceRule = String(item?.source_rule || '').trim() || '—';
     out += `| \`${chunk}\` | \`${lazy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRuleEvidence(doc, sourceName) {
+  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : {};
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Evidence', sourceName);
+
+  out += '## Evidence Catalog\n\n';
+  out += '| Evidence Ref | Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const [ref, value] of Object.entries(catalog)) {
+    const item = value && typeof value === 'object' ? value : {};
+    const type = String(item.type || '').trim() || '—';
+    const command = String(item.command || '').trim() || '—';
+    const evidencePath = String(item.path || '').trim() || '—';
+    const description = String(item.description || '').trim() || '—';
+    out += `| \`${ref}\` | \`${type}\` | \`${command}\` | \`${evidencePath}\` | ${description} |\n`;
+  }
+  out += '\n';
+
+  out += '## Rule Coverage Matrix\n\n';
+  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '|---|---|---|\n';
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    if (!ruleId) continue;
+    const status = String(item?.status || '').trim() || '—';
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const refsText = refs.length > 0
+      ? refs.map((ref) => `\`${String(ref)}\``).join(', ')
+      : '—';
+    out += `| \`${ruleId}\` | \`${status}\` | ${refsText} |\n`;
   }
   out += '\n';
 

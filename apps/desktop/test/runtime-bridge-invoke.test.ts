@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { toBridgeNimiError, toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
 
 test('toBridgeUserError maps LOCAL_RUNTIME_LIFECYCLE_WRITE_DENIED reason code', () => {
@@ -17,13 +18,13 @@ test('toBridgeUserError keeps generic fallback for unknown runtime reason', () =
 
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
-    reasonCode: 'AI_PROVIDER_TIMEOUT',
+    reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
     actionHint: 'retry_or_switch_route',
     traceId: 'trace-bridge-001',
     retryable: true,
     message: 'provider timeout',
   }));
-  assert.equal(error.reasonCode, 'AI_PROVIDER_TIMEOUT');
+  assert.equal(error.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
   assert.equal(error.actionHint, 'retry_or_switch_route');
   assert.equal(error.traceId, 'trace-bridge-001');
   assert.equal(error.retryable, true);

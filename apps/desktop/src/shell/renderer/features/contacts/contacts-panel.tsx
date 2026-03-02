@@ -12,7 +12,6 @@ import {
   loadStoredContactsFilter,
   persistStoredContactsFilter,
   toContactSearchCandidate,
-  toDeveloperAgentContact,
   toFriendContact,
   toPendingRequestContact,
 } from './contacts-model';
@@ -102,11 +101,6 @@ export function ContactsPanel() {
       .map((item) => toFriendContact(item))
       .filter((contact) => !blockedIds.has(contact.id));
   }, [contactsQuery.data?.friends, blockedIds]);
-
-  const devAgents: ContactRecord[] = useMemo(
-    () => (contactsQuery.data?.agents || []).map((item) => toDeveloperAgentContact(item)),
-    [contactsQuery.data?.agents],
-  );
 
   const humans = useMemo(() => allFriends.filter((contact) => !contact.isAgent), [allFriends]);
   // Agents: 所有是我的好友的 Agent（我不是 Owner）

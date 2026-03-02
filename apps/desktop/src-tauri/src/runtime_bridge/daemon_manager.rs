@@ -16,7 +16,6 @@ const DEFAULT_RUNTIME_BINARY: &str = "nimi";
 const DEFAULT_RUNTIME_BRIDGE_MODE: &str = "RELEASE";
 const RUNTIME_BRIDGE_MODE_ENV: &str = "NIMI_RUNTIME_BRIDGE_MODE";
 const DEFAULT_RUNTIME_CONFIG_REL_PATH: &str = ".nimi/config.json";
-const LEGACY_RUNTIME_CONFIG_REL_PATH: &str = ".nimi/runtime/config.json";
 
 static DAEMON_CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
 static DAEMON_LAST_ERROR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
@@ -35,12 +34,6 @@ pub struct RuntimeBridgeDaemonStatus {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeFileConfig {
-    runtime: Option<RuntimeFileRuntimeConfig>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RuntimeFileRuntimeConfig {
     grpc_addr: Option<String>,
 }
 
@@ -70,8 +63,8 @@ pub(crate) fn grpc_addr() -> String {
     if let Some(value) = read_non_empty_env("NIMI_RUNTIME_GRPC_ADDR") {
         return value;
     }
-    if let Some(value) = runtime_file_runtime()
-        .and_then(|runtime| runtime.grpc_addr)
+    if let Some(value) = runtime_file_config()
+        .and_then(|config| config.grpc_addr)
         .and_then(|value| normalize_non_empty(value.as_str()))
     {
         return value;
@@ -233,14 +226,13 @@ fn normalize_non_empty(value: &str) -> Option<String> {
     }
 }
 
-fn runtime_file_runtime() -> Option<RuntimeFileRuntimeConfig> {
+fn runtime_file_config() -> Option<RuntimeFileConfig> {
     let path = runtime_config_path()?;
     let content = fs::read(path).ok()?;
     if content.is_empty() {
         return None;
     }
-    let parsed = serde_json::from_slice::<RuntimeFileConfig>(&content).ok()?;
-    parsed.runtime
+    serde_json::from_slice::<RuntimeFileConfig>(&content).ok()
 }
 
 fn runtime_config_path() -> Option<PathBuf> {
@@ -249,13 +241,6 @@ fn runtime_config_path() -> Option<PathBuf> {
     }
     let home = read_non_empty_env("HOME")?;
     let default_path = PathBuf::from(home.as_str()).join(DEFAULT_RUNTIME_CONFIG_REL_PATH);
-    if default_path.exists() {
-        return Some(default_path);
-    }
-    let legacy_path = PathBuf::from(home).join(LEGACY_RUNTIME_CONFIG_REL_PATH);
-    if legacy_path.exists() {
-        return Some(legacy_path);
-    }
     Some(default_path)
 }
 
@@ -508,7 +493,8 @@ fn run_runtime_cli(args: &[&str], stdin_payload: Option<&str>) -> Result<String,
 #[cfg(test)]
 mod tests {
     use super::{
-        config_get, config_set, runtime_cli_command_spec, runtime_config_path, start, status, stop,
+        config_get, config_set, grpc_addr, runtime_cli_command_spec, runtime_config_path, start,
+        status, stop, DEFAULT_GRPC_ADDR,
     };
     use std::fs;
     use std::path::PathBuf;
@@ -570,17 +556,57 @@ mod tests {
     }
 
     #[test]
-    fn runtime_config_path_uses_legacy_when_new_missing() {
+    fn runtime_config_path_prefers_env_override() {
         let _guard = env_guard();
-        let home = make_temp_dir("path-legacy");
-        let legacy = home.join(".nimi/runtime/config.json");
-        fs::create_dir_all(legacy.parent().expect("legacy parent")).expect("mkdir legacy parent");
-        fs::write(&legacy, "{}").expect("write legacy config");
+        let home = make_temp_dir("path-env");
+        let custom = home.join("custom/config.json");
+        with_env_var("HOME", home.to_str().expect("home"), || {
+            with_env_var(
+                "NIMI_RUNTIME_CONFIG_PATH",
+                custom.to_str().expect("custom path"),
+                || {
+                    let path = runtime_config_path().expect("runtime config path");
+                    assert_eq!(path, custom);
+                },
+            );
+        });
+        let _ = fs::remove_dir_all(home);
+    }
 
+    #[test]
+    fn grpc_addr_reads_flat_runtime_config_schema() {
+        let _guard = env_guard();
+        let home = make_temp_dir("grpc-flat-schema");
         with_env_var("HOME", home.to_str().expect("home"), || {
             std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
+            std::env::remove_var("NIMI_RUNTIME_GRPC_ADDR");
             let path = runtime_config_path().expect("runtime config path");
-            assert_eq!(path, legacy);
+            fs::create_dir_all(path.parent().expect("config parent")).expect("create config parent");
+            fs::write(
+                path,
+                r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#,
+            )
+            .expect("write config");
+            assert_eq!(grpc_addr(), "127.0.0.1:50001");
+        });
+        let _ = fs::remove_dir_all(home);
+    }
+
+    #[test]
+    fn grpc_addr_ignores_legacy_nested_runtime_schema() {
+        let _guard = env_guard();
+        let home = make_temp_dir("grpc-legacy-nested");
+        with_env_var("HOME", home.to_str().expect("home"), || {
+            std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
+            std::env::remove_var("NIMI_RUNTIME_GRPC_ADDR");
+            let path = runtime_config_path().expect("runtime config path");
+            fs::create_dir_all(path.parent().expect("config parent")).expect("create config parent");
+            fs::write(
+                path,
+                r#"{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:59999"}}"#,
+            )
+            .expect("write config");
+            assert_eq!(grpc_addr(), DEFAULT_GRPC_ADDR);
         });
         let _ = fs::remove_dir_all(home);
     }
@@ -645,7 +671,7 @@ exit 7
                 let get_payload = config_get().expect("config get");
                 assert_eq!(get_payload["path"], config_path.display().to_string());
 
-                let payload = r#"{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:50001"}}"#;
+                let payload = r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#;
                 let set_payload = config_set(payload).expect("config set");
                 assert_eq!(set_payload["reasonCode"], "CONFIG_RESTART_REQUIRED");
 

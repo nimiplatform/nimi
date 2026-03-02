@@ -5,10 +5,7 @@ import type {
   RuntimeRouteHint,
   RuntimeRouteOverride,
 } from '@nimiplatform/sdk/mod/types';
-import {
-  normalizeCapabilityV11,
-  type SourceIdV11,
-} from '@renderer/features/runtime-config/state/v11/types';
+import type { SourceIdV11 } from '@renderer/features/runtime-config/state/v11/types';
 
 type RuntimeFields = {
   provider: string;
@@ -18,16 +15,6 @@ type RuntimeFields = {
   localOpenAiEndpoint: string;
   connectorId: string;
 };
-
-function hintToCapability(hint: string): string {
-  const normalized = String(hint || 'chat/default').trim().toLowerCase();
-  if (normalized.startsWith('image/')) return 'image';
-  if (normalized.startsWith('video/')) return 'video';
-  if (normalized.startsWith('tts/')) return 'tts';
-  if (normalized.startsWith('stt/')) return 'stt';
-  if (normalized.startsWith('embedding/')) return 'embedding';
-  return 'chat';
-}
 
 function inferSource(provider: string): SourceIdV11 {
   const lower = String(provider || '').trim().toLowerCase();
@@ -43,12 +30,11 @@ function inferSource(provider: string): SourceIdV11 {
  * all model resolution, capability detection, and provider routing.
  */
 export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields) {
-  return async ({ routeHint, modId, routeOverride }: {
+  return async ({ routeHint: _routeHint, modId: _modId, routeOverride }: {
     routeHint: RuntimeRouteHint;
     modId?: string;
     routeOverride?: RuntimeRouteOverride;
   }): Promise<ResolvedRuntimeRouteBinding> => {
-    const capability = normalizeCapabilityV11(hintToCapability(String(routeHint || '')));
     const fields = getRuntimeFields();
     const source = routeOverride?.source === 'token-api' || routeOverride?.source === 'local-runtime'
       ? routeOverride.source
@@ -110,7 +96,7 @@ function ensureSpeechRouteModelId(model: string): string {
  */
 export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields) {
   return async ({
-    modId,
+    modId: _modId,
     providerId,
     routeSource,
     connectorId,

@@ -53,7 +53,6 @@ export function TurnInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const context = useUiExtensionContext();
 
   // Categories per page
@@ -95,19 +94,6 @@ export function TurnInput() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showEmojiPicker]);
-
-  // Handle file upload - directly open file picker
-  const handleFileUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  const onFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files?.[0]) return;
-
-    // TODO: Implement actual file upload logic here
-    // Reset input
-    event.target.value = '';
-  };
 
   const insertEmoji = (emoji: string) => {
     const textarea = textareaRef.current;
@@ -233,15 +219,6 @@ export function TurnInput() {
         </div>
       )}
 
-      {/* Hidden file input for both images and files */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md"
-        className="hidden"
-        onChange={onFileSelected}
-      />
-
       {/* Input container with border */}
       <div className="relative rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
         {/* Input area */}
@@ -288,17 +265,6 @@ export function TurnInput() {
                 <path d="M8 14s1.5 2 4 2 4-2 4-2" />
                 <line x1="9" y1="9" x2="9.01" y2="9" />
                 <line x1="15" y1="9" x2="15.01" y2="9" />
-              </svg>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleFileUpload}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:bg-gray-200/50 hover:text-gray-700 transition-colors"
-              aria-label={t('TurnInput.files')}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
             </button>
 

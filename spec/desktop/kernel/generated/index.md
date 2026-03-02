@@ -21,3 +21,4 @@
 | `error-codes.md` | `tables/error-codes.yaml` |
 | `log-areas.md` | `tables/log-areas.yaml` |
 | `build-chunks.md` | `tables/build-chunks.yaml` |
+| `rule-evidence.md` | `tables/rule-evidence.yaml` |

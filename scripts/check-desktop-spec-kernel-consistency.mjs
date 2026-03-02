@@ -40,6 +40,7 @@ const kernelFiles = [
   'spec/desktop/kernel/tables/error-codes.yaml',
   'spec/desktop/kernel/tables/log-areas.yaml',
   'spec/desktop/kernel/tables/build-chunks.yaml',
+  'spec/desktop/kernel/tables/rule-evidence.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/desktop');
@@ -185,6 +186,10 @@ checkStoreSliceCount();
 // ── Check 23: D-ERR-007 ReasonCode coverage in source bridge invoke ──
 
 checkBridgeReasonCodeCoverage();
+
+// ── Check 24: D-* rule evidence full traceability (rules ↔ evidence ↔ files) ──
+
+checkRuleEvidenceTraceability();
 
 // ── Result ──
 
@@ -759,6 +764,113 @@ function checkBridgeReasonCodeCoverage() {
   const missing = phase1CriticalCodes.filter((code) => !content.includes(code));
   if (missing.length > 0) {
     fail(`D-ERR-007 bridge invoke.ts missing Phase 1 ReasonCodes: ${missing.join(', ')}`);
+  }
+}
+
+function checkRuleEvidenceTraceability() {
+  const evidencePath = 'spec/desktop/kernel/tables/rule-evidence.yaml';
+  if (!fileExists(evidencePath)) {
+    fail(`missing rule evidence table: ${evidencePath}`);
+    return;
+  }
+
+  const doc = readYaml(evidencePath) || {};
+  const catalog = doc.evidence_catalog && typeof doc.evidence_catalog === 'object'
+    ? doc.evidence_catalog
+    : null;
+  if (!catalog) {
+    fail(`${evidencePath} missing evidence_catalog map`);
+    return;
+  }
+
+  const catalogEntries = Object.entries(catalog);
+  if (catalogEntries.length === 0) {
+    fail(`${evidencePath} evidence_catalog must not be empty`);
+  }
+
+  for (const [ref, item] of catalogEntries) {
+    const record = item && typeof item === 'object' ? item : null;
+    if (!record) {
+      fail(`${evidencePath} evidence_catalog.${ref} must be an object`);
+      continue;
+    }
+    const type = String(record.type || '').trim();
+    const command = String(record.command || '').trim();
+    const targetPath = String(record.path || '').trim();
+    if (!type) {
+      fail(`${evidencePath} evidence_catalog.${ref} missing type`);
+    }
+    if (!command) {
+      fail(`${evidencePath} evidence_catalog.${ref} missing command`);
+    }
+    if (!targetPath) {
+      fail(`${evidencePath} evidence_catalog.${ref} missing path`);
+      continue;
+    }
+    if (!fileExists(targetPath)) {
+      fail(`${evidencePath} evidence_catalog.${ref} path does not exist: ${targetPath}`);
+    }
+  }
+
+  const rules = Array.isArray(doc.rules) ? doc.rules : [];
+  if (rules.length === 0) {
+    fail(`${evidencePath} rules must not be empty`);
+    return;
+  }
+
+  const seen = new Set();
+  for (const item of rules) {
+    const ruleId = String(item?.rule_id || '').trim();
+    const status = String(item?.status || '').trim().toLowerCase();
+    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
+    const naReason = String(item?.na_reason || '').trim();
+
+    if (!/^D-[A-Z]+-\d{3}$/.test(ruleId)) {
+      fail(`${evidencePath} has invalid rule_id format: ${ruleId || '<empty>'}`);
+      continue;
+    }
+    if (seen.has(ruleId)) {
+      fail(`${evidencePath} has duplicate rule_id entry: ${ruleId}`);
+      continue;
+    }
+    seen.add(ruleId);
+
+    if (!kernelRuleDefinitions.has(ruleId)) {
+      fail(`${evidencePath} references unknown desktop kernel rule: ${ruleId}`);
+    }
+
+    if (status !== 'covered' && status !== 'na') {
+      fail(`${evidencePath} ${ruleId} has invalid status: ${status || '<empty>'} (allowed: covered|na)`);
+      continue;
+    }
+
+    if (status === 'na') {
+      if (!naReason) {
+        fail(`${evidencePath} ${ruleId} status=na requires na_reason`);
+      }
+      continue;
+    }
+
+    if (refs.length === 0) {
+      fail(`${evidencePath} ${ruleId} status=covered requires non-empty evidence_refs`);
+      continue;
+    }
+
+    for (const rawRef of refs) {
+      const ref = String(rawRef || '').trim();
+      if (!ref) {
+        fail(`${evidencePath} ${ruleId} contains empty evidence_refs item`);
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(catalog, ref)) {
+        fail(`${evidencePath} ${ruleId} references undefined evidence ref: ${ref}`);
+      }
+    }
+  }
+
+  const missing = [...kernelRuleDefinitions].filter((ruleId) => !seen.has(ruleId));
+  if (missing.length > 0) {
+    fail(`${evidencePath} missing evidence rows for rules: ${missing.join(', ')}`);
   }
 }
 

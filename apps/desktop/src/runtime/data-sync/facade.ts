@@ -19,7 +19,6 @@ import type { DataSyncApiConfig, FetchImpl } from './api-core';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { DataSyncPollingManager } from './polling-manager';
-import { isFriendInContacts } from './flows/social-flow';
 import type { CreatorEligibility } from './flows/settings-flow';
 import type {
   AgentMemoryRecallQuery,

@@ -62,7 +62,7 @@ test('applyRuntimeBridgeConfigToState does not manage connectors — they come f
     schemaVersion: 1,
     providers: {
       local: { baseUrl: 'http://127.0.0.1:18080/v1' },
-      gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKeyEnv: 'GEMINI_API_KEY' },
+      gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKeyEnv: 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY' },
     },
   });
 
@@ -94,7 +94,7 @@ test('buildRuntimeBridgeConfigFromState preserves existing non-local provider en
     providers: {
       gemini: {
         baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-        apiKeyEnv: 'GEMINI_API_KEY',
+        apiKeyEnv: 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY',
       },
     },
   });
@@ -102,7 +102,7 @@ test('buildRuntimeBridgeConfigFromState preserves existing non-local provider en
   const providers = asRecord(config.providers);
   const gemini = asRecord(providers.gemini);
   assert.equal(gemini.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
-  assert.equal(gemini.apiKeyEnv, 'GEMINI_API_KEY');
+  assert.equal(gemini.apiKeyEnv, 'NIMI_RUNTIME_CLOUD_GEMINI_API_KEY');
 });
 
 test('serializeRuntimeBridgeProjection ignores status-only runtime state changes', () => {

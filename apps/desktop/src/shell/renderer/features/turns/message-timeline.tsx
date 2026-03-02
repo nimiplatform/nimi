@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { formatLocaleDate } from '@renderer/i18n';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { toProfileData, getProfileInitial, formatProfileDate } from '@renderer/features/profile/profile-model';
@@ -356,9 +355,6 @@ export function MessageTimeline() {
   const profilePanelTitle = profilePanelTarget === 'self'
     ? t('ChatTimeline.myProfile')
     : t('ChatTimeline.userProfile');
-  const profileLoadErrorText = profilePanelTarget === 'self'
-    ? t('ChatTimeline.myProfileLoadError')
-    : t('ChatTimeline.userProfileLoadError');
   const profileActionLabel = profilePanelTarget === 'self'
     ? t('ChatTimeline.openMyProfile')
     : t('ChatTimeline.openUserProfile');
@@ -624,7 +620,6 @@ export function MessageTimeline() {
             <div className="p-4">
               <ChatProfileCard 
                 profileData={toProfileData(profileQuery.data || profileSummary)}
-                isSelf={profilePanelTarget === 'self'}
                 onViewFullProfile={() => {
                   if (!profileSummary.id) return;
                   navigateToProfile(profileSummary.id, profileSummary.isAgent ? 'agent-detail' : 'profile');
@@ -650,12 +645,11 @@ export function MessageTimeline() {
 // Chat Profile Card Component - Styled like Profile page sidebar
 type ChatProfileCardProps = {
   profileData: ProfileData;
-  isSelf: boolean;
   onViewFullProfile: () => void;
   viewFullProfileLabel: string;
 };
 
-function ChatProfileCard({ profileData, isSelf, onViewFullProfile, viewFullProfileLabel }: ChatProfileCardProps) {
+function ChatProfileCard({ profileData, onViewFullProfile, viewFullProfileLabel }: ChatProfileCardProps) {
   const { t } = useTranslation();
   const friendCount = profileData.stats?.friendsCount ?? 0;
   const postCount = profileData.stats?.postsCount ?? 0;

@@ -5,7 +5,7 @@ import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dataSync } from '@runtime/data-sync';
-import { useTranslation } from 'react-i18next';
+import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 
 function normalizeMediaType(type: unknown): PostMediaType | null {
   const normalized = String(type || '').toUpperCase();
@@ -67,16 +67,6 @@ function resolveVideoPlaybackSource(rawUrl?: string): { mode: 'iframe' | 'native
   return { mode: 'native', src: rawUrl };
 }
 
-// Gift types
-const GIFTS = [
-  { id: 'candy', name: 'Candy', emoji: '🍬', price: 5 },
-  { id: 'cookie', name: 'Cookie', emoji: '🍪', price: 10 },
-  { id: 'coffee', name: 'Coffee', emoji: '☕', price: 100 },
-  { id: 'rose', name: 'Rose', emoji: '🌹', price: 200 },
-  { id: 'gem', name: 'Gem', emoji: '💎', price: 500 },
-  { id: 'rocket', name: 'Rocket', emoji: '🚀', price: 1000 },
-] as const;
-
 // Add Friend Modal Component
 function AddFriendModal({
   author,
@@ -87,25 +77,34 @@ function AddFriendModal({
   author: { name: string; handle: string; avatarUrl?: string | null; isAgent: boolean };
   isOpen: boolean;
   onClose: () => void;
-  onAddFriend: () => void;
+  onAddFriend: () => Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const initial = author.name.charAt(0).toUpperCase();
 
-  const handleAddFriend = useCallback(() => {
+  const handleAddFriend = useCallback(async () => {
+    if (loading) {
+      return;
+    }
     setLoading(true);
-    // Simulate API call with message
-    setTimeout(() => {
+    setError(null);
+    try {
+      await onAddFriend();
       setLoading(false);
       setMessage('');
-      onAddFriend();
-    }, 500);
-  }, [onAddFriend]);
+      onClose();
+    } catch (nextError) {
+      setLoading(false);
+      setError(nextError instanceof Error ? nextError.message : 'Failed to add friend');
+    }
+  }, [loading, onAddFriend, onClose]);
 
   const handleClose = useCallback(() => {
     if (!loading) {
       setMessage('');
+      setError(null);
       onClose();
     }
   }, [onClose, loading]);
@@ -183,6 +182,11 @@ function AddFriendModal({
               className="w-full h-20 px-4 py-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-mint-500 focus:border-transparent placeholder:text-gray-400"
             />
           </div>
+          {error ? (
+            <div className="mt-3 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              {error}
+            </div>
+          ) : null}
         </div>
 
         {/* Actions */}
@@ -197,7 +201,7 @@ function AddFriendModal({
           </button>
           <button
             type="button"
-            onClick={handleAddFriend}
+            onClick={() => { void handleAddFriend(); }}
             disabled={loading}
             className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-mint-500 hover:bg-mint-600 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-70"
           >
@@ -216,195 +220,6 @@ function AddFriendModal({
         </div>
       </div>
     </div>
-  );
-}
-
-// Send Gift Modal Component
-function SendGiftModal({
-  author,
-  isOpen,
-  onClose,
-}: {
-  author: { name: string; handle: string; avatarUrl?: string | null };
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const [amount, setAmount] = useState('');
-  const [message, setMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  
-  const initial = author.name.charAt(0).toUpperCase();
-  
-  const handleAmountChange = (value: string) => {
-    const numericValue = value.replace(/[^0-9]/g, '');
-    const cleanedValue = numericValue.replace(/^0+/, '') || '';
-    setAmount(cleanedValue);
-  };
-  
-  const gemAmount = parseInt(amount, 10) || 0;
-  
-  const handleSend = useCallback(async () => {
-    if (gemAmount <= 0) return;
-    setSending(true);
-    // TODO: Implement actual API call when author ID is available
-    setTimeout(() => {
-      setAmount('');
-      setMessage('');
-      setSending(false);
-      onClose();
-    }, 500);
-  }, [gemAmount, onClose]);
-  
-  const handleClose = useCallback(() => {
-    setAmount('');
-    setMessage('');
-    onClose();
-  }, [onClose]);
-  
-  if (!isOpen) return null;
-  
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={handleClose}>
-      <div className="relative mx-4 w-full max-w-sm rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5">
-          <h2 className="text-lg font-semibold text-gray-900">{t('sendGem') || 'Send Gem'}</h2>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-          >
-            <CloseIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="px-6 pb-6">
-          {/* User Info */}
-          <div className="flex flex-col items-center pb-6">
-            <div className="relative">
-              {author.avatarUrl ? (
-                <img 
-                  src={author.avatarUrl} 
-                  alt={author.name} 
-                  className="h-20 w-20 rounded-full object-cover ring-4 ring-[#E0F7F4]" 
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-2xl font-bold text-[#4ECCA3] ring-4 ring-[#E0F7F4]">
-                  {initial}
-                </div>
-              )}
-            </div>
-            <h3 className="mt-3 text-lg font-semibold text-gray-900">{author.name}</h3>
-            <p className="text-sm text-gray-500">{author.handle}</p>
-          </div>
-
-          {/* Gem Amount Input */}
-          <div className={`rounded-2xl bg-white p-6 border-2 transition-colors duration-200 border-[#4ECCA3] ${
-            gemAmount > 0 ? 'shadow-[0_0_0_4px_rgba(78,204,163,0.1)]' : ''
-          }`}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4ECCA3]/20">
-                <GemIcon className="h-6 w-6 text-[#4ECCA3]" />
-              </div>
-              <span className="font-medium text-[#4ECCA3]">{t('gemAmount') || 'Gem Amount'}</span>
-            </div>
-            <div>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                placeholder="0"
-                className={`w-full bg-transparent text-4xl font-bold outline-none transition-colors duration-200 ${
-                  gemAmount > 0 ? 'text-[#4ECCA3]' : 'text-gray-800 placeholder:text-gray-300'
-                }`}
-                autoFocus
-              />
-            </div>
-            <p className="mt-2 text-xs text-[#4ECCA3]/70">
-              {t('minSendAmount') || 'Min: 1 GEM'}
-            </p>
-          </div>
-
-          {/* Message Input */}
-          <div className="mt-6">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-              {t('messageOptional') || 'Message (Optional)'}
-            </label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t('addNiceMessage') || 'Add a nice message...'}
-              className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#4ECCA3] focus:bg-white focus:ring-2 focus:ring-[#4ECCA3]/20"
-            />
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
-              <LockIcon className="h-3.5 w-3.5" />
-              <span>{t('onlyRecipientCanSee') || 'Only recipient can see'}</span>
-            </div>
-          </div>
-
-          {/* Send Button */}
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={gemAmount <= 0 || sending}
-            className={`mt-6 flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold transition ${
-              gemAmount > 0 && !sending
-                ? 'bg-[#4ECCA3] text-white hover:bg-[#3DBA92] hover:shadow-lg hover:shadow-[#4ECCA3]/25'
-                : 'bg-[#E8EAED] text-gray-400 cursor-not-allowed opacity-60'
-            }`}
-          >
-            {sending ? (
-              <>
-                <LoadingSpinner className="h-4 w-4" />
-                {t('sending') || 'Sending...'}
-              </>
-            ) : gemAmount > 0 ? (
-              <>
-                <span>{t('sendGem') || 'Send Gem'}</span>
-                <span className="opacity-60">|</span>
-                <span>{gemAmount} GEM</span>
-                <SendIcon className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                {t('sendGem') || 'Send Gem'}
-                <SendIcon className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CloseIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function LockIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function SendIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
   );
 }
 
@@ -515,25 +330,6 @@ function ReportModal({
         </div>
       </div>
     </div>
-  );
-}
-
-function GemIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 2 7 12 12 22 7 12 2" />
-      <polyline points="2 17 12 22 22 17" />
-      <polyline points="2 12 12 17 22 12" />
-    </svg>
-  );
-}
-
-function LoadingSpinner({ className = '' }: { className?: string }) {
-  return (
-    <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-    </svg>
   );
 }
 
@@ -671,6 +467,7 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
+  const authorId = String(post.author?.id || (post.author as unknown as { _id?: string })?._id || '').trim();
   const hasMedia = post.media && post.media.length > 0;
   
   // Check if this is the current user's post
@@ -704,11 +501,11 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
   }, [showPostMenu]);
 
   const handleBlockUser = async () => {
-    if (!post.author?.id) return;
+    if (!authorId) return;
     setIsBlocking(true);
     try {
       await dataSync.blockUser({
-        id: post.author.id,
+        id: authorId,
         displayName: post.author.displayName || '',
         handle: post.author.handle || '',
         avatarUrl: post.author.avatarUrl,
@@ -795,11 +592,24 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
     }
   };
 
+  const handleAddFriend = useCallback(async () => {
+    if (!authorId) {
+      throw new Error('Cannot add friend: user ID not found');
+    }
+    await dataSync.requestOrAcceptFriend(authorId);
+    setIsFriend(true);
+    setStatusBanner({
+      kind: 'success',
+      message: `Friend request sent to ${post.author?.displayName || post.author?.handle || 'user'}`,
+    });
+    await queryClient.invalidateQueries({ queryKey: ['contacts'] });
+  }, [authorId, post.author?.displayName, post.author?.handle, queryClient, setStatusBanner]);
+
   const handleChat = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
-    const userId = post.author?.id || (post.author as unknown as { _id?: string })?._id;
+    const userId = authorId;
     if (!userId) {
       setStatusBanner({
         kind: 'error',
@@ -925,6 +735,13 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!authorId) {
+                      setStatusBanner({
+                        kind: 'error',
+                        message: 'Cannot add friend: user ID not found',
+                      });
+                      return;
+                    }
                     setShowAddFriendModal(true);
                   }}
                   className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-mint-500 rounded-full flex items-center justify-center hover:bg-mint-600 transition-colors shadow-sm"
@@ -1104,6 +921,13 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!authorId) {
+                      setStatusBanner({
+                        kind: 'error',
+                        message: 'Cannot send gift: user ID not found',
+                      });
+                      return;
+                    }
                     setIsSendGiftOpen(true);
                   }}
                   className="flex items-center justify-center text-gray-400 hover:text-mint-600 transition-colors"
@@ -1132,13 +956,19 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
 
       {/* Send Gift Modal */}
       <SendGiftModal
-        author={{
-          name: post.author?.displayName || 'Unknown',
-          handle: post.author?.handle || '',
-          avatarUrl: post.author?.avatarUrl,
-        }}
-        isOpen={isSendGiftOpen}
+        open={isSendGiftOpen && Boolean(authorId)}
+        receiverId={authorId}
+        receiverName={post.author?.displayName || 'Unknown'}
+        receiverHandle={post.author?.handle || ''}
+        receiverAvatarUrl={post.author?.avatarUrl}
         onClose={() => setIsSendGiftOpen(false)}
+        onSent={() => {
+          setStatusBanner({
+            kind: 'success',
+            message: `Gift sent to ${post.author?.displayName || post.author?.handle || 'user'}`,
+          });
+          setIsSendGiftOpen(false);
+        }}
       />
 
       {/* Add Friend Modal */}
@@ -1151,10 +981,7 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
         }}
         isOpen={showAddFriendModal}
         onClose={() => setShowAddFriendModal(false)}
-        onAddFriend={() => {
-          setIsFriend(true);
-          setShowAddFriendModal(false);
-        }}
+        onAddFriend={handleAddFriend}
       />
 
       {/* Block Confirm Modal */}

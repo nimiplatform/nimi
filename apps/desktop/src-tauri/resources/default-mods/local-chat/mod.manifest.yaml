@@ -31,6 +31,15 @@ capabilities:
   - data.register.data-api.local-chat.sessions.delete
   - data.query.data-api.local-chat.sessions.delete
   - data.query.data-api.runtime.route.options
+  - data.query.data-api.core.social.friends-with-details.list
+  - data.query.data-api.core.user.by-id.get
+  - data.query.data-api.core.user.by-handle.get
+  - data.query.data-api.core.world.by-id.get
+  - data.query.data-api.core.worldview.by-id.get
+  - data.query.data-api.core.agent.memory.recall.for-entity
+  - data.query.data-api.core.agent.memory.core.list
+  - data.query.data-api.core.agent.memory.e2e.list
+  - data.query.data-api.core.agent.memory.stats.get
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes
   - ui.register.ui-extension.runtime.devtools.panel

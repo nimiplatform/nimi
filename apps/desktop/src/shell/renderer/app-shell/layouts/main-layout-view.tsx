@@ -28,10 +28,6 @@ const MessageTimeline = lazy(async () => {
   const mod = await import('@renderer/features/turns/message-timeline');
   return { default: mod.MessageTimeline };
 });
-const TurnInput = lazy(async () => {
-  const mod = await import('@renderer/features/turns/turn-input');
-  return { default: mod.TurnInput };
-});
 const ContactsPanel = lazy(async () => {
   const mod = await import('@renderer/features/contacts/contacts-panel');
   return { default: mod.ContactsPanel };
