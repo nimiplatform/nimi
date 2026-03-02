@@ -421,7 +421,7 @@ func TestGenerateRejectsUnhealthyHintedProvider(t *testing.T) {
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"text.generate"},
-		ProviderHint: modelregistry.ProviderHintAlibaba,
+		ProviderHint: modelregistry.ProviderHintDashScope,
 	})
 
 	healthTracker := providerhealth.New()

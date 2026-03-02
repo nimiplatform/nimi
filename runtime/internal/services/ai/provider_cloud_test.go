@@ -39,15 +39,15 @@ func TestCloudProviderPickBackend(t *testing.T) {
 	}
 	cases := []tc{
 		{modelID: "nimillm/gpt-4o", wantModelID: "gpt-4o", wantExplicit: true, wantAvailable: true},
-		{modelID: "aliyun/qwen-max", wantModelID: "qwen-max", wantExplicit: true, wantAvailable: true},
-		{modelID: "alibaba/qwen-plus", wantModelID: "qwen-plus", wantExplicit: true, wantAvailable: true},
-		{modelID: "bytedance/deepseek-v3", wantModelID: "deepseek-v3", wantExplicit: true, wantAvailable: true},
+		{modelID: "dashscope/qwen-max", wantModelID: "qwen-max", wantExplicit: true, wantAvailable: true},
+		{modelID: "dashscope/qwen-plus", wantModelID: "qwen-plus", wantExplicit: true, wantAvailable: true},
+		{modelID: "volcengine/deepseek-v3", wantModelID: "deepseek-v3", wantExplicit: true, wantAvailable: true},
 		{modelID: "gemini/veo-3", wantModelID: "veo-3", wantExplicit: true, wantAvailable: true},
 		{modelID: "minimax/video-1", wantModelID: "video-1", wantExplicit: true, wantAvailable: true},
 		{modelID: "kimi/kimi-k2", wantModelID: "kimi-k2", wantExplicit: true, wantAvailable: true},
-		{modelID: "moonshot/kimi-k2", wantModelID: "kimi-k2", wantExplicit: true, wantAvailable: true},
+		{modelID: "kimi/kimi-k2", wantModelID: "kimi-k2", wantExplicit: true, wantAvailable: true},
 		{modelID: "glm/glm-4.5v", wantModelID: "glm-4.5v", wantExplicit: true, wantAvailable: true},
-		{modelID: "bigmodel/glm-4.5v", wantModelID: "glm-4.5v", wantExplicit: true, wantAvailable: true},
+		{modelID: "glm/glm-4.5v", wantModelID: "glm-4.5v", wantExplicit: true, wantAvailable: true},
 		{modelID: "gpt-4o-mini", wantModelID: "gpt-4o-mini", wantExplicit: false, wantAvailable: true},
 	}
 
@@ -71,7 +71,7 @@ func TestCloudProviderPickBackend(t *testing.T) {
 func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{}, nil, nil)
 
-	_, _, _, err := p.GenerateText(context.Background(), "aliyun/qwen-max", &runtimev1.GenerateRequest{
+	_, _, _, err := p.GenerateText(context.Background(), "dashscope/qwen-max", &runtimev1.GenerateRequest{
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},
@@ -88,16 +88,49 @@ func TestCloudProviderExplicitBackendMissing(t *testing.T) {
 		t.Fatalf("unexpected error: code=%v message=%s", st.Code(), st.Message())
 	}
 
-	if _, _, err := p.Embed(context.Background(), "aliyun/text-embedding-1", []string{"hello"}); status.Code(err) != codes.Unavailable {
+	if _, _, err := p.Embed(context.Background(), "dashscope/text-embedding-1", []string{"hello"}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("embed explicit backend missing code mismatch: %v", status.Code(err))
 	}
-	_, _, err = p.StreamGenerateText(context.Background(), "aliyun/gpt-4o", &runtimev1.StreamGenerateRequest{
+	_, _, err = p.StreamGenerateText(context.Background(), "dashscope/gpt-4o", &runtimev1.StreamGenerateRequest{
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},
 	}, nil)
 	if status.Code(err) != codes.Unavailable {
 		t.Fatalf("streamGenerateText explicit backend missing code mismatch: %v", status.Code(err))
+	}
+}
+
+func TestCloudProviderRejectsLegacyModelPrefixes(t *testing.T) {
+	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"nimillm":   {BaseURL: "http://nimillm"},
+			"dashscope": {BaseURL: "http://dashscope"},
+			"kimi":      {BaseURL: "http://kimi"},
+		},
+		HTTPTimeout: 3 * time.Second,
+	}, nil, nil)
+
+	cases := []struct {
+		modelID string
+		wantID  string
+	}{
+		{modelID: "alibaba/qwen-max", wantID: "qwen-max"},
+		{modelID: "aliyun/qwen-max", wantID: "qwen-max"},
+		{modelID: "moonshot/kimi-k2", wantID: "kimi-k2"},
+	}
+
+	for _, item := range cases {
+		backend, resolved, explicit, available := p.PickBackend(item.modelID)
+		if backend != nil {
+			t.Fatalf("%s should not resolve backend for legacy prefix", item.modelID)
+		}
+		if resolved != item.wantID {
+			t.Fatalf("%s resolved model mismatch: got=%s want=%s", item.modelID, resolved, item.wantID)
+		}
+		if !explicit || available {
+			t.Fatalf("%s explicit/available mismatch: explicit=%v available=%v", item.modelID, explicit, available)
+		}
 	}
 }
 
@@ -230,7 +263,7 @@ func TestCloudProviderRoutesByPrefix(t *testing.T) {
 		},
 	}
 
-	text, _, _, err := p.GenerateText(context.Background(), "aliyun/qwen-max", req, "hello")
+	text, _, _, err := p.GenerateText(context.Background(), "dashscope/qwen-max", req, "hello")
 	if err != nil {
 		t.Fatalf("generate aliyun: %v", err)
 	}
@@ -238,7 +271,7 @@ func TestCloudProviderRoutesByPrefix(t *testing.T) {
 		t.Fatalf("unexpected aliyun text: %s", text)
 	}
 
-	text, _, _, err = p.GenerateText(context.Background(), "bytedance/deepseek-v3", req, "hello")
+	text, _, _, err = p.GenerateText(context.Background(), "volcengine/deepseek-v3", req, "hello")
 	if err != nil {
 		t.Fatalf("generate bytedance: %v", err)
 	}
@@ -280,7 +313,7 @@ func TestCloudProviderUsesRegistryHintForDefaultModel(t *testing.T) {
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"text.generate"},
-		ProviderHint: modelregistry.ProviderHintAlibaba,
+		ProviderHint: modelregistry.ProviderHintDashScope,
 	})
 
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
@@ -323,7 +356,7 @@ func TestCloudProviderSkipsUnhealthyBackend(t *testing.T) {
 
 	healthTracker := providerhealth.New()
 	healthTracker.Mark("cloud-nimillm", false, "timeout")
-	healthTracker.Mark("cloud-alibaba", true, "")
+	healthTracker.Mark("cloud-dashscope", true, "")
 
 	p := nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
@@ -381,4 +414,3 @@ func newChatServer(t *testing.T, text string, counter *int32) *httptest.Server {
 		}
 	}))
 }
-

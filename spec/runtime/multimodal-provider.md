@@ -34,7 +34,7 @@
 1. LocalAI（探测目标 `local`）
 2. Nexa（探测目标 `local-nexa`）
 3. nimiLLM（探测目标 `cloud-nimillm`）
-4. 通过 nimiLLM 接入的核心云 provider（OpenAI-compatible / Alibaba / Bytedance / Gemini / MiniMax / Kimi / GLM）
+4. 通过 nimiLLM 接入的核心云 provider（OpenAI-compatible / DashScope / Volcengine / Gemini / MiniMax / Kimi / GLM）
 5. 未来新增云 provider（必须先纳入 `K-PROV-002` 探测目标清单）
 
 覆盖模态（对齐 `K-LOCAL-001` 固定 category 与 `K-LOCAL-002` capability 映射）：
@@ -115,8 +115,8 @@
 对齐 `K-PROV-006` 探测目标与 provider 类型映射：
 
 1. OpenAI-compatible（通过 nimiLLM）
-2. Alibaba（`cloud-alibaba` / `dashscope`）
-3. Bytedance（`cloud-bytedance` / `volcengine` + `cloud-bytedance-openspeech`）
+2. DashScope（`cloud-dashscope` / `dashscope`）
+3. Volcengine（`cloud-volcengine` / `volcengine` + `cloud-volcengine-openspeech`）
 4. Gemini（`cloud-gemini` / `gemini`）
 5. MiniMax（`cloud-minimax` / `openai_compatible`）
 6. Kimi（`cloud-kimi` / `openai_compatible`）

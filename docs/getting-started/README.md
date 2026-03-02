@@ -27,7 +27,7 @@ go run ./cmd/nimi config validate --json
 Then set only the key you need (Gemini example):
 
 ```bash
-export GEMINI_API_KEY="<your-gemini-key>"
+export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY="<your-gemini-key>"
 cd runtime
 go run ./cmd/nimi serve
 ```
@@ -215,8 +215,8 @@ go run ./cmd/nimi app send \
 | `NIMI_RUNTIME_SHUTDOWN_TIMEOUT` | `10s` | Graceful shutdown timeout |
 | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | — | Local AI provider endpoint |
 | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | — | Cloud NimiLLM endpoint |
-| `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` (when Gemini key is present) | Gemini adapter endpoint |
-| `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` | fallback from `GEMINI_API_KEY` | Gemini adapter key |
+| `NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` (when Gemini key is present) | Gemini endpoint |
+| `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` | — | Gemini API key |
 | `NIMI_RUNTIME_AI_HEALTH_INTERVAL` | `8s` | Provider health probe interval |
 | `NIMI_RUNTIME_AI_HTTP_TIMEOUT` | `30s` | Provider probe timeout |
 | `NIMI_RUNTIME_MODEL_REGISTRY_PATH` | `~/.nimi/runtime/model-registry.json` | Model registry persistence path |

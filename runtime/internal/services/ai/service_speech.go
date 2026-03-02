@@ -167,9 +167,9 @@ func resolveVoicePresets(selectedProvider provider, modelResolved string) []*run
 	lower := strings.ToLower(modelResolved)
 
 	switch {
-	case strings.HasPrefix(lower, "aliyun/") || strings.HasPrefix(lower, "alibaba/"):
+	case strings.HasPrefix(lower, "dashscope/"):
 		return dashScopeVoicePresets()
-	case strings.HasPrefix(lower, "bytedance/") || strings.HasPrefix(lower, "byte/"):
+	case strings.HasPrefix(lower, "volcengine/") || strings.HasPrefix(lower, "volcengine_openspeech/"):
 		return volcengineVoicePresets()
 	default:
 		return openAIVoicePresets()

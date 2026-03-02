@@ -46,5 +46,5 @@ func printRuntimeWorkflowUsage() {
 }
 
 func printRuntimeConfigUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:\n  nimi config init [--force --json]\n  nimi config get [--json]\n  nimi config set [--stdin|--file PATH] [--set key=value ...] [--unset key ...] [--json]\n  nimi config validate [--json]\n  nimi config migrate [--json]")
+	fmt.Fprintln(os.Stderr, "Usage:\n  nimi config init [--force --json]\n  nimi config get [--json]\n  nimi config set [--stdin|--file PATH] [--set key=value ...] [--unset key ...] [--json]\n  nimi config validate [--json]")
 }

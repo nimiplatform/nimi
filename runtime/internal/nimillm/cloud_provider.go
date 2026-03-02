@@ -15,37 +15,47 @@ import (
 )
 
 // knownProviders lists the canonical provider IDs in priority order for default routing.
-var knownProviders = []string{"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter", "minimax", "kimi", "glm"}
+var knownProviders = []string{"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter", "minimax", "kimi", "glm", "openai", "anthropic", "openai_compatible"}
 
 // prefixToProvider maps model-ID prefix segments to canonical provider IDs.
 var prefixToProvider = map[string]string{
-	"nimillm":    "nimillm",
-	"aliyun":     "dashscope",
-	"alibaba":    "dashscope",
-	"dashscope":  "dashscope",
-	"bytedance":  "volcengine",
-	"byte":       "volcengine",
-	"volcengine": "volcengine",
-	"gemini":     "gemini",
-	"minimax":    "minimax",
-	"kimi":       "kimi",
-	"moonshot":   "kimi",
-	"glm":        "glm",
-	"zhipu":      "glm",
-	"bigmodel":   "glm",
-	"deepseek":   "deepseek",
-	"openrouter": "openrouter",
+	"nimillm":           "nimillm",
+	"dashscope":         "dashscope",
+	"volcengine":        "volcengine",
+	"gemini":            "gemini",
+	"minimax":           "minimax",
+	"kimi":              "kimi",
+	"glm":               "glm",
+	"deepseek":          "deepseek",
+	"openrouter":        "openrouter",
+	"openai":            "openai",
+	"anthropic":         "anthropic",
+	"openai_compatible": "openai_compatible",
+}
+
+// forbiddenPrefixToProvider maps legacy/non-canonical prefixes to the provider
+// they used to alias. These are rejected rather than auto-normalized.
+var forbiddenPrefixToProvider = map[string]string{
+	"alibaba":              "dashscope",
+	"aliyun":               "dashscope",
+	"bytedance":            "volcengine",
+	"byte":                 "volcengine",
+	"moonshot":             "kimi",
+	"zhipu":                "glm",
+	"bigmodel":             "glm",
+	"volcengineopenspeech": "volcengine_openspeech",
+	"openaicompatible":     "openai_compatible",
 }
 
 // hintToProvider maps modelregistry.ProviderHint to canonical provider IDs.
 var hintToProvider = map[modelregistry.ProviderHint]string{
-	modelregistry.ProviderHintNimiLLM:   "nimillm",
-	modelregistry.ProviderHintAlibaba:   "dashscope",
-	modelregistry.ProviderHintBytedance: "volcengine",
-	modelregistry.ProviderHintGemini:    "gemini",
-	modelregistry.ProviderHintMiniMax:   "minimax",
-	modelregistry.ProviderHintKimi:      "kimi",
-	modelregistry.ProviderHintGLM:       "glm",
+	modelregistry.ProviderHintNimiLLM:    "nimillm",
+	modelregistry.ProviderHintDashScope:  "dashscope",
+	modelregistry.ProviderHintVolcengine: "volcengine",
+	modelregistry.ProviderHintGemini:     "gemini",
+	modelregistry.ProviderHintMiniMax:    "minimax",
+	modelregistry.ProviderHintKimi:       "kimi",
+	modelregistry.ProviderHintGLM:        "glm",
 }
 
 // CloudProvider routes AI requests across multiple cloud backends.
@@ -62,6 +72,9 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 	backends := make(map[string]*Backend, len(cfg.Providers))
 	for providerID, creds := range cfg.Providers {
 		canonical := ResolveProviderAlias(providerID)
+		if canonical == "" {
+			continue
+		}
 		backendName := "cloud-" + canonical
 		b := NewBackend(backendName, creds.BaseURL, creds.APIKey, cfg.HTTPTimeout)
 		if b != nil {
@@ -228,6 +241,9 @@ func (p *CloudProvider) PickBackend(modelID string) (*Backend, string, bool, boo
 				return nil, rest, true, false
 			}
 			return b, rest, true, true
+		}
+		if _, forbidden := forbiddenPrefixToProvider[prefix]; forbidden {
+			return nil, rest, true, false
 		}
 	}
 

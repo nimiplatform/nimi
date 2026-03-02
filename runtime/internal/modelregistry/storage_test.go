@@ -20,16 +20,16 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"text.generate", "text.embed"},
 		LastHealthAt: now,
-		Source:       "alibaba",
-		ProviderHint: ProviderHintAlibaba,
+		Source:       "dashscope",
+		ProviderHint: ProviderHintDashScope,
 	})
 	registry.Upsert(Entry{
 		ModelID:      "deepseek-v3",
 		Version:      "latest",
 		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 		Capabilities: []string{"text.generate"},
-		Source:       "bytedance",
-		ProviderHint: ProviderHintBytedance,
+		Source:       "volcengine",
+		ProviderHint: ProviderHintVolcengine,
 	})
 
 	if err := registry.SaveToFile(path); err != nil {
@@ -45,7 +45,7 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 	if !exists {
 		t.Fatalf("qwen-max must exist")
 	}
-	if item.ProviderHint != ProviderHintAlibaba {
+	if item.ProviderHint != ProviderHintDashScope {
 		t.Fatalf("provider hint mismatch: got=%s", item.ProviderHint)
 	}
 	if item.LastHealthAt.IsZero() {
@@ -56,7 +56,7 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 	if !exists {
 		t.Fatalf("deepseek-v3 must exist")
 	}
-	if item.ProviderHint != ProviderHintBytedance {
+	if item.ProviderHint != ProviderHintVolcengine {
 		t.Fatalf("provider hint mismatch: got=%s", item.ProviderHint)
 	}
 }

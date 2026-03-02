@@ -30,13 +30,15 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 | `local` | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | `NIMI_RUNTIME_LOCAL_AI_API_KEY` |
 | `local-nexa` | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | `NIMI_RUNTIME_LOCAL_NEXA_API_KEY` |
 | `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` |
-| `cloud-alibaba` | `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY` |
-| `cloud-bytedance` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY` |
-| `cloud-bytedance-openspeech` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY` |
-| `cloud-gemini` | `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` |
-| `cloud-minimax` | `NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY` |
-| `cloud-kimi` | `NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY` |
-| `cloud-glm` | `NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY` |
+| `cloud-dashscope` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY` |
+| `cloud-volcengine` | `NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL` | `NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY` |
+| `cloud-volcengine-openspeech` | `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL` | `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY` |
+| `cloud-gemini` | `NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL` | `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` |
+| `cloud-minimax` | `NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL` | `NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY` |
+| `cloud-kimi` | `NIMI_RUNTIME_CLOUD_KIMI_BASE_URL` | `NIMI_RUNTIME_CLOUD_KIMI_API_KEY` |
+| `cloud-glm` | `NIMI_RUNTIME_CLOUD_GLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_GLM_API_KEY` |
+| `cloud-deepseek` | `NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL` | `NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY` |
+| `cloud-openrouter` | `NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY` |
 
 仅 Base URL 非空的目标参与探测。
 
@@ -59,23 +61,27 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 ## K-PROV-005 Provider 名称归一化
 
-配置文件中的 provider 名称通过归一化映射（去除非字母数字字符、转小写）：
+配置文件中的 provider 名称仅允许 canonical 值：
 
-- `local`、`localnexa`/`nexa`
-- `nimillm`/`cloudnimillm`
-- `alibaba`/`aliyun`/`cloudalibaba`
-- `bytedance`/`byte`/`cloudbytedance`
-- `bytedanceopenspeech`/`openspeech`/`cloudbytedanceopenspeech`
-- `gemini`/`cloudgemini`
-- `minimax`/`cloudminimax`
-- `kimi`/`moonshot`/`cloudkimi`
-- `glm`/`zhipu`/`bigmodel`/`cloudglm`
+- `local`、`nexa`
+- `nimillm`
+- `dashscope`
+- `volcengine`、`volcengine_openspeech`
+- `gemini`
+- `minimax`
+- `kimi`
+- `glm`
+- `deepseek`
+- `openrouter`
+- `openai`
+- `anthropic`
+- `openai_compatible`
 
-遗留名称（`litellm`、`cloudlitellm`、`cloudai`）在配置校验时拒绝。
+非 canonical 名称（包含历史 alias 与 legacy 名称）在配置校验时拒绝。
 
-**约束点**：`CreateConnector` / `TestConnector` / `ListConnectorModels` 的 provider 输入必须经过归一化后再处理。归一化在 ConnectorService 入口统一执行，下游模块仅接收归一化后的 provider 名称。
+**约束点**：`CreateConnector` / `TestConnector` / `ListConnectorModels` 的 provider 输入必须是 canonical 值；ConnectorService 入口统一校验并拒绝 alias。
 
-Gemini 隐式默认：当配置了 API Key 但未配置 Base URL 时，自动填充 `https://generativelanguage.googleapis.com/v1beta/openai`。同时支持 `GEMINI_API_KEY` 环境变量作为 fallback。
+Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Base URL 时，自动填充 `https://generativelanguage.googleapis.com/v1beta/openai`。不支持 `GEMINI_API_KEY` fallback。
 
 ## K-PROV-006 探测目标与 Provider 类型映射
 

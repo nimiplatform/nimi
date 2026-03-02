@@ -154,7 +154,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechTTS(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/voice-1",
+		ModelId:       "volcengine/voice-1",
 		Modal:         runtimev1.Modal_MODAL_TTS,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -197,7 +197,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTT(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/stt-1",
+		ModelId:       "volcengine/stt-1",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -261,7 +261,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWS(t *testing.T) {
 	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/stt-ws-1",
+		ModelId:       "volcengine/stt-ws-1",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -333,7 +333,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSFailedMapsUnavailable(t *testing.
 	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/stt-ws-failed",
+		ModelId:       "volcengine/stt-ws-failed",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -394,7 +394,7 @@ func TestSubmitMediaJobBytedanceOpenSpeechSTTWSReadTimeoutMapsProviderTimeout(t 
 	response, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/stt-ws-slow",
+		ModelId:       "volcengine/stt-ws-slow",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -461,7 +461,7 @@ func TestSubmitMediaJobBytedanceARKVideoTask(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/video-1",
+		ModelId:       "volcengine/video-1",
 		Modal:         runtimev1.Modal_MODAL_VIDEO,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -505,7 +505,7 @@ func TestSubmitMediaJobBytedanceARKImage(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/image-1",
+		ModelId:       "volcengine/image-1",
 		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -578,7 +578,7 @@ func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
 	imageResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "aliyun/image-1",
+		ModelId:       "dashscope/image-1",
 		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -605,7 +605,7 @@ func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
 	videoResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "aliyun/video-1",
+		ModelId:       "dashscope/video-1",
 		Modal:         runtimev1.Modal_MODAL_VIDEO,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -632,7 +632,7 @@ func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
 	ttsResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "aliyun/tts-1",
+		ModelId:       "dashscope/tts-1",
 		Modal:         runtimev1.Modal_MODAL_TTS,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -656,7 +656,7 @@ func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
 	sttResp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "aliyun/stt-1",
+		ModelId:       "dashscope/stt-1",
 		Modal:         runtimev1.Modal_MODAL_STT,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -704,7 +704,7 @@ func TestSubmitMediaJobBytedanceARKVideoTaskCustomPaths(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/video-custom-1",
+		ModelId:       "volcengine/video-custom-1",
 		Modal:         runtimev1.Modal_MODAL_VIDEO,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -756,7 +756,7 @@ func TestSubmitMediaJobBytedanceARKVideoTaskFailedMapsUnavailable(t *testing.T) 
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/video-failed-1",
+		ModelId:       "volcengine/video-failed-1",
 		Modal:         runtimev1.Modal_MODAL_VIDEO,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -803,7 +803,7 @@ func TestSubmitMediaJobAlibabaNativeImageTaskCustomPaths(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "aliyun/image-custom-1",
+		ModelId:       "dashscope/image-custom-1",
 		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -855,7 +855,7 @@ func TestSubmitMediaJobAlibabaNativeVideoTaskFailedMapsUnavailable(t *testing.T)
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "alibaba/video-failed-1",
+		ModelId:       "dashscope/video-failed-1",
 		Modal:         runtimev1.Modal_MODAL_VIDEO,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -2007,7 +2007,7 @@ func TestSubmitMediaJobKimiImageChatMultimodal(t *testing.T) {
 	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "moonshot/moonshot-v1-vision",
+		ModelId:       "kimi/moonshot-v1-vision",
 		Modal:         runtimev1.Modal_MODAL_IMAGE,
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -2738,7 +2738,7 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 }
 
 func TestResolveMediaAdapterNameKimiImage(t *testing.T) {
-	adapter := resolveMediaAdapterName("moonshot/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE, "")
+	adapter := resolveMediaAdapterName("kimi/moonshot-v1-vision", "moonshot-v1-vision", runtimev1.Modal_MODAL_IMAGE, "")
 	if adapter != adapterKimiChatMultimodal {
 		t.Fatalf("adapter mismatch: got=%s want=%s", adapter, adapterKimiChatMultimodal)
 	}
@@ -2748,25 +2748,25 @@ func TestResolveMediaAdapterNameGLMNative(t *testing.T) {
 	if adapter := resolveMediaAdapterName("glm/cogview-3", "cogview-3", runtimev1.Modal_MODAL_IMAGE, ""); adapter != adapterGLMNative {
 		t.Fatalf("glm image adapter mismatch: got=%s want=%s", adapter, adapterGLMNative)
 	}
-	if adapter := resolveMediaAdapterName("bigmodel/asr-1", "asr-1", runtimev1.Modal_MODAL_STT, ""); adapter != adapterGLMNative {
+	if adapter := resolveMediaAdapterName("glm/asr-1", "asr-1", runtimev1.Modal_MODAL_STT, ""); adapter != adapterGLMNative {
 		t.Fatalf("glm stt adapter mismatch: got=%s want=%s", adapter, adapterGLMNative)
 	}
-	if adapter := resolveMediaAdapterName("zhipu/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterGLMTask {
+	if adapter := resolveMediaAdapterName("glm/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterGLMTask {
 		t.Fatalf("glm video adapter mismatch: got=%s want=%s", adapter, adapterGLMTask)
 	}
 }
 
 func TestResolveMediaAdapterNameAlibabaAndBytedance(t *testing.T) {
-	if adapter := resolveMediaAdapterName("aliyun/wanx-v2", "wanx-v2", runtimev1.Modal_MODAL_IMAGE, ""); adapter != adapterAlibabaNative {
+	if adapter := resolveMediaAdapterName("dashscope/wanx-v2", "wanx-v2", runtimev1.Modal_MODAL_IMAGE, ""); adapter != adapterAlibabaNative {
 		t.Fatalf("alibaba image adapter mismatch: got=%s want=%s", adapter, adapterAlibabaNative)
 	}
-	if adapter := resolveMediaAdapterName("alibaba/wan2.2", "wan2.2", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterAlibabaNative {
+	if adapter := resolveMediaAdapterName("dashscope/wan2.2", "wan2.2", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterAlibabaNative {
 		t.Fatalf("alibaba video adapter mismatch: got=%s want=%s", adapter, adapterAlibabaNative)
 	}
-	if adapter := resolveMediaAdapterName("bytedance/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterBytedanceARKTask {
+	if adapter := resolveMediaAdapterName("volcengine/video-1", "video-1", runtimev1.Modal_MODAL_VIDEO, ""); adapter != adapterBytedanceARKTask {
 		t.Fatalf("bytedance video adapter mismatch: got=%s want=%s", adapter, adapterBytedanceARKTask)
 	}
-	if adapter := resolveMediaAdapterName("byte/stt-1", "stt-1", runtimev1.Modal_MODAL_STT, ""); adapter != adapterBytedanceOpenSpeech {
+	if adapter := resolveMediaAdapterName("volcengine/stt-1", "stt-1", runtimev1.Modal_MODAL_STT, ""); adapter != adapterBytedanceOpenSpeech {
 		t.Fatalf("bytedance stt adapter mismatch: got=%s want=%s", adapter, adapterBytedanceOpenSpeech)
 	}
 }
@@ -2823,7 +2823,7 @@ func TestResolveMediaAdapterNameProviderTypeFallback(t *testing.T) {
 		},
 		{
 			name:         "prefix still works with empty provider",
-			modelID:      "alibaba/xxx",
+			modelID:      "dashscope/xxx",
 			modal:        runtimev1.Modal_MODAL_TTS,
 			providerType: "",
 			want:         adapterAlibabaNative,

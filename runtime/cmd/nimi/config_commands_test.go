@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"flag"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,7 +76,7 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 			"set",
 			"--set", "grpcAddr=127.0.0.1:50051",
 			"--set", "providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai",
-			"--set", "providers.gemini.apiKeyEnv=GEMINI_API_KEY",
+			"--set", "providers.gemini.apiKeyEnv=NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
 			"--json",
 		})
 	})
@@ -95,7 +97,7 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 		t.Fatalf("grpc addr mismatch: got=%q", cfg.GRPCAddr)
 	}
 	provider := cfg.Providers["gemini"]
-	if provider.APIKeyEnv != "GEMINI_API_KEY" {
+	if provider.APIKeyEnv != "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY" {
 		t.Fatalf("apiKeyEnv mismatch: got=%q", provider.APIKeyEnv)
 	}
 
@@ -111,49 +113,15 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 	}
 }
 
-func TestRunRuntimeConfigMigrate(t *testing.T) {
+func TestRunRuntimeConfigRejectsMigrateSubcommand(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigCommandEnv(t)
 
-	legacyPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
-	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-		t.Fatalf("mkdir legacy dir: %v", err)
-	}
-	legacyContent := `{
-  "runtime": {
-    "grpcAddr": "127.0.0.1:59001",
-    "httpAddr": "127.0.0.1:59002"
-  },
-  "ai": {
-    "providers": {
-      "gemini": {
-        "apiKeyEnv": "GEMINI_API_KEY"
-      }
-    }
-  }
-}`
-	if err := os.WriteFile(legacyPath, []byte(legacyContent), 0o600); err != nil {
-		t.Fatalf("write legacy config: %v", err)
-	}
-
-	output, err := captureStdoutFromRun(func() error {
-		return runRuntimeConfig([]string{"migrate", "--json"})
-	})
-	if err != nil {
-		t.Fatalf("runRuntimeConfig migrate: %v", err)
-	}
-	payload := parseJSONMap(t, output)
-	if payload["migrated"] != true {
-		t.Fatalf("migrated flag mismatch: %s", output)
-	}
-	newPath := asString(payload["path"])
-	if newPath != filepath.Join(homeDir, ".nimi/config.json") {
-		t.Fatalf("migrate path mismatch: got=%q", newPath)
-	}
-	if _, statErr := os.Stat(legacyPath); !os.IsNotExist(statErr) {
-		t.Fatalf("legacy path should be removed after migrate")
+	err := runRuntimeConfig([]string{"migrate", "--json"})
+	if !errors.Is(err, flag.ErrHelp) {
+		t.Fatalf("migrate should be rejected as unsupported subcommand, got: %v", err)
 	}
 }
 
@@ -263,7 +231,7 @@ func TestRunRuntimeConfigValidateFailsOnInvalidSchema(t *testing.T) {
   "schemaVersion": 2,
   "providers": {
     "gemini": {
-      "apiKeyEnv": "GEMINI_API_KEY"
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
     }
   }
 }`
@@ -304,21 +272,30 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
 		"NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
 		"NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY",
-		"GEMINI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY",
+		"NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY",
+		"NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY",
+		"NIMI_RUNTIME_CLOUD_KIMI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_KIMI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_GLM_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_GLM_API_KEY",
+		"NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")

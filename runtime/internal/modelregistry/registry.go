@@ -14,15 +14,15 @@ import (
 type ProviderHint string
 
 const (
-	ProviderHintUnknown   ProviderHint = "unknown"
-	ProviderHintLocal     ProviderHint = "local"
-	ProviderHintNimiLLM   ProviderHint = "nimillm"
-	ProviderHintAlibaba   ProviderHint = "alibaba"
-	ProviderHintBytedance ProviderHint = "bytedance"
-	ProviderHintGemini    ProviderHint = "gemini"
-	ProviderHintMiniMax   ProviderHint = "minimax"
-	ProviderHintKimi      ProviderHint = "kimi"
-	ProviderHintGLM       ProviderHint = "glm"
+	ProviderHintUnknown    ProviderHint = "unknown"
+	ProviderHintLocal      ProviderHint = "local"
+	ProviderHintNimiLLM    ProviderHint = "nimillm"
+	ProviderHintDashScope  ProviderHint = "dashscope"
+	ProviderHintVolcengine ProviderHint = "volcengine"
+	ProviderHintGemini     ProviderHint = "gemini"
+	ProviderHintMiniMax    ProviderHint = "minimax"
+	ProviderHintKimi       ProviderHint = "kimi"
+	ProviderHintGLM        ProviderHint = "glm"
 )
 
 // Entry is a model registry record used by runtime services.
@@ -169,17 +169,17 @@ func inferProviderHint(modelID string, source string) ProviderHint {
 		return ProviderHintLocal
 	case strings.HasPrefix(id, "nimillm/"), src == "nimillm":
 		return ProviderHintNimiLLM
-	case strings.HasPrefix(id, "aliyun/"), strings.HasPrefix(id, "alibaba/"), src == "aliyun", src == "alibaba":
-		return ProviderHintAlibaba
-	case strings.HasPrefix(id, "bytedance/"), strings.HasPrefix(id, "byte/"), src == "bytedance", src == "byte":
-		return ProviderHintBytedance
+	case strings.HasPrefix(id, "dashscope/"), src == "dashscope":
+		return ProviderHintDashScope
+	case strings.HasPrefix(id, "volcengine/"), strings.HasPrefix(id, "volcengine_openspeech/"), src == "volcengine", src == "volcengine_openspeech":
+		return ProviderHintVolcengine
 	case strings.HasPrefix(id, "gemini/"), src == "gemini":
 		return ProviderHintGemini
 	case strings.HasPrefix(id, "minimax/"), src == "minimax":
 		return ProviderHintMiniMax
-	case strings.HasPrefix(id, "kimi/"), strings.HasPrefix(id, "moonshot/"), src == "kimi", src == "moonshot":
+	case strings.HasPrefix(id, "kimi/"), src == "kimi":
 		return ProviderHintKimi
-	case strings.HasPrefix(id, "glm/"), strings.HasPrefix(id, "zhipu/"), strings.HasPrefix(id, "bigmodel/"), src == "glm", src == "zhipu", src == "bigmodel":
+	case strings.HasPrefix(id, "glm/"), src == "glm":
 		return ProviderHintGLM
 	default:
 		return ProviderHintUnknown

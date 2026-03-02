@@ -433,9 +433,9 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	switch {
 	case strings.Contains(joined, "nexa/"):
 		return adapterNexaNative
-	case strings.Contains(joined, "alibaba/"), strings.Contains(joined, "aliyun/"), provider == "dashscope":
+	case strings.Contains(joined, "dashscope/"), provider == "dashscope":
 		return adapterAlibabaNative
-	case strings.Contains(joined, "kimi/"), strings.Contains(joined, "moonshot/"), provider == "kimi":
+	case strings.Contains(joined, "kimi/"), provider == "kimi":
 		if modal == runtimev1.Modal_MODAL_IMAGE {
 			return adapterKimiChatMultimodal
 		}
@@ -443,12 +443,12 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		return adapterGeminiOperation
 	case strings.Contains(joined, "minimax/"), provider == "minimax":
 		return adapterMiniMaxTask
-	case strings.Contains(joined, "glm/"), strings.Contains(joined, "zhipu/"), strings.Contains(joined, "bigmodel/"), provider == "glm":
+	case strings.Contains(joined, "glm/"), provider == "glm":
 		if modal == runtimev1.Modal_MODAL_VIDEO {
 			return adapterGLMTask
 		}
 		return adapterGLMNative
-	case strings.Contains(joined, "bytedance/"), strings.Contains(joined, "byte/"), provider == "volcengine":
+	case strings.Contains(joined, "volcengine/"), strings.Contains(joined, "volcengine_openspeech/"), provider == "volcengine", provider == "volcengine_openspeech":
 		if modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
 			return adapterBytedanceOpenSpeech
 		}

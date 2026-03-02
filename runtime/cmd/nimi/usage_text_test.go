@@ -84,11 +84,13 @@ func TestPrintRuntimeConfigUsageIncludesSubcommands(t *testing.T) {
 		"nimi config get",
 		"nimi config set",
 		"nimi config validate",
-		"nimi config migrate",
 	}
 	for _, command := range required {
 		if !strings.Contains(output, command) {
 			t.Fatalf("runtime config usage missing %s: %q", command, output)
 		}
+	}
+	if strings.Contains(output, "nimi config migrate") {
+		t.Fatalf("runtime config usage should not include legacy migrate command: %q", output)
 	}
 }

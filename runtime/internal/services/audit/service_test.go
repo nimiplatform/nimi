@@ -19,7 +19,7 @@ func TestListAIProviderHealth(t *testing.T) {
 	state := health.NewState()
 	tracker := providerhealth.New()
 	tracker.Mark("cloud-nimillm", true, "")
-	tracker.Mark("cloud-alibaba", false, "timeout")
+	tracker.Mark("cloud-dashscope", false, "timeout")
 
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 	resp, err := svc.ListAIProviderHealth(context.Background(), nil)

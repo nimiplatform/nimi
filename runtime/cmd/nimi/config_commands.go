@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -19,7 +20,6 @@ import (
 const (
 	configReasonParseFailed           = "CONFIG_PARSE_FAILED"
 	configReasonSchemaInvalid         = "CONFIG_SCHEMA_INVALID"
-	configReasonMigrationFailed       = "CONFIG_MIGRATION_FAILED"
 	configReasonWriteLocked           = "CONFIG_WRITE_LOCKED"
 	configReasonSecretPolicyViolation = "CONFIG_SECRET_POLICY_VIOLATION"
 	configReasonRestartRequired       = "CONFIG_RESTART_REQUIRED"
@@ -83,8 +83,6 @@ func runRuntimeConfig(args []string) error {
 		return runRuntimeConfigSet(args[1:])
 	case "validate":
 		return runRuntimeConfigValidate(args[1:])
-	case "migrate":
-		return runRuntimeConfigMigrate(args[1:])
 	default:
 		printRuntimeConfigUsage()
 		return flag.ErrHelp
@@ -98,10 +96,6 @@ func runRuntimeConfigInit(args []string) error {
 	force := fs.Bool("force", false, "overwrite existing config")
 	if err := fs.Parse(args); err != nil {
 		return err
-	}
-
-	if _, _, err := config.MigrateLegacyConfig(); err != nil {
-		return newConfigCommandError(configReasonMigrationFailed, "run `nimi config migrate`", err)
 	}
 
 	path := strings.TrimSpace(config.RuntimeConfigPath())
@@ -151,10 +145,7 @@ func runRuntimeConfigGet(args []string) error {
 		return err
 	}
 
-	path, err := config.ResolveRuntimeConfigPathForLoad()
-	if err != nil {
-		return newConfigCommandError(configReasonMigrationFailed, "run `nimi config migrate`", err)
-	}
+	path := strings.TrimSpace(config.RuntimeConfigPath())
 	if strings.TrimSpace(path) == "" {
 		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
 	}
@@ -180,10 +171,7 @@ func runRuntimeConfigValidate(args []string) error {
 		return err
 	}
 
-	path, err := config.ResolveRuntimeConfigPathForLoad()
-	if err != nil {
-		return newConfigCommandError(configReasonMigrationFailed, "run `nimi config migrate`", err)
-	}
+	path := strings.TrimSpace(config.RuntimeConfigPath())
 	if strings.TrimSpace(path) == "" {
 		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
 	}
@@ -208,25 +196,6 @@ func runRuntimeConfigValidate(args []string) error {
 	return printConfigPayload(payload, *jsonOutput)
 }
 
-func runRuntimeConfigMigrate(args []string) error {
-	fs := flag.NewFlagSet("nimi config migrate", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
-	jsonOutput := fs.Bool("json", false, "output json")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	migrated, path, err := config.MigrateLegacyConfig()
-	if err != nil {
-		return newConfigCommandError(configReasonMigrationFailed, "ensure legacy config is readable and retry", err)
-	}
-	payload := map[string]any{
-		"migrated": migrated,
-		"path":     path,
-	}
-	return printConfigPayload(payload, *jsonOutput)
-}
-
 func runRuntimeConfigSet(args []string) error {
 	fs := flag.NewFlagSet("nimi config set", flag.ContinueOnError)
 	fs.SetOutput(os.Stdout)
@@ -247,10 +216,6 @@ func runRuntimeConfigSet(args []string) error {
 	}
 	if *fromStdin && strings.TrimSpace(*inputFile) != "" {
 		return newConfigCommandError(configReasonParseFailed, "use either --stdin or --file", fmt.Errorf("--stdin and --file cannot be used together"))
-	}
-
-	if _, _, err := config.MigrateLegacyConfig(); err != nil {
-		return newConfigCommandError(configReasonMigrationFailed, "run `nimi config migrate`", err)
 	}
 
 	path := strings.TrimSpace(config.RuntimeConfigPath())
@@ -462,7 +427,12 @@ func parseConfigInputJSON(raw []byte) (config.FileConfig, error) {
 		return config.FileConfig{}, newConfigCommandError(configReasonParseFailed, "input payload cannot be empty", fmt.Errorf("empty config payload"))
 	}
 	var parsed config.FileConfig
-	if err := json.Unmarshal(raw, &parsed); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&parsed); err != nil {
+		return config.FileConfig{}, newConfigCommandError(configReasonParseFailed, "provide valid JSON payload", err)
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return config.FileConfig{}, newConfigCommandError(configReasonParseFailed, "provide valid JSON payload", err)
 	}
 	merged := mergeFileConfigWithDefaults(parsed)

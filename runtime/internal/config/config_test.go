@@ -34,8 +34,7 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 		t.Fatalf("state path mismatch: got=%q want=%q", cfg.LocalRuntimeStatePath, expectedStatePath)
 	}
 
-	// K-DAEMON-009 new fields defaults
-	if cfg.WorkerMode != false {
+	if cfg.WorkerMode {
 		t.Fatalf("workerMode default should be false")
 	}
 	if cfg.AIHealthIntervalSeconds != 8 {
@@ -81,7 +80,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "aiHealthIntervalSeconds": 3,
   "providers": {
     "gemini": {
-      "apiKeyEnv": "GEMINI_API_KEY"
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
     },
     "local": {
       "baseUrl": "http://127.0.0.1:11434",
@@ -96,7 +95,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	t.Setenv("HOME", homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
-	t.Setenv("GEMINI_API_KEY", "gemini-from-env")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "gemini-from-env")
 	t.Setenv("LOCALAI_API_KEY", "local-ai-key-from-env")
 
 	cfg, err := Load()
@@ -123,10 +122,10 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.AIHealthIntervalSeconds != 3 {
 		t.Fatalf("aiHealthIntervalSeconds mismatch: got=%d want=3", cfg.AIHealthIntervalSeconds)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")); got != "gemini-from-env" {
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")); got != "gemini-from-env" {
 		t.Fatalf("gemini key env mismatch: %q", got)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini base env mismatch: %q", got)
 	}
 	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL")); got != "http://127.0.0.1:11434" {
@@ -146,7 +145,7 @@ func TestLoadEnvOverridesConfigFile(t *testing.T) {
   "providers": {
     "gemini": {
       "baseUrl": "https://config.example.com/openai",
-      "apiKeyEnv": "GEMINI_API_KEY"
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
     }
   }
 }`
@@ -157,8 +156,8 @@ func TestLoadEnvOverridesConfigFile(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:46399")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", "https://env.example.com/openai")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY", "env-key")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", "https://env.example.com/openai")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "env-key")
 
 	cfg, err := Load()
 	if err != nil {
@@ -167,10 +166,10 @@ func TestLoadEnvOverridesConfigFile(t *testing.T) {
 	if cfg.GRPCAddr != "127.0.0.1:46399" {
 		t.Fatalf("grpc env override mismatch: %q", cfg.GRPCAddr)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL")); got != "https://env.example.com/openai" {
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != "https://env.example.com/openai" {
 		t.Fatalf("gemini base should keep env override: %q", got)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")); got != "env-key" {
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")); got != "env-key" {
 		t.Fatalf("gemini key should keep env override: %q", got)
 	}
 }
@@ -192,6 +191,29 @@ func TestLoadInvalidConfigFileReturnsError(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsLegacyNestedConfigSchema(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "runtime": {
+    "grpcAddr": "127.0.0.1:50001"
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected parse error for nested legacy schema")
+	}
+	if !strings.Contains(err.Error(), "parse runtime config file") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
@@ -200,7 +222,7 @@ func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
     "gemini": {
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
       "apiKey": "plaintext-forbidden",
-      "apiKeyEnv": "GEMINI_API_KEY"
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
     }
   }
 }`
@@ -245,14 +267,14 @@ func TestLoadRejectsLegacyProviderKey(t *testing.T) {
 	}
 }
 
-func TestLoadAcceptsCloudNimiLLMAlias(t *testing.T) {
+func TestLoadRejectsLegacyProviderAlias(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
   "providers": {
     "cloudnimillm": {
       "baseUrl": "https://api.example.com/v1",
-      "apiKeyEnv": "NIMI_KEY"
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"
     }
   }
 }`
@@ -261,113 +283,75 @@ func TestLoadAcceptsCloudNimiLLMAlias(t *testing.T) {
 	}
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_KEY", "nimi-key")
 
-	if _, err := Load(); err != nil {
-		t.Fatalf("Load returned error: %v", err)
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected legacy alias violation, got nil")
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL")); got != "https://api.example.com/v1" {
-		t.Fatalf("cloudnimillm base env mismatch: %q", got)
-	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY")); got != "nimi-key" {
-		t.Fatalf("cloudnimillm key env mismatch: %q", got)
+	if !strings.Contains(err.Error(), `provider "cloudnimillm" is forbidden`) {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestResolveRuntimeConfigPathForLoadMigratesLegacyPath(t *testing.T) {
+func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
 	clearRuntimeConfigEnv(t)
 
-	legacyPath := filepath.Join(homeDir, legacyRuntimeConfigRelPath)
+	legacyPath := filepath.Join(homeDir, ".nimi/runtime/config.json")
 	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
 		t.Fatalf("mkdir legacy dir: %v", err)
 	}
-	legacyBody := `{
-  "runtime": {
-    "grpcAddr": "127.0.0.1:59001",
-    "httpAddr": "127.0.0.1:59002"
-  },
-  "ai": {
-    "providers": {
-      "gemini": {
-        "apiKeyEnv": "GEMINI_API_KEY"
-      }
-    }
-  }
-}`
+	legacyBody := `{"runtime":{"grpcAddr":"127.0.0.1:59001"}}`
 	if err := os.WriteFile(legacyPath, []byte(legacyBody), 0o600); err != nil {
 		t.Fatalf("write legacy config: %v", err)
 	}
 
-	resolvedPath, err := ResolveRuntimeConfigPathForLoad()
+	cfg, err := Load()
 	if err != nil {
-		t.Fatalf("ResolveRuntimeConfigPathForLoad returned error: %v", err)
+		t.Fatalf("Load returned error: %v", err)
 	}
-	if resolvedPath != filepath.Join(homeDir, defaultRuntimeConfigRelPath) {
-		t.Fatalf("resolved path mismatch: got=%q", resolvedPath)
-	}
-	if _, statErr := os.Stat(legacyPath); !os.IsNotExist(statErr) {
-		t.Fatalf("legacy config should be removed after migration")
-	}
-
-	migrated, err := LoadFileConfig(resolvedPath)
-	if err != nil {
-		t.Fatalf("LoadFileConfig migrated path: %v", err)
-	}
-	if migrated.SchemaVersion != DefaultSchemaVersion {
-		t.Fatalf("migrated schema version mismatch: got=%d want=%d", migrated.SchemaVersion, DefaultSchemaVersion)
-	}
-	if migrated.GRPCAddr != "127.0.0.1:59001" {
-		t.Fatalf("migrated grpc addr mismatch: got=%q", migrated.GRPCAddr)
-	}
-}
-
-func TestMigrateLegacyConfigSkipsWhenExplicitPathSet(t *testing.T) {
-	homeDir := t.TempDir()
-	t.Setenv("HOME", homeDir)
-	explicitPath := filepath.Join(t.TempDir(), "explicit-runtime-config.json")
-	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", explicitPath)
-	clearRuntimeConfigEnv(t)
-
-	legacyPath := filepath.Join(homeDir, legacyRuntimeConfigRelPath)
-	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
-		t.Fatalf("mkdir legacy dir: %v", err)
-	}
-	if err := os.WriteFile(legacyPath, []byte(`{"runtime":{"grpcAddr":"127.0.0.1:59999"}}`), 0o600); err != nil {
-		t.Fatalf("write legacy config: %v", err)
-	}
-
-	migrated, resolved, err := MigrateLegacyConfig()
-	if err != nil {
-		t.Fatalf("MigrateLegacyConfig returned error: %v", err)
-	}
-	if migrated {
-		t.Fatalf("migration should be skipped when NIMI_RUNTIME_CONFIG_PATH is set")
-	}
-	if resolved != explicitPath {
-		t.Fatalf("resolved explicit path mismatch: got=%q want=%q", resolved, explicitPath)
+	if cfg.GRPCAddr != defaultGRPCAddr {
+		t.Fatalf("grpc should use canonical default config path only: got=%q", cfg.GRPCAddr)
 	}
 	if _, statErr := os.Stat(legacyPath); statErr != nil {
-		t.Fatalf("legacy config should remain when migration skipped: %v", statErr)
+		t.Fatalf("legacy config should not be touched: %v", statErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/config.json")); !os.IsNotExist(statErr) {
+		t.Fatalf("canonical config should not be auto-created")
 	}
 }
 
-func TestLoadAppliesGeminiAliasFromEnvironment(t *testing.T) {
+func TestLoadAppliesGeminiDefaultBaseURLWhenCanonicalKeyPresent(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
 	clearRuntimeConfigEnv(t)
-	t.Setenv("GEMINI_API_KEY", "alias-key")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "canonical-key")
 
 	_, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")); got != "alias-key" {
-		t.Fatalf("gemini alias key mismatch: %q", got)
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")); got != "canonical-key" {
+		t.Fatalf("gemini key mismatch: %q", got)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
+	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini default base mismatch: %q", got)
+	}
+}
+
+func TestResolveCanonicalProviderIDRejectsLegacyAliases(t *testing.T) {
+	if id, ok := ResolveCanonicalProviderID("alibaba"); ok || id != "" {
+		t.Fatalf("legacy alias alibaba must be rejected")
+	}
+	if id, ok := ResolveCanonicalProviderID("dashscope"); !ok || id != "dashscope" {
+		t.Fatalf("dashscope canonical resolve mismatch: id=%q ok=%v", id, ok)
+	}
+	if id, ok := ResolveCanonicalProviderID("moonshot"); ok || id != "" {
+		t.Fatalf("legacy alias moonshot must be rejected")
+	}
+	if id, ok := ResolveCanonicalProviderID("openai_compatible"); !ok || id != "openai_compatible" {
+		t.Fatalf("openai_compatible canonical resolve mismatch: id=%q ok=%v", id, ok)
 	}
 }
 
@@ -472,21 +456,30 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
 		"NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
 		"NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY",
-		"GEMINI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY",
+		"NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY",
+		"NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY",
+		"NIMI_RUNTIME_CLOUD_KIMI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_KIMI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_GLM_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_GLM_API_KEY",
+		"NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
 		"LOCALAI_API_KEY",
 		"NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT",
 		"NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS",

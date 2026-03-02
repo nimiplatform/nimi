@@ -1,5 +1,5 @@
 // Package nimillm provides the unified cloud AI provider module.
-// It consolidates all cloud adapter routing (alibaba, bytedance, gemini,
+// It consolidates all cloud adapter routing (dashscope, volcengine, gemini,
 // minimax, kimi, glm) behind a single module boundary.
 //
 // The package exports:

@@ -151,7 +151,7 @@ AI 执行路径使用双层信号量控制并发：
 - 地址必须为合法 `host:port` 格式。
 - `ShutdownTimeout > 0`。
 
-遗留路径迁移：`~/.nimi/runtime/config.json` → `~/.nimi/config.json`，原子写入 + 删除旧文件。
+仅支持 canonical 配置路径：`~/.nimi/config.json`。Runtime 不读取、不迁移 legacy 路径 `~/.nimi/runtime/config.json`。
 
 Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 

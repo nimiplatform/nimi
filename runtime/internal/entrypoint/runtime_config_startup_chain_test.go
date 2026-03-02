@@ -5,11 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
 
-func TestRunDaemonFromArgsMigratesLegacyRuntimeConfigOnStartup(t *testing.T) {
+func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -23,13 +21,6 @@ func TestRunDaemonFromArgsMigratesLegacyRuntimeConfigOnStartup(t *testing.T) {
   "runtime": {
     "grpcAddr": "127.0.0.1:59001",
     "httpAddr": "127.0.0.1:59002"
-  },
-  "ai": {
-    "providers": {
-      "gemini": {
-        "apiKeyEnv": "GEMINI_API_KEY"
-      }
-    }
   }
 }`
 	if err := os.WriteFile(legacyPath, []byte(legacyBody), 0o600); err != nil {
@@ -44,23 +35,12 @@ func TestRunDaemonFromArgsMigratesLegacyRuntimeConfigOnStartup(t *testing.T) {
 		t.Fatalf("unexpected startup error: %v", err)
 	}
 
+	if _, statErr := os.Stat(legacyPath); statErr != nil {
+		t.Fatalf("legacy config should not be touched: %v", statErr)
+	}
 	newPath := filepath.Join(homeDir, ".nimi/config.json")
-	if _, statErr := os.Stat(newPath); statErr != nil {
-		t.Fatalf("migrated config missing at new path: %v", statErr)
-	}
-	if _, statErr := os.Stat(legacyPath); !os.IsNotExist(statErr) {
-		t.Fatalf("legacy config should be removed after startup migration")
-	}
-
-	fileCfg, loadErr := config.LoadFileConfig(newPath)
-	if loadErr != nil {
-		t.Fatalf("load migrated config: %v", loadErr)
-	}
-	if fileCfg.GRPCAddr != "127.0.0.1:59001" {
-		t.Fatalf("migrated grpc addr mismatch: %q", fileCfg.GRPCAddr)
-	}
-	if fileCfg.HTTPAddr != "127.0.0.1:59002" {
-		t.Fatalf("migrated http addr mismatch: %q", fileCfg.HTTPAddr)
+	if _, statErr := os.Stat(newPath); !os.IsNotExist(statErr) {
+		t.Fatalf("canonical config should not be auto-created on startup")
 	}
 }
 
@@ -79,21 +59,30 @@ func clearRuntimeConfigEnvForStartupTest(t *testing.T) {
 		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
 		"NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
 		"NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL",
-		"NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY",
-		"GEMINI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY",
+		"NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY",
+		"NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY",
+		"NIMI_RUNTIME_CLOUD_KIMI_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_KIMI_API_KEY",
+		"NIMI_RUNTIME_CLOUD_GLM_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_GLM_API_KEY",
+		"NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
+		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
+		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")

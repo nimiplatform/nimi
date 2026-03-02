@@ -49,7 +49,7 @@ func TestGetSpeechVoicesDashScopePresets(t *testing.T) {
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "aliyun/qwen3-tts-instruct-flash",
+		ModelId:       "dashscope/qwen3-tts-instruct-flash",
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 	})
@@ -224,7 +224,7 @@ func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "bytedance/tts-model",
+		ModelId:       "volcengine/tts-model",
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 	})

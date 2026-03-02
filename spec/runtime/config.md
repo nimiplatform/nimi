@@ -23,13 +23,11 @@
 - `CFG-003`: `daemon-config plane` 的配置变更采用 restart required 语义（对齐 `K-DAEMON-002` 启动序列）；禁止运行中热加载。
 - `CFG-004`: Config 领域对外服务范围以 `K-RPC-001` 为边界，错误投影语义以 `K-ERR-001` 为基础。
 
-## 2. 路径解析与迁移
+## 2. 路径解析（Canonical-Only）
 
 - `CFG-010`: 路径解析顺序固定为 `NIMI_RUNTIME_CONFIG_PATH` -> `~/.nimi/config.json`。
-- `CFG-011`: 默认路径从 `~/.nimi/runtime/config.json` 切换到 `~/.nimi/config.json`。
-- `CFG-012`: 自动迁移仅在以下条件同时满足时触发：未显式设置 env、新路径不存在、旧路径存在。
-- `CFG-013`: 迁移后执行硬切换（旧路径删除）；runtime 后续仅识别新路径。
-- `CFG-014`: 迁移写入采用原子替换，避免中间态脏文件。
+- `CFG-011`: Runtime 仅识别 canonical 路径 `~/.nimi/config.json`；不得读取 `~/.nimi/runtime/config.json`。
+- `CFG-012`: Runtime 不提供 legacy 配置路径自动迁移能力。
 
 ## 3. 优先级与生效语义
 
@@ -49,17 +47,17 @@
 | `ai.httpTimeout` | `30s` |
 | `ai.healthInterval` | `8s`（对齐 `K-PROV-003` 基础探测间隔） |
 
-## 5. Provider 命名与 Env 绑定
+## 5. Provider 命名与 Env 绑定（Canonical-Only）
 
-- `CFG-040`: provider 配置项以 `ai.providers.<provider>` 表达，归一化规则以 `K-PROV-005`（provider 名称归一化）为权威。
-- `CFG-041`: 遗留名称（`litellm`/`cloudlitellm`/`cloudai`）在配置校验时拒绝（对齐 `K-PROV-005` 遗留名称拒绝）。
+- `CFG-040`: provider 配置项以 `providers.<provider>` 表达，provider 名称仅允许 canonical 值（对齐 `K-PROV-005`）。
+- `CFG-041`: 非 canonical provider 名称（包含历史 alias）在配置校验时拒绝。
 - `CFG-042`: provider API key 来源通过 `apiKeyEnv` 绑定到环境变量。
-- `CFG-043`: Gemini 保留 key alias：当 `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` 为空时可回退 `GEMINI_API_KEY`（对齐 `K-PROV-005` Gemini 隐式默认）。
+- `CFG-043`: Gemini API key 环境变量仅允许 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY`；不支持 `GEMINI_API_KEY` fallback。
 
 ## 6. Secret Policy
 
 - `CFG-050`: 配置文件不得出现明文字段 `apiKey`。
-- `CFG-051`: `ai.providers.*.apiKeyEnv` 为必填。
+- `CFG-051`: `providers.*.apiKeyEnv` 为必填。
 - `CFG-052`: 预留 `secretRef` 扩展位用于后续 vault 接入。
 
 ## 7. 写入合同
@@ -83,7 +81,6 @@
 |---|---|
 | `CONFIG_PARSE_FAILED` | 运行 `nimi config validate` 并修复 JSON/字段格式 |
 | `CONFIG_SCHEMA_INVALID` | 修复 schemaVersion/必填字段后重试 |
-| `CONFIG_MIGRATION_FAILED` | 运行 `nimi config migrate` 并检查路径权限 |
 | `CONFIG_WRITE_LOCKED` | 等待其他写操作完成后重试 `nimi config set` |
 | `CONFIG_SECRET_POLICY_VIOLATION` | 移除明文 apiKey，改为 apiKeyEnv/secretRef |
 | `CONFIG_RESTART_REQUIRED` | 重启 runtime 使配置生效 |
@@ -104,14 +101,14 @@ cd apps/desktop/src-tauri
 cargo test runtime_bridge::daemon_manager::tests
 ```
 
-- `CFG-090`: runtime 单测必须覆盖迁移、优先级、默认值、provider env 映射、secret policy。
-- `CFG-091`: nimi-cli 单测必须覆盖 `init|get|set|validate|migrate` 全子命令。
+- `CFG-090`: runtime 单测必须覆盖路径解析（canonical-only）、优先级、默认值、provider env 映射、secret policy。
+- `CFG-091`: nimi-cli 单测必须覆盖 `init|get|set|validate` 全子命令。
 - `CFG-092`: desktop tauri 单测必须覆盖新路径读取、CLI 写入调用、错误冒泡。
 
 ## 11. 变更策略
 
 - `CFG-100`: Schema 仅允许向后兼容新增字段。
-- `CFG-101`: 破坏性变更必须提升 `schemaVersion` 并提供 `nimi config migrate` 升级路径。
+- `CFG-101`: 破坏性变更必须提升 `schemaVersion` 并提供显式离线迁移说明（不提供运行时自动迁移）。
 - `CFG-102`: 新增 provider 时同步更新 schema、env 绑定与别名规则、默认值、runtime/cli/desktop 测试（对齐 `K-PROV-005` provider 名称归一化）。
 
 ## 12. 本文件非目标

@@ -97,8 +97,8 @@ func TestModelRegistryPersistence(t *testing.T) {
 
 	resp, err := svc.PullModel(context.Background(), &runtimev1.PullModelRequest{
 		AppId:    "nimi.desktop",
-		ModelRef: "aliyun/qwen-max@v1",
-		Source:   "alibaba",
+		ModelRef: "dashscope/qwen-max@v1",
+		Source:   "dashscope",
 	})
 	if err != nil {
 		t.Fatalf("pull model: %v", err)
@@ -111,11 +111,11 @@ func TestModelRegistryPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load persisted registry: %v", err)
 	}
-	item, exists := loaded.Get("aliyun/qwen-max")
+	item, exists := loaded.Get("dashscope/qwen-max")
 	if !exists {
 		t.Fatalf("persisted model must exist")
 	}
-	if item.ProviderHint != modelregistry.ProviderHintAlibaba {
+	if item.ProviderHint != modelregistry.ProviderHintDashScope {
 		t.Fatalf("provider hint mismatch: got=%s", item.ProviderHint)
 	}
 }

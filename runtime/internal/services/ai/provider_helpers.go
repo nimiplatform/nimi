@@ -12,18 +12,18 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 	if strings.HasPrefix(lower, "cloud/") ||
 		strings.HasPrefix(lower, "token/") ||
 		strings.HasPrefix(lower, "nimillm/") ||
-		strings.HasPrefix(lower, "aliyun/") ||
-		strings.HasPrefix(lower, "alibaba/") ||
-		strings.HasPrefix(lower, "bytedance/") ||
-		strings.HasPrefix(lower, "byte/") ||
+		strings.HasPrefix(lower, "dashscope/") ||
+		strings.HasPrefix(lower, "volcengine/") ||
+		strings.HasPrefix(lower, "volcengine_openspeech/") ||
 		strings.HasPrefix(lower, "gemini/") ||
 		strings.HasPrefix(lower, "minimax/") ||
 		strings.HasPrefix(lower, "kimi/") ||
-		strings.HasPrefix(lower, "moonshot/") ||
 		strings.HasPrefix(lower, "glm/") ||
-		strings.HasPrefix(lower, "zhipu/") ||
-		strings.HasPrefix(lower, "bigmodel/") ||
-		strings.HasPrefix(lower, "deepseek/") {
+		strings.HasPrefix(lower, "deepseek/") ||
+		strings.HasPrefix(lower, "openrouter/") ||
+		strings.HasPrefix(lower, "openai/") ||
+		strings.HasPrefix(lower, "anthropic/") ||
+		strings.HasPrefix(lower, "openai_compatible/") {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
 	}
 	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME

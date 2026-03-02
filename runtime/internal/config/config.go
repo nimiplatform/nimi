@@ -1,9 +1,11 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -19,7 +21,6 @@ const (
 	defaultHTTPAddr                 = "127.0.0.1:46372"
 	defaultLocalRuntimeStateRelPath = ".nimi/runtime/local-runtime-state.json"
 	defaultRuntimeConfigRelPath     = ".nimi/config.json"
-	legacyRuntimeConfigRelPath      = ".nimi/runtime/config.json"
 	defaultCloudGeminiBaseURL       = "https://generativelanguage.googleapis.com/v1beta/openai"
 )
 
@@ -361,166 +362,8 @@ func runtimeConfigPath() string {
 	return filepath.Join(home, defaultRuntimeConfigRelPath)
 }
 
-func LegacyRuntimeConfigPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
-		return ""
-	}
-	return filepath.Join(home, legacyRuntimeConfigRelPath)
-}
-
 func RuntimeConfigPath() string {
 	return runtimeConfigPath()
-}
-
-func ResolveRuntimeConfigPathForLoad() (string, error) {
-	targetPath := runtimeConfigPath()
-	if targetPath == "" {
-		return "", nil
-	}
-	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CONFIG_PATH")) != "" {
-		return targetPath, nil
-	}
-	legacyPath := LegacyRuntimeConfigPath()
-	if legacyPath == "" || legacyPath == targetPath {
-		return targetPath, nil
-	}
-	if _, err := os.Stat(targetPath); err == nil {
-		return targetPath, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("stat runtime config file %q: %w", targetPath, err)
-	}
-	if _, err := os.Stat(legacyPath); errors.Is(err, os.ErrNotExist) {
-		return targetPath, nil
-	} else if err != nil {
-		return "", fmt.Errorf("stat legacy runtime config file %q: %w", legacyPath, err)
-	}
-	if err := migrateLegacyConfigFile(legacyPath, targetPath); err != nil {
-		return "", err
-	}
-	return targetPath, nil
-}
-
-func MigrateLegacyConfig() (bool, string, error) {
-	targetPath := runtimeConfigPath()
-	if targetPath == "" {
-		return false, "", nil
-	}
-	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CONFIG_PATH")) != "" {
-		return false, targetPath, nil
-	}
-	legacyPath := LegacyRuntimeConfigPath()
-	if legacyPath == "" || legacyPath == targetPath {
-		return false, targetPath, nil
-	}
-	if _, err := os.Stat(targetPath); err == nil {
-		return false, targetPath, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return false, "", fmt.Errorf("stat runtime config file %q: %w", targetPath, err)
-	}
-	if _, err := os.Stat(legacyPath); errors.Is(err, os.ErrNotExist) {
-		return false, targetPath, nil
-	} else if err != nil {
-		return false, "", fmt.Errorf("stat legacy runtime config file %q: %w", legacyPath, err)
-	}
-	if err := migrateLegacyConfigFile(legacyPath, targetPath); err != nil {
-		return false, "", err
-	}
-	return true, targetPath, nil
-}
-
-func migrateLegacyConfigFile(legacyPath string, targetPath string) error {
-	content, err := os.ReadFile(legacyPath)
-	if err != nil {
-		return fmt.Errorf("read legacy runtime config file %q: %w", legacyPath, err)
-	}
-	normalized, err := normalizeMigratedConfigContent(content)
-	if err != nil {
-		return fmt.Errorf("normalize legacy runtime config file %q: %w", legacyPath, err)
-	}
-	if err := writeBytesAtomic(targetPath, normalized, 0o600); err != nil {
-		return fmt.Errorf("write migrated runtime config file %q: %w", targetPath, err)
-	}
-	if err := os.Remove(legacyPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("remove legacy runtime config file %q: %w", legacyPath, err)
-	}
-	return nil
-}
-
-func normalizeMigratedConfigContent(content []byte) ([]byte, error) {
-	trimmed := strings.TrimSpace(string(content))
-	if trimmed == "" {
-		defaultCfg := DefaultFileConfig()
-		return MarshalFileConfig(defaultCfg)
-	}
-	var payload map[string]any
-	if err := json.Unmarshal(content, &payload); err != nil {
-		return nil, err
-	}
-	if _, exists := payload["schemaVersion"]; !exists {
-		payload["schemaVersion"] = DefaultSchemaVersion
-	}
-	// Flatten legacy nested "runtime" and "ai" keys into top-level keys.
-	flattenLegacyConfig(payload)
-	normalized, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return append(normalized, '\n'), nil
-}
-
-// flattenLegacyConfig promotes legacy nested "runtime" and "ai" keys into
-// top-level flat keys per K-DAEMON-009. Top-level keys take precedence.
-func flattenLegacyConfig(payload map[string]any) {
-	if rt, ok := payload["runtime"].(map[string]any); ok {
-		promoteIfMissing(payload, rt, "grpcAddr")
-		promoteIfMissing(payload, rt, "httpAddr")
-		if v, exists := rt["shutdownTimeout"]; exists {
-			if _, topExists := payload["shutdownTimeoutSeconds"]; !topExists {
-				if s, ok := v.(string); ok {
-					if d, err := time.ParseDuration(s); err == nil {
-						payload["shutdownTimeoutSeconds"] = int(d.Seconds())
-					}
-				}
-			}
-		}
-		promoteIfMissing(payload, rt, "localRuntimeStatePath")
-		delete(payload, "runtime")
-	}
-	if ai, ok := payload["ai"].(map[string]any); ok {
-		if v, exists := ai["httpTimeout"]; exists {
-			if _, topExists := payload["aiHttpTimeoutSeconds"]; !topExists {
-				if s, ok := v.(string); ok {
-					if d, err := time.ParseDuration(s); err == nil {
-						payload["aiHttpTimeoutSeconds"] = int(d.Seconds())
-					}
-				}
-			}
-		}
-		if v, exists := ai["healthInterval"]; exists {
-			if _, topExists := payload["aiHealthIntervalSeconds"]; !topExists {
-				if s, ok := v.(string); ok {
-					if d, err := time.ParseDuration(s); err == nil {
-						payload["aiHealthIntervalSeconds"] = int(d.Seconds())
-					}
-				}
-			}
-		}
-		if providers, exists := ai["providers"]; exists {
-			if _, topExists := payload["providers"]; !topExists {
-				payload["providers"] = providers
-			}
-		}
-		delete(payload, "ai")
-	}
-}
-
-func promoteIfMissing(dst map[string]any, src map[string]any, key string) {
-	if v, exists := src[key]; exists {
-		if _, topExists := dst[key]; !topExists {
-			dst[key] = v
-		}
-	}
 }
 
 func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
@@ -542,10 +385,7 @@ func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
 }
 
 func loadRuntimeFileConfig() (FileConfig, error) {
-	path, err := ResolveRuntimeConfigPathForLoad()
-	if err != nil {
-		return FileConfig{}, err
-	}
+	path := runtimeConfigPath()
 	if path == "" {
 		return FileConfig{SchemaVersion: DefaultSchemaVersion}, nil
 	}
@@ -564,7 +404,12 @@ func LoadFileConfig(path string) (FileConfig, error) {
 		return FileConfig{SchemaVersion: DefaultSchemaVersion}, nil
 	}
 	var parsed FileConfig
-	if err := json.Unmarshal(content, &parsed); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&parsed); err != nil {
+		return FileConfig{}, fmt.Errorf("parse runtime config file %q: %w", path, err)
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return FileConfig{}, fmt.Errorf("parse runtime config file %q: %w", path, err)
 	}
 	if err := ValidateFileConfig(parsed); err != nil {
@@ -578,8 +423,8 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		return fmt.Errorf("schemaVersion must be %d", DefaultSchemaVersion)
 	}
 	for providerName, providerCfg := range fileCfg.Providers {
-		if isLegacyProviderName(providerName) {
-			return fmt.Errorf("provider %q is forbidden", providerName)
+		if !isCanonicalProviderName(providerName) {
+			return fmt.Errorf("provider %q is forbidden; use canonical provider name", providerName)
 		}
 		if strings.TrimSpace(providerCfg.APIKey) != "" {
 			return fmt.Errorf("provider %q apiKey is forbidden; use apiKeyEnv", providerName)
@@ -650,7 +495,7 @@ func applyProviderEnvDefaults(fileCfg FileConfig) {
 		}
 
 		baseURLValue := strings.TrimSpace(providerCfg.BaseURL)
-		if baseURLValue == "" && NormalizeProviderName(providerName) == "gemini" && (apiKeyValue != "" || strings.TrimSpace(os.Getenv(binding.apiKeyKey)) != "") {
+		if baseURLValue == "" && canonicalProviderKey(providerName) == "gemini" && (apiKeyValue != "" || strings.TrimSpace(os.Getenv(binding.apiKeyKey)) != "") {
 			baseURLValue = defaultCloudGeminiBaseURL
 		}
 		if strings.TrimSpace(os.Getenv(binding.baseURLKey)) == "" && baseURLValue != "" {
@@ -660,13 +505,8 @@ func applyProviderEnvDefaults(fileCfg FileConfig) {
 }
 
 func applyImplicitProviderDefaults() {
-	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")) == "" {
-		if fallback := strings.TrimSpace(os.Getenv("GEMINI_API_KEY")); fallback != "" {
-			_ = os.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY", fallback)
-		}
-	}
-	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL")) == "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY")) != "" {
-		_ = os.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", defaultCloudGeminiBaseURL)
+	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")) == "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")) != "" {
+		_ = os.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", defaultCloudGeminiBaseURL)
 	}
 }
 
@@ -688,66 +528,81 @@ func ResolveProviderAPIKey(target RuntimeFileTarget) string {
 }
 
 func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
-	switch NormalizeProviderName(raw) {
+	switch canonicalProviderKey(raw) {
 	case "local":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_LOCAL_AI_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_LOCAL_AI_API_KEY",
 		}, true
-	case "localnexa", "nexa":
+	case "nexa":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
 		}, true
-	case "nimillm", "cloudnimillm":
+	case "nimillm":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
 		}, true
-	case "alibaba", "aliyun", "cloudalibaba":
+	case "openai":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
 		}, true
-	case "bytedance", "byte", "cloudbytedance":
+	case "anthropic":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY",
 		}, true
-	case "bytedanceopenspeech", "openspeech", "cloudbytedanceopenspeech":
+	case "dashscope":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
 		}, true
-	case "gemini", "cloudgemini":
+	case "volcengine":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
 		}, true
-	case "minimax", "cloudminimax":
+	case "volcengine_openspeech":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY",
 		}, true
-	case "kimi", "moonshot", "cloudkimi":
+	case "gemini":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
 		}, true
-	case "glm", "zhipu", "bigmodel", "cloudglm":
+	case "minimax":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_GLM_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY",
 		}, true
-	case "deepseek", "clouddeepseek":
+	case "kimi":
 		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ADAPTER_DEEPSEEK_API_KEY",
+			baseURLKey: "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_KIMI_API_KEY",
 		}, true
-	case "openrouter", "cloudopenrouter":
+	case "glm":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_GLM_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_GLM_API_KEY",
+		}, true
+	case "deepseek":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY",
+		}, true
+	case "openrouter":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
+		}, true
+	case "openai_compatible":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
 		}, true
 	default:
 		return providerEnvBinding{}, false
@@ -777,29 +632,35 @@ func NormalizeProviderName(raw string) string {
 // ResolveCanonicalProviderID maps a config.json provider key to its canonical provider ID.
 // Returns ("", false) for local providers or unknown names.
 func ResolveCanonicalProviderID(raw string) (string, bool) {
-	switch NormalizeProviderName(raw) {
-	case "local", "localnexa", "nexa":
+	switch canonicalProviderKey(raw) {
+	case "local", "nexa":
 		return "", false
-	case "nimillm", "cloudnimillm":
+	case "nimillm":
 		return "nimillm", true
-	case "alibaba", "aliyun", "cloudalibaba", "dashscope":
+	case "openai":
+		return "openai", true
+	case "anthropic":
+		return "anthropic", true
+	case "dashscope":
 		return "dashscope", true
-	case "bytedance", "byte", "cloudbytedance", "volcengine":
+	case "volcengine":
 		return "volcengine", true
-	case "bytedanceopenspeech", "openspeech", "cloudbytedanceopenspeech":
+	case "volcengine_openspeech":
 		return "volcengine_openspeech", true
-	case "gemini", "cloudgemini":
+	case "gemini":
 		return "gemini", true
-	case "minimax", "cloudminimax":
+	case "minimax":
 		return "minimax", true
-	case "kimi", "moonshot", "cloudkimi":
+	case "kimi":
 		return "kimi", true
-	case "glm", "zhipu", "bigmodel", "cloudglm":
+	case "glm":
 		return "glm", true
-	case "deepseek", "clouddeepseek":
+	case "deepseek":
 		return "deepseek", true
-	case "openrouter", "cloudopenrouter":
+	case "openrouter":
 		return "openrouter", true
+	case "openai_compatible":
+		return "openai_compatible", true
 	default:
 		return "", false
 	}
@@ -813,11 +674,22 @@ func fileConfigJWTField(fileCfg FileConfig, getter func(*FileConfigJWT) string) 
 	return ""
 }
 
-func isLegacyProviderName(raw string) bool {
-	switch NormalizeProviderName(raw) {
-	case "litellm", "cloudlitellm", "cloudai":
+func isCanonicalProviderName(raw string) bool {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return false
+	}
+	if canonicalProviderKey(trimmed) != trimmed {
+		return false
+	}
+	switch trimmed {
+	case "local", "nexa", "nimillm", "openai", "anthropic", "dashscope", "volcengine", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
 		return true
 	default:
 		return false
 	}
+}
+
+func canonicalProviderKey(raw string) string {
+	return strings.ToLower(strings.TrimSpace(raw))
 }

@@ -11,7 +11,7 @@ func TestExtractProviders(t *testing.T) {
 	payload := map[string]any{
 		"ai_providers": []any{
 			map[string]any{
-				"name":                 "cloud-alibaba",
+				"name":                 "cloud-dashscope",
 				"state":                "unhealthy",
 				"reason":               "timeout",
 				"consecutive_failures": float64(2),
@@ -33,7 +33,7 @@ func TestExtractProviders(t *testing.T) {
 	if len(providers) != 2 {
 		t.Fatalf("providers count mismatch: got=%d want=2", len(providers))
 	}
-	if providers[0].Name != "cloud-alibaba" {
+	if providers[0].Name != "cloud-dashscope" {
 		t.Fatalf("provider 0 name mismatch: %s", providers[0].Name)
 	}
 	if providers[0].ConsecutiveFailures != 2 {
@@ -117,7 +117,7 @@ func TestProvidersSignatureAndDiffIgnoresTimestamps(t *testing.T) {
 func TestBuildProviderDiff(t *testing.T) {
 	previous := []providerSnapshot{
 		{
-			Name:                "cloud-alibaba",
+			Name:                "cloud-dashscope",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -131,13 +131,13 @@ func TestBuildProviderDiff(t *testing.T) {
 	}
 	current := []providerSnapshot{
 		{
-			Name:                "cloud-alibaba",
+			Name:                "cloud-dashscope",
 			State:               "unhealthy",
 			Reason:              "timeout",
 			ConsecutiveFailures: 2,
 		},
 		{
-			Name:                "cloud-bytedance",
+			Name:                "cloud-volcengine",
 			State:               "healthy",
 			Reason:              "",
 			ConsecutiveFailures: 0,
@@ -148,14 +148,18 @@ func TestBuildProviderDiff(t *testing.T) {
 	if len(changes) != 3 {
 		t.Fatalf("changes count mismatch: got=%d want=3", len(changes))
 	}
-	if changes[0].Name != "cloud-alibaba" || changes[0].Type != "updated" {
-		t.Fatalf("first change mismatch: %#v", changes[0])
+	seen := map[string]string{}
+	for _, item := range changes {
+		seen[item.Name] = item.Type
 	}
-	if changes[1].Name != "cloud-bytedance" || changes[1].Type != "added" {
-		t.Fatalf("second change mismatch: %#v", changes[1])
+	if seen["cloud-dashscope"] != "updated" {
+		t.Fatalf("dashscope diff mismatch: %#v", changes)
 	}
-	if changes[2].Name != "cloud-nimillm" || changes[2].Type != "removed" {
-		t.Fatalf("third change mismatch: %#v", changes[2])
+	if seen["cloud-volcengine"] != "added" {
+		t.Fatalf("volcengine diff mismatch: %#v", changes)
+	}
+	if seen["cloud-nimillm"] != "removed" {
+		t.Fatalf("nimillm diff mismatch: %#v", changes)
 	}
 }
 

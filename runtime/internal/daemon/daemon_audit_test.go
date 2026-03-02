@@ -69,11 +69,11 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL", "http://127.0.0.1:1234/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_NEXA_BASE_URL", "http://127.0.0.1:2234/v1")
 	t.Setenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "http://127.0.0.1:3234/v1")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_BASE_URL", "http://127.0.0.1:5234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_MINIMAX_BASE_URL", "http://127.0.0.1:6234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_KIMI_BASE_URL", "http://127.0.0.1:7234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_ADAPTER_GLM_BASE_URL", "http://127.0.0.1:8234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", "http://127.0.0.1:5234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", "http://127.0.0.1:6234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", "http://127.0.0.1:7234")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GLM_BASE_URL", "http://127.0.0.1:8234")
 
 	targets := configuredAIProviderTargets()
 	seen := make(map[string]bool, len(targets))
@@ -84,7 +84,7 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 		"local",
 		"local-nexa",
 		"cloud-nimillm",
-		"cloud-bytedance-openspeech",
+		"cloud-volcengine-openspeech",
 		"cloud-gemini",
 		"cloud-minimax",
 		"cloud-kimi",

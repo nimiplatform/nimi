@@ -18,29 +18,45 @@ func NormalizeTokenProviderID(raw string) (string, error) {
 	}
 
 	switch token {
-	case "litellm", "cloudlitellm", "cloudai":
-		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	case "nimillm", "cloudnimillm":
+	case "nimillm":
 		return "nimillm", nil
-	case "alibaba", "aliyun", "cloudalibaba", "dashscope":
+	case "dashscope":
 		return "dashscope", nil
-	case "bytedance", "byte", "cloudbytedance", "volcengine":
+	case "volcengine":
 		return "volcengine", nil
-	case "gemini", "cloudgemini":
+	case "volcengine_openspeech":
+		return "volcengine_openspeech", nil
+	case "gemini":
 		return "gemini", nil
-	case "minimax", "cloudminimax":
+	case "minimax":
 		return "minimax", nil
-	case "kimi", "moonshot", "cloudkimi":
+	case "kimi":
 		return "kimi", nil
-	case "glm", "zhipu", "bigmodel", "cloudglm":
+	case "glm":
 		return "glm", nil
-	case "deepseek", "clouddeepseek":
+	case "deepseek":
 		return "deepseek", nil
-	case "openrouter", "cloudopenrouter":
+	case "openrouter":
 		return "openrouter", nil
+	case "openai":
+		return "openai", nil
+	case "anthropic":
+		return "anthropic", nil
+	case "openai_compatible":
+		return "openai_compatible", nil
 	default:
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+}
+
+func normalizeProbeProviderToken(raw string) string {
+	value := strings.TrimSpace(strings.ToLower(raw))
+	value = strings.TrimPrefix(value, "cloud-")
+	value = strings.TrimPrefix(value, "cloud_")
+	if value == "" {
+		return ""
+	}
+	return value
 }
 
 // ResolveProbeBackend resolves a cloud backend for token provider probing.
@@ -81,19 +97,4 @@ func probeBackendFromTemplate(name string, template *Backend, endpoint string, a
 		return nil
 	}
 	return NewBackend(name, normalizedEndpoint, normalizedAPIKey, timeout)
-}
-
-func normalizeProbeProviderToken(raw string) string {
-	value := strings.TrimSpace(strings.ToLower(raw))
-	if value == "" {
-		return ""
-	}
-	var builder strings.Builder
-	builder.Grow(len(value))
-	for _, ch := range value {
-		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') {
-			builder.WriteRune(ch)
-		}
-	}
-	return builder.String()
 }

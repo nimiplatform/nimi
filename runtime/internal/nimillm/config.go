@@ -1,6 +1,9 @@
 package nimillm
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // ProviderCredentials holds base URL and API key for a single cloud provider.
 type ProviderCredentials struct {
@@ -16,24 +19,12 @@ type CloudConfig struct {
 	HTTPTimeout time.Duration
 }
 
-// providerAliases maps legacy/alternate names to canonical provider IDs.
-// This resolution happens only at the config parsing boundary.
-var providerAliases = map[string]string{
-	"alibaba":              "dashscope",
-	"aliyun":               "dashscope",
-	"bytedance":            "volcengine",
-	"byte":                 "volcengine",
-	"bytedance_openspeech": "volcengine_openspeech",
-	"openspeech":           "volcengine_openspeech",
-	"zhipu":                "glm",
-	"bigmodel":             "glm",
-	"moonshot":             "kimi",
-}
-
 // ResolveProviderAlias returns the canonical provider ID for a given name.
 func ResolveProviderAlias(name string) string {
-	if canonical, ok := providerAliases[name]; ok {
-		return canonical
+	switch strings.TrimSpace(strings.ToLower(name)) {
+	case "nimillm", "openai", "anthropic", "dashscope", "volcengine", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
+		return strings.TrimSpace(strings.ToLower(name))
+	default:
+		return ""
 	}
-	return name
 }

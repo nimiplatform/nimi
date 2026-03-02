@@ -27,11 +27,12 @@ Current implementation scope:
   - AI service emits model-hint auto-switch events (`runtime.ai` / `route.auto_switch`)
 - OpenAI-compatible provider bridge:
   - local-plane: set `NIMI_RUNTIME_LOCAL_AI_BASE_URL` (optional `NIMI_RUNTIME_LOCAL_AI_API_KEY`)
-  - cloud-plane (NimiLLM + adapters):
+  - cloud-plane (canonical `NIMI_RUNTIME_CLOUD_*` keys):
     - NimiLLM: `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` / `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY`
-    - Alibaba adapter: `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_BASE_URL` / `NIMI_RUNTIME_CLOUD_ADAPTER_ALIBABA_API_KEY`
-    - Bytedance adapter: `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_BASE_URL` / `NIMI_RUNTIME_CLOUD_ADAPTER_BYTEDANCE_API_KEY`
-    - Gemini key alias: if `NIMI_RUNTIME_CLOUD_ADAPTER_GEMINI_API_KEY` is empty, runtime falls back to `GEMINI_API_KEY`
+    - DashScope: `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` / `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY`
+    - Volcengine: `NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL` / `NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY`
+    - Volcengine OpenSpeech: `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL` / `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY`
+    - Gemini: `NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL` / `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY`
     - Gemini base default: if Gemini key is present and base URL is empty, runtime uses `https://generativelanguage.googleapis.com/v1beta/openai`
   - unified config file: `~/.nimi/config.json` (override with `NIMI_RUNTIME_CONFIG_PATH`)
   - timeout: `NIMI_RUNTIME_AI_HTTP_TIMEOUT` (default `30s`)
@@ -44,9 +45,9 @@ Current implementation scope:
     - runtime boot restores local model/service/audit state; local runtime writes state atomically on lifecycle/audit updates
   - model routing examples:
     - `cloud/nimillm/gpt-4o`
-    - `cloud/aliyun/qwen-max`
-    - `cloud/bytedance/deepseek-v3`
-    - `cloud/gpt-4o-mini` (default cloud backend priority: NimiLLM -> Alibaba -> Bytedance)
+    - `cloud/dashscope/qwen-max`
+    - `cloud/volcengine/deepseek-v3`
+    - `cloud/gpt-4o-mini` (default cloud backend priority: NimiLLM -> DashScope -> Volcengine)
   - dynamic routing with model registry:
     - `RuntimeModelService.PullModel` writes `providerHint` into shared model registry
     - cloud default route (`cloud/<model>`) prefers registry hint over static fallback order
@@ -93,7 +94,7 @@ Recommended (one-time setup):
 
 ```bash
 go run ./cmd/nimi config init --json
-export GEMINI_API_KEY="<your-gemini-key>"
+export NIMI_RUNTIME_CLOUD_GEMINI_API_KEY="<your-gemini-key>"
 go run ./cmd/nimi config validate --json
 go run ./cmd/nimi serve
 ```
@@ -111,9 +112,8 @@ go run ./cmd/nimi health --source grpc
 go run ./cmd/nimi health --watch --changes-only --interval 5s
 go run ./cmd/nimi health --source grpc --watch --changes-only
 go run ./cmd/nimi config get --json
-go run ./cmd/nimi config set --set ai.providers.gemini.apiKeyEnv=GEMINI_API_KEY --json
-go run ./cmd/nimi config set --set ai.providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai --json
-go run ./cmd/nimi config migrate --json
+go run ./cmd/nimi config set --set providers.gemini.apiKeyEnv=NIMI_RUNTIME_CLOUD_GEMINI_API_KEY --json
+go run ./cmd/nimi config set --set providers.gemini.baseUrl=https://generativelanguage.googleapis.com/v1beta/openai --json
 go run ./cmd/nimi providers
 go run ./cmd/nimi providers --source grpc
 go run ./cmd/nimi providers --watch --changes-only --interval 5s

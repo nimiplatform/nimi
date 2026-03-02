@@ -28,7 +28,7 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	tracker := providerhealth.New()
 	tracker.Mark("cloud-nimillm", true, "")
-	tracker.Mark("cloud-alibaba", false, "timeout")
+	tracker.Mark("cloud-dashscope", false, "timeout")
 	server.SetAIHealthTracker(tracker)
 
 	recorder := httptest.NewRecorder()
