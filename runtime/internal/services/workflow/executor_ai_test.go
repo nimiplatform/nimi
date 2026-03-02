@@ -511,14 +511,6 @@ func (c *recordingRuntimeAIClient) StreamSpeechSynthesis(_ context.Context, _ *r
 	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
-func (c *recordingRuntimeAIClient) ListTokenProviderModels(_ context.Context, _ *runtimev1.ListTokenProviderModelsRequest, _ ...grpc.CallOption) (*runtimev1.ListTokenProviderModelsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "unimplemented")
-}
-
-func (c *recordingRuntimeAIClient) CheckTokenProviderHealth(_ context.Context, _ *runtimev1.CheckTokenProviderHealthRequest, _ ...grpc.CallOption) (*runtimev1.CheckTokenProviderHealthResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "unimplemented")
-}
-
 func (c *recordingRuntimeAIClient) findMediaReqByModal(modal runtimev1.Modal) *runtimev1.SubmitMediaJobRequest {
 	for _, req := range c.mediaReqs {
 		if req.GetModal() == modal {

@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -610,6 +611,50 @@ func (s *workflowEventCollector) Context() context.Context     { return s.ctx }
 func (s *workflowEventCollector) SendMsg(any) error            { return nil }
 func (s *workflowEventCollector) RecvMsg(any) error            { return nil }
 
+func TestGetWorkflowNotFoundReasonCode(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	resp, err := svc.GetWorkflow(context.Background(), &runtimev1.GetWorkflowRequest{TaskId: "nonexistent"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_WF_TASK_NOT_FOUND {
+		t.Fatalf("expected WF_TASK_NOT_FOUND, got %v", resp.GetReasonCode())
+	}
+	if resp.GetStatus() != runtimev1.WorkflowStatus_WORKFLOW_STATUS_UNSPECIFIED {
+		t.Fatalf("expected UNSPECIFIED status, got %v", resp.GetStatus())
+	}
+}
+
+func TestCancelWorkflowNotFoundReasonCode(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	resp, err := svc.CancelWorkflow(context.Background(), &runtimev1.CancelWorkflowRequest{TaskId: "nonexistent"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_WF_TASK_NOT_FOUND {
+		t.Fatalf("expected WF_TASK_NOT_FOUND, got %v", resp.GetReasonCode())
+	}
+	if resp.GetOk() {
+		t.Fatal("expected ok=false for not found task")
+	}
+}
+
+func TestSubscribeWorkflowEventsNotFoundReasonCode(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	stream := &workflowEventCollector{ctx: context.Background()}
+	err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{TaskId: "nonexistent"}, stream)
+	if err == nil {
+		t.Fatal("expected error for nonexistent task")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+}
+
 type fakeRuntimeAIClient struct {
 	generateFn func(context.Context, *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error)
 }
@@ -657,10 +702,3 @@ func (f *fakeRuntimeAIClient) StreamSpeechSynthesis(context.Context, *runtimev1.
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) ListTokenProviderModels(context.Context, *runtimev1.ListTokenProviderModelsRequest, ...grpc.CallOption) (*runtimev1.ListTokenProviderModelsResponse, error) {
-	return nil, status.Error(12, "unimplemented")
-}
-
-func (f *fakeRuntimeAIClient) CheckTokenProviderHealth(context.Context, *runtimev1.CheckTokenProviderHealthRequest, ...grpc.CallOption) (*runtimev1.CheckTokenProviderHealthResponse, error) {
-	return nil, status.Error(12, "unimplemented")
-}

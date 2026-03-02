@@ -23,8 +23,8 @@ func TestValidateDefinitionRejectsDuplicateInputSlot(t *testing.T) {
 	if graph != nil {
 		t.Fatalf("expected nil graph for duplicate slot bindings")
 	}
-	if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-		t.Fatalf("expected AI_INPUT_INVALID, got=%v", reason)
+	if reason != runtimev1.ReasonCode_WF_DAG_INVALID {
+		t.Fatalf("expected WF_DAG_INVALID, got=%v", reason)
 	}
 }
 
@@ -45,8 +45,8 @@ func TestValidateDefinitionRejectsCycle(t *testing.T) {
 	if graph != nil {
 		t.Fatalf("expected nil graph for cyclic definition")
 	}
-	if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-		t.Fatalf("expected AI_INPUT_INVALID, got=%v", reason)
+	if reason != runtimev1.ReasonCode_WF_DAG_INVALID {
+		t.Fatalf("expected WF_DAG_INVALID, got=%v", reason)
 	}
 }
 
@@ -78,8 +78,8 @@ func TestValidateDefinitionRejectsMergeNOfMOutOfRange(t *testing.T) {
 	if graph != nil {
 		t.Fatalf("expected nil graph for invalid n-of-m definition")
 	}
-	if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-		t.Fatalf("expected AI_INPUT_INVALID, got=%v", reason)
+	if reason != runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH {
+		t.Fatalf("expected WF_NODE_CONFIG_MISMATCH, got=%v", reason)
 	}
 }
 

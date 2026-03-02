@@ -3130,3 +3130,175 @@ func (s *mediaJobEventCollector) SetTrailer(metadata.MD)       {}
 func (s *mediaJobEventCollector) Context() context.Context     { return s.ctx }
 func (s *mediaJobEventCollector) SendMsg(any) error            { return nil }
 func (s *mediaJobEventCollector) RecvMsg(any) error            { return nil }
+
+func TestMediaJobReasonCodeClassification(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+
+	t.Run("GetMediaJob_NotFound_ReasonCode", func(t *testing.T) {
+		_, err := svc.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{JobId: "nonexistent"})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND {
+			t.Fatalf("expected AI_MEDIA_JOB_NOT_FOUND, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("CancelMediaJob_NotFound_ReasonCode", func(t *testing.T) {
+		_, err := svc.CancelMediaJob(ctx, &runtimev1.CancelMediaJobRequest{JobId: "nonexistent"})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND {
+			t.Fatalf("expected AI_MEDIA_JOB_NOT_FOUND, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("GetMediaArtifacts_NotFound_ReasonCode", func(t *testing.T) {
+		_, err := svc.GetMediaArtifacts(ctx, &runtimev1.GetMediaArtifactsRequest{JobId: "nonexistent"})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND {
+			t.Fatalf("expected AI_MEDIA_JOB_NOT_FOUND, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("SubscribeMediaJobEvents_NotFound_ReasonCode", func(t *testing.T) {
+		stream := &mediaJobEventCollector{ctx: ctx}
+		err := svc.SubscribeMediaJobEvents(&runtimev1.SubscribeMediaJobEventsRequest{JobId: "nonexistent"}, stream)
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND {
+			t.Fatalf("expected AI_MEDIA_JOB_NOT_FOUND, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("CancelMediaJob_NotCancellable_ReasonCode", func(t *testing.T) {
+		jobID := "job-completed-for-cancel"
+		created := svc.mediaJobs.create(&runtimev1.MediaJob{
+			JobId:         jobID,
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/sd3",
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			ModelResolved: "local/sd3",
+			TraceId:       "trace-completed",
+			Status:        runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
+		}, func() {})
+		if created == nil {
+			t.Fatal("create media job record")
+		}
+		svc.mediaJobs.transition(jobID, runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED, runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_COMPLETED, nil)
+
+		_, err := svc.CancelMediaJob(ctx, &runtimev1.CancelMediaJobRequest{JobId: jobID})
+		if err == nil {
+			t.Fatal("expected error canceling completed job")
+		}
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE {
+			t.Fatalf("expected AI_MEDIA_JOB_NOT_CANCELLABLE, got %v (ok=%v)", reason, ok)
+		}
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected FailedPrecondition, got %v", status.Code(err))
+		}
+	})
+
+	t.Run("SubmitMediaJob_SpecInvalid_MissingSpec", func(t *testing.T) {
+		_, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/sd3",
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID {
+			t.Fatalf("expected AI_MEDIA_SPEC_INVALID, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("SubmitMediaJob_SpecInvalid_ModalUnspecified", func(t *testing.T) {
+		_, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/sd3",
+			Modal:         runtimev1.Modal_MODAL_UNSPECIFIED,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID {
+			t.Fatalf("expected AI_MEDIA_SPEC_INVALID, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("SubmitMediaJob_OptionUnsupported_ImageN", func(t *testing.T) {
+		_, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/sd3",
+			Modal:         runtimev1.Modal_MODAL_IMAGE,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+				ImageSpec: &runtimev1.ImageGenerationSpec{Prompt: "test", N: 17},
+			},
+		})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("SubmitMediaJob_OptionUnsupported_VideoFps", func(t *testing.T) {
+		_, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/video",
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: &runtimev1.VideoGenerationSpec{Prompt: "test", Fps: 121},
+			},
+		})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("SubmitMediaJob_OptionUnsupported_TtsSampleRate", func(t *testing.T) {
+		_, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			Modal:         runtimev1.Modal_MODAL_TTS,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
+				SpeechSpec: &runtimev1.SpeechSynthesisSpec{Text: "hello", SampleRateHz: 500000},
+			},
+		})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
+		}
+	})
+
+	t.Run("SubmitMediaJob_OptionUnsupported_SttSpeakerCount", func(t *testing.T) {
+		_, err := svc.SubmitMediaJob(ctx, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/stt",
+			Modal:         runtimev1.Modal_MODAL_STT,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
+				TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{AudioBytes: []byte("audio"), SpeakerCount: 33},
+			},
+		})
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
+		}
+	})
+}

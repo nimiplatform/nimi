@@ -172,6 +172,46 @@ func TestGrantDelegateChain(t *testing.T) {
 	}
 }
 
+func TestListTokenChainRootRequiredReasonCode(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	_, err := svc.ListTokenChain(ctx, &runtimev1.ListTokenChainRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing root_token_id")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED.String() {
+		t.Fatalf("expected GRANT_TOKEN_CHAIN_ROOT_REQUIRED, got %s", st.Message())
+	}
+}
+
+func TestListTokenChainRootNotFoundReasonCode(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	_, err := svc.ListTokenChain(ctx, &runtimev1.ListTokenChainRequest{RootTokenId: "nonexistent"})
+	if err == nil {
+		t.Fatal("expected error for nonexistent root_token_id")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND.String() {
+		t.Fatalf("expected GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND, got %s", st.Message())
+	}
+}
+
 func TestGrantAuthorizeRejectsMissingOrInvalidConsent(t *testing.T) {
 	svc := newGrantServiceForTest()
 	ctx := context.Background()
