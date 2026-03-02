@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, Suspense } from 'react';
+import React, { useRef, useMemo, Suspense, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Text, Center, Float, Sparkles } from '@react-three/drei';
@@ -29,7 +29,7 @@ const getTheme = (ratio: number) => {
 };
 
 // SVG Ring with ticks - drawn procedurally
-const TicksRing = ({ color, speedFactor }: { color: string; speedFactor: number }) => {
+const TicksRing = ({ color, speedFactor, isCompact }: { color: string; speedFactor: number; isCompact?: boolean }) => {
   const ringRef = useRef<THREE.Group>(null);
   
   useFrame((_, delta) => {
@@ -41,12 +41,14 @@ const TicksRing = ({ color, speedFactor }: { color: string; speedFactor: number 
   // Generate ticks
   const ticks = useMemo(() => {
     const items = [];
-    const count = 60;
+    const count = isCompact ? 40 : 60;
+    const radius = isCompact ? 1.6 : 2.5;
+    
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
       const isMajor = i % 5 === 0;
-      const innerR = isMajor ? 2.2 : 2.3;
-      const outerR = 2.5;
+      const innerR = isMajor ? radius * 0.88 : radius * 0.92;
+      const outerR = radius;
       
       const x1 = Math.cos(angle) * innerR;
       const y1 = Math.sin(angle) * innerR;
@@ -68,10 +70,12 @@ const TicksRing = ({ color, speedFactor }: { color: string; speedFactor: number 
       );
     }
     return items;
-  }, [color]);
+  }, [color, isCompact]);
 
   // Labels (1x, 2x, etc.)
   const labels = useMemo(() => {
+    if (isCompact) return []; // No labels in compact mode
+    
     const items = [];
     const positions = [
       { text: '1x', angle: -Math.PI / 2 },
@@ -97,7 +101,9 @@ const TicksRing = ({ color, speedFactor }: { color: string; speedFactor: number 
       );
     });
     return items;
-  }, [color]);
+  }, [color, isCompact]);
+
+  const radius = isCompact ? 1.6 : 2.5;
 
   return (
     <group ref={ringRef}>
@@ -105,7 +111,7 @@ const TicksRing = ({ color, speedFactor }: { color: string; speedFactor: number 
       {labels}
       {/* Outer glow ring */}
       <mesh>
-        <ringGeometry args={[2.5, 2.55, 64]} />
+        <ringGeometry args={[radius, radius * 1.02, 64]} />
         <meshBasicMaterial color={color} transparent opacity={0.3} side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -113,7 +119,7 @@ const TicksRing = ({ color, speedFactor }: { color: string; speedFactor: number 
 };
 
 // Inner rotating ring
-const InnerRing = ({ color, speedFactor }: { color: string; speedFactor: number }) => {
+const InnerRing = ({ color, speedFactor, isCompact }: { color: string; speedFactor: number; isCompact?: boolean }) => {
   const ringRef = useRef<THREE.Mesh>(null);
   
   useFrame((_, delta) => {
@@ -122,16 +128,19 @@ const InnerRing = ({ color, speedFactor }: { color: string; speedFactor: number 
     }
   });
 
+  const innerRadius = isCompact ? 1.0 : 1.6;
+  const outerRadius = isCompact ? 1.03 : 1.65;
+
   return (
     <mesh ref={ringRef}>
-      <ringGeometry args={[1.6, 1.65, 64]} />
+      <ringGeometry args={[innerRadius, outerRadius, 64]} />
       <meshBasicMaterial color={color} transparent opacity={0.6} side={THREE.DoubleSide} />
     </mesh>
   );
 };
 
 // Main 3D Scene
-const FlowRingScene = ({ ratio }: { ratio: number }) => {
+const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolean }) => {
   const { color, label, speedFactor } = useMemo(() => getTheme(ratio), [ratio]);
   const particlesRef = useRef<THREE.Points>(null);
   
@@ -140,6 +149,10 @@ const FlowRingScene = ({ ratio }: { ratio: number }) => {
       particlesRef.current.rotation.z += delta * 0.1 * speedFactor;
     }
   });
+
+  const textSize = isCompact ? 0.6 : 1.0;
+  const sparklesScale = isCompact ? 2 : 3;
+  const sparklesCount = isCompact ? 20 : 30;
 
   return (
     <>
@@ -150,10 +163,10 @@ const FlowRingScene = ({ ratio }: { ratio: number }) => {
 
       <Center>
         {/* Outer ticks ring */}
-        <TicksRing color={color} speedFactor={speedFactor} />
+        <TicksRing color={color} speedFactor={speedFactor} isCompact={isCompact} />
         
         {/* Inner ring */}
-        <InnerRing color={color} speedFactor={speedFactor} />
+        <InnerRing color={color} speedFactor={speedFactor} isCompact={isCompact} />
         
         {/* Center ratio text with float animation */}
         <Float 
@@ -162,7 +175,7 @@ const FlowRingScene = ({ ratio }: { ratio: number }) => {
           floatIntensity={0.2}
         >
           <Text
-            fontSize={1.0}
+            fontSize={textSize}
             color={color}
             anchorX="center"
             anchorY="middle"
@@ -172,23 +185,12 @@ const FlowRingScene = ({ ratio }: { ratio: number }) => {
             {`${ratio.toFixed(1)}x`}
           </Text>
         </Float>
-        
-        {/* Status label */}
-        <Text
-          fontSize={0.2}
-          color="#9CA3AF"
-          position={[0, -1.8, 0]}
-          anchorX="center"
-          anchorY="middle"
-        >
-          {`Status: ${label}`}
-        </Text>
 
         {/* Sparkles/particles */}
         <Sparkles
           ref={particlesRef}
-          count={30}
-          scale={3}
+          count={sparklesCount}
+          scale={sparklesScale}
           size={1.5}
           speed={0.2 * speedFactor}
           color={color}
@@ -201,7 +203,7 @@ const FlowRingScene = ({ ratio }: { ratio: number }) => {
         <Bloom 
           luminanceThreshold={0.2}
           mipmapBlur 
-          intensity={1.5}
+          intensity={isCompact ? 1.2 : 1.5}
           radius={0.6}
         />
       </EffectComposer>
@@ -213,50 +215,52 @@ const FlowRingScene = ({ ratio }: { ratio: number }) => {
 interface TimeFlowDynamicsProps {
   ratio?: number;
   className?: string;
+  variant?: 'default' | 'compact';
 }
 
-export function TimeFlowDynamics({ ratio = 1.0, className = '' }: TimeFlowDynamicsProps) {
+export function TimeFlowDynamics({ ratio = 1.0, className = '', variant = 'default' }: TimeFlowDynamicsProps) {
   const { color, label } = useMemo(() => getTheme(ratio), [ratio]);
+  const isCompact = variant === 'compact';
+  const [showTooltip, setShowTooltip] = useState(false);
   
   return (
     <div 
-      className={`relative w-full h-full min-h-[280px] rounded-2xl overflow-hidden bg-[#0A0E12] border border-[#4ECCA3]/10 ${className}`}
-      style={{ background: 'radial-gradient(circle at center, #0d1f16 0%, #0a0f0c 100%)' }}
+      className={`relative w-full h-full ${className}`}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
-      {/* Header */}
-      <div className="absolute top-4 left-0 right-0 text-center z-10">
-        <h3 className="text-sm font-semibold tracking-wider" style={{ color }}>
-          Time Flow Dynamics
-        </h3>
-      </div>
-      
       {/* 3D Canvas */}
       <Canvas 
-        camera={{ position: [0, 0, 8], fov: 50 }} 
+        camera={{ position: [0, 0, isCompact ? 5 : 8], fov: 50 }} 
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
+        className="cursor-pointer"
       >
         <Suspense fallback={null}>
-          <FlowRingScene ratio={ratio} />
+          <FlowRingScene ratio={ratio} isCompact={isCompact} />
         </Suspense>
       </Canvas>
 
-      {/* Bottom status indicator */}
-      <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 text-xs text-[#9CA3AF]">
-        <span className="px-2 py-1 rounded-full bg-[#4ECCA3]/10 border border-[#4ECCA3]/20">
-          Current: {ratio.toFixed(1)}x
-        </span>
-        <span 
-          className="px-2 py-1 rounded-full border"
-          style={{ 
-            backgroundColor: `${color}15`,
-            borderColor: `${color}40`,
-            color 
-          }}
-        >
-          {label}
-        </span>
-      </div>
+      {/* Tooltip - appears above the component to avoid being clipped */}
+      {showTooltip && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none bottom-full mb-2">
+          <div className="flex flex-col gap-1.5 px-3 py-2 rounded-lg bg-[#0f1612]/95 border border-[#4ECCA3]/30 shadow-lg backdrop-blur-sm whitespace-nowrap">
+            {/* Title in tooltip */}
+            <div className="text-xs font-semibold tracking-wider" style={{ color }}>
+              Time Flow Dynamics
+            </div>
+            <div className="w-full h-px bg-[#4ECCA3]/20" />
+            <div className="text-xs text-[#e8f5ee]">
+              Current: <span className="font-semibold" style={{ color }}>{ratio.toFixed(1)}x</span>
+            </div>
+            <div className="text-xs text-[#e8f5ee]">
+              Status: <span className="font-semibold" style={{ color }}>{label}</span>
+            </div>
+          </div>
+          {/* Tooltip arrow pointing down */}
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0f1612]/95 border-r border-b border-[#4ECCA3]/30 rotate-45" />
+        </div>
+      )}
     </div>
   );
 }
