@@ -68,8 +68,9 @@ KnowledgeService 的跨域消费契约状态：
 |---|---|---|
 | **SDK 方法投影** | Phase 2 deferred | 创建 SDK 方法投影（BuildIndex、SearchIndex、DeleteIndex），定义 gRPC→SDK 参数映射和错误投影 |
 | **Desktop UI Spec** | 完全缺失 | 创建 Knowledge UI spec，至少定义：(1) 索引构建触发 UI（K-KNOW-002 参数收集）；(2) 构建中不确定进度指示（K-KNOW-006 deferred：无进度回调）；(3) 搜索结果展示（K-KNOW-003 SearchHit 映射）；(4) 重启后索引丢失的用户告知（K-KNOW-006 deferred：in-memory only） |
+| **knowledge-base mod (IndexedDB)** | 独立实现 | KB mod 使用浏览器 IndexedDB 实现向量存储与 cosine similarity 检索，不依赖 RuntimeKnowledgeService。当 K-KNOW Phase 2 持久化+真向量搜索就绪后，评估迁移。详见 `nimi-mods/knowledge-base/SSOT.md` |
 
-> **设计完整性注意**：K-KNOW-001~005 定义了完整的索引操作模型，但 SDK 和 Desktop 均无消费契约。Runtime 实现完成后，功能不可交付直到消费层就绪。
+> **设计完整性注意**：K-KNOW-001~005 定义了完整的索引操作模型，但 SDK 和 Desktop 均无消费契约。Runtime 实现完成后，功能不可交付直到消费层就绪。knowledge-base mod 当前独立实现向量存储（IndexedDB），不消费 RuntimeKnowledgeService。
 
 ## K-KNOW-006 Deferred Decisions
 

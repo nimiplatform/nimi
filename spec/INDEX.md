@@ -167,6 +167,13 @@ Desktop 规范采用 kernel + domain 的两层结构：
 4. `spec/runtime/multimodal-provider.md`（上游多模态提供者）
 5. `spec/runtime/multimodal-delivery-gates.md`（上游交付门控）
 
+### 修改 Knowledge-Base Mod
+
+1. `nimi-mods/knowledge-base/SSOT.md`
+2. `spec/runtime/kernel/knowledge-contract.md`（K-KNOW-*）
+3. `spec/desktop/kernel/hook-capability-contract.md`（D-HOOK-*）
+4. `nimi-mods/AGENTS.md`
+
 ## 约束
 
 - 规则必须先改 kernel，再改 domain。
