@@ -10,7 +10,7 @@ import {
 } from '@runtime/local-ai-runtime';
 import { desktopBridge, type RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { CapabilityV11, RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/state/types';
+import type { CapabilityV11, RuntimeConfigStateV11, RuntimePageIdV11 } from '@renderer/features/runtime-config/state/types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/storage';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -356,10 +356,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.setVaultVersion((v) => v + 1);
   }, [panelState.setVaultVersion]);
 
-  const onChangeSetupPage = useCallback((pageId: RuntimeSetupPageIdV11) => {
+  const onChangePage = useCallback((pageId: RuntimePageIdV11) => {
     panelState.updateState((prev) => ({
       ...prev,
-      activeSetupPage: pageId,
+      activePage: pageId,
     }));
   }, [panelState.updateState]);
 
@@ -740,7 +740,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   return {
     state: panelState.state,
     runtimeStatus: derived.runtimeStatus,
-    activeSetupPage: panelState.state?.activeSetupPage || 'models',
+    activePage: panelState.state?.activePage || 'overview',
     showTokenApiKey: panelState.showTokenApiKey,
     localRuntimeModelQuery: panelState.localRuntimeModelQuery,
     connectorModelQuery: panelState.connectorModelQuery,
@@ -761,7 +761,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setShowTokenApiKey: panelState.setShowTokenApiKey,
     setLocalRuntimeModelQuery: panelState.setLocalRuntimeModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
-    onChangeSetupPage,
+    onChangePage,
     updateState: panelState.updateState,
     discoverLocalRuntimeModels: commands.discoverLocalRuntimeModels,
     runLocalRuntimeHealthCheck: commands.runLocalRuntimeHealthCheck,

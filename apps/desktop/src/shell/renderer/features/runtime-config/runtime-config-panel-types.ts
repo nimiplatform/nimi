@@ -20,7 +20,7 @@ export type RuntimeDependencyTargetDescriptor = {
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   runtimeStatus: ProviderStatusV11 | null;
-  activeSetupPage: RuntimeConfigStateV11['activeSetupPage'];
+  activePage: RuntimeConfigStateV11['activePage'];
   showTokenApiKey: boolean;
   localRuntimeModelQuery: string;
   connectorModelQuery: string;
@@ -41,7 +41,7 @@ export type RuntimeConfigPanelControllerModel = {
   setShowTokenApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setLocalRuntimeModelQuery: (value: string) => void;
   setConnectorModelQuery: (value: string) => void;
-  onChangeSetupPage: (pageId: RuntimeConfigStateV11['activeSetupPage']) => void;
+  onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
   discoverLocalRuntimeModels: () => Promise<void>;
   runLocalRuntimeHealthCheck: () => Promise<void>;

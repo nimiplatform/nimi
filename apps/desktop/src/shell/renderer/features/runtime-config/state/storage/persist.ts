@@ -28,8 +28,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   const payload: StoredStateV11 = {
     version: 11,
     initializedByV11: Boolean(state.initializedByV11),
-    activeSection: state.activeSection,
-    activeSetupPage: state.activeSetupPage,
+    activePage: state.activePage,
     diagnosticsCollapsed: Boolean(state.diagnosticsCollapsed),
     uiMode: state.uiMode,
     selectedSource: state.selectedSource,

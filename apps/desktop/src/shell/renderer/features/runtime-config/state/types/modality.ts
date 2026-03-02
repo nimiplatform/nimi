@@ -2,8 +2,8 @@ export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedd
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
 export type SourceIdV11 = 'local-runtime' | 'token-api';
-export type RuntimeSectionIdV11 = 'setup';
-export type RuntimeSetupPageIdV11 = 'overview' | 'models' | 'cloud-api' | 'providers' | 'audit';
+export type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'runtime' | 'mods';
+export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
 export type ApiVendor =
@@ -21,15 +21,18 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
   return value === 'token-api' ? 'token-api' : 'local-runtime';
 }
 
-export function normalizeSectionV11(value: unknown): RuntimeSectionIdV11 {
-  void value;
-  return 'setup';
+export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
+  if (value === 'local' || value === 'cloud' || value === 'runtime' || value === 'mods') return value;
+  // Legacy value mapping
+  if (value === 'models') return 'local';
+  if (value === 'cloud-api' || value === 'token-api') return 'cloud';
+  if (value === 'providers' || value === 'audit') return 'runtime';
+  return 'overview';
 }
 
+/** @deprecated Use normalizePageIdV11 */
 export function normalizeSetupPageV11(value: unknown): RuntimeSetupPageIdV11 {
-  if (value === 'cloud-api' || value === 'providers' || value === 'models' || value === 'audit') return value;
-  if (value === 'token-api') return 'cloud-api';
-  return 'overview';
+  return normalizePageIdV11(value);
 }
 
 export function normalizeCapabilityV11(value: unknown): CapabilityV11 {

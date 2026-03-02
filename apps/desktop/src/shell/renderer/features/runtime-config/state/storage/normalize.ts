@@ -4,8 +4,7 @@ import {
   normalizeEndpointV11,
   normalizeLocalRuntimeModelV11,
   normalizeLocalRuntimeNodeMatrixEntryV11,
-  normalizeSectionV11,
-  normalizeSetupPageV11,
+  normalizePageIdV11,
   normalizeSourceV11,
   normalizeUiModeV11,
   type RuntimeConfigStateV11,
@@ -56,13 +55,17 @@ export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: Stor
   const parsedRecord = parsed as StoredStateV11 & Record<string, unknown>;
   const localRuntime = normalizeLocalRuntimeFromAny(seed, parsedRecord, fallback);
 
+  // Support legacy field names: activeSetupPage → activePage
+  const rawActivePage = parsedRecord.activePage
+    || (parsedRecord as Record<string, unknown>).activeSetupPage
+    || fallback.activePage;
+
   // Connectors are NOT loaded from localStorage — runtime bridge config (config.json)
   // is the single source of truth. Connectors start empty and are populated by bridge merge.
   return {
     version: 11,
     initializedByV11: Boolean(parsed.initializedByV11),
-    activeSection: normalizeSectionV11(parsed.activeSection),
-    activeSetupPage: normalizeSetupPageV11(parsed.activeSetupPage || fallback.activeSetupPage),
+    activePage: normalizePageIdV11(rawActivePage),
     diagnosticsCollapsed: parsed.diagnosticsCollapsed !== false,
     uiMode: normalizeUiModeV11(parsed.uiMode || fallback.uiMode),
     selectedSource: normalizeSourceV11(parsed.selectedSource || fallback.selectedSource),

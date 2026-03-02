@@ -15,8 +15,7 @@ export type RuntimeConfigSeedV11 = {
 export type StoredStateV11 = {
   version: 11;
   initializedByV11: boolean;
-  activeSection: RuntimeConfigStateV11['activeSection'];
-  activeSetupPage: RuntimeConfigStateV11['activeSetupPage'];
+  activePage: RuntimeConfigStateV11['activePage'];
   diagnosticsCollapsed: boolean;
   uiMode: RuntimeConfigStateV11['uiMode'];
   selectedSource: RuntimeConfigStateV11['selectedSource'];
@@ -29,8 +28,7 @@ export function createDefaultStateV11(seed: RuntimeConfigSeedV11): RuntimeConfig
   return {
     version: 11,
     initializedByV11: false,
-    activeSection: 'setup',
-    activeSetupPage: 'overview',
+    activePage: 'overview',
     diagnosticsCollapsed: true,
     uiMode: 'simple',
     selectedSource: 'local-runtime',
