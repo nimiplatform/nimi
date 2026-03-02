@@ -1,0 +1,25 @@
+mod audit;
+mod capability_matrix;
+mod catalog;
+pub mod commands;
+mod dependency_apply;
+mod dependency_resolver;
+mod device_profile;
+mod engine_pack;
+mod engine_host;
+mod hf_source;
+mod import_validator;
+mod model_registry;
+mod node_catalog;
+mod provider_adapter;
+mod reason_codes;
+mod service_artifacts;
+mod service_lifecycle;
+mod store;
+mod supervisor;
+mod types;
+mod verified_models;
+
+pub(crate) fn resolve_local_ai_runtime_api_key() -> String {
+    service_lifecycle::resolve_or_initialize_runtime_api_key()
+}
