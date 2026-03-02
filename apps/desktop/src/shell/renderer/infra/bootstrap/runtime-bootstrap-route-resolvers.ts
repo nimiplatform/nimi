@@ -87,8 +87,30 @@ export function createResolveRouteBinding(getRuntimeFields: () => RuntimeFields)
 }
 
 /**
+ * Normalize a model ID for cloud/token-api routing — strips existing route
+ * prefixes (cloud/, local/, token/) and re-adds cloud/ so the Go runtime's
+ * preferredRoute() correctly identifies it as a cloud model.
+ */
+function ensureSpeechRouteModelId(model: string): string {
+  let root = String(model || '').trim();
+  if (!root) return 'cloud/default';
+  const lower = root.toLowerCase();
+  if (lower.startsWith('cloud/')) root = root.slice('cloud/'.length).trim() || 'default';
+  else if (lower.startsWith('local/')) root = root.slice('local/'.length).trim() || 'default';
+  else if (lower.startsWith('token/')) root = root.slice('token/'.length).trim() || 'default';
+  return `cloud/${root}`;
+}
+
+/**
  * Thin passthrough for speech route resolution. No local route decision logic —
  * the Go runtime resolves model capabilities and provider routing via connectorId.
+ *
+ * Key differences from createResolveRouteBinding (chat):
+ *  - Does NOT fall back to fields.connectorId — TTS/STT must use their own
+ *    explicitly configured connector. The global connector may be a chat-only
+ *    provider (e.g. DeepSeek) that does not support speech modalities.
+ *  - Adds cloud/ model prefix for token-api routes so the Go runtime's
+ *    preferredRoute() correctly identifies the model as cloud-routed.
  */
 export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields) {
   return async ({
@@ -108,8 +130,11 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
     const source = routeSource === 'local-runtime' || routeSource === 'token-api'
       ? routeSource
       : inferSource(providerId || fields.provider);
-    const model = String(explicitModel || fields.localProviderModel || '').trim();
-    const resolvedConnectorId = String(connectorId || fields.connectorId || '').trim();
+    const rawModel = String(explicitModel || fields.localProviderModel || '').trim();
+    // Speech uses only the explicitly provided connectorId — never fall back to
+    // the global fields.connectorId which may be a chat-only connector that does
+    // not support TTS/STT modalities.
+    const resolvedConnectorId = String(connectorId || '').trim();
 
     if (source === 'local-runtime') {
       return {
@@ -119,7 +144,7 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
         localProviderEndpoint: fields.localProviderEndpoint,
         localOpenAiEndpoint: fields.localOpenAiEndpoint,
         connectorId: resolvedConnectorId,
-        model,
+        model: rawModel,
         engine: (providerId || 'localai') as string,
       };
     }
@@ -131,7 +156,7 @@ export function createSpeechRouteResolver(getRuntimeFields: () => RuntimeFields)
       localProviderEndpoint: '',
       localOpenAiEndpoint: '',
       connectorId: resolvedConnectorId,
-      model,
+      model: ensureSpeechRouteModelId(rawModel),
       engine: undefined,
     };
   };
