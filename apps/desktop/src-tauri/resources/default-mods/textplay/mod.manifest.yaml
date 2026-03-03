@@ -10,6 +10,7 @@ capabilities:
   - llm.text.generate
   - data.query.data-api.runtime.route.options
   - data.query.data-api.world.access.me
+  - data.query.data-api.world.worlds.mine
   - data.query.data-api.world.events.list
   - data.query.data-api.world.lorebooks.list
   - data.query.data-api.world.scenes.list

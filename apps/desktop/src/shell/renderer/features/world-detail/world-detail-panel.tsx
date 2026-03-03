@@ -54,10 +54,20 @@ function toErrorText(error: unknown): string {
 export function WorldDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
+  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [operationError, setOperationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedWorldId) {
+      return;
+    }
+    setRuntimeFields({
+      worldId: selectedWorldId,
+    });
+  }, [selectedWorldId, setRuntimeFields]);
 
   const worldSemanticQuery = useQuery({
     queryKey: ['world-detail-semantic', selectedWorldId],

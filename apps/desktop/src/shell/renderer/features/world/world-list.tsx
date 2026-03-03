@@ -100,9 +100,16 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
 
 export function WorldList() {
   const { t } = useTranslation();
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const [searchText, setSearchText] = useState('');
   const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
+
+  const openWorldDetail = (worldId: string) => {
+    setRuntimeFields({
+      worldId,
+    });
+    setSelectedWorldId(worldId);
+  };
 
   const worldsQuery = useQuery({
     queryKey: ['worlds-list'],
@@ -193,7 +200,7 @@ export function WorldList() {
           <div className="mb-6">
             <h2 className="text-sm font-medium text-gray-500 mb-3">{t('World.mainWorld')}</h2>
             <div
-              onClick={() => setSelectedWorldId(mainWorld.id)}
+              onClick={() => openWorldDetail(mainWorld.id)}
               className="cursor-pointer rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
@@ -382,7 +389,7 @@ export function WorldList() {
                 return (
                   <div
                     key={world.id}
-                    onClick={() => setSelectedWorldId(world.id)}
+                    onClick={() => openWorldDetail(world.id)}
                     className="cursor-pointer rounded-2xl border border-white/60 bg-white/40 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                   >
                     {/* Banner */}

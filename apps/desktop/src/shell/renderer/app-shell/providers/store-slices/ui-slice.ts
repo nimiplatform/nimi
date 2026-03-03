@@ -51,6 +51,10 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       set((state) => ({
         previousTab: state.activeTab,
         selectedWorldId: worldId,
+        runtimeFields: {
+          ...state.runtimeFields,
+          worldId,
+        },
         activeTab: 'world-detail',
       })),
     navigateBack: () =>
