@@ -17,7 +17,7 @@
  *    export NIMI_MINIMAX_VIDEO_OUT=./tmp/minimax-video.mp4
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/minimax.ts
+ *    npx tsx examples/sdk/providers/minimax.ts
  */
 
 import {

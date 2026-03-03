@@ -1,6 +1,6 @@
 # Provider Tutorials
 
-`docs/examples/providers/*.ts` are end-user tutorials (not mock tests).
+`examples/sdk/providers/*.ts` are end-user tutorials (not mock tests).
 `deepseek-chat.ts` and `bytedance-tts.ts` are now single-file runtime examples:
 1. save API key into app-managed connector storage
 2. get `connectorId`
@@ -37,14 +37,14 @@ go run ./cmd/nimi serve
 ## Run
 
 ```bash
-npx tsx docs/examples/providers/localai.ts
-npx tsx docs/examples/providers/nexa.ts
-npx tsx docs/examples/providers/nimillm.ts
-npx tsx docs/examples/providers/deepseek-chat.ts
-npx tsx docs/examples/providers/bytedance-tts.ts
-npx tsx docs/examples/providers/bytedance-openspeech.ts
-npx tsx docs/examples/providers/gemini.ts
-npx tsx docs/examples/providers/minimax.ts
-npx tsx docs/examples/providers/glm.ts
-npx tsx docs/examples/providers/kimi.ts
+npx tsx examples/sdk/providers/localai.ts
+npx tsx examples/sdk/providers/nexa.ts
+npx tsx examples/sdk/providers/nimillm.ts
+npx tsx examples/sdk/providers/deepseek-chat.ts
+npx tsx examples/sdk/providers/bytedance-tts.ts
+npx tsx examples/sdk/providers/bytedance-openspeech.ts
+npx tsx examples/sdk/providers/gemini.ts
+npx tsx examples/sdk/providers/minimax.ts
+npx tsx examples/sdk/providers/glm.ts
+npx tsx examples/sdk/providers/kimi.ts
 ```

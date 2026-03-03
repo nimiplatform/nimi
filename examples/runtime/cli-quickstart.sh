@@ -103,4 +103,4 @@ go run ./cmd/nimi app send \
   --json
 
 echo ""
-echo "Done. See docs/runtime/README.md for the full command reference."
+echo "Done. See docs/reference/runtime.md for the full command reference."

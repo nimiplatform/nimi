@@ -1,7 +1,7 @@
 /**
  * Workflow DAG Example
  *
- * Run: npx tsx docs/examples/workflow-dag.ts
+ * Run: npx tsx examples/workflow-dag.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';

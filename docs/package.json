@@ -5,15 +5,9 @@
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
-    "preview": "vitepress preview",
-    "check:examples": "tsc -p examples/tsconfig.json --noEmit"
-  },
-  "dependencies": {
-    "@nimiplatform/sdk": "workspace:*",
-    "ai": "6.0.85"
+    "preview": "vitepress preview"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
     "vitepress": "^1.6.3"
   }
 }

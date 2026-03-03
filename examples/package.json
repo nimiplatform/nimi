@@ -1,0 +1,15 @@
+{
+  "name": "@nimiplatform/examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nimiplatform/sdk": "workspace:*",
+    "ai": "6.0.85"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

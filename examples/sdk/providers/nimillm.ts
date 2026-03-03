@@ -17,7 +17,7 @@
  *    export NIMI_NIMILLM_IMAGE_OUT=./tmp/nimillm-image.png
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/nimillm.ts
+ *    npx tsx examples/sdk/providers/nimillm.ts
  */
 
 import {

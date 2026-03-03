@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const SOURCE_ROOTS = ['sdk', 'apps', 'docs/examples', 'scripts'];
+const SOURCE_ROOTS = ['sdk', 'apps', 'examples', 'scripts'];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.mts', '.cts']);
 const SKIP_DIRS = new Set([
   '.git',

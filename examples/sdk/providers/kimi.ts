@@ -16,7 +16,7 @@
  *    export NIMI_KIMI_REFERENCE_IMAGES=https://.../ref1.png,https://.../ref2.png
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/kimi.ts
+ *    npx tsx examples/sdk/providers/kimi.ts
  */
 
 import {

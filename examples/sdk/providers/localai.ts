@@ -16,7 +16,7 @@
  *    export NIMI_LOCALAI_IMAGE_OUT=./tmp/localai-image.png
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/localai.ts
+ *    npx tsx examples/sdk/providers/localai.ts
  */
 
 import {

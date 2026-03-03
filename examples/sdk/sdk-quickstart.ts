@@ -1,7 +1,7 @@
 /**
  * Nimi SDK Quick Start
  *
- * Run: npx tsx docs/examples/sdk-quickstart.ts
+ * Run: npx tsx examples/sdk-quickstart.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';

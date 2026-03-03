@@ -21,7 +21,7 @@
  *    export NIMI_GLM_STT_AUDIO_PATH=./sample.wav   # optional
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/glm.ts
+ *    npx tsx examples/sdk/providers/glm.ts
  */
 
 import { readFile } from 'node:fs/promises';

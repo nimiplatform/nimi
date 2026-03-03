@@ -1,7 +1,7 @@
 /**
  * AI Streaming Example
  *
- * Run: npx tsx docs/examples/ai-streaming.ts
+ * Run: npx tsx examples/ai-streaming.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';

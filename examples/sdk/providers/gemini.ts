@@ -17,7 +17,7 @@
  *    export NIMI_GEMINI_VIDEO_OUT=./tmp/gemini-video.mp4
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/gemini.ts
+ *    npx tsx examples/sdk/providers/gemini.ts
  */
 
 import {

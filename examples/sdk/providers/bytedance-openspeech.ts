@@ -18,7 +18,7 @@
  *    export NIMI_BYTEDANCE_STT_TRANSPORT=rest            # optional: rest|ws
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/bytedance-openspeech.ts
+ *    npx tsx examples/sdk/providers/bytedance-openspeech.ts
  */
 
 import { readFile } from 'node:fs/promises';

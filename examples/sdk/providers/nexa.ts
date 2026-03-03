@@ -18,7 +18,7 @@
  *    export NIMI_NEXA_STT_AUDIO_PATH=./sample.wav   # optional
  *
  * 3) Run:
- *    npx tsx docs/examples/providers/nexa.ts
+ *    npx tsx examples/sdk/providers/nexa.ts
  */
 
 import { readFile } from 'node:fs/promises';

@@ -1,7 +1,7 @@
 /**
  * App Authorization Lifecycle (ExternalPrincipal)
  *
- * Run: npx tsx docs/examples/app-auth.ts
+ * Run: npx tsx examples/app-auth.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';
