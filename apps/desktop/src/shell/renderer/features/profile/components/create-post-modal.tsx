@@ -338,13 +338,19 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.emoji-panel') && !target.closest('.emoji-btn')) {
+      
+      // Check if click is inside emoji button wrapper (the div wrapping the button)
+      const emojiWrapper = target.closest('.emoji-btn-wrapper');
+      const locationWrapper = target.closest('.location-btn-wrapper');
+      const tagWrapper = target.closest('.tag-btn-wrapper');
+      
+      if (!target.closest('.emoji-panel') && !emojiWrapper) {
         setShowEmojiPanel(false);
       }
-      if (!target.closest('.location-panel') && !target.closest('.location-btn')) {
+      if (!target.closest('.location-panel') && !locationWrapper) {
         setShowLocationPanel(false);
       }
-      if (!target.closest('.tag-panel') && !target.closest('.tag-btn')) {
+      if (!target.closest('.tag-panel') && !tagWrapper) {
         setShowTagPanel(false);
       }
     };
@@ -380,7 +386,13 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
       <div
         className="relative mx-4 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          // Close panels when clicking inside modal but outside panels
+          setShowEmojiPanel(false);
+          setShowLocationPanel(false);
+          setShowTagPanel(false);
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
@@ -526,7 +538,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
             {/* Action buttons */}
             <div className="relative mt-2 flex items-center gap-2">
               {/* Emoji button with tooltip */}
-              <div className="relative">
+              <div className="relative emoji-btn-wrapper">
                 <button
                   ref={emojiBtnRef}
                   type="button"
@@ -556,7 +568,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
               </div>
               
               {/* Location button with tooltip */}
-              <div className="relative">
+              <div className="relative location-btn-wrapper">
                 <button
                   ref={locationBtnRef}
                   type="button"
@@ -584,7 +596,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
               </div>
               
               {/* Tag button with tooltip */}
-              <div className="relative">
+              <div className="relative tag-btn-wrapper">
                 <button
                   ref={tagBtnRef}
                   type="button"

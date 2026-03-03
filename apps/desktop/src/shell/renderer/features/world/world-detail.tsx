@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
 import type { WorldListItem } from './world-list';
 import type { WorldAgent, WorldEvent } from './world-detail-template';
@@ -108,19 +109,49 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const events = worldEventsQuery.data || [];
 
   const handleChatAgent = (agent: WorldAgent) => {
-    console.log('Enter chat with agent:', agent);
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'action:chat-agent:clicked',
+      details: {
+        worldId: world.id,
+        agentId: agent.id,
+      },
+    });
   };
 
   const handleVoiceAgent = (agent: WorldAgent) => {
-    console.log('Voice call with agent:', agent);
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'action:voice-agent:clicked',
+      details: {
+        worldId: world.id,
+        agentId: agent.id,
+      },
+    });
   };
 
   const handleEnterEdit = () => {
-    console.log('Enter world editor:', world.id);
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'action:enter-edit:clicked',
+      details: {
+        worldId: world.id,
+      },
+    });
   };
 
   const handleCreateSubWorld = () => {
-    console.log('Create sub-world:', world.id);
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'action:create-sub-world:clicked',
+      details: {
+        worldId: world.id,
+      },
+    });
   };
 
   return (
