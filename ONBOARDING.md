@@ -285,10 +285,10 @@ git pull --rebase
 ## 11. 参考文档
 
 1. `README.md`
-2. `docs/getting-started/README.md`
+2. `docs/getting-started/index.md`
 3. `runtime/README.md`
-4. `docs/runtime/README.md`
-5. `docs/sdk/README.md`
+4. `docs/reference/runtime.md`
+5. `docs/reference/sdk.md`
 6. `spec/runtime/connector.md`（Connector 领域规范）
 7. `spec/runtime/kernel/key-source-routing.md`（凭据路由规范）
 

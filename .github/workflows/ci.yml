@@ -70,7 +70,7 @@ jobs:
           runtime_changed=false
           desktop_web_changed=false
 
-          docs_regex='^(docs/|ssot/|README\.md$|CHANGELOG\.md$)'
+          docs_regex='^(docs/|examples/|README\.md$|CHANGELOG\.md$)'
           shared_regex='^(scripts/|package\.json$|pnpm-workspace\.yaml$|pnpm-lock\.yaml$|\.github/workflows/|\.gitignore$|\.editorconfig$)'
 
           while IFS= read -r file; do
@@ -130,8 +130,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Compile docs examples
+      - name: Compile examples
         run: pnpm check:examples
+
+      - name: Build docs portal
+        run: pnpm docs:build
 
       - name: Markdown lint baseline
         run: pnpm check:markdown
@@ -139,23 +142,11 @@ jobs:
       - name: Enforce no legacy nimid invocation in docs
         run: pnpm check:no-nimid-doc-invocation
 
-      - name: Enforce no absolute user-home paths in docs/ssot
+      - name: Enforce no absolute user-home paths in docs/spec/examples
         run: pnpm check:no-absolute-user-paths
 
       - name: Enforce no legacy docs contract aliases
         run: pnpm check:no-legacy-doc-contracts
-
-      - name: SSOT frontmatter check
-        run: pnpm check:ssot-frontmatter
-
-      - name: SSOT traceability check
-        run: pnpm check:ssot-traceability
-
-      - name: SSOT links check
-        run: pnpm check:ssot-links
-
-      - name: SSOT proto-first check
-        run: pnpm check:ssot-proto-first
 
   core-static:
     needs: changes

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const TARGET_DIRS = ['docs', 'ssot'];
+const TARGET_DIRS = ['docs', 'spec', 'examples'];
 const TARGET_FILES = [
   'README.md',
   'AGENTS.md',

@@ -1,157 +1,287 @@
-# Nimi
+<div align="center">
 
-[![CI](https://github.com/nimiplatform/nimi/actions/workflows/ci.yml/badge.svg)](https://github.com/nimiplatform/nimi/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-blue)](LICENSE)
-[![Go](https://img.shields.io/badge/go-1.24-00ADD8)](runtime/go.mod)
-[![Node](https://img.shields.io/badge/node-%3E%3D24-339933)](package.json)
+  ## 🪸 Nimi: The Infrastructure Layer for Next-Gen AI Apps
 
-An AI-native open world platform with local runtime, open SDK, desktop shell, and mod ecosystem.
+  [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-black.svg?logo=github&style=flat-square)](https://github.com/nimiplatform/nimi)
+  [![Last Commit](https://img.shields.io/github/last-commit/nimiplatform/nimi?style=flat-square)](https://github.com/nimiplatform/nimi)
+  [![CI](https://img.shields.io/github/actions/workflow/status/nimiplatform/nimi/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/nimiplatform/nimi/actions/workflows/ci.yml)
+  [![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-blue?style=flat-square)](LICENSE)
+  [![Go](https://img.shields.io/badge/go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white)](runtime/go.mod)
+  [![Node](https://img.shields.io/badge/node-%E2%89%A524-339933?style=flat-square&logo=node.js&logoColor=white)](package.json)
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    Applications                      │
-│  desktop (1st party)    3rd-party apps          │
-├─────────────────────────────────────────────────────┤
-│                      @nimiplatform/sdk                        │
-├──────────────────────┬──────────────────────────────┤
-│  nimi-realm (cloud)  │  nimi-runtime (local)          │
-│  Identity / Social   │  AI Inference / Models         │
-│  Economy / Worlds    │  Workflow DAG / Knowledge      │
-│  Agents / Memory     │  App Auth / Audit              │
-└──────────────────────┴──────────────────────────────┘
-```
+  <p align="center">
+    <a href="https://nimi.xyz">Website</a> · <a href="docs/getting-started/">Getting Started</a> · <a href="docs/reference/sdk.md">SDK Reference</a> · <a href="spec/platform/protocol.md">Protocol</a> · <a href="CONTRIBUTING.md">Contributing</a>
+  </p>
+</div>
+
+---
+
+Building an AI app is easy. Giving it memory, context, and identity that persists across every app your users touch — that's the hard part.
+
+**Nimi** is the open-source infrastructure layer that gives AI apps shared context, persistent agents, and cross-app identity. **Runtime** handles AI model abstraction locally. **Realm** provides the persistent world state in the cloud. One unified **SDK** connects both.
+
+<!-- TODO: Add product screenshot or demo GIF here
+     Recommended: Desktop shell screenshot showing World + Agent interaction
+     Size: 800px width, centered
+     Format: GIF (animated demo) or PNG (static screenshot)
+     Place file at: docs/assets/nimi-demo.gif or docs/assets/nimi-screenshot.png
+     Then replace this comment with:
+     <p align="center">
+       <img src="docs/assets/nimi-demo.gif" alt="Nimi Demo" width="800">
+     </p>
+-->
+
+## Why Nimi?
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### For Developers
+
+- **One SDK, any model** — Runtime abstracts provider differences. Switch between local and cloud models without changing code.
+- **Rich context out of the box** — Realm gives you Worlds, Agents, Memory, and six protocol primitives. No more building your data layer from scratch.
+- **Vercel AI SDK compatible** — Drop-in `ai` provider. Use `generateText`, `streamText` with your existing code.
+- **Local-first, cloud-optional** — Go daemon runs on the user's machine. Cloud when you need it.
+
+</td>
+<td width="50%" valign="top">
+
+### For Users
+
+- **One identity everywhere** — Unified account, data, and authorization across all Nimi apps.
+- **AI that remembers you** — Your agents carry memory, preferences, and relationships between apps.
+- **Seamless world traversal** — Switch between AI apps like walking between rooms. Think *Ready Player One*.
+- **Your data, your control** — Local-first architecture means your data lives on your machine first.
+
+</td>
+</tr>
+</table>
+
+## How It Works
+
+<p align="center">
+  <img src="docs/assets/structure.jpg" alt="Nimi" width="1200">
+</p>
+
+**Realm** is the shared cloud state — identity, social graphs, economy, and persistent world/agent definitions. **Runtime** is the local AI daemon — model routing, inference, workflows, and knowledge indexing. They are **independent peers**. SDK bridges both. Apps access platform exclusively via `@nimiplatform/sdk`.
+
+## Realm (Cloud Persistent World)
+
+`Realm` is Nimi's cloud state layer (managed, closed-source service) for cross-device and cross-app consistency.
+
+- **What it stores:** identity, social graph, economy state, worlds, agents, and memory.
+- **How it communicates:** REST APIs + WebSocket real-time events.
+- **How you access it:** `@nimiplatform/sdk` `Realm` client (`auth/users/posts/worlds/...`).
+- **Deployment model:** runtime-only, realm-only, or both together.
+
+For detailed contracts, see [Architecture](docs/architecture/) and [SDK Reference](docs/reference/sdk.md).
+
+## Runtime (Local Execution Daemon for Local + Cloud AI)
+
+`Runtime` runs locally as an open-source Go daemon, and serves as a unified AI gateway for both on-device engines and cloud providers.
+
+- **What it handles:** text/image/video/TTS/STT/embedding inference, model lifecycle, workflow execution, local knowledge indexing, and audit.
+- **How it routes:** `local-runtime` for on-device engines (LocalAI/Nexa), `token-api` for cloud providers.
+- **How it communicates:** local gRPC for app integration and CLI for operations (`go run ./cmd/nimi ...`).
+- **How you access it:** `@nimiplatform/sdk` `Runtime` client and `@nimiplatform/sdk/ai-provider` (Vercel AI SDK compatible).
+
+For implementation details, see [Runtime Guide](runtime/README.md) and [SDK Reference](docs/reference/sdk.md).
+
+## Supported Models & Providers
+
+Nimi Runtime routes AI calls through a unified API — switch between local engines and cloud providers without changing your application code.
+
+### Local (On-Device)
+
+Pick the engine that matches your device profile:
+
+- `LocalAI` delivers full multimodal performance on local CPU/GPU, supporting GGUF and OpenAI-compatible models (Qwen, LLaMA, Mistral, Phi, Gemma, and more).
+- `Nexa` is tuned for quantized, lower-footprint inference on edge-class devices. Video is currently policy-gated (`nexa.video.unsupported`) and returns `AI_ROUTE_UNSUPPORTED`.
+
+| Engine | Text | Embed | Image | Video | TTS | STT |
+|--------|:----:|:-----:|:-----:|:-----:|:---:|:---:|
+| [LocalAI](https://localai.io) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [Nexa](https://nexa.ai/) | ✅ | ✅ | ✅ | ─* | ✅ | ✅ |
+
+* `Nexa` video generation is intentionally blocked by policy gate `nexa.video.unsupported`.
+
+### Cloud Providers
+
+| Provider | SDK Prefix | Text | Embed | Image | Video | TTS | STT |
+|----------|-----------|:----:|:-----:|:-----:|:-----:|:---:|:---:|
+| [OpenAI](https://openai.com) | `openai/` | ✅ | ✅ | ─ | ─ | ─ | ─ |
+| [Anthropic](https://anthropic.com) | `anthropic/` | ✅ | ─ | ─ | ─ | ─ | ─ |
+| [Google Gemini](https://ai.google.dev) | `gemini/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [DeepSeek](https://deepseek.com) | `deepseek/` | ✅ | ─ | ─ | ─ | ─ | ─ |
+| [OpenRouter](https://openrouter.ai) | `openrouter/` | ✅ | ─ | ─ | ─ | ─ | ─ |
+| OpenAI-Compatible ¹ | `openai_compatible/` | ✅ | ─ | ─ | ─ | ─ | ─ |
+| [Alibaba DashScope](https://dashscope.aliyun.com) | `dashscope/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [Volcengine ARK](https://www.volcengine.com/product/ark) (Doubao) | `volcengine/` | ✅ | ✅ | ✅ | ✅ | ─ | ─ |
+| [Volcengine OpenSpeech](https://www.volcengine.com/product/speech) | `volcengine_openspeech/` | ─ | ─ | ─ | ─ | ✅ | ✅ |
+| [MiniMax](https://www.minimax.chat) | `minimax/` | ✅ | ─ | ✅ | ✅ | ✅ | ✅ |
+| [Kimi (Moonshot)](https://kimi.ai) | `kimi/` | ✅ | ─ | ✅ | ─ | ✅ | ✅ |
+| [GLM (Zhipu)](https://open.bigmodel.cn) | `glm/` | ✅ | ─ | ✅ | ✅ | ✅ | ✅ |
+| [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service) | `azure/` | ✅ | ✅ | ─ | ─ | ─ | ─ |
+| [Mistral AI](https://mistral.ai) | `mistral/` | ✅ | ✅ | ─ | ─ | ─ | ─ |
+| [Groq](https://groq.com) | `groq/` | ✅ | ─ | ─ | ─ | ─ | P2 |
+| [xAI (Grok)](https://x.ai) | `xai/` | ✅ | ─ | ─ | ─ | ─ | ─ |
+| [Baidu Qianfan (ERNIE)](https://qianfan.cloud.baidu.com) | `qianfan/` | ✅ | ✅ | P2 | ─ | P2 | P2 |
+| [Tencent Hunyuan](https://hunyuan.tencent.com) | `hunyuan/` | ✅ | ✅ | P2 | P2 | P2 | P2 |
+| [iFlytek Spark](https://xinghuo.xfyun.cn) | `spark/` | ✅ | ─ | ─ | ─ | P2 | P2 |
+| [AWS Bedrock](https://aws.amazon.com/bedrock) | *Phase 2* | P2 | P2 | P2 | ─ | ─ | ─ |
+| [Cohere](https://cohere.com) | *Phase 2* | ✅ | P2 | ─ | ─ | ─ | ─ |
+| [Together AI](https://together.ai) | *Phase 2* | ✅ | P2 | P2 | ─ | ─ | ─ |
+| [Replicate](https://replicate.com) | *Phase 2* | P2 | ─ | P2 | P2 | ─ | ─ |
+| [ElevenLabs](https://elevenlabs.io) | *Phase 2* | ─ | ─ | ─ | ─ | P2 | P2 |
+| [Baichuan AI](https://www.baichuan-ai.com) | *Phase 2* | ✅ | P2 | ─ | ─ | ─ | ─ |
+| [Yi (01.AI)](https://www.01.ai) | *Phase 2* | ✅ | ─ | ─ | ─ | ─ | ─ |
+| [Step AI](https://www.stepfun.com) | *Phase 2* | ✅ | ─ | P2 | P2 | ─ | ─ |
+| [Perplexity AI](https://perplexity.ai) | *Phase 3* | ✅ | ─ | ─ | ─ | ─ | ─ |
+| [Stability AI](https://stability.ai) | *Phase 3* | ─ | ─ | P3 | P3 | ─ | ─ |
+| [AssemblyAI](https://assemblyai.com) | *Phase 3* | ─ | ─ | ─ | ─ | ─ | P3 |
+| [Runway](https://runwayml.com) | *Phase 3* | ─ | ─ | ─ | P3 | ─ | ─ |
+
+¹ **OpenAI-Compatible** — bring-your-own endpoint: Ollama, vLLM, LM Studio, LiteLLM, Xinference, etc.
+
+> Want to contribute a provider? See [runtime/AGENTS.md](runtime/AGENTS.md) for the implementation contract.
 
 ## Components
 
-| Component | Description | Language | License |
-|-----------|-------------|----------|---------|
-| [runtime](runtime/) | Local AI daemon — inference, models, workflows, auth | Go | Apache-2.0 |
-| [sdk](sdk/) | Developer SDK (`@nimiplatform/sdk`) — realm + runtime access surfaces | TypeScript | Apache-2.0 |
-| [desktop](apps/desktop/) | Flagship desktop app with mod ecosystem | Tauri + React | MIT |
-| [web](apps/web/) | Web adapter reusing desktop renderer | React | MIT |
-| [nimi-mods](nimi-mods/) | Desktop mini-programs (extensions) | TypeScript | MIT |
-| [proto](proto/) | gRPC service definitions | Protobuf | Apache-2.0 |
-| [docs](docs/) | Documentation & protocol spec | Markdown | CC-BY-4.0 |
+| Component | Description | Stack |
+|-----------|-------------|-------|
+| [**runtime**](runtime/) | Local AI daemon — inference, models, workflows, knowledge | Go 1.24, gRPC |
+| [**sdk**](sdk/) | Developer SDK (`@nimiplatform/sdk`) | TypeScript, ESM |
+| [**desktop**](apps/desktop/) | Desktop shell with mod ecosystem | Tauri, React 19 |
+| [**web**](apps/web/) | Web client sharing desktop renderer | React 19 |
+| [**mods**](nimi-mods/) | Desktop extensions with 8-stage governance | TypeScript |
+| [**proto**](proto/) | gRPC service definitions | Protobuf, Buf CLI |
+| [**spec**](spec/) | Executable specifications (kernel + domain) | Markdown, YAML |
+| [**docs**](docs/) | Getting started & guides | Markdown |
 
 ## Quick Start
 
-### Runtime
+### 1. Start the Runtime
 
 ```bash
 cd runtime
 go run ./cmd/nimi serve
 ```
 
-Optional one-time setup (recommended):
+### 2. Make Your First AI Call
 
-```bash
-mkdir -p ~/.nimi/runtime
-cp runtime/config.example.json ~/.nimi/runtime/config.json
-export GEMINI_API_KEY="<your-gemini-key>"
-```
-
-In another terminal:
+**Option A: CLI** (zero dependencies)
 
 ```bash
 cd runtime
-go run ./cmd/nimi health --source grpc
-go run ./cmd/nimi ai generate --prompt "hello runtime"
-go run ./cmd/nimi model list --json
-go run ./cmd/nimi mod list --json
+go run ./cmd/nimi run local/qwen2.5 --prompt "Hello, Nimi!"
 ```
 
-### Mod CLI
-
-```bash
-cd runtime
-export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/nimi-mods
-go run ./cmd/nimi mod install mod-circle:world.nimi.community-tarot --mods-dir "$NIMI_RUNTIME_MODS_DIR" --json
-go run ./cmd/nimi mod install mod-circle:world.nimi.community-tarot --mods-dir "$NIMI_RUNTIME_MODS_DIR" --strict-id --json
-go run ./cmd/nimi mod install github:someuser/nimi-mod-tarot --mods-dir "$NIMI_RUNTIME_MODS_DIR" --json
-go run ./cmd/nimi mod create --dir /tmp/my-mod --name "My Mod" --mod-id world.nimi.my-mod
-go run ./cmd/nimi mod build --dir /tmp/my-mod --json
-GITHUB_TOKEN=... go run ./cmd/nimi mod publish --dir /tmp/my-mod --source-repo yourname/my-mod --json
-```
-
-### SDK
+**Option B: TypeScript SDK**
 
 ```bash
 pnpm add @nimiplatform/sdk
 ```
 
 ```ts
-import { Realm } from '@nimiplatform/sdk';
+import { Runtime } from '@nimiplatform/sdk';
 
-const realm = new Realm({
-  baseUrl: 'https://api.nimi.xyz',
+const runtime = new Runtime({
+  appId: 'my_app',
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
-const profile = await realm.auth.getProfile();
-console.log(profile.userId);
+const result = await runtime.ai.text.generate({
+  model: 'local/qwen2.5',
+  subjectUserId: 'local-user',
+  input: 'Hello from Nimi!',
+  route: 'local-runtime',
+  fallback: 'deny',
+  timeoutMs: 30000,
+});
+
+console.log(result.text);
 ```
 
-### Desktop
+**Option C: Vercel AI SDK**
 
-```bash
-pnpm install
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
-pnpm -C apps/desktop run dev:shell
+```ts
+import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
+import { generateText } from 'ai';
+
+const nimi = createNimiAiProvider({
+  runtime,
+  appId: 'my_app',
+  subjectUserId: 'local-user',
+  routePolicy: 'local-runtime',
+  fallback: 'deny',
+});
+
+const { text } = await generateText({
+  model: nimi.text('local/qwen2.5'),
+  prompt: 'What is the Nimi platform?',
+});
 ```
 
-Desktop × `nimi-mods` local joint-debug (no legacy fallback):
+**Option D: Realm (Cloud, optional)**
 
-```bash
-# Terminal A (mods)
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-pnpm -C "$NIMI_MODS_ROOT" install
-pnpm -C "$NIMI_MODS_ROOT" run watch -- --mod local-chat
+```ts
+import { Realm } from '@nimiplatform/sdk';
 
-# Terminal B (desktop)
-export NIMI_MODS_ROOT=/ABS/PATH/TO/nimi-mods
-export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
-pnpm run check:desktop-mods-smoke:local-chat
-pnpm -C apps/desktop run dev:shell
+const guestRealm = new Realm({
+  baseUrl: process.env.NIMI_REALM_BASE_URL || 'https://api.nimi.xyz',
+  auth: { accessToken: Realm.NO_AUTH },
+});
+
+const tokens = await guestRealm.auth.passwordLogin({
+  email: 'user@nimi.local',
+  password: 'secret',
+});
+
+const realm = new Realm({
+  baseUrl: process.env.NIMI_REALM_BASE_URL || 'https://api.nimi.xyz',
+  auth: {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken || undefined,
+  },
+});
+
+await realm.users.me();
+await realm.posts.create({
+  content: 'hello realm',
+});
 ```
 
-## Documentation
+> **[Full Getting Started Guide →](docs/getting-started/)** covers configuration, routing, cloud providers, and realm integration.
 
-- [Getting Started](docs/getting-started/README.md)
-- [Architecture](docs/architecture/README.md)
-- [Runtime Guide](docs/runtime/README.md)
-- [SDK Reference](docs/sdk/README.md)
-- [Public SSOT](ssot/README.md)
-- [Mod Development](docs/mods/README.md)
-- [Platform Protocol](docs/protocol/README.md)
-- [Error Codes](docs/error-codes.md)
+## Learn More
 
-## For AI Agents
-
-This project is built AI-first. See [AGENTS.md](AGENTS.md) for conventions, plus per-component files:
-
-- [runtime/AGENTS.md](runtime/AGENTS.md) — Go conventions
-- [sdk/AGENTS.md](sdk/AGENTS.md) — TypeScript conventions
-- [apps/desktop/AGENTS.md](apps/desktop/AGENTS.md) — Tauri + React conventions
-- [nimi-mods/AGENTS.md](nimi-mods/AGENTS.md) — External mod repo workflow conventions
-
-## Links
-
-- [Documentation](docs/)
-- [Vision](VISION.md)
-- [Governance](GOVERNANCE.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security Policy](SECURITY.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Changelog](CHANGELOG.md)
+| | |
+|---|---|
+| [Getting Started](docs/getting-started/) | Zero to first AI call in minutes |
+| [SDK Reference](docs/reference/sdk.md) | Full `@nimiplatform/sdk` API guide |
+| [Runtime Guide](runtime/README.md) | CLI commands and daemon configuration |
+| [Platform Protocol](spec/platform/protocol.md) | Six primitives: Timeflow · Social · Economy · Transit · Context · Presence |
+| [Architecture](spec/platform/architecture.md) | Six-layer platform architecture contract |
+| [Mod Development](docs/guides/mod-developer.md) | Build desktop extensions |
+| [Vision](VISION.md) | North star and platform direction |
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution workflow and [AGENTS.md](AGENTS.md) for engineering conventions.
+We welcome contributions of all kinds — bug reports, documentation improvements, feature implementations, and spec discussions.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [GOVERNANCE.md](GOVERNANCE.md) for the decision-making process.
+
+```bash
+pnpm install              # Install dependencies
+pnpm build                # Build SDK + Desktop + Web
+cd runtime && go test ./... # Run runtime tests
+```
 
 ## License
 
-Multi-licensed by component:
-
-- `runtime/`, `sdk/`, `proto/` — [Apache-2.0](licenses/Apache-2.0.txt)
-- `apps/desktop/`, `apps/web/`, `apps/_libs/`, `nimi-mods/` — [MIT](licenses/MIT.txt)
-- `docs/` — [CC-BY-4.0](licenses/CC-BY-4.0.txt)
+| License | Scope |
+|---------|-------|
+| [Apache-2.0](licenses/Apache-2.0.txt) | runtime, sdk, proto |
+| [MIT](licenses/MIT.txt) | desktop, web, mods |
+| [CC-BY-4.0](licenses/CC-BY-4.0.txt) | docs, spec |

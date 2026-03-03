@@ -12,7 +12,7 @@ const SCAN_TARGETS = [
   'AGENTS.md',
   'proto/README.md',
   'docs',
-  'ssot',
+  'spec',
   'apps/desktop/src/shell/renderer/mod-source.generated.css',
 ];
 

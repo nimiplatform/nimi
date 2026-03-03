@@ -5,7 +5,7 @@ Shared protocol sources for public repository.
 Current state:
 
 - Runtime V1 proto sources are in `proto/runtime/v1/`.
-- Contract source is tracked in `ssot/runtime/proto-contract.md`.
+- Proto governance contract is tracked in `spec/runtime/proto-governance.md`.
 
 Files:
 

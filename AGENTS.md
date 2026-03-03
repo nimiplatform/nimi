@@ -132,11 +132,11 @@ See [`runtime/AGENTS.md` § Live Smoke Tests](runtime/AGENTS.md) and [`sdk/AGENT
 |------|---------|
 | `docs/getting-started/` | Quick start guide |
 | `docs/architecture/` | Platform architecture |
-| `docs/runtime/` | Runtime reference |
-| `docs/sdk/` | SDK API guide |
-| `docs/mods/` | Mod development |
-| `docs/protocol/` | Platform Protocol spec |
-| `docs/error-codes.md` | Error code dictionary |
+| `docs/reference/runtime.md` | Runtime reference |
+| `docs/reference/sdk.md` | SDK API guide |
+| `docs/guides/mod-developer.md` | Mod development |
+| `docs/reference/protocol.md` | Platform protocol reference |
+| `docs/reference/error-codes.md` | Error code dictionary |
 | `spec/` | Runtime/SDK design spec (kernel + domain) |
 | `dev/research/` | Research and investigation documents |
 | `dev/report/` | Audit and assessment reports |

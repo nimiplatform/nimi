@@ -10,7 +10,7 @@ const scanRoots = [
   'apps/desktop/src-tauri/src/runtime_bridge',
   'sdk/src',
   'runtime/README.md',
-  'docs/getting-started/README.md',
+  'docs/getting-started/index.md',
 ];
 
 const allowedExtensions = new Set([

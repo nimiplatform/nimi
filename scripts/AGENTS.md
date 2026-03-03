@@ -45,11 +45,6 @@ Validation scripts run in CI. Each enforces a specific invariant.
 | `check-sdk-spec-kernel-consistency.mjs` | Spec | SDK spec YAML ↔ markdown consistency |
 | `check-sdk-version-matrix.mjs` | SDK | Version matrix completeness |
 | `check-sdk-vnext-matrix.mjs` | SDK | vNext matrix validation |
-| `check-ssot-boundary.mjs` | SSOT | SSOT boundary enforcement |
-| `check-ssot-frontmatter.mjs` | SSOT | SSOT frontmatter format |
-| `check-ssot-links.mjs` | SSOT | SSOT internal link integrity |
-| `check-ssot-proto-first.mjs` | SSOT | Proto-first contract validation |
-| `check-ssot-traceability.mjs` | SSOT | SSOT traceability chain |
 
 ### Code Generation (`generate-*`)
 
@@ -116,6 +111,7 @@ Release automation. Contains signing and SBOM generation for distribution artifa
 - `generate-*` scripts are idempotent — safe to re-run
 - Scripts are invoked from workspace root via `pnpm` script aliases (see `package.json`)
 - Do not add new scripts without a corresponding `pnpm` script alias
+- Spec is the normative source of truth; prefer adding or extending `spec/*` consistency checks over ad-hoc doc-only gates
 
 ## What NOT to Do
 

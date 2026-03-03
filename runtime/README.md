@@ -79,9 +79,9 @@ Current implementation scope:
 
 Proto contract:
 
-- Contract source: `../ssot/runtime/proto-contract.md`
+- Contract source: `../spec/runtime/proto-governance.md`
 - Concrete proto files: `../proto/runtime/v1/*.proto`
-- Runtime config contract: `../ssot/runtime/config-contract.md`
+- Runtime config contract: `../spec/runtime/config.md`
 
 ## Quick Start
 
