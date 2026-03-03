@@ -435,9 +435,12 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                               src={agent.avatarUrl}
                               alt={agent.displayName}
                               className="h-10 w-10 rounded-xl object-cover"
+                              style={{ boxShadow: '0 0 0 1.5px #a855f7, 0 0 6px 2px rgba(168, 85, 247, 0.4), 0 0 10px 3px rgba(124, 58, 237, 0.2)' }}
                             />
                           ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-sm font-bold text-[#4ECCA3]">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#a855f7]/20 to-[#a855f7]/5 text-sm font-bold text-[#a855f7]"
+                              style={{ boxShadow: '0 0 0 1.5px #a855f7, 0 0 6px 2px rgba(168, 85, 247, 0.4), 0 0 10px 3px rgba(124, 58, 237, 0.2)' }}
+                            >
                               {agent.displayName.charAt(0).toUpperCase()}
                             </div>
                           )}

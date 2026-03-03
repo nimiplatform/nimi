@@ -82,10 +82,13 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                 <img
                   src={agent.avatarUrl}
                   alt={agent.displayName}
-                  className="h-24 w-24 rounded-[16px] object-cover ring-4 ring-gray-100"
+                  className="h-24 w-24 rounded-[16px] object-cover"
+                  style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5), 0 0 15px 6px rgba(124, 58, 237, 0.3)' }}
                 />
               ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-[16px] bg-brand-100 text-2xl font-semibold text-brand-700 ring-4 ring-gray-100">
+                <div className="flex h-24 w-24 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/10 text-2xl font-semibold text-[#a855f7]"
+                  style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5), 0 0 15px 6px rgba(124, 58, 237, 0.3)' }}
+                >
                   {getAgentInitial(agent.displayName)}
                 </div>
               )}

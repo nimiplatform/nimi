@@ -202,11 +202,6 @@ export function WorldList() {
                         {mainWorld.name.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    {/* Status dot */}
-                    <div
-                      className={`absolute bottom-[6px] right-[6px] h-4 w-4 rounded-full border-2 border-white ${getStatusDotColor(mainWorld.status)}`}
-                      title={mainWorld.status}
-                    />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
@@ -348,11 +343,6 @@ export function WorldList() {
                               {world.name.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          {/* Status dot */}
-                          <div
-                            className={`absolute bottom-[6px] right-[6px] h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusDotColor(world.status)}`}
-                            title={world.status}
-                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">

@@ -512,10 +512,13 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                           <img
                             src={agent.avatarUrl}
                             alt={agent.name}
-                            className="w-16 h-16 rounded-xl object-cover border border-[#4ECCA3]/20"
+                            className="w-16 h-16 rounded-xl object-cover"
+                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5)' }}
                           />
                         ) : (
-                          <div className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-serif text-[#4ECCA3] border border-[#4ECCA3]/20 bg-gradient-to-br from-[#4ECCA3]/10 to-transparent">
+                          <div className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-serif text-[#a855f7] bg-gradient-to-br from-[#a855f7]/10 to-transparent"
+                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5)' }}
+                          >
                             {agent.name ? agent.name.charAt(0) : '修'}
                           </div>
                         )}
@@ -544,14 +547,9 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                     </div>
 
                     {/* Bio */}
-                    <p className="text-xs text-[#e8f5ee]/60 leading-relaxed mb-3 line-clamp-2">
+                    <p className="text-xs text-[#e8f5ee]/60 leading-relaxed line-clamp-2">
                       {displayValue(agent.bio, 'No bio available')}
                     </p>
-
-                    {/* Created date */}
-                    <div className="text-xs text-[#e8f5ee]/40">
-                      Created: {agent.createdAt ? formatDateTime(agent.createdAt) : 'N/A'}
-                    </div>
                   </article>
                 ))
               ) : (

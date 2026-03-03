@@ -545,13 +545,17 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
                 
                 <div className="relative z-10 flex gap-3.5 items-center mb-3.5">
                   <div 
-                    className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shrink-0 shadow-lg"
-                    style={{ background: `linear-gradient(135deg, ${theme.primary}, #7fd7a8)` }}
+                    className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shrink-0"
+                    style={{ 
+                      boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5), 0 0 15px 6px rgba(124, 58, 237, 0.3)'
+                    }}
                   >
                     {agent.avatarUrl ? (
                       <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full rounded-2xl object-cover" />
                     ) : (
-                      getInitials(agent.name)
+                      <div className="w-full h-full rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/10 text-[#a855f7]">
+                        {getInitials(agent.name)}
+                      </div>
                     )}
                   </div>
                   <div className="min-w-0">
