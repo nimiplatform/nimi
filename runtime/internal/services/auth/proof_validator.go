@@ -18,28 +18,22 @@ import (
 // allowedClockSkew is the tolerance for exp claim validation.
 const allowedClockSkew = 60 * time.Second
 
-// validateExternalProof validates the proof token against the registered principal.
-// For ED25519 and HMAC_SHA256, it accepts any non-empty proof (signature verification
-// would require key exchange not yet implemented in the in-memory service).
-// For UNSPECIFIED, the proof is treated as an opaque bearer token.
-// If the proof looks like a JWT (three dot-separated segments), JWT-specific
-// validation is applied regardless of proof type (K-AUTHSVC-013).
-func validateExternalProof(proof string, principal externalPrincipal) error {
-	// If proof looks like a JWT, validate its structure and claims.
-	if isJWTShaped(proof) {
-		return validateJWTProof(proof, principal)
-	}
+var (
+	ErrUnsupportedProofType = errors.New("unsupported proof type")
+	ErrTokenInvalid         = errors.New("token invalid")
+	ErrTokenExpired         = errors.New("token expired")
+)
 
-	// For non-JWT proofs, accept based on registered proof type.
-	switch principal.ProofType {
-	case runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_ED25519,
-		runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_HMAC_SHA256:
-		// Accept non-empty proof; real signature verification is a future enhancement.
-		return nil
-	default:
-		// UNSPECIFIED or unknown: accept any non-empty proof as opaque bearer.
-		return nil
+// validateExternalProof validates the proof token against the registered principal.
+// Phase 1 supports JWT only (K-AUTHSVC-013).
+func validateExternalProof(proof string, principal externalPrincipal) error {
+	if principal.ProofType != runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT {
+		return ErrUnsupportedProofType
 	}
+	if !isJWTShaped(proof) {
+		return ErrTokenInvalid
+	}
+	return validateJWTProof(proof, principal)
 }
 
 // isJWTShaped returns true if the proof has three dot-separated base64url segments.
@@ -63,17 +57,17 @@ type jwtClaims struct {
 func validateJWTProof(token string, principal externalPrincipal) error {
 	parts := strings.SplitN(token, ".", 3)
 	if len(parts) != 3 {
-		return errors.New("malformed JWT: expected 3 parts")
+		return ErrTokenInvalid
 	}
 
 	// Decode header.
 	headerBytes, err := base64URLDecode(parts[0])
 	if err != nil {
-		return fmt.Errorf("decode JWT header: %w", err)
+		return fmt.Errorf("%w: decode JWT header: %v", ErrTokenInvalid, err)
 	}
 	var header jwtHeader
 	if err := json.Unmarshal(headerBytes, &header); err != nil {
-		return fmt.Errorf("parse JWT header: %w", err)
+		return fmt.Errorf("%w: parse JWT header: %v", ErrTokenInvalid, err)
 	}
 
 	// Whitelist algorithms (K-AUTHSVC-013).
@@ -81,30 +75,30 @@ func validateJWTProof(token string, principal externalPrincipal) error {
 	case "RS256", "ES256":
 		// Allowed.
 	default:
-		return fmt.Errorf("unsupported JWT algorithm: %s", header.Alg)
+		return fmt.Errorf("%w: unsupported JWT algorithm: %s", ErrTokenInvalid, header.Alg)
 	}
 
 	// Decode claims.
 	claimsBytes, err := base64URLDecode(parts[1])
 	if err != nil {
-		return fmt.Errorf("decode JWT claims: %w", err)
+		return fmt.Errorf("%w: decode JWT claims: %v", ErrTokenInvalid, err)
 	}
 	var claims jwtClaims
 	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
-		return fmt.Errorf("parse JWT claims: %w", err)
+		return fmt.Errorf("%w: parse JWT claims: %v", ErrTokenInvalid, err)
 	}
 
 	// Check expiration with clock skew.
 	if claims.Exp > 0 {
 		expiresAt := time.Unix(claims.Exp, 0)
 		if time.Now().After(expiresAt.Add(allowedClockSkew)) {
-			return errors.New("JWT expired")
+			return ErrTokenExpired
 		}
 	}
 
 	// Check issuer matches registered principal.
 	if principal.Issuer != "" && claims.Iss != principal.Issuer {
-		return fmt.Errorf("JWT issuer mismatch: got %q, want %q", claims.Iss, principal.Issuer)
+		return fmt.Errorf("%w: JWT issuer mismatch", ErrTokenInvalid)
 	}
 
 	// Verify signature if a key is registered.
@@ -112,10 +106,10 @@ func validateJWTProof(token string, principal externalPrincipal) error {
 		signingInput := parts[0] + "." + parts[1]
 		signature, err := base64URLDecode(parts[2])
 		if err != nil {
-			return fmt.Errorf("decode JWT signature: %w", err)
+			return fmt.Errorf("%w: decode JWT signature: %v", ErrTokenInvalid, err)
 		}
 		if err := verifySignature(header.Alg, principal.SignatureKeyID, []byte(signingInput), signature); err != nil {
-			return fmt.Errorf("JWT signature invalid: %w", err)
+			return fmt.Errorf("%w: JWT signature invalid: %v", ErrTokenInvalid, err)
 		}
 	}
 
@@ -131,7 +125,7 @@ func verifySignature(alg string, keyPEM string, signingInput []byte, signature [
 
 	pubKey, err := x509.ParsePKIXPublicKey(keyBytes)
 	if err != nil {
-		return fmt.Errorf("parse public key: %w", err)
+		return fmt.Errorf("%w: parse public key: %v", ErrTokenInvalid, err)
 	}
 
 	hash := crypto.SHA256
@@ -143,20 +137,20 @@ func verifySignature(alg string, keyPEM string, signingInput []byte, signature [
 	case "RS256":
 		rsaKey, ok := pubKey.(*rsa.PublicKey)
 		if !ok {
-			return errors.New("key is not RSA")
+			return fmt.Errorf("%w: key is not RSA", ErrTokenInvalid)
 		}
 		return rsa.VerifyPKCS1v15(rsaKey, hash, digest, signature)
 	case "ES256":
 		ecKey, ok := pubKey.(*ecdsa.PublicKey)
 		if !ok {
-			return errors.New("key is not ECDSA")
+			return fmt.Errorf("%w: key is not ECDSA", ErrTokenInvalid)
 		}
 		if !ecdsa.VerifyASN1(ecKey, digest, signature) {
-			return errors.New("ECDSA signature verification failed")
+			return fmt.Errorf("%w: ECDSA signature verification failed", ErrTokenInvalid)
 		}
 		return nil
 	default:
-		return fmt.Errorf("unsupported algorithm: %s", alg)
+		return fmt.Errorf("%w: unsupported algorithm: %s", ErrTokenInvalid, alg)
 	}
 }
 

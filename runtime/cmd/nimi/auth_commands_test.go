@@ -181,7 +181,7 @@ func TestRunRuntimeAuthExternalSessionJSON(t *testing.T) {
 			"--issuer", "local",
 			"--client-id", "openclaw",
 			"--signature-key-id", "key-1",
-			"--proof-type", "ed25519",
+			"--proof-type", "jwt",
 			"--json",
 		})
 	})

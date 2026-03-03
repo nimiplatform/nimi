@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"sync"
@@ -10,9 +11,11 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -197,7 +200,9 @@ func (s *Service) OpenSession(_ context.Context, req *runtimev1.OpenSessionReque
 	}
 	s.mu.Unlock()
 
-	s.emitAudit("OpenSession", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAuditWithPayload("OpenSession", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"session_id": sessionID,
+	})
 	return &runtimev1.OpenSessionResponse{
 		SessionId:    sessionID,
 		IssuedAt:     timestamppb.New(now),
@@ -243,7 +248,9 @@ func (s *Service) RefreshSession(_ context.Context, req *runtimev1.RefreshSessio
 	s.appSessions[sessionID] = session
 	s.mu.Unlock()
 
-	s.emitAudit("RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAuditWithPayload("RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"session_id": sessionID,
+	})
 	return &runtimev1.RefreshSessionResponse{
 		SessionId:    session.SessionID,
 		ExpiresAt:    timestamppb.New(expiresAt),
@@ -267,7 +274,9 @@ func (s *Service) RevokeSession(_ context.Context, req *runtimev1.RevokeSessionR
 	}
 	s.mu.Unlock()
 
-	s.emitAudit("RevokeSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAuditWithPayload("RevokeSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"session_id": sessionID,
+	})
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -277,6 +286,10 @@ func (s *Service) RegisterExternalPrincipal(_ context.Context, req *runtimev1.Re
 	if appID == "" || externalID == "" {
 		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.RegisterExternalPrincipalResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
+	}
+	if req.GetProofType() != runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT {
+		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 	}
 
 	principal := externalPrincipal{
@@ -293,7 +306,10 @@ func (s *Service) RegisterExternalPrincipal(_ context.Context, req *runtimev1.Re
 	s.externalPrincipals[principalKey(appID, externalID)] = principal
 	s.mu.Unlock()
 
-	s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAuditWithPayload("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"external_principal_id": externalID,
+		"proof_type":            req.GetProofType().String(),
+	})
 	return &runtimev1.RegisterExternalPrincipalResponse{Accepted: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -321,8 +337,17 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 
 	// Validate proof against registered principal (K-AUTHSVC-013).
 	if err := validateExternalProof(proof, principal); err != nil {
-		s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_PROOF_INVALID)
-		return &runtimev1.OpenExternalPrincipalSessionResponse{ReasonCode: runtimev1.ReasonCode_EXTERNAL_PRINCIPAL_PROOF_INVALID}, nil
+		switch {
+		case errors.Is(err, ErrUnsupportedProofType):
+			s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
+		case errors.Is(err, ErrTokenExpired):
+			s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
+			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED)
+		default:
+			s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		}
 	}
 
 	now := time.Now().UTC()
@@ -346,7 +371,10 @@ func (s *Service) OpenExternalPrincipalSession(_ context.Context, req *runtimev1
 	}
 	s.mu.Unlock()
 
-	s.emitAudit("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAuditWithPayload("OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"external_principal_id": externalID,
+		"external_session_id":   externalSessionID,
+	})
 	return &runtimev1.OpenExternalPrincipalSessionResponse{
 		ExternalSessionId: externalSessionID,
 		ExpiresAt:         timestamppb.New(expiresAt),
@@ -370,7 +398,10 @@ func (s *Service) RevokeExternalPrincipalSession(_ context.Context, req *runtime
 	}
 	s.mu.Unlock()
 
-	s.emitAudit("RevokeExternalPrincipalSession", session.AppID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
+	s.emitAuditWithPayload("RevokeExternalPrincipalSession", session.AppID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"external_principal_id": session.ExternalPrincipalID,
+		"external_session_id":   externalSessionID,
+	})
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -404,14 +435,25 @@ func cloneModeManifest(input *runtimev1.AppModeManifest) *runtimev1.AppModeManif
 
 // emitAudit writes an audit event for auth operations (K-AUTHSVC-007).
 func (s *Service) emitAudit(operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode) {
+	s.emitAuditWithPayload(operation, appID, subjectUserID, reasonCode, nil)
+}
+
+func (s *Service) emitAuditWithPayload(operation string, appID string, subjectUserID string, reasonCode runtimev1.ReasonCode, payload map[string]any) {
 	if s.auditStore == nil {
 		return
 	}
+	var payloadStruct *structpb.Struct
+	if len(payload) > 0 {
+		payloadStruct, _ = structpb.NewStruct(payload)
+	}
+	traceID := ulid.Make().String()
 	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
 		Domain:        "runtime.auth",
 		Operation:     operation,
 		AppId:         appID,
 		SubjectUserId: subjectUserID,
 		ReasonCode:    reasonCode,
+		TraceId:       traceID,
+		Payload:       payloadStruct,
 	})
 }

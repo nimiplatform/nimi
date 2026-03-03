@@ -105,7 +105,7 @@ func TestIssueDelegatedAndListTokenChainGRPC(t *testing.T) {
 			Secret:          "child-secret",
 		},
 		listResponse: &runtimev1.ListTokenChainResponse{
-			Nodes: []*runtimev1.TokenChainNode{
+			Entries: []*runtimev1.TokenChainEntry{
 				{
 					TokenId:       "root-token-1",
 					ParentTokenId: "",
@@ -148,8 +148,8 @@ func TestIssueDelegatedAndListTokenChainGRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTokenChainGRPC: %v", err)
 	}
-	if len(chain.GetNodes()) != 2 {
-		t.Fatalf("token chain size mismatch: %d", len(chain.GetNodes()))
+	if len(chain.GetEntries()) != 2 {
+		t.Fatalf("token chain size mismatch: %d", len(chain.GetEntries()))
 	}
 }
 

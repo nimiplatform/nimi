@@ -148,7 +148,7 @@ func TestExternalPrincipalSessionGRPC(t *testing.T) {
 		Issuer:                "local",
 		ClientId:              "openclaw",
 		SignatureKeyId:        "key-1",
-		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_ED25519,
+		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	}, &ClientMetadata{
 		CallerID: "svc:external-register",
 	})

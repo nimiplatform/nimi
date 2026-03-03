@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -27,6 +28,7 @@ type Service struct {
 	modelCache *ModelCache
 	audit      *auditlog.Store
 	cloud      *nimillm.CloudProvider
+	localModel localModelLister
 }
 
 // New creates a new ConnectorService.
@@ -39,9 +41,18 @@ func New(logger *slog.Logger, store *ConnectorStore, audit *auditlog.Store) *Ser
 	}
 }
 
+type localModelLister interface {
+	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
+}
+
 // SetCloudProvider sets the cloud provider for probe and model listing.
 func (s *Service) SetCloudProvider(cloud *nimillm.CloudProvider) {
 	s.cloud = cloud
+}
+
+// SetLocalModelLister wires RuntimeLocalRuntimeService for local connector checks.
+func (s *Service) SetLocalModelLister(localSvc localModelLister) {
+	s.localModel = localSvc
 }
 
 func (s *Service) internalProviderError(operation string, err error) error {
@@ -55,12 +66,47 @@ func (s *Service) internalProviderError(operation string, err error) error {
 	})
 }
 
-func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnectorRequest) (*runtimev1.CreateConnectorResponse, error) {
+func subjectUserIDFromContext(ctx context.Context) (string, bool) {
+	identity := authn.IdentityFromContext(ctx)
+	if identity == nil {
+		return "", false
+	}
+	subject := strings.TrimSpace(identity.SubjectUserID)
+	if subject == "" {
+		return "", false
+	}
+	return subject, true
+}
+
+func requireSubjectUserID(ctx context.Context) (string, error) {
+	subject, ok := subjectUserIDFromContext(ctx)
+	if !ok {
+		return "", grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	}
+	return subject, nil
+}
+
+func defaultManagedConnectorLabel(provider string) string {
+	trimmed := strings.TrimSpace(provider)
+	if trimmed == "" {
+		return "Managed Connector"
+	}
+	if len(trimmed) == 1 {
+		return "Managed " + strings.ToUpper(trimmed)
+	}
+	return "Managed " + strings.ToUpper(trimmed[:1]) + trimmed[1:]
+}
+
+func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConnectorRequest) (*runtimev1.CreateConnectorResponse, error) {
 	provider := strings.TrimSpace(req.GetProvider())
 	if provider == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 	if !IsKnownProvider(provider) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+	capability, hasCapability := ProviderCapabilities[provider]
+	if !hasCapability || capability.RuntimePlane != "remote" || !capability.ManagedSupported {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
@@ -69,9 +115,9 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 
-	ownerID := strings.TrimSpace(req.GetOwnerId())
-	if ownerID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	ownerID, err := requireSubjectUserID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	// Enforce per-user limit
@@ -108,6 +154,9 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 		Label:     strings.TrimSpace(req.GetLabel()),
 		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
+	if rec.Label == "" {
+		rec.Label = defaultManagedConnectorLabel(provider)
+	}
 
 	if err := s.store.Create(rec, apiKey); err != nil {
 		return nil, s.internalProviderError("create_connector.persist", err)
@@ -128,7 +177,7 @@ func (s *Service) CreateConnector(_ context.Context, req *runtimev1.CreateConnec
 	return nil, s.internalProviderError("create_connector.reload_missing_record", nil)
 }
 
-func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorRequest) (*runtimev1.GetConnectorResponse, error) {
+func (s *Service) GetConnector(ctx context.Context, req *runtimev1.GetConnectorRequest) (*runtimev1.GetConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
@@ -139,9 +188,9 @@ func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorReq
 		return nil, s.internalProviderError("get_connector.load", err)
 	}
 
-	ownerID := strings.TrimSpace(req.GetOwnerId())
+	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	// Information hiding: delete_pending or owner mismatch → NOT_FOUND
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
+	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
@@ -150,13 +199,16 @@ func (s *Service) GetConnector(_ context.Context, req *runtimev1.GetConnectorReq
 	}, nil
 }
 
-func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnectorsRequest) (*runtimev1.ListConnectorsResponse, error) {
+func (s *Service) ListConnectors(ctx context.Context, req *runtimev1.ListConnectorsRequest) (*runtimev1.ListConnectorsResponse, error) {
 	records, err := s.store.Load()
 	if err != nil {
 		return nil, s.internalProviderError("list_connectors.load", err)
 	}
 
-	ownerID := strings.TrimSpace(req.GetOwnerId())
+	ownerID, hasOwner := subjectUserIDFromContext(ctx)
+	if !hasOwner {
+		ownerID = ""
+	}
 	kindFilter := req.GetKindFilter()
 	statusFilter := req.GetStatusFilter()
 	providerFilter := strings.TrimSpace(req.GetProviderFilter())
@@ -180,7 +232,7 @@ func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnector
 	for _, r := range records {
 		// Owner visibility: system connectors visible to all, user-owned filtered by owner
 		if r.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
-			if ownerID != "" && r.OwnerID != ownerID {
+			if !hasOwner || r.OwnerID != ownerID {
 				continue
 			}
 		}
@@ -223,14 +275,18 @@ func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnector
 	// Apply cursor-based pagination
 	startIdx := 0
 	if cursor != "" {
-		if idx, convErr := strconv.Atoi(cursor); convErr == nil && idx > 0 && idx <= len(filtered) {
+		if idx, convErr := strconv.Atoi(cursor); convErr == nil && idx >= 0 && idx <= len(filtered) {
 			startIdx = idx
+		} else {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 		}
 	}
 
 	pageSize := int(req.GetPageSize())
-	if pageSize <= 0 || pageSize > 100 {
+	if pageSize <= 0 {
 		pageSize = 50
+	} else if pageSize > 200 {
+		pageSize = 200
 	}
 
 	endIdx := startIdx + pageSize
@@ -255,13 +311,16 @@ func (s *Service) ListConnectors(_ context.Context, req *runtimev1.ListConnector
 	}, nil
 }
 
-func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnectorRequest) (*runtimev1.UpdateConnectorResponse, error) {
+func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConnectorRequest) (*runtimev1.UpdateConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
-	ownerID := strings.TrimSpace(req.GetOwnerId())
+	ownerID, err := requireSubjectUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("update_connector.load", err)
@@ -271,15 +330,8 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 	}
 
 	// Owner check
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID {
+	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && rec.OwnerID != ownerID {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
-	}
-
-	// Immutability check for local connectors (only status can change)
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-		if req.GetLabel() != "" || req.GetEndpoint() != "" || req.GetApiKey() != "" {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
-		}
 	}
 
 	// System cloud connectors are managed by config.json, not via API
@@ -288,26 +340,78 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
 	}
 
+	updatePaths := req.GetUpdateMask().GetPaths()
+	if len(updatePaths) == 0 {
+		if req.Label != nil {
+			updatePaths = append(updatePaths, "label")
+		}
+		if req.Endpoint != nil {
+			updatePaths = append(updatePaths, "endpoint")
+		}
+		if req.ApiKey != nil {
+			updatePaths = append(updatePaths, "api_key")
+		}
+		if req.GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
+			updatePaths = append(updatePaths, "status")
+		}
+	}
+
+	seenPaths := make(map[string]bool, len(updatePaths))
 	var mutations ConnectorMutations
 	hasChange := false
 
-	if v := strings.TrimSpace(req.GetLabel()); v != "" {
-		mutations.Label = &v
-		hasChange = true
-	}
-	if v := strings.TrimSpace(req.GetEndpoint()); v != "" {
-		mutations.Endpoint = &v
-		hasChange = true
-	}
-	if v := req.GetApiKey(); v != "" {
-		trimmed := strings.TrimSpace(v)
-		mutations.APIKey = &trimmed
-		hasChange = true
-	}
-	if req.GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
-		st := req.GetStatus()
-		mutations.Status = &st
-		hasChange = true
+	for _, rawPath := range updatePaths {
+		path := strings.TrimSpace(rawPath)
+		if path == "" || seenPaths[path] {
+			continue
+		}
+		seenPaths[path] = true
+
+		if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL && path != "status" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
+		}
+
+		switch path {
+		case "label":
+			if req.Label == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			value := strings.TrimSpace(req.GetLabel())
+			if value == "" {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.Label = &value
+			hasChange = true
+		case "endpoint":
+			if req.Endpoint == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			value := strings.TrimSpace(req.GetEndpoint())
+			if value == "" {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.Endpoint = &value
+			hasChange = true
+		case "api_key":
+			if req.ApiKey == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			value := strings.TrimSpace(req.GetApiKey())
+			if value == "" {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.APIKey = &value
+			hasChange = true
+		case "status":
+			if req.GetStatus() == runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			status := req.GetStatus()
+			mutations.Status = &status
+			hasChange = true
+		default:
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+		}
 	}
 
 	if !hasChange {
@@ -329,10 +433,15 @@ func (s *Service) UpdateConnector(_ context.Context, req *runtimev1.UpdateConnec
 	}, nil
 }
 
-func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnectorRequest) (*runtimev1.DeleteConnectorResponse, error) {
+func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConnectorRequest) (*runtimev1.DeleteConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
 	if connectorID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+
+	ownerID, err := requireSubjectUserID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	rec, found, err := s.store.Get(connectorID)
@@ -352,8 +461,7 @@ func (s *Service) DeleteConnector(_ context.Context, req *runtimev1.DeleteConnec
 	}
 
 	// Owner check
-	ownerID := strings.TrimSpace(req.GetOwnerId())
-	if ownerID != "" && rec.OwnerID != ownerID {
+	if rec.OwnerID != ownerID {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
@@ -374,12 +482,12 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
-	ownerID := strings.TrimSpace(req.GetOwnerId())
+	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("test_connector.load", err)
 	}
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
+	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND},
 		}, nil
@@ -394,6 +502,20 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 
 	// Local connectors always pass test
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+		if s.localModel == nil {
+			return &runtimev1.TestConnectorResponse{
+				Ack: &runtimev1.Ack{Ok: true},
+			}, nil
+		}
+		localModels, listErr := s.listAllActiveLocalModels(ctx)
+		if listErr != nil {
+			return nil, s.internalProviderError("test_connector.list_local_models", listErr)
+		}
+		if !hasActiveLocalModelForCategory(localModels, rec.LocalCategory) {
+			return &runtimev1.TestConnectorResponse{
+				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE},
+			}, nil
+		}
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: true},
 		}, nil
@@ -439,12 +561,12 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
-	ownerID := strings.TrimSpace(req.GetOwnerId())
+	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("list_connector_models.load", err)
 	}
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && ownerID != "" && rec.OwnerID != ownerID) {
+	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 
@@ -452,53 +574,101 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
 
-	// Check cache (unless force_refresh)
-	if !req.GetForceRefresh() {
-		if cached := s.modelCache.Get(connectorID); cached != nil {
-			return &runtimev1.ListConnectorModelsResponse{Models: cached}, nil
-		}
-	}
-
-	// Local connectors return empty model list (managed by local runtime)
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-		return &runtimev1.ListConnectorModelsResponse{}, nil
-	}
-
-	// Load credential
-	apiKey, err := s.store.LoadCredential(connectorID)
+	filterDigest := pagination.FilterDigest(connectorID)
+	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
-		return nil, s.internalProviderError("list_connector_models.load_credential", err)
-	}
-	if apiKey == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+		return nil, err
 	}
 
-	// Fetch models via backend
 	var models []*runtimev1.ConnectorModelDescriptor
-	if s.cloud != nil {
-		backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
-		if probeErr != nil {
-			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+
+	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
+		if s.localModel == nil {
+			models = []*runtimev1.ConnectorModelDescriptor{}
+		} else {
+			localModels, listErr := s.listAllActiveLocalModels(ctx)
+			if listErr != nil {
+				return nil, s.internalProviderError("list_connector_models.list_local_models", listErr)
+			}
+			models = buildLocalConnectorModelDescriptors(localModels, rec.LocalCategory)
 		}
-		rawModels, listErr := backend.ListModels(ctx)
-		if listErr != nil {
-			s.logger.Warn("list connector models failed", "connector_id", connectorID, "error", listErr)
-			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	} else {
+		// Check cache (unless force_refresh)
+		if !req.GetForceRefresh() {
+			if cached := s.modelCache.Get(connectorID); cached != nil {
+				models = append(models, cached...)
+			}
 		}
-		for _, m := range rawModels {
-			models = append(models, &runtimev1.ConnectorModelDescriptor{
-				ModelId:      m.ModelID,
-				ModelLabel:   m.ModelLabel,
-				Available:    m.Available,
-				Capabilities: modelregistry.InferCapabilities(m.ModelID),
-			})
+		if models == nil {
+			// Load credential
+			apiKey, err := s.store.LoadCredential(connectorID)
+			if err != nil {
+				return nil, s.internalProviderError("list_connector_models.load_credential", err)
+			}
+			if apiKey == "" {
+				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+			}
+
+			// Fetch models via backend
+			if s.cloud != nil {
+				backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
+				if probeErr != nil {
+					return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+				}
+				rawModels, listErr := backend.ListModels(ctx)
+				if listErr != nil {
+					s.logger.Warn("list connector models failed", "connector_id", connectorID, "error", listErr)
+					return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+				}
+				for _, m := range rawModels {
+					models = append(models, &runtimev1.ConnectorModelDescriptor{
+						ModelId:      m.ModelID,
+						ModelLabel:   m.ModelLabel,
+						Available:    m.Available,
+						Capabilities: modelregistry.InferCapabilities(m.ModelID),
+					})
+				}
+			}
+
+			s.modelCache.Set(connectorID, models)
 		}
 	}
 
-	s.modelCache.Set(connectorID, models)
+	sort.Slice(models, func(i, j int) bool {
+		if models[i].GetModelId() == models[j].GetModelId() {
+			return models[i].GetModelLabel() < models[j].GetModelLabel()
+		}
+		return models[i].GetModelId() < models[j].GetModelId()
+	})
+
+	startIdx := 0
+	if cursor != "" {
+		if idx, convErr := strconv.Atoi(cursor); convErr == nil && idx >= 0 && idx <= len(models) {
+			startIdx = idx
+		} else {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+		}
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 50
+	} else if pageSize > 200 {
+		pageSize = 200
+	}
+	endIdx := startIdx + pageSize
+	if endIdx > len(models) {
+		endIdx = len(models)
+	}
+
+	nextToken := ""
+	if endIdx < len(models) {
+		nextToken = pagination.Encode(strconv.Itoa(endIdx), filterDigest)
+	}
 
 	return &runtimev1.ListConnectorModelsResponse{
-		Models: models,
+		Models:        models[startIdx:endIdx],
+		NextPageToken: nextToken,
 	}, nil
 }
 
@@ -516,6 +686,90 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 		})
 	}
 	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil
+}
+
+func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalModelRecord, error) {
+	if s.localModel == nil {
+		return nil, nil
+	}
+	pageToken := ""
+	collected := make([]*runtimev1.LocalModelRecord, 0, 16)
+	for i := 0; i < 20; i++ {
+		resp, err := s.localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
+			StatusFilter: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			PageSize:     100,
+			PageToken:    pageToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		collected = append(collected, resp.GetModels()...)
+		pageToken = strings.TrimSpace(resp.GetNextPageToken())
+		if pageToken == "" {
+			break
+		}
+	}
+	return collected, nil
+}
+
+func hasActiveLocalModelForCategory(models []*runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) bool {
+	for _, model := range models {
+		if modelMatchesCategory(model, category) {
+			return true
+		}
+	}
+	return false
+}
+
+func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) []*runtimev1.ConnectorModelDescriptor {
+	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
+	for _, model := range models {
+		if !modelMatchesCategory(model, category) {
+			continue
+		}
+		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
+			ModelId:      model.GetModelId(),
+			ModelLabel:   model.GetModelId(),
+			Available:    model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			Capabilities: append([]string(nil), model.GetCapabilities()...),
+		})
+	}
+	return descriptors
+}
+
+func modelMatchesCategory(model *runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) bool {
+	caps := make(map[string]bool, len(model.GetCapabilities()))
+	for _, capability := range model.GetCapabilities() {
+		capLower := strings.ToLower(strings.TrimSpace(capability))
+		if capLower != "" {
+			caps[capLower] = true
+		}
+	}
+	hasAny := func(keys ...string) bool {
+		for _, key := range keys {
+			if caps[strings.ToLower(strings.TrimSpace(key))] {
+				return true
+			}
+		}
+		return false
+	}
+
+	switch category {
+	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM:
+		return hasAny("chat", "llm", "text", "text.generate")
+	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_VISION:
+		return hasAny("vision", "vl", "multimodal", "image.understand")
+	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_IMAGE:
+		return hasAny("image", "image.generate")
+	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_TTS:
+		return hasAny("tts", "speech.synthesize", "audio.synthesize")
+	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_STT:
+		return hasAny("stt", "speech.transcribe", "audio.transcribe")
+	case runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_CUSTOM:
+		return strings.TrimSpace(model.GetLocalInvokeProfileId()) != "" || hasAny("custom")
+	default:
+		return true
+	}
 }
 
 func (s *Service) Store() *ConnectorStore {

@@ -34,6 +34,23 @@ func (s *Service) AuthorizeExternalPrincipal(_ context.Context, req *runtimev1.A
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_NOT_REGISTERED)
 	}
 
+	policyMode := req.GetPolicyMode()
+	switch policyMode {
+	case runtimev1.PolicyMode_POLICY_MODE_PRESET:
+		if req.GetPreset() == runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_UNSPECIFIED {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		}
+		if len(normalizeScopes(req.GetScopes())) > 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		}
+	case runtimev1.PolicyMode_POLICY_MODE_CUSTOM:
+		if len(normalizeScopes(req.GetScopes())) == 0 || req.GetResourceSelectors() == nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
+		}
+	default:
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_GRANT_INVALID)
+	}
+
 	effectiveScopes := resolveScopes(req)
 	if len(effectiveScopes) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)

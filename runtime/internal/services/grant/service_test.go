@@ -125,8 +125,8 @@ func TestGrantDelegateChain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list token chain: %v", err)
 	}
-	if len(chainResp.Nodes) != 2 {
-		t.Fatalf("expected 2 chain nodes, got %d", len(chainResp.Nodes))
+	if len(chainResp.Entries) != 2 {
+		t.Fatalf("expected 2 chain entries, got %d", len(chainResp.Entries))
 	}
 
 	_, err = svc.IssueDelegatedAccessToken(ctx, &runtimev1.IssueDelegatedAccessTokenRequest{
@@ -169,6 +169,61 @@ func TestGrantDelegateChain(t *testing.T) {
 	}
 	if validateChild.GetReasonCode() != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
 		t.Fatalf("unexpected child revoke reason: %v", validateChild.GetReasonCode())
+	}
+}
+
+func TestListTokenChainPageSizeClampTo200(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	root, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE,
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize root: %v", err)
+	}
+
+	for i := 0; i < 140; i++ {
+		if _, err := svc.IssueDelegatedAccessToken(ctx, &runtimev1.IssueDelegatedAccessTokenRequest{
+			AppId:         "nimi.desktop",
+			ParentTokenId: root.GetTokenId(),
+			Scopes:        []string{"read:chat"},
+			TtlSeconds:    120,
+		}); err != nil {
+			t.Fatalf("issue delegated token %d: %v", i, err)
+		}
+	}
+
+	chainResp, err := svc.ListTokenChain(ctx, &runtimev1.ListTokenChainRequest{
+		AppId:          "nimi.desktop",
+		RootTokenId:    root.GetTokenId(),
+		PageSize:       999,
+		PageToken:      "",
+		IncludeRevoked: true,
+	})
+	if err != nil {
+		t.Fatalf("list token chain: %v", err)
+	}
+	if len(chainResp.GetEntries()) != 141 {
+		t.Fatalf("expected 141 entries on clamped first page, got %d", len(chainResp.GetEntries()))
+	}
+	if chainResp.GetHasMore() {
+		t.Fatalf("expected has_more=false when all entries fit in clamped page")
+	}
+	if chainResp.GetNextPageToken() != "" {
+		t.Fatalf("expected no next_page_token when all entries fit in clamped page")
 	}
 }
 
@@ -374,5 +429,58 @@ func TestGrantResourceSelectorsSubsetAndOutOfScopeDeny(t *testing.T) {
 	}
 	if denied.GetReasonCode() != runtimev1.ReasonCode_APP_RESOURCE_OUT_OF_SCOPE {
 		t.Fatalf("unexpected reason code for out-of-scope: %v", denied.GetReasonCode())
+	}
+}
+
+func TestGrantAuthorizeRejectsPresetModeWithoutPreset(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	_, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err == nil {
+		t.Fatalf("expected preset mode without preset to be rejected")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_APP_GRANT_INVALID.String() {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGrantAuthorizeRejectsCustomModeWithoutSelectors(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	_, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"read:chat"},
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err == nil {
+		t.Fatalf("expected custom mode without selectors to be rejected")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_APP_GRANT_INVALID.String() {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

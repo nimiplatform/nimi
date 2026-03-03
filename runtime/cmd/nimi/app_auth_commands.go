@@ -418,29 +418,37 @@ func runRuntimeAppAuthChain(args []string) error {
 		return err
 	}
 
-	nodes := make([]map[string]any, 0, len(resp.GetNodes()))
-	for _, node := range resp.GetNodes() {
+	entries := make([]map[string]any, 0, len(resp.GetEntries()))
+	for _, entry := range resp.GetEntries() {
 		issuedAt := ""
 		expiresAt := ""
-		if ts := node.GetIssuedAt(); ts != nil {
+		if ts := entry.GetIssuedAt(); ts != nil {
 			issuedAt = ts.AsTime().UTC().Format(time.RFC3339Nano)
 		}
-		if ts := node.GetExpiresAt(); ts != nil {
+		if ts := entry.GetExpiresAt(); ts != nil {
 			expiresAt = ts.AsTime().UTC().Format(time.RFC3339Nano)
 		}
-		nodes = append(nodes, map[string]any{
-			"token_id":                     node.GetTokenId(),
-			"parent_token_id":              node.GetParentTokenId(),
-			"external_principal_id":        node.GetExternalPrincipalId(),
-			"policy_version":               node.GetPolicyVersion(),
-			"issued_scope_catalog_version": node.GetIssuedScopeCatalogVersion(),
+		entries = append(entries, map[string]any{
+			"token_id":                     entry.GetTokenId(),
+			"parent_token_id":              entry.GetParentTokenId(),
+			"principal_id":                 entry.GetPrincipalId(),
+			"principal_type":               entry.GetPrincipalType(),
+			"effective_scopes":             entry.GetEffectiveScopes(),
+			"policy_version":               entry.GetPolicyVersion(),
+			"issued_scope_catalog_version": entry.GetIssuedScopeCatalogVersion(),
 			"issued_at":                    issuedAt,
 			"expires_at":                   expiresAt,
+			"revoked":                      entry.GetRevoked(),
+			"delegation_depth":             entry.GetDelegationDepth(),
 		})
 	}
 
 	if *jsonOutput {
-		out, err := json.MarshalIndent(map[string]any{"nodes": nodes}, "", "  ")
+		out, err := json.MarshalIndent(map[string]any{
+			"entries":         entries,
+			"next_page_token": resp.GetNextPageToken(),
+			"has_more":        resp.GetHasMore(),
+		}, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -448,12 +456,12 @@ func runRuntimeAppAuthChain(args []string) error {
 		return nil
 	}
 
-	if len(nodes) == 0 {
-		fmt.Println("no token chain nodes")
+	if len(entries) == 0 {
+		fmt.Println("no token chain entries")
 		return nil
 	}
 	fmt.Printf("%-28s %-28s %-24s %-24s %s\n", "TOKEN_ID", "PARENT_TOKEN_ID", "ISSUED_AT", "EXPIRES_AT", "POLICY/SCOPE_CATALOG")
-	for _, node := range nodes {
+	for _, node := range entries {
 		fmt.Printf("%-28s %-28s %-24s %-24s %s/%s\n",
 			node["token_id"],
 			node["parent_token_id"],
@@ -462,6 +470,9 @@ func runRuntimeAppAuthChain(args []string) error {
 			node["policy_version"],
 			node["issued_scope_catalog_version"],
 		)
+	}
+	if resp.GetHasMore() {
+		fmt.Printf("has_more=true next_page_token=%s\n", resp.GetNextPageToken())
 	}
 	return nil
 }

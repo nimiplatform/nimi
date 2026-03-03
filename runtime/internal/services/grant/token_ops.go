@@ -3,6 +3,7 @@ package grant
 import (
 	"context"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
 func (s *Service) ValidateAppAccessToken(_ context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
@@ -216,9 +218,26 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
 	}
 
+	appID := strings.TrimSpace(req.GetAppId())
+	if appID != "" {
+		rootToken := s.tokens[root]
+		if rootToken.AppID != appID {
+			s.emitAudit("ListTokenChain", appID, "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND)
+		}
+	}
+
+	includeRevoked := req.GetIncludeRevoked()
+	filterDigest := pagination.FilterDigest(appID, root, strconv.FormatBool(includeRevoked))
+	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		s.emitAudit("ListTokenChain", appID, "", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+		return nil, err
+	}
+
 	queue := []string{root}
 	visited := map[string]bool{}
-	nodes := make([]*runtimev1.TokenChainNode, 0)
+	entries := make([]*runtimev1.TokenChainEntry, 0)
 
 	for len(queue) > 0 {
 		current := queue[0]
@@ -233,14 +252,32 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 			continue
 		}
 
-		nodes = append(nodes, &runtimev1.TokenChainNode{
+		if appID != "" && token.AppID != appID {
+			continue
+		}
+		if !includeRevoked && token.Revoked {
+			continue
+		}
+
+		principalID := token.ExternalPrincipalID
+		principalType := "external_principal"
+		if principalID == "" {
+			principalID = token.SubjectUserID
+			principalType = "subject_user"
+		}
+
+		entries = append(entries, &runtimev1.TokenChainEntry{
 			TokenId:                   token.TokenID,
 			ParentTokenId:             token.ParentTokenID,
-			ExternalPrincipalId:       token.ExternalPrincipalID,
-			PolicyVersion:             token.PolicyVersion,
-			IssuedScopeCatalogVersion: token.IssuedScopeCatalog,
+			PrincipalId:               principalID,
+			PrincipalType:             principalType,
+			EffectiveScopes:           append([]string(nil), token.Scopes...),
 			IssuedAt:                  timestamppb.New(token.IssuedAt),
 			ExpiresAt:                 timestamppb.New(token.ExpiresAt),
+			Revoked:                   token.Revoked,
+			DelegationDepth:           token.DelegationDepth,
+			PolicyVersion:             token.PolicyVersion,
+			IssuedScopeCatalogVersion: token.IssuedScopeCatalog,
 		})
 
 		for childID, child := range s.tokens {
@@ -251,17 +288,49 @@ func (s *Service) ListTokenChain(_ context.Context, req *runtimev1.ListTokenChai
 	}
 
 	// Sort by issued_at DESC (K-GRANT-012).
-	sort.Slice(nodes, func(i, j int) bool {
-		left := nodes[i].GetIssuedAt().AsTime()
-		right := nodes[j].GetIssuedAt().AsTime()
+	sort.Slice(entries, func(i, j int) bool {
+		left := entries[i].GetIssuedAt().AsTime()
+		right := entries[j].GetIssuedAt().AsTime()
 		if left.Equal(right) {
-			return nodes[i].GetTokenId() > nodes[j].GetTokenId()
+			return entries[i].GetTokenId() > entries[j].GetTokenId()
 		}
 		return left.After(right)
 	})
 
+	startIdx := 0
+	if cursor != "" {
+		if idx, convErr := strconv.Atoi(cursor); convErr == nil && idx >= 0 && idx <= len(entries) {
+			startIdx = idx
+		} else {
+			s.emitAudit("ListTokenChain", appID, "", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+		}
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 50
+	} else if pageSize > 200 {
+		pageSize = 200
+	}
+	endIdx := startIdx + pageSize
+	if endIdx > len(entries) {
+		endIdx = len(entries)
+	}
+
+	page := entries[startIdx:endIdx]
+	hasMore := endIdx < len(entries)
+	nextToken := ""
+	if hasMore {
+		nextToken = pagination.Encode(strconv.Itoa(endIdx), filterDigest)
+	}
+
 	s.emitAudit("ListTokenChain", "", "", runtimev1.ReasonCode_ACTION_EXECUTED)
-	return &runtimev1.ListTokenChainResponse{Nodes: nodes}, nil
+	return &runtimev1.ListTokenChainResponse{
+		Entries:       page,
+		NextPageToken: nextToken,
+		HasMore:       hasMore,
+	}, nil
 }
 
 // ValidateProtectedCapability validates metadata-delivered token credentials for protected runtime actions.

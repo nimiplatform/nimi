@@ -163,7 +163,7 @@ func TestRunRuntimeAppAuthDelegateAndChainJSON(t *testing.T) {
 			Secret:          "secret-child",
 		},
 		chainResponse: &runtimev1.ListTokenChainResponse{
-			Nodes: []*runtimev1.TokenChainNode{
+			Entries: []*runtimev1.TokenChainEntry{
 				{
 					TokenId:                   "root-token-1",
 					PolicyVersion:             "v1",
@@ -223,9 +223,9 @@ func TestRunRuntimeAppAuthDelegateAndChainJSON(t *testing.T) {
 	if unmarshalErr := json.Unmarshal([]byte(chainOutput), &chainPayload); unmarshalErr != nil {
 		t.Fatalf("unmarshal chain output: %v output=%q", unmarshalErr, chainOutput)
 	}
-	nodes, ok := chainPayload["nodes"].([]any)
-	if !ok || len(nodes) != 2 {
-		t.Fatalf("chain nodes mismatch: %#v", chainPayload["nodes"])
+	entries, ok := chainPayload["entries"].([]any)
+	if !ok || len(entries) != 2 {
+		t.Fatalf("chain entries mismatch: %#v", chainPayload["entries"])
 	}
 }
 

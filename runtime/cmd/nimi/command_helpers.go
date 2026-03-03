@@ -82,12 +82,10 @@ func parseExternalPrincipalType(raw string) (runtimev1.ExternalPrincipalType, er
 
 func parseExternalProofType(raw string) (runtimev1.ExternalProofType, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "ed25519":
-		return runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_ED25519, nil
-	case "hmac", "hmac-sha256":
-		return runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_HMAC_SHA256, nil
+	case "jwt":
+		return runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT, nil
 	default:
-		return runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_UNSPECIFIED, fmt.Errorf("invalid proof-type %q (expected ed25519|hmac-sha256)", raw)
+		return runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_UNSPECIFIED, fmt.Errorf("invalid proof-type %q (expected jwt)", raw)
 	}
 }
 

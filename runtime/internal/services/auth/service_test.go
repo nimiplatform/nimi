@@ -2,12 +2,30 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time) string {
+	t.Helper()
+	header, err := json.Marshal(map[string]any{"alg": "RS256", "typ": "JWT"})
+	if err != nil {
+		t.Fatalf("marshal header: %v", err)
+	}
+	claims, err := json.Marshal(map[string]any{"iss": issuer, "exp": expiresAt.Unix()})
+	if err != nil {
+		t.Fatalf("marshal claims: %v", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(header) + "." +
+		base64.RawURLEncoding.EncodeToString(claims) + "." +
+		base64.RawURLEncoding.EncodeToString([]byte("test-signature"))
+}
 
 func TestAppSessionLifecycle(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -77,7 +95,8 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-openclaw",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_ED25519,
+		Issuer:                "https://issuer.nimi.local",
+		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	})
 	if err != nil {
 		t.Fatalf("register external principal: %v", err)
@@ -101,7 +120,7 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 	openResp, err := svc.OpenExternalPrincipalSession(ctx, &runtimev1.OpenExternalPrincipalSessionRequest{
 		AppId:               "nimi.desktop",
 		ExternalPrincipalId: "agent-openclaw",
-		Proof:               "dummy-proof",
+		Proof:               buildTestJWT(t, "https://issuer.nimi.local", time.Now().Add(5*time.Minute)),
 	})
 	if err != nil {
 		t.Fatalf("open external principal session: %v", err)

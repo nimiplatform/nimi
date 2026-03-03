@@ -140,6 +140,7 @@ func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 		PolicyVersion:         "p1",
 		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
 		Scopes:                []string{"runtime.model.remove"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{},
 		ScopeCatalogVersion:   "sdk-v1",
 		TtlSeconds:            300,
 	})

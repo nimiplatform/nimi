@@ -6,9 +6,32 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
+
+type fakeLocalModelLister struct {
+	models []*runtimev1.LocalModelRecord
+	err    error
+}
+
+func (f *fakeLocalModelLister) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	result := make([]*runtimev1.LocalModelRecord, 0, len(f.models))
+	for _, model := range f.models {
+		if req.GetStatusFilter() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED &&
+			model.GetStatus() != req.GetStatusFilter() {
+			continue
+		}
+		result = append(result, model)
+	}
+	return &runtimev1.ListLocalModelsResponse{Models: result}, nil
+}
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
@@ -17,16 +40,19 @@ func newTestService(t *testing.T) *Service {
 	return New(logger, store, nil)
 }
 
+func userContext(userID string) context.Context {
+	return authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: userID})
+}
+
 func TestCreateConnector(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		Endpoint: "https://api.openai.com/v1",
 		Label:    "Test OpenAI",
 		ApiKey:   "sk-test",
-		OwnerId:  "user-1",
 	})
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
@@ -44,11 +70,10 @@ func TestCreateConnector(t *testing.T) {
 
 func TestCreateConnectorMissingAPIKey(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
-		OwnerId:  "user-1",
 	})
 	if err == nil {
 		t.Fatal("expected error for missing api_key")
@@ -61,12 +86,11 @@ func TestCreateConnectorMissingAPIKey(t *testing.T) {
 
 func TestCreateConnectorDefaultEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "gemini",
 		ApiKey:   "test-key",
-		OwnerId:  "user-1",
 	})
 	if err != nil {
 		t.Fatalf("CreateConnector: %v", err)
@@ -78,14 +102,13 @@ func TestCreateConnectorDefaultEndpoint(t *testing.T) {
 
 func TestCreateConnectorLimit(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	// Create 128 connectors
 	for i := 0; i < maxConnectorsPerUser; i++ {
 		_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 			Provider: "openai",
 			ApiKey:   "key",
-			OwnerId:  "user-1",
 		})
 		if err != nil {
 			t.Fatalf("CreateConnector %d: %v", i, err)
@@ -96,7 +119,6 @@ func TestCreateConnectorLimit(t *testing.T) {
 	_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 	})
 	if err == nil {
 		t.Fatal("expected limit exceeded error")
@@ -125,19 +147,18 @@ func TestGetConnectorNotFound(t *testing.T) {
 
 func TestGetConnectorOwnerMismatch(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	user1Ctx := userContext("user-1")
+	user2Ctx := userContext("user-2")
 
-	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+	resp, _ := svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 	})
 	connID := resp.Connector.ConnectorId
 
 	// Different owner should see NOT_FOUND (information hiding)
-	_, err := svc.GetConnector(ctx, &runtimev1.GetConnectorRequest{
+	_, err := svc.GetConnector(user2Ctx, &runtimev1.GetConnectorRequest{
 		ConnectorId: connID,
-		OwnerId:     "user-2",
 	})
 	if err == nil {
 		t.Fatal("expected not found for owner mismatch")
@@ -150,7 +171,8 @@ func TestGetConnectorOwnerMismatch(t *testing.T) {
 
 func TestListConnectorsFiltering(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	user1Ctx := userContext("user-1")
+	user2Ctx := userContext("user-2")
 
 	// Ensure local connectors exist
 	if err := EnsureLocalConnectors(svc.store); err != nil {
@@ -158,21 +180,17 @@ func TestListConnectorsFiltering(t *testing.T) {
 	}
 
 	// Create remote connectors for different users
-	svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+	svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 	})
-	svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+	svc.CreateConnector(user2Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "gemini",
 		ApiKey:   "key",
-		OwnerId:  "user-2",
 	})
 
 	// List for user-1: should see 6 local + 1 remote
-	resp, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{
-		OwnerId: "user-1",
-	})
+	resp, err := svc.ListConnectors(user1Ctx, &runtimev1.ListConnectorsRequest{})
 	if err != nil {
 		t.Fatalf("ListConnectors: %v", err)
 	}
@@ -195,20 +213,19 @@ func TestListConnectorsFiltering(t *testing.T) {
 
 func TestUpdateConnector(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 		Label:    "Old",
 	})
 	connID := resp.Connector.ConnectorId
 
 	updated, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
-		OwnerId:     "user-1",
-		Label:       "New",
+		Label:       proto.String("New"),
+		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"label"}},
 	})
 	if err != nil {
 		t.Fatalf("UpdateConnector: %v", err)
@@ -220,27 +237,94 @@ func TestUpdateConnector(t *testing.T) {
 
 func TestUpdateConnectorNoChanges(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 	})
 	connID := resp.Connector.ConnectorId
 
 	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: connID,
-		OwnerId:     "user-1",
 	})
 	if err == nil {
 		t.Fatal("expected error for no changes")
 	}
 }
 
+func TestUpdateConnectorInfersUpdateMaskFromOptionalFields(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+		Label:    "Old",
+	})
+	connID := resp.Connector.ConnectorId
+
+	updated, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
+		ConnectorId: connID,
+		Label:       proto.String("New"),
+	})
+	if err != nil {
+		t.Fatalf("UpdateConnector: %v", err)
+	}
+	if updated.GetConnector().GetLabel() != "New" {
+		t.Fatalf("expected inferred update_mask to update label, got %q", updated.GetConnector().GetLabel())
+	}
+}
+
+func TestUpdateConnectorRejectsUnknownUpdateMaskPath(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	})
+	connID := resp.GetConnector().GetConnectorId()
+
+	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
+		ConnectorId: connID,
+		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"unknown_field"}},
+	})
+	if err == nil {
+		t.Fatal("expected invalid_argument for unknown update_mask path")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+}
+
+func TestUpdateConnectorRejectsMaskPathWithoutOptionalValue(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "key",
+	})
+	connID := resp.GetConnector().GetConnectorId()
+
+	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
+		ConnectorId: connID,
+		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"label"}},
+	})
+	if err == nil {
+		t.Fatal("expected invalid_argument when label path is set without label optional value")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+}
+
 func TestUpdateLocalConnectorImmutable(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
@@ -256,7 +340,8 @@ func TestUpdateLocalConnectorImmutable(t *testing.T) {
 
 	_, err := svc.UpdateConnector(ctx, &runtimev1.UpdateConnectorRequest{
 		ConnectorId: localID,
-		Label:       "Hacked",
+		Label:       proto.String("Hacked"),
+		UpdateMask:  &fieldmaskpb.FieldMask{Paths: []string{"label"}},
 	})
 	if err == nil {
 		t.Fatal("expected immutable error for local connector")
@@ -269,18 +354,16 @@ func TestUpdateLocalConnectorImmutable(t *testing.T) {
 
 func TestDeleteConnector(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 	})
 	connID := resp.Connector.ConnectorId
 
 	delResp, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: connID,
-		OwnerId:     "user-1",
 	})
 	if err != nil {
 		t.Fatalf("DeleteConnector: %v", err)
@@ -297,9 +380,38 @@ func TestDeleteConnector(t *testing.T) {
 	}
 }
 
+func TestListConnectorsPageSizeClampTo200(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	// Create >100 connectors to validate page_size clamping behavior.
+	for i := 0; i < 120; i++ {
+		_, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+			Provider: "openai",
+			ApiKey:   "key",
+		})
+		if err != nil {
+			t.Fatalf("CreateConnector %d: %v", i, err)
+		}
+	}
+
+	resp, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{
+		PageSize: 999,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectors: %v", err)
+	}
+	if len(resp.GetConnectors()) != 120 {
+		t.Fatalf("expected page_size clamp to return all 120 items (<=200 max), got %d", len(resp.GetConnectors()))
+	}
+	if resp.GetNextPageToken() != "" {
+		t.Fatalf("expected no next page token when all items fit in clamped page")
+	}
+}
+
 func TestDeleteLocalConnectorForbidden(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	if err := EnsureLocalConnectors(svc.store); err != nil {
 		t.Fatalf("EnsureLocalConnectors: %v", err)
@@ -323,7 +435,7 @@ func TestDeleteLocalConnectorForbidden(t *testing.T) {
 
 func TestDeleteConnectorIdempotent(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: "nonexistent",
@@ -356,12 +468,11 @@ func TestTestConnectorNotFound(t *testing.T) {
 
 func TestTestConnectorDisabled(t *testing.T) {
 	svc := newTestService(t)
-	ctx := context.Background()
+	ctx := userContext("user-1")
 
 	resp, _ := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
-		OwnerId:  "user-1",
 	})
 	connID := resp.Connector.ConnectorId
 
@@ -371,7 +482,6 @@ func TestTestConnectorDisabled(t *testing.T) {
 
 	testResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
 		ConnectorId: connID,
-		OwnerId:     "user-1",
 	})
 	if err != nil {
 		t.Fatalf("TestConnector: %v", err)
@@ -448,5 +558,102 @@ func TestEnsureLocalConnectors(t *testing.T) {
 	records2, _ := store.Load()
 	if len(records2) != 6 {
 		t.Fatalf("expected still 6 connectors, got %d", len(records2))
+	}
+}
+
+func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	if err := EnsureLocalConnectors(svc.store); err != nil {
+		t.Fatalf("EnsureLocalConnectors: %v", err)
+	}
+
+	localList, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL})
+	if err != nil {
+		t.Fatalf("ListConnectors: %v", err)
+	}
+	llmConnectorID := ""
+	for _, connectorItem := range localList.GetConnectors() {
+		if connectorItem.GetLocalCategory() == runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM {
+			llmConnectorID = connectorItem.GetConnectorId()
+			break
+		}
+	}
+	if llmConnectorID == "" {
+		t.Fatalf("expected LLM local connector")
+	}
+
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		models: []*runtimev1.LocalModelRecord{
+			{ModelId: "image-only", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
+		},
+	})
+	emptyResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
+	if err != nil {
+		t.Fatalf("TestConnector empty local availability: %v", err)
+	}
+	if emptyResp.GetAck().GetOk() {
+		t.Fatalf("expected local connector unavailable without matching ACTIVE models")
+	}
+	if emptyResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %v", emptyResp.GetAck().GetReasonCode())
+	}
+
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		models: []*runtimev1.LocalModelRecord{
+			{ModelId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
+		},
+	})
+	okResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
+	if err != nil {
+		t.Fatalf("TestConnector local available: %v", err)
+	}
+	if !okResp.GetAck().GetOk() {
+		t.Fatalf("expected local connector to be available")
+	}
+}
+
+func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	if err := EnsureLocalConnectors(svc.store); err != nil {
+		t.Fatalf("EnsureLocalConnectors: %v", err)
+	}
+
+	localList, err := svc.ListConnectors(ctx, &runtimev1.ListConnectorsRequest{KindFilter: runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL})
+	if err != nil {
+		t.Fatalf("ListConnectors: %v", err)
+	}
+	llmConnectorID := ""
+	for _, connectorItem := range localList.GetConnectors() {
+		if connectorItem.GetLocalCategory() == runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM {
+			llmConnectorID = connectorItem.GetConnectorId()
+			break
+		}
+	}
+	if llmConnectorID == "" {
+		t.Fatalf("expected LLM local connector")
+	}
+
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		models: []*runtimev1.LocalModelRecord{
+			{ModelId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
+			{ModelId: "image-model", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
+			{ModelId: "chat-installed", Capabilities: []string{"chat"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED},
+		},
+	})
+
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: llmConnectorID,
+		PageSize:    20,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels local: %v", err)
+	}
+	if len(resp.GetModels()) != 1 {
+		t.Fatalf("expected 1 active LLM model, got %d", len(resp.GetModels()))
+	}
+	if resp.GetModels()[0].GetModelId() != "chat-model" {
+		t.Fatalf("unexpected local model id: %s", resp.GetModels()[0].GetModelId())
 	}
 }
