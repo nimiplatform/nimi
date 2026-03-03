@@ -5,6 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
+import type { WorldListItem } from '../world/world-list';
 
 const PAGE_SIZE = 20;
 const DEFAULT_CATEGORIES = ['Research', 'Coding', 'Writing', 'Analysis', 'Creative', 'Education', 'Health & Finance'];
@@ -93,6 +94,42 @@ function parseAgents(agentsResult: unknown): ExploreAgentCardData[] {
     .filter((item): item is ExploreAgentCardData => item !== null);
 }
 
+function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
+  return {
+    id: String(raw.id || ''),
+    name: String(raw.name || 'Unknown World'),
+    description: typeof raw.description === 'string' ? raw.description : null,
+    genre: typeof raw.genre === 'string' ? raw.genre : null,
+    themes: Array.isArray(raw.themes)
+      ? raw.themes.filter((t): t is string => typeof t === 'string')
+      : [],
+    era: typeof raw.era === 'string' ? raw.era : null,
+    iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
+    bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
+    type: typeof raw.type === 'string' ? raw.type : 'SUB',
+    status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
+    level: typeof raw.level === 'number' ? raw.level : 1,
+    levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
+    agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
+    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
+    creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
+    freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
+    lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
+    nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 0,
+    nativeCreationState:
+      typeof raw.nativeCreationState === 'string' ? raw.nativeCreationState : 'OPEN',
+    scoreA: typeof raw.scoreA === 'number' ? raw.scoreA : 0,
+    scoreC: typeof raw.scoreC === 'number' ? raw.scoreC : 0,
+    scoreE: typeof raw.scoreE === 'number' ? raw.scoreE : 0,
+    scoreEwma: typeof raw.scoreEwma === 'number' ? raw.scoreEwma : 0,
+    scoreQ: typeof raw.scoreQ === 'number' ? raw.scoreQ : 0,
+    timeFlowRatio: typeof raw.timeFlowRatio === 'number' ? raw.timeFlowRatio : 1,
+    transitInLimit: typeof raw.transitInLimit === 'number' ? raw.transitInLimit : 0,
+    agents: undefined,
+  };
+}
+
 export function ExplorePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -100,6 +137,27 @@ export function ExplorePanel() {
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Fetch worlds for banner carousel
+  const worldsQuery = useQuery({
+    queryKey: ['explore-worlds'],
+    queryFn: async () => {
+      const result = await dataSync.loadWorlds();
+      return Array.isArray(result)
+        ? result.map((item) => toWorldListItem(item as Record<string, unknown>))
+        : [];
+    },
+  });
+
+  const worldBanners = useMemo(() => {
+    const worlds = worldsQuery.data ?? [];
+    return worlds.map((world) => ({
+      id: world.id,
+      name: world.name,
+      bannerUrl: world.bannerUrl,
+      type: world.type,
+    }));
+  }, [worldsQuery.data]);
 
   // Fetch agents for sidebar
   const agentsQuery = useQuery({
@@ -169,21 +227,12 @@ export function ExplorePanel() {
   const [refreshKey, setRefreshKey] = useState(0);
   const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
 
-  const onAgentChat = useCallback(
+  const onAgentAddFriend = useCallback(
     (agentId: string) => {
       const target = agents.find((item) => item.id === agentId);
-      setRuntimeFields({
-        targetType: 'AGENT',
-        targetAccountId: agentId,
-        agentId,
-        targetId: agentId,
-        worldId: target?.worldId || '',
-      });
-      // Open mod workspace tab before setting active tab
-      openModWorkspaceTab('mod:local-chat', 'Local Chat', 'local-chat');
-      setActiveTab('mod:local-chat');
+      console.log('Add friend request sent to agent:', agentId, target);
     },
-    [agents, setActiveTab, setRuntimeFields, openModWorkspaceTab],
+    [agents],
   );
 
   const onToggleCategory = useCallback(
@@ -204,13 +253,14 @@ export function ExplorePanel() {
       categories={categories}
       featuredWorlds={DEFAULT_FEATURED_WORLDS}
       topAgents={topAgents}
+      worldBanners={worldBanners}
       fetchPostPage={fetchPostPage}
       postFeedKey={postFeedKey}
       onPostDelete={() => setRefreshKey((k) => k + 1)}
       loading={agentsQuery.isPending}
       onSearchTextChange={setSearchText}
       onToggleCategory={onToggleCategory}
-      onAgentChat={onAgentChat}
+      onAgentAddFriend={onAgentAddFriend}
     />
   );
 }

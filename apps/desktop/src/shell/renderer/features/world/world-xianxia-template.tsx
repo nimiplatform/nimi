@@ -209,7 +209,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             style={{ 
               top: 'calc(24px + 15px)',
               left: 'max(39px, calc((100vw - 1400px) / 2 + 24px + 15px))',
-              transform: 'translate(30px, 45px)'
+              transform: 'translate(45px, 60px)'
             }}
             aria-label="Go Back"
           >

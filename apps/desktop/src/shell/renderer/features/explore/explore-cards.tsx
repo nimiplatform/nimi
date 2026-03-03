@@ -214,10 +214,10 @@ export function ExploreAgentCard({
 
 export function TopAgentCard({
   agent,
-  onChat,
+  onAddFriend,
 }: {
   agent: ExploreAgentCardData;
-  onChat?: () => void;
+  onAddFriend?: () => void;
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-3">
@@ -256,10 +256,15 @@ export function TopAgentCard({
         <button
           type="button"
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-mint-600"
-          onClick={onChat}
+          onClick={onAddFriend}
         >
-          <ChatIcon size={14} />
-          Chat
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="8.5" cy="7" r="4" />
+            <line x1="20" y1="8" x2="20" y2="14" />
+            <line x1="23" y1="11" x2="17" y2="11" />
+          </svg>
+          Add Friend
         </button>
       </div>
     </div>

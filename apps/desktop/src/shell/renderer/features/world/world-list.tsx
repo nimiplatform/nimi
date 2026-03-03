@@ -204,7 +204,7 @@ export function WorldList() {
                     )}
                     {/* Status dot */}
                     <div
-                      className={`absolute bottom-[1px] right-[1px] h-4 w-4 rounded-full border-2 border-white ${getStatusDotColor(mainWorld.status)}`}
+                      className={`absolute bottom-[6px] right-[6px] h-4 w-4 rounded-full border-2 border-white ${getStatusDotColor(mainWorld.status)}`}
                       title={mainWorld.status}
                     />
                   </div>
@@ -350,7 +350,7 @@ export function WorldList() {
                           )}
                           {/* Status dot */}
                           <div
-                            className={`absolute bottom-[1px] right-[1px] h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusDotColor(world.status)}`}
+                            className={`absolute bottom-[6px] right-[6px] h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusDotColor(world.status)}`}
                             title={world.status}
                           />
                         </div>
