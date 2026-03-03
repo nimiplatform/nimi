@@ -9,11 +9,14 @@ import { ModelCenterDependencySection } from './model-center-dependency-section'
 import { ModelCenterInstalledList } from './model-center-installed-list';
 import {
   CAPABILITY_OPTIONS,
+  downloadStateLabel,
   HIGHLIGHT_CLEAR_MS,
   PROGRESS_SESSION_LIMIT,
   type CapabilityOption,
   type LocalRuntimeModelCenterProps,
   type ProgressSessionState,
+  isDownloadTerminal,
+  toProgressEventFromSummary,
   formatBytes,
   formatEta,
   formatSpeed,
@@ -89,6 +92,25 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     }
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
+    void localAiRuntime.listDownloads()
+      .then((sessions) => {
+        if (disposed) return;
+        const nowMs = Date.now();
+        setProgressBySessionId((prev) => {
+          const next = pruneProgressSessions(prev, nowMs);
+          const merged: Record<string, ProgressSessionState> = { ...next };
+          for (const session of sessions) {
+            merged[session.installSessionId] = {
+              event: toProgressEventFromSummary(session),
+              updatedAtMs: parseTimestamp(session.updatedAt) || nowMs,
+            };
+          }
+          return merged;
+        });
+      })
+      .catch(() => {
+        // Keep existing in-memory progress if hydration fails.
+      });
     void localAiRuntime.subscribeDownloadProgress((event) => {
       if (disposed) return;
       const nowMs = Date.now();
@@ -103,7 +125,13 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
         };
       });
       if (event.done) {
-        void props.onDownloadComplete?.(event.installSessionId, event.success, event.message);
+        void props.onDownloadComplete?.(
+          event.installSessionId,
+          event.success,
+          event.message,
+          event.localModelId,
+          event.modelId,
+        );
       }
     }).then((off) => {
       if (disposed) {
@@ -211,19 +239,62 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     [progressBySessionId],
   );
 
-  const activeDownloads = useMemo(() => {
-    const nowMs = Date.now();
-    return progressEvents.filter((event) => {
-      if (!event.done) return true;
-      const session = progressBySessionId[event.installSessionId];
-      return session != null && (nowMs - session.updatedAtMs < 10_000);
-    });
-  }, [progressBySessionId, progressEvents]);
+  const activeDownloads = useMemo(
+    () => progressEvents.filter((event) => (
+      event.state === 'queued'
+      || event.state === 'running'
+      || event.state === 'paused'
+      || event.state === 'failed'
+    )),
+    [progressEvents],
+  );
 
   const recentSessions = useMemo(() => {
     const activeIds = new Set(activeDownloads.map((e) => e.installSessionId));
-    return progressEvents.filter((event) => event.done && !activeIds.has(event.installSessionId));
+    return progressEvents.filter((event) => (
+      isDownloadTerminal(event.state)
+      && event.state !== 'failed'
+      && !activeIds.has(event.installSessionId)
+    ));
   }, [activeDownloads, progressEvents]);
+
+  const mergeSessionSummary = useCallback((installSessionId: string, updater: () => Promise<ReturnType<typeof toProgressEventFromSummary>>) => {
+    void updater()
+      .then((event) => {
+        const nowMs = Date.now();
+        setProgressBySessionId((prev) => ({
+          ...prev,
+          [installSessionId]: {
+            event,
+            updatedAtMs: nowMs,
+          },
+        }));
+      })
+      .catch(() => {
+        // Keep current state if control action fails.
+      });
+  }, []);
+
+  const onPauseDownload = useCallback((installSessionId: string) => {
+    mergeSessionSummary(
+      installSessionId,
+      async () => toProgressEventFromSummary(await localAiRuntime.pauseDownload(installSessionId, { caller: 'core' })),
+    );
+  }, [mergeSessionSummary]);
+
+  const onResumeDownload = useCallback((installSessionId: string) => {
+    mergeSessionSummary(
+      installSessionId,
+      async () => toProgressEventFromSummary(await localAiRuntime.resumeDownload(installSessionId, { caller: 'core' })),
+    );
+  }, [mergeSessionSummary]);
+
+  const onCancelDownload = useCallback((installSessionId: string) => {
+    mergeSessionSummary(
+      installSessionId,
+      async () => toProgressEventFromSummary(await localAiRuntime.cancelDownload(installSessionId, { caller: 'core' })),
+    );
+  }, [mergeSessionSummary]);
 
   const toggleCapability = (capability: CapabilityOption) => {
     setSelectedCapabilities((prev) => {
@@ -348,27 +419,48 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
         <div className="space-y-3">
           {activeDownloads.map((event) => {
             const sessionMeta = props.installSessionMeta?.get(event.installSessionId);
-            const isFailed = event.done && !event.success;
-            const isCompleted = event.done && event.success;
+            const isQueued = event.state === 'queued';
+            const isRunning = event.state === 'running';
+            const isPaused = event.state === 'paused';
+            const isFailed = event.state === 'failed';
+            const isCompleted = event.state === 'completed';
+            const isCancelled = event.state === 'cancelled';
+            const canPause = isQueued || isRunning;
+            const canResume = isPaused || (isFailed && event.retryable);
+            const canCancel = isQueued || isRunning || isPaused || (isFailed && event.retryable);
+            const badgeClass = isFailed
+              ? 'bg-rose-50 text-rose-700'
+              : isCompleted
+                ? 'bg-emerald-50 text-emerald-700'
+                : isPaused
+                  ? 'bg-amber-50 text-amber-700'
+                  : isQueued
+                    ? 'bg-slate-100 text-slate-700'
+                    : isCancelled
+                      ? 'bg-gray-100 text-gray-700'
+                      : 'bg-blue-50 text-blue-700';
+            const barClass = isFailed
+              ? 'bg-rose-500'
+              : isCompleted
+                ? 'bg-emerald-500'
+                : isPaused
+                  ? 'bg-amber-500'
+                  : 'bg-blue-500';
             return (
               <div key={`active-dl-${event.installSessionId}`} className="space-y-2 rounded-[10px] border border-gray-200 bg-white p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold text-gray-700">
                     {event.modelId} <span className="font-normal text-gray-500">({event.phase})</span>
                   </p>
-                  <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
-                    isFailed ? 'bg-rose-50 text-rose-700' :
-                    isCompleted ? 'bg-emerald-50 text-emerald-700' :
-                    'bg-blue-50 text-blue-700'
-                  }`}>
-                    {isFailed ? 'Failed' : isCompleted ? 'Completed' : 'Running'}
+                  <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${badgeClass}`}>
+                    {downloadStateLabel(event.state)}
                   </span>
                 </div>
                 {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
                   <>
                     <div className="h-2 overflow-hidden rounded-full bg-gray-200">
                       <div
-                        className={`h-full transition-all ${isFailed ? 'bg-rose-500' : isCompleted ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                        className={`h-full transition-all ${barClass}`}
                         style={{
                           width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%`,
                         }}
@@ -376,8 +468,8 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
                       <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
-                      {!event.done && <span>{formatSpeed(event.speedBytesPerSec)}</span>}
-                      {!event.done && <span>ETA {formatEta(event.etaSeconds)}</span>}
+                      {(isRunning || isQueued) && <span>{formatSpeed(event.speedBytesPerSec)}</span>}
+                      {(isRunning || isQueued) && <span>ETA {formatEta(event.etaSeconds)}</span>}
                     </div>
                   </>
                 ) : (
@@ -388,7 +480,26 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                     {event.message}
                   </p>
                 ) : null}
-                {isFailed && sessionMeta ? (
+                {(canPause || canResume || canCancel) ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {canPause ? (
+                      <Button variant="secondary" size="sm" onClick={() => onPauseDownload(event.installSessionId)}>
+                        Pause
+                      </Button>
+                    ) : null}
+                    {canResume ? (
+                      <Button variant="secondary" size="sm" onClick={() => onResumeDownload(event.installSessionId)}>
+                        Resume
+                      </Button>
+                    ) : null}
+                    {canCancel ? (
+                      <Button variant="ghost" size="sm" onClick={() => onCancelDownload(event.installSessionId)}>
+                        Cancel
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+                {isFailed && !event.retryable && sessionMeta ? (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -399,7 +510,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                       );
                     }}
                   >
-                    Retry
+                    Reinstall
                   </Button>
                 ) : null}
               </div>
@@ -414,8 +525,8 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
           <div className="space-y-1">
             {recentSessions.map((event) => (
               <p key={`recent-session-${event.installSessionId}`} className="text-[11px] text-gray-500">
-                {event.modelId} · {event.phase} · {event.success ? 'done' : 'failed'}
-                {!event.success && event.message ? ` — ${event.message}` : ''}
+                {event.modelId} · {event.phase} · {downloadStateLabel(event.state).toLowerCase()}
+                {event.message ? ` — ${event.message}` : ''}
               </p>
             ))}
           </div>

@@ -1,6 +1,8 @@
 import type {
   LocalAiCatalogItemDescriptor,
   LocalAiDependencyResolutionPlan,
+  LocalAiDownloadSessionSummary,
+  LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
   LocalAiInstallPayload,
   LocalAiInstallPlanDescriptor,
@@ -35,7 +37,13 @@ export type LocalRuntimeModelCenterProps = {
   onSetLocalRuntimeModelQuery: (value: string) => void;
   onChangeLocalRuntimeEndpoint: (endpoint: string) => void;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
-  onDownloadComplete?: (installSessionId: string, success: boolean, message?: string) => Promise<void>;
+  onDownloadComplete?: (
+    installSessionId: string,
+    success: boolean,
+    message?: string,
+    localModelId?: string,
+    modelId?: string,
+  ) => Promise<void>;
   onRetryInstall?: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
   installSessionMeta?: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
 };
@@ -51,6 +59,51 @@ export type ProgressSessionState = {
 export const PROGRESS_SESSION_LIMIT = 6;
 export const PROGRESS_RETENTION_MS = 15 * 60 * 1000;
 export const HIGHLIGHT_CLEAR_MS = 8000;
+
+export function isDownloadTerminal(state: LocalAiDownloadState): boolean {
+  return state === 'completed' || state === 'failed' || state === 'cancelled';
+}
+
+export function deriveDoneSuccessFromState(state: LocalAiDownloadState): { done: boolean; success: boolean } {
+  if (state === 'completed') {
+    return { done: true, success: true };
+  }
+  if (state === 'failed' || state === 'cancelled') {
+    return { done: true, success: false };
+  }
+  return { done: false, success: false };
+}
+
+export function toProgressEventFromSummary(
+  summary: LocalAiDownloadSessionSummary,
+): LocalAiDownloadProgressEvent {
+  const terminal = deriveDoneSuccessFromState(summary.state);
+  return {
+    installSessionId: summary.installSessionId,
+    modelId: summary.modelId,
+    localModelId: summary.localModelId || undefined,
+    phase: summary.phase,
+    bytesReceived: summary.bytesReceived,
+    bytesTotal: summary.bytesTotal,
+    speedBytesPerSec: summary.speedBytesPerSec,
+    etaSeconds: summary.etaSeconds,
+    message: summary.message,
+    state: summary.state,
+    reasonCode: summary.reasonCode,
+    retryable: summary.retryable,
+    done: terminal.done,
+    success: terminal.success,
+  };
+}
+
+export function downloadStateLabel(state: LocalAiDownloadState): string {
+  if (state === 'queued') return 'Queued';
+  if (state === 'running') return 'Running';
+  if (state === 'paused') return 'Paused';
+  if (state === 'failed') return 'Failed';
+  if (state === 'completed') return 'Completed';
+  return 'Cancelled';
+}
 
 export function statusLabel(value: string): 'healthy' | 'degraded' | 'idle' | 'unreachable' {
   if (value === 'active') return 'healthy';

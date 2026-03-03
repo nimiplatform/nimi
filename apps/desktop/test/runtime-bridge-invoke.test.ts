@@ -16,6 +16,12 @@ test('toBridgeUserError keeps generic fallback for unknown runtime reason', () =
   assert.equal(error.message, 'SOME_UNKNOWN_RUNTIME_REASON');
 });
 
+test('toBridgeUserError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => {
+  const error = toBridgeUserError(new Error('LOCAL_AI_HF_DOWNLOAD_DISK_FULL: no space left on device'));
+  assert.equal(error.reasonCode, 'LOCAL_AI_HF_DOWNLOAD_DISK_FULL');
+  assert.equal(String(error.details?.userMessage || ''), '磁盘空间不足，请释放空间后继续下载');
+});
+
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,

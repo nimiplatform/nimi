@@ -11,6 +11,10 @@ import {
   installLocalAiRuntimeModel,
   searchLocalAiRuntimeCatalog,
   resolveLocalAiRuntimeInstallPlan,
+  listLocalAiRuntimeDownloadSessions,
+  pauseLocalAiRuntimeDownload,
+  resumeLocalAiRuntimeDownload,
+  cancelLocalAiRuntimeDownload,
   collectLocalAiRuntimeDeviceProfile,
   resolveLocalAiRuntimeDependencies,
   applyLocalAiRuntimeDependencies,
@@ -42,6 +46,8 @@ import type {
   LocalAiDependencyResolutionPlan,
   LocalAiDependencyApplyResult,
   LocalAiDeviceProfile,
+  LocalAiDownloadSessionSummary,
+  LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
   LocalAiInstallAcceptedResponse,
   LocalAiInstallPlanDescriptor,
@@ -82,6 +88,8 @@ export type {
   LocalAiDependencyResolutionPlan,
   LocalAiDependencyApplyResult,
   LocalAiDeviceProfile,
+  LocalAiDownloadSessionSummary,
+  LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
   LocalAiInstallAcceptedResponse,
   LocalAiInstallPlanDescriptor,
@@ -144,6 +152,19 @@ export type LocalAiRuntimeFacade = {
     payload: LocalAiInstallVerifiedPayload,
     options?: LocalAiRuntimeWriteOptions,
   ) => Promise<LocalAiInstallAcceptedResponse>;
+  listDownloads: () => Promise<LocalAiDownloadSessionSummary[]>;
+  pauseDownload: (
+    installSessionId: string,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiDownloadSessionSummary>;
+  resumeDownload: (
+    installSessionId: string,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiDownloadSessionSummary>;
+  cancelDownload: (
+    installSessionId: string,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiDownloadSessionSummary>;
   import: (
     payload: LocalAiImportPayload,
     options?: LocalAiRuntimeWriteOptions,
@@ -195,6 +216,10 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   install: installLocalAiRuntimeModel,
   listVerified: listLocalAiRuntimeVerifiedModels,
   installVerified: installLocalAiRuntimeVerifiedModel,
+  listDownloads: listLocalAiRuntimeDownloadSessions,
+  pauseDownload: pauseLocalAiRuntimeDownload,
+  resumeDownload: resumeLocalAiRuntimeDownload,
+  cancelDownload: cancelLocalAiRuntimeDownload,
   import: importLocalAiRuntimeModel,
   pickModelFile: pickLocalAiRuntimeModelFile,
   importFile: importLocalAiRuntimeModelFile,

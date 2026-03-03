@@ -454,6 +454,8 @@ export type LocalAiRuntimeSnapshot = {
   generatedAt: string;
 };
 
+export type LocalAiDownloadState = 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
+
 export type LocalAiDownloadProgressEvent = {
   installSessionId: string;
   modelId: string;
@@ -464,8 +466,32 @@ export type LocalAiDownloadProgressEvent = {
   speedBytesPerSec?: number;
   etaSeconds?: number;
   message?: string;
+  state: LocalAiDownloadState;
+  reasonCode?: string;
+  retryable?: boolean;
   done: boolean;
   success: boolean;
+};
+
+export type LocalAiDownloadSessionSummary = {
+  installSessionId: string;
+  modelId: string;
+  localModelId: string;
+  phase: string;
+  state: LocalAiDownloadState;
+  bytesReceived: number;
+  bytesTotal?: number;
+  speedBytesPerSec?: number;
+  etaSeconds?: number;
+  message?: string;
+  reasonCode?: string;
+  retryable: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LocalAiDownloadControlPayload = {
+  installSessionId: string;
 };
 
 export type LocalAiInstallAcceptedResponse = {

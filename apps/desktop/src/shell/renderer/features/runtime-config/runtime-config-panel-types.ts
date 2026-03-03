@@ -68,7 +68,13 @@ export type RuntimeConfigPanelControllerModel = {
   restartRuntimeDaemon: () => Promise<void>;
   stopRuntimeDaemon: () => Promise<void>;
   onVaultChanged: () => void;
-  onDownloadComplete: (installSessionId: string, success: boolean, message?: string) => Promise<void>;
+  onDownloadComplete: (
+    installSessionId: string,
+    success: boolean,
+    message?: string,
+    localModelId?: string,
+    modelId?: string,
+  ) => Promise<void>;
   retryInstall: (plan: LocalAiInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
   installSessionMeta: Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>;
 };

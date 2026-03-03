@@ -26,6 +26,7 @@ import type {
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
   LocalAiDownloadProgressEvent,
+  LocalAiDownloadSessionSummary,
   LocalAiImportPayload,
   LocalAiInferenceAuditPayload,
   LocalAiInstallAcceptedResponse,
@@ -94,6 +95,35 @@ export async function installLocalAiVerifiedModel(
 ): Promise<LocalAiInstallAcceptedResponse> {
   const bridge = await loadLocalAiBridge();
   return bridge.installLocalAiVerifiedModel(payload, options);
+}
+
+export async function listLocalAiDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
+  const bridge = await loadLocalAiBridge();
+  return bridge.listLocalAiDownloadSessions();
+}
+
+export async function pauseLocalAiDownloadSession(
+  installSessionId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  const bridge = await loadLocalAiBridge();
+  return bridge.pauseLocalAiDownloadSession(installSessionId, options);
+}
+
+export async function resumeLocalAiDownloadSession(
+  installSessionId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  const bridge = await loadLocalAiBridge();
+  return bridge.resumeLocalAiDownloadSession(installSessionId, options);
+}
+
+export async function cancelLocalAiDownloadSession(
+  installSessionId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  const bridge = await loadLocalAiBridge();
+  return bridge.cancelLocalAiDownloadSession(installSessionId, options);
 }
 
 export async function importLocalAiModel(
@@ -207,6 +237,7 @@ export type {
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
   LocalAiDownloadProgressEvent,
+  LocalAiDownloadSessionSummary,
   LocalAiImportPayload,
   LocalAiInstallPayload,
   LocalAiInstallVerifiedPayload,
@@ -270,6 +301,10 @@ export const desktopBridge = {
   pickLocalAiManifestPath,
   installLocalAiModel,
   installLocalAiVerifiedModel,
+  listLocalAiDownloadSessions,
+  pauseLocalAiDownloadSession,
+  resumeLocalAiDownloadSession,
+  cancelLocalAiDownloadSession,
   importLocalAiModel,
   removeLocalAiModel,
   startLocalAiModel,

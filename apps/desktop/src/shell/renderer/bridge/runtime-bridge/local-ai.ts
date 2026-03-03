@@ -3,6 +3,7 @@ import type {
   LocalAiAuditEvent,
   LocalAiAuditListPayload,
   LocalAiDownloadProgressEvent,
+  LocalAiDownloadSessionSummary,
   LocalAiInferenceAuditPayload,
   LocalAiImportPayload,
   LocalAiInstallAcceptedResponse,
@@ -47,6 +48,31 @@ export async function installLocalAiVerifiedModel(
   options?: LocalAiWriteOptions,
 ): Promise<LocalAiInstallAcceptedResponse> {
   return localAiRuntime.installVerified(payload, options);
+}
+
+export async function listLocalAiDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
+  return localAiRuntime.listDownloads();
+}
+
+export async function pauseLocalAiDownloadSession(
+  installSessionId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  return localAiRuntime.pauseDownload(installSessionId, options);
+}
+
+export async function resumeLocalAiDownloadSession(
+  installSessionId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  return localAiRuntime.resumeDownload(installSessionId, options);
+}
+
+export async function cancelLocalAiDownloadSession(
+  installSessionId: string,
+  options?: LocalAiWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  return localAiRuntime.cancelDownload(installSessionId, options);
 }
 
 export async function importLocalAiModel(

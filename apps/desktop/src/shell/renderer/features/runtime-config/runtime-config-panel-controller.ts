@@ -204,9 +204,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     installSessionId: string,
     success: boolean,
     message?: string,
+    localModelId?: string,
+    modelId?: string,
   ) => {
     const session = pendingInstallsRef.current.get(installSessionId);
-    if (!session) return;
 
     if (!success) {
       // Keep entry in pendingInstallsRef so the Retry button can read session meta.
@@ -217,15 +218,29 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       return;
     }
 
-    // Download succeeded — remove from pending and run post-install lifecycle.
-    pendingInstallsRef.current.delete(installSessionId);
-    setPendingInstallVersion((v) => v + 1);
+    if (session) {
+      // Download succeeded — remove from pending and run post-install lifecycle.
+      pendingInstallsRef.current.delete(installSessionId);
+      setPendingInstallVersion((v) => v + 1);
+    }
 
-    const { accepted, plan, installSource } = session;
+    const resolvedLocalModelId = String(session?.accepted.localModelId || localModelId || '').trim();
+    const resolvedModelId = String(session?.accepted.modelId || modelId || '').trim();
+    if (!resolvedLocalModelId || !resolvedModelId) {
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({
+        kind: 'success',
+        message: 'Model download completed',
+      });
+      return;
+    }
+
+    const installSource = session?.installSource || 'resume';
+    const capabilities = session?.plan.capabilities || [];
     try {
-      await localAiRuntime.start(accepted.localModelId, { caller: 'core' });
-      const healthRows = await localAiRuntime.health(accepted.localModelId);
-      const targetHealth = healthRows.find((item) => item.localModelId === accepted.localModelId)
+      await localAiRuntime.start(resolvedLocalModelId, { caller: 'core' });
+      const healthRows = await localAiRuntime.health(resolvedLocalModelId);
+      const targetHealth = healthRows.find((item) => item.localModelId === resolvedLocalModelId)
         || healthRows[0]
         || null;
       if (targetHealth?.status === 'unhealthy') {
@@ -233,18 +248,18 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       }
       await localAiRuntime.appendAudit({
         eventType: 'runtime_model_ready_after_install',
-        modelId: accepted.modelId,
-        localModelId: accepted.localModelId,
+        modelId: resolvedModelId,
+        localModelId: resolvedLocalModelId,
         payload: {
           source: installSource,
-          capabilities: plan.capabilities,
-          localModelId: accepted.localModelId,
+          capabilities,
+          localModelId: resolvedLocalModelId,
         },
       });
       await refreshLocalRuntimeSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Model installed and ready: ${accepted.modelId}`,
+        message: `Model installed and ready: ${resolvedModelId}`,
       });
     } catch (postError: unknown) {
       setStatusBanner({

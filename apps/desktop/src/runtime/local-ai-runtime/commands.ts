@@ -24,6 +24,7 @@ import type {
   LocalAiInferenceAuditPayload,
   LocalAiRuntimeAuditPayload,
   LocalAiDownloadProgressEvent,
+  LocalAiDownloadSessionSummary,
   LocalAiInstallAcceptedResponse,
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
@@ -42,6 +43,7 @@ import {
   parseAuditEvent,
   parseModelHealth,
   parseDownloadProgressEvent,
+  parseDownloadSessionSummary,
   parseInstallAcceptedResponse,
   readGlobalTauriEventListen,
   assertLifecycleWriteAllowed,
@@ -211,6 +213,44 @@ export async function installLocalAiRuntimeVerifiedModel(
   assertLifecycleWriteAllowed('local_runtime_models_install_verified', options?.caller);
   const result = await invokeLocalAiCommand<unknown>('local_ai_models_install_verified', { payload });
   return parseInstallAcceptedResponse(result);
+}
+
+export async function listLocalAiRuntimeDownloadSessions(): Promise<LocalAiDownloadSessionSummary[]> {
+  const sessions = await invokeLocalAiCommand<unknown[]>('local_ai_downloads_list');
+  return (Array.isArray(sessions) ? sessions : []).map((item) => parseDownloadSessionSummary(item));
+}
+
+export async function pauseLocalAiRuntimeDownload(
+  installSessionId: string,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  assertLifecycleWriteAllowed('local_runtime_downloads_pause', options?.caller);
+  const result = await invokeLocalAiCommand<unknown>('local_ai_downloads_pause', {
+    payload: { installSessionId },
+  });
+  return parseDownloadSessionSummary(result);
+}
+
+export async function resumeLocalAiRuntimeDownload(
+  installSessionId: string,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  assertLifecycleWriteAllowed('local_runtime_downloads_resume', options?.caller);
+  const result = await invokeLocalAiCommand<unknown>('local_ai_downloads_resume', {
+    payload: { installSessionId },
+  });
+  return parseDownloadSessionSummary(result);
+}
+
+export async function cancelLocalAiRuntimeDownload(
+  installSessionId: string,
+  options?: LocalAiRuntimeWriteOptions,
+): Promise<LocalAiDownloadSessionSummary> {
+  assertLifecycleWriteAllowed('local_runtime_downloads_cancel', options?.caller);
+  const result = await invokeLocalAiCommand<unknown>('local_ai_downloads_cancel', {
+    payload: { installSessionId },
+  });
+  return parseDownloadSessionSummary(result);
 }
 
 export async function importLocalAiRuntimeModel(

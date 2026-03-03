@@ -220,8 +220,28 @@ export type LocalAiDownloadProgressEvent = {
   speedBytesPerSec?: number;
   etaSeconds?: number;
   message?: string;
+  state: 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
+  reasonCode?: string;
+  retryable?: boolean;
   done: boolean;
   success: boolean;
+};
+
+export type LocalAiDownloadSessionSummary = {
+  installSessionId: string;
+  modelId: string;
+  localModelId: string;
+  phase: string;
+  state: 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
+  bytesReceived: number;
+  bytesTotal?: number;
+  speedBytesPerSec?: number;
+  etaSeconds?: number;
+  message?: string;
+  reasonCode?: string;
+  retryable: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type LocalAiAuditListPayload = {
@@ -697,6 +717,19 @@ export function parseLocalAiDownloadProgressEvent(value: unknown): LocalAiDownlo
   const bytesTotalRaw = Number(record.bytesTotal);
   const speedRaw = Number(record.speedBytesPerSec);
   const etaRaw = Number(record.etaSeconds);
+  const done = Boolean(record.done);
+  const success = Boolean(record.success);
+  const stateRaw = parseOptionalString(record.state)?.toLowerCase();
+  const state = (
+    stateRaw === 'queued'
+    || stateRaw === 'running'
+    || stateRaw === 'paused'
+    || stateRaw === 'failed'
+    || stateRaw === 'completed'
+    || stateRaw === 'cancelled'
+  )
+    ? stateRaw
+    : (done ? (success ? 'completed' : 'failed') : 'running');
   return {
     installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'local-ai://download-progress'),
     modelId: parseRequiredString(record.modelId, 'modelId', 'local-ai://download-progress'),
@@ -707,8 +740,11 @@ export function parseLocalAiDownloadProgressEvent(value: unknown): LocalAiDownlo
     speedBytesPerSec: Number.isFinite(speedRaw) && speedRaw >= 0 ? speedRaw : undefined,
     etaSeconds: Number.isFinite(etaRaw) && etaRaw >= 0 ? etaRaw : undefined,
     message: parseOptionalString(record.message),
-    done: Boolean(record.done),
-    success: Boolean(record.success),
+    state,
+    reasonCode: parseOptionalString(record.reasonCode),
+    retryable: typeof record.retryable === 'boolean' ? Boolean(record.retryable) : undefined,
+    done,
+    success,
   };
 }
 
