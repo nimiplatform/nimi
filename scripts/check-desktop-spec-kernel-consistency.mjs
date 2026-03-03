@@ -23,6 +23,7 @@ const kernelFiles = [
   'spec/desktop/kernel/network-contract.md',
   'spec/desktop/kernel/security-contract.md',
   'spec/desktop/kernel/streaming-consumption-contract.md',
+  'spec/desktop/kernel/codegen-contract.md',
   'spec/desktop/kernel/tables/bootstrap-phases.yaml',
   'spec/desktop/kernel/tables/ipc-commands.yaml',
   'spec/desktop/kernel/tables/app-tabs.yaml',
@@ -41,6 +42,10 @@ const kernelFiles = [
   'spec/desktop/kernel/tables/log-areas.yaml',
   'spec/desktop/kernel/tables/build-chunks.yaml',
   'spec/desktop/kernel/tables/rule-evidence.yaml',
+  'spec/desktop/kernel/tables/codegen-import-allowlist.yaml',
+  'spec/desktop/kernel/tables/codegen-capability-tiers.yaml',
+  'spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml',
+  'spec/desktop/kernel/tables/codegen-acceptance-gates.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/desktop');
@@ -94,6 +99,8 @@ for (const rel of domainFiles) {
   if (!/\bD-[A-Z]+-\d{3}\b/.test(content)) {
     fail(`${rel} must reference at least one kernel Rule ID`);
   }
+  checkNoLocalRuleIds(content, rel);
+  checkNoRuleDefinitionHeadings(content, rel);
 }
 if (domainFiles.length === 0) {
   fail('desktop domain markdown files are empty');
@@ -871,6 +878,24 @@ function checkRuleEvidenceTraceability() {
   const missing = [...kernelRuleDefinitions].filter((ruleId) => !seen.has(ruleId));
   if (missing.length > 0) {
     fail(`${evidencePath} missing evidence rows for rules: ${missing.join(', ')}`);
+  }
+}
+
+function checkNoLocalRuleIds(content, rel) {
+  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
+  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
+  for (const match of content.matchAll(localRuleIdPattern)) {
+    const token = match[0];
+    if (allowed.has(token)) continue;
+    fail(`${rel} must not define local rule ID token: ${token}`);
+  }
+}
+
+function checkNoRuleDefinitionHeadings(content, rel) {
+  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
+  let match;
+  while ((match = bannedHeadingPattern.exec(content)) !== null) {
+    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
   }
 }
 

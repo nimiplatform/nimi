@@ -52,6 +52,17 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/provider-probe-targets.yaml',
   'spec/runtime/kernel/tables/workflow-node-types.yaml',
   'spec/runtime/kernel/tables/workflow-states.yaml',
+  // Dedicated families migrated from domain-local IDs
+  'spec/runtime/kernel/config-contract.md',
+  'spec/runtime/kernel/connector-contract.md',
+  'spec/runtime/kernel/nimillm-contract.md',
+  'spec/runtime/kernel/multimodal-provider-contract.md',
+  'spec/runtime/kernel/delivery-gates-contract.md',
+  'spec/runtime/kernel/proto-governance-contract.md',
+  'spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',
+  'spec/runtime/kernel/tables/multimodal-artifact-fields.yaml',
+  'spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
+  'spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/runtime');
@@ -99,6 +110,8 @@ for (const rel of domainFiles) {
   if (!/\bK-[A-Z]+-\d{3}\b/.test(content)) {
     fail(`${rel} must reference at least one kernel Rule ID`);
   }
+  checkNoLocalRuleIds(content, rel);
+  checkNoRuleDefinitionHeadings(content, rel);
 }
 if (domainFiles.length === 0) {
   fail('runtime domain markdown files are empty');
@@ -1001,6 +1014,24 @@ function checkReasonCodeSourceTraceability(kernelRuleSet) {
     if (!kernelRuleSet.has(source)) {
       fail(`reason-codes code ${name} references undefined kernel rule: ${source}`);
     }
+  }
+}
+
+function checkNoLocalRuleIds(content, rel) {
+  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
+  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
+  for (const match of content.matchAll(localRuleIdPattern)) {
+    const token = match[0];
+    if (allowed.has(token)) continue;
+    fail(`${rel} must not define local rule ID token: ${token}`);
+  }
+}
+
+function checkNoRuleDefinitionHeadings(content, rel) {
+  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
+  let match;
+  while ((match = bannedHeadingPattern.exec(content)) !== null) {
+    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
   }
 }
 

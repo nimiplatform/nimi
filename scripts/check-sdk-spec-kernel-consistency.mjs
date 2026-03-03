@@ -11,10 +11,19 @@ const kernelFiles = [
   'spec/sdk/kernel/transport-contract.md',
   'spec/sdk/kernel/error-projection.md',
   'spec/sdk/kernel/boundary-contract.md',
+  'spec/sdk/kernel/runtime-contract.md',
+  'spec/sdk/kernel/realm-contract.md',
+  'spec/sdk/kernel/ai-provider-contract.md',
+  'spec/sdk/kernel/scope-contract.md',
+  'spec/sdk/kernel/mod-contract.md',
+  'spec/sdk/kernel/testing-gates-contract.md',
   'spec/sdk/kernel/tables/sdk-surfaces.yaml',
   'spec/sdk/kernel/tables/runtime-method-groups.yaml',
   'spec/sdk/kernel/tables/import-boundaries.yaml',
   'spec/sdk/kernel/tables/sdk-error-codes.yaml',
+  'spec/sdk/kernel/tables/sdk-runtime-projection.yaml',
+  'spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml',
+  'spec/sdk/kernel/tables/sdk-testing-gates.yaml',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/sdk');
@@ -49,6 +58,8 @@ for (const rel of domainFiles) {
   if (!/\bS-[A-Z]+-\d{3}\b/.test(content)) {
     fail(`${rel} must reference at least one sdk kernel Rule ID`);
   }
+  checkNoLocalRuleIds(content, rel);
+  checkNoRuleDefinitionHeadings(content, rel);
   if (/\b(listTokenProviderModels|checkTokenProviderHealth|TokenProvider[A-Za-z0-9_]*)\b/.test(content)) {
     fail(`${rel} must not expose token-provider legacy names`);
   }
@@ -64,11 +75,6 @@ for (const rel of ['spec/sdk/scope.md', 'spec/sdk/mod.md']) {
   if (!content.includes('kernel/transport-contract.md')) {
     fail(`${rel} must import transport contract and declare stream applicability`);
   }
-}
-
-const sdkTestingGates = read('spec/sdk/testing-gates.md');
-if (!sdkTestingGates.includes('check:sdk-realm-legacy-clean')) {
-  fail('spec/sdk/testing-gates.md must include check:sdk-realm-legacy-clean in SDKTEST-030');
 }
 
 const allSdkSpecs = walk(path.join(cwd, 'spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
@@ -303,7 +309,7 @@ function boundarySourceRules(rule) {
 }
 
 function checkProviderNameAlignment() {
-  // Verify testing-gates SDKTEST-070 references provider-catalog or has a name mapping
+  // Verify testing-gates S-GATE-070 references provider-catalog or has a name mapping
   const testingGatesPath = 'spec/sdk/testing-gates.md';
   const providerCatalogPath = 'spec/runtime/kernel/tables/provider-catalog.yaml';
   const mappingReportPath = 'dev/report/sdk-provider-compatibility.md';
@@ -313,9 +319,9 @@ function checkProviderNameAlignment() {
 
   const testingGates = read(testingGatesPath);
 
-  // SDKTEST-070 must reference provider-catalog.yaml or maintain a name mapping
+  // S-GATE-070 must reference provider-catalog.yaml or maintain a name mapping
   if (!testingGates.includes('provider-catalog.yaml')) {
-    fail('SDKTEST-070 must reference provider-catalog.yaml for provider name alignment');
+    fail('S-GATE-070 must reference provider-catalog.yaml for provider name alignment');
   }
 
   // If the mapping report exists, verify it references provider-catalog.yaml
@@ -324,5 +330,23 @@ function checkProviderNameAlignment() {
     if (!mappingReport.includes('provider-catalog.yaml')) {
       fail('dev/report/sdk-provider-compatibility.md must reference provider-catalog.yaml');
     }
+  }
+}
+
+function checkNoLocalRuleIds(content, rel) {
+  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
+  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
+  for (const match of content.matchAll(localRuleIdPattern)) {
+    const token = match[0];
+    if (allowed.has(token)) continue;
+    fail(`${rel} must not define local rule ID token: ${token}`);
+  }
+}
+
+function checkNoRuleDefinitionHeadings(content, rel) {
+  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
+  let match;
+  while ((match = bannedHeadingPattern.exec(content)) !== null) {
+    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
   }
 }

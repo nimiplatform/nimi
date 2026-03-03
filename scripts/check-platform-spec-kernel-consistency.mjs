@@ -345,6 +345,8 @@ for (const rel of domainDocs) {
   if (/^##\s+P-[A-Z]+-\d{3}\b/gmu.test(content)) {
     fail(`${rel} must not define kernel Rule IDs directly`);
   }
+  checkNoLocalRuleIds(content, rel);
+  checkNoRuleDefinitionHeadings(content, rel);
 
   // Match individual P-*-NNN references (not ranges like P-PROTO-001–105)
   const refPattern = /\bP-[A-Z]{2,12}-(\d{3})\b/gu;
@@ -375,4 +377,22 @@ function listDomainMarkdownFiles(domainDirRel) {
     .filter((name) => name !== 'index.md')
     .map((name) => path.posix.join(domainDirRel, name))
     .sort((a, b) => a.localeCompare(b));
+}
+
+function checkNoLocalRuleIds(content, rel) {
+  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
+  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
+  for (const match of content.matchAll(localRuleIdPattern)) {
+    const token = match[0];
+    if (allowed.has(token)) continue;
+    fail(`${rel} must not define local rule ID token: ${token}`);
+  }
+}
+
+function checkNoRuleDefinitionHeadings(content, rel) {
+  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
+  let match;
+  while ((match = bannedHeadingPattern.exec(content)) !== null) {
+    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
+  }
 }

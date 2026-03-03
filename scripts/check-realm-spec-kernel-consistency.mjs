@@ -409,6 +409,8 @@ for (const file of domainDocFiles) {
   if (/^##\s+R-[A-Z]{2,12}-\d{3}\b/gmu.test(content)) {
     fail(`${file}: must not define kernel Rule IDs directly`);
   }
+  checkNoLocalRuleIds(content, file);
+  checkNoRuleDefinitionHeadings(content, file);
   const ruleIdMatches = content.matchAll(/\bR-[A-Z]{2,12}-\d{3}\b/gu);
   for (const match of ruleIdMatches) {
     if (!definedRuleIds.has(match[0])) {
@@ -472,3 +474,21 @@ if (fs.existsSync(boundaryContractPath)) {
 
 if (failed) process.exit(1);
 console.log('realm-spec-kernel-consistency: OK');
+
+function checkNoLocalRuleIds(content, rel) {
+  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
+  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
+  for (const match of content.matchAll(localRuleIdPattern)) {
+    const token = match[0];
+    if (allowed.has(token)) continue;
+    fail(`${rel} must not define local rule ID token: ${token}`);
+  }
+}
+
+function checkNoRuleDefinitionHeadings(content, rel) {
+  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
+  let match;
+  while ((match = bannedHeadingPattern.exec(content)) !== null) {
+    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
+  }
+}

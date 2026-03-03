@@ -32,6 +32,19 @@ const items = Array.isArray(backlogTable?.items) ? backlogTable.items : [];
 const sources = Array.isArray(sourcesTable?.sources) ? sourcesTable.sources : [];
 const graduationEntries = Array.isArray(graduationTable?.entries) ? graduationTable.entries : [];
 
+const domainDocs = listDomainMarkdownFiles('spec/future');
+if (domainDocs.length === 0) {
+  fail('future domain markdown files are empty');
+}
+for (const rel of domainDocs) {
+  const content = fs.readFileSync(path.join(cwd, rel), 'utf8');
+  checkNoLocalRuleIds(content, rel);
+  checkNoRuleDefinitionHeadings(content, rel);
+  if (rel !== 'spec/future/index.md' && !/\bF-[A-Z]{2,12}-\d{3}\b/u.test(content)) {
+    fail(`${rel} must reference at least one future kernel Rule ID`);
+  }
+}
+
 // ========================================================
 // Pass 1: Collect all IDs
 // ========================================================
@@ -296,3 +309,30 @@ for (const item of items) {
 
 if (failed) process.exit(1);
 console.log('future-spec-kernel-consistency: OK');
+
+function listDomainMarkdownFiles(domainDirRel) {
+  const domainDir = path.join(cwd, domainDirRel);
+  if (!fs.existsSync(domainDir)) return [];
+  return fs.readdirSync(domainDir)
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => path.posix.join(domainDirRel, name))
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function checkNoLocalRuleIds(content, rel) {
+  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
+  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
+  for (const match of content.matchAll(localRuleIdPattern)) {
+    const token = match[0];
+    if (allowed.has(token)) continue;
+    fail(`${rel} must not define local rule ID token: ${token}`);
+  }
+}
+
+function checkNoRuleDefinitionHeadings(content, rel) {
+  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
+  let match;
+  while ((match = bannedHeadingPattern.exec(content)) !== null) {
+    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
+  }
+}

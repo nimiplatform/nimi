@@ -1,0 +1,20 @@
+{
+  "allowed_non_rule_token_patterns": [
+    "^HTTP-(401|403|404|425|429|500|501|502|503|504)$",
+    "^RESEARCH-[A-Z0-9]+-\\d{3}$"
+  ],
+  "allowed_unresolved_rule_refs": [
+    {
+      "file": "spec/future/kernel/tables/backlog-items.yaml",
+      "rule_prefix": "F-"
+    },
+    {
+      "file": "spec/future/kernel/generated/backlog-items.md",
+      "rule_prefix": "F-"
+    },
+    {
+      "file": "spec/generated/nimi-spec.md",
+      "rule_prefix": "F-"
+    }
+  ]
+}
