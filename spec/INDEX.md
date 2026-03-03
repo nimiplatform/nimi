@@ -1,8 +1,5 @@
 # Spec Index
 
-> Status: Draft
-> Date: 2026-02-28
-
 ## Runtime（当前）
 
 Runtime 规范采用 kernel + domain 的两层结构，覆盖 Runtime proto 全量服务。
