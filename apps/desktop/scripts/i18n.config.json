@@ -12,10 +12,6 @@
       "enforced": true,
       "reason": "Mod uses @nimiplatform/sdk/mod i18n namespace and must keep en/zh parity."
     },
-    "re-life": {
-      "enforced": false,
-      "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
-    },
     "world-studio": {
       "enforced": true,
       "reason": "Mod has en/zh JSON locales and is mounted by desktop runtime surfaces."
