@@ -88,6 +88,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/architecture/' },
             { text: 'Spec Map', link: '/architecture/spec-map' },
+            { text: 'Realm Interconnect Paradigm', link: '/architecture/realm-interconnect-paradigm' },
           ],
         },
         {

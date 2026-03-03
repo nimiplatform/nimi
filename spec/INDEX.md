@@ -5,7 +5,7 @@
 Runtime 规范采用 kernel + domain 的两层结构，覆盖 Runtime proto 全量服务。
 
 - Kernel（唯一事实源）：`spec/runtime/kernel/`
-- Domain（Phase 1 Normative，含独立 domain 文档）：
+- Domain（薄文档导引层）：
   - `spec/runtime/connector.md`
   - `spec/runtime/nimillm.md`
   - `spec/runtime/local-model.md`
@@ -175,6 +175,9 @@ Desktop 规范采用 kernel + domain 的两层结构：
 
 - 规则必须先改 kernel，再改 domain。
 - domain 文档禁止复述 kernel 规则正文。
+- domain 文档禁止定义本地规则 ID 体系（仅引用 `K/S/D/P/R/F-*`）。
+- 执行态计划与结果不得写入 `spec/**`，分别写入 `dev/plan/*` 与 `dev/report/*`。
+- domain 文档应保持薄层结构：定位、映射、阅读路径、非目标。
 
 ## SDK（当前）
 
@@ -213,6 +216,7 @@ Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协
   - `spec/platform/architecture.md`
   - `spec/platform/protocol.md`
   - `spec/platform/ai-last-mile.md`
+  - `spec/platform/ai-agent-security-interface.md`
   - `spec/platform/open-source-governance.md`
 
 ### 修改协议层 / 版本协商 / 原语
@@ -262,6 +266,7 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、
   - `spec/realm/social.md`
   - `spec/realm/world-creator-economy.md`
   - `spec/realm/creator-revenue-policy.md`
+  - `spec/realm/app-interconnect-model.md`
   - `spec/realm/realm-interop-mapping.md`
 
 ### 修改公共边界词汇
