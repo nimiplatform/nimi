@@ -1,6 +1,6 @@
 <div align="center">
 
-  ## 🪸 Nimi: The Infrastructure Layer for Next-Gen AI Apps
+  # 🪸 Nimi:
 
   [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-black.svg?logo=github&style=flat-square)](https://github.com/nimiplatform/nimi)
   [![Last Commit](https://img.shields.io/github/last-commit/nimiplatform/nimi?style=flat-square)](https://github.com/nimiplatform/nimi)
@@ -8,28 +8,20 @@
   [![License](https://img.shields.io/badge/license-Apache--2.0%20%2F%20MIT-blue?style=flat-square)](LICENSE)
   [![Go](https://img.shields.io/badge/go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white)](runtime/go.mod)
   [![Node](https://img.shields.io/badge/node-%E2%89%A524-339933?style=flat-square&logo=node.js&logoColor=white)](package.json)
-
-  <p align="center">
-    <a href="https://nimi.xyz">Website</a> · <a href="docs/getting-started/">Getting Started</a> · <a href="docs/reference/sdk.md">SDK Reference</a> · <a href="spec/platform/protocol.md">Protocol</a> · <a href="CONTRIBUTING.md">Contributing</a>
-  </p>
 </div>
 
 ---
 
-Building an AI app is easy. Giving it memory, context, and identity that persists across every app your users touch — that's the hard part.
+[**Start in 2 minutes:**](#30-second-quickstart)
 
-**Nimi** is the open-source infrastructure layer that gives AI apps shared context, persistent agents, and cross-app identity. **Runtime** handles AI model abstraction locally. **Realm** provides the persistent world state in the cloud. One unified **SDK** connects both.
+[Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [SDK Reference](docs/reference/sdk.md) |  [Protocol](spec/platform/protocol.md) | [Contributing](CONTRIBUTING.md)
 
-<!-- TODO: Add product screenshot or demo GIF here
-     Recommended: Desktop shell screenshot showing World + Agent interaction
-     Size: 800px width, centered
-     Format: GIF (animated demo) or PNG (static screenshot)
-     Place file at: docs/assets/nimi-demo.gif or docs/assets/nimi-screenshot.png
-     Then replace this comment with:
-     <p align="center">
-       <img src="docs/assets/nimi-demo.gif" alt="Nimi Demo" width="800">
-     </p>
--->
+Build AI-native apps with persistent identity, shared memory, and cross-app context.
+Nimi gives you a local Runtime, a cloud Realm, and one unified SDK.
+
+<p align="center">
+  <img src="docs/assets/banner.jpg" alt="Nimi Banner" width="1200">
+</p>
 
 ## Why Nimi?
 
@@ -39,10 +31,10 @@ Building an AI app is easy. Giving it memory, context, and identity that persist
 
 ### For Developers
 
-- **One SDK, any model** — Runtime abstracts provider differences. Switch between local and cloud models without changing code.
+- **One SDK, any model** — One SDK for local and cloud inference, so app code stays stable while provider routing changes.
 - **Rich context out of the box** — Realm gives you Worlds, Agents, Memory, and six protocol primitives. No more building your data layer from scratch.
-- **Vercel AI SDK compatible** — Drop-in `ai` provider. Use `generateText`, `streamText` with your existing code.
 - **Local-first, cloud-optional** — Go daemon runs on the user's machine. Cloud when you need it.
+- **Spec-first engineering** — Open-source runtime + SDK with explicit contracts.
 
 </td>
 <td width="50%" valign="top">
@@ -58,13 +50,15 @@ Building an AI app is easy. Giving it memory, context, and identity that persist
 </tr>
 </table>
 
-## How It Works
+## Architecture At A Glance
 
 <p align="center">
-  <img src="docs/assets/structure.jpg" alt="Nimi" width="1200">
+  <img src="docs/assets/structure.jpg" alt="Nimi Architecture" width="1200">
 </p>
 
-**Realm** is the shared cloud state — identity, social graphs, economy, and persistent world/agent definitions. **Runtime** is the local AI daemon — model routing, inference, workflows, and knowledge indexing. They are **independent peers**. SDK bridges both. Apps access platform exclusively via `@nimiplatform/sdk`.
+- **Runtime**: local Go daemon for model routing, inference, workflows, knowledge indexing, and audit.
+- **Realm**: managed cloud state for identity, social graph, economy, worlds, agents, and memory.
+- **SDK**: single integration layer (`@nimiplatform/sdk`) for Runtime and Realm.
 
 ## Realm (Cloud Persistent World)
 
@@ -88,76 +82,18 @@ For detailed contracts, see [Architecture](docs/architecture/) and [SDK Referenc
 
 For implementation details, see [Runtime Guide](runtime/README.md) and [SDK Reference](docs/reference/sdk.md).
 
-## Supported Models & Providers
-
-Nimi Runtime routes AI calls through a unified API — switch between local engines and cloud providers without changing your application code.
-
-### Local (On-Device)
-
-Pick the engine that matches your device profile:
-
-- `LocalAI` delivers full multimodal performance on local CPU/GPU, supporting GGUF and OpenAI-compatible models (Qwen, LLaMA, Mistral, Phi, Gemma, and more).
-- `Nexa` is tuned for quantized, lower-footprint inference on edge-class devices. Video is currently policy-gated (`nexa.video.unsupported`) and returns `AI_ROUTE_UNSUPPORTED`.
-
-| Engine | Text | Embed | Image | Video | TTS | STT |
-|--------|:----:|:-----:|:-----:|:-----:|:---:|:---:|
-| [LocalAI](https://localai.io) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| [Nexa](https://nexa.ai/) | ✅ | ✅ | ✅ | ─* | ✅ | ✅ |
-
-* `Nexa` video generation is intentionally blocked by policy gate `nexa.video.unsupported`.
-
-### Cloud Providers
-
-| Provider | SDK Prefix | Text | Embed | Image | Video | TTS | STT |
-|----------|-----------|:----:|:-----:|:-----:|:-----:|:---:|:---:|
-| [OpenAI](https://openai.com) | `openai/` | ✅ | ✅ | ─ | ─ | ─ | ─ |
-| [Anthropic](https://anthropic.com) | `anthropic/` | ✅ | ─ | ─ | ─ | ─ | ─ |
-| [Google Gemini](https://ai.google.dev) | `gemini/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| [DeepSeek](https://deepseek.com) | `deepseek/` | ✅ | ─ | ─ | ─ | ─ | ─ |
-| [OpenRouter](https://openrouter.ai) | `openrouter/` | ✅ | ─ | ─ | ─ | ─ | ─ |
-| OpenAI-Compatible ¹ | `openai_compatible/` | ✅ | ─ | ─ | ─ | ─ | ─ |
-| [Alibaba DashScope](https://dashscope.aliyun.com) | `dashscope/` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| [Volcengine ARK](https://www.volcengine.com/product/ark) (Doubao) | `volcengine/` | ✅ | ✅ | ✅ | ✅ | ─ | ─ |
-| [Volcengine OpenSpeech](https://www.volcengine.com/product/speech) | `volcengine_openspeech/` | ─ | ─ | ─ | ─ | ✅ | ✅ |
-| [MiniMax](https://www.minimax.chat) | `minimax/` | ✅ | ─ | ✅ | ✅ | ✅ | ✅ |
-| [Kimi (Moonshot)](https://kimi.ai) | `kimi/` | ✅ | ─ | ✅ | ─ | ✅ | ✅ |
-| [GLM (Zhipu)](https://open.bigmodel.cn) | `glm/` | ✅ | ─ | ✅ | ✅ | ✅ | ✅ |
-| [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service) | `azure/` | ✅ | ✅ | ─ | ─ | ─ | ─ |
-| [Mistral AI](https://mistral.ai) | `mistral/` | ✅ | ✅ | ─ | ─ | ─ | ─ |
-| [Groq](https://groq.com) | `groq/` | ✅ | ─ | ─ | ─ | ─ | P2 |
-| [xAI (Grok)](https://x.ai) | `xai/` | ✅ | ─ | ─ | ─ | ─ | ─ |
-| [Baidu Qianfan (ERNIE)](https://qianfan.cloud.baidu.com) | `qianfan/` | ✅ | ✅ | P2 | ─ | P2 | P2 |
-| [Tencent Hunyuan](https://hunyuan.tencent.com) | `hunyuan/` | ✅ | ✅ | P2 | P2 | P2 | P2 |
-| [iFlytek Spark](https://xinghuo.xfyun.cn) | `spark/` | ✅ | ─ | ─ | ─ | P2 | P2 |
-| [AWS Bedrock](https://aws.amazon.com/bedrock) | *Phase 2* | P2 | P2 | P2 | ─ | ─ | ─ |
-| [Cohere](https://cohere.com) | *Phase 2* | ✅ | P2 | ─ | ─ | ─ | ─ |
-| [Together AI](https://together.ai) | *Phase 2* | ✅ | P2 | P2 | ─ | ─ | ─ |
-| [Replicate](https://replicate.com) | *Phase 2* | P2 | ─ | P2 | P2 | ─ | ─ |
-| [ElevenLabs](https://elevenlabs.io) | *Phase 2* | ─ | ─ | ─ | ─ | P2 | P2 |
-| [Baichuan AI](https://www.baichuan-ai.com) | *Phase 2* | ✅ | P2 | ─ | ─ | ─ | ─ |
-| [Yi (01.AI)](https://www.01.ai) | *Phase 2* | ✅ | ─ | ─ | ─ | ─ | ─ |
-| [Step AI](https://www.stepfun.com) | *Phase 2* | ✅ | ─ | P2 | P2 | ─ | ─ |
-| [Perplexity AI](https://perplexity.ai) | *Phase 3* | ✅ | ─ | ─ | ─ | ─ | ─ |
-| [Stability AI](https://stability.ai) | *Phase 3* | ─ | ─ | P3 | P3 | ─ | ─ |
-| [AssemblyAI](https://assemblyai.com) | *Phase 3* | ─ | ─ | ─ | ─ | ─ | P3 |
-| [Runway](https://runwayml.com) | *Phase 3* | ─ | ─ | ─ | P3 | ─ | ─ |
-
-¹ **OpenAI-Compatible** — bring-your-own endpoint: Ollama, vLLM, LM Studio, LiteLLM, Xinference, etc.
-
-> Want to contribute a provider? See [CONTRIBUTING.md](CONTRIBUTING.md), [runtime/README.md](runtime/README.md), and [spec/runtime/nimillm.md](spec/runtime/nimillm.md).
-
-## Components
+## Core Components
 
 | Component | Description | Stack |
-|-----------|-------------|-------|
-| [**runtime**](runtime/) | Local AI daemon — inference, models, workflows, knowledge | Go 1.24, gRPC |
-| [**sdk**](sdk/) | Developer SDK (`@nimiplatform/sdk`) | TypeScript, ESM |
-| [**desktop**](apps/desktop/) | Desktop shell with mod ecosystem | Tauri, React 19 |
-| [**web**](apps/web/) | Web client sharing desktop renderer | React 19 |
-| [**mods**](nimi-mods/) | Desktop extensions with 8-stage governance | TypeScript |
-| [**proto**](proto/) | gRPC service definitions | Protobuf, Buf CLI |
-| [**spec**](spec/) | Executable specifications (kernel + domain) | Markdown, YAML |
-| [**docs**](docs/) | Getting started & guides | Markdown |
+|---|---|---|
+| [runtime](runtime/README.md) | Local AI daemon and CLI | Go 1.24, gRPC |
+| [sdk](sdk/README.md) | Unified SDK for Runtime + Realm | TypeScript, ESM |
+| [desktop](apps/desktop/README.md) | Desktop shell with mod ecosystem | Tauri, React 19 |
+| [web](apps/web/README.md) | Web client sharing desktop renderer | React 19 |
+| [mods](nimi-mods/) | Desktop extensions | TypeScript |
+| [proto](proto/README.md) | gRPC service contracts | Protobuf, Buf CLI |
+| [spec](spec/INDEX.md) | Normative platform contracts | Markdown, YAML |
+| [docs](docs/index.md) | External developer portal | VitePress, Markdown |
 
 ## AI Coding in Nimi
 
@@ -170,29 +106,109 @@ Nimi applies a Spec-first, AI-first engineering methodology where AI agents are 
 
 Method details: [AI_SPEC_CODING_METHODOLOGY.md](AI_SPEC_CODING_METHODOLOGY.md)
 
-## Quick Start
+## Supported Models & Providers
 
-### 1. Start the Runtime
+Nimi Runtime routes AI calls through a unified API — switch between local engines and cloud providers without changing your application code.
+
+### Local (On-Device)
+
+Pick the engine that matches your device profile:
+
+- `LocalAI` delivers full multimodal performance on local CPU/GPU, supporting GGUF and OpenAI-compatible models (Qwen, LLaMA, Mistral, Phi, Gemma, and more).
+- `Nexa` is tuned for quantized, lower-footprint inference on edge-class devices. Video is currently policy-gated (`nexa.video.unsupported`) and returns `AI_ROUTE_UNSUPPORTED`.
+
+Status legend:
+
+- `GA`: available now and ready for current runtime contract usage.
+- `Beta`: available now with partial or policy-gated modality support.
+- `Planned`: tracked for future delivery, not available in current runtime contracts.
+
+Capability legend:
+
+- `✅`: available now
+- `─`: unavailable in current release
+
+| Engine | SDK Prefix | Status | Text | Embed | Image | Video | TTS | STT |
+|--------|------------|--------|:----:|:-----:|:-----:|:-----:|:---:|:---:|
+| [LocalAI](https://localai.io) | `local/` | `GA` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [Nexa](https://nexa.ai/) | `local/` | `Beta` | ✅ | ✅ | ✅ | ─* | ✅ | ✅ |
+
+* `Nexa` video generation is intentionally blocked by policy gate `nexa.video.unsupported`.
+
+### Cloud Providers
+
+| Provider | SDK Prefix | Status | Text | Embed | Image | Video | TTS | STT | Notes |
+|----------|------------|--------|:----:|:-----:|:-----:|:-----:|:---:|:---:|-------|
+| [OpenAI](https://openai.com) | `openai/` | `GA` | ✅ | ✅ | ─ | ─ | ─ | ─ | |
+| [Anthropic](https://anthropic.com) | `anthropic/` | `GA` | ✅ | ─ | ─ | ─ | ─ | ─ | |
+| [Google Gemini](https://ai.google.dev) | `gemini/` | `GA` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| [DeepSeek](https://deepseek.com) | `deepseek/` | `GA` | ✅ | ─ | ─ | ─ | ─ | ─ | |
+| [OpenRouter](https://openrouter.ai) | `openrouter/` | `GA` | ✅ | ─ | ─ | ─ | ─ | ─ | |
+| OpenAI-Compatible ¹ | `openai_compatible/` | `GA` | ✅ | ─ | ─ | ─ | ─ | ─ | |
+| [Alibaba DashScope](https://dashscope.aliyun.com) | `dashscope/` | `GA` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| [Volcengine ARK](https://www.volcengine.com/product/ark) (Doubao) | `volcengine/` | `GA` | ✅ | ✅ | ✅ | ✅ | ─ | ─ | |
+| [Volcengine OpenSpeech](https://www.volcengine.com/product/speech) | `volcengine_openspeech/` | `GA` | ─ | ─ | ─ | ─ | ✅ | ✅ | |
+| [MiniMax](https://www.minimax.chat) | `minimax/` | `GA` | ✅ | ─ | ✅ | ✅ | ✅ | ✅ | |
+| [Kimi (Moonshot)](https://kimi.ai) | `kimi/` | `GA` | ✅ | ─ | ✅ | ─ | ✅ | ✅ | |
+| [GLM (Zhipu)](https://open.bigmodel.cn) | `glm/` | `GA` | ✅ | ─ | ✅ | ✅ | ✅ | ✅ | |
+| [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service) | `azure/` | `GA` | ✅ | ✅ | ─ | ─ | ─ | ─ | |
+| [Mistral AI](https://mistral.ai) | `mistral/` | `GA` | ✅ | ✅ | ─ | ─ | ─ | ─ | |
+| [Groq](https://groq.com) | `groq/` | `Beta` | ✅ | ─ | ─ | ─ | ─ | ─ | STT planned |
+| [xAI (Grok)](https://x.ai) | `xai/` | `GA` | ✅ | ─ | ─ | ─ | ─ | ─ | |
+| [Baidu Qianfan (ERNIE)](https://qianfan.cloud.baidu.com) | `qianfan/` | `Beta` | ✅ | ✅ | ─ | ─ | ─ | ─ | Image/TTS/STT planned |
+| [Tencent Hunyuan](https://hunyuan.tencent.com) | `hunyuan/` | `Beta` | ✅ | ✅ | ─ | ─ | ─ | ─ | Image/Video/TTS/STT planned |
+| [iFlytek Spark](https://xinghuo.xfyun.cn) | `spark/` | `Beta` | ✅ | ─ | ─ | ─ | ─ | ─ | TTS/STT planned |
+| [AWS Bedrock](https://aws.amazon.com/bedrock) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text/Embed/Image |
+| [Cohere](https://cohere.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text/Embed |
+| [Together AI](https://together.ai) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text/Embed/Image |
+| [Replicate](https://replicate.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text/Image/Video |
+| [ElevenLabs](https://elevenlabs.io) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: TTS/STT |
+| [Baichuan AI](https://www.baichuan-ai.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text/Embed |
+| [Yi (01.AI)](https://www.01.ai) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text |
+| [Step AI](https://www.stepfun.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text/Image/Video |
+| [Perplexity AI](https://perplexity.ai) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Text |
+| [Stability AI](https://stability.ai) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Image/Video |
+| [AssemblyAI](https://assemblyai.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: STT |
+| [Runway](https://runwayml.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Video |
+
+¹ **OpenAI-Compatible** — bring-your-own endpoint: Ollama, vLLM, LM Studio, LiteLLM, Xinference, etc.
+
+## Quickstart
+
+Prerequisites: Go `1.24+`, Node.js `24+`, pnpm `10+`.
+
+### 1. Start Runtime
 
 ```bash
 cd runtime
 go run ./cmd/nimi serve
 ```
 
-### 2. Make Your First AI Call
+### 2. Check Health
 
-**Option A: CLI** (zero dependencies)
+```bash
+cd runtime
+go run ./cmd/nimi health --source grpc
+```
+
+Expected: command exits with code `0` and reports runtime health/status.
+
+### 3. Run Your First AI Call
 
 ```bash
 cd runtime
 go run ./cmd/nimi run local/qwen2.5 --prompt "Hello, Nimi!"
 ```
 
-**Option B: TypeScript SDK**
+Expected: runtime returns generated text.
+
+### Optional SDK Quick Path
 
 ```bash
-pnpm add @nimiplatform/sdk
+npx tsx examples/sdk/sdk-quickstart.ts
 ```
+
+### Optional TypeScript Snippet
 
 ```ts
 import { Runtime } from '@nimiplatform/sdk';
@@ -214,11 +230,17 @@ const result = await runtime.ai.text.generate({
 console.log(result.text);
 ```
 
-**Option C: Vercel AI SDK**
+### Optional Vercel AI SDK Snippet
 
 ```ts
+import { Runtime } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 import { generateText } from 'ai';
+
+const runtime = new Runtime({
+  appId: 'my_app',
+  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+});
 
 const nimi = createNimiAiProvider({
   runtime,
@@ -232,9 +254,11 @@ const { text } = await generateText({
   model: nimi.text('local/qwen2.5'),
   prompt: 'What is the Nimi platform?',
 });
+
+console.log(text);
 ```
 
-**Option D: Realm (Cloud, optional)**
+### Optional Realm Snippet (Requires Realm Account)
 
 ```ts
 import { Realm } from '@nimiplatform/sdk';
@@ -245,8 +269,8 @@ const guestRealm = new Realm({
 });
 
 const tokens = await guestRealm.auth.passwordLogin({
-  email: 'user@nimi.local',
-  password: 'secret',
+  email: process.env.NIMI_REALM_EMAIL || '',
+  password: process.env.NIMI_REALM_PASSWORD || '',
 });
 
 const realm = new Realm({
@@ -257,43 +281,59 @@ const realm = new Realm({
   },
 });
 
-await realm.users.me();
-await realm.posts.create({
-  content: 'hello realm',
-});
+const me = await realm.users.me();
+console.log(me.id);
 ```
 
-> **[Full Getting Started Guide →](docs/getting-started/)** covers configuration, routing, cloud providers, and realm integration.
+> Full onboarding and environment setup: [docs/getting-started/index.md](docs/getting-started/index.md)
 
-## Learn More
+## Roadmap
 
-| | |
-|---|---|
-| [Getting Started](docs/getting-started/) | Zero to first AI call in minutes |
-| [SDK Reference](docs/reference/sdk.md) | Full `@nimiplatform/sdk` API guide |
-| [Runtime Guide](runtime/README.md) | CLI commands and daemon configuration |
-| [AI Coding Methodology](AI_SPEC_CODING_METHODOLOGY.md) | Spec-first and AI-first execution model used in Nimi |
-| [Platform Protocol](spec/platform/protocol.md) | Six primitives: Timeflow · Social · Economy · Transit · Context · Presence |
-| [Architecture](spec/platform/architecture.md) | Six-layer platform architecture contract |
-| [Mod Development](docs/guides/mod-developer.md) | Build desktop extensions |
-| [Vision](VISION.md) | North star and platform direction |
+- [Open feature requests](https://github.com/nimiplatform/nimi/issues?q=is%3Aissue%20is%3Aopen%20label%3Afeature)
+- [Open enhancements](https://github.com/nimiplatform/nimi/issues?q=is%3Aissue%20is%3Aopen%20label%3Aenhancement)
+- [Provider expansion plan](docs/reference/provider-matrix.md#cloud-providers)
+- [Release process](RELEASE.md)
 
-## Contributing
+## Contribute
 
-We welcome contributions of all kinds — bug reports, documentation improvements, feature implementations, and spec discussions.
+Start here:
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [GOVERNANCE.md](GOVERNANCE.md) for the decision-making process.
+- [good-first-issue](https://github.com/nimiplatform/nimi/issues?q=is%3Aissue%20is%3Aopen%20label%3Agood-first-issue)
+- [help-wanted](https://github.com/nimiplatform/nimi/issues?q=is%3Aissue%20is%3Aopen%20label%3Ahelp-wanted)
+- [docs tasks](https://github.com/nimiplatform/nimi/issues?q=is%3Aissue%20is%3Aopen%20label%3Adocs)
 
-```bash
-pnpm install              # Install dependencies
-pnpm build                # Build SDK + Desktop + Web
-cd runtime && go test ./... # Run runtime tests
-```
+Policies and workflow:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [ONBOARDING.md](ONBOARDING.md)
+- [TESTING.md](TESTING.md)
+- [GOVERNANCE.md](GOVERNANCE.md)
+
+## Community And Trust
+
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [GitHub Releases](https://github.com/nimiplatform/nimi/releases)
+- [CI Workflows](https://github.com/nimiplatform/nimi/actions/workflows/ci.yml)
+- [DCO](DCO)
 
 ## License
 
 | License | Scope |
-|---------|-------|
+|---|---|
 | [Apache-2.0](licenses/Apache-2.0.txt) | runtime, sdk, proto |
 | [MIT](licenses/MIT.txt) | desktop, web, mods |
 | [CC-BY-4.0](licenses/CC-BY-4.0.txt) | docs, spec |
+
+## Learn More
+
+| Resource | Description |
+|---|---|
+| [Getting Started](docs/getting-started/index.md) | Zero to first AI call |
+| [SDK Reference](docs/reference/sdk.md) | `@nimiplatform/sdk` API surface |
+| [Runtime Guide](runtime/README.md) | Runtime CLI and daemon operations |
+| [Protocol](spec/platform/protocol.md) | Six primitives: Timeflow, Social, Economy, Transit, Context, Presence |
+| [Architecture](spec/platform/architecture.md) | Six-layer platform architecture contract |
+| [Mod Developer Guide](docs/guides/mod-developer.md) | Build desktop extensions |
+| [Vision](VISION.md) | Platform direction |
