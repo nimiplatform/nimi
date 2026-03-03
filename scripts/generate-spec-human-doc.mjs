@@ -27,7 +27,7 @@ const outPath = path.join(specDir, 'generated', 'nimi-spec.md');
 // Kernel rule parser
 // ---------------------------------------------------------------------------
 
-const RULE_HEADING_RE = /^##\s+((?:K|S|D|F)-[A-Z]+-\d{3})\s+(.*)$/;
+const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3})\s+(.*)$/;
 
 function parseKernelRules(content) {
   const rules = new Map();
@@ -475,11 +475,18 @@ const runtimeKernelFiles = [
   'local-engine-contract.md', 'device-profile-contract.md',
   'endpoint-security.md',
   'streaming-contract.md', 'error-model.md', 'pagination-filtering.md', 'audit-contract.md',
+  'daemon-lifecycle.md', 'provider-health-contract.md', 'workflow-contract.md',
+  'model-service-contract.md', 'knowledge-contract.md', 'app-messaging-contract.md',
+  'script-worker-contract.md', 'config-contract.md', 'connector-contract.md',
+  'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
+  'proto-governance-contract.md',
 ];
 
 const sdkKernelFiles = [
   'surface-contract.md', 'transport-contract.md',
   'error-projection.md', 'boundary-contract.md',
+  'runtime-contract.md', 'realm-contract.md', 'ai-provider-contract.md',
+  'scope-contract.md', 'mod-contract.md', 'testing-gates-contract.md',
 ];
 
 const desktopKernelFiles = [
@@ -487,11 +494,24 @@ const desktopKernelFiles = [
   'auth-session-contract.md', 'data-sync-contract.md', 'hook-capability-contract.md',
   'mod-governance-contract.md', 'llm-adapter-contract.md', 'ui-shell-contract.md',
   'error-boundary-contract.md', 'telemetry-contract.md', 'network-contract.md',
-  'security-contract.md',
+  'security-contract.md', 'streaming-consumption-contract.md', 'codegen-contract.md',
 ];
 
 const futureKernelFiles = [
   'capability-backlog.md', 'source-registry.md', 'graduation-contract.md',
+];
+
+const platformKernelFiles = [
+  'protocol-contract.md',
+  'architecture-contract.md',
+  'ai-last-mile-contract.md',
+  'governance-contract.md',
+];
+
+const realmKernelFiles = [
+  'boundary-vocabulary-contract.md',
+  'economy-contract.md',
+  'interop-mapping-contract.md',
 ];
 
 async function main() {
@@ -524,6 +544,20 @@ async function main() {
   for (const file of futureKernelFiles) {
     try {
       const content = await fs.readFile(path.join(specDir, 'future', 'kernel', file), 'utf8');
+      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
+    } catch { /* skip */ }
+  }
+
+  for (const file of platformKernelFiles) {
+    try {
+      const content = await fs.readFile(path.join(specDir, 'platform', 'kernel', file), 'utf8');
+      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
+    } catch { /* skip */ }
+  }
+
+  for (const file of realmKernelFiles) {
+    try {
+      const content = await fs.readFile(path.join(specDir, 'realm', 'kernel', file), 'utf8');
       for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
     } catch { /* skip */ }
   }
@@ -1603,7 +1637,7 @@ Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制
   d.rule('D-SEC-002');
   d.rule('D-SEC-010');
 
-  d.text(`**Layer 2.5: AI 凭据委托** — AI provider API key 的唯一托管者是 Runtime ConnectorService（CONN-001: custodian not distributor）。Desktop renderer 不接触原始 API key，通过 SDK \`CreateConnector\` / \`UpdateConnector\` 将凭据写入 Runtime 后即刻丢弃内存副本。AI 请求通过 \`connector_id\` 路由，Desktop/Web 统一使用 SDK ConnectorService 接口。`);
+  d.text(`**Layer 2.5: AI 凭据委托** — AI provider API key 的唯一托管者是 Runtime ConnectorService（K-CONN-001: custodian not distributor）。Desktop renderer 不接触原始 API key，通过 SDK \`CreateConnector\` / \`UpdateConnector\` 将凭据写入 Runtime 后即刻丢弃内存副本。AI 请求通过 \`connector_id\` 路由，Desktop/Web 统一使用 SDK ConnectorService 接口。`);
   d.blank();
   d.rule('D-SEC-009');
 

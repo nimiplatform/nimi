@@ -16,6 +16,9 @@ const specs = [
   { input: 'runtime-method-groups.yaml', output: 'runtime-method-groups.md', render: renderMethodGroups },
   { input: 'import-boundaries.yaml', output: 'import-boundaries.md', render: renderImportBoundaries },
   { input: 'sdk-error-codes.yaml', output: 'sdk-error-codes.md', render: renderSdkErrorCodes },
+  { input: 'sdk-runtime-projection.yaml', output: 'sdk-runtime-projection.md', render: renderSdkRuntimeProjection },
+  { input: 'sdk-realm-realtime-gates.yaml', output: 'sdk-realm-realtime-gates.md', render: renderSdkRealmRealtimeGates },
+  { input: 'sdk-testing-gates.yaml', output: 'sdk-testing-gates.md', render: renderSdkTestingGates },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -100,6 +103,55 @@ function renderSdkErrorCodes(doc, sourceName) {
     if (!name) continue;
     const displayName = deprecatedBy ? `${name} (deprecated → ${deprecatedBy})` : name;
     out += `| \`${displayName}\` | \`${family || '—'}\` | \`${sourceRule || '—'}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderSdkRuntimeProjection(doc, sourceName) {
+  const projections = Array.isArray(doc?.projections) ? doc.projections : [];
+  let out = header('Generated SDK Runtime Projection', sourceName);
+  out += '| Area | Rule | Requirement | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of projections) {
+    const area = String(item?.area || '').trim();
+    const rule = String(item?.rule || '').trim();
+    if (!area || !rule) continue;
+    const requirement = String(item?.requirement || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${area}\` | \`${rule}\` | ${requirement} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderSdkRealmRealtimeGates(doc, sourceName) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = header('Generated SDK Realm Realtime Gates', sourceName);
+  out += '| Gate | Requirement | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of gates) {
+    const gate = String(item?.gate || '').trim();
+    if (!gate) continue;
+    const requirement = String(item?.requirement || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${gate}\` | ${requirement} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderSdkTestingGates(doc, sourceName) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = header('Generated SDK Testing Gates', sourceName);
+  out += '| Gate | Command | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of gates) {
+    const gate = String(item?.gate || '').trim();
+    if (!gate) continue;
+    const command = String(item?.command || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

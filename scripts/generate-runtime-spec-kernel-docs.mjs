@@ -107,6 +107,26 @@ const specs = [
     output: 'workflow-states.md',
     render: renderWorkflowStates,
   },
+  {
+    input: 'multimodal-canonical-fields.yaml',
+    output: 'multimodal-canonical-fields.md',
+    render: renderMultimodalCanonicalFields,
+  },
+  {
+    input: 'multimodal-artifact-fields.yaml',
+    output: 'multimodal-artifact-fields.md',
+    render: renderMultimodalArtifactFields,
+  },
+  {
+    input: 'runtime-delivery-gates.yaml',
+    output: 'runtime-delivery-gates.md',
+    render: renderRuntimeDeliveryGates,
+  },
+  {
+    input: 'runtime-proto-governance-gates.yaml',
+    output: 'runtime-proto-governance-gates.md',
+    render: renderRuntimeProtoGovernanceGates,
+  },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -569,6 +589,82 @@ function renderWorkflowStates(doc, sourceName) {
     }
     out += '\n';
   }
+
+  return normalizeMarkdown(out);
+}
+
+function renderMultimodalCanonicalFields(doc, sourceName) {
+  const fields = Array.isArray(doc?.fields) ? doc.fields : [];
+  let out = header('Generated Multimodal Canonical Fields', sourceName);
+
+  out += '| Modality | Field | Required | Description | Source Rule |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of fields) {
+    const modality = String(item?.modality || '').trim();
+    const field = String(item?.field || '').trim();
+    if (!modality || !field) continue;
+    const required = mdBool(Boolean(item?.required));
+    const description = String(item?.description || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${modality}\` | \`${field}\` | \`${required}\` | ${description} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderMultimodalArtifactFields(doc, sourceName) {
+  const fields = Array.isArray(doc?.fields) ? doc.fields : [];
+  let out = header('Generated Multimodal Artifact Fields', sourceName);
+
+  out += '| Field | Required | Description | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of fields) {
+    const field = String(item?.field || '').trim();
+    if (!field) continue;
+    const required = mdBool(Boolean(item?.required));
+    const description = String(item?.description || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${field}\` | \`${required}\` | ${description} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeDeliveryGates(doc, sourceName) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = header('Generated Runtime Delivery Gates', sourceName);
+
+  out += '| Gate | Name | Objective | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of gates) {
+    const gate = String(item?.gate || '').trim();
+    if (!gate) continue;
+    const name = String(item?.name || '').trim() || '—';
+    const objective = String(item?.objective || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${gate}\` | \`${name}\` | ${objective} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeProtoGovernanceGates(doc, sourceName) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = header('Generated Runtime Proto Governance Gates', sourceName);
+
+  out += '| Gate | Command | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of gates) {
+    const gate = String(item?.gate || '').trim();
+    if (!gate) continue;
+    const command = String(item?.command || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
 
   return normalizeMarkdown(out);
 }

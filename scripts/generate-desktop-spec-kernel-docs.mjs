@@ -102,6 +102,26 @@ const specs = [
     output: 'rule-evidence.md',
     render: renderRuleEvidence,
   },
+  {
+    input: 'codegen-import-allowlist.yaml',
+    output: 'codegen-import-allowlist.md',
+    render: renderCodegenImportAllowlist,
+  },
+  {
+    input: 'codegen-capability-tiers.yaml',
+    output: 'codegen-capability-tiers.md',
+    render: renderCodegenCapabilityTiers,
+  },
+  {
+    input: 'codegen-static-scan-deny-patterns.yaml',
+    output: 'codegen-static-scan-deny-patterns.md',
+    render: renderCodegenStaticScanDenyPatterns,
+  },
+  {
+    input: 'codegen-acceptance-gates.yaml',
+    output: 'codegen-acceptance-gates.md',
+    render: renderCodegenAcceptanceGates,
+  },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -501,6 +521,79 @@ function renderRuleEvidence(doc, sourceName) {
       ? refs.map((ref) => `\`${String(ref)}\``).join(', ')
       : '—';
     out += `| \`${ruleId}\` | \`${status}\` | ${refsText} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderCodegenImportAllowlist(doc, sourceName) {
+  const imports = Array.isArray(doc?.imports) ? doc.imports : [];
+  let out = header('Generated Codegen Import Allowlist', sourceName);
+
+  out += '| Path | Policy | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of imports) {
+    const importPath = String(item?.path || '').trim();
+    if (!importPath) continue;
+    const policy = String(item?.policy || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${importPath}\` | \`${policy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderCodegenCapabilityTiers(doc, sourceName) {
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  let out = header('Generated Codegen Capability Tiers', sourceName);
+
+  out += '| Tier | Capability | Policy | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of entries) {
+    const tier = String(item?.tier || '').trim();
+    const capability = String(item?.capability || '').trim();
+    if (!tier || !capability) continue;
+    const policy = String(item?.policy || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${tier}\` | \`${capability}\` | \`${policy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderCodegenStaticScanDenyPatterns(doc, sourceName) {
+  const patterns = Array.isArray(doc?.patterns) ? doc.patterns : [];
+  let out = header('Generated Codegen Static Scan Deny Patterns', sourceName);
+
+  out += '| Pattern | Reason | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of patterns) {
+    const pattern = String(item?.pattern || '').trim();
+    if (!pattern) continue;
+    const reason = String(item?.reason || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${pattern}\` | ${reason} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderCodegenAcceptanceGates(doc, sourceName) {
+  const gates = Array.isArray(doc?.gates) ? doc.gates : [];
+  let out = header('Generated Codegen Acceptance Gates', sourceName);
+
+  out += '| Gate | Requirement | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of gates) {
+    const gate = String(item?.gate || '').trim();
+    if (!gate) continue;
+    const requirement = String(item?.requirement || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${gate}\` | ${requirement} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 
