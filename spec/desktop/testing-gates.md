@@ -27,7 +27,7 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 
 - `pnpm check:desktop-spec-kernel-docs-drift` 必须覆盖 `rule-evidence.yaml` 对应生成视图漂移。
 
-## Acceptance Gates
+## Verification Coverage
 
 - `pnpm check:desktop-spec-kernel-consistency`
 - `pnpm check:desktop-spec-kernel-docs-drift`

@@ -1,0 +1,16 @@
+imports:
+  - path: '@nimiplatform/sdk/mod/ai'
+    policy: allow
+    source_rule: D-CODEGEN-030
+  - path: '@nimiplatform/sdk/mod/hook'
+    policy: allow
+    source_rule: D-CODEGEN-030
+  - path: '@nimiplatform/sdk/mod/types'
+    policy: allow
+    source_rule: D-CODEGEN-030
+  - path: '@nimiplatform/sdk/mod/host'
+    policy: deny
+    source_rule: D-CODEGEN-031
+  - path: '@nimiplatform/sdk/mod/internal/*'
+    policy: deny
+    source_rule: D-CODEGEN-031

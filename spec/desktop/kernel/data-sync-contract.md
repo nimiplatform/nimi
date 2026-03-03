@@ -24,7 +24,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
   - Cursor 传递：首次请求不传 cursor；后续请求传递上一次响应返回的 `nextCursor`。
   - 末页检测：响应中 `hasMore=false` 或返回结果数量 < `pageSize` 时标记为末页，UI 停止触发加载。
   - 适用方法：`loadMoreChats`、`loadMoreMessages`、`loadMoreExploreFeed` 及其他分页场景。
-  - **跨域分页参数说明**：D-DSYNC-000 的 `pageSize: 20` 是 Desktop DataSync 层面向 Realm REST API 的客户端默认值。Runtime gRPC List RPC 的分页默认值（K-PAGE-005: page_size=50, max=200）独立于此，由 SDK runtime.md SDKR-066 投影。两者服务不同传输域，差异为设计意图。
+  - **跨域分页参数说明**：D-DSYNC-000 的 `pageSize: 20` 是 Desktop DataSync 层面向 Realm REST API 的客户端默认值。Runtime gRPC List RPC 的分页默认值（K-PAGE-005: page_size=50, max=200）独立于此，由 SDK runtime.md S-RUNTIME-066 投影。两者服务不同传输域，差异为设计意图。
 
 ## D-DSYNC-001 — Auth 数据流
 
@@ -120,7 +120,7 @@ Desktop 存在两套并行数据获取架构：
 | **DataSync Facade**（D-DSYNC-000~012） | Realm REST API | 社交、聊天、世界、经济、Feed、通知 | 上下文锁、轮询管理器、normalizeApiError |
 | **Runtime 数据路径** | SDK Runtime gRPC / D-IPC commands | 本地模型、健康状态、provider 状态、AI 推理 | 无统一 facade（各 D-IPC command 独立调用） |
 
-两套架构使用不同的重试策略（D-NET-002 vs SDKR-045）、错误归一化（normalizeApiError vs toBridgeUserError）、状态管理（DataSync Zustand slices vs Runtime store slices）。此双轨设计为有意：Realm REST 和 Runtime gRPC 是不同传输域，强行统一会引入不必要的抽象层。
+两套架构使用不同的重试策略（D-NET-002 vs S-RUNTIME-045）、错误归一化（normalizeApiError vs toBridgeUserError）、状态管理（DataSync Zustand slices vs Runtime store slices）。此双轨设计为有意：Realm REST 和 Runtime gRPC 是不同传输域，强行统一会引入不必要的抽象层。
 
 **Phase 2 服务路径选择规则**：
 

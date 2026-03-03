@@ -1,0 +1,16 @@
+patterns:
+  - pattern: eval(
+    reason: dynamic code execution forbidden
+    source_rule: D-CODEGEN-044
+  - pattern: new Function(
+    reason: dynamic code execution forbidden
+    source_rule: D-CODEGEN-044
+  - pattern: fetch(
+    reason: external network forbidden in codegen v1
+    source_rule: D-CODEGEN-044
+  - pattern: XMLHttpRequest
+    reason: external network forbidden in codegen v1
+    source_rule: D-CODEGEN-044
+  - pattern: WebSocket(
+    reason: external network forbidden in codegen v1
+    source_rule: D-CODEGEN-044

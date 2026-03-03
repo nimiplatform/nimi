@@ -81,14 +81,14 @@ Content Security Policy 约束：
 
 ## D-SEC-009 — AI 凭据委托模型
 
-AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（CONN-001: custodian not distributor，定义于 spec/runtime/connector.md）：
+AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（K-CONN-001: custodian not distributor，定义于 spec/runtime/connector.md）：
 
 - Desktop renderer **不接触**原始 API key。用户通过 UI 输入凭据后，Desktop 调用 SDK `CreateConnector` / `UpdateConnector`（K-RPC-007/008）将凭据写入 Runtime，写入后即刻丢弃内存副本。
 - AI 请求通过 `connector_id`（managed 路径，K-KEYSRC-001）路由到 Runtime，Runtime 在执行上下文中解密注入凭据（K-KEYSRC-004 step 6），下游不直接访问 CredentialStore。
 - Realm access token（非 AI 凭据）仍由 `D-AUTH-002` / `D-AUTH-003` 管理，与 ConnectorService 无关。
 - Desktop / Web 统一使用 SDK ConnectorService 接口，无平台差异。
 
-**跨层引用**：CONN-001、K-RPC-003、K-RPC-007~009、K-KEYSRC-001/004。
+**跨层引用**：K-CONN-001、K-RPC-003、K-RPC-007~009、K-KEYSRC-001/004。
 
 ## D-SEC-010 — Web 端 Token 存储安全
 

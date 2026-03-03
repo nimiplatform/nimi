@@ -1,0 +1,25 @@
+entries:
+  - tier: T0
+    capability: llm.text.generate
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T0
+    capability: llm.text.stream
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T1
+    capability: llm.image.generate
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: llm.speech.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T2
+    capability: audit.read.all
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: action.*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022

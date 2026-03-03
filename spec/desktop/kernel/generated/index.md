@@ -22,3 +22,7 @@
 | `log-areas.md` | `tables/log-areas.yaml` |
 | `build-chunks.md` | `tables/build-chunks.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |
+| `codegen-import-allowlist.md` | `tables/codegen-import-allowlist.yaml` |
+| `codegen-capability-tiers.md` | `tables/codegen-capability-tiers.yaml` |
+| `codegen-static-scan-deny-patterns.md` | `tables/codegen-static-scan-deny-patterns.yaml` |
+| `codegen-acceptance-gates.md` | `tables/codegen-acceptance-gates.yaml` |

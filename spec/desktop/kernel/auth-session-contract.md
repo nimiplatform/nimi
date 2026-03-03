@@ -77,7 +77,7 @@ DataSync 监听 `authChange` 事件：
 
 Desktop 配置 SDK 的 `auth.refreshToken` + `auth.onTokenRefreshed` + `auth.onRefreshFailed` 回调：
 
-- SDK 收到 401 时自动尝试 `POST {baseUrl}/api/auth/refresh`（SDKREALM-028）。
+- SDK 收到 401 时自动尝试 `POST {baseUrl}/api/auth/refresh`（S-REALM-028）。
 - `onTokenRefreshed`：更新 DataSync 的 `accessToken`/`refreshToken`、写入热状态、同步 Store、重新调度主动刷新计时器。
 - `onRefreshFailed`：清空 auth 状态（`store.clearAuth()`）、停止所有轮询、清除主动刷新计时器，用户状态转 anonymous。
 
@@ -105,18 +105,18 @@ Desktop token 过期检测与刷新采用双重机制：
 
 **主动检测**（D-AUTH-007）：Desktop 计算 token 剩余有效期，在过期前 60s 触发主动刷新。此为主要的过期防护机制。
 
-**被动检测**（D-AUTH-006）：当主动刷新失败或计时器偏差导致 token 已过期时，Realm SDK 收到 401 后触发 SDKREALM-028 单次刷新重试。此为兜底机制。
+**被动检测**（D-AUTH-006）：当主动刷新失败或计时器偏差导致 token 已过期时，Realm SDK 收到 401 后触发 S-REALM-028 单次刷新重试。此为兜底机制。
 
 **所有权链**：
 
 | 层 | 职责 | 实现位置 |
 |---|---|---|
 | Desktop | 过期计时调度、刷新回调处理、auth 状态迁移 | D-AUTH-006、D-AUTH-007 |
-| Realm SDK | 401 检测、refresh endpoint 调用、single-flight 协调 | SDKREALM-028、SDKREALM-029 |
+| Realm SDK | 401 检测、refresh endpoint 调用、single-flight 协调 | S-REALM-028、S-REALM-029 |
 | Realm Backend | token 签发、刷新、校验 | 不在 spec 管辖范围 |
 | Runtime | 仅做 token claims 校验（K-AUTHN-001~008），不参与 token 生命周期管理 | K-AUTHN-001~008 |
 
-**SDKREALM-014 默认策略决策**：Desktop 使用 caller-manual 策略（SDKREALM-027 function 模式 + SDKREALM-028 refreshToken 回调），而非 SDK 内置 auto-refresh。此选择使 Desktop 能控制 token 持久化和 auth 状态迁移的时序。
+**S-REALM-014 默认策略决策**：Desktop 使用 caller-manual 策略（S-REALM-027 function 模式 + S-REALM-028 refreshToken 回调），而非 SDK 内置 auto-refresh。此选择使 Desktop 能控制 token 持久化和 auth 状态迁移的时序。
 
 ## Fact Sources
 
