@@ -112,7 +112,10 @@ func validatePromptRequest(appID string, subjectUserID string, modelID string, p
 }
 
 func validateBaseRequest(appID string, subjectUserID string, modelID string, route runtimev1.RoutePolicy) error {
-	if strings.TrimSpace(appID) == "" || strings.TrimSpace(subjectUserID) == "" || strings.TrimSpace(modelID) == "" {
+	if strings.TrimSpace(appID) == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_APP_ID_REQUIRED)
+	}
+	if strings.TrimSpace(subjectUserID) == "" || strings.TrimSpace(modelID) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if route == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {

@@ -77,6 +77,9 @@ type CloudProvider struct {
 	health    *providerhealth.Tracker
 	lastMu    sync.RWMutex
 	lastRoute map[string]RouteDecisionInfo
+
+	enforceEndpointSecurity bool
+	allowLoopbackEndpoint   bool
 }
 
 // NewCloudProvider creates a CloudProvider from the given config.
@@ -88,15 +91,22 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 			continue
 		}
 		backendName := "cloud-" + canonical
-		b := NewBackend(backendName, creds.BaseURL, creds.APIKey, cfg.HTTPTimeout)
+		var b *Backend
+		if cfg.EnforceEndpointSecurity {
+			b = NewSecuredBackend(backendName, creds.BaseURL, creds.APIKey, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
+		} else {
+			b = NewBackend(backendName, creds.BaseURL, creds.APIKey, cfg.HTTPTimeout)
+		}
 		if b != nil {
 			backends[canonical] = b
 		}
 	}
 	return &CloudProvider{
-		backends: backends,
-		registry: registry,
-		health:   health,
+		backends:                backends,
+		registry:                registry,
+		health:                  health,
+		enforceEndpointSecurity: cfg.EnforceEndpointSecurity,
+		allowLoopbackEndpoint:   cfg.AllowLoopbackEndpoint,
 	}
 }
 
@@ -110,7 +120,7 @@ func (p *CloudProvider) BackendWithRequestCredentials(backend *Backend, endpoint
 	if endpoint == "" && apiKey == "" {
 		return backend
 	}
-	return backend.WithRequestOverrides(endpoint, apiKey)
+	return backend.WithRequestOverridesWithPolicy(endpoint, apiKey, p.allowLoopbackEndpoint)
 }
 
 // Route returns the route policy for cloud.
@@ -369,10 +379,11 @@ func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTa
 
 // backendFromTarget creates a backend from a RemoteTarget.
 func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
+	allowLoopback := p.allowLoopbackEndpoint || target.AllowLoopback
 	// Try to find an existing backend and override it
 	if canonical := ResolveProviderAlias(target.ProviderType); canonical != "" {
 		if b := p.backends[canonical]; b != nil {
-			return b.WithRequestOverrides(target.Endpoint, target.APIKey)
+			return b.WithRequestOverridesWithPolicy(target.Endpoint, target.APIKey, allowLoopback)
 		}
 	}
 	// No existing backend, create a temporary one
@@ -380,5 +391,8 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 		return nil
 	}
 	timeout := p.probeTimeout()
+	if p.enforceEndpointSecurity {
+		return NewSecuredBackend("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, timeout, allowLoopback)
+	}
 	return NewBackend("cloud-"+target.ProviderType, target.Endpoint, target.APIKey, timeout)
 }

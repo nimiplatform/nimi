@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestGenerateSuccess(t *testing.T) {
@@ -90,6 +91,136 @@ func TestGenerateFallbackDenied(t *testing.T) {
 	}
 	if st.Message() != runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED.String() {
 		t.Fatalf("unexpected reason: %s", st.Message())
+	}
+}
+
+func TestGenerateMissingAppIDUsesAIAppIDRequired(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "",
+		SubjectUserId: "user-001",
+		ModelId:       "local/qwen2.5",
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	})
+	if err == nil {
+		t.Fatalf("expected error for missing app_id")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_APP_ID_REQUIRED.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
+	}
+}
+
+func TestGenerateLocalModelExplicitEngineMismatchUsesProviderMismatch(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&staticLocalModelLister{
+		models: []*runtimev1.LocalModelRecord{
+			{
+				LocalModelId: "01J00000000000000000000001",
+				ModelId:      "qwen2.5",
+				Engine:       "nexa",
+				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			},
+		},
+	})
+
+	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "localai/qwen2.5",
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello runtime"},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   30_000,
+	})
+	if err == nil {
+		t.Fatalf("expected explicit local engine mismatch error")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
+	}
+}
+
+func TestGenerateLocalCustomModelMissingProfileUsesProfileMissing(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&staticLocalModelLister{
+		models: []*runtimev1.LocalModelRecord{
+			{
+				LocalModelId: "01J00000000000000000000002",
+				ModelId:      "custom-model",
+				Engine:       "localai",
+				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+				Capabilities: []string{"custom"},
+			},
+		},
+	})
+
+	_, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/custom-model",
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello runtime"},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   30_000,
+	})
+	if err == nil {
+		t.Fatalf("expected profile missing error")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
+	}
+}
+
+func TestStreamGenerateLocalModelUnavailableUsesLocalModelUnavailable(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&staticLocalModelLister{models: []*runtimev1.LocalModelRecord{}})
+	stream := &streamGenerateCollector{ctx: context.Background()}
+
+	err := svc.StreamGenerate(&runtimev1.StreamGenerateRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/qwen2.5",
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "stream please"},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   120_000,
+	}, stream)
+	if err == nil {
+		t.Fatalf("expected local model unavailable error")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
 	}
 }
 
@@ -408,6 +539,59 @@ func TestStreamGenerateBrokenStreamEmitsFailedEvent(t *testing.T) {
 	}
 }
 
+func TestStreamGenerateFallbackSetsStreamSimulatedAndAudits(t *testing.T) {
+	audit := auditlog.New(128, 128)
+	svc := newFromProviderConfig(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		nil,
+		nil,
+		audit,
+		nil,
+		Config{}.normalized(),
+		8, 2,
+	)
+	svc.selector.local = &nonStreamingProvider{}
+	stream := &streamGenerateCollector{ctx: context.Background()}
+
+	err := svc.StreamGenerate(&runtimev1.StreamGenerateRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/qwen2.5",
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "fallback please"},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   120_000,
+	}, stream)
+	if err != nil {
+		t.Fatalf("stream generate fallback: %v", err)
+	}
+
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+		t.Fatalf("last event must be completed, got %v", last.GetEventType())
+	}
+	if !last.GetCompleted().GetStreamSimulated() {
+		t.Fatalf("expected completed.stream_simulated=true for fallback stream path")
+	}
+
+	events := audit.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain: "runtime.ai",
+	})
+	found := false
+	for _, event := range events.GetEvents() {
+		if event.GetOperation() == "stream_fallback_simulated" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected stream_fallback_simulated audit event")
+	}
+}
+
 // TestGenerateRejectsUnhealthyHintedProvider verifies that when a model's
 // registry-hinted provider is unhealthy, the request fails with UNAVAILABLE
 // instead of falling back to another provider (NIMI-032).
@@ -463,6 +647,49 @@ func TestGenerateRejectsUnhealthyHintedProvider(t *testing.T) {
 type streamGenerateCollector struct {
 	ctx    context.Context
 	events []*runtimev1.StreamGenerateEvent
+}
+
+type staticLocalModelLister struct {
+	models []*runtimev1.LocalModelRecord
+}
+
+func (s *staticLocalModelLister) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+	filter := req.GetStatusFilter()
+	out := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
+	for _, model := range s.models {
+		if filter != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED && model.GetStatus() != filter {
+			continue
+		}
+		out = append(out, model)
+	}
+	return &runtimev1.ListLocalModelsResponse{
+		Models: out,
+	}, nil
+}
+
+type nonStreamingProvider struct{}
+
+func (p *nonStreamingProvider) Route() runtimev1.RoutePolicy {
+	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+}
+
+func (p *nonStreamingProvider) ResolveModelID(raw string) string {
+	return strings.TrimSpace(strings.TrimPrefix(raw, "local/"))
+}
+
+func (p *nonStreamingProvider) CheckModelAvailability(modelID string) error {
+	if strings.TrimSpace(modelID) == "" {
+		return status.Error(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND.String())
+	}
+	return nil
+}
+
+func (p *nonStreamingProvider) GenerateText(_ context.Context, _ string, _ *runtimev1.GenerateRequest, _ string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return "simulated fallback output", &runtimev1.UsageStats{InputTokens: 2, OutputTokens: 3, ComputeMs: 1}, runtimev1.FinishReason_FINISH_REASON_STOP, nil
+}
+
+func (p *nonStreamingProvider) Embed(_ context.Context, _ string, _ []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+	return nil, nil, nil
 }
 
 func (s *streamGenerateCollector) Send(event *runtimev1.StreamGenerateEvent) error {

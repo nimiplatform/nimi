@@ -93,7 +93,7 @@ func TestLocalProviderFailCloseWithoutBackend(t *testing.T) {
 		Input: []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		},
-	}, "hello"); status.Code(err) != codes.Unavailable {
+	}, "hello"); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("generateText should fail-close: %v", status.Code(err))
 	}
 
@@ -102,7 +102,7 @@ func TestLocalProviderFailCloseWithoutBackend(t *testing.T) {
 			{Role: "user", Content: "hello"},
 		},
 	}, nil)
-	if status.Code(err) != codes.Unavailable {
+	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("streamGenerateText should fail-close: %v", status.Code(err))
 	}
 	if finishReason != runtimev1.FinishReason_FINISH_REASON_ERROR {

@@ -5,17 +5,22 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+func userCtx(userID string) context.Context {
+	return authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: userID})
+}
 
 func TestValidateKeySourceManagedWithConnectorID(t *testing.T) {
 	parsed := ParsedKeySource{
 		KeySource:   "managed",
 		ConnectorID: "conn-123",
 	}
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, "nimi.desktop"); err != nil {
 		t.Fatalf("expected valid, got: %v", err)
 	}
 }
@@ -24,7 +29,7 @@ func TestValidateKeySourceManagedMissingConnectorID(t *testing.T) {
 	parsed := ParsedKeySource{
 		KeySource: "managed",
 	}
-	err := validateKeySource(parsed)
+	err := validateKeySource(parsed, "nimi.desktop")
 	if err == nil {
 		t.Fatal("expected error for managed without connector_id")
 	}
@@ -40,7 +45,7 @@ func TestValidateKeySourceInlineComplete(t *testing.T) {
 		ProviderType: "openai",
 		APIKey:       "sk-test",
 	}
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, "nimi.desktop"); err != nil {
 		t.Fatalf("expected valid, got: %v", err)
 	}
 }
@@ -50,7 +55,7 @@ func TestValidateKeySourceInlineMissingProviderType(t *testing.T) {
 		KeySource: "inline",
 		APIKey:    "sk-test",
 	}
-	err := validateKeySource(parsed)
+	err := validateKeySource(parsed, "nimi.desktop")
 	if err == nil {
 		t.Fatal("expected error for inline without provider_type")
 	}
@@ -65,7 +70,7 @@ func TestValidateKeySourceInlineMissingAPIKey(t *testing.T) {
 		KeySource:    "inline",
 		ProviderType: "openai",
 	}
-	err := validateKeySource(parsed)
+	err := validateKeySource(parsed, "nimi.desktop")
 	if err == nil {
 		t.Fatal("expected error for inline without api_key")
 	}
@@ -78,7 +83,7 @@ func TestValidateKeySourceInlineExplicitEndpointRequired(t *testing.T) {
 		APIKey:       "sk-test",
 		// No endpoint — openai_compatible requires explicit endpoint
 	}
-	err := validateKeySource(parsed)
+	err := validateKeySource(parsed, "nimi.desktop")
 	if err == nil {
 		t.Fatal("expected error for explicit endpoint required provider without endpoint")
 	}
@@ -89,7 +94,7 @@ func TestValidateKeySourceConflict(t *testing.T) {
 		ConnectorID: "conn-123",
 		APIKey:      "sk-test",
 	}
-	err := validateKeySource(parsed)
+	err := validateKeySource(parsed, "nimi.desktop")
 	if err == nil {
 		t.Fatal("expected error for connector_id + inline fields conflict")
 	}
@@ -101,8 +106,53 @@ func TestValidateKeySourceConflict(t *testing.T) {
 
 func TestValidateKeySourceNoSourceRuntimeConfig(t *testing.T) {
 	parsed := ParsedKeySource{}
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, "nimi.desktop"); err != nil {
 		t.Fatalf("expected valid for empty (runtime config), got: %v", err)
+	}
+}
+
+func TestValidateKeySourceAppIDConflict(t *testing.T) {
+	parsed := ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-123",
+		AppID:       "nimi.web",
+	}
+	err := validateKeySource(parsed, "nimi.desktop")
+	if err == nil {
+		t.Fatal("expected app_id conflict error")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_APP_ID_CONFLICT) {
+		t.Fatalf("expected AI_APP_ID_CONFLICT, got %s", st.Message())
+	}
+}
+
+func TestValidateKeySourceAppIDRequiredWhenKeySourceUsed(t *testing.T) {
+	parsed := ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-123",
+	}
+	err := validateKeySource(parsed, "")
+	if err == nil {
+		t.Fatal("expected app_id required error")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_APP_ID_REQUIRED) {
+		t.Fatalf("expected AI_APP_ID_REQUIRED, got %s", st.Message())
+	}
+}
+
+func TestValidateKeySourceImplicitInlineFailsClose(t *testing.T) {
+	parsed := ParsedKeySource{
+		ProviderType: "openai",
+	}
+	err := validateKeySource(parsed, "nimi.desktop")
+	if err == nil {
+		t.Fatal("expected inline missing credential error")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING) {
+		t.Fatalf("expected AI_REQUEST_CREDENTIAL_MISSING, got %s", st.Message())
 	}
 }
 
@@ -125,7 +175,7 @@ func TestResolveKeySourceManaged(t *testing.T) {
 		KeySource:   "managed",
 		ConnectorID: "conn-test",
 	}
-	target, err := resolveKeySourceToTarget(parsed, store, false)
+	target, err := resolveKeySourceToTarget(userCtx("user-1"), parsed, store, false)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -146,7 +196,7 @@ func TestResolveKeySourceInline(t *testing.T) {
 		ProviderType: "gemini",
 		APIKey:       "sk-inline",
 	}
-	target, err := resolveKeySourceToTarget(parsed, nil, false)
+	target, err := resolveKeySourceToTarget(context.Background(), parsed, nil, false)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -167,7 +217,7 @@ func TestResolveKeySourceInline(t *testing.T) {
 
 func TestResolveKeySourceRuntimeConfig(t *testing.T) {
 	parsed := ParsedKeySource{}
-	target, err := resolveKeySourceToTarget(parsed, nil, false)
+	target, err := resolveKeySourceToTarget(context.Background(), parsed, nil, false)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -194,7 +244,7 @@ func TestResolveKeySourceManagedDisabled(t *testing.T) {
 		KeySource:   "managed",
 		ConnectorID: "conn-disabled",
 	}
-	_, err := resolveKeySourceToTarget(parsed, store, false)
+	_, err := resolveKeySourceToTarget(userCtx("user-1"), parsed, store, false)
 	if err == nil {
 		t.Fatal("expected error for disabled connector")
 	}
@@ -211,9 +261,63 @@ func TestResolveKeySourceManagedNotFound(t *testing.T) {
 		KeySource:   "managed",
 		ConnectorID: "nonexistent",
 	}
-	_, err := resolveKeySourceToTarget(parsed, store, false)
+	_, err := resolveKeySourceToTarget(context.Background(), parsed, store, false)
 	if err == nil {
 		t.Fatal("expected error for not found connector")
+	}
+}
+
+func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
+	store := connector.NewConnectorStore(t.TempDir())
+	rec := connector.ConnectorRecord{
+		ConnectorID: "conn-owned",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-owner",
+		Provider:    "openai",
+		Endpoint:    "https://api.openai.com/v1",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	if err := store.Create(rec, "key"); err != nil {
+		t.Fatal(err)
+	}
+	_, err := resolveKeySourceToTarget(userCtx("user-other"), ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-owned",
+	}, store, false)
+	if err == nil {
+		t.Fatal("expected owner mismatch to be hidden as not found")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
+	}
+}
+
+func TestResolveKeySourceManagedAnonymousNotFound(t *testing.T) {
+	store := connector.NewConnectorStore(t.TempDir())
+	rec := connector.ConnectorRecord{
+		ConnectorID: "conn-owned",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-owner",
+		Provider:    "openai",
+		Endpoint:    "https://api.openai.com/v1",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	if err := store.Create(rec, "key"); err != nil {
+		t.Fatal(err)
+	}
+	_, err := resolveKeySourceToTarget(context.Background(), ParsedKeySource{
+		KeySource:   "managed",
+		ConnectorID: "conn-owned",
+	}, store, false)
+	if err == nil {
+		t.Fatal("expected anonymous access to be hidden as not found")
+	}
+	st, _ := status.FromError(err)
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND) {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
 	}
 }
 

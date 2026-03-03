@@ -44,6 +44,20 @@ func NormalizeTokenProviderID(raw string) (string, error) {
 		return "anthropic", nil
 	case "openai_compatible":
 		return "openai_compatible", nil
+	case "azure":
+		return "azure", nil
+	case "mistral":
+		return "mistral", nil
+	case "groq":
+		return "groq", nil
+	case "xai":
+		return "xai", nil
+	case "qianfan":
+		return "qianfan", nil
+	case "hunyuan":
+		return "hunyuan", nil
+	case "spark":
+		return "spark", nil
 	default:
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -68,7 +82,7 @@ func (p *CloudProvider) ResolveProbeBackend(providerID string, endpoint string, 
 
 	template := p.backends[canonicalProviderID]
 	backendName := "cloud-" + canonicalProviderID
-	backend := probeBackendFromTemplate(backendName, template, endpoint, apiKey, p.probeTimeout())
+	backend := probeBackendFromTemplate(backendName, template, endpoint, apiKey, p.probeTimeout(), p.enforceEndpointSecurity, p.allowLoopbackEndpoint)
 	if backend == nil {
 		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -84,17 +98,20 @@ func (p *CloudProvider) probeTimeout() time.Duration {
 	return defaultHTTPTimeout
 }
 
-func probeBackendFromTemplate(name string, template *Backend, endpoint string, apiKey string, timeout time.Duration) *Backend {
+func probeBackendFromTemplate(name string, template *Backend, endpoint string, apiKey string, timeout time.Duration, enforceEndpointSecurity bool, allowLoopback bool) *Backend {
 	normalizedEndpoint := strings.TrimSpace(endpoint)
 	normalizedAPIKey := strings.TrimSpace(apiKey)
 	if template != nil {
 		if normalizedEndpoint == "" && normalizedAPIKey == "" {
 			return template
 		}
-		return template.WithRequestOverrides(normalizedEndpoint, normalizedAPIKey)
+		return template.WithRequestOverridesWithPolicy(normalizedEndpoint, normalizedAPIKey, allowLoopback)
 	}
 	if normalizedEndpoint == "" {
 		return nil
+	}
+	if enforceEndpointSecurity {
+		return NewSecuredBackend(name, normalizedEndpoint, normalizedAPIKey, timeout, allowLoopback)
 	}
 	return NewBackend(name, normalizedEndpoint, normalizedAPIKey, timeout)
 }

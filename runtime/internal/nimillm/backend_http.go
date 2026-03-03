@@ -20,9 +20,9 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 	}
 
 	endpoint := b.baseURL + path
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
+	request, err := b.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return MapProviderRequestError(err)
+		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if b.apiKey != "" {
@@ -40,9 +40,9 @@ func (b *Backend) postJSON(ctx context.Context, path string, requestBody any, re
 
 func (b *Backend) getJSON(ctx context.Context, path string, responseBody any) error {
 	endpoint := b.baseURL + path
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	request, err := b.newRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return MapProviderRequestError(err)
+		return err
 	}
 	if b.apiKey != "" {
 		request.Header.Set("Authorization", "Bearer "+b.apiKey)
@@ -64,9 +64,9 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 	}
 
 	endpoint := b.baseURL + path
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
+	request, err := b.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return nil, MapProviderRequestError(err)
+		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if b.apiKey != "" {

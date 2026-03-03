@@ -175,6 +175,35 @@ func TestMediaJobMethodsValidateAndNotFound(t *testing.T) {
 	}
 }
 
+func TestSubmitMediaJobLocalModelUnavailableUsesLocalModelUnavailable(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&staticLocalModelLister{models: []*runtimev1.LocalModelRecord{}})
+
+	_, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/sd3",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "test",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected local model unavailable")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
+	}
+}
+
 func TestSubmitMediaJobRangeValidation(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()

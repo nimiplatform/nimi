@@ -19,11 +19,14 @@ func (s *Service) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 
 	// K-KEYSRC-004: parse and validate key-source
 	parsed := parseKeySource(ctx, req.GetConnectorId())
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, req.GetAppId()); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.validateLocalModelRequest(ctx, req.GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 

@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"context"
 	"encoding/base64"
 	"io"
 	"net/http"
@@ -28,9 +29,9 @@ func (b *Backend) DecodeMedia(b64Data string, mediaURL string) ([]byte, error) {
 	}
 	mediaURL = strings.TrimSpace(mediaURL)
 	if mediaURL != "" {
-		request, err := http.NewRequest(http.MethodGet, mediaURL, nil)
+		request, err := b.newRequest(context.Background(), http.MethodGet, mediaURL, nil)
 		if err != nil {
-			return nil, MapProviderRequestError(err)
+			return nil, err
 		}
 		response, err := b.client.Do(request)
 		if err != nil {

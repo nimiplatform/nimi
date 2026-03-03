@@ -159,9 +159,9 @@ func (b *Backend) Transcribe(
 	}
 
 	endpoint := b.baseURL + "/v1/audio/transcriptions"
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, body)
+	request, err := b.newRequest(ctx, http.MethodPost, endpoint, body)
 	if err != nil {
-		return "", nil, MapProviderRequestError(err)
+		return "", nil, err
 	}
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	if b.apiKey != "" {

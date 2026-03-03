@@ -37,9 +37,10 @@ type DecisionInfoProvider interface {
 
 // RemoteTarget provides resolved credentials for a managed or inline remote call.
 type RemoteTarget struct {
-	ProviderType string // canonical provider ID
-	Endpoint     string // resolved endpoint URL
-	APIKey       string // decrypted API key
+	ProviderType  string // canonical provider ID
+	Endpoint      string // resolved endpoint URL
+	APIKey        string // decrypted API key
+	AllowLoopback bool   // endpoint security policy for this target
 }
 
 // RouteDecisionInfo captures the routing decision for a model request.

@@ -49,6 +49,7 @@ type Service struct {
 	scheduler                *scheduler.Scheduler
 	mediaJobs                *mediaJobStore
 	connStore                *connector.ConnectorStore
+	localModel               localModelLister
 	allowLoopback            bool
 	streamFirstPacketTimeout time.Duration
 }
@@ -56,6 +57,8 @@ type Service struct {
 // New creates a Service with all dependencies.
 func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) *Service {
 	effectiveCfg := loadConfigFromEnv()
+	effectiveCfg.EnforceEndpointSecurity = true
+	effectiveCfg.AllowLoopbackEndpoint = daemonCfg.AllowLoopbackProviderEndpoint
 	globalConc := daemonCfg.GlobalConcurrencyLimit
 	if globalConc <= 0 {
 		globalConc = 8
@@ -94,6 +97,11 @@ func (s *Service) SetModelRegistryPersistencePath(path string) {
 	s.registryPath = strings.TrimSpace(path)
 }
 
+// SetLocalModelLister wires RuntimeLocalRuntimeService for local model availability checks.
+func (s *Service) SetLocalModelLister(localSvc localModelLister) {
+	s.localModel = localSvc
+}
+
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).
 func (s *Service) CloudProvider() *nimillm.CloudProvider {
 	return s.selector.cloudProvider
@@ -106,11 +114,14 @@ func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 
 	// K-KEYSRC-004: parse and validate key-source
 	parsed := parseKeySource(ctx, req.GetConnectorId())
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, req.GetAppId()); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.validateLocalModelRequest(ctx, req.GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 
@@ -183,11 +194,14 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 
 	// K-KEYSRC-004: parse and validate key-source
 	parsed := parseKeySource(stream.Context(), req.GetConnectorId())
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, req.GetAppId()); err != nil {
 		return err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := resolveKeySourceToTarget(stream.Context(), parsed, s.connStore, s.allowLoopback)
 	if err != nil {
+		return err
+	}
+	if err := s.validateLocalModelRequest(stream.Context(), req.GetModelId(), remoteTarget); err != nil {
 		return err
 	}
 
@@ -267,6 +281,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	var outputBuilder strings.Builder
+	streamSimulated := false
 
 	// K-STREAM-006: 32-byte chunk buffering
 	var chunkBuf strings.Builder
@@ -311,6 +326,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 			return failAndStop(err)
 		}
 	} else {
+		streamSimulated = true
 		outputText, streamUsage, streamFinish, generateErr := selectedProvider.GenerateText(requestCtx, modelResolved, streamToGenerateRequest(req), inputText)
 		if generateErr != nil {
 			return failAndStop(generateErr)
@@ -383,14 +399,40 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 		})
 	}
 
+	if streamSimulated {
+		s.recordStreamFallbackSimulated(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), modelResolved)
+	}
+
 	// K-STREAM-003: single done=true termframe carrying usage + finish_reason
 	return send(&runtimev1.StreamGenerateEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 		Payload: &runtimev1.StreamGenerateEvent_Completed{
 			Completed: &runtimev1.StreamCompleted{
-				FinishReason: finishReason,
-				Usage:        usage,
+				FinishReason:    finishReason,
+				Usage:           usage,
+				StreamSimulated: streamSimulated,
 			},
 		},
+	})
+}
+
+func (s *Service) recordStreamFallbackSimulated(appID string, subjectUserID string, requestedModelID string, resolvedModelID string) {
+	if s.audit == nil {
+		return
+	}
+	payload, _ := structpb.NewStruct(map[string]any{
+		"requestedModelId": strings.TrimSpace(requestedModelID),
+		"resolvedModelId":  strings.TrimSpace(resolvedModelID),
+	})
+	s.audit.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:       ulid.Make().String(),
+		AppId:         strings.TrimSpace(appID),
+		SubjectUserId: strings.TrimSpace(subjectUserID),
+		Domain:        "runtime.ai",
+		Operation:     "stream_fallback_simulated",
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId:       ulid.Make().String(),
+		Timestamp:     timestamppb.New(time.Now().UTC()),
+		Payload:       payload,
 	})
 }

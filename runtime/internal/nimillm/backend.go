@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -24,23 +26,45 @@ type Backend struct {
 	baseURL string
 	apiKey  string
 	client  *http.Client
+
+	// Security controls for outbound endpoint validation.
+	enforceEndpointSecurity bool
+	allowLoopbackEndpoint   bool
 }
 
 // NewBackend creates a new OpenAI-compatible backend.
 // Returns nil if baseURL is empty.
 func NewBackend(name string, baseURL string, apiKey string, timeout time.Duration) *Backend {
-	return NewBackendWithTransport(name, baseURL, apiKey, timeout, nil)
+	return newBackend(name, baseURL, apiKey, timeout, nil, false, false)
 }
 
 // NewBackendWithTransport creates a backend with an optional custom transport.
 // When transport is non-nil it is used for all HTTP requests (e.g. a pinned
 // transport from endpointsec). Returns nil if baseURL is empty.
 func NewBackendWithTransport(name string, baseURL string, apiKey string, timeout time.Duration, transport http.RoundTripper) *Backend {
-	trimmed := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
-	// Strip trailing /v1 to prevent double-versioned paths: the backend
-	// hardcodes /v1/... in request paths (e.g. /v1/chat/completions).
-	trimmed = strings.TrimSuffix(trimmed, "/v1")
-	if trimmed == "" {
+	return newBackend(name, baseURL, apiKey, timeout, transport, false, false)
+}
+
+// NewSecuredBackend creates a backend that validates the endpoint before each
+// outbound request and uses a DNS-pinned transport (K-SEC-003/K-SEC-004).
+func NewSecuredBackend(name string, baseURL string, apiKey string, timeout time.Duration, allowLoopback bool) *Backend {
+	normalized := normalizeBackendBaseURL(baseURL)
+	if normalized == "" {
+		return nil
+	}
+	if err := endpointsec.ValidateEndpoint(normalized, allowLoopback); err != nil {
+		return nil
+	}
+	transport, err := endpointsec.NewPinnedTransport(normalized, allowLoopback)
+	if err != nil {
+		return nil
+	}
+	return newBackend(name, normalized, apiKey, timeout, transport, true, allowLoopback)
+}
+
+func newBackend(name string, baseURL string, apiKey string, timeout time.Duration, transport http.RoundTripper, secure bool, allowLoopback bool) *Backend {
+	normalized := normalizeBackendBaseURL(baseURL)
+	if normalized == "" {
 		return nil
 	}
 	if timeout <= 0 {
@@ -51,31 +75,57 @@ func NewBackendWithTransport(name string, baseURL string, apiKey string, timeout
 		Transport: transport,
 	}
 	return &Backend{
-		Name:    name,
-		baseURL: trimmed,
-		apiKey:  strings.TrimSpace(apiKey),
-		client:  client,
+		Name:                    name,
+		baseURL:                 normalized,
+		apiKey:                  strings.TrimSpace(apiKey),
+		client:                  client,
+		enforceEndpointSecurity: secure,
+		allowLoopbackEndpoint:   allowLoopback,
 	}
+}
+
+func normalizeBackendBaseURL(baseURL string) string {
+	trimmed := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	// Strip trailing /v1 to prevent double-versioned paths: the backend
+	// hardcodes /v1/... in request paths (e.g. /v1/chat/completions).
+	trimmed = strings.TrimSuffix(trimmed, "/v1")
+	return trimmed
 }
 
 // WithRequestOverrides returns a shallow clone with overridden endpoint and API key.
 func (b *Backend) WithRequestOverrides(endpoint string, apiKey string) *Backend {
+	return b.WithRequestOverridesWithPolicy(endpoint, apiKey, b.allowLoopbackEndpoint)
+}
+
+// WithRequestOverridesWithPolicy returns a clone with overridden request
+// endpoint/API key and an explicit loopback policy.
+func (b *Backend) WithRequestOverridesWithPolicy(endpoint string, apiKey string, allowLoopback bool) *Backend {
 	if b == nil {
 		return nil
 	}
-	normalizedEndpoint := strings.TrimSuffix(strings.TrimSpace(endpoint), "/")
-	normalizedEndpoint = strings.TrimSuffix(normalizedEndpoint, "/v1")
+	normalizedEndpoint := normalizeBackendBaseURL(endpoint)
 	if normalizedEndpoint == "" {
 		normalizedEndpoint = b.baseURL
 	}
 	normalizedAPIKey := strings.TrimSpace(apiKey)
-	if normalizedEndpoint == b.baseURL && normalizedAPIKey == b.apiKey {
+	if normalizedEndpoint == b.baseURL && normalizedAPIKey == b.apiKey && allowLoopback == b.allowLoopbackEndpoint {
 		return b
+	}
+	if b.enforceEndpointSecurity {
+		return NewSecuredBackend(b.Name, normalizedEndpoint, normalizedAPIKey, b.timeout(), allowLoopback)
 	}
 	clone := *b
 	clone.baseURL = normalizedEndpoint
 	clone.apiKey = normalizedAPIKey
+	clone.allowLoopbackEndpoint = allowLoopback
 	return &clone
+}
+
+func (b *Backend) timeout() time.Duration {
+	if b == nil || b.client == nil || b.client.Timeout <= 0 {
+		return defaultHTTPTimeout
+	}
+	return b.client.Timeout
 }
 
 // Endpoint returns the backend base URL.
@@ -84,6 +134,19 @@ func (b *Backend) Endpoint() string {
 		return ""
 	}
 	return b.baseURL
+}
+
+func (b *Backend) newRequest(ctx context.Context, method string, endpoint string, body io.Reader) (*http.Request, error) {
+	if b.enforceEndpointSecurity {
+		if err := endpointsec.ValidateEndpoint(endpoint, b.allowLoopbackEndpoint); err != nil {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		}
+	}
+	request, err := http.NewRequestWithContext(ctx, method, endpoint, body)
+	if err != nil {
+		return nil, MapProviderRequestError(err)
+	}
+	return request, nil
 }
 
 // GenerateText sends a non-streaming chat completion request.
@@ -259,9 +322,9 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
 	endpoint := b.baseURL + "/v1/chat/completions"
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
+	request, err := b.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "text/event-stream")

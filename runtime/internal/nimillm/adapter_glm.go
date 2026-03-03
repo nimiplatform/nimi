@@ -350,16 +350,16 @@ func ExecuteGLMTranscribe(
 		return "", MapProviderRequestError(err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, body)
+	client, request, err := newSecuredHTTPRequest(ctx, http.MethodPost, targetURL, body)
 	if err != nil {
-		return "", MapProviderRequestError(err)
+		return "", err
 	}
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	request.Header.Set("Accept", "application/json")
 	if strings.TrimSpace(apiKey) != "" {
 		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
 	}
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return "", MapProviderRequestError(err)
 	}

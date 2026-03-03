@@ -24,11 +24,14 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 
 	// K-KEYSRC-004: parse and validate key-source
 	parsed := parseKeySource(ctx, req.GetConnectorId())
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, req.GetAppId()); err != nil {
 		return nil, err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.validateLocalModelRequest(ctx, req.GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 
@@ -54,11 +57,14 @@ func (s *Service) StreamSpeechSynthesis(req *runtimev1.StreamSpeechSynthesisRequ
 
 	// K-KEYSRC-004: parse and validate key-source
 	parsed := parseKeySource(stream.Context(), req.GetConnectorId())
-	if err := validateKeySource(parsed); err != nil {
+	if err := validateKeySource(parsed, req.GetAppId()); err != nil {
 		return err
 	}
-	remoteTarget, err := resolveKeySourceToTarget(parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := resolveKeySourceToTarget(stream.Context(), parsed, s.connStore, s.allowLoopback)
 	if err != nil {
+		return err
+	}
+	if err := s.validateLocalModelRequest(stream.Context(), req.GetModelId(), remoteTarget); err != nil {
 		return err
 	}
 

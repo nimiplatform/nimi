@@ -17,6 +17,14 @@ type ProviderCredentials struct {
 type CloudConfig struct {
 	Providers   map[string]ProviderCredentials
 	HTTPTimeout time.Duration
+
+	// EnforceEndpointSecurity enables endpoint validation + DNS-pinned outbound
+	// transport for cloud requests (K-SEC-003/K-SEC-004).
+	EnforceEndpointSecurity bool
+
+	// AllowLoopbackEndpoint allows HTTP loopback endpoints when endpoint
+	// security is enabled.
+	AllowLoopbackEndpoint bool
 }
 
 // ResolveProviderAlias returns the canonical provider ID for a given name.

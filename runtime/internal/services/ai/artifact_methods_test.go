@@ -62,6 +62,30 @@ func TestEmbedLegacyWrapper(t *testing.T) {
 	}
 }
 
+func TestEmbedLocalModelUnavailableUsesLocalModelUnavailable(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&staticLocalModelLister{models: []*runtimev1.LocalModelRecord{}})
+
+	_, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/embedding",
+		Inputs:        []string{"first text"},
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	})
+	if err == nil {
+		t.Fatalf("expected local model unavailable")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
+	}
+}
+
 func TestMediaJobStatusToErrorMapping(t *testing.T) {
 	cases := []struct {
 		name string

@@ -156,6 +156,31 @@ func TestStreamSpeechSynthesisValidation(t *testing.T) {
 	}
 }
 
+func TestStreamSpeechSynthesisLocalModelUnavailableUsesLocalModelUnavailable(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&staticLocalModelLister{models: []*runtimev1.LocalModelRecord{}})
+
+	mockStream := &mockArtifactChunkStream{ctx: context.Background()}
+	err := svc.StreamSpeechSynthesis(&runtimev1.StreamSpeechSynthesisRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/tts",
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		SpeechSpec:    &runtimev1.SpeechSynthesisSpec{Text: "hello"},
+	}, mockStream)
+	if err == nil {
+		t.Fatalf("expected local model unavailable")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status")
+	}
+	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
+	}
+}
+
 func TestStreamSpeechSynthesisLargePayloadChunking(t *testing.T) {
 	largePayload := make([]byte, 100*1024) // 100KB
 	for i := range largePayload {

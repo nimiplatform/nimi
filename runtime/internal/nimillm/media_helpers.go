@@ -40,15 +40,15 @@ func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}
-	request, err := http.NewRequestWithContext(ctx, method, targetURL, strings.NewReader(string(requestBody)))
+	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, strings.NewReader(string(requestBody)))
 	if err != nil {
-		return nil, MapProviderRequestError(err)
+		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	if strings.TrimSpace(apiKey) != "" {
 		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
 	}
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}
@@ -104,9 +104,9 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 		}
 		requestBody = strings.NewReader(string(raw))
 	}
-	request, err := http.NewRequestWithContext(ctx, method, targetURL, requestBody)
+	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, requestBody)
 	if err != nil {
-		return MapProviderRequestError(err)
+		return err
 	}
 	request.Header.Set("Accept", "application/json")
 	if body != nil {
@@ -115,7 +115,7 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	if strings.TrimSpace(apiKey) != "" {
 		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
 	}
-	response, err := http.DefaultClient.Do(request)
+	response, err := client.Do(request)
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
@@ -464,7 +464,11 @@ func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, er
 	if err != nil {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	response, err := http.DefaultClient.Do(request)
+	client, err := newSecuredHTTPClient(parsed.String(), allowLoopbackForTargetURL(parsed.String()))
+	if err != nil {
+		return nil, "", err
+	}
+	response, err := client.Do(request)
 	if err != nil {
 		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}

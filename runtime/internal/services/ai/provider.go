@@ -24,6 +24,14 @@ type Config struct {
 	LocalProviders map[string]nimillm.ProviderCredentials // "localai", "nexa"
 	CloudProviders map[string]nimillm.ProviderCredentials // "nimillm", "dashscope", ...
 	AIHTTPTimeout  time.Duration
+
+	// EnforceEndpointSecurity enables endpoint validation + DNS pinning for
+	// outbound provider HTTP requests (K-SEC-003/K-SEC-004).
+	EnforceEndpointSecurity bool
+
+	// AllowLoopbackEndpoint allows HTTP loopback endpoints while endpoint
+	// security is enabled.
+	AllowLoopbackEndpoint bool
 }
 
 // cloudProviderEnvBindings maps canonical provider IDs to their environment variable pairs.
@@ -44,13 +52,13 @@ var cloudProviderEnvBindings = []struct {
 	{"glm", "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
 	{"deepseek", "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"},
 	{"openrouter", "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
-	{"azure",   "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL",   "NIMI_RUNTIME_CLOUD_AZURE_API_KEY"},
+	{"azure", "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL", "NIMI_RUNTIME_CLOUD_AZURE_API_KEY"},
 	{"mistral", "NIMI_RUNTIME_CLOUD_MISTRAL_BASE_URL", "NIMI_RUNTIME_CLOUD_MISTRAL_API_KEY"},
-	{"groq",    "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL",    "NIMI_RUNTIME_CLOUD_GROQ_API_KEY"},
-	{"xai",     "NIMI_RUNTIME_CLOUD_XAI_BASE_URL",     "NIMI_RUNTIME_CLOUD_XAI_API_KEY"},
+	{"groq", "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL", "NIMI_RUNTIME_CLOUD_GROQ_API_KEY"},
+	{"xai", "NIMI_RUNTIME_CLOUD_XAI_BASE_URL", "NIMI_RUNTIME_CLOUD_XAI_API_KEY"},
 	{"qianfan", "NIMI_RUNTIME_CLOUD_QIANFAN_BASE_URL", "NIMI_RUNTIME_CLOUD_QIANFAN_API_KEY"},
 	{"hunyuan", "NIMI_RUNTIME_CLOUD_HUNYUAN_BASE_URL", "NIMI_RUNTIME_CLOUD_HUNYUAN_API_KEY"},
-	{"spark",   "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL",   "NIMI_RUNTIME_CLOUD_SPARK_API_KEY"},
+	{"spark", "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL", "NIMI_RUNTIME_CLOUD_SPARK_API_KEY"},
 }
 
 func loadConfigFromEnv() Config {
@@ -105,8 +113,10 @@ func (c Config) normalized() Config {
 
 func (c Config) toCloudConfig() nimillm.CloudConfig {
 	return nimillm.CloudConfig{
-		Providers:   c.CloudProviders,
-		HTTPTimeout: c.AIHTTPTimeout,
+		Providers:               c.CloudProviders,
+		HTTPTimeout:             c.AIHTTPTimeout,
+		EnforceEndpointSecurity: c.EnforceEndpointSecurity,
+		AllowLoopbackEndpoint:   c.AllowLoopbackEndpoint,
 	}
 }
 
@@ -127,10 +137,17 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	localaiCreds := normalized.LocalProviders["localai"]
 	nexaCreds := normalized.LocalProviders["nexa"]
+	localAIBackend := nimillm.NewBackend("local-localai", localaiCreds.BaseURL, localaiCreds.APIKey, normalized.AIHTTPTimeout)
+	nexaBackend := nimillm.NewBackend("local-nexa", nexaCreds.BaseURL, nexaCreds.APIKey, normalized.AIHTTPTimeout)
+	if normalized.EnforceEndpointSecurity {
+		// Local engines run on loopback and must allow HTTP loopback.
+		localAIBackend = nimillm.NewSecuredBackend("local-localai", localaiCreds.BaseURL, localaiCreds.APIKey, normalized.AIHTTPTimeout, true)
+		nexaBackend = nimillm.NewSecuredBackend("local-nexa", nexaCreds.BaseURL, nexaCreds.APIKey, normalized.AIHTTPTimeout, true)
+	}
 	return &routeSelector{
 		local: &localProvider{
-			localai: nimillm.NewBackend("local-localai", localaiCreds.BaseURL, localaiCreds.APIKey, normalized.AIHTTPTimeout),
-			nexa:    nimillm.NewBackend("local-nexa", nexaCreds.BaseURL, nexaCreds.APIKey, normalized.AIHTTPTimeout),
+			localai: localAIBackend,
+			nexa:    nexaBackend,
 		},
 		cloud:         cloudProvider,
 		cloudProvider: cloudProvider,
