@@ -112,6 +112,8 @@
 | `expires_at` | Timestamp | 过期时间 |
 | `revoked` | bool | 是否已撤销 |
 | `delegation_depth` | int32 | 委托深度（根=0） |
+| `policy_version` | string | 生效策略版本 |
+| `issued_scope_catalog_version` | string | 签发时 scope catalog 版本 |
 
 排序：`issued_at DESC`（最新签发在前）。
 

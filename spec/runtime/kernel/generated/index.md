@@ -23,3 +23,7 @@
 | `provider-probe-targets.md` | `tables/provider-probe-targets.yaml` |
 | `workflow-node-types.md` | `tables/workflow-node-types.yaml` |
 | `workflow-states.md` | `tables/workflow-states.yaml` |
+| `multimodal-canonical-fields.md` | `tables/multimodal-canonical-fields.yaml` |
+| `multimodal-artifact-fields.md` | `tables/multimodal-artifact-fields.yaml` |
+| `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
+| `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |

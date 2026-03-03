@@ -25,6 +25,22 @@ rules:
     requirement: at_least_one_of_endpoint_label_api_key_status
     source: K-RPC-008
   - rpc: UpdateConnector
+    field: update_mask.paths
+    requirement: only_label_endpoint_api_key_status_are_allowed
+    source: K-CONN-013
+  - rpc: UpdateConnector
+    field: update_mask
+    requirement: empty_mask_infers_paths_from_present_optional_fields_and_status
+    source: K-CONN-013
+  - rpc: UpdateConnector
+    field: update_mask
+    requirement: unknown_path_or_missing_optional_value_is_invalid_argument
+    source: K-CONN-013
+  - rpc: UpdateConnector
+    field: patch_semantics
+    requirement: unspecified_fields_remain_unchanged
+    source: K-CONN-013
+  - rpc: UpdateConnector
     field: status
     requirement: UNSPECIFIED_is_invalid
     source: K-RPC-008
@@ -64,3 +80,11 @@ rules:
     field: remote_cache_hit
     requirement: no_outbound_and_no_endpoint_validation_on_cache_hit
     source: K-RPC-010
+  - rpc: ListConnectorModels
+    field: page_size/page_token
+    requirement: request_fields_must_be_supported_with_default_50_max_200
+    source: K-CONN-014
+  - rpc: ListConnectorModels
+    field: next_page_token
+    requirement: response_must_return_next_page_token_empty_on_last_page
+    source: K-CONN-014

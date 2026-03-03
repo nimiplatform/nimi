@@ -75,7 +75,7 @@ Desktop 存在两条 mod 间通信路径：
 
 | 路径 | 机制 | 安全边界 | 适用场景 |
 |---|---|---|---|
-| **D-HOOK interMod**（`SDKMOD-002`/`SDKMOD-011`） | Renderer 进程内同步回调 | Desktop mod governance（D-MOD-005）capability sandbox | 同进程低延迟通信（UI 联动、数据共享） |
+| **D-HOOK interMod**（`S-MOD-002`/`S-MOD-011`） | Renderer 进程内同步回调 | Desktop mod governance（D-MOD-005）capability sandbox | 同进程低延迟通信（UI 联动、数据共享） |
 | **K-APP SendAppMessage**（`K-APP-001~005`） | Runtime gRPC 跨进程消息 | Runtime auth 拦截器（K-DAEMON-005）+ K-APP-005 安全基线 | 跨进程持久消息（离线缓冲、审计追踪） |
 
 路由规则：

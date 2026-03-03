@@ -22,7 +22,7 @@
 - `SubscribeAIProviderHealthEvents`（K-AUDIT-013）
 - `SubscribeAppMessages`（K-APP-003）
 
-模式 D 的流没有终帧/eof 信号，客户端或 server 可单方关闭。server 关闭场景：daemon 进入 STOPPING（K-DAEMON-003）时以 gRPC `CANCELLED` 关闭所有活跃订阅流。客户端应以 `runtime.disconnected`（SDKR-028）或 gRPC status 检测到关闭后决策是否重建。
+模式 D 的流没有终帧/eof 信号，客户端或 server 可单方关闭。server 关闭场景：daemon 进入 STOPPING（K-DAEMON-003）时以 gRPC `CANCELLED` 关闭所有活跃订阅流。客户端应以 `runtime.disconnected`（S-RUNTIME-028）或 gRPC status 检测到关闭后决策是否重建。
 
 ## K-STREAM-002 阶段边界
 

@@ -6,7 +6,7 @@
 
 AI consume 只允许二选一路径：
 
-- `connector_id` 路径（managed/local）— **推荐路径**，凭据由 Runtime ConnectorService 托管（CONN-001: custodian not distributor）
+- `connector_id` 路径（managed/local）— **推荐路径**，凭据由 Runtime ConnectorService 托管（K-CONN-001: custodian not distributor）
 - inline 路径（`x-nimi-key-source=inline` + inline metadata）— **escape hatch**，凭据通过 gRPC metadata 直传
 
 **Inline 路径定位声明（K-KEYSRC-001a）**：inline 路径是为以下场景设计的 escape hatch，非推荐的常规使用路径：

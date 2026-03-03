@@ -1,0 +1,25 @@
+fields:
+  - field: uri
+    required: true
+    description: artifact address or handle
+    source_rule: K-MMPROV-007
+  - field: mime_type
+    required: true
+    description: media MIME type
+    source_rule: K-MMPROV-007
+  - field: size_bytes
+    required: false
+    description: payload size in bytes
+    source_rule: K-MMPROV-007
+  - field: width
+    required: false
+    description: image/video width
+    source_rule: K-MMPROV-007
+  - field: height
+    required: false
+    description: image/video height
+    source_rule: K-MMPROV-007
+  - field: duration_ms
+    required: false
+    description: audio/video duration
+    source_rule: K-MMPROV-007

@@ -1,0 +1,16 @@
+gates:
+  - gate: proto_lint
+    command: pnpm proto:lint
+    source_rule: K-PROTO-007
+  - gate: proto_generate
+    command: pnpm proto:generate
+    source_rule: K-PROTO-007
+  - gate: proto_drift
+    command: pnpm proto:drift-check
+    source_rule: K-PROTO-007
+  - gate: proto_breaking
+    command: pnpm proto:breaking
+    source_rule: K-PROTO-004
+  - gate: release_no_go_on_failure
+    command: policy/no-go
+    source_rule: K-PROTO-009

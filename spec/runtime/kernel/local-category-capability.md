@@ -169,7 +169,7 @@ Apply 管道任一阶段失败时：
 
 ## K-LOCAL-016 状态持久化规则
 
-本地模型状态持久化到 `~/.nimi/state.json`：
+本地模型状态持久化到 `~/.nimi/runtime/local-runtime-state.json`：
 
 - 写入使用原子操作：写临时文件 → rename（防止断电损坏）。
 - 文件格式包含 `schemaVersion`（当前 `1`），向前兼容时忽略未知字段。
@@ -300,7 +300,8 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 
 ```
 ~/.nimi/
-├── state.json                    # 中央状态文件（K-LOCAL-016）
+├── runtime/
+│   └── local-runtime-state.json  # 中央状态文件（K-LOCAL-016）
 └── models/
     ├── hf-org-model-name/
     │   ├── model.manifest.json   # nimi 元数据（K-LOCAL-026）
@@ -348,3 +349,34 @@ hashes:                        # 必填，所有文件须有对应 hash
 - Phase 1: 所有模型生命周期**写操作**（搜索、下载、安装、删除）由 desktop execution-plane 独占。
 - Runtime 仅消费已安装模型的元数据，不主动发起下载。
 - 未来可扩展为 CLI / Web 获取路径，但当前版本 desktop 是唯一获取执行面。
+
+## K-LOCAL-029 LocalAuditEvent 扩展字段契约
+
+`LocalAuditEvent` 在 V1 扩展如下字段，并要求关键路径可观测：
+
+- `trace_id`: 请求链路追踪 ID（优先取入站 metadata；缺失时服务端生成）。
+- `app_id`: 调用方应用 ID（优先取入站 metadata；缺失可为空）。
+- `domain`: 审计域（默认 `runtime.local_runtime`）。
+- `operation`: 操作名（RPC 操作或事件类型，禁止空值）。
+- `subject_user_id`: 调用主体（优先取认证身份；缺失可为空）。
+
+`ListLocalAudits` 的过滤参数 `app_id` 与 `subject_user_id` 必须作用于上述字段，不得仅用于 token 摘要。
+
+## K-LOCAL-030 Local Runtime 列表/搜索分页边界
+
+以下 RPC 的分页边界遵循统一规则（与 `K-PAGE-005` 对齐）：
+
+- `ListLocalModels`
+- `ListVerifiedModels`
+- `SearchCatalogModels`
+- `ListLocalServices`
+- `ListNodeCatalog`
+- `ListLocalAudits`
+
+统一约束：
+
+- 默认 `page_size=50`；
+- 最大 `page_size=200`；
+- `page_size>200` 必须裁剪为 `200`，不得回退为默认值；
+- `page_token` 为空表示首页；
+- 非法 `page_token` 返回 `INVALID_ARGUMENT` + `PAGE_TOKEN_INVALID`。

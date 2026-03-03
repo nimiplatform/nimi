@@ -1,0 +1,33 @@
+gates:
+  - gate: G0
+    name: ssot_freeze
+    objective: freeze spec authority and rule ids
+    source_rule: K-GATE-010
+  - gate: G1
+    name: proto_chain
+    objective: lint breaking generate drift all pass
+    source_rule: K-GATE-020
+  - gate: G2
+    name: sdk_alignment
+    objective: sdk projection and boundary checks pass
+    source_rule: K-GATE-030
+  - gate: G3
+    name: provider_coverage
+    objective: provider routing and capability coverage verified
+    source_rule: K-GATE-040
+  - gate: G4
+    name: workflow_async
+    objective: external async events align with media job states
+    source_rule: K-GATE-050
+  - gate: G5
+    name: matrix_tests
+    objective: multimodal matrix baseline satisfied
+    source_rule: K-GATE-060
+  - gate: G6
+    name: observability
+    objective: audit and logs are complete
+    source_rule: K-GATE-070
+  - gate: G7
+    name: release_candidate
+    objective: release checks all green
+    source_rule: K-GATE-080

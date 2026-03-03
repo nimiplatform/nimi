@@ -1,0 +1,31 @@
+fields:
+  - modality: common
+    field: app_id
+    required: true
+    description: caller application identity
+    source_rule: K-MMPROV-001
+  - modality: common
+    field: model_id
+    required: true
+    description: model selector
+    source_rule: K-MMPROV-001
+  - modality: image
+    field: prompt
+    required: true
+    description: image prompt text
+    source_rule: K-MMPROV-002
+  - modality: video
+    field: duration_sec
+    required: false
+    description: requested video duration
+    source_rule: K-MMPROV-003
+  - modality: tts
+    field: voice
+    required: true
+    description: synthesis voice id
+    source_rule: K-MMPROV-004
+  - modality: stt
+    field: audio_source
+    required: true
+    description: transcription audio input
+    source_rule: K-MMPROV-005

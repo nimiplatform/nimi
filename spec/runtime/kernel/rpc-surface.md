@@ -49,8 +49,9 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 5. `DeleteConnector`
 6. `TestConnector`
 7. `ListConnectorModels`
+8. `ListProviderCatalog`
 
-> **Proto 状态**：ConnectorService 当前为 design-first 阶段，proto 定义尚未发布（`tables/rpc-migration-map.yaml` 状态 `design_only_pending_proto`）。Proto 发布时必须与本 spec（K-RPC-007 至 K-RPC-012）保持一致，migration map 随之更新为 `aligned`。
+ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
 
 ## K-RPC-004 RuntimeLocalRuntimeService 方法集合
 

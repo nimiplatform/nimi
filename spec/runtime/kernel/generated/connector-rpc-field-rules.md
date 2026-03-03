@@ -10,6 +10,10 @@
 | `CreateConnector` | `label` | `empty_uses_default_label` | `K-RPC-007` |
 | `CreateConnector` | `status/created_at/updated_at` | `initialized_to_ACTIVE_and_now` | `K-RPC-007` |
 | `UpdateConnector` | `mutable_fields` | `at_least_one_of_endpoint_label_api_key_status` | `K-RPC-008` |
+| `UpdateConnector` | `update_mask.paths` | `only_label_endpoint_api_key_status_are_allowed` | `K-CONN-013` |
+| `UpdateConnector` | `update_mask` | `empty_mask_infers_paths_from_present_optional_fields_and_status` | `K-CONN-013` |
+| `UpdateConnector` | `update_mask` | `unknown_path_or_missing_optional_value_is_invalid_argument` | `K-CONN-013` |
+| `UpdateConnector` | `patch_semantics` | `unspecified_fields_remain_unchanged` | `K-CONN-013` |
 | `UpdateConnector` | `status` | `UNSPECIFIED_is_invalid` | `K-RPC-008` |
 | `UpdateConnector` | `api_key` | `explicit_empty_string_is_invalid` | `K-RPC-008` |
 | `UpdateConnector` | `label` | `explicit_empty_string_is_invalid` | `K-RPC-008` |
@@ -20,3 +24,5 @@
 | `DeleteConnector` | `deletion_flow` | `use_delete_pending_compensation_flow` | `K-RPC-009` |
 | `TestConnector` | `remote_precheck` | `owner_status_credential_must_pass_before_probe` | `K-RPC-010` |
 | `ListConnectorModels` | `remote_cache_hit` | `no_outbound_and_no_endpoint_validation_on_cache_hit` | `K-RPC-010` |
+| `ListConnectorModels` | `page_size/page_token` | `request_fields_must_be_supported_with_default_50_max_200` | `K-CONN-014` |
+| `ListConnectorModels` | `next_page_token` | `response_must_return_next_page_token_empty_on_last_page` | `K-CONN-014` |
