@@ -700,7 +700,13 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
             <div className="relative">
               <button
                 type="button"
-                onClick={() => navigate(`/profile/${post.author?.id || ''}`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const authorId = post.author?.id;
+                  if (authorId) {
+                    navigate(`/profile/${authorId}`);
+                  }
+                }}
                 className="p-0 m-0 bg-transparent border-0 cursor-pointer"
               >
                 {post.author?.avatarUrl ? (

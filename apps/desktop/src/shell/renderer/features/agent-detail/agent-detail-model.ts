@@ -17,6 +17,7 @@ export type AgentDetailData = {
   worldId: string | null;
   ownerWorldId: string | null;
   isFriend: boolean;
+  worldBannerUrl: string | null;
 };
 
 export function toAgentDetailData(raw: Record<string, unknown>): AgentDetailData {
@@ -69,6 +70,23 @@ export function toAgentDetailData(raw: Record<string, unknown>): AgentDetailData
       )
     ),
     isFriend: raw.isFriend === true,
+    worldBannerUrl: (
+      (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
+      || (
+        raw.agentProfile
+        && typeof raw.agentProfile === 'object'
+        && typeof (raw.agentProfile as Record<string, unknown>).worldBannerUrl === 'string'
+          ? String((raw.agentProfile as Record<string, unknown>).worldBannerUrl)
+          : null
+      )
+      || (
+        raw.world
+        && typeof raw.world === 'object'
+        && typeof (raw.world as Record<string, unknown>).bannerUrl === 'string'
+          ? String((raw.world as Record<string, unknown>).bannerUrl)
+          : null
+      )
+    ),
   };
 }
 

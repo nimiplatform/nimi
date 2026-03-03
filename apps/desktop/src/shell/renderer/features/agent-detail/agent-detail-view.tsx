@@ -17,18 +17,6 @@ type AgentDetailViewProps = {
   isFriend?: boolean;
 };
 
-function MetadataCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 rounded-[10px] border border-gray-200 bg-white px-4 py-3">
-      <span className="text-gray-400">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] text-gray-400">{label}</p>
-        <p className="truncate text-sm font-medium text-gray-900">{value}</p>
-      </div>
-    </div>
-  );
-}
-
 export function AgentDetailView(props: AgentDetailViewProps) {
   const { t } = useTranslation();
 
@@ -56,10 +44,10 @@ export function AgentDetailView(props: AgentDetailViewProps) {
   }
 
   const { agent } = props;
-  const stateColor = getStateBadgeColor(agent.state);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+      {/* Header bar */}
       <div className="flex h-14 shrink-0 items-center gap-3 bg-white px-6">
         <button
           type="button"
@@ -74,226 +62,195 @@ export function AgentDetailView(props: AgentDetailViewProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="mx-auto max-w-2xl px-6 py-8">
-          {/* Hero Section */}
-          <div className="flex flex-col items-center rounded-[10px] border border-gray-200 bg-white px-6 py-8">
-            <div className="relative">
-              {agent.avatarUrl ? (
+        <div className="mx-auto max-w-md px-6 py-8">
+          {/* Profile Card */}
+          <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
+            {/* Banner Background */}
+            <div className="relative h-32 w-full overflow-hidden">
+              {agent.worldBannerUrl ? (
                 <img
-                  src={agent.avatarUrl}
-                  alt={agent.displayName}
-                  className="h-24 w-24 rounded-[16px] object-cover"
-                  style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5), 0 0 15px 6px rgba(124, 58, 237, 0.3)' }}
+                  src={agent.worldBannerUrl}
+                  alt="World Banner"
+                  className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/10 text-2xl font-semibold text-[#a855f7]"
-                  style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5), 0 0 15px 6px rgba(124, 58, 237, 0.3)' }}
-                >
-                  {getAgentInitial(agent.displayName)}
-                </div>
+                <div className="w-full h-full bg-gradient-to-br from-purple-400 via-pink-300 to-blue-300" />
               )}
-              {agent.isOnline ? (
-                <span className="absolute right-0 bottom-0 h-4 w-4 rounded-full border-2 border-white bg-green-400" />
-              ) : null}
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20" />
             </div>
 
-            <h2 className="mt-4 text-xl font-semibold tracking-tight text-gray-900">
-              {agent.displayName}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">{agent.handle}</p>
-
-            {/* State + Type Badges */}
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${stateColor.bg} ${stateColor.text}`}>
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-                  <circle cx="4" cy="4" r="4" />
+            {/* Add Button - Top Right */}
+            <button
+              type="button"
+              onClick={props.onAddFriend}
+              disabled={props.canAddFriend === false || props.isFriend}
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-md hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 transition-all z-10"
+              title={props.isFriend ? t('Contacts.friends') : t('AgentDetail.addFriend')}
+            >
+              {props.isFriend ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
                 </svg>
-                {agent.state}
-              </span>
-              <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                  <rect x="4" y="4" width="16" height="16" rx="2" />
-                  <rect x="9" y="9" width="6" height="6" />
-                </svg>
-                {t('AgentDetail.agentBadge')}
-              </span>
-              {agent.isPublic ? (
-                <span className="inline-flex items-center rounded-full border border-green-200 bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                  {t('AgentDetail.publicBadge')}
-                </span>
               ) : (
-                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                  {t('AgentDetail.privateBadge')}
-                </span>
-              )}
-            </div>
-
-            {agent.bio ? (
-              <p className="mt-4 max-w-md text-center text-sm text-gray-600">{agent.bio}</p>
-            ) : null}
-
-            {/* Actions */}
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={props.onChat}
-                className="flex items-center gap-2 rounded-[10px] bg-brand-500 px-5 py-2 text-sm font-medium text-white hover:bg-brand-600"
-              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                {t('AgentDetail.chat')}
-              </button>
-              {!props.isFriend && (
-                <button
-                  type="button"
-                  onClick={props.onAddFriend}
-                  disabled={props.canAddFriend === false}
-                  className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="8.5" cy="7" r="4" />
-                    <line x1="20" y1="8" x2="20" y2="14" />
-                    <line x1="23" y1="11" x2="17" y2="11" />
-                  </svg>
-                  {t('AgentDetail.addFriend')}
-                </button>
               )}
-              <button
-                type="button"
-                onClick={props.onSendGift}
-                className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="8" width="18" height="4" rx="1" />
-                  <path d="M12 8v13" />
-                  <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                  <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
-                </svg>
-                {t('AgentDetail.sendGift')}
-              </button>
-              {agent.worldId ? (
-                <button
-                  type="button"
-                  onClick={props.onOpenWorld}
-                  className="flex items-center gap-2 rounded-[10px] border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            </button>
+
+            {/* Avatar Section */}
+            <div className="relative -mt-12 flex flex-col items-center px-6">
+              {/* Avatar with gradient ring */}
+              <div className="relative">
+                <div 
+                  className="h-24 w-24 rounded-full p-1"
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+                  }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  {t('AgentDetail.openWorld')}
-                </button>
+                  <div className="h-full w-full rounded-full bg-white p-1">
+                    {agent.avatarUrl ? (
+                      <img
+                        src={agent.avatarUrl}
+                        alt={agent.displayName}
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100 text-2xl font-semibold text-purple-600">
+                        {getAgentInitial(agent.displayName)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {agent.isOnline && (
+                  <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-green-400" />
+                )}
+              </div>
+
+              {/* Name and Handle */}
+              <h2 className="mt-4 text-xl font-bold text-gray-900">
+                {agent.displayName}
+              </h2>
+              <p className="text-sm text-gray-500">@{agent.handle}</p>
+
+              {/* Bio */}
+              {agent.bio ? (
+                <p className="mt-3 text-center text-sm text-gray-600 max-w-xs">
+                  {agent.bio}
+                </p>
               ) : null}
-            </div>
-            {props.addFriendHint ? (
-              <p className="mt-2 text-xs text-amber-700">{props.addFriendHint}</p>
-            ) : null}
-          </div>
 
-          {/* Metadata Grid */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <MetadataCard
-              label={t('AgentDetail.metaCategory')}
-              value={agent.category}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                  <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-                </svg>
-              }
-            />
-            <MetadataCard
-              label={t('AgentDetail.metaOrigin')}
-              value={agent.origin}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              }
-            />
-            <MetadataCard
-              label={t('AgentDetail.metaVerification')}
-              value={agent.tier}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-                </svg>
-              }
-            />
-            <MetadataCard
-              label={t('AgentDetail.metaWakeStrategy')}
-              value={agent.wakeStrategy}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-              }
-            />
-            <MetadataCard
-              label={t('AgentDetail.metaOwnership')}
-              value={agent.ownershipType}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 21h18" />
-                  <path d="M5 21V7l7-4 7 4v14" />
-                </svg>
-              }
-            />
-            <MetadataCard
-              label={t('AgentDetail.metaWorldId')}
-              value={agent.worldId || 'N/A'}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              }
-            />
-          </div>
+              {/* Stats */}
+              <div className="mt-6 flex w-full items-center justify-around px-4 py-4 bg-gray-50 rounded-2xl">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-900">
+                    {props.memoryStats ? props.memoryStats.coreCount : 0}
+                  </p>
+                  <p className="text-xs text-gray-500">{t('AgentDetail.memoryCore')}</p>
+                </div>
+                <div className="w-px h-10 bg-gray-200" />
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-900">
+                    {props.memoryStats ? props.memoryStats.e2eCount : 0}
+                  </p>
+                  <p className="text-xs text-gray-500">{t('AgentDetail.memoryE2E')}</p>
+                </div>
+                <div className="w-px h-10 bg-gray-200" />
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-900">
+                    {props.memoryStats ? props.memoryStats.profileCount : 0}
+                  </p>
+                  <p className="text-xs text-gray-500">{t('AgentDetail.memoryProfiles')}</p>
+                </div>
+              </div>
 
-          {/* Tags */}
-          {agent.tags.length > 0 ? (
-            <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-              <h3 className="text-sm font-semibold text-gray-700">{t('AgentDetail.tags')}</h3>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {agent.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+              {/* Action Buttons */}
+              <div className="mt-6 flex items-center justify-center gap-4 pb-6">
+                <button
+                  type="button"
+                  onClick={props.onChat}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                  title={t('AgentDetail.chat')}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={props.onSendGift}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                  title={t('AgentDetail.sendGift')}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="8" width="18" height="4" rx="1" />
+                    <path d="M12 8v13" />
+                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+                    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
+                  </svg>
+                </button>
+                {agent.worldId ? (
+                  <button
+                    type="button"
+                    onClick={props.onOpenWorld}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                    title={t('AgentDetail.openWorld')}
                   >
-                    {tag}
-                  </span>
-                ))}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" y1="12" x2="22" y2="12" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                  </button>
+                ) : null}
               </div>
             </div>
-          ) : null}
+          </div>
 
-          {/* Memory Stats */}
-          {props.memoryStats ? (
-            <div className="mt-4 rounded-[10px] border border-gray-200 bg-white px-6 py-4">
-              <h3 className="text-sm font-semibold text-gray-700">{t('AgentDetail.memory')}</h3>
-              <div className="mt-3 grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <p className="text-lg font-semibold text-gray-900">{props.memoryStats.coreCount}</p>
-                  <p className="text-[11px] text-gray-500">{t('AgentDetail.memoryCore')}</p>
+          {/* Additional Info Cards */}
+          <div className="mt-4 space-y-3">
+            {/* Tags */}
+            {agent.tags.length > 0 ? (
+              <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('AgentDetail.tags')}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {agent.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-                <div className="text-center">
-                  <p className="text-lg font-semibold text-gray-900">{props.memoryStats.e2eCount}</p>
-                  <p className="text-[11px] text-gray-500">{t('AgentDetail.memoryE2E')}</p>
+              </div>
+            ) : null}
+
+            {/* Metadata */}
+            <div className="rounded-2xl bg-white p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('AgentDetail.title')}</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('AgentDetail.metaCategory')}</span>
+                  <span className="font-medium text-gray-900">{agent.category}</span>
                 </div>
-                <div className="text-center">
-                  <p className="text-lg font-semibold text-gray-900">{props.memoryStats.profileCount}</p>
-                  <p className="text-[11px] text-gray-500">{t('AgentDetail.memoryProfiles')}</p>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('AgentDetail.metaOrigin')}</span>
+                  <span className="font-medium text-gray-900">{agent.origin}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('AgentDetail.metaTier')}</span>
+                  <span className="font-medium text-gray-900">{agent.tier}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('AgentDetail.metaWakeStrategy')}</span>
+                  <span className="font-medium text-gray-900">{agent.wakeStrategy}</span>
                 </div>
               </div>
             </div>
-          ) : null}
+          </div>
         </div>
       </div>
     </div>
