@@ -1,6 +1,6 @@
 <div align="center">
 
-  # 🪸 Nimi:
+  # 🪸 Nimi: The Infrastructure Layer for Next-Gen AI Apps
 
   [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-black.svg?logo=github&style=flat-square)](https://github.com/nimiplatform/nimi)
   [![Last Commit](https://img.shields.io/github/last-commit/nimiplatform/nimi?style=flat-square)](https://github.com/nimiplatform/nimi)
@@ -12,7 +12,7 @@
 
 ---
 
-[**Start in 2 minutes:**](#30-second-quickstart)
+[**Start in 2 minutes**](#quickstart)
 
 [Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [SDK Reference](docs/reference/sdk.md) |  [Protocol](spec/platform/protocol.md) | [Contributing](CONTRIBUTING.md)
 
