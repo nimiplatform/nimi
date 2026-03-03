@@ -83,6 +83,9 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalM
 	current.UpdatedAt = now
 	current.HealthDetail = detail
 	s.models[id] = cloneLocalModel(current)
+	if status != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		delete(s.modelProbeState, id)
+	}
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:           "audit_" + ulid.Make().String(),
 		EventType:    "runtime_model_status_changed",
@@ -114,6 +117,9 @@ func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalSe
 	current.UpdatedAt = now
 	current.Detail = detail
 	s.services[id] = cloneServiceDescriptor(current)
+	if status != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
+		delete(s.serviceProbeState, id)
+	}
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:         "audit_" + ulid.Make().String(),
 		EventType:  "runtime_service_status_changed",

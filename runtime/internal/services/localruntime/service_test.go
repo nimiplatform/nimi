@@ -2,21 +2,51 @@ package localruntime
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
+	return newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  true,
+			detail:   "probe mocked healthy",
+			probeURL: endpoint,
+		}
+	})
+}
+
+func newTestServiceWithProbe(t *testing.T, probe endpointProbeFunc) *Service {
+	t.Helper()
 	statePath := filepath.Join(t.TempDir(), "local-runtime-state.json")
-	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
+	if probe != nil {
+		svc.endpointProbe = probe
+	}
+	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return []*runtimev1.LocalCatalogModelDescriptor{}, nil
+	}
+	t.Cleanup(func() {
+		svc.Close()
+	})
+	return svc
 }
 
 func TestLocalRuntimeModelLifecycle(t *testing.T) {
@@ -88,6 +118,482 @@ func TestLocalRuntimeModelLifecycle(t *testing.T) {
 	}
 }
 
+func TestLocalRuntimeStartLocalModelProbeFailureTransitionsUnhealthy(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "connection refused",
+			probeURL: "http://127.0.0.1:1234/v1/models",
+		}
+	})
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/probe-fail-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy status, got %s", started.GetModel().GetStatus())
+	}
+	if !strings.Contains(started.GetModel().GetHealthDetail(), "connection refused") {
+		t.Fatalf("expected probe failure detail, got %q", started.GetModel().GetHealthDetail())
+	}
+}
+
+func TestLocalRuntimeCheckLocalModelHealthRecoversAfterThreeProbes(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {
+		probeCalls++
+		if probeCalls == 1 {
+			return endpointProbeResult{
+				healthy:  false,
+				detail:   "startup probe failed",
+				probeURL: "http://127.0.0.1:1234/v1/models",
+			}
+		}
+		return endpointProbeResult{
+			healthy:  true,
+			detail:   "probe recovered",
+			probeURL: "http://127.0.0.1:1234/v1/models",
+		}
+	})
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/recover-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	localModelID := installed.GetModel().GetLocalModelId()
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: localModelID,
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy after startup probe failure, got %s", started.GetModel().GetStatus())
+	}
+
+	for i := 1; i <= 2; i++ {
+		resp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
+			LocalModelId: localModelID,
+		})
+		if err != nil {
+			t.Fatalf("check local model health #%d: %v", i, err)
+		}
+		if len(resp.GetModels()) != 1 {
+			t.Fatalf("expected one model row at probe #%d, got %d", i, len(resp.GetModels()))
+		}
+		if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+			t.Fatalf("probe #%d should keep model unhealthy until threshold, got %s", i, resp.GetModels()[0].GetStatus())
+		}
+	}
+
+	recovered, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
+		LocalModelId: localModelID,
+	})
+	if err != nil {
+		t.Fatalf("check local model health #3: %v", err)
+	}
+	if len(recovered.GetModels()) != 1 {
+		t.Fatalf("expected one model row after recovery probe, got %d", len(recovered.GetModels()))
+	}
+	if recovered.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("third successful probe should recover model to ACTIVE, got %s", recovered.GetModels()[0].GetStatus())
+	}
+}
+
+func TestLocalRuntimeStartLocalServiceProbeFailureTransitionsUnhealthy(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "service connection refused",
+			probeURL: "http://127.0.0.1:8080/v1/models",
+		}
+	})
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/service-probe-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-probe-fail",
+		Engine:       "localai",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+
+	started, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-probe-fail",
+	})
+	if err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+	if started.GetService().GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy service status, got %s", started.GetService().GetStatus())
+	}
+	if !strings.Contains(started.GetService().GetDetail(), "connection refused") {
+		t.Fatalf("expected probe failure detail, got %q", started.GetService().GetDetail())
+	}
+}
+
+func TestLocalRuntimeCheckLocalServiceHealthRecoversAfterThreeProbes(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {
+		probeCalls++
+		if probeCalls == 1 {
+			return endpointProbeResult{
+				healthy:  false,
+				detail:   "service startup failed",
+				probeURL: "http://127.0.0.1:8080/v1/models",
+			}
+		}
+		return endpointProbeResult{
+			healthy:  true,
+			detail:   "service probe recovered",
+			probeURL: "http://127.0.0.1:8080/v1/models",
+		}
+	})
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/service-recover-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-recover",
+		Engine:       "localai",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+
+	started, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-recover",
+	})
+	if err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+	if started.GetService().GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy after startup probe failure, got %s", started.GetService().GetStatus())
+	}
+
+	for i := 1; i <= 2; i++ {
+		resp, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
+			ServiceId: "svc-recover",
+		})
+		if err != nil {
+			t.Fatalf("check local service health #%d: %v", i, err)
+		}
+		if len(resp.GetServices()) != 1 {
+			t.Fatalf("expected one service row at probe #%d, got %d", i, len(resp.GetServices()))
+		}
+		if resp.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
+			t.Fatalf("probe #%d should keep service unhealthy until threshold, got %s", i, resp.GetServices()[0].GetStatus())
+		}
+	}
+
+	recovered, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
+		ServiceId: "svc-recover",
+	})
+	if err != nil {
+		t.Fatalf("check local service health #3: %v", err)
+	}
+	if len(recovered.GetServices()) != 1 {
+		t.Fatalf("expected one service row after recovery probe, got %d", len(recovered.GetServices()))
+	}
+	if recovered.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
+		t.Fatalf("third successful probe should recover service to ACTIVE, got %s", recovered.GetServices()[0].GetStatus())
+	}
+}
+
+func TestLocalRuntimeDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
+	receivedPath := ""
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedPath = r.URL.Path
+		_, _ = w.Write([]byte(`{"data":[{"id":"local/model"}]}`))
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, nil)
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/default-probe-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Endpoint:     server.URL + "/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected active after successful real probe, got %s", started.GetModel().GetStatus())
+	}
+	if receivedPath != "/v1/models" {
+		t.Fatalf("probe path mismatch: got %s want /v1/models", receivedPath)
+	}
+}
+
+func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return []*runtimev1.LocalCatalogModelDescriptor{
+			{
+				ItemId:       "hf_zeta_model",
+				Source:       "huggingface",
+				Title:        "Zeta Model",
+				ModelId:      "org/zeta-model",
+				Repo:         "org/zeta-model",
+				Capabilities: []string{"chat"},
+				Engine:       "localai",
+				Verified:     false,
+			},
+			{
+				ItemId:       "hf_alpha_model",
+				Source:       "huggingface",
+				Title:        "Alpha Community",
+				ModelId:      "org/alpha-community",
+				Repo:         "org/alpha-community",
+				Capabilities: []string{"chat"},
+				Engine:       "localai",
+				Verified:     false,
+			},
+		}, nil
+	}
+
+	resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
+		Query: "",
+	})
+	if err != nil {
+		t.Fatalf("search catalog models: %v", err)
+	}
+	if len(resp.GetItems()) < 4 {
+		t.Fatalf("expected merged verified+hf items, got %d", len(resp.GetItems()))
+	}
+	if !resp.GetItems()[0].GetVerified() || !resp.GetItems()[1].GetVerified() {
+		t.Fatalf("verified items must come first")
+	}
+	if resp.GetItems()[2].GetVerified() || resp.GetItems()[3].GetVerified() {
+		t.Fatalf("hf items must follow verified items")
+	}
+	if resp.GetItems()[2].GetTitle() != "Alpha Community" || resp.GetItems()[3].GetTitle() != "Zeta Model" {
+		t.Fatalf("hf items should sort by title asc, got [%s, %s]", resp.GetItems()[2].GetTitle(), resp.GetItems()[3].GetTitle())
+	}
+}
+
+func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return []*runtimev1.LocalCatalogModelDescriptor{
+			{
+				ItemId:       "hf_dup_llama",
+				Source:       "huggingface",
+				Title:        "Community Llama Dup",
+				ModelId:      "local/llama3.1",
+				Repo:         "nimiplatform/llama3.1-8b-instruct",
+				Capabilities: []string{"chat"},
+				Engine:       "localai",
+				Verified:     false,
+			},
+		}, nil
+	}
+
+	resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{})
+	if err != nil {
+		t.Fatalf("search catalog models: %v", err)
+	}
+	count := 0
+	for _, item := range resp.GetItems() {
+		if item.GetModelId() == "local/llama3.1" && strings.EqualFold(item.GetEngine(), "localai") {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected deduped model count=1 for local/llama3.1 localai, got %d", count)
+	}
+}
+
+func TestSearchCatalogModelsHFFailureReturnsReasonCode(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return nil, fmt.Errorf("hf timeout")
+	}
+
+	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
+		Query: "llama",
+	})
+	if err == nil {
+		t.Fatalf("expected hf search failure")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.Unavailable {
+		t.Fatalf("expected Unavailable, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED.String() {
+		t.Fatalf("unexpected reason code: %s", st.Message())
+	}
+}
+
+func TestSearchCatalogModelsInvalidHFRepoQueryReturnsReasonCode(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = defaultHFCatalogSearch
+
+	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
+		Query: "hf://invalid_repo_format",
+	})
+	if err == nil {
+		t.Fatalf("expected invalid hf repo error")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID.String() {
+		t.Fatalf("unexpected reason code: %s", st.Message())
+	}
+}
+
+func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
+	svc := newTestService(t)
+	captured := hfCatalogSearchRequest{}
+	svc.hfCatalogSearch = func(_ context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		captured = req
+		return []*runtimev1.LocalCatalogModelDescriptor{}, nil
+	}
+
+	if _, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
+		Query:        "Llama",
+		Capability:   "image",
+		EngineFilter: "nexa",
+		Limit:        7,
+	}); err != nil {
+		t.Fatalf("search catalog models: %v", err)
+	}
+
+	if captured.Query != "llama" {
+		t.Fatalf("query should be normalized to lowercase, got %q", captured.Query)
+	}
+	if captured.Capability != "image" {
+		t.Fatalf("capability mismatch: %q", captured.Capability)
+	}
+	if captured.EngineFilter != "nexa" {
+		t.Fatalf("engine filter mismatch: %q", captured.EngineFilter)
+	}
+	if captured.Limit != 7 {
+		t.Fatalf("hf limit mismatch: got=%d want=7", captured.Limit)
+	}
+}
+
+func TestLocalRuntimeRecoverySweepPromotesUnhealthyModel(t *testing.T) {
+	healthy := false
+	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {
+		if healthy {
+			return endpointProbeResult{healthy: true, detail: "ok"}
+		}
+		return endpointProbeResult{healthy: false, detail: "startup failed"}
+	})
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/recovery-sweep-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	localModelID := installed.GetModel().GetLocalModelId()
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: localModelID,
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy after startup failure, got %s", started.GetModel().GetStatus())
+	}
+
+	healthy = true
+	for i := 1; i <= 2; i++ {
+		svc.mu.Lock()
+		state := svc.modelProbeState[localModelID]
+		if state == nil {
+			t.Fatalf("expected model probe state to exist")
+		}
+		state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
+		svc.mu.Unlock()
+		svc.runRecoverySweep(context.Background())
+
+		current := svc.modelByID(localModelID)
+		if current == nil {
+			t.Fatalf("model should still exist")
+		}
+		if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+			t.Fatalf("recovery sweep #%d should keep UNHEALTHY before threshold, got %s", i, current.GetStatus())
+		}
+	}
+
+	svc.mu.Lock()
+	state := svc.modelProbeState[localModelID]
+	if state == nil {
+		svc.mu.Unlock()
+		t.Fatalf("expected model probe state to exist before final sweep")
+	}
+	state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
+	svc.mu.Unlock()
+	svc.runRecoverySweep(context.Background())
+
+	current := svc.modelByID(localModelID)
+	if current == nil {
+		t.Fatalf("model should still exist")
+	}
+	if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE after third successful recovery sweep, got %s", current.GetStatus())
+	}
+}
+
+func TestLocalRuntimeRecoveryProbeIntervalBackoff(t *testing.T) {
+	now := time.Now().UTC()
+	if got := recoveryProbeInterval(now, &probeRecoveryState{
+		consecutiveFailure: localRecoverySlowFailureThreshold,
+		firstFailureAt:     now.Add(-2 * time.Hour),
+		lastProbeAt:        now,
+	}); got != localRecoverySlowProbeInterval {
+		t.Fatalf("expected slow probe interval, got %s", got)
+	}
+
+	if got := recoveryProbeInterval(now, &probeRecoveryState{
+		consecutiveFailure: localRecoverySlowFailureThreshold + 1000,
+		firstFailureAt:     now.Add(-25 * time.Hour),
+		lastProbeAt:        now,
+	}); got != localRecoveryLongFailProbeInterval {
+		t.Fatalf("expected long-fail probe interval, got %s", got)
+	}
+}
+
 func TestLocalRuntimeResolveAndApplyDependencies(t *testing.T) {
 	svc := newTestService(t)
 
@@ -107,6 +613,7 @@ func TestLocalRuntimeResolveAndApplyDependencies(t *testing.T) {
 					DependencyId: "dep.chat.service",
 					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE,
 					Capability:   "chat",
+					ModelId:      "local/chat-default",
 					ServiceId:    "svc-chat",
 					Engine:       "localai",
 				},
@@ -142,6 +649,20 @@ func TestLocalRuntimeResolveAndApplyDependencies(t *testing.T) {
 	}
 	if len(result.GetCapabilities()) != 1 || result.GetCapabilities()[0] != "chat" {
 		t.Fatalf("applied capabilities mismatch: %#v", result.GetCapabilities())
+	}
+	gotStages := make([]string, 0, len(result.GetStageResults()))
+	for _, stage := range result.GetStageResults() {
+		gotStages = append(gotStages, stage.GetStage())
+		if !stage.GetOk() {
+			t.Fatalf("unexpected failed stage in happy path: %s (%s)", stage.GetStage(), stage.GetReasonCode())
+		}
+	}
+	wantStages := []string{applyStagePreflight, applyStageInstall, applyStageBootstrap, applyStageHealth}
+	if strings.Join(gotStages, ",") != strings.Join(wantStages, ",") {
+		t.Fatalf("unexpected stage order: got=%v want=%v", gotStages, wantStages)
+	}
+	if result.GetRollbackApplied() {
+		t.Fatalf("happy path apply must not set rollback_applied")
 	}
 }
 
@@ -182,20 +703,83 @@ func TestLocalRuntimeAuditFilterByModID(t *testing.T) {
 	}
 }
 
+func TestLocalRuntimeAuditContextEnvelopeAndFilters(t *testing.T) {
+	svc := newTestService(t)
+
+	ctx := authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: "subject-ctx"})
+	ctx = metadata.NewIncomingContext(ctx, metadata.Pairs(
+		"x-nimi-trace-id", "trace-local-audit-ctx",
+		"x-nimi-app-id", "app.ctx",
+		"x-nimi-domain", "runtime.local_runtime",
+	))
+
+	if _, err := svc.AppendInferenceAudit(ctx, &runtimev1.AppendInferenceAuditRequest{
+		EventType: "ctx_audit",
+		Source:    "local-runtime",
+		Model:     "local/ctx-model",
+	}); err != nil {
+		t.Fatalf("append inference audit: %v", err)
+	}
+
+	filtered, err := svc.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{
+		EventType:     "ctx_audit",
+		AppId:         "app.ctx",
+		SubjectUserId: "subject-ctx",
+		PageSize:      10,
+	})
+	if err != nil {
+		t.Fatalf("list local audits with app/subject filter: %v", err)
+	}
+	if len(filtered.GetEvents()) != 1 {
+		t.Fatalf("expected exactly one filtered event, got %d", len(filtered.GetEvents()))
+	}
+	event := filtered.GetEvents()[0]
+	if event.GetTraceId() != "trace-local-audit-ctx" {
+		t.Fatalf("unexpected trace_id: %s", event.GetTraceId())
+	}
+	if event.GetAppId() != "app.ctx" {
+		t.Fatalf("unexpected app_id: %s", event.GetAppId())
+	}
+	if event.GetDomain() != "runtime.local_runtime" {
+		t.Fatalf("unexpected domain: %s", event.GetDomain())
+	}
+	if event.GetOperation() != "append_inference_audit" {
+		t.Fatalf("unexpected operation: %s", event.GetOperation())
+	}
+	if event.GetSubjectUserId() != "subject-ctx" {
+		t.Fatalf("unexpected subject_user_id: %s", event.GetSubjectUserId())
+	}
+}
+
 func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	svc := newTestService(t)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/vision-chat-model",
+		Capabilities: []string{"image", "chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
 
 	installed, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-vision",
 		Title:        "Vision Service",
 		Engine:       "localai",
 		Capabilities: []string{"image", "chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
 	})
 	if err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
 	if installed.GetService().GetServiceId() != "svc-vision" {
 		t.Fatalf("service id mismatch: %s", installed.GetService().GetServiceId())
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-vision",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -211,6 +795,9 @@ func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	node := nodesResp.GetNodes()[0]
 	if node.GetServiceId() != "svc-vision" {
 		t.Fatalf("node service id mismatch: %s", node.GetServiceId())
+	}
+	if !strings.HasPrefix(node.GetNodeId(), "svc-vision:") {
+		t.Fatalf("node id should use <service_id>:<capability>, got: %s", node.GetNodeId())
 	}
 	if node.GetAdapter() != "localai_native_adapter" {
 		t.Fatalf("localai image adapter mismatch: %s", node.GetAdapter())
@@ -264,24 +851,86 @@ func TestLocalRuntimeNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list node catalog after remove: %v", err)
 	}
-	if len(nodesAfterRemove.GetNodes()) == 0 {
-		t.Fatalf("expected removed service node to remain discoverable with unavailable flag")
+	if len(nodesAfterRemove.GetNodes()) != 0 {
+		t.Fatalf("removed/inactive services must not appear in node catalog")
 	}
-	if nodesAfterRemove.GetNodes()[0].GetAvailable() {
-		t.Fatalf("node must be unavailable after service removal")
+}
+
+func TestLocalRuntimeNodeCatalogSortsByTypeThenNodeID(t *testing.T) {
+	svc := newTestService(t)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/sort-catalog-model",
+		Capabilities: []string{"chat", "image"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-sort",
+		Title:        "Sort Service",
+		Engine:       "localai",
+		Capabilities: []string{"chat", "image"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-sort",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+
+	resp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
+		ServiceId: "svc-sort",
+	})
+	if err != nil {
+		t.Fatalf("list node catalog: %v", err)
+	}
+	if len(resp.GetNodes()) != 2 {
+		t.Fatalf("expected 2 nodes, got %d", len(resp.GetNodes()))
+	}
+
+	first := resp.GetNodes()[0]
+	second := resp.GetNodes()[1]
+	if first.GetAdapter() != "localai_native_adapter" || second.GetAdapter() != "openai_compat_adapter" {
+		t.Fatalf("node catalog must sort by node type(adapter) before node id, got adapters: %s, %s", first.GetAdapter(), second.GetAdapter())
+	}
+	if len(first.GetCapabilities()) == 0 || first.GetCapabilities()[0] != "image" {
+		t.Fatalf("expected image node first, got capabilities: %#v", first.GetCapabilities())
+	}
+	if len(second.GetCapabilities()) == 0 || second.GetCapabilities()[0] != "chat" {
+		t.Fatalf("expected chat node second, got capabilities: %#v", second.GetCapabilities())
 	}
 }
 
 func TestLocalRuntimeNodeCatalogNexaVideoFailClose(t *testing.T) {
 	svc := newTestService(t)
 
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/nexa-video-chat-model",
+		Capabilities: []string{"video", "chat"},
+		Engine:       "nexa",
+		Endpoint:     "http://127.0.0.1:17881/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-nexa",
 		Title:        "Nexa Service",
 		Engine:       "nexa",
 		Capabilities: []string{"video", "chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-nexa",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -353,6 +1002,54 @@ func TestLocalRuntimeNodeCatalogNexaVideoFailClose(t *testing.T) {
 	}
 	if !chatHints.GetHostNpuReady() && chatHints.GetNpuUsable() {
 		t.Fatalf("nexa chat npuUsable cannot be true when host_npu_ready=false")
+	}
+}
+
+func TestLocalRuntimeNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
+	svc := newTestService(t)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "custom-node-model",
+		Engine:       "localai",
+		Capabilities: []string{"custom"},
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-custom",
+		Title:        "Custom Service",
+		Engine:       "localai",
+		Capabilities: []string{"custom"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-custom",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+
+	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
+		ServiceId: "svc-custom",
+	})
+	if err != nil {
+		t.Fatalf("list node catalog: %v", err)
+	}
+	if len(nodesResp.GetNodes()) != 1 {
+		t.Fatalf("node count mismatch: got=%d want=1", len(nodesResp.GetNodes()))
+	}
+	node := nodesResp.GetNodes()[0]
+	if node.GetAvailable() {
+		t.Fatalf("custom node without local_invoke_profile_id must be unavailable")
+	}
+	if node.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING.String() {
+		t.Fatalf("unexpected reason code: %s", node.GetReasonCode())
+	}
+	if node.GetPolicyGate() != "custom.invoke_profile.missing" {
+		t.Fatalf("unexpected policy gate: %s", node.GetPolicyGate())
 	}
 }
 
@@ -510,13 +1207,28 @@ func TestLocalRuntimeApplyDependenciesFailsWhenNodeUnresolved(t *testing.T) {
 func TestLocalRuntimeApplyDependenciesPassesWhenNodeResolved(t *testing.T) {
 	svc := newTestService(t)
 
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/node-chat-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-node-chat",
 		Title:        "Node Chat Service",
 		Engine:       "localai",
 		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-node-chat",
+	}); err != nil {
+		t.Fatalf("start local service: %v", err)
 	}
 
 	nodesResp, err := svc.ListNodeCatalog(context.Background(), &runtimev1.ListNodeCatalogRequest{
@@ -526,7 +1238,7 @@ func TestLocalRuntimeApplyDependenciesPassesWhenNodeResolved(t *testing.T) {
 		t.Fatalf("list node catalog: %v", err)
 	}
 	if len(nodesResp.GetNodes()) == 0 {
-		t.Fatalf("expected node catalog entry for installed service")
+		t.Fatalf("expected node catalog entry for active service")
 	}
 	nodeID := nodesResp.GetNodes()[0].GetNodeId()
 
@@ -566,6 +1278,521 @@ func TestLocalRuntimeApplyDependenciesPassesWhenNodeResolved(t *testing.T) {
 	}
 }
 
+func TestLocalRuntimeInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
+	svc := newTestService(t)
+	first, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId: "local/dup-model",
+		Engine:  "localai",
+	})
+	if err != nil {
+		t.Fatalf("install first local model: %v", err)
+	}
+	if _, parseErr := ulid.Parse(first.GetModel().GetLocalModelId()); parseErr != nil {
+		t.Fatalf("local_model_id must be pure ULID: %v", parseErr)
+	}
+
+	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId: "local/dup-model",
+		Engine:  "localai",
+	})
+	if err == nil {
+		t.Fatalf("expected duplicate install to fail")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.AlreadyExists {
+		t.Fatalf("expected AlreadyExists, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED.String() {
+		t.Fatalf("expected AI_LOCAL_MODEL_ALREADY_INSTALLED, got %s", st.Message())
+	}
+}
+
+func TestLocalRuntimeInstallLocalModelRequiresEndpointForNexa(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId: "local/nexa-model",
+		Engine:  "nexa",
+	})
+	if err == nil {
+		t.Fatalf("expected nexa endpoint required error")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
+		t.Fatalf("expected AI_LOCAL_ENDPOINT_REQUIRED, got %s", st.Message())
+	}
+}
+
+func TestLocalRuntimeInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
+	svc := newTestService(t)
+
+	_, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId: "svc-missing-model",
+		Engine:    "localai",
+	})
+	if err == nil {
+		t.Fatalf("expected missing local_model_id to fail")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %s", st.Message())
+	}
+
+	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-model-not-found",
+		Engine:       "localai",
+		LocalModelId: "01J00000000000000000000000",
+	})
+	if err == nil {
+		t.Fatalf("expected unknown local_model_id to fail")
+	}
+	st, _ = status.FromError(err)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %s", st.Message())
+	}
+}
+
+func TestLocalRuntimeInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
+	svc := newTestService(t)
+
+	model1, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/service-bind-1",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install model1: %v", err)
+	}
+	model2, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/service-bind-2",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install model2: %v", err)
+	}
+
+	first, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-bind-1",
+		Engine:       "localai",
+		LocalModelId: model1.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("install first service: %v", err)
+	}
+	if first.GetService().GetLocalModelId() != model1.GetModel().GetLocalModelId() {
+		t.Fatalf("service local_model_id mismatch")
+	}
+
+	secondTry, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-bind-2",
+		Engine:       "localai",
+		LocalModelId: model1.GetModel().GetLocalModelId(),
+	})
+	if err == nil {
+		t.Fatalf("expected second service for same model to fail")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.AlreadyExists {
+		t.Fatalf("expected AlreadyExists, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED.String() {
+		t.Fatalf("expected AI_LOCAL_MODEL_ALREADY_INSTALLED, got %s", st.Message())
+	}
+	if secondTry != nil {
+		t.Fatalf("second install response must be nil on conflict")
+	}
+
+	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-bind-1",
+		Engine:       "localai",
+		LocalModelId: model2.GetModel().GetLocalModelId(),
+	})
+	if err == nil {
+		t.Fatalf("expected rebinding existing service to another model to fail")
+	}
+	st, _ = status.FromError(err)
+	if st.Code() != codes.AlreadyExists {
+		t.Fatalf("expected AlreadyExists for rebinding, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED.String() {
+		t.Fatalf("expected AI_LOCAL_MODEL_ALREADY_INSTALLED for rebinding, got %s", st.Message())
+	}
+}
+
+func TestLocalRuntimeListLocalModelsSortByCategoryThenModelID(t *testing.T) {
+	svc := newTestService(t)
+
+	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "z-chat",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install chat model: %v", err)
+	}
+	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "a-custom",
+		Capabilities: []string{"custom"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install custom model: %v", err)
+	}
+	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "a-chat",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install second chat model: %v", err)
+	}
+
+	resp, err := svc.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
+	if err != nil {
+		t.Fatalf("list local models: %v", err)
+	}
+	if len(resp.GetModels()) != 3 {
+		t.Fatalf("expected 3 models, got %d", len(resp.GetModels()))
+	}
+	if resp.GetModels()[0].GetModelId() != "a-custom" {
+		t.Fatalf("expected custom category first, got %s", resp.GetModels()[0].GetModelId())
+	}
+	if resp.GetModels()[1].GetModelId() != "a-chat" || resp.GetModels()[2].GetModelId() != "z-chat" {
+		t.Fatalf("expected llm models ordered by model_id asc, got [%s, %s]", resp.GetModels()[1].GetModelId(), resp.GetModels()[2].GetModelId())
+	}
+}
+
+func TestLocalRuntimeListLocalServicesSortByServiceID(t *testing.T) {
+	svc := newTestService(t)
+
+	modelA, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/service-sort-a",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install modelA: %v", err)
+	}
+	modelB, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/service-sort-b",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install modelB: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-z",
+		Engine:       "localai",
+		LocalModelId: modelA.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install svc-z: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-a",
+		Engine:       "localai",
+		LocalModelId: modelB.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install svc-a: %v", err)
+	}
+
+	resp, err := svc.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
+	if err != nil {
+		t.Fatalf("list local services: %v", err)
+	}
+	if len(resp.GetServices()) != 2 {
+		t.Fatalf("expected 2 services, got %d", len(resp.GetServices()))
+	}
+	if resp.GetServices()[0].GetServiceId() != "svc-a" || resp.GetServices()[1].GetServiceId() != "svc-z" {
+		t.Fatalf("services should be sorted by service_id asc, got [%s, %s]", resp.GetServices()[0].GetServiceId(), resp.GetServices()[1].GetServiceId())
+	}
+}
+
+func TestLocalRuntimeRemoveModelRejectedWhenServiceBound(t *testing.T) {
+	svc := newTestService(t)
+
+	model, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/remove-guard",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-remove-guard",
+		Engine:       "localai",
+		LocalModelId: model.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install service: %v", err)
+	}
+
+	_, err = svc.RemoveLocalModel(context.Background(), &runtimev1.RemoveLocalModelRequest{
+		LocalModelId: model.GetModel().GetLocalModelId(),
+	})
+	if err == nil {
+		t.Fatalf("expected remove model to fail while service is bound")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION.String() {
+		t.Fatalf("expected AI_LOCAL_MODEL_INVALID_TRANSITION, got %s", st.Message())
+	}
+}
+
+func TestLocalRuntimeResolveDependenciesRejectsServiceWithoutModelID(t *testing.T) {
+	svc := newTestService(t)
+
+	resp, err := svc.ResolveDependencies(context.Background(), &runtimev1.ResolveDependenciesRequest{
+		ModId:      "world.nimi.service-without-model",
+		Capability: "chat",
+		Dependencies: &runtimev1.LocalDependenciesDeclarationDescriptor{
+			Required: []*runtimev1.LocalDependencyOptionDescriptor{
+				{
+					DependencyId: "dep.chat.service",
+					Kind:         runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE,
+					ServiceId:    "svc-chat",
+					Capability:   "chat",
+					Engine:       "localai",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve dependencies: %v", err)
+	}
+	if resp.GetPlan().GetReasonCode() != "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED" {
+		t.Fatalf("unexpected reason code: %s", resp.GetPlan().GetReasonCode())
+	}
+	if len(resp.GetPlan().GetDependencies()) != 1 {
+		t.Fatalf("expected one dependency in plan")
+	}
+	dep := resp.GetPlan().GetDependencies()[0]
+	if dep.GetSelected() {
+		t.Fatalf("service dependency without modelId must not be selected")
+	}
+	if dep.GetReasonCode() != "LOCAL_DEPENDENCY_MODEL_ID_REQUIRED" {
+		t.Fatalf("unexpected dependency reason code: %s", dep.GetReasonCode())
+	}
+}
+
+func TestLocalRuntimeInstallVerifiedModelTemplateNotFound(t *testing.T) {
+	svc := newTestService(t)
+	_, err := svc.InstallVerifiedModel(context.Background(), &runtimev1.InstallVerifiedModelRequest{
+		TemplateId: "verified.missing-template",
+	})
+	if err == nil {
+		t.Fatalf("expected missing template error")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND.String() {
+		t.Fatalf("expected AI_LOCAL_TEMPLATE_NOT_FOUND, got %s", st.Message())
+	}
+}
+
+func TestLocalRuntimeImportManifestValidation(t *testing.T) {
+	svc := newTestService(t)
+	tmpDir := t.TempDir()
+
+	invalidPath := filepath.Join(tmpDir, "invalid.json")
+	if err := os.WriteFile(invalidPath, []byte("{not-json"), 0o600); err != nil {
+		t.Fatalf("write invalid manifest: %v", err)
+	}
+	_, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: invalidPath})
+	if err == nil {
+		t.Fatalf("expected invalid manifest parse error")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID.String() {
+		t.Fatalf("unexpected invalid manifest error: %v", err)
+	}
+
+	schemaInvalidPath := filepath.Join(tmpDir, "schema-invalid.json")
+	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"localai","capabilities":"chat"}`), 0o600); err != nil {
+		t.Fatalf("write schema invalid manifest: %v", err)
+	}
+	_, err = svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: schemaInvalidPath})
+	if err == nil {
+		t.Fatalf("expected schema invalid manifest error")
+	}
+	st, _ = status.FromError(err)
+	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID.String() {
+		t.Fatalf("unexpected schema invalid manifest error: %v", err)
+	}
+
+	validPath := filepath.Join(tmpDir, "valid.json")
+	validManifest := map[string]any{
+		"model_id":                "local/import-manifest-ok",
+		"engine":                  "localai",
+		"capabilities":            []string{"chat"},
+		"entry":                   "./dist/index.js",
+		"local_invoke_profile_id": "profile-chat-default",
+		"source": map[string]any{
+			"repo":     "nimiplatform/import-model",
+			"revision": "main",
+		},
+	}
+	validRaw, _ := json.Marshal(validManifest)
+	if err := os.WriteFile(validPath, validRaw, 0o600); err != nil {
+		t.Fatalf("write valid manifest: %v", err)
+	}
+	resp, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: validPath})
+	if err != nil {
+		t.Fatalf("import valid manifest: %v", err)
+	}
+	if resp.GetModel().GetLocalInvokeProfileId() != "profile-chat-default" {
+		t.Fatalf("local_invoke_profile_id should be imported from manifest")
+	}
+}
+
+func TestLocalRuntimeCollectDeviceProfileIncludesExtraPorts(t *testing.T) {
+	svc := newTestService(t)
+	resp, err := svc.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{
+		ExtraPorts: []int32{9999, 1234, -1, 70000},
+	})
+	if err != nil {
+		t.Fatalf("collect profile with extra ports: %v", err)
+	}
+	found9999 := false
+	for _, item := range resp.GetProfile().GetPorts() {
+		if item.GetPort() == 9999 {
+			found9999 = true
+			break
+		}
+	}
+	if !found9999 {
+		t.Fatalf("extra port 9999 should be included in probe result")
+	}
+}
+
+func TestResolveModelInstallPlanManualAddsDeviceWarnings(t *testing.T) {
+	svc := newTestService(t)
+	t.Setenv("NIMI_RUNTIME_NPU_AVAILABLE", "0")
+	t.Setenv("NIMI_RUNTIME_NPU_READY", "0")
+
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ModelId:  "local/npu-model",
+		Engine:   "npu-accelerated-engine",
+		Endpoint: "http://127.0.0.1:1234/v1",
+	})
+	if err != nil {
+		t.Fatalf("resolve model install plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if !plan.GetInstallAvailable() {
+		t.Fatalf("manual localai-like plan should remain installable with warnings")
+	}
+	if plan.GetReasonCode() != "ACTION_EXECUTED" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	found := false
+	for _, warning := range plan.GetWarnings() {
+		if warning == "WARN_NPU_REQUIRED" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected WARN_NPU_REQUIRED warning, got %#v", plan.GetWarnings())
+	}
+}
+
+func TestResolveModelInstallPlanNexaEndpointRequired(t *testing.T) {
+	svc := newTestService(t)
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ModelId: "local/nexa-model",
+		Engine:  "nexa",
+	})
+	if err != nil {
+		t.Fatalf("resolve model install plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetInstallAvailable() {
+		t.Fatalf("nexa attached-endpoint plan without endpoint must be unavailable")
+	}
+	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String() {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	if strings.TrimSpace(plan.GetEndpoint()) != "" {
+		t.Fatalf("nexa endpoint should remain empty when not provided, got %q", plan.GetEndpoint())
+	}
+}
+
+func TestResolveModelInstallPlanCatalogSupervisedRequiresEngineManager(t *testing.T) {
+	svc := newTestService(t)
+	svc.mu.Lock()
+	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
+		ItemId:            "catalog.supervised.model",
+		Source:            "verified",
+		Title:             "Supervised Model",
+		ModelId:           "local/supervised-model",
+		Engine:            "localai",
+		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		InstallKind:       "download",
+		Capabilities:      []string{"chat"},
+	})
+	svc.mu.Unlock()
+
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ItemId: "catalog.supervised.model",
+	})
+	if err != nil {
+		t.Fatalf("resolve supervised plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetInstallAvailable() {
+		t.Fatalf("supervised plan without engine manager must be unavailable")
+	}
+	if plan.GetReasonCode() != "LOCAL_ENGINE_MANAGER_UNAVAILABLE" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+}
+
+func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+	svc.mu.Lock()
+	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
+		ItemId:            "catalog.supervised.model.available",
+		Source:            "verified",
+		Title:             "Supervised Model Available",
+		ModelId:           "local/supervised-model-available",
+		Engine:            "localai",
+		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		InstallKind:       "download",
+		Capabilities:      []string{"chat"},
+	})
+	svc.mu.Unlock()
+
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ItemId: "catalog.supervised.model.available",
+	})
+	if err != nil {
+		t.Fatalf("resolve supervised plan with manager: %v", err)
+	}
+	plan := resp.GetPlan()
+	if !plan.GetInstallAvailable() {
+		t.Fatalf("supervised plan should be available when engine manager can resolve status")
+	}
+	if plan.GetReasonCode() != "ACTION_EXECUTED" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+}
+
 func TestLocalRuntimeApplyDependenciesRejectsUnsupportedKindInPreflight(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.ApplyDependencies(context.Background(), &runtimev1.ApplyDependenciesRequest{
@@ -601,6 +1828,41 @@ func TestLocalRuntimeApplyDependenciesRejectsUnsupportedKindInPreflight(t *testi
 	}
 }
 
+func TestLocalRuntimeRollbackApplyCombinesReasonCodesOnRollbackFailure(t *testing.T) {
+	svc := newTestService(t)
+	result := &runtimev1.LocalDependencyApplyResult{
+		ReasonCode: "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED",
+	}
+
+	svc.rollbackApply(context.Background(), []string{"local-model-missing"}, []string{"local-service-missing"}, result)
+
+	if !result.GetRollbackApplied() {
+		t.Fatalf("rollback_applied must be true when rollback is attempted")
+	}
+	if !strings.Contains(result.GetReasonCode(), "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED") {
+		t.Fatalf("result reason code must retain original failure, got %s", result.GetReasonCode())
+	}
+	if !strings.Contains(result.GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()) {
+		t.Fatalf("result reason code must include rollback failure reason, got %s", result.GetReasonCode())
+	}
+	if len(result.GetStageResults()) != 1 {
+		t.Fatalf("expected exactly one rollback stage result, got %d", len(result.GetStageResults()))
+	}
+	stage := result.GetStageResults()[0]
+	if stage.GetStage() != applyStageRollback {
+		t.Fatalf("expected rollback stage name, got %s", stage.GetStage())
+	}
+	if stage.GetOk() {
+		t.Fatalf("rollback stage must fail when rollback remove operations fail")
+	}
+	if stage.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("unexpected rollback reason code: %s", stage.GetReasonCode())
+	}
+	if len(result.GetWarnings()) < 2 {
+		t.Fatalf("expected rollback warnings for failed remove operations")
+	}
+}
+
 func TestLocalRuntimeStateRestoresAfterRestart(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-runtime-state.json")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -623,6 +1885,36 @@ func TestLocalRuntimeStateRestoresAfterRestart(t *testing.T) {
 		t.Fatalf("install service: %v", err)
 	}
 
+	manifestPath := filepath.Join(t.TempDir(), "persist-import.json")
+	manifestRaw, _ := json.Marshal(map[string]any{
+		"model_id":                "local/persisted-import",
+		"engine":                  "localai",
+		"capabilities":            []string{"chat"},
+		"local_invoke_profile_id": "profile-persisted",
+	})
+	if err := os.WriteFile(manifestPath, manifestRaw, 0o600); err != nil {
+		t.Fatalf("write import manifest: %v", err)
+	}
+	if _, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{
+		ManifestPath: manifestPath,
+	}); err != nil {
+		t.Fatalf("import model: %v", err)
+	}
+
+	ctx := authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: "user-persist"})
+	ctx = metadata.NewIncomingContext(ctx, metadata.Pairs(
+		"x-nimi-trace-id", "trace-persist",
+		"x-nimi-app-id", "app.persist",
+		"x-nimi-domain", "runtime.local_runtime",
+	))
+	if _, err := svc.AppendInferenceAudit(ctx, &runtimev1.AppendInferenceAuditRequest{
+		EventType: "persist_audit",
+		Source:    "local-runtime",
+		Model:     "local/persisted-model",
+	}); err != nil {
+		t.Fatalf("append persisted audit: %v", err)
+	}
+
 	restarted := New(logger, nil, statePath, 0)
 	modelsResp, err := restarted.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
 	if err != nil {
@@ -631,12 +1923,84 @@ func TestLocalRuntimeStateRestoresAfterRestart(t *testing.T) {
 	if len(modelsResp.GetModels()) == 0 {
 		t.Fatalf("expected restored models from persisted state")
 	}
+	foundProfile := false
+	for _, model := range modelsResp.GetModels() {
+		if model.GetModelId() == "local/persisted-import" && model.GetLocalInvokeProfileId() == "profile-persisted" {
+			foundProfile = true
+			break
+		}
+	}
+	if !foundProfile {
+		t.Fatalf("expected restored model with local_invoke_profile_id=profile-persisted")
+	}
 	servicesResp, err := restarted.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
 	if err != nil {
 		t.Fatalf("list services after restart: %v", err)
 	}
 	if len(servicesResp.GetServices()) == 0 {
 		t.Fatalf("expected restored services from persisted state")
+	}
+
+	auditsResp, err := restarted.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{
+		EventType:     "persist_audit",
+		AppId:         "app.persist",
+		SubjectUserId: "user-persist",
+		PageSize:      10,
+	})
+	if err != nil {
+		t.Fatalf("list audits after restart: %v", err)
+	}
+	if len(auditsResp.GetEvents()) != 1 {
+		t.Fatalf("expected one restored persisted audit event, got %d", len(auditsResp.GetEvents()))
+	}
+	event := auditsResp.GetEvents()[0]
+	if event.GetTraceId() != "trace-persist" {
+		t.Fatalf("unexpected restored trace_id: %s", event.GetTraceId())
+	}
+	if event.GetOperation() != "append_inference_audit" {
+		t.Fatalf("unexpected restored operation: %s", event.GetOperation())
+	}
+}
+
+func TestLocalRuntimeAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "local-runtime-state.json")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	svc := New(logger, nil, statePath, 2)
+	defer svc.Close()
+
+	for i := 0; i < 5; i++ {
+		if _, err := svc.AppendRuntimeAudit(context.Background(), &runtimev1.AppendRuntimeAuditRequest{
+			EventType: fmt.Sprintf("evt-%d", i),
+			ModelId:   fmt.Sprintf("local/model-%d", i),
+		}); err != nil {
+			t.Fatalf("append runtime audit #%d: %v", i, err)
+		}
+	}
+
+	current, err := svc.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{PageSize: 10})
+	if err != nil {
+		t.Fatalf("list local audits before restart: %v", err)
+	}
+	if len(current.GetEvents()) != 2 {
+		t.Fatalf("expected in-memory audit cap=2, got %d", len(current.GetEvents()))
+	}
+	if current.GetEvents()[0].GetEventType() != "evt-4" || current.GetEvents()[1].GetEventType() != "evt-3" {
+		t.Fatalf("unexpected retained audit order before restart: %s, %s", current.GetEvents()[0].GetEventType(), current.GetEvents()[1].GetEventType())
+	}
+
+	restarted := New(logger, nil, statePath, 2)
+	defer restarted.Close()
+
+	restored, err := restarted.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{PageSize: 10})
+	if err != nil {
+		t.Fatalf("list local audits after restart: %v", err)
+	}
+	if len(restored.GetEvents()) != 2 {
+		t.Fatalf("expected restored audit cap=2, got %d", len(restored.GetEvents()))
+	}
+	if restored.GetEvents()[0].GetEventType() != "evt-4" || restored.GetEvents()[1].GetEventType() != "evt-3" {
+		t.Fatalf("unexpected retained audit order after restart: %s, %s", restored.GetEvents()[0].GetEventType(), restored.GetEvents()[1].GetEventType())
 	}
 }
 

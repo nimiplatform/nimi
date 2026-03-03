@@ -26,20 +26,21 @@ type localRuntimeSnapshot struct {
 }
 
 type localRuntimeModelState struct {
-	LocalModelID string            `json:"localModelId"`
-	ModelID      string            `json:"modelId"`
-	Capabilities []string          `json:"capabilities"`
-	Engine       string            `json:"engine"`
-	Entry        string            `json:"entry"`
-	License      string            `json:"license"`
-	SourceRepo   string            `json:"sourceRepo"`
-	SourceRev    string            `json:"sourceRevision"`
-	Hashes       map[string]string `json:"hashes"`
-	Endpoint     string            `json:"endpoint"`
-	Status       int32             `json:"status"`
-	InstalledAt  string            `json:"installedAt"`
-	UpdatedAt    string            `json:"updatedAt"`
-	HealthDetail string            `json:"healthDetail"`
+	LocalModelID         string            `json:"localModelId"`
+	ModelID              string            `json:"modelId"`
+	Capabilities         []string          `json:"capabilities"`
+	Engine               string            `json:"engine"`
+	Entry                string            `json:"entry"`
+	License              string            `json:"license"`
+	SourceRepo           string            `json:"sourceRepo"`
+	SourceRev            string            `json:"sourceRevision"`
+	Hashes               map[string]string `json:"hashes"`
+	Endpoint             string            `json:"endpoint"`
+	Status               int32             `json:"status"`
+	InstalledAt          string            `json:"installedAt"`
+	UpdatedAt            string            `json:"updatedAt"`
+	HealthDetail         string            `json:"healthDetail"`
+	LocalInvokeProfileID string            `json:"localInvokeProfileId,omitempty"`
 }
 
 type localRuntimeServiceState struct {
@@ -57,16 +58,21 @@ type localRuntimeServiceState struct {
 }
 
 type localRuntimeAuditState struct {
-	ID           string         `json:"id"`
-	EventType    string         `json:"eventType"`
-	OccurredAt   string         `json:"occurredAt"`
-	Source       string         `json:"source"`
-	Modality     string         `json:"modality"`
-	ReasonCode   string         `json:"reasonCode"`
-	Detail       string         `json:"detail"`
-	ModelID      string         `json:"modelId"`
-	LocalModelID string         `json:"localModelId"`
-	Payload      map[string]any `json:"payload"`
+	ID            string         `json:"id"`
+	EventType     string         `json:"eventType"`
+	OccurredAt    string         `json:"occurredAt"`
+	Source        string         `json:"source"`
+	Modality      string         `json:"modality"`
+	ReasonCode    string         `json:"reasonCode"`
+	Detail        string         `json:"detail"`
+	ModelID       string         `json:"modelId"`
+	LocalModelID  string         `json:"localModelId"`
+	Payload       map[string]any `json:"payload"`
+	TraceID       string         `json:"traceId,omitempty"`
+	AppID         string         `json:"appId,omitempty"`
+	Domain        string         `json:"domain,omitempty"`
+	Operation     string         `json:"operation,omitempty"`
+	SubjectUserID string         `json:"subjectUserId,omitempty"`
 }
 
 func resolveLocalRuntimeStatePath(configuredPath string) string {
@@ -109,12 +115,13 @@ func (s *Service) restoreState() {
 				Repo:     item.SourceRepo,
 				Revision: item.SourceRev,
 			},
-			Hashes:       cloneStringMap(item.Hashes),
-			Endpoint:     item.Endpoint,
-			Status:       runtimev1.LocalModelStatus(item.Status),
-			InstalledAt:  item.InstalledAt,
-			UpdatedAt:    item.UpdatedAt,
-			HealthDetail: item.HealthDetail,
+			Hashes:               cloneStringMap(item.Hashes),
+			Endpoint:             item.Endpoint,
+			Status:               runtimev1.LocalModelStatus(item.Status),
+			InstalledAt:          item.InstalledAt,
+			UpdatedAt:            item.UpdatedAt,
+			HealthDetail:         item.HealthDetail,
+			LocalInvokeProfileId: item.LocalInvokeProfileID,
 		}
 		if record.GetLocalModelId() == "" {
 			continue
@@ -143,21 +150,27 @@ func (s *Service) restoreState() {
 	}
 
 	s.audits = s.audits[:0]
+	capacity := s.effectiveLocalAuditCapacity()
 	for _, item := range snapshot.Audits {
 		event := &runtimev1.LocalAuditEvent{
-			Id:           item.ID,
-			EventType:    item.EventType,
-			OccurredAt:   item.OccurredAt,
-			Source:       item.Source,
-			Modality:     item.Modality,
-			ReasonCode:   item.ReasonCode,
-			Detail:       item.Detail,
-			ModelId:      item.ModelID,
-			LocalModelId: item.LocalModelID,
-			Payload:      toStruct(item.Payload),
+			Id:            item.ID,
+			EventType:     item.EventType,
+			OccurredAt:    item.OccurredAt,
+			Source:        item.Source,
+			Modality:      item.Modality,
+			ReasonCode:    item.ReasonCode,
+			Detail:        item.Detail,
+			ModelId:       item.ModelID,
+			LocalModelId:  item.LocalModelID,
+			Payload:       toStruct(item.Payload),
+			TraceId:       item.TraceID,
+			AppId:         item.AppID,
+			Domain:        item.Domain,
+			Operation:     item.Operation,
+			SubjectUserId: item.SubjectUserID,
 		}
 		s.audits = append(s.audits, event)
-		if len(s.audits) >= 5000 {
+		if len(s.audits) >= capacity {
 			break
 		}
 	}
@@ -188,20 +201,21 @@ func (s *Service) persistStateLocked() {
 			continue
 		}
 		snapshot.Models = append(snapshot.Models, localRuntimeModelState{
-			LocalModelID: model.GetLocalModelId(),
-			ModelID:      model.GetModelId(),
-			Capabilities: append([]string(nil), model.GetCapabilities()...),
-			Engine:       model.GetEngine(),
-			Entry:        model.GetEntry(),
-			License:      model.GetLicense(),
-			SourceRepo:   model.GetSource().GetRepo(),
-			SourceRev:    model.GetSource().GetRevision(),
-			Hashes:       cloneStringMap(model.GetHashes()),
-			Endpoint:     model.GetEndpoint(),
-			Status:       int32(model.GetStatus()),
-			InstalledAt:  model.GetInstalledAt(),
-			UpdatedAt:    model.GetUpdatedAt(),
-			HealthDetail: model.GetHealthDetail(),
+			LocalModelID:         model.GetLocalModelId(),
+			ModelID:              model.GetModelId(),
+			Capabilities:         append([]string(nil), model.GetCapabilities()...),
+			Engine:               model.GetEngine(),
+			Entry:                model.GetEntry(),
+			License:              model.GetLicense(),
+			SourceRepo:           model.GetSource().GetRepo(),
+			SourceRev:            model.GetSource().GetRevision(),
+			Hashes:               cloneStringMap(model.GetHashes()),
+			Endpoint:             model.GetEndpoint(),
+			Status:               int32(model.GetStatus()),
+			InstalledAt:          model.GetInstalledAt(),
+			UpdatedAt:            model.GetUpdatedAt(),
+			HealthDetail:         model.GetHealthDetail(),
+			LocalInvokeProfileID: model.GetLocalInvokeProfileId(),
 		})
 	}
 
@@ -235,18 +249,23 @@ func (s *Service) persistStateLocked() {
 			continue
 		}
 		snapshot.Audits = append(snapshot.Audits, localRuntimeAuditState{
-			ID:           event.GetId(),
-			EventType:    event.GetEventType(),
-			OccurredAt:   event.GetOccurredAt(),
-			Source:       event.GetSource(),
-			Modality:     event.GetModality(),
-			ReasonCode:   event.GetReasonCode(),
-			Detail:       event.GetDetail(),
-			ModelID:      event.GetModelId(),
-			LocalModelID: event.GetLocalModelId(),
-			Payload:      structToMap(event.GetPayload()),
+			ID:            event.GetId(),
+			EventType:     event.GetEventType(),
+			OccurredAt:    event.GetOccurredAt(),
+			Source:        event.GetSource(),
+			Modality:      event.GetModality(),
+			ReasonCode:    event.GetReasonCode(),
+			Detail:        event.GetDetail(),
+			ModelID:       event.GetModelId(),
+			LocalModelID:  event.GetLocalModelId(),
+			Payload:       structToMap(event.GetPayload()),
+			TraceID:       event.GetTraceId(),
+			AppID:         event.GetAppId(),
+			Domain:        event.GetDomain(),
+			Operation:     event.GetOperation(),
+			SubjectUserID: event.GetSubjectUserId(),
 		})
-		if len(snapshot.Audits) >= 5000 {
+		if len(snapshot.Audits) >= s.effectiveLocalAuditCapacity() {
 			break
 		}
 	}

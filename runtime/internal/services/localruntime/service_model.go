@@ -2,71 +2,246 @@ package localruntime
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
 )
 
-func (s *Service) ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+func (s *Service) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+	statusFilter := req.GetStatusFilter()
+	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
+	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
 	for _, model := range s.models {
+		if statusFilter != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
+			continue
+		}
+		if engineFilter != "" && strings.ToLower(strings.TrimSpace(model.GetEngine())) != engineFilter {
+			continue
+		}
+		if categoryFilter != "" {
+			matched := false
+			for _, capName := range model.GetCapabilities() {
+				if strings.EqualFold(strings.TrimSpace(capName), categoryFilter) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
 		models = append(models, cloneLocalModel(model))
 	}
 	sort.Slice(models, func(i, j int) bool {
-		if models[i].GetInstalledAt() == models[j].GetInstalledAt() {
-			return models[i].GetLocalModelId() < models[j].GetLocalModelId()
+		ci := localModelSortCategory(models[i])
+		cj := localModelSortCategory(models[j])
+		if ci != cj {
+			return ci < cj
 		}
-		return models[i].GetInstalledAt() > models[j].GetInstalledAt()
+		if models[i].GetModelId() != models[j].GetModelId() {
+			return models[i].GetModelId() < models[j].GetModelId()
+		}
+		return models[i].GetLocalModelId() < models[j].GetLocalModelId()
 	})
-	return &runtimev1.ListLocalModelsResponse{Models: models}, nil
+	filterDigest := pagination.FilterDigest(statusFilter.String(), engineFilter, categoryFilter)
+	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, req.GetPageSize(), 50, 200, len(models))
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ListLocalModelsResponse{
+		Models:        models[start:end],
+		NextPageToken: next,
+	}, nil
 }
 
-func (s *Service) ListVerifiedModels(context.Context, *runtimev1.ListVerifiedModelsRequest) (*runtimev1.ListVerifiedModelsResponse, error) {
+func (s *Service) ListVerifiedModels(_ context.Context, req *runtimev1.ListVerifiedModelsRequest) (*runtimev1.ListVerifiedModelsResponse, error) {
+	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
+	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	items := make([]*runtimev1.LocalVerifiedModelDescriptor, 0, len(s.verified))
 	for _, item := range s.verified {
+		if engineFilter != "" && strings.ToLower(strings.TrimSpace(item.GetEngine())) != engineFilter {
+			continue
+		}
+		if categoryFilter != "" {
+			matched := false
+			for _, tag := range item.GetTags() {
+				if strings.EqualFold(strings.TrimSpace(tag), categoryFilter) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				for _, capName := range item.GetCapabilities() {
+					if strings.EqualFold(strings.TrimSpace(capName), categoryFilter) {
+						matched = true
+						break
+					}
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
 		items = append(items, cloneVerifiedModel(item))
 	}
-	return &runtimev1.ListVerifiedModelsResponse{Models: items}, nil
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].GetTemplateId() < items[j].GetTemplateId()
+	})
+	filterDigest := pagination.FilterDigest(categoryFilter, engineFilter)
+	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, req.GetPageSize(), 50, 200, len(items))
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ListVerifiedModelsResponse{
+		Models:        items[start:end],
+		NextPageToken: next,
+	}, nil
 }
 
-func (s *Service) SearchCatalogModels(_ context.Context, req *runtimev1.SearchCatalogModelsRequest) (*runtimev1.SearchCatalogModelsResponse, error) {
+func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.SearchCatalogModelsRequest) (*runtimev1.SearchCatalogModelsResponse, error) {
 	query := strings.ToLower(strings.TrimSpace(req.GetQuery()))
 	capability := strings.ToLower(strings.TrimSpace(req.GetCapability()))
-	limit := int(req.GetLimit())
-	if limit <= 0 {
-		limit = 20
-	}
+	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
+	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, limit)
+	localCatalog := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(s.catalog))
 	for _, item := range s.catalog {
-		if !matchesCatalogSearch(item, query, capability) {
+		localCatalog = append(localCatalog, cloneCatalogItem(item))
+	}
+	s.mu.RUnlock()
+
+	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(localCatalog)+hfCatalogDefaultLimit)
+	for _, item := range localCatalog {
+		if !matchesCatalogFilters(item, query, capability, categoryFilter, engineFilter) {
+			continue
+		}
+		items = append(items, item)
+	}
+
+	hfLimit := req.GetLimit()
+	if hfLimit <= 0 {
+		hfLimit = req.GetPageSize()
+	}
+	hfItems, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{
+		Query:          query,
+		Capability:     capability,
+		CategoryFilter: categoryFilter,
+		EngineFilter:   engineFilter,
+		Limit:          hfLimit,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID)
+		}
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED)
+	}
+	for _, item := range hfItems {
+		if !matchesCatalogFilters(item, query, capability, categoryFilter, engineFilter) {
 			continue
 		}
 		items = append(items, cloneCatalogItem(item))
-		if len(items) >= limit {
-			break
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].GetVerified() != items[j].GetVerified() {
+			return items[i].GetVerified()
+		}
+		if strings.EqualFold(items[i].GetTitle(), items[j].GetTitle()) {
+			return items[i].GetItemId() < items[j].GetItemId()
+		}
+		return strings.ToLower(items[i].GetTitle()) < strings.ToLower(items[j].GetTitle())
+	})
+	items = dedupeCatalogItems(items)
+
+	pageSize := req.GetPageSize()
+	if pageSize <= 0 {
+		if req.GetLimit() > 0 {
+			pageSize = req.GetLimit()
+		} else {
+			pageSize = 50
 		}
 	}
-	return &runtimev1.SearchCatalogModelsResponse{Items: items}, nil
+	filterDigest := pagination.FilterDigest(query, capability, categoryFilter, engineFilter)
+	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, pageSize, 50, 200, len(items))
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.SearchCatalogModelsResponse{
+		Items:         items[start:end],
+		NextPageToken: next,
+	}, nil
+}
+
+func matchesCatalogFilters(item *runtimev1.LocalCatalogModelDescriptor, query string, capability string, categoryFilter string, engineFilter string) bool {
+	if !matchesCatalogSearch(item, query, capability) {
+		return false
+	}
+	if engineFilter != "" && strings.ToLower(strings.TrimSpace(item.GetEngine())) != engineFilter {
+		return false
+	}
+	if categoryFilter == "" {
+		return true
+	}
+	for _, tag := range item.GetTags() {
+		if strings.EqualFold(strings.TrimSpace(tag), categoryFilter) {
+			return true
+		}
+	}
+	for _, capName := range item.GetCapabilities() {
+		if strings.EqualFold(strings.TrimSpace(capName), categoryFilter) {
+			return true
+		}
+	}
+	return false
+}
+
+func dedupeCatalogItems(items []*runtimev1.LocalCatalogModelDescriptor) []*runtimev1.LocalCatalogModelDescriptor {
+	seen := make(map[string]bool, len(items))
+	out := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		key := strings.ToLower(strings.TrimSpace(item.GetModelId()) + "|" + strings.TrimSpace(item.GetEngine()))
+		if key == "|" {
+			key = strings.ToLower(strings.TrimSpace(item.GetItemId()))
+		}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, item)
+	}
+	return out
 }
 
 func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.ResolveModelInstallPlanRequest) (*runtimev1.ResolveModelInstallPlanResponse, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
+	deviceProfile := collectDeviceProfile()
 	now := nowISO()
-	if catalogItem := s.resolveCatalogItem(req); catalogItem != nil {
+
+	s.mu.RLock()
+	catalogItem := cloneCatalogItem(s.resolveCatalogItem(req))
+	s.mu.RUnlock()
+	if catalogItem != nil {
+		engine := defaultString(catalogItem.GetEngine(), "localai")
 		plan := &runtimev1.LocalInstallPlanDescriptor{
 			PlanId:            "plan_" + ulid.Make().String(),
 			ItemId:            catalogItem.GetItemId(),
@@ -76,34 +251,38 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			Repo:              catalogItem.GetRepo(),
 			Revision:          defaultString(catalogItem.GetRevision(), "main"),
 			Capabilities:      append([]string(nil), catalogItem.GetCapabilities()...),
-			Engine:            defaultString(catalogItem.GetEngine(), "localai"),
-			EngineRuntimeMode: catalogItem.GetEngineRuntimeMode(),
+			Engine:            engine,
+			EngineRuntimeMode: defaultRuntimeMode(catalogItem.GetEngineRuntimeMode()),
 			InstallKind:       defaultString(catalogItem.GetInstallKind(), "download"),
 			InstallAvailable:  true,
-			Endpoint:          defaultString(req.GetEndpoint(), defaultString(catalogItem.GetEndpoint(), defaultLocalRuntimeEndpoint)),
+			Endpoint:          resolveInstallPlanEndpoint(engine, req.GetEndpoint(), catalogItem.GetEndpoint()),
 			ProviderHints:     cloneProviderHints(catalogItem.GetProviderHints()),
 			Entry:             defaultString(catalogItem.GetEntry(), "./dist/index.js"),
 			Files:             append([]string(nil), catalogItem.GetFiles()...),
 			License:           defaultString(catalogItem.GetLicense(), "unknown"),
 			Hashes:            cloneStringMap(catalogItem.GetHashes()),
-			Warnings:          []string{},
+			Warnings:          startupCompatibilityWarnings(engine, deviceProfile),
+			ReasonCode:        "ACTION_EXECUTED",
 		}
-		if plan.GetRevision() == "" {
-			plan.Revision = "main"
-		}
-		if plan.GetEndpoint() == "" {
-			plan.Endpoint = defaultLocalRuntimeEndpoint
-		}
+		s.evaluateInstallPlanAvailability(plan)
+		s.mu.Lock()
 		s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 			Id:         "audit_" + ulid.Make().String(),
 			EventType:  "model_install_plan_resolved",
 			OccurredAt: now,
-			Detail:     fmt.Sprintf("resolved install plan for %s", plan.GetModelId()),
+			Detail:     fmt.Sprintf("resolved install plan for %s (available=%t reason=%s)", plan.GetModelId(), plan.GetInstallAvailable(), plan.GetReasonCode()),
 			ModelId:    plan.GetModelId(),
+			Payload: toStruct(map[string]any{
+				"install_available": plan.GetInstallAvailable(),
+				"reason_code":       plan.GetReasonCode(),
+				"warnings":          append([]string(nil), plan.GetWarnings()...),
+			}),
 		})
+		s.mu.Unlock()
 		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}
 
+	engine := defaultString(strings.TrimSpace(req.GetEngine()), "localai")
 	plan := &runtimev1.LocalInstallPlanDescriptor{
 		PlanId:            "plan_" + ulid.Make().String(),
 		ItemId:            req.GetItemId(),
@@ -113,42 +292,128 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		Repo:              strings.TrimSpace(req.GetRepo()),
 		Revision:          defaultString(strings.TrimSpace(req.GetRevision()), "main"),
 		Capabilities:      normalizeStringSlice(req.GetCapabilities()),
-		Engine:            defaultString(strings.TrimSpace(req.GetEngine()), "localai"),
+		Engine:            engine,
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
 		InstallKind:       "download",
 		InstallAvailable:  true,
-		Endpoint:          defaultString(strings.TrimSpace(req.GetEndpoint()), defaultLocalRuntimeEndpoint),
+		Endpoint:          resolveInstallPlanEndpoint(engine, strings.TrimSpace(req.GetEndpoint()), ""),
 		Entry:             defaultString(strings.TrimSpace(req.GetEntry()), "./dist/index.js"),
 		Files:             normalizeStringSlice(req.GetFiles()),
 		License:           defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
 		Hashes:            cloneStringMap(req.GetHashes()),
-		Warnings:          []string{},
+		Warnings:          startupCompatibilityWarnings(engine, deviceProfile),
+		ReasonCode:        "ACTION_EXECUTED",
 	}
 	if plan.GetModelId() == "" {
+		plan.InstallAvailable = false
 		plan.ReasonCode = "LOCAL_MODEL_ID_REQUIRED"
-		plan.Warnings = append(plan.Warnings, "modelId is required for install plan resolution")
+		plan.Warnings = append(plan.GetWarnings(), "modelId is required for install plan resolution")
+		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}
+	s.evaluateInstallPlanAvailability(plan)
 	return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
+}
+
+func defaultRuntimeMode(mode runtimev1.LocalEngineRuntimeMode) runtimev1.LocalEngineRuntimeMode {
+	if mode == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
+		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	}
+	return mode
+}
+
+func resolveInstallPlanEndpoint(engine string, requestEndpoint string, fallbackEndpoint string) string {
+	if endpoint := strings.TrimSpace(requestEndpoint); endpoint != "" {
+		return endpoint
+	}
+	if endpoint := strings.TrimSpace(fallbackEndpoint); endpoint != "" {
+		return endpoint
+	}
+	if strings.EqualFold(strings.TrimSpace(engine), "localai") {
+		return defaultLocalRuntimeEndpoint
+	}
+	return ""
+}
+
+func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPlanDescriptor) {
+	if plan == nil {
+		return
+	}
+	engine := strings.ToLower(strings.TrimSpace(plan.GetEngine()))
+	mode := defaultRuntimeMode(plan.GetEngineRuntimeMode())
+	plan.EngineRuntimeMode = mode
+
+	switch mode {
+	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT:
+		endpoint := strings.TrimSpace(plan.GetEndpoint())
+		if endpoint == "" {
+			plan.InstallAvailable = false
+			if engine == "nexa" {
+				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
+			} else {
+				plan.ReasonCode = "LOCAL_ENDPOINT_REQUIRED"
+			}
+			return
+		}
+		if _, err := buildModelsProbeURL(endpoint); err != nil {
+			plan.InstallAvailable = false
+			plan.ReasonCode = "LOCAL_ENDPOINT_INVALID"
+			return
+		}
+		plan.InstallAvailable = true
+		plan.ReasonCode = "ACTION_EXECUTED"
+	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED:
+		mgr, err := s.getEngineManager()
+		if err != nil {
+			plan.InstallAvailable = false
+			plan.ReasonCode = "LOCAL_ENGINE_MANAGER_UNAVAILABLE"
+			return
+		}
+		if _, err := mgr.EngineStatus(engine); err != nil {
+			plan.InstallAvailable = false
+			plan.ReasonCode = "LOCAL_ENGINE_BINARY_UNAVAILABLE"
+			return
+		}
+		plan.InstallAvailable = true
+		plan.ReasonCode = "ACTION_EXECUTED"
+	default:
+		plan.InstallAvailable = false
+		plan.ReasonCode = "LOCAL_ENGINE_RUNTIME_MODE_INVALID"
+	}
 }
 
 func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLocalModelRequest) (*runtimev1.InstallLocalModelResponse, error) {
 	modelID := strings.TrimSpace(req.GetModelId())
 	if modelID == "" {
-		return &runtimev1.InstallLocalModelResponse{
-			Model: &runtimev1.LocalModelRecord{
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-				HealthDetail: "model_id required",
-			},
-		}, nil
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
+	engine := defaultString(strings.TrimSpace(req.GetEngine()), "localai")
+	endpoint := strings.TrimSpace(req.GetEndpoint())
+	if strings.EqualFold(engine, "nexa") && endpoint == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	if endpoint == "" {
+		endpoint = defaultLocalRuntimeEndpoint
 	}
 
+	s.mu.RLock()
+	for _, existing := range s.models {
+		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if existing.GetModelId() == modelID && strings.EqualFold(existing.GetEngine(), engine) {
+			s.mu.RUnlock()
+			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
+		}
+	}
+	s.mu.RUnlock()
+
 	now := nowISO()
-	localModelID := "local_" + slug(modelID) + "_" + ulid.Make().String()
+	localModelID := ulid.Make().String()
 	record := &runtimev1.LocalModelRecord{
 		LocalModelId: localModelID,
 		ModelId:      modelID,
 		Capabilities: normalizeStringSlice(req.GetCapabilities()),
-		Engine:       defaultString(strings.TrimSpace(req.GetEngine()), "localai"),
+		Engine:       engine,
 		Entry:        defaultString(strings.TrimSpace(req.GetEntry()), "./dist/index.js"),
 		License:      defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
 		Source: &runtimev1.LocalModelSource{
@@ -156,7 +421,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 			Revision: defaultString(strings.TrimSpace(req.GetRevision()), "main"),
 		},
 		Hashes:      cloneStringMap(req.GetHashes()),
-		Endpoint:    defaultString(strings.TrimSpace(req.GetEndpoint()), defaultLocalRuntimeEndpoint),
+		Endpoint:    endpoint,
 		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
 		InstalledAt: now,
 		UpdatedAt:   now,
@@ -184,12 +449,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.InstallVerifiedModelRequest) (*runtimev1.InstallVerifiedModelResponse, error) {
 	templateID := strings.TrimSpace(req.GetTemplateId())
 	if templateID == "" {
-		return &runtimev1.InstallVerifiedModelResponse{
-			Model: &runtimev1.LocalModelRecord{
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-				HealthDetail: "template_id required",
-			},
-		}, nil
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND)
 	}
 
 	s.mu.RLock()
@@ -203,12 +463,7 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 	s.mu.RUnlock()
 
 	if matched == nil {
-		return &runtimev1.InstallVerifiedModelResponse{
-			Model: &runtimev1.LocalModelRecord{
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-				HealthDetail: "verified template not found",
-			},
-		}, nil
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND)
 	}
 
 	resp, err := s.InstallLocalModel(ctx, &runtimev1.InstallLocalModelRequest{
@@ -232,33 +487,99 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocalModelRequest) (*runtimev1.ImportLocalModelResponse, error) {
 	manifestPath := strings.TrimSpace(req.GetManifestPath())
 	if manifestPath == "" {
-		return &runtimev1.ImportLocalModelResponse{
-			Model: &runtimev1.LocalModelRecord{
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-				HealthDetail: "manifest_path required",
-			},
-		}, nil
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
-	base := strings.TrimSuffix(filepath.Base(manifestPath), filepath.Ext(manifestPath))
-	modelID := defaultString(strings.TrimSpace(base), "imported-model")
+	content, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
+
+	modelID, ok := manifestString(manifest, "model_id", "modelId")
+	if !ok || strings.TrimSpace(modelID) == "" {
+		base := strings.TrimSuffix(filepath.Base(manifestPath), filepath.Ext(manifestPath))
+		modelID = strings.TrimSpace(base)
+	}
+	if modelID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
+	engine := defaultString(manifestStringDefault(manifest, "engine"), "localai")
+	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
+	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
+	endpoint := strings.TrimSpace(req.GetEndpoint())
+	if endpoint == "" {
+		endpoint = manifestStringDefault(manifest, "endpoint")
+	}
+	if strings.EqualFold(engine, "nexa") && strings.TrimSpace(endpoint) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	if endpoint == "" {
+		endpoint = defaultLocalRuntimeEndpoint
+	}
+
+	capabilities, capsErr := manifestStringSlice(manifest, "capabilities")
+	if capsErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	if len(capabilities) == 0 {
+		capabilities = []string{"chat"}
+	}
+	hashes, hashesErr := manifestStringMap(manifest, "hashes")
+	if hashesErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	repo := manifestStringDefault(manifest, "repo")
+	revision := defaultString(manifestStringDefault(manifest, "revision"), "import")
+	if sourceValue, ok := manifest["source"]; ok {
+		sourceObj, objOK := sourceValue.(map[string]any)
+		if !objOK {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+		}
+		if sourceRepo, ok := manifestString(sourceObj, "repo"); ok {
+			repo = sourceRepo
+		}
+		if sourceRevision, ok := manifestString(sourceObj, "revision"); ok {
+			revision = sourceRevision
+		}
+	}
+	if repo == "" {
+		repo = "file://" + manifestPath
+	}
+
+	s.mu.RLock()
+	for _, existing := range s.models {
+		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if existing.GetModelId() == modelID && strings.EqualFold(existing.GetEngine(), engine) {
+			s.mu.RUnlock()
+			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
+		}
+	}
+	s.mu.RUnlock()
+
 	now := nowISO()
 
 	record := &runtimev1.LocalModelRecord{
-		LocalModelId: "local_" + slug(modelID) + "_" + ulid.Make().String(),
+		LocalModelId: ulid.Make().String(),
 		ModelId:      modelID,
-		Capabilities: []string{"chat"},
-		Engine:       "localai",
-		Entry:        "./dist/index.js",
-		License:      "unknown",
+		Capabilities: normalizeStringSlice(capabilities),
+		Engine:       engine,
+		Entry:        entry,
+		License:      license,
 		Source: &runtimev1.LocalModelSource{
-			Repo:     "file://" + manifestPath,
-			Revision: "import",
+			Repo:     repo,
+			Revision: revision,
 		},
-		Hashes:      map[string]string{},
-		Endpoint:    defaultString(strings.TrimSpace(req.GetEndpoint()), defaultLocalRuntimeEndpoint),
-		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt: now,
-		UpdatedAt:   now,
+		Hashes:               hashes,
+		Endpoint:             endpoint,
+		Status:               runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt:          now,
+		UpdatedAt:            now,
+		LocalInvokeProfileId: manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
 	}
 
 	s.mu.Lock()
@@ -276,20 +597,133 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	return &runtimev1.ImportLocalModelResponse{Model: record}, nil
 }
 
+func manifestString(input map[string]any, keys ...string) (string, bool) {
+	for _, key := range keys {
+		value, exists := input[key]
+		if !exists {
+			continue
+		}
+		text, ok := value.(string)
+		if !ok {
+			return "", false
+		}
+		return strings.TrimSpace(text), true
+	}
+	return "", false
+}
+
+func manifestStringDefault(input map[string]any, keys ...string) string {
+	value, ok := manifestString(input, keys...)
+	if !ok {
+		return ""
+	}
+	return value
+}
+
+func manifestStringSlice(input map[string]any, key string) ([]string, error) {
+	value, exists := input[key]
+	if !exists || value == nil {
+		return nil, nil
+	}
+	rawItems, ok := value.([]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid %s", key)
+	}
+	items := make([]string, 0, len(rawItems))
+	for _, item := range rawItems {
+		text, ok := item.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid %s entry", key)
+		}
+		items = append(items, strings.TrimSpace(text))
+	}
+	return normalizeStringSlice(items), nil
+}
+
+func manifestStringMap(input map[string]any, key string) (map[string]string, error) {
+	value, exists := input[key]
+	if !exists || value == nil {
+		return map[string]string{}, nil
+	}
+	rawMap, ok := value.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid %s", key)
+	}
+	result := make(map[string]string, len(rawMap))
+	for k, v := range rawMap {
+		text, ok := v.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid %s value", key)
+		}
+		result[k] = strings.TrimSpace(text)
+	}
+	return result, nil
+}
+
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
-	model, err := s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, "model removed")
+	localModelID := strings.TrimSpace(req.GetLocalModelId())
+	if localModelID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if boundServiceID := s.findBoundServiceID(localModelID); boundServiceID != "" {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
+	}
+	model, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, "model removed")
 	if err != nil {
 		return nil, err
 	}
 	return &runtimev1.RemoveLocalModelResponse{Model: model}, nil
 }
 
-func (s *Service) StartLocalModel(_ context.Context, req *runtimev1.StartLocalModelRequest) (*runtimev1.StartLocalModelResponse, error) {
-	model, err := s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")
+func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocalModelRequest) (*runtimev1.StartLocalModelResponse, error) {
+	localModelID := strings.TrimSpace(req.GetLocalModelId())
+	if localModelID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	current := s.modelByID(localModelID)
+	if current == nil {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
+	}
+
+	profile := collectDeviceProfile()
+	warnings := startupCompatibilityWarnings(current.GetEngine(), profile)
+
+	if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		activated, err := s.updateModelStatus(
+			localModelID,
+			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			appendWarnings("model active", warnings),
+		)
+		if err != nil {
+			return nil, err
+		}
+		current = activated
+	}
+
+	probe := s.probeEndpoint(ctx, modelProbeEndpoint(current))
+	if probe.healthy {
+		s.resetModelRecovery(localModelID)
+		latest := s.modelByID(localModelID)
+		if latest == nil {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		}
+		return &runtimev1.StartLocalModelResponse{Model: latest}, nil
+	}
+
+	failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+	detail := appendWarnings(defaultString(probe.detail, "model probe failed"), warnings)
+	if strings.TrimSpace(probe.probeURL) != "" {
+		detail += "; probe_url=" + probe.probeURL
+	}
+	detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
+	unhealthy, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.StartLocalModelResponse{Model: model}, nil
+	return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
 }
 
 func (s *Service) StopLocalModel(_ context.Context, req *runtimev1.StopLocalModelRequest) (*runtimev1.StopLocalModelResponse, error) {
@@ -300,16 +734,77 @@ func (s *Service) StopLocalModel(_ context.Context, req *runtimev1.StopLocalMode
 	return &runtimev1.StopLocalModelResponse{Model: model}, nil
 }
 
-func (s *Service) CheckLocalModelHealth(_ context.Context, req *runtimev1.CheckLocalModelHealthRequest) (*runtimev1.CheckLocalModelHealthResponse, error) {
+func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.CheckLocalModelHealthRequest) (*runtimev1.CheckLocalModelHealthResponse, error) {
 	target := strings.TrimSpace(req.GetLocalModelId())
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	result := make([]*runtimev1.LocalModelHealth, 0, len(s.models))
+	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
 	for _, model := range s.models {
 		if target != "" && model.GetLocalModelId() != target {
 			continue
 		}
-		result = append(result, modelHealth(model))
+		models = append(models, cloneLocalModel(model))
+	}
+	s.mu.RUnlock()
+
+	result := make([]*runtimev1.LocalModelHealth, 0, len(models))
+	for _, model := range models {
+		if model == nil {
+			continue
+		}
+		localModelID := strings.TrimSpace(model.GetLocalModelId())
+		switch model.GetStatus() {
+		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
+			if probe.healthy {
+				s.resetModelRecovery(localModelID)
+				result = append(result, modelHealth(model))
+				continue
+			}
+			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+			detail := defaultString(probe.detail, "model probe failed")
+			if strings.TrimSpace(probe.probeURL) != "" {
+				detail += "; probe_url=" + probe.probeURL
+			}
+			detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+			transitioned, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, modelHealth(transitioned))
+		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
+			if probe.healthy {
+				successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
+				if successes >= localRecoverySuccessThreshold {
+					recovered, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")
+					if err != nil {
+						return nil, err
+					}
+					s.resetModelRecovery(localModelID)
+					result = append(result, modelHealth(recovered))
+				} else {
+					health := modelHealth(model)
+					detail := fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold)
+					if strings.TrimSpace(probe.probeURL) != "" {
+						detail += "; probe_url=" + probe.probeURL
+					}
+					health.Detail = detail
+					result = append(result, health)
+				}
+				continue
+			}
+			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+			health := modelHealth(model)
+			detail := defaultString(probe.detail, "model probe failed")
+			if strings.TrimSpace(probe.probeURL) != "" {
+				detail += "; probe_url=" + probe.probeURL
+			}
+			health.Detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+			result = append(result, health)
+		default:
+			s.resetModelRecovery(localModelID)
+			result = append(result, modelHealth(model))
+		}
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].GetLocalModelId() < result[j].GetLocalModelId()
@@ -317,8 +812,8 @@ func (s *Service) CheckLocalModelHealth(_ context.Context, req *runtimev1.CheckL
 	return &runtimev1.CheckLocalModelHealthResponse{Models: result}, nil
 }
 
-func (s *Service) CollectDeviceProfile(context.Context, *runtimev1.CollectDeviceProfileRequest) (*runtimev1.CollectDeviceProfileResponse, error) {
-	return &runtimev1.CollectDeviceProfileResponse{Profile: collectDeviceProfile()}, nil
+func (s *Service) CollectDeviceProfile(_ context.Context, req *runtimev1.CollectDeviceProfileRequest) (*runtimev1.CollectDeviceProfileResponse, error) {
+	return &runtimev1.CollectDeviceProfileResponse{Profile: collectDeviceProfile(req.GetExtraPorts()...)}, nil
 }
 
 func (s *Service) ResolveDependencies(_ context.Context, req *runtimev1.ResolveDependenciesRequest) (*runtimev1.ResolveDependenciesResponse, error) {
@@ -331,4 +826,53 @@ func (s *Service) ApplyDependencies(ctx context.Context, req *runtimev1.ApplyDep
 	return &runtimev1.ApplyDependenciesResponse{
 		Result: s.applyDependenciesStrict(ctx, req.GetPlan()),
 	}, nil
+}
+
+func localModelSortCategory(model *runtimev1.LocalModelRecord) string {
+	if model == nil {
+		return "zzzz"
+	}
+	has := func(keys ...string) bool {
+		for _, capability := range model.GetCapabilities() {
+			capability = strings.ToLower(strings.TrimSpace(capability))
+			for _, key := range keys {
+				if capability == key {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	switch {
+	case has("custom"):
+		return "custom"
+	case has("vision", "vl", "multimodal", "image.understand"):
+		return "vision"
+	case has("image", "image.generate"):
+		return "image"
+	case has("tts", "speech.synthesize", "audio.synthesize"):
+		return "tts"
+	case has("stt", "speech.transcribe", "audio.transcribe"):
+		return "stt"
+	default:
+		return "llm"
+	}
+}
+
+func (s *Service) findBoundServiceID(localModelID string) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, service := range s.services {
+		if service == nil {
+			continue
+		}
+		if service.GetStatus() == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
+			continue
+		}
+		if strings.TrimSpace(service.GetLocalModelId()) == localModelID {
+			return service.GetServiceId()
+		}
+	}
+	return ""
 }

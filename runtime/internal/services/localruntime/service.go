@@ -12,6 +12,7 @@ import (
 const (
 	defaultLocalRuntimeEndpoint = "http://127.0.0.1:1234/v1"
 	defaultServiceEndpoint      = "http://127.0.0.1:8080"
+	defaultLocalAuditCapacity   = 5000
 	localRuntimeAuditDomain     = "runtime.local_runtime"
 )
 
@@ -48,6 +49,7 @@ type Service struct {
 	logger         *slog.Logger
 	auditStore     *auditlog.Store
 	stateStorePath string
+	localAuditCap  int
 
 	mu        sync.RWMutex
 	models    map[string]*runtimev1.LocalModelRecord
@@ -56,6 +58,13 @@ type Service struct {
 	verified  []*runtimev1.LocalVerifiedModelDescriptor
 	catalog   []*runtimev1.LocalCatalogModelDescriptor
 	engineMgr EngineManager
+
+	endpointProbe     endpointProbeFunc
+	hfCatalogSearch   hfCatalogSearchFunc
+	modelProbeState   map[string]*probeRecoveryState
+	serviceProbeState map[string]*probeRecoveryState
+	recoveryCancel    context.CancelFunc
+	recoveryDone      chan struct{}
 }
 
 func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) *Service {
@@ -63,19 +72,49 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		logger = slog.Default()
 	}
 	if localAuditCapacity <= 0 {
-		localAuditCapacity = 5000
+		localAuditCapacity = defaultLocalAuditCapacity
 	}
 	verified := defaultVerifiedModels()
 	svc := &Service{
-		logger:         logger,
-		auditStore:     store,
-		stateStorePath: resolveLocalRuntimeStatePath(stateStorePath),
-		models:         make(map[string]*runtimev1.LocalModelRecord),
-		services:       make(map[string]*runtimev1.LocalServiceDescriptor),
-		audits:         make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
-		verified:       verified,
-		catalog:        defaultCatalogFromVerified(verified),
+		logger:            logger,
+		auditStore:        store,
+		stateStorePath:    resolveLocalRuntimeStatePath(stateStorePath),
+		localAuditCap:     localAuditCapacity,
+		models:            make(map[string]*runtimev1.LocalModelRecord),
+		services:          make(map[string]*runtimev1.LocalServiceDescriptor),
+		audits:            make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
+		verified:          verified,
+		catalog:           defaultCatalogFromVerified(verified),
+		endpointProbe:     defaultEndpointProbe,
+		hfCatalogSearch:   defaultHFCatalogSearch,
+		modelProbeState:   make(map[string]*probeRecoveryState),
+		serviceProbeState: make(map[string]*probeRecoveryState),
 	}
 	svc.restoreState()
+	svc.startRecoveryLoop()
 	return svc
+}
+
+func (s *Service) effectiveLocalAuditCapacity() int {
+	capacity := s.localAuditCap
+	if capacity <= 0 {
+		return defaultLocalAuditCapacity
+	}
+	return capacity
+}
+
+func (s *Service) Close() {
+	s.mu.Lock()
+	cancel := s.recoveryCancel
+	done := s.recoveryDone
+	s.recoveryCancel = nil
+	s.recoveryDone = nil
+	s.mu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
+	if done != nil {
+		<-done
+	}
 }

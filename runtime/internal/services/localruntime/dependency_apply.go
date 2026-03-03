@@ -6,6 +6,15 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	applyStagePreflight = "preflight"
+	applyStageInstall   = "install"
+	applyStageBootstrap = "bootstrap"
+	applyStageHealth    = "health"
+	applyStageRollback  = "rollback"
 )
 
 func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.LocalDependencyResolutionPlan) *runtimev1.LocalDependencyApplyResult {
@@ -48,7 +57,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 	}
 	result.Capabilities = normalizeStringSlice(result.Capabilities)
 
-	// Stage 1: preflight(all)
+	// Stage 1: preflight
 	preflightFailed := false
 	preflightFailureReason := ""
 	preflightFailure := ""
@@ -64,7 +73,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 	if preflightFailed {
 		reasonCode := defaultString(preflightFailureReason, "LOCAL_DEPENDENCY_PREFLIGHT_FAILED")
 		result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-			Stage:      "preflight(all)",
+			Stage:      applyStagePreflight,
 			Ok:         false,
 			ReasonCode: reasonCode,
 			Detail:     preflightFailure,
@@ -73,7 +82,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		return result
 	}
 	result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-		Stage:      "preflight(all)",
+		Stage:      applyStagePreflight,
 		Ok:         true,
 		ReasonCode: "ACTION_EXECUTED",
 		Detail:     fmt.Sprintf("dependencies=%d", len(selected)),
@@ -81,6 +90,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 
 	installedModelIDs := make([]string, 0, len(selected))
 	installedServiceIDs := make([]string, 0, len(selected))
+	modelRefToLocalID := make(map[string]string, len(selected)*2)
 
 	// Stage 2: install artifacts
 	for _, dep := range selected {
@@ -96,7 +106,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 			if err != nil || installed.GetModel() == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "model install returned empty response")
 				result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-					Stage:      "install",
+					Stage:      applyStageInstall,
 					Ok:         false,
 					ReasonCode: "LOCAL_DEPENDENCY_MODEL_INSTALL_FAILED",
 					Detail:     detail,
@@ -108,19 +118,24 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 			modelRecord := cloneLocalModel(installed.GetModel())
 			result.InstalledModels = append(result.InstalledModels, modelRecord)
 			installedModelIDs = append(installedModelIDs, modelRecord.GetLocalModelId())
+			if ref := strings.TrimSpace(dep.GetModelId()); ref != "" {
+				modelRefToLocalID[ref] = modelRecord.GetLocalModelId()
+			}
+			modelRefToLocalID[modelRecord.GetLocalModelId()] = modelRecord.GetLocalModelId()
 		case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_SERVICE:
 			serviceID := defaultString(dep.GetServiceId(), "svc_"+slug(dep.GetDependencyId()))
+			localModelID := s.resolveServiceDependencyLocalModelID(strings.TrimSpace(dep.GetModelId()), modelRefToLocalID)
 			installed, err := s.InstallLocalService(ctx, &runtimev1.InstallLocalServiceRequest{
 				ServiceId:    serviceID,
 				Title:        serviceID,
 				Engine:       defaultString(dep.GetEngine(), "localai"),
 				Capabilities: normalizeStringSlice([]string{dep.GetCapability()}),
-				LocalModelId: dep.GetModelId(),
+				LocalModelId: localModelID,
 			})
 			if err != nil || installed.GetService() == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "service install returned empty response")
 				result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-					Stage:      "install",
+					Stage:      applyStageInstall,
 					Ok:         false,
 					ReasonCode: "LOCAL_DEPENDENCY_SERVICE_INSTALL_FAILED",
 					Detail:     detail,
@@ -136,7 +151,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 			// Node dependencies are validated in preflight and do not install artifacts.
 		default:
 			result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-				Stage:      "install",
+				Stage:      applyStageInstall,
 				Ok:         false,
 				ReasonCode: "LOCAL_DEPENDENCY_KIND_UNSUPPORTED",
 				Detail:     dep.GetDependencyId(),
@@ -147,18 +162,18 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		}
 	}
 	result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-		Stage:      "install",
+		Stage:      applyStageInstall,
 		Ok:         true,
 		ReasonCode: "ACTION_EXECUTED",
 		Detail:     fmt.Sprintf("models=%d services=%d", len(installedModelIDs), len(installedServiceIDs)),
 	})
 
-	// Stage 3: bootstrap/start
+	// Stage 3: bootstrap
 	for _, modelID := range installedModelIDs {
 		started, err := s.StartLocalModel(ctx, &runtimev1.StartLocalModelRequest{LocalModelId: modelID})
 		if err != nil || started.GetModel() == nil {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-				Stage:      "bootstrap/start",
+				Stage:      applyStageBootstrap,
 				Ok:         false,
 				ReasonCode: "LOCAL_DEPENDENCY_MODEL_START_FAILED",
 				Detail:     defaultString(fmt.Sprintf("%v", err), modelID),
@@ -172,7 +187,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		started, err := s.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: serviceID})
 		if err != nil || started.GetService() == nil {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-				Stage:      "bootstrap/start",
+				Stage:      applyStageBootstrap,
 				Ok:         false,
 				ReasonCode: "LOCAL_DEPENDENCY_SERVICE_START_FAILED",
 				Detail:     defaultString(fmt.Sprintf("%v", err), serviceID),
@@ -183,7 +198,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		}
 	}
 	result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-		Stage:      "bootstrap/start",
+		Stage:      applyStageBootstrap,
 		Ok:         true,
 		ReasonCode: "ACTION_EXECUTED",
 		Detail:     fmt.Sprintf("started models=%d services=%d", len(installedModelIDs), len(installedServiceIDs)),
@@ -194,7 +209,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		health, err := s.CheckLocalModelHealth(ctx, &runtimev1.CheckLocalModelHealthRequest{LocalModelId: modelID})
 		if err != nil || len(health.GetModels()) == 0 || health.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-				Stage:      "health",
+				Stage:      applyStageHealth,
 				Ok:         false,
 				ReasonCode: "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED",
 				Detail:     modelID,
@@ -208,7 +223,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		health, err := s.CheckLocalServiceHealth(ctx, &runtimev1.CheckLocalServiceHealthRequest{ServiceId: serviceID})
 		if err != nil || len(health.GetServices()) == 0 || health.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-				Stage:      "health",
+				Stage:      applyStageHealth,
 				Ok:         false,
 				ReasonCode: "LOCAL_DEPENDENCY_SERVICE_HEALTH_FAILED",
 				Detail:     serviceID,
@@ -219,7 +234,7 @@ func (s *Service) applyDependenciesStrict(ctx context.Context, plan *runtimev1.L
 		}
 	}
 	result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-		Stage:      "health",
+		Stage:      applyStageHealth,
 		Ok:         true,
 		ReasonCode: "ACTION_EXECUTED",
 		Detail:     "all dependencies healthy",
@@ -300,25 +315,99 @@ func (s *Service) runApplyPreflight(ctx context.Context, dep *runtimev1.LocalDep
 	return decision
 }
 
+func (s *Service) resolveServiceDependencyLocalModelID(modelRef string, modelRefToLocalID map[string]string) string {
+	ref := strings.TrimSpace(modelRef)
+	if ref == "" {
+		return ""
+	}
+	if localID, ok := modelRefToLocalID[ref]; ok && strings.TrimSpace(localID) != "" {
+		return strings.TrimSpace(localID)
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if model := s.models[ref]; model != nil {
+		return ref
+	}
+	for _, model := range s.models {
+		if model == nil {
+			continue
+		}
+		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if strings.TrimSpace(model.GetModelId()) == ref {
+			return strings.TrimSpace(model.GetLocalModelId())
+		}
+	}
+	return ref
+}
+
 func (s *Service) rollbackApply(ctx context.Context, modelIDs []string, serviceIDs []string, result *runtimev1.LocalDependencyApplyResult) {
 	if result == nil {
 		return
 	}
 	result.RollbackApplied = true
-	for _, serviceID := range serviceIDs {
+	rollbackFailures := make([]string, 0, len(modelIDs)+len(serviceIDs))
+	rollbackReason := ""
+	for i := len(serviceIDs) - 1; i >= 0; i-- {
+		serviceID := serviceIDs[i]
 		if _, err := s.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: serviceID}); err != nil {
+			rollbackFailures = append(rollbackFailures, "rollback remove service failed: "+serviceID)
 			result.Warnings = append(result.Warnings, "rollback remove service failed: "+serviceID)
+			rollbackReason = defaultString(rollbackReason, rollbackReasonCodeFromError(err))
 		}
 	}
-	for _, modelID := range modelIDs {
+	for i := len(modelIDs) - 1; i >= 0; i-- {
+		modelID := modelIDs[i]
 		if _, err := s.RemoveLocalModel(ctx, &runtimev1.RemoveLocalModelRequest{LocalModelId: modelID}); err != nil {
+			rollbackFailures = append(rollbackFailures, "rollback remove model failed: "+modelID)
 			result.Warnings = append(result.Warnings, "rollback remove model failed: "+modelID)
+			rollbackReason = defaultString(rollbackReason, rollbackReasonCodeFromError(err))
 		}
+	}
+	if len(rollbackFailures) > 0 {
+		if strings.TrimSpace(rollbackReason) == "" {
+			rollbackReason = "LOCAL_DEPENDENCY_ROLLBACK_FAILED"
+		}
+		result.ReasonCode = joinReasonCodes(result.GetReasonCode(), rollbackReason)
+		result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
+			Stage:      applyStageRollback,
+			Ok:         false,
+			ReasonCode: rollbackReason,
+			Detail:     strings.Join(rollbackFailures, "; "),
+		})
+		return
 	}
 	result.StageResults = append(result.StageResults, &runtimev1.LocalDependencyApplyStageResult{
-		Stage:      "rollback",
+		Stage:      applyStageRollback,
 		Ok:         true,
 		ReasonCode: "LOCAL_DEPENDENCY_ROLLBACK_APPLIED",
 		Detail:     fmt.Sprintf("models=%d services=%d", len(modelIDs), len(serviceIDs)),
 	})
+}
+
+func rollbackReasonCodeFromError(err error) string {
+	if err == nil {
+		return ""
+	}
+	if st, ok := status.FromError(err); ok {
+		return strings.TrimSpace(st.Message())
+	}
+	return ""
+}
+
+func joinReasonCodes(primary, secondary string) string {
+	left := strings.TrimSpace(primary)
+	right := strings.TrimSpace(secondary)
+	switch {
+	case left == "":
+		return right
+	case right == "":
+		return left
+	case left == right:
+		return left
+	default:
+		return left + "+" + right
+	}
 }

@@ -252,6 +252,15 @@ func evaluateDependencyCandidate(opt *runtimev1.LocalDependencyOptionDescriptor,
 				warnings:   []string{"service dependency requires serviceId"},
 			}
 		}
+		if strings.TrimSpace(opt.GetModelId()) == "" {
+			return dependencyCandidateCheck{
+				ok:         false,
+				check:      "dependency-shape",
+				reasonCode: "LOCAL_DEPENDENCY_MODEL_ID_REQUIRED",
+				detail:     dependencyID + " requires modelId",
+				warnings:   []string{"service dependency requires modelId"},
+			}
+		}
 	case runtimev1.LocalDependencyKind_LOCAL_DEPENDENCY_KIND_NODE:
 		if strings.TrimSpace(opt.GetNodeId()) == "" {
 			return dependencyCandidateCheck{

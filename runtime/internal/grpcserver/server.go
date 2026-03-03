@@ -129,16 +129,18 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		aiSvc.SetModelRegistryPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 
-		connSvc := connectorservice.New(logger, connStore, auditStore)
-		connSvc.SetCloudProvider(aiSvc.CloudProvider())
-		runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
-
 		runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger))
 		modelSvc := modelservice.New(logger, modelRegistry)
 		modelSvc.SetPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
 		localSvc = localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath, cfg.LocalAuditCapacity)
 		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localSvc)
+		aiSvc.SetLocalModelLister(localSvc)
+
+		connSvc := connectorservice.New(logger, connStore, auditStore)
+		connSvc.SetCloudProvider(aiSvc.CloudProvider())
+		connSvc.SetLocalModelLister(localSvc)
+		runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 		logger.Info("runtime in-process mode enabled")
 	}
 

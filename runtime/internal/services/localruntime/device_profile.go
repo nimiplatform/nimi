@@ -7,13 +7,38 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func collectDeviceProfile() *runtimev1.LocalDeviceProfile {
+func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
+	portSet := map[int32]bool{
+		11434: true,
+		1234:  true,
+		8080:  true,
+	}
+	for _, port := range extraPorts {
+		if port <= 0 || port > 65535 {
+			continue
+		}
+		portSet[port] = true
+	}
+	ports := make([]int32, 0, len(portSet))
+	for port := range portSet {
+		ports = append(ports, port)
+	}
+	sort.Slice(ports, func(i, j int) bool { return ports[i] < ports[j] })
+	probedPorts := make([]*runtimev1.LocalPortAvailability, 0, len(ports))
+	for _, port := range ports {
+		probedPorts = append(probedPorts, &runtimev1.LocalPortAvailability{
+			Port:      port,
+			Available: portAvailable(int(port)),
+		})
+	}
+
 	return &runtimev1.LocalDeviceProfile{
 		Os:            runtime.GOOS,
 		Arch:          runtime.GOARCH,
@@ -21,11 +46,7 @@ func collectDeviceProfile() *runtimev1.LocalDeviceProfile {
 		Python:        probePythonProfile(),
 		Npu:           probeNPUProfile(),
 		DiskFreeBytes: probeDiskFreeBytes(),
-		Ports: []*runtimev1.LocalPortAvailability{
-			{Port: 11434, Available: portAvailable(11434)},
-			{Port: 1234, Available: portAvailable(1234)},
-			{Port: 8080, Available: portAvailable(8080)},
-		},
+		Ports:         probedPorts,
 	}
 }
 
