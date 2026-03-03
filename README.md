@@ -95,17 +95,6 @@ For implementation details, see [Runtime Guide](runtime/README.md) and [SDK Refe
 | [spec](spec/INDEX.md) | Normative platform contracts | Markdown, YAML |
 | [docs](docs/index.md) | External developer portal | VitePress, Markdown |
 
-## AI Coding in Nimi
-
-Nimi applies a Spec-first, AI-first engineering methodology where AI agents are primary executors and deterministic guards are the default safety net.
-
-- **Execution protocol:** every normative change follows `Rule -> Table -> Generate -> Check -> Evidence`.
-- **Fact governance:** rules and structured tables are the canonical source; generated docs are projections, not edit targets.
-- **Quality guard:** deterministic CI checks are Layer 1, semantic audit is Layer 2, and both are used in a bi-directional audit loop (`Spec -> Impl` and `Impl -> Spec`).
-- **Engineering outcome:** changes stay traceable, verifiable, and regression-resistant under continuous AI-assisted delivery.
-
-Method details: [AI_SPEC_CODING_METHODOLOGY.md](AI_SPEC_CODING_METHODOLOGY.md)
-
 ## Supported Models & Providers
 
 Nimi Runtime routes AI calls through a unified API — switch between local engines and cloud providers without changing your application code.
@@ -286,6 +275,56 @@ console.log(me.id);
 ```
 
 > Full onboarding and environment setup: [docs/getting-started/index.md](docs/getting-started/index.md)
+
+## Realm Interconnect Paradigm (No More App Islands)
+
+Most ecosystems can scale the number of apps, but still fail to connect them semantically.
+Each app becomes its own island: identity does not carry, relationships break, context resets, and economic behaviors cannot be reconciled across boundaries.
+
+Nimi positions `Realm` as a shared semantic layer for cross-app continuity, while preserving app autonomy.
+Apps can choose progressive integration levels (`runtime-only`, `render-app`, `extension-app`) instead of all-or-nothing adoption.
+
+The six protocol primitives (`Timeflow`, `Social`, `Economy`, `Transit`, `Context`, `Presence`) are the interoperability contract that keeps cross-app behavior consistent and auditable.
+The goal is not centralized product control; the goal is consistent semantics across independently built worlds and apps.
+
+Learn more:
+
+- Realm interconnect narrative: [`docs/architecture/realm-interconnect-paradigm.md`](docs/architecture/realm-interconnect-paradigm.md)
+- Spec thin mapping: [`spec/realm/app-interconnect-model.md`](spec/realm/app-interconnect-model.md)
+- Protocol contracts: [`spec/platform/protocol.md`](spec/platform/protocol.md)
+
+## New Agent Security Paradigm (What Nimi Is Trying to Solve)
+
+Most agent systems still rely on "human-like operation" (clicking UI, imitating user workflows, api for human programs).  
+That can be fast for demos, but it becomes fragile in production: boundaries blur, permissions over-expand, and audit trails become hard to trust.
+
+Nimi is testing a different path: **AI-native interface calling**.  
+Instead of acting like a fake human, the agent calls explicit machine interfaces with structured parameters, scoped permissions, and deterministic failure semantics.
+
+In practice, this means:
+
+- **Sandboxed execution** by default (especially for extension/mod capabilities).
+- **Least-privilege grants** that are local, scoped, time-bound, and revocable.
+- **Fail-close for high-risk writes** when authorization or execution certainty is missing.
+- **End-to-end auditable traces** (`trace_id`, principal, operation, reason code) across layers.
+
+This is Nimi's core attempt: keep the openness and speed of agent ecosystems, while making security and governance first-class system properties instead of afterthought patches.
+
+Learn more:
+
+- Full whitepaper: [`docs/architecture/ai-agent-security-interface.md`](docs/architecture/ai-agent-security-interface.md)
+- Spec mapping: [`spec/platform/ai-agent-security-interface.md`](spec/platform/ai-agent-security-interface.md)
+
+## AI Coding in Nimi
+
+Nimi applies a Spec-first, AI-first engineering methodology where AI agents are primary executors and deterministic guards are the default safety net.
+
+- **Execution protocol:** every normative change follows `Rule -> Table -> Generate -> Check -> Evidence`.
+- **Fact governance:** rules and structured tables are the canonical source; generated docs are projections, not edit targets.
+- **Quality guard:** deterministic CI checks are Layer 1, semantic audit is Layer 2, and both are used in a bi-directional audit loop (`Spec -> Impl` and `Impl -> Spec`).
+- **Engineering outcome:** changes stay traceable, verifiable, and regression-resistant under continuous AI-assisted delivery.
+
+Method details: [ai_spec_coding_methodology.md](docs/architecture/ai_spec_coding_methodology.md)
 
 ## Roadmap
 
