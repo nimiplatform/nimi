@@ -32,8 +32,8 @@
 ## 4. 跨域依赖关系
 
 ```
-ai-provider → runtime   (SDKAIP-005/010: 继承 transport, 需要 runtime 实例)
-scope → runtime          (SDKSCOPE-003: 通过公开 runtime SDK 接口联动授权)
+ai-provider → runtime   (继承 runtime transport，并通过 runtime 实例发起调用)
+scope → runtime          (通过公开 runtime SDK 接口联动授权)
 realm                    (独立，仅依赖 kernel 规则)
 mod                      (独立，通过 host 注入获取能力)
 ```
@@ -46,7 +46,7 @@ mod                      (独立，通过 host 注入获取能力)
 
 | 阶段 | Domain | 说明 |
 |---|---|---|
-| Phase 1 (Active) | runtime, realm, ai-provider | 核心调用链已实现（含 ConnectorService 7 方法，SDKR-050），spec 达到冻结就绪 |
+| Phase 1 (Active) | runtime, realm, ai-provider | 核心调用链已实现（含 ConnectorService 7 方法），spec 达到冻结就绪 |
 | Phase 2 (Active) | scope, mod | 领域约束已定义，API 面待补充 |
 
 > 此处 Phase 指 SDK 域级激活阶段。runtime 域内各服务有独立的服务级 phase 分类，见 `kernel/tables/runtime-method-groups.yaml`。

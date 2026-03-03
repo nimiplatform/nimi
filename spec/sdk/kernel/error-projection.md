@@ -90,7 +90,7 @@ SDK 在特定场景合成不在 `reason-codes.yaml` 中的 ReasonCode：
 
 Mode D 长生命周期订阅流（`K-STREAM-010`）在 daemon 进入 STOPPING 时以 gRPC `CANCELLED` 关闭。`CANCELLED` 不在 S-ERROR-004 的 retryable transport codes 中，SDK 处理规则：
 
-- 收到 `CANCELLED` 时，SDK 发射 `runtime.disconnected` 事件（`SDKR-028`），不自动重连（`S-TRANSPORT-003`）。
+- 收到 `CANCELLED` 时，SDK 发射 `runtime.disconnected` 事件（`S-RUNTIME-028`），不自动重连（`S-TRANSPORT-003`）。
 - SDK 不将 `CANCELLED` 视为可重试错误——daemon STOPPING 是有意关闭，盲重试会持续失败直到 daemon 恢复。
 - 应用层（Desktop/Agent）可在检测到 daemon 恢复 `READY` 状态后手动重新订阅。Desktop 通过 `runtime_bridge_status`（`D-IPC-002`）轮询检测 daemon 恢复；独立 SDK 消费者通过 `runtime.connected` 事件或 `ready()` 重试检测恢复。
 - `CANCELLED` 与 `UNAVAILABLE` 的语义区分：`UNAVAILABLE` 表示暂时不可达（网络问题），可立即重试；`CANCELLED` 表示被服务端有意取消（daemon 关闭），需等待服务恢复后重建。

@@ -1,0 +1,17 @@
+projections:
+  - area: connection
+    rule: ready_fail_close
+    requirement: runtime ready must throw on probe failure
+    source_rule: S-RUNTIME-015
+  - area: events
+    rule: disconnected_event
+    requirement: emit runtime.disconnected on channel interruption
+    source_rule: S-RUNTIME-028
+  - area: retry
+    rule: grpc_backoff
+    requirement: enforce retry baseline for unary calls
+    source_rule: S-RUNTIME-045
+  - area: phase
+    rule: blocked_deferred_split
+    requirement: blocked and deferred states are distinguishable
+    source_rule: S-RUNTIME-050

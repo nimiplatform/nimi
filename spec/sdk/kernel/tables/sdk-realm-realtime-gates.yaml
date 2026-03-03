@@ -1,0 +1,10 @@
+gates:
+  - gate: realtime_auth
+    requirement: reconnect must inject latest token
+    source_rule: S-REALM-035
+  - gate: reconnect_delivery
+    requirement: reconnect strategy must not silently drop delivered events
+    source_rule: S-REALM-036
+  - gate: event_ownership
+    requirement: sdk does not own backend realtime event name catalog
+    source_rule: S-REALM-037

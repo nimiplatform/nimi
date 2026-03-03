@@ -1,40 +1,35 @@
 # Mod SDK Domain Spec
 
 > Status: Draft
-> Date: 2026-02-28
-> Scope: `@nimiplatform/sdk/mod` 领域增量规则（host 注入、hook 聚合、UI/i18n/settings facade）。
+> Date: 2026-03-03
+> Scope: `@nimiplatform/sdk/mod` 主题导引（host 注入、hook 聚合、跨域边界）。
 > Normative Imports: `spec/sdk/kernel/*`
 
 ## 0. 权威导入
 
-- Surface：`kernel/surface-contract.md`（`S-SURFACE-*`）
-- Transport：`kernel/transport-contract.md`（`S-TRANSPORT-*`）
-- Error projection：`kernel/error-projection.md`（`S-ERROR-*`）
-- Boundary：`kernel/boundary-contract.md`（`S-BOUNDARY-*`）
+- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-010, S-MOD-011）
+- `kernel/surface-contract.md`（S-SURFACE-004）
+- `kernel/transport-contract.md`（S-TRANSPORT-003）
+- `kernel/error-projection.md`（S-ERROR-003）
+- `kernel/boundary-contract.md`（S-BOUNDARY-003, S-BOUNDARY-004）
 
-## 1. 领域不变量
+## 1. 文档定位
 
-- `SDKMOD-001`: Mod SDK 必须通过 host 注入获取执行能力，导出面遵循 `S-SURFACE-004`（稳定导出面）。
-- `SDKMOD-002`: hook client 是唯一跨域调用聚合面。
-- `SDKMOD-003`: Mod 不得直接访问 runtime/realm 私有客户端。
-- `SDKMOD-004`: 导入边界必须满足 `S-BOUNDARY-003` / `S-BOUNDARY-004`。
-- `SDKMOD-005`: 若 hook/event 通道提供订阅语义，断流后不得隐式重连，必须遵循 `S-TRANSPORT-003` 的显式重建原则。
+本文件是 mod 子路径导引。host 注入语义、hook 聚合边界与导入约束由 sdk kernel 定义。
 
-## 2. Host 与 Hook（领域增量）
+## 2. 阅读路径
 
-- `SDKMOD-010`: host 缺失时必须 fail-close（`SDK_MOD_HOST_MISSING`），错误码来源遵循 `S-ERROR-003`（SDK 本地错误码事实源）。
-- `SDKMOD-011`: action/event/data/turn/ui/interMod/llm/audit/meta 客户端语义必须保持稳定键名，不允许静默重命名。
+1. 主合同：`kernel/mod-contract.md`。
+2. 稳定导出面：`kernel/surface-contract.md`。
+3. 订阅与重建约束：`kernel/transport-contract.md`。
+4. 边界规则：`kernel/boundary-contract.md`。
 
-## 3. Inter-Mod 通信边界（领域增量）
+## 3. 跨层关联
 
-- `SDKMOD-020`: Mod 间通信存在两条路径：D-HOOK interMod（renderer 进程内）和 K-APP SendAppMessage（Runtime gRPC 跨进程）。路由规则见 `K-APP-006`。
-- `SDKMOD-021`: Mod SDK 的 `interMod` client（`SDKMOD-011`）仅封装 D-HOOK 路径。若 mod 需要走 K-APP 路径，必须通过 Runtime SDK 的 AppMessaging 方法（Phase 2），不允许绕过 Mod SDK 直接调用。
+- Desktop hook 能力模型：`spec/desktop/kernel/hook-capability-contract.md`。
+- Runtime app messaging：`spec/runtime/kernel/app-messaging-contract.md`。
 
-## 4. 验收门
+## 4. 非目标
 
-验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（mod 注入路径单元测试）、SDKTEST-040 #5（mod-runtime-context vNext 矩阵）。
-
-## 5. 非目标
-
-- 不定义 desktop 内部执行内核实现
-- 不定义 runtime 业务规则
+- 不在 domain 层定义 mod 执行内核规则。
+- 不在本文件维护运行态授权策略。

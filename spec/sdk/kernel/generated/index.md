@@ -8,3 +8,6 @@
 | `runtime-method-groups.md` | `tables/runtime-method-groups.yaml` |
 | `import-boundaries.md` | `tables/import-boundaries.yaml` |
 | `sdk-error-codes.md` | `tables/sdk-error-codes.yaml` |
+| `sdk-runtime-projection.md` | `tables/sdk-runtime-projection.yaml` |
+| `sdk-realm-realtime-gates.md` | `tables/sdk-realm-realtime-gates.yaml` |
+| `sdk-testing-gates.md` | `tables/sdk-testing-gates.yaml` |

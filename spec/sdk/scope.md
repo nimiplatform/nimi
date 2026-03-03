@@ -1,35 +1,30 @@
 # Scope SDK Domain Spec
 
 > Status: Draft
-> Date: 2026-02-28
-> Scope: `@nimiplatform/sdk/scope` 领域增量规则（catalog 生命周期与授权前置联动）。
+> Date: 2026-03-03
+> Scope: `@nimiplatform/sdk/scope` 主题导引（catalog 生命周期与授权联动边界）。
 > Normative Imports: `spec/sdk/kernel/*`
 
 ## 0. 权威导入
 
-- Surface：`kernel/surface-contract.md`（`S-SURFACE-*`）
-- Transport：`kernel/transport-contract.md`（`S-TRANSPORT-*`）
-- Error projection：`kernel/error-projection.md`（`S-ERROR-*`）
-- Boundary：`kernel/boundary-contract.md`（`S-BOUNDARY-*`）
+- `kernel/scope-contract.md`（S-SCOPE-001, S-SCOPE-002, S-SCOPE-003, S-SCOPE-004, S-SCOPE-005）
+- `kernel/surface-contract.md`（S-SURFACE-004）
+- `kernel/transport-contract.md`（S-TRANSPORT-003）
+- `kernel/error-projection.md`（S-ERROR-003）
+- `kernel/boundary-contract.md`（S-BOUNDARY-001）
 
-## 1. 领域不变量
+## 1. 文档定位
 
-- `SDKSCOPE-001`: Scope catalog 以 in-memory 结构为基线。
-- `SDKSCOPE-002`: `register/publish/revoke` 构成最小闭环，不引入并行状态机。
-- `SDKSCOPE-003`: 与 runtime 授权调用的联动仅通过公开 runtime SDK 接口。
-- `SDKSCOPE-004`: 子路径与边界规则必须满足 `S-SURFACE-001` / `S-BOUNDARY-001`。
-- `SDKSCOPE-005`: 当前 Scope SDK 不定义 transport-level stream API；若未来引入订阅流，必须遵循 `S-TRANSPORT-003`。
+本文件用于 scope 子路径导航。scope 的公开面、错误语义和边界规则以 sdk kernel 为准。
 
-## 2. 错误语义（领域增量）
+## 2. 阅读路径
 
-- `SDKSCOPE-010`: 目录输入非法必须 fail-close（`SDK_SCOPE_CATALOG_INVALID`），错误码来源遵循 `S-ERROR-003`（SDK 本地错误码事实源）。
-- `SDKSCOPE-011`: catalog 版本冲突必须显式报错（`SDK_SCOPE_CATALOG_VERSION_CONFLICT`），不做静默覆盖。
+1. 主合同：`kernel/scope-contract.md`。
+2. Scope 最小稳定面：`kernel/surface-contract.md`。
+3. 传输与订阅重建：`kernel/transport-contract.md`。
+4. 导入边界：`kernel/boundary-contract.md`。
 
-## 3. 验收门
+## 3. 非目标
 
-验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（scope 绑定单元测试）、SDKTEST-030 #5（scope catalog drift 检查）。
-
-## 4. 非目标
-
-- 不定义 realm/runtime/mod 的业务规则
-- 不定义服务端授权策略语义
+- 不在 domain 层定义服务端授权规则。
+- 不在本文件维护实现态测试条目。

@@ -1,72 +1,37 @@
 # Realm SDK Domain Spec
 
 > Status: Draft
-> Date: 2026-03-01
-> Scope: `@nimiplatform/sdk/realm` 领域增量规则（实例化 facade、HTTP/WS 请求引擎、命名规范化）。
+> Date: 2026-03-03
+> Scope: `@nimiplatform/sdk/realm` 主题导引（实例隔离、刷新策略、实时边界）。
 > Normative Imports: `spec/sdk/kernel/*`
 
 ## 0. 权威导入
 
-- Surface：`kernel/surface-contract.md`（`S-SURFACE-*`）
-- Transport：`kernel/transport-contract.md`（`S-TRANSPORT-*`）
-- Error projection：`kernel/error-projection.md`（`S-ERROR-*`）
-- Boundary：`kernel/boundary-contract.md`（`S-BOUNDARY-*`）
+- `kernel/realm-contract.md`（S-REALM-014, S-REALM-019, S-REALM-027, S-REALM-028, S-REALM-029, S-REALM-035, S-REALM-036, S-REALM-037）
+- `kernel/surface-contract.md`（S-SURFACE-004, S-SURFACE-005）
+- `kernel/transport-contract.md`（S-TRANSPORT-004, S-TRANSPORT-006）
+- `kernel/error-projection.md`（S-ERROR-001, S-ERROR-005）
+- `kernel/boundary-contract.md`（S-BOUNDARY-004）
+- `kernel/tables/sdk-realm-realtime-gates.yaml`
 
-## 1. 领域不变量
+## 1. 文档定位
 
-- `SDKREALM-001`: 入口固定为 `new Realm(options)` 实例模式。
-- `SDKREALM-002`: endpoint/token/header 必须实例级隔离，不允许全局 OpenAPI 运行态写入。
-- `SDKREALM-003`: 生成 facade 是唯一权威调用面（`S-SURFACE-004`），禁止手工旁路契约。
-- `SDKREALM-004`: 传输与边界规则必须满足 `S-TRANSPORT-004` / `S-BOUNDARY-004`。
-- `SDKREALM-005`: realm 公开符号命名必须满足 `S-SURFACE-005`（全公开符号去 legacy）；协议字面量（path/schema key/enum value）可保留上游文本。
+本文件是 realm 子路径导引。实例边界、命名规范、请求与实时语义以 sdk kernel 为权威。
 
-## 2. 请求引擎（领域增量）
+## 2. 阅读路径
 
-- `SDKREALM-010`: 默认超时、重试和 abort 语义由实例配置控制。默认超时值为实现定义，须在 SDK 文档中明确标注。
-- `SDKREALM-011`: Header 合并遵循调用参数优先，不破坏实例默认安全头。
-- `SDKREALM-012`: endpoint 缺失或空字符串必须 fail-close（`SDK_REALM_ENDPOINT_REQUIRED`）。
-- `SDKREALM-013`: token 缺失或空字符串必须 fail-close（`SDK_REALM_TOKEN_REQUIRED`）。
-- `SDKREALM-014`: token 刷新策略必须显式声明（自动刷新或调用方手动刷新），禁止隐式全局刷新状态。**默认行为**：未配置 `auth.refreshToken` 时，SDK 不执行任何刷新（收到 401 直接抛出错误）。配置了 `auth.refreshToken` 时，启用 SDKREALM-028 的 401 触发刷新流程。SDK 不提供基于 token expiry 时间的内置定时刷新——定时刷新由应用层实现（如 Desktop D-AUTH-007）。
-- `SDKREALM-015`: 认证失败（401/403）默认不做隐式重试；若启用刷新后重试，必须限制为单次且可观测。
-- `SDKREALM-016`: `Realm.NO_AUTH` 静态常量允许显式跳过 SDKREALM-013 的 token fail-close；传入后 SDK 不校验 token 有效性。
-- `SDKREALM-017`: NO_AUTH 模式仅适用于公开 endpoint；认证失败语义不变。
-- `SDKREALM-018`: `connect()` / `ready({ timeoutMs? })` / `close({ force? })` / `state()` 生命周期方法签名与 Runtime 对齐（参考 SDKR-013 ~ SDKR-016），但语义存在差异：Realm `ready()` 探测失败不抛错（SDKREALM-019），而 Runtime `ready()` 探测失败必须抛出 `RUNTIME_UNAVAILABLE`（SDKR-015）。
-- `SDKREALM-019`: `ready()` 探测失败不影响 client 状态（部分部署无 root endpoint），仅发射 error 事件。**跨子路径语义差异说明**：此行为与 Runtime SDK 的 `ready()` 语义相反——Runtime `ready()` 探测失败必须抛出 `RUNTIME_UNAVAILABLE`（SDKR-015，fail-close），而 Realm `ready()` 仅发射 error 事件（fail-open）。此差异的设计理由：Runtime daemon 是本地进程，不可达意味着功能完全不可用，fail-close 正确；Realm 后端可能无 root health endpoint 但所有业务 API 正常，fail-close 会误阻正常使用。**消费者指导**：调用方若需统一判断服务可用性，不应仅用 `try { await client.ready() }` ——Realm 分支应额外监听 `events.on('error', handler)` 或在首次业务请求失败时处理。
-- `SDKREALM-020`: `events.on('error', handler)` / `events.once('error', handler)` 订阅错误事件，返回 unsubscribe 函数。
-- `SDKREALM-021`: 事件总线仅用于可观测性，不改变请求流（引用 S-TRANSPORT-006）。
-- `SDKREALM-022`: `raw.request<T>(input)` 旁路生成 facade 发起 HTTP 请求。
-- `SDKREALM-023`: raw 请求仍受实例级 header/timeout/auth 控制。
-- `SDKREALM-024`: `services` 属性提供按 OpenAPI operationId 分组的类型安全 API 句柄。
-- `SDKREALM-025`: service/model/method/property-enum 公开命名由 realm codegen 归一化结果为权威（`S-SURFACE-005`）；不允许手写 alias 桥接。
-- `SDKREALM-026`: `RealmOptions.telemetry.enabled/onEvent` 控制遥测；遵循 S-TRANSPORT-006。
-- `SDKREALM-027`: `RealmOptions.auth.accessToken` 支持 `string | (() => Promise<string>)` 函数模式实现调用方手动刷新（SDKREALM-014 的实现方式）。
-- `SDKREALM-028`: `auth.refreshToken` 支持 `string | (() => Promise<string> | string)`。提供时，SDK 在收到 401 后尝试：(1) 直接 fetch `POST {baseUrl}/api/auth/refresh`（不经过 `#requestUnknown`，不附带过期 Authorization 头），(2) 成功后调用 `auth.onTokenRefreshed` 回调，(3) 使用新 token 单次重试原请求。刷新失败调用 `auth.onRefreshFailed`。符合 SDKREALM-015（单次重试 + 可观测）。
-- `SDKREALM-029`: 并发 401 使用 single-flight 协调器：同一 Realm 实例同一时刻只发起一次 refresh，后续 401 等待同一 Promise。
+1. realm 主合同：`kernel/realm-contract.md`。
+2. 公开导出与命名规范：`kernel/surface-contract.md`。
+3. 传输与可观测性：`kernel/transport-contract.md`。
+4. 错误码族与投影：`kernel/error-projection.md` + `sdk-error-codes.yaml`。
 
-## 3. 错误语义（领域增量）
+## 3. 关联材料
 
-- `SDKREALM-030`: HTTP status 与 reasonCode 投影遵循 `S-ERROR-001`（双层错误投影）与 `S-ERROR-002`（ReasonCode 事实源）。
-- `SDKREALM-031`: 401/403/429/5xx 语义不得伪装为成功响应。
-- `SDKREALM-032`: Realm 本地配置类错误码必须来自 sdk kernel 的 `SDK_REALM_*` family（`S-ERROR-005`）。
+- Companion：`kernel/companion/realm-runtime-behavior-guide.md`。
+- realm 子路径实现：`sdk/src/realm/`。
+- OpenAPI 生成产物：`sdk/src/realm/generated/`。
 
-## 4. 与 Runtime Auth 的边界
+## 4. 非目标
 
-- `SDKREALM-040`: Realm SDK 不承担 runtime token 签发/校验职责；runtime auth 语义由 runtime kernel 定义，Realm SDK 仅负责透传与错误投影。
-
-## 5. 实时传输（领域增量）
-
-- `SDKREALM-035`: Realm SDK 的实时传输（WebSocket/Socket.IO）协议层规则不在 SDK spec 定义完整协议。实时连接协议由 Realm 后端定义（事件名称、帧格式、会话管理），SDK spec 不枚举具体事件名或帧格式。Desktop 实现细节（Socket.IO transport、端口映射、事件去重）定义在 D-NET-006。**SDK 层治理边界**：SDK spec 约束实时连接的以下方面：(1) token 注入遵循 SDKREALM-002（实例级隔离）；(2) 认证失败语义遵循 SDKREALM-031；(3) 连接状态事件暴露遵循 SDKREALM-035a；(4) 重连上限遵循 SDKREALM-035b；(5) 重连 token 刷新遵循 SDKREALM-035c。SDK spec 不约束但 Desktop 层定义的方面：具体传输协议（Socket.IO）、事件名枚举（`chat:session.*`）、去重策略（LRU）。**Web 端复用指导**：Web 端如需实时功能，应复用 SDK SDKREALM-035~035c 的约束，具体协议实现参考 D-NET-006。若未来多客户端需统一实时传输抽象，应在 SDK kernel 层新增 realtime 契约（独立文件）。
-- `SDKREALM-035a`: SDK Realm 实时连接必须暴露连接状态事件：`realtime.connected`（连接建立/重连成功）、`realtime.disconnected`（连接断开，含断开原因）、`realtime.reconnecting`（正在重连，含重连次数）。事件通过 SDKREALM-020 的 events 总线发射。
-- `SDKREALM-035b`: 实时连接重连上限为实现定义，但必须：有最大重连次数或最大重连持续时间上限（不允许无限重连）；达到上限后发射 `realtime.disconnected` 事件，应用层决策是否重新 `connect()`。Desktop 实现见 D-NET-006。
-- `SDKREALM-035c`: 实时连接断线重连时必须重新注入最新 token（SDKREALM-002），不允许使用断线前的过期 token 尝试重连。
-- `SDKREALM-036`: 实时连接断线重连策略为实现定义，SDK spec 不规定具体策略。约束：重连不得静默丢失已投递事件（Desktop D-NET-006 通过 `chat:session.sync_required` 增量同步保证）。
-- `SDKREALM-037`: SDK 不维护 Realm 实时事件名称枚举。事件名称由 Realm 后端定义，Desktop 层在 D-NET-006 描述当前使用的事件集。
-
-## 6. 验收门
-
-验收门见 `spec/sdk/testing-gates.md`：SDKTEST-010（realm facade 实例隔离与错误映射，SDKTEST-090）。
-
-## 7. 非目标
-
-- 不定义 runtime gRPC 规则
-- 不定义 scope/mod 领域规则
+- 不在本文件维护字段级请求清单。
+- 不在 domain 层定义额外规则编号。

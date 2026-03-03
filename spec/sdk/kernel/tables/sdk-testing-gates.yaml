@@ -1,0 +1,13 @@
+gates:
+  - gate: unit_module
+    command: pnpm --filter @nimiplatform/sdk test
+    source_rule: S-GATE-010
+  - gate: boundary_checks
+    command: pnpm check:sdk-import-boundary
+    source_rule: S-GATE-020
+  - gate: provider_alignment
+    command: pnpm check:sdk-spec-kernel-consistency
+    source_rule: S-GATE-070
+  - gate: docs_drift
+    command: pnpm check:sdk-spec-kernel-docs-drift
+    source_rule: S-GATE-091
