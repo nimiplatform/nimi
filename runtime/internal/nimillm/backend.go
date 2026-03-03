@@ -341,20 +341,15 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		_ = json.NewDecoder(response.Body).Decode(&errPayload)
 		response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
-			text, usage, finish, fallbackErr := b.GenerateText(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
-			if fallbackErr != nil {
-				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, fallbackErr
-			}
-			for _, part := range SplitText(text, 24) {
-				if onDelta != nil {
-					if err := onDelta(part); err != nil {
-						return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
-					}
-				}
-			}
-			return usage, finish, nil
+			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
 		}
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderHTTPError(response.StatusCode, errPayload)
+	}
+
+	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
+	if !strings.HasPrefix(contentType, "text/event-stream") {
+		response.Body.Close()
+		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, onDelta)
 	}
 	defer response.Body.Close()
 
@@ -419,6 +414,31 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	outputText := outputBuilder.String()
 	if usage == nil {
 		usage = EstimateUsage(ComposeInputText(systemPrompt, input), outputText)
+	}
+	return usage, finish, nil
+}
+
+func (b *Backend) fallbackStreamToNonStream(
+	ctx context.Context,
+	modelID string,
+	input []*runtimev1.ChatMessage,
+	systemPrompt string,
+	temperature float32,
+	topP float32,
+	maxTokens int32,
+	onDelta func(string) error,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	MarkStreamSimulated(ctx)
+	text, usage, finish, err := b.GenerateText(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens)
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	for _, part := range SplitText(text, 24) {
+		if onDelta != nil {
+			if sendErr := onDelta(part); sendErr != nil {
+				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, sendErr
+			}
+		}
 	}
 	return usage, finish, nil
 }

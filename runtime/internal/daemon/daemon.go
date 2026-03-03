@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -43,6 +45,11 @@ type Daemon struct {
 }
 
 var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "localruntime"}
+
+var (
+	engineCrashAttemptPattern    = regexp.MustCompile(`attempt=(\d+)/(\d+)`)
+	engineCrashExitStatusPattern = regexp.MustCompile(`exit status (\d+)`)
+)
 
 func New(cfg config.Config, logger *slog.Logger, version string) *Daemon {
 	if value := strings.TrimSpace(cfg.LocalRuntimeStatePath); value != "" {
@@ -409,10 +416,14 @@ func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail str
 	if store == nil {
 		return
 	}
+	attempt, maxAttempt, exitCode := parseEngineCrashDetail(detail)
 	now := time.Now().UTC()
 	payload, _ := structpb.NewStruct(map[string]any{
-		"engine": engineName,
-		"detail": detail,
+		"engine":      engineName,
+		"detail":      detail,
+		"attempt":     attempt,
+		"max_attempt": maxAttempt,
+		"exit_code":   exitCode,
 	})
 	store.AppendEvent(&runtimev1.AuditEventRecord{
 		AuditId:    ulid.Make().String(),
@@ -426,6 +437,26 @@ func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail str
 		CallerId:   "runtime-daemon",
 		SurfaceId:  "daemon",
 	})
+}
+
+func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {
+	exitCode = -1
+	matches := engineCrashAttemptPattern.FindStringSubmatch(strings.TrimSpace(detail))
+	if len(matches) == 3 {
+		if value, err := strconv.Atoi(matches[1]); err == nil {
+			attempt = value
+		}
+		if value, err := strconv.Atoi(matches[2]); err == nil {
+			maxAttempt = value
+		}
+	}
+	exitMatches := engineCrashExitStatusPattern.FindStringSubmatch(strings.TrimSpace(detail))
+	if len(exitMatches) == 2 {
+		if value, err := strconv.Atoi(exitMatches[1]); err == nil {
+			exitCode = value
+		}
+	}
+	return attempt, maxAttempt, exitCode
 }
 
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {

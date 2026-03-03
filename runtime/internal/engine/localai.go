@@ -4,36 +4,38 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
 // localAIDownloadURL builds the GitHub Releases download URL for a LocalAI binary.
 func localAIDownloadURL(version string) (string, error) {
-	asset, err := localAIAssetName()
+	asset, err := localAIAssetName(version)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf(
-		"https://github.com/mudler/LocalAI/releases/download/v%s/%s",
-		version, asset,
-	), nil
+	return localAIReleaseAssetURL(version, asset), nil
 }
 
 // localAIAssetName returns the expected binary asset name for the current platform.
-func localAIAssetName() (string, error) {
+func localAIAssetName(version string) (string, error) {
+	trimmedVersion := strings.TrimSpace(version)
+	if trimmedVersion == "" {
+		return "", fmt.Errorf("localai version is required")
+	}
 	switch runtime.GOOS {
 	case "darwin":
 		switch runtime.GOARCH {
 		case "arm64":
-			return "local-ai-Darwin-arm64", nil
+			return fmt.Sprintf("local-ai-v%s-darwin-arm64", trimmedVersion), nil
 		case "amd64":
-			return "local-ai-Darwin-x86_64", nil
+			return fmt.Sprintf("local-ai-v%s-darwin-amd64", trimmedVersion), nil
 		}
 	case "linux":
 		switch runtime.GOARCH {
 		case "amd64":
-			return "local-ai-Linux-x86_64", nil
+			return fmt.Sprintf("local-ai-v%s-linux-amd64", trimmedVersion), nil
 		case "arm64":
-			return "local-ai-Linux-aarch64", nil
+			return fmt.Sprintf("local-ai-v%s-linux-arm64", trimmedVersion), nil
 		}
 	}
 	return "", fmt.Errorf("unsupported platform: %s/%s", runtime.GOOS, runtime.GOARCH)

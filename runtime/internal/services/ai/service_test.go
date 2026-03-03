@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -575,6 +576,78 @@ func TestStreamGenerateFallbackSetsStreamSimulatedAndAudits(t *testing.T) {
 	}
 	if !last.GetCompleted().GetStreamSimulated() {
 		t.Fatalf("expected completed.stream_simulated=true for fallback stream path")
+	}
+
+	events := audit.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain: "runtime.ai",
+	})
+	found := false
+	for _, event := range events.GetEvents() {
+		if event.GetOperation() == "stream_fallback_simulated" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected stream_fallback_simulated audit event")
+	}
+}
+
+func TestStreamGenerateContentTypeFallbackSetsStreamSimulatedAndAudits(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		stream, _ := payload["stream"].(bool)
+		if stream {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"provider ignored stream"}}]}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"fallback by content type"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":3}}`))
+	}))
+	defer server.Close()
+
+	audit := auditlog.New(128, 128)
+	svc := newFromProviderConfig(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		nil,
+		nil,
+		audit,
+		nil,
+		Config{
+			LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+		}.normalized(),
+		8, 2,
+	)
+	stream := &streamGenerateCollector{ctx: context.Background()}
+
+	err := svc.StreamGenerate(&runtimev1.StreamGenerateRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/qwen2.5",
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "fallback please"},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   120_000,
+	}, stream)
+	if err != nil {
+		t.Fatalf("stream generate content-type fallback: %v", err)
+	}
+
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+		t.Fatalf("last event must be completed, got %v", last.GetEventType())
+	}
+	if !last.GetCompleted().GetStreamSimulated() {
+		t.Fatalf("expected completed.stream_simulated=true for content-type fallback")
 	}
 
 	events := audit.ListEvents(&runtimev1.ListAuditEventsRequest{

@@ -33,6 +33,7 @@ type Supervisor struct {
 	lastHealthyAt       time.Time
 	consecutiveFailures int
 	cancel              context.CancelFunc
+	runEpoch            uint64
 }
 
 // NewSupervisor creates a new engine process supervisor.
@@ -63,12 +64,14 @@ func (s *Supervisor) Start(ctx context.Context) error {
 		return fmt.Errorf("resolve port for %s: %w", s.cfg.Kind, err)
 	}
 	s.cfg.Port = port
+	s.runEpoch++
+	epoch := s.runEpoch
 	s.mu.Unlock()
 
 	// Clean up stale PID file from previous run.
 	s.cleanStalePID()
 
-	return s.spawn(ctx)
+	return s.spawn(ctx, epoch)
 }
 
 // Stop gracefully shuts down the engine process.
@@ -76,6 +79,10 @@ func (s *Supervisor) Stop() error {
 	s.mu.Lock()
 	cancel := s.cancel
 	cmd := s.cmd
+	s.runEpoch++
+	s.cancel = nil
+	s.cmd = nil
+	s.pid = 0
 	s.mu.Unlock()
 
 	if cancel != nil {
@@ -84,28 +91,42 @@ func (s *Supervisor) Stop() error {
 
 	if cmd == nil || cmd.Process == nil {
 		s.setStatus(StatusStopped, "not running")
+		s.removePIDFile()
 		return nil
 	}
+
+	reaped := make(chan struct{})
+	go func() {
+		_, _ = cmd.Process.Wait()
+		close(reaped)
+	}()
 
 	// SIGTERM first.
 	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		// Process already dead.
+		select {
+		case <-reaped:
+		case <-time.After(100 * time.Millisecond):
+		}
 		s.setStatus(StatusStopped, "process already exited")
 		s.removePIDFile()
 		return nil
 	}
 
-	// Wait for graceful shutdown.
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
-
 	select {
-	case <-done:
+	case <-reaped:
 		s.setStatus(StatusStopped, "graceful shutdown")
 	case <-time.After(s.cfg.ShutdownTimeout):
 		// Force kill.
 		_ = cmd.Process.Signal(syscall.SIGKILL)
-		<-done
+		select {
+		case <-reaped:
+		case <-time.After(1 * time.Second):
+			s.logger.Warn("engine process did not reap after SIGKILL",
+				"engine", s.cfg.Kind,
+				"pid", cmd.Process.Pid,
+			)
+		}
 		s.setStatus(StatusStopped, "force killed after timeout")
 	}
 
@@ -160,9 +181,17 @@ type SupervisorInfo struct {
 	Endpoint            string
 }
 
-func (s *Supervisor) spawn(ctx context.Context) error {
+func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
+	if !s.isRunEpochActive(epoch) {
+		return nil
+	}
 	runCtx, cancel := context.WithCancel(ctx)
 	s.mu.Lock()
+	if s.runEpoch != epoch {
+		s.mu.Unlock()
+		cancel()
+		return nil
+	}
 	s.cancel = cancel
 	s.mu.Unlock()
 
@@ -180,15 +209,32 @@ func (s *Supervisor) spawn(ctx context.Context) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	if !s.isRunEpochActive(epoch) {
+		cancel()
+		return nil
+	}
 	s.setStatus(StatusStarting, "spawning process")
 
-	if err := cmd.Start(); err != nil {
-		cancel()
-		s.setStatus(StatusStopped, fmt.Sprintf("start failed: %v", err))
-		return fmt.Errorf("start engine %s: %w", s.cfg.Kind, err)
-	}
-
 	s.mu.Lock()
+	if s.runEpoch != epoch {
+		s.mu.Unlock()
+		cancel()
+		return nil
+	}
+	startErr := cmd.Start()
+	if startErr != nil {
+		s.mu.Unlock()
+		cancel()
+		s.setStatus(StatusStopped, fmt.Sprintf("start failed: %v", startErr))
+		return fmt.Errorf("start engine %s: %w", s.cfg.Kind, startErr)
+	}
+	if s.runEpoch != epoch {
+		pid := cmd.Process.Pid
+		s.mu.Unlock()
+		cancel()
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+		return nil
+	}
 	s.cmd = cmd
 	s.pid = cmd.Process.Pid
 	s.startedAt = time.Now()
@@ -206,6 +252,10 @@ func (s *Supervisor) spawn(ctx context.Context) error {
 	endpoint := s.cfg.Endpoint()
 	probeInterval := 500 * time.Millisecond
 	if err := WaitHealthy(runCtx, endpoint, s.cfg.HealthPath, s.cfg.HealthResponse, probeInterval, s.cfg.StartupTimeout); err != nil {
+		if runCtx.Err() != nil || !s.isRunEpochActive(epoch) {
+			s.removePIDFile()
+			return nil
+		}
 		s.logger.Warn("engine startup health check failed",
 			"engine", s.cfg.Kind,
 			"error", err,
@@ -219,13 +269,18 @@ func (s *Supervisor) spawn(ctx context.Context) error {
 		s.setStatus(StatusHealthy, "ready")
 	}
 
+	if !s.isRunEpochActive(epoch) {
+		s.removePIDFile()
+		return nil
+	}
+
 	// Start health monitoring + process watchdog.
-	go s.monitor(runCtx)
+	go s.monitor(runCtx, epoch)
 
 	return nil
 }
 
-func (s *Supervisor) monitor(ctx context.Context) {
+func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 	healthTicker := time.NewTicker(s.cfg.HealthInterval)
 	defer healthTicker.Stop()
 
@@ -240,19 +295,45 @@ func (s *Supervisor) monitor(ctx context.Context) {
 	}()
 
 	for {
+		// Prioritize crash handling: if process exited, do not keep incrementing
+		// health failure counters in a race with processDone.
 		select {
 		case <-ctx.Done():
 			return
-
 		case err := <-processDone:
+			if !s.isRunEpochActive(epoch) {
+				return
+			}
 			s.logger.Warn("engine process exited unexpectedly",
 				"engine", s.cfg.Kind,
 				"error", err,
 			)
-			s.handleCrash(ctx, err)
+			s.handleCrash(ctx, err, epoch)
 			return
+		default:
+		}
 
+		select {
+		case <-ctx.Done():
+			return
+		case err := <-processDone:
+			if !s.isRunEpochActive(epoch) {
+				return
+			}
+			s.logger.Warn("engine process exited unexpectedly",
+				"engine", s.cfg.Kind,
+				"error", err,
+			)
+			s.handleCrash(ctx, err, epoch)
+			return
 		case <-healthTicker.C:
+			if !s.isRunEpochActive(epoch) {
+				return
+			}
+			currentStatus := s.Status()
+			if currentStatus != StatusHealthy && currentStatus != StatusStarting {
+				continue
+			}
 			endpoint := s.cfg.Endpoint()
 			if err := ProbeHealth(ctx, endpoint, s.cfg.HealthPath, s.cfg.HealthResponse); err != nil {
 				s.mu.Lock()
@@ -283,8 +364,15 @@ func (s *Supervisor) monitor(ctx context.Context) {
 	}
 }
 
-func (s *Supervisor) handleCrash(ctx context.Context, procErr error) {
+func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint64) {
+	if !s.isRunEpochActive(epoch) {
+		return
+	}
 	s.mu.Lock()
+	if s.runEpoch != epoch {
+		s.mu.Unlock()
+		return
+	}
 	s.consecutiveFailures++
 	failures := s.consecutiveFailures
 	s.mu.Unlock()
@@ -324,7 +412,10 @@ func (s *Supervisor) handleCrash(ctx context.Context, procErr error) {
 	case <-time.After(delay):
 	}
 
-	if err := s.spawn(ctx); err != nil {
+	if !s.isRunEpochActive(epoch) {
+		return
+	}
+	if err := s.spawn(ctx, epoch); err != nil {
 		s.logger.Error("engine restart failed",
 			"engine", s.cfg.Kind,
 			"error", err,
@@ -435,4 +526,17 @@ func portAvailable(port int) bool {
 	}
 	ln.Close()
 	return true
+}
+
+func (s *Supervisor) isRunEpochActive(epoch uint64) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.runEpoch == epoch
+}
+
+func processAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	return syscall.Kill(pid, 0) == nil
 }

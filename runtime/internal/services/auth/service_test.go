@@ -2,6 +2,11 @@ package auth
 
 import (
 	"context"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -10,9 +15,11 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time) string {
+func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time, privateKey *rsa.PrivateKey) string {
 	t.Helper()
 	header, err := json.Marshal(map[string]any{"alg": "RS256", "typ": "JWT"})
 	if err != nil {
@@ -22,9 +29,22 @@ func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time) string {
 	if err != nil {
 		t.Fatalf("marshal claims: %v", err)
 	}
-	return base64.RawURLEncoding.EncodeToString(header) + "." +
-		base64.RawURLEncoding.EncodeToString(claims) + "." +
-		base64.RawURLEncoding.EncodeToString([]byte("test-signature"))
+	signingInput := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(claims)
+	digest := sha256.Sum256([]byte(signingInput))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest[:])
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)
+}
+
+func encodePublicKeyDERBase64(t *testing.T, pub *rsa.PublicKey) string {
+	t.Helper()
+	der, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		t.Fatalf("marshal public key: %v", err)
+	}
+	return base64.StdEncoding.EncodeToString(der)
 }
 
 func TestAppSessionLifecycle(t *testing.T) {
@@ -90,12 +110,18 @@ func TestAppSessionLifecycle(t *testing.T) {
 func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	publicKey := encodePublicKeyDERBase64(t, &privateKey.PublicKey)
 
 	registerPrincipalResp, err := svc.RegisterExternalPrincipal(ctx, &runtimev1.RegisterExternalPrincipalRequest{
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-openclaw",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
 		Issuer:                "https://issuer.nimi.local",
+		SignatureKeyId:        publicKey,
 		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	})
 	if err != nil {
@@ -120,7 +146,7 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 	openResp, err := svc.OpenExternalPrincipalSession(ctx, &runtimev1.OpenExternalPrincipalSessionRequest{
 		AppId:               "nimi.desktop",
 		ExternalPrincipalId: "agent-openclaw",
-		Proof:               buildTestJWT(t, "https://issuer.nimi.local", time.Now().Add(5*time.Minute)),
+		Proof:               buildTestJWT(t, "https://issuer.nimi.local", time.Now().Add(5*time.Minute), privateKey),
 	})
 	if err != nil {
 		t.Fatalf("open external principal session: %v", err)
@@ -135,5 +161,29 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 	}
 	if !revokeResp.Ok {
 		t.Fatalf("revoke external principal session must be ok")
+	}
+}
+
+func TestRegisterExternalPrincipalRequiresSignatureKey(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	_, err := svc.RegisterExternalPrincipal(context.Background(), &runtimev1.RegisterExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		Issuer:                "https://issuer.nimi.local",
+		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
+	})
+	if err == nil {
+		t.Fatalf("expected error for missing signature key")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status, got %v", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
+		t.Fatalf("expected protocol invalid reason, got %s", st.Message())
 	}
 }

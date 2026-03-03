@@ -163,8 +163,27 @@ func mapEngineManagerError(operation string, err error) error {
 		})
 	}
 
+	if strings.Contains(lower, "hash mismatch") || strings.Contains(lower, "checksum") {
+		return grpcerr.WithReasonCodeOptions(codes.DataLoss, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH, grpcerr.ReasonOptions{
+			Message:    "engine binary checksum mismatch",
+			ActionHint: "verify_localai_release_checksum",
+			Metadata: map[string]string{
+				"detail": raw,
+			},
+		})
+	}
+
+	if strings.Contains(lower, "download") {
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_FAILED, grpcerr.ReasonOptions{
+			Message:    "engine binary download failed",
+			ActionHint: "retry_download_or_check_network",
+			Metadata: map[string]string{
+				"detail": raw,
+			},
+		})
+	}
+
 	if strings.Contains(lower, "timed out") ||
-		strings.Contains(lower, "download") ||
 		strings.Contains(lower, "health") ||
 		strings.Contains(lower, "probe") ||
 		strings.Contains(lower, "port") ||

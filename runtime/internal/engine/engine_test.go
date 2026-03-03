@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -219,7 +221,7 @@ func TestLocalAIDownloadURL(t *testing.T) {
 }
 
 func TestLocalAIAssetName(t *testing.T) {
-	name, err := localAIAssetName()
+	name, err := localAIAssetName("3.12.1")
 	if err != nil {
 		t.Fatalf("localAIAssetName: %v", err)
 	}
@@ -227,25 +229,72 @@ func TestLocalAIAssetName(t *testing.T) {
 		t.Fatal("expected non-empty asset name")
 	}
 
-	// Verify it contains the OS.
-	expectedOS := runtime.GOOS
-	switch expectedOS {
-	case "darwin":
-		expectedOS = "Darwin"
-	case "linux":
-		expectedOS = "Linux"
+	if !strings.Contains(name, "v3.12.1") {
+		t.Fatalf("asset name must contain version, got %s", name)
 	}
-	found := false
-	if len(name) > 0 {
-		for i := 0; i <= len(name)-len(expectedOS); i++ {
-			if name[i:i+len(expectedOS)] == expectedOS {
-				found = true
-				break
-			}
+	if !strings.Contains(name, runtime.GOOS) {
+		t.Fatalf("asset name must contain GOOS=%s, got %s", runtime.GOOS, name)
+	}
+	if !strings.Contains(name, runtime.GOARCH) {
+		t.Fatalf("asset name must contain GOARCH=%s, got %s", runtime.GOARCH, name)
+	}
+}
+
+func TestLocalAIExpectedSHA256(t *testing.T) {
+	const version = "3.12.1"
+	const asset = "local-ai-v3.12.1-darwin-arm64"
+	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v3.12.1/LocalAI-v3.12.1-checksums.txt" {
+			http.NotFound(w, r)
+			return
 		}
+		_, _ = w.Write([]byte(strings.Join([]string{
+			"fc8483b895154d3c4e7149d6d480cb18837a3ae42a208f687a89db20802d78d1  LocalAI-v3.12.1-source.tar.gz",
+			expectedHash + "  " + asset,
+		}, "\n")))
+	}))
+	defer server.Close()
+
+	originalBaseURL := localAIReleaseBaseURL
+	originalClient := localAIReleaseHTTPClient
+	localAIReleaseBaseURL = server.URL
+	localAIReleaseHTTPClient = server.Client()
+	t.Cleanup(func() {
+		localAIReleaseBaseURL = originalBaseURL
+		localAIReleaseHTTPClient = originalClient
+	})
+
+	hash, err := localAIExpectedSHA256(version, asset)
+	if err != nil {
+		t.Fatalf("localAIExpectedSHA256: %v", err)
 	}
-	if !found {
-		t.Errorf("expected asset name to contain %s, got %s", expectedOS, name)
+	if hash != expectedHash {
+		t.Fatalf("checksum mismatch: got=%s want=%s", hash, expectedHash)
+	}
+}
+
+func TestLocalAIExpectedSHA256MissingAsset(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00  local-ai-v3.12.1-darwin-arm64\n"))
+	}))
+	defer server.Close()
+
+	originalBaseURL := localAIReleaseBaseURL
+	originalClient := localAIReleaseHTTPClient
+	localAIReleaseBaseURL = server.URL
+	localAIReleaseHTTPClient = server.Client()
+	t.Cleanup(func() {
+		localAIReleaseBaseURL = originalBaseURL
+		localAIReleaseHTTPClient = originalClient
+	})
+
+	_, err := localAIExpectedSHA256("3.12.1", "local-ai-v3.12.1-linux-amd64")
+	if err == nil {
+		t.Fatal("expected missing checksum error")
+	}
+	if !errors.Is(err, ErrEngineBinaryDownloadFailed) {
+		t.Fatalf("expected ErrEngineBinaryDownloadFailed, got %v", err)
 	}
 }
 
@@ -460,6 +509,24 @@ func TestDownloadFromURLHTTPError(t *testing.T) {
 	entries, _ := os.ReadDir(destDir)
 	for _, e := range entries {
 		t.Errorf("unexpected residual file: %s", e.Name())
+	}
+}
+
+func TestDownloadFromURLHashMismatch(t *testing.T) {
+	fakeBinary := []byte("#!/bin/sh\necho hello\n")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(fakeBinary)
+	}))
+	defer server.Close()
+
+	destDir := filepath.Join(t.TempDir(), "engines", "test")
+	_, _, err := downloadFromURLWithExpectedSHA256(server.URL+"/fake-binary", destDir, "test-binary", strings.Repeat("0", 64))
+	if err == nil {
+		t.Fatal("expected hash mismatch error")
+	}
+	if !errors.Is(err, ErrEngineBinaryHashMismatch) {
+		t.Fatalf("expected ErrEngineBinaryHashMismatch, got %v", err)
 	}
 }
 
@@ -760,7 +827,8 @@ func TestSupervisorCrashRestart(t *testing.T) {
 
 	script := writeTestScript(t, "exit 1")
 	cfg := testSupervisorCfg(script)
-	cfg.MaxRestarts = 3
+	cfg.MaxRestarts = 10
+	cfg.HealthInterval = 500 * time.Millisecond
 	cfg.RestartBaseDelay = 10 * time.Millisecond
 	cfg.StartupTimeout = 200 * time.Millisecond
 
@@ -795,8 +863,47 @@ func TestSupervisorCrashRestart(t *testing.T) {
 	// Second "starting" from crash→restart.
 	select {
 	case <-startingCh:
-	case <-time.After(5 * time.Second):
+	case <-time.After(8 * time.Second):
 		t.Fatal("timed out waiting for restart starting callback — crash restart did not trigger")
+	}
+}
+
+func TestSupervisorStopCancelsPendingRestart(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix signals")
+	}
+
+	script := writeTestScript(t, "exit 1")
+	cfg := testSupervisorCfg(script)
+	cfg.MaxRestarts = 5
+	cfg.RestartBaseDelay = 500 * time.Millisecond
+	cfg.StartupTimeout = 100 * time.Millisecond
+
+	var startingCount atomic.Int32
+	onState := func(kind EngineKind, status EngineStatus, detail string) {
+		if status == StatusStarting {
+			startingCount.Add(1)
+		}
+	}
+
+	sup := NewSupervisor(cfg, testLogger(), onState)
+	ctx := context.Background()
+	if err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	if !waitForStatus(sup, StatusUnhealthy, 2*time.Second) {
+		t.Fatalf("expected unhealthy before stop, got %s", sup.Status())
+	}
+
+	if err := sup.Stop(); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	startingAfterStop := startingCount.Load()
+
+	time.Sleep(1200 * time.Millisecond)
+	if got := startingCount.Load(); got != startingAfterStop {
+		t.Fatalf("unexpected restart after stop: before=%d after=%d", startingAfterStop, got)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -272,6 +273,82 @@ func TestOpenAIBackendStreamGenerateFallsBackWhenUnsupported(t *testing.T) {
 	}
 	if usage == nil || usage.GetInputTokens() != 9 || usage.GetOutputTokens() != 3 {
 		t.Fatalf("usage mismatch: %#v", usage)
+	}
+}
+
+func TestOpenAIBackendStreamGenerateFallsBackWhenContentTypeIsNotSSE(t *testing.T) {
+	var streamCalls atomic.Int32
+	var nonStreamCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		stream, _ := payload["stream"].(bool)
+		if stream {
+			streamCalls.Add(1)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"choices": []map[string]any{
+					{
+						"finish_reason": "stop",
+						"message": map[string]any{
+							"content": "json stream body is not SSE",
+						},
+					},
+				},
+			})
+			return
+		}
+		nonStreamCalls.Add(1)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{
+				{
+					"finish_reason": "stop",
+					"message": map[string]any{
+						"content": "fallback by content type",
+					},
+				},
+			},
+			"usage": map[string]any{
+				"prompt_tokens":     7,
+				"completion_tokens": 4,
+			},
+		})
+	}))
+	defer server.Close()
+
+	backend := nimillm.NewBackend("test", server.URL, "", 3*time.Second)
+	if backend == nil {
+		t.Fatalf("backend must not be nil")
+	}
+
+	deltas := make([]string, 0, 2)
+	usage, finish, err := backend.StreamGenerateText(context.Background(), "gpt-4o", []*runtimev1.ChatMessage{
+		{Role: "user", Content: "hello"},
+	}, "", 0, 0, 0, func(chunk string) error {
+		deltas = append(deltas, chunk)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("stream generate fallback by content-type: %v", err)
+	}
+	if strings.TrimSpace(strings.Join(deltas, "")) != "fallback by content type" {
+		t.Fatalf("fallback delta mismatch: %#v", deltas)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("finish reason mismatch: %v", finish)
+	}
+	if usage == nil || usage.GetInputTokens() != 7 || usage.GetOutputTokens() != 4 {
+		t.Fatalf("usage mismatch: %#v", usage)
+	}
+	if streamCalls.Load() != 1 {
+		t.Fatalf("expected one stream call, got %d", streamCalls.Load())
+	}
+	if nonStreamCalls.Load() != 1 {
+		t.Fatalf("expected one fallback non-stream call, got %d", nonStreamCalls.Load())
 	}
 }
 

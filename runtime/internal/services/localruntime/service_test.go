@@ -2526,8 +2526,19 @@ func TestEngineRPCEnsureEngineError(t *testing.T) {
 	})
 
 	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
-	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Unavailable)
-	assertGRPCReasonCode(t, err, "EnsureEngine(error)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Internal)
+	assertGRPCReasonCode(t, err, "EnsureEngine(error)", runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_FAILED)
+}
+
+func TestEngineRPCEnsureEngineHashMismatch(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		ensureErr: fmt.Errorf("engine binary hash mismatch"),
+	})
+
+	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "EnsureEngine(hash_mismatch)", codes.DataLoss)
+	assertGRPCReasonCode(t, err, "EnsureEngine(hash_mismatch)", runtimev1.ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH)
 }
 
 func TestLocalRuntimeManagementRPCsUsePlainInvalidArgumentAndNotFoundForModelIDs(t *testing.T) {

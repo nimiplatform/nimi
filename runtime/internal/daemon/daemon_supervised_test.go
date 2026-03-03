@@ -65,3 +65,35 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		t.Fatalf("unexpected startup failure reason code: %v", startupFailures[0].GetReasonCode())
 	}
 }
+
+func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
+	store := auditlog.New(32, 32)
+	appendEngineCrashAudit(store, "localai", "crash=exit status 7 attempt=2/5 restarting")
+
+	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain: "runtime.engine",
+	})
+	if len(events.GetEvents()) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got %d", len(events.GetEvents()))
+	}
+	record := events.GetEvents()[0]
+	if record.GetOperation() != "engine.unhealthy" {
+		t.Fatalf("unexpected operation: %s", record.GetOperation())
+	}
+	payload := record.GetPayload().GetFields()
+	if payload["engine"].GetStringValue() != "localai" {
+		t.Fatalf("unexpected engine: %q", payload["engine"].GetStringValue())
+	}
+	if payload["detail"].GetStringValue() != "crash=exit status 7 attempt=2/5 restarting" {
+		t.Fatalf("unexpected detail: %q", payload["detail"].GetStringValue())
+	}
+	if payload["attempt"].GetNumberValue() != 2 {
+		t.Fatalf("unexpected attempt: %v", payload["attempt"].GetNumberValue())
+	}
+	if payload["max_attempt"].GetNumberValue() != 5 {
+		t.Fatalf("unexpected max_attempt: %v", payload["max_attempt"].GetNumberValue())
+	}
+	if payload["exit_code"].GetNumberValue() != 7 {
+		t.Fatalf("unexpected exit_code: %v", payload["exit_code"].GetNumberValue())
+	}
+}

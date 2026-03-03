@@ -317,6 +317,7 @@ func (s *Service) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	}
 
 	if streamer, ok := selectedProvider.(streamingTextProvider); ok {
+		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
 		usage, finishReason, err = streamer.StreamGenerateText(requestCtx, modelResolved, req, func(part string) error {
 			firstPacketSeen.Store(true)
 			outputBuilder.WriteString(part)

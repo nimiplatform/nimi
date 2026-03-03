@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"strings"
@@ -101,29 +102,37 @@ func validateJWTProof(token string, principal externalPrincipal) error {
 		return fmt.Errorf("%w: JWT issuer mismatch", ErrTokenInvalid)
 	}
 
-	// Verify signature if a key is registered.
-	if principal.SignatureKeyID != "" {
-		signingInput := parts[0] + "." + parts[1]
-		signature, err := base64URLDecode(parts[2])
-		if err != nil {
-			return fmt.Errorf("%w: decode JWT signature: %v", ErrTokenInvalid, err)
-		}
-		if err := verifySignature(header.Alg, principal.SignatureKeyID, []byte(signingInput), signature); err != nil {
-			return fmt.Errorf("%w: JWT signature invalid: %v", ErrTokenInvalid, err)
-		}
+	signatureKey := strings.TrimSpace(principal.SignatureKeyID)
+	if signatureKey == "" {
+		return fmt.Errorf("%w: JWT signature key is required", ErrTokenInvalid)
+	}
+
+	// Verify signature against the registered key.
+	signingInput := parts[0] + "." + parts[1]
+	signature, err := base64URLDecode(parts[2])
+	if err != nil {
+		return fmt.Errorf("%w: decode JWT signature: %v", ErrTokenInvalid, err)
+	}
+	if err := verifySignature(header.Alg, signatureKey, []byte(signingInput), signature); err != nil {
+		return fmt.Errorf("%w: JWT signature invalid: %v", ErrTokenInvalid, err)
 	}
 
 	return nil
 }
 
-func verifySignature(alg string, keyPEM string, signingInput []byte, signature []byte) error {
-	keyBytes, err := base64.StdEncoding.DecodeString(keyPEM)
-	if err != nil {
-		// Try raw PEM.
-		keyBytes = []byte(keyPEM)
+func validateJWTSignatureKey(key string) error {
+	trimmed := strings.TrimSpace(key)
+	if trimmed == "" {
+		return fmt.Errorf("%w: JWT signature key is required", ErrTokenInvalid)
 	}
+	if _, err := parseJWTPublicKey(trimmed); err != nil {
+		return fmt.Errorf("%w: parse public key: %v", ErrTokenInvalid, err)
+	}
+	return nil
+}
 
-	pubKey, err := x509.ParsePKIXPublicKey(keyBytes)
+func verifySignature(alg string, keyPEM string, signingInput []byte, signature []byte) error {
+	pubKey, err := parseJWTPublicKey(keyPEM)
 	if err != nil {
 		return fmt.Errorf("%w: parse public key: %v", ErrTokenInvalid, err)
 	}
@@ -152,6 +161,17 @@ func verifySignature(alg string, keyPEM string, signingInput []byte, signature [
 	default:
 		return fmt.Errorf("%w: unsupported algorithm: %s", ErrTokenInvalid, alg)
 	}
+}
+
+func parseJWTPublicKey(raw string) (any, error) {
+	keyBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(raw))
+	if err != nil {
+		keyBytes = []byte(strings.TrimSpace(raw))
+	}
+	if block, _ := pem.Decode(keyBytes); block != nil {
+		keyBytes = block.Bytes
+	}
+	return x509.ParsePKIXPublicKey(keyBytes)
 }
 
 func base64URLDecode(s string) ([]byte, error) {

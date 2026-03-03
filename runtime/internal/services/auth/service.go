@@ -291,6 +291,15 @@ func (s *Service) RegisterExternalPrincipal(_ context.Context, req *runtimev1.Re
 		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE)
 	}
+	signatureKeyID := strings.TrimSpace(req.GetSignatureKeyId())
+	if signatureKeyID == "" {
+		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if err := validateJWTSignatureKey(signatureKeyID); err != nil {
+		s.emitAudit("RegisterExternalPrincipal", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	}
 
 	principal := externalPrincipal{
 		AppID:                 appID,
@@ -298,7 +307,7 @@ func (s *Service) RegisterExternalPrincipal(_ context.Context, req *runtimev1.Re
 		ExternalPrincipalType: req.GetExternalPrincipalType(),
 		Issuer:                strings.TrimSpace(req.GetIssuer()),
 		ClientID:              strings.TrimSpace(req.GetClientId()),
-		SignatureKeyID:        strings.TrimSpace(req.GetSignatureKeyId()),
+		SignatureKeyID:        signatureKeyID,
 		ProofType:             req.GetProofType(),
 	}
 
