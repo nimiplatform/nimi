@@ -51,6 +51,16 @@ pre-commit install
 3. Run relevant tests/lint/type checks before opening a PR.
 4. Open a PR with clear change summary and verification steps.
 
+## AI-Assisted Contributions
+
+If you use AI coding tools, follow the AGENTS hierarchy as the single rule source:
+
+1. [`AGENTS.md`](./AGENTS.md) for repo-wide rules
+2. The nearest path-scoped `*/AGENTS.md` for component rules
+3. [`spec/AGENTS.md`](./spec/AGENTS.md) for any `spec/**` changes
+
+Compatibility files such as `CLAUDE.md`, `.github/copilot-instructions.md`, and `*context.md` are navigation shims only. They must not be treated as independent rule definitions.
+
 ## Pull Request Checklist
 
 - Code compiles

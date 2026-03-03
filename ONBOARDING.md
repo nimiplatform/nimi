@@ -238,11 +238,15 @@ pnpm check:desktop-spec-kernel-consistency
 
 请先阅读以下文件：
 
-1. `AGENTS.md`（仓库级规则）
-2. `runtime/AGENTS.md`（若改 Go runtime）
-3. `sdk/AGENTS.md`（若改 SDK）
-4. `apps/desktop/AGENTS.md`（若改 desktop）
-5. `spec/` 目录下对应域的 spec 文档
+1. `AGENTS.md`（仓库级规则，最高优先级）
+2. 就近目录的 `*/AGENTS.md`（按改动路径匹配组件规则）
+3. `spec/AGENTS.md`（当改动 `spec/**` 时必须遵循）
+4. `spec/` 目录下对应域的规范文档（规则内容本体）
+
+兼容说明（避免歧义）：
+
+- `CLAUDE.md`、`.github/copilot-instructions.md`、`*context.md` 仅作为工具兼容入口，不定义独立规则。
+- 与任意 AGENTS 规则冲突时，以 `AGENTS.md` 与路径级 `*/AGENTS.md` 为准。
 
 高频边界规则：
 
