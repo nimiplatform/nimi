@@ -31,7 +31,7 @@ export function ExploreView(props: ExploreViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header bar */}
-      <div className="flex h-14 shrink-0 items-center gap-4 bg-white px-6">
+      <div className="flex h-14 shrink-0 items-center gap-4 bg-gray-50 px-6">
         <h1 className="text-lg font-semibold tracking-tight text-gray-900">
           {t('Explore.pageTitle')}
         </h1>

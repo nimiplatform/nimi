@@ -18,3 +18,20 @@ export function getStatusBadgeStyle(status: string): { bg: string; text: string 
 export function getWorldInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
+
+export function getStatusDotColor(status: string): string {
+  switch (status) {
+    case 'ACTIVE':
+      return 'bg-green-500';
+    case 'DRAFT':
+      return 'bg-yellow-500';
+    case 'PENDING_REVIEW':
+      return 'bg-blue-500';
+    case 'SUSPENDED':
+      return 'bg-red-500';
+    case 'ARCHIVED':
+      return 'bg-gray-500';
+    default:
+      return 'bg-gray-500';
+  }
+}

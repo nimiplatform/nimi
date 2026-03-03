@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getStatusBadgeStyle } from './shared';
-import { WorldDetail } from './world-detail';
+import { getStatusBadgeStyle, getStatusDotColor } from './shared.js';
+import { WorldDetail } from './world-detail.js';
 
 export type WorldAgentItem = {
   id: string;
@@ -47,7 +47,6 @@ export type WorldListItem = {
 };
 
 function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
-  // Parse agents if present
   let parsedAgents: WorldAgentItem[] | undefined;
   if (Array.isArray(raw.agents)) {
     parsedAgents = raw.agents.map((a: unknown) => {
@@ -134,7 +133,6 @@ export function WorldList() {
   const mainWorld = worlds.find((w) => w.type === 'MAIN');
   const subWorlds = filteredWorlds.filter((w) => w.type === 'SUB');
 
-  // Show detail view when a world is selected
   if (selectedWorldId) {
     const selectedWorld = worlds.find((w) => w.id === selectedWorldId);
     if (selectedWorld) {
@@ -144,9 +142,9 @@ export function WorldList() {
 
   if (worldsQuery.isPending) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#F0F4F8]">
+      <div className="flex h-full items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-3 text-gray-400">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#4ECCA3]" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-mint-500" />
           <span className="text-sm">{t('World.loading')}</span>
         </div>
       </div>
@@ -155,339 +153,289 @@ export function WorldList() {
 
   if (worldsQuery.isError) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#F0F4F8]">
+      <div className="flex h-full items-center justify-center bg-gray-50">
         <span className="text-sm text-red-600">{t('World.loadError')}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full bg-[#F0F4F8] overflow-y-auto">
-      <div className="mx-auto max-w-6xl w-full px-6 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">{t('World.title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('World.subtitle')}</p>
-        </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Header bar */}
+      <div className="flex h-auto shrink-0 flex-col justify-center gap-1 bg-gray-50 px-6 py-3">
+        <h1 className="text-lg font-semibold tracking-tight text-gray-900">{t('World.title')}</h1>
+        <span className="text-xs text-gray-400">Synced from Desktop</span>
+      </div>
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="flex h-10 items-center rounded-full bg-white px-4 shadow-sm max-w-md">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#9ca3af"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-              placeholder={t('World.searchPlaceholder')}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Main World Card */}
-        {mainWorld && !searchText && (
-          <div className="mb-6">
-            <h2 className="text-sm font-medium text-gray-500 mb-3">{t('World.mainWorld')}</h2>
-            <div
-              onClick={() => openWorldDetail(mainWorld.id)}
-              className="cursor-pointer rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none rounded-3xl" />
-
-              {/* Banner */}
-              {mainWorld.bannerUrl && (
-                <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden">
-                  <img
-                    src={mainWorld.bannerUrl}
-                    alt={mainWorld.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                </div>
-              )}
-
-              <div className="relative flex items-start gap-4">
-                {mainWorld.iconUrl ? (
-                  <img
-                    src={mainWorld.iconUrl}
-                    alt={mainWorld.name}
-                    className="h-20 w-20 rounded-2xl object-cover"
-                  />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-3xl font-bold text-[#4ECCA3]">
-                    {mainWorld.name.charAt(0).toUpperCase()}
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="mx-auto max-w-6xl px-6 py-6">
+          {/* Main World Card */}
+          {mainWorld && !searchText && (
+            <div className="mb-6">
+              <h2 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>{t('World.mainWorld')}</h2>
+              <div
+                onClick={() => openWorldDetail(mainWorld.id)}
+                className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md"
+              >
+                {mainWorld.bannerUrl && (
+                  <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden rounded-t-2xl">
+                    <img
+                      src={mainWorld.bannerUrl}
+                      alt={mainWorld.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                   </div>
                 )}
-                <div className="flex-1">
-                  {/* Title row with agent count */}
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900">{mainWorld.name}</h3>
-                    {/* Agent icon + count */}
-                    <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="10" rx="2" />
-                        <circle cx="12" cy="5" r="2" />
-                        <path d="M12 7v4" />
-                        <line x1="8" y1="16" x2="8" y2="16" />
-                        <line x1="16" y1="16" x2="16" y2="16" />
-                      </svg>
-                      {mainWorld.agentCount}
-                    </span>
+
+                <div className="flex items-start gap-4">
+                  <div className="relative">
+                    {mainWorld.iconUrl ? (
+                      <img
+                        src={mainWorld.iconUrl}
+                        alt={mainWorld.name}
+                        className="h-20 w-20 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-mint-100 to-mint-50 text-3xl font-bold text-mint-600">
+                        {mainWorld.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* Status dot */}
+                    <div
+                      className={`absolute bottom-[1px] right-[1px] h-4 w-4 rounded-full border-2 border-white ${getStatusDotColor(mainWorld.status)}`}
+                      title={mainWorld.status}
+                    />
                   </div>
-                  
-                  {/* Status badges below title */}
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(mainWorld.status).bg} ${getStatusBadgeStyle(mainWorld.status).text}`}
-                    >
-                      {mainWorld.status}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${mainWorld.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
-                    >
-                      {mainWorld.nativeCreationState}
-                    </span>
-                  </div>
-                  
-                  {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {mainWorld.genre && (
-                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">
-                          {mainWorld.genre}
-                        </span>
-                      )}
-                      {mainWorld.era && (
-                        <span className="inline-block px-2 py-0.5 bg-purple-50 text-purple-600 rounded text-xs">
-                          {mainWorld.era}
-                        </span>
-                      )}
-                      {mainWorld.themes.slice(0, 3).map((theme, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-block px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-xs"
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-gray-900">{mainWorld.name}</h3>
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         >
-                          {theme}
-                        </span>
-                      ))}
-                      {mainWorld.themes.length > 3 && (
-                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
-                          +{mainWorld.themes.length - 3}
-                        </span>
-                      )}
+                          <rect x="3" y="11" width="18" height="10" rx="2" />
+                          <circle cx="12" cy="5" r="2" />
+                          <path d="M12 7v4" />
+                          <line x1="8" y1="16" x2="8" y2="16" />
+                          <line x1="16" y1="16" x2="16" y2="16" />
+                        </svg>
+                        {mainWorld.agentCount}
+                      </span>
                     </div>
-                  )}
 
-                  {mainWorld.description && (
-                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-                      {mainWorld.description}
-                    </p>
-                  )}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(mainWorld.status).bg} ${getStatusBadgeStyle(mainWorld.status).text}`}
+                      >
+                        {mainWorld.status}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${mainWorld.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
+                      >
+                        {mainWorld.nativeCreationState}
+                      </span>
+                    </div>
 
-                  {/* Time & Transit -->
-                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                    <span>
-                      {t('WorldDetail.timeFlowRatio', { ratio: mainWorld.timeFlowRatio })}
-                    </span>
-                    <span>•</span>
-                    <span>
-                      {t('WorldDetail.transitInLimit', { limit: mainWorld.transitInLimit })}
-                    </span>
-                    {mainWorld.freezeReason && (
-                      <>
-                        <span>•</span>
-                        <span className="text-red-500">
-                          {t('WorldDetail.freezeReason', { reason: mainWorld.freezeReason })}
-                        </span>
-                      </>
+                    {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {mainWorld.genre && (
+                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">
+                            {mainWorld.genre}
+                          </span>
+                        )}
+                        {mainWorld.era && (
+                          <span className="inline-block px-2 py-0.5 bg-purple-50 text-purple-600 rounded text-xs">
+                            {mainWorld.era}
+                          </span>
+                        )}
+                        {mainWorld.themes.slice(0, 3).map((theme, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-block px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-xs"
+                          >
+                            {theme}
+                          </span>
+                        ))}
+                        {mainWorld.themes.length > 3 && (
+                          <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
+                            +{mainWorld.themes.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {mainWorld.description && (
+                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                        {mainWorld.description}
+                      </p>
+                    )}
+
+                    {mainWorld.creatorId && (
+                      <div className="mt-1 text-xs text-gray-400">
+                        {t('WorldDetail.creatorId', { id: mainWorld.creatorId })}
+                      </div>
                     )}
                   </div>
-
-                  {/* Scores */}
-                  <div className="mt-2 flex items-center gap-3 text-xs">
-                    <span className="text-gray-400">{t('WorldDetail.scores')}:</span>
-                    <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">
-                      A:{mainWorld.scoreA.toFixed(1)}
-                    </span>
-                    <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
-                      C:{mainWorld.scoreC.toFixed(1)}
-                    </span>
-                    <span className="px-1.5 py-0.5 bg-green-50 text-green-600 rounded">
-                      E:{mainWorld.scoreE.toFixed(1)}
-                    </span>
-                    <span className="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">
-                      Q:{mainWorld.scoreQ.toFixed(1)}
-                    </span>
-                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
-                      EWMA:{mainWorld.scoreEwma.toFixed(1)}
-                    </span>
-                  </div>
-
-                  {mainWorld.creatorId && (
-                    <div className="mt-1 text-xs text-gray-400">
-                      {t('WorldDetail.creatorId', { id: mainWorld.creatorId })}
-                    </div>
-                  )}
-                </div>
-                <div className="text-gray-400">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Sub Worlds Grid */}
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 mb-3">
-            {searchText ? t('World.searchResults') : t('World.subWorlds')}
-          </h2>
-          {subWorlds.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1"
-                className="mb-4 opacity-30"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              <p className="text-sm">
-                {searchText ? t('World.noSearchResults') : t('World.noWorlds')}
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {subWorlds.map((world) => {
-                const statusStyle = getStatusBadgeStyle(world.status);
-                return (
-                  <div
-                    key={world.id}
-                    onClick={() => openWorldDetail(world.id)}
-                    className="cursor-pointer rounded-2xl border border-white/60 bg-white/40 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all hover:bg-white/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-                  >
-                    {/* Banner */}
-                    {world.bannerUrl && (
-                      <div className="relative -mx-5 -mt-5 mb-3 h-20 overflow-hidden rounded-t-2xl">
-                        <img
-                          src={world.bannerUrl}
-                          alt={world.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                      </div>
-                    )}
-
-                    <div className="flex items-start gap-3">
-                      {world.iconUrl ? (
-                        <img
-                          src={world.iconUrl}
-                          alt={world.name}
-                          className="h-14 w-14 rounded-xl object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-xl font-bold text-[#4ECCA3] shrink-0">
-                          {world.name.charAt(0).toUpperCase()}
+          {/* Sub Worlds Grid */}
+          <div>
+            <h2 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>
+              {searchText ? t('World.searchResults') : t('World.subWorlds')}
+            </h2>
+            {subWorlds.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  className="mb-4 opacity-30"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M2 12h20" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                <p className="text-sm">
+                  {searchText ? t('World.noSearchResults') : t('World.noWorlds')}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {subWorlds.map((world) => {
+                  const statusStyle = getStatusBadgeStyle(world.status);
+                  return (
+                    <div
+                      key={world.id}
+                      onClick={() => openWorldDetail(world.id)}
+                      className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+                    >
+                      {world.bannerUrl && (
+                        <div className="relative -mx-5 -mt-5 mb-3 h-20 overflow-hidden rounded-t-xl">
+                          <img
+                            src={world.bannerUrl}
+                            alt={world.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="font-semibold text-gray-900 truncate">{world.name}</h3>
-                          <span className="inline-flex items-center gap-1 text-[10px] text-gray-500">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="11" width="18" height="10" rx="2" />
-                              <circle cx="12" cy="5" r="2" />
-                              <path d="M12 7v4" />
-                              <line x1="8" y1="16" x2="8" y2="16" />
-                              <line x1="16" y1="16" x2="16" y2="16" />
-                            </svg>
-                            {world.agentCount}
-                          </span>
+
+                      <div className="flex items-start gap-3">
+                        <div className="relative shrink-0">
+                          {world.iconUrl ? (
+                            <img
+                              src={world.iconUrl}
+                              alt={world.name}
+                              className="h-14 w-14 rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-mint-100 to-mint-50 text-xl font-bold text-mint-600">
+                              {world.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          {/* Status dot */}
+                          <div
+                            className={`absolute bottom-[1px] right-[1px] h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusDotColor(world.status)}`}
+                            title={world.status}
+                          />
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span
-                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}
-                          >
-                            {world.status}
-                          </span>
-                          <span
-                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${world.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
-                          >
-                            {world.nativeCreationState}
-                          </span>
-                        </div>
-                        {(world.genre || world.era || world.themes.length > 0) && (
-                          <div className="mt-2 flex flex-wrap items-center gap-1">
-                            {world.genre && (
-                              <span className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px]">
-                                {world.genre}
-                              </span>
-                            )}
-                            {world.era && (
-                              <span className="inline-block px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-[10px]">
-                                {world.era}
-                              </span>
-                            )}
-                            {world.themes.slice(0, 2).map((theme, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-block px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px]"
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-semibold text-gray-900 truncate">{world.name}</h3>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-gray-500">
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                               >
-                                {theme}
-                              </span>
-                            ))}
-                            {world.themes.length > 2 && (
-                              <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
-                                +{world.themes.length - 2}
-                              </span>
-                            )}
+                                <rect x="3" y="11" width="18" height="10" rx="2" />
+                                <circle cx="12" cy="5" r="2" />
+                                <path d="M12 7v4" />
+                                <line x1="8" y1="16" x2="8" y2="16" />
+                                <line x1="16" y1="16" x2="16" y2="16" />
+                              </svg>
+                              {world.agentCount}
+                            </span>
                           </div>
-                        )}
-
-                        {world.description && (
-                          <p className="mt-2 text-xs text-gray-500 line-clamp-2">
-                            {world.description}
-                          </p>
-                        )}
-
-                        {world.freezeReason && (
-                          <div className="mt-1 text-[10px] text-red-500">
-                            {t('WorldDetail.freezeReason', { reason: world.freezeReason })}
+                          <div className="flex items-center gap-1 mt-1">
+                            <span
+                              className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                            >
+                              {world.status}
+                            </span>
+                            <span
+                              className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${world.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
+                            >
+                              {world.nativeCreationState}
+                            </span>
                           </div>
-                        )}
+                          {(world.genre || world.era || world.themes.length > 0) && (
+                            <div className="mt-2 flex flex-wrap items-center gap-1">
+                              {world.genre && (
+                                <span className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px]">
+                                  {world.genre}
+                                </span>
+                              )}
+                              {world.era && (
+                                <span className="inline-block px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-[10px]">
+                                  {world.era}
+                                </span>
+                              )}
+                              {world.themes.slice(0, 2).map((theme, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-block px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px]"
+                                >
+                                  {theme}
+                                </span>
+                              ))}
+                              {world.themes.length > 2 && (
+                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
+                                  +{world.themes.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {world.description && (
+                            <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                              {world.description}
+                            </p>
+                          )}
+
+                          {world.freezeReason && (
+                            <div className="mt-1 text-[10px] text-red-500">
+                              {t('WorldDetail.freezeReason', { reason: world.freezeReason })}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

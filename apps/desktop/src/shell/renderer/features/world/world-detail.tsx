@@ -125,20 +125,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
 
   return (
     <div className="h-full overflow-y-auto bg-[#f8fafb]">
-      {/* Back button */}
-      <div className="sticky top-0 z-50 px-4 py-3 bg-[#0a0f0c] border-b border-[#4ECCA3]/10">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4ECCA3]/10 border border-[#4ECCA3]/30 text-sm font-semibold text-[#4ECCA3] hover:bg-[#4ECCA3]/20 transition-all"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Back to List
-        </button>
-      </div>
-
       <XianxiaWorldTemplate
         world={worldData}
         agents={agents}

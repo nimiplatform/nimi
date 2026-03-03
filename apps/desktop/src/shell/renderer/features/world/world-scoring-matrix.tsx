@@ -23,7 +23,7 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
 
   // Create geometry: Icosahedron with detail level 0 - medium size (1/3 smaller)
   const geometry = useMemo(() => new THREE.IcosahedronGeometry(0.95, 0), []);
-  
+
   // Create edges geometry for wireframe effect
   const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry, 15), [geometry]);
 
@@ -46,9 +46,21 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
   // Labels positioned at specific vertices - adjusted for medium crystal
   const labelsData = [
     { name: 'Activity', score: scores.Activity, position: [0, 1.4, 0] as [number, number, number] },
-    { name: 'Consensus', score: scores.Consensus, position: [1.3, 0, 0.4] as [number, number, number] },
-    { name: 'Quality', score: scores.Quality, position: [-1.3, 0, 0.4] as [number, number, number] },
-    { name: 'Engagement', score: scores.Engagement, position: [0, -1.4, 0] as [number, number, number] },
+    {
+      name: 'Consensus',
+      score: scores.Consensus,
+      position: [1.3, 0, 0.4] as [number, number, number],
+    },
+    {
+      name: 'Quality',
+      score: scores.Quality,
+      position: [-1.3, 0, 0.4] as [number, number, number],
+    },
+    {
+      name: 'Engagement',
+      score: scores.Engagement,
+      position: [0, -1.4, 0] as [number, number, number],
+    },
   ];
 
   return (
@@ -75,13 +87,7 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
 
       {/* Inner wireframe for more glow effect */}
       <mesh geometry={new THREE.IcosahedronGeometry(0.9, 0)}>
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.1}
-          wireframe
-          toneMapped={false}
-        />
+        <meshBasicMaterial color={color} transparent opacity={0.1} wireframe toneMapped={false} />
       </mesh>
 
       {/* Data labels */}
@@ -103,18 +109,18 @@ const CrystalModel = ({ data, color = '#4ECCA3' }: { data: ScoringData; color?: 
           }}
         >
           <div>
-            <div style={{ 
-              textTransform: 'uppercase', 
-              marginBottom: '2px', 
-              fontSize: '10px',
-              letterSpacing: '0.5px',
-              opacity: 0.9 
-            }}>
+            <div
+              style={{
+                textTransform: 'uppercase',
+                marginBottom: '2px',
+                fontSize: '10px',
+                letterSpacing: '0.5px',
+                opacity: 0.9,
+              }}
+            >
               {label.name}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              {label.score.toFixed(0)}
-            </div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{label.score.toFixed(0)}</div>
           </div>
         </Html>
       ))}
@@ -130,7 +136,7 @@ const Scene = ({ data }: { data: ScoringData }) => {
       <ambientLight intensity={0.2} />
       <directionalLight position={[2, 5, 2]} intensity={1} color="#ffffff" />
       <pointLight position={[-3, -3, -3]} intensity={0.5} color="#4ECCA3" />
-      
+
       {/* Environment for reflections */}
       <Environment preset="city" />
 
@@ -141,12 +147,7 @@ const Scene = ({ data }: { data: ScoringData }) => {
 
       {/* Post-processing: Bloom effect */}
       <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.5}
-          luminanceSmoothing={0.9}
-          intensity={1.5}
-          radius={0.8}
-        />
+        <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.9} intensity={1.5} radius={0.8} />
       </EffectComposer>
     </>
   );
@@ -160,7 +161,7 @@ interface WorldScoringMatrixProps {
 
 export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixProps) {
   const ewmaScore = data.scoreEwma ?? 0;
-  
+
   // Determine EWMA trend status
   const getEwmaStatus = (score: number) => {
     if (score >= 80) return { label: 'Excellent', color: '#4ADE80' };
@@ -168,11 +169,11 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
     if (score >= 40) return { label: 'Average', color: '#F97316' };
     return { label: 'Needs Attention', color: '#EF4444' };
   };
-  
+
   const ewmaStatus = getEwmaStatus(ewmaScore);
-  
+
   return (
-    <div 
+    <div
       className={`relative w-full h-full flex flex-col rounded-[20px] overflow-hidden border border-[#4ECCA3]/20 ${className}`}
       style={{ background: 'linear-gradient(135deg, #0a1210 0%, #0d1f16 50%, #0a1412 100%)' }}
     >
@@ -203,45 +204,40 @@ export function WorldScoringMatrix({ data, className = '' }: WorldScoringMatrixP
       {/* Lower Area: EWMA Comprehensive Index */}
       <div className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#4ECCA3] animate-pulse" />
-          <span className="text-xs text-[#4ECCA3]/70 uppercase tracking-wider">Comprehensive Index</span>
+          <span className="text-xs text-[#4ECCA3]/70 uppercase tracking-wider">
+            Comprehensive Index
+          </span>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-2xl font-bold text-[#4ECCA3]">
-              {ewmaScore.toFixed(2)}
-            </div>
-            <div className="text-[10px] text-[#e8f5ee]/40 mt-0.5">
-              EWMA Score
-            </div>
+            <div className="text-2xl font-bold text-[#4ECCA3]">{ewmaScore.toFixed(2)}</div>
+            <div className="text-[10px] text-[#e8f5ee]/40 mt-0.5">EWMA Score</div>
           </div>
-          
+
           <div className="text-right">
-            <div 
+            <div
               className="text-sm font-medium px-2.5 py-1 rounded-full border"
-              style={{ 
-                color: ewmaStatus.color, 
+              style={{
+                color: ewmaStatus.color,
                 borderColor: `${ewmaStatus.color}40`,
-                backgroundColor: `${ewmaStatus.color}10`
+                backgroundColor: `${ewmaStatus.color}10`,
               }}
             >
               {ewmaStatus.label}
             </div>
-            <div className="text-[10px] text-[#e8f5ee]/40 mt-1">
-              Trend Analysis
-            </div>
+            <div className="text-[10px] text-[#e8f5ee]/40 mt-1">Trend Analysis</div>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="mt-3">
           <div className="h-1.5 w-full bg-[#4ECCA3]/10 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ 
+              style={{
                 width: `${Math.min(ewmaScore, 100)}%`,
-                background: `linear-gradient(90deg, ${ewmaStatus.color}80, ${ewmaStatus.color})`
+                background: `linear-gradient(90deg, ${ewmaStatus.color}80, ${ewmaStatus.color})`,
               }}
             />
           </div>
