@@ -1,95 +1,99 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'Nimi',
-  description: 'AI-Native Open World Platform — Developer Documentation',
+  title: 'Nimi Developer Portal',
+  description: 'Developer documentation for building with Nimi runtime, realm, and SDK.',
 
   cleanUrls: true,
   lastUpdated: true,
-
-  // Ignore links that point outside docs/ (project source files, AGENTS.md, etc.)
   ignoreDeadLinks: true,
 
-  // Map README.md to index.md so directory URLs resolve correctly.
   rewrites: {
     'getting-started/README.md': 'getting-started/index.md',
     'architecture/README.md': 'architecture/index.md',
-    'sdk/README.md': 'sdk/index.md',
-    'runtime/README.md': 'runtime/index.md',
-    'protocol/README.md': 'protocol/index.md',
-    'mods/README.md': 'mods/index.md',
-    'examples/README.md': 'examples/index.md',
+    'architecture/ssot.md': 'architecture/spec-map.md',
+    'sdk/README.md': 'reference/sdk.md',
+    'protocol/README.md': 'reference/protocol.md',
+    'mods/README.md': 'guides/mod-developer.md',
+    'error-codes.md': 'reference/error-codes.md',
+    'faq.md': 'reference/faq.md',
+    'examples/README.md': 'cookbook/quick-recipes.md',
   },
 
   themeConfig: {
     nav: [
-      { text: 'Guide', link: '/getting-started/' },
-      { text: 'SSOT', link: '/architecture/ssot' },
-      { text: 'SDK', link: '/sdk/' },
-      { text: 'Runtime', link: '/runtime/' },
-      { text: 'Examples', link: '/examples/' },
+      { text: 'Getting Started', link: '/getting-started/' },
       {
-        text: 'More',
+        text: 'Guides',
         items: [
-          { text: 'Protocol', link: '/protocol/' },
-          { text: 'Error Codes', link: '/error-codes' },
-          { text: 'Mod Development', link: '/mods/' },
-          { text: 'FAQ', link: '/faq' },
+          { text: 'App Developer', link: '/guides/app-developer' },
+          { text: 'Mod Developer', link: '/guides/mod-developer' },
+          { text: 'Runtime Integrator', link: '/guides/runtime-integrator' },
         ],
       },
+      { text: 'Cookbook', link: '/cookbook/quick-recipes' },
+      {
+        text: 'Reference',
+        items: [
+          { text: 'SDK', link: '/reference/sdk' },
+          { text: 'Runtime', link: '/reference/runtime' },
+          { text: 'Protocol', link: '/reference/protocol' },
+          { text: 'Error Codes', link: '/reference/error-codes' },
+          { text: 'Provider Matrix', link: '/reference/provider-matrix' },
+          { text: 'Compatibility Matrix', link: '/reference/compatibility-matrix' },
+          { text: 'FAQ', link: '/reference/faq' },
+        ],
+      },
+      { text: 'Architecture', link: '/architecture/' },
+      { text: 'Contribute', link: '/contribute/' },
     ],
 
     sidebar: {
       '/': [
         {
-          text: 'Getting Started',
+          text: 'Start',
           items: [
-            { text: 'Quick Start', link: '/getting-started/' },
-            { text: 'Code Examples', link: '/examples/' },
+            { text: 'Portal Overview', link: '/' },
+            { text: 'Getting Started', link: '/getting-started/' },
+          ],
+        },
+        {
+          text: 'Guides',
+          items: [
+            { text: 'App Developer', link: '/guides/app-developer' },
+            { text: 'Mod Developer', link: '/guides/mod-developer' },
+            { text: 'Runtime Integrator', link: '/guides/runtime-integrator' },
+          ],
+        },
+        {
+          text: 'Cookbook',
+          items: [
+            { text: 'Quick Recipes', link: '/cookbook/quick-recipes' },
+          ],
+        },
+        {
+          text: 'Reference',
+          items: [
+            { text: 'SDK', link: '/reference/sdk' },
+            { text: 'Runtime', link: '/reference/runtime' },
+            { text: 'Protocol', link: '/reference/protocol' },
+            { text: 'Error Codes', link: '/reference/error-codes' },
+            { text: 'Provider Matrix', link: '/reference/provider-matrix' },
+            { text: 'Compatibility Matrix', link: '/reference/compatibility-matrix' },
+            { text: 'FAQ', link: '/reference/faq' },
           ],
         },
         {
           text: 'Architecture',
           items: [
             { text: 'Overview', link: '/architecture/' },
-            { text: 'SSOT', link: '/architecture/ssot' },
-            { text: 'Protocol', link: '/protocol/' },
+            { text: 'Spec Map', link: '/architecture/spec-map' },
           ],
         },
         {
-          text: 'SDK',
+          text: 'Contribute',
           items: [
-            { text: 'SDK Reference', link: '/sdk/' },
-            { text: 'Error Codes', link: '/error-codes' },
-          ],
-        },
-        {
-          text: 'Runtime',
-          items: [
-            { text: 'CLI & Configuration', link: '/runtime/' },
-            { text: 'AI Provider Matrix', link: '/runtime/ai-provider-support-matrix' },
-          ],
-        },
-        {
-          text: 'Mods',
-          items: [
-            { text: 'Mod Development', link: '/mods/' },
-          ],
-        },
-        {
-          text: 'Reference',
-          items: [
-            { text: 'FAQ', link: '/faq' },
-          ],
-        },
-        {
-          text: 'Contributing',
-          collapsed: true,
-          items: [
-            { text: 'Development Setup', link: '/dev/setup' },
-            { text: 'Architecture Internals', link: '/dev/architecture-internals' },
-            { text: 'Testing', link: '/dev/testing' },
-            { text: 'Release Process', link: '/dev/release' },
+            { text: 'Contribution Guide', link: '/contribute/' },
           ],
         },
       ],
