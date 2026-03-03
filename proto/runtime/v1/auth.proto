@@ -9,8 +9,8 @@ import "runtime/v1/common.proto";
 
 enum ExternalProofType {
   EXTERNAL_PROOF_TYPE_UNSPECIFIED = 0;
-  EXTERNAL_PROOF_TYPE_ED25519 = 1;
-  EXTERNAL_PROOF_TYPE_HMAC_SHA256 = 2;
+  EXTERNAL_PROOF_TYPE_JWT = 1;
+  reserved 2;
 }
 
 enum AppMode {

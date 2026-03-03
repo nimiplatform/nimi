@@ -258,6 +258,10 @@ export interface StreamCompleted {
      * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 2
      */
     usage?: UsageStats;
+    /**
+     * @generated from protobuf field: bool stream_simulated = 3
+     */
+    streamSimulated: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StreamFailed
@@ -2071,12 +2075,14 @@ class StreamCompleted$Type extends MessageType<StreamCompleted> {
     constructor() {
         super("nimi.runtime.v1.StreamCompleted", [
             { no: 1, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] },
-            { no: 2, name: "usage", kind: "message", T: () => UsageStats }
+            { no: 2, name: "usage", kind: "message", T: () => UsageStats },
+            { no: 3, name: "stream_simulated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<StreamCompleted>): StreamCompleted {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.finishReason = 0;
+        message.streamSimulated = false;
         if (value !== undefined)
             reflectionMergePartial<StreamCompleted>(this, message, value);
         return message;
@@ -2091,6 +2097,9 @@ class StreamCompleted$Type extends MessageType<StreamCompleted> {
                     break;
                 case /* nimi.runtime.v1.UsageStats usage */ 2:
                     message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
+                case /* bool stream_simulated */ 3:
+                    message.streamSimulated = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2110,6 +2119,9 @@ class StreamCompleted$Type extends MessageType<StreamCompleted> {
         /* nimi.runtime.v1.UsageStats usage = 2; */
         if (message.usage)
             UsageStats.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* bool stream_simulated = 3; */
+        if (message.streamSimulated !== false)
+            writer.tag(3, WireType.Varint).bool(message.streamSimulated);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

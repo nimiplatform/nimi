@@ -341,22 +341,23 @@ func (x *LocalModelSource) GetRevision() string {
 }
 
 type LocalModelRecord struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LocalModelId  string                 `protobuf:"bytes,1,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
-	ModelId       string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Capabilities  []string               `protobuf:"bytes,3,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	Engine        string                 `protobuf:"bytes,4,opt,name=engine,proto3" json:"engine,omitempty"`
-	Entry         string                 `protobuf:"bytes,5,opt,name=entry,proto3" json:"entry,omitempty"`
-	License       string                 `protobuf:"bytes,6,opt,name=license,proto3" json:"license,omitempty"`
-	Source        *LocalModelSource      `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
-	Hashes        map[string]string      `protobuf:"bytes,8,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Endpoint      string                 `protobuf:"bytes,9,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Status        LocalModelStatus       `protobuf:"varint,10,opt,name=status,proto3,enum=nimi.runtime.v1.LocalModelStatus" json:"status,omitempty"`
-	InstalledAt   string                 `protobuf:"bytes,11,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	HealthDetail  string                 `protobuf:"bytes,13,opt,name=health_detail,json=healthDetail,proto3" json:"health_detail,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	LocalModelId         string                 `protobuf:"bytes,1,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
+	ModelId              string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Capabilities         []string               `protobuf:"bytes,3,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Engine               string                 `protobuf:"bytes,4,opt,name=engine,proto3" json:"engine,omitempty"`
+	Entry                string                 `protobuf:"bytes,5,opt,name=entry,proto3" json:"entry,omitempty"`
+	License              string                 `protobuf:"bytes,6,opt,name=license,proto3" json:"license,omitempty"`
+	Source               *LocalModelSource      `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
+	Hashes               map[string]string      `protobuf:"bytes,8,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Endpoint             string                 `protobuf:"bytes,9,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Status               LocalModelStatus       `protobuf:"varint,10,opt,name=status,proto3,enum=nimi.runtime.v1.LocalModelStatus" json:"status,omitempty"`
+	InstalledAt          string                 `protobuf:"bytes,11,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
+	UpdatedAt            string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	HealthDetail         string                 `protobuf:"bytes,13,opt,name=health_detail,json=healthDetail,proto3" json:"health_detail,omitempty"`
+	LocalInvokeProfileId string                 `protobuf:"bytes,14,opt,name=local_invoke_profile_id,json=localInvokeProfileId,proto3" json:"local_invoke_profile_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *LocalModelRecord) Reset() {
@@ -476,6 +477,13 @@ func (x *LocalModelRecord) GetUpdatedAt() string {
 func (x *LocalModelRecord) GetHealthDetail() string {
 	if x != nil {
 		return x.HealthDetail
+	}
+	return ""
+}
+
+func (x *LocalModelRecord) GetLocalInvokeProfileId() string {
+	if x != nil {
+		return x.LocalInvokeProfileId
 	}
 	return ""
 }
@@ -2880,6 +2888,11 @@ type LocalAuditEvent struct {
 	ModelId       string                 `protobuf:"bytes,8,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
 	LocalModelId  string                 `protobuf:"bytes,9,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
 	Payload       *structpb.Struct       `protobuf:"bytes,10,opt,name=payload,proto3" json:"payload,omitempty"`
+	TraceId       string                 `protobuf:"bytes,11,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	AppId         string                 `protobuf:"bytes,12,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Domain        string                 `protobuf:"bytes,13,opt,name=domain,proto3" json:"domain,omitempty"`
+	Operation     string                 `protobuf:"bytes,14,opt,name=operation,proto3" json:"operation,omitempty"`
+	SubjectUserId string                 `protobuf:"bytes,15,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2982,6 +2995,41 @@ func (x *LocalAuditEvent) GetPayload() *structpb.Struct {
 		return x.Payload
 	}
 	return nil
+}
+
+func (x *LocalAuditEvent) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
+}
+
+func (x *LocalAuditEvent) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *LocalAuditEvent) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *LocalAuditEvent) GetOperation() string {
+	if x != nil {
+		return x.Operation
+	}
+	return ""
+}
+
+func (x *LocalAuditEvent) GetSubjectUserId() string {
+	if x != nil {
+		return x.SubjectUserId
+	}
+	return ""
 }
 
 type LocalAuditTimeRange struct {
@@ -3625,9 +3673,14 @@ func (x *GetEngineStatusResponse) GetEngine() *LocalEngineDescriptor {
 }
 
 type ListLocalModelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	StatusFilter   LocalModelStatus       `protobuf:"varint,1,opt,name=status_filter,json=statusFilter,proto3,enum=nimi.runtime.v1.LocalModelStatus" json:"status_filter,omitempty"`
+	EngineFilter   string                 `protobuf:"bytes,2,opt,name=engine_filter,json=engineFilter,proto3" json:"engine_filter,omitempty"`
+	CategoryFilter string                 `protobuf:"bytes,3,opt,name=category_filter,json=categoryFilter,proto3" json:"category_filter,omitempty"`
+	PageSize       int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListLocalModelsRequest) Reset() {
@@ -3660,9 +3713,45 @@ func (*ListLocalModelsRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{38}
 }
 
+func (x *ListLocalModelsRequest) GetStatusFilter() LocalModelStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED
+}
+
+func (x *ListLocalModelsRequest) GetEngineFilter() string {
+	if x != nil {
+		return x.EngineFilter
+	}
+	return ""
+}
+
+func (x *ListLocalModelsRequest) GetCategoryFilter() string {
+	if x != nil {
+		return x.CategoryFilter
+	}
+	return ""
+}
+
+func (x *ListLocalModelsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListLocalModelsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListLocalModelsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Models        []*LocalModelRecord    `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3704,10 +3793,21 @@ func (x *ListLocalModelsResponse) GetModels() []*LocalModelRecord {
 	return nil
 }
 
+func (x *ListLocalModelsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 type ListVerifiedModelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CategoryFilter string                 `protobuf:"bytes,1,opt,name=category_filter,json=categoryFilter,proto3" json:"category_filter,omitempty"`
+	EngineFilter   string                 `protobuf:"bytes,2,opt,name=engine_filter,json=engineFilter,proto3" json:"engine_filter,omitempty"`
+	PageSize       int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListVerifiedModelsRequest) Reset() {
@@ -3740,9 +3840,38 @@ func (*ListVerifiedModelsRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{40}
 }
 
+func (x *ListVerifiedModelsRequest) GetCategoryFilter() string {
+	if x != nil {
+		return x.CategoryFilter
+	}
+	return ""
+}
+
+func (x *ListVerifiedModelsRequest) GetEngineFilter() string {
+	if x != nil {
+		return x.EngineFilter
+	}
+	return ""
+}
+
+func (x *ListVerifiedModelsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListVerifiedModelsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListVerifiedModelsResponse struct {
 	state         protoimpl.MessageState          `protogen:"open.v1"`
 	Models        []*LocalVerifiedModelDescriptor `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
+	NextPageToken string                          `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3784,13 +3913,24 @@ func (x *ListVerifiedModelsResponse) GetModels() []*LocalVerifiedModelDescriptor
 	return nil
 }
 
+func (x *ListVerifiedModelsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 type SearchCatalogModelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
-	Capability    string                 `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Query          string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Capability     string                 `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
+	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	CategoryFilter string                 `protobuf:"bytes,4,opt,name=category_filter,json=categoryFilter,proto3" json:"category_filter,omitempty"`
+	EngineFilter   string                 `protobuf:"bytes,5,opt,name=engine_filter,json=engineFilter,proto3" json:"engine_filter,omitempty"`
+	PageSize       int32                  `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,7,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SearchCatalogModelsRequest) Reset() {
@@ -3844,9 +3984,38 @@ func (x *SearchCatalogModelsRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *SearchCatalogModelsRequest) GetCategoryFilter() string {
+	if x != nil {
+		return x.CategoryFilter
+	}
+	return ""
+}
+
+func (x *SearchCatalogModelsRequest) GetEngineFilter() string {
+	if x != nil {
+		return x.EngineFilter
+	}
+	return ""
+}
+
+func (x *SearchCatalogModelsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *SearchCatalogModelsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type SearchCatalogModelsResponse struct {
 	state         protoimpl.MessageState         `protogen:"open.v1"`
 	Items         []*LocalCatalogModelDescriptor `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	NextPageToken string                         `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3886,6 +4055,13 @@ func (x *SearchCatalogModelsResponse) GetItems() []*LocalCatalogModelDescriptor 
 		return x.Items
 	}
 	return nil
+}
+
+func (x *SearchCatalogModelsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type ResolveModelInstallPlanRequest struct {
@@ -4778,6 +4954,7 @@ func (x *CheckLocalModelHealthResponse) GetModels() []*LocalModelHealth {
 
 type CollectDeviceProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	ExtraPorts    []int32                `protobuf:"varint,1,rep,packed,name=extra_ports,json=extraPorts,proto3" json:"extra_ports,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4810,6 +4987,13 @@ func (x *CollectDeviceProfileRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CollectDeviceProfileRequest.ProtoReflect.Descriptor instead.
 func (*CollectDeviceProfileRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *CollectDeviceProfileRequest) GetExtraPorts() []int32 {
+	if x != nil {
+		return x.ExtraPorts
+	}
+	return nil
 }
 
 type CollectDeviceProfileResponse struct {
@@ -5058,6 +5242,9 @@ func (x *ApplyDependenciesResponse) GetResult() *LocalDependencyApplyResult {
 
 type ListLocalServicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	StatusFilter  LocalServiceStatus     `protobuf:"varint,1,opt,name=status_filter,json=statusFilter,proto3,enum=nimi.runtime.v1.LocalServiceStatus" json:"status_filter,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5092,9 +5279,31 @@ func (*ListLocalServicesRequest) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{66}
 }
 
+func (x *ListLocalServicesRequest) GetStatusFilter() LocalServiceStatus {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED
+}
+
+func (x *ListLocalServicesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListLocalServicesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListLocalServicesResponse struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Services      []*LocalServiceDescriptor `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
+	NextPageToken string                    `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5134,6 +5343,13 @@ func (x *ListLocalServicesResponse) GetServices() []*LocalServiceDescriptor {
 		return x.Services
 	}
 	return nil
+}
+
+func (x *ListLocalServicesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type InstallLocalServiceRequest struct {
@@ -5621,6 +5837,9 @@ type ListNodeCatalogRequest struct {
 	Capability    string                 `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
 	ServiceId     string                 `protobuf:"bytes,2,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	Provider      string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	TypeFilter    string                 `protobuf:"bytes,4,opt,name=type_filter,json=typeFilter,proto3" json:"type_filter,omitempty"`
+	PageSize      int32                  `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5676,9 +5895,31 @@ func (x *ListNodeCatalogRequest) GetProvider() string {
 	return ""
 }
 
+func (x *ListNodeCatalogRequest) GetTypeFilter() string {
+	if x != nil {
+		return x.TypeFilter
+	}
+	return ""
+}
+
+func (x *ListNodeCatalogRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListNodeCatalogRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type ListNodeCatalogResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Nodes         []*LocalNodeDescriptor `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5720,6 +5961,13 @@ func (x *ListNodeCatalogResponse) GetNodes() []*LocalNodeDescriptor {
 	return nil
 }
 
+func (x *ListNodeCatalogResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 type ListLocalAuditsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
@@ -5731,6 +5979,10 @@ type ListLocalAuditsRequest struct {
 	ModId         string                 `protobuf:"bytes,7,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
 	ReasonCode    string                 `protobuf:"bytes,8,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
 	TimeRange     *LocalAuditTimeRange   `protobuf:"bytes,9,opt,name=time_range,json=timeRange,proto3" json:"time_range,omitempty"`
+	PageSize      int32                  `protobuf:"varint,10,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,11,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	AppId         string                 `protobuf:"bytes,12,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId string                 `protobuf:"bytes,13,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5828,9 +6080,38 @@ func (x *ListLocalAuditsRequest) GetTimeRange() *LocalAuditTimeRange {
 	return nil
 }
 
+func (x *ListLocalAuditsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListLocalAuditsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListLocalAuditsRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *ListLocalAuditsRequest) GetSubjectUserId() string {
+	if x != nil {
+		return x.SubjectUserId
+	}
+	return ""
+}
+
 type ListLocalAuditsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Events        []*LocalAuditEvent     `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5870,6 +6151,13 @@ func (x *ListLocalAuditsResponse) GetEvents() []*LocalAuditEvent {
 		return x.Events
 	}
 	return nil
+}
+
+func (x *ListLocalAuditsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
 }
 
 type AppendInferenceAuditRequest struct {
@@ -6087,7 +6375,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1eruntime/v1/local_runtime.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\"B\n" +
 	"\x10LocalModelSource\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x1a\n" +
-	"\brevision\x18\x02 \x01(\tR\brevision\"\xba\x04\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision\"\xf1\x04\n" +
 	"\x10LocalModelRecord\x12$\n" +
 	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12\"\n" +
@@ -6103,7 +6391,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\finstalled_at\x18\v \x01(\tR\vinstalledAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\f \x01(\tR\tupdatedAt\x12#\n" +
-	"\rhealth_detail\x18\r \x01(\tR\fhealthDetail\x1a9\n" +
+	"\rhealth_detail\x18\r \x01(\tR\fhealthDetail\x125\n" +
+	"\x17local_invoke_profile_id\x18\x0e \x01(\tR\x14localInvokeProfileId\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa7\x01\n" +
@@ -6380,7 +6669,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\bapi_path\x18\r \x01(\tR\aapiPath\x12:\n" +
 	"\finput_schema\x18\x0e \x01(\v2\x17.google.protobuf.StructR\vinputSchema\x12<\n" +
 	"\routput_schema\x18\x0f \x01(\v2\x17.google.protobuf.StructR\foutputSchema\x12\x1b\n" +
-	"\tread_only\x18\x10 \x01(\bR\breadOnly\"\xc2\x02\n" +
+	"\tread_only\x18\x10 \x01(\bR\breadOnly\"\xd2\x03\n" +
 	"\x0fLocalAuditEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -6395,7 +6684,12 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\bmodel_id\x18\b \x01(\tR\amodelId\x12$\n" +
 	"\x0elocal_model_id\x18\t \x01(\tR\flocalModelId\x121\n" +
 	"\apayload\x18\n" +
-	" \x01(\v2\x17.google.protobuf.StructR\apayload\"9\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\apayload\x12\x19\n" +
+	"\btrace_id\x18\v \x01(\tR\atraceId\x12\x15\n" +
+	"\x06app_id\x18\f \x01(\tR\x05appId\x12\x16\n" +
+	"\x06domain\x18\r \x01(\tR\x06domain\x12\x1c\n" +
+	"\toperation\x18\x0e \x01(\tR\toperation\x12&\n" +
+	"\x0fsubject_user_id\x18\x0f \x01(\tR\rsubjectUserId\"9\n" +
 	"\x13LocalAuditTimeRange\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\"\xaa\x03\n" +
@@ -6436,21 +6730,40 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x16GetEngineStatusRequest\x12\x16\n" +
 	"\x06engine\x18\x01 \x01(\tR\x06engine\"Y\n" +
 	"\x17GetEngineStatusResponse\x12>\n" +
-	"\x06engine\x18\x01 \x01(\v2&.nimi.runtime.v1.LocalEngineDescriptorR\x06engine\"\x18\n" +
-	"\x16ListLocalModelsRequest\"T\n" +
+	"\x06engine\x18\x01 \x01(\v2&.nimi.runtime.v1.LocalEngineDescriptorR\x06engine\"\xea\x01\n" +
+	"\x16ListLocalModelsRequest\x12F\n" +
+	"\rstatus_filter\x18\x01 \x01(\x0e2!.nimi.runtime.v1.LocalModelStatusR\fstatusFilter\x12#\n" +
+	"\rengine_filter\x18\x02 \x01(\tR\fengineFilter\x12'\n" +
+	"\x0fcategory_filter\x18\x03 \x01(\tR\x0ecategoryFilter\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"|\n" +
 	"\x17ListLocalModelsResponse\x129\n" +
-	"\x06models\x18\x01 \x03(\v2!.nimi.runtime.v1.LocalModelRecordR\x06models\"\x1b\n" +
-	"\x19ListVerifiedModelsRequest\"c\n" +
+	"\x06models\x18\x01 \x03(\v2!.nimi.runtime.v1.LocalModelRecordR\x06models\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa5\x01\n" +
+	"\x19ListVerifiedModelsRequest\x12'\n" +
+	"\x0fcategory_filter\x18\x01 \x01(\tR\x0ecategoryFilter\x12#\n" +
+	"\rengine_filter\x18\x02 \x01(\tR\fengineFilter\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\"\x8b\x01\n" +
 	"\x1aListVerifiedModelsResponse\x12E\n" +
-	"\x06models\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalVerifiedModelDescriptorR\x06models\"h\n" +
+	"\x06models\x18\x01 \x03(\v2-.nimi.runtime.v1.LocalVerifiedModelDescriptorR\x06models\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xf2\x01\n" +
 	"\x1aSearchCatalogModelsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x1e\n" +
 	"\n" +
 	"capability\x18\x02 \x01(\tR\n" +
 	"capability\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"a\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12'\n" +
+	"\x0fcategory_filter\x18\x04 \x01(\tR\x0ecategoryFilter\x12#\n" +
+	"\rengine_filter\x18\x05 \x01(\tR\fengineFilter\x12\x1b\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\a \x01(\tR\tpageToken\"\x89\x01\n" +
 	"\x1bSearchCatalogModelsResponse\x12B\n" +
-	"\x05items\x18\x01 \x03(\v2,.nimi.runtime.v1.LocalCatalogModelDescriptorR\x05items\"\xeb\x03\n" +
+	"\x05items\x18\x01 \x03(\v2,.nimi.runtime.v1.LocalCatalogModelDescriptorR\x05items\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xeb\x03\n" +
 	"\x1eResolveModelInstallPlanRequest\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x1f\n" +
@@ -6515,8 +6828,10 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1cCheckLocalModelHealthRequest\x12$\n" +
 	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\"Z\n" +
 	"\x1dCheckLocalModelHealthResponse\x129\n" +
-	"\x06models\x18\x01 \x03(\v2!.nimi.runtime.v1.LocalModelHealthR\x06models\"\x1d\n" +
-	"\x1bCollectDeviceProfileRequest\"]\n" +
+	"\x06models\x18\x01 \x03(\v2!.nimi.runtime.v1.LocalModelHealthR\x06models\">\n" +
+	"\x1bCollectDeviceProfileRequest\x12\x1f\n" +
+	"\vextra_ports\x18\x01 \x03(\x05R\n" +
+	"extraPorts\"]\n" +
 	"\x1cCollectDeviceProfileResponse\x12=\n" +
 	"\aprofile\x18\x01 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\aprofile\"\xfc\x01\n" +
 	"\x1aResolveDependenciesRequest\x12\x15\n" +
@@ -6531,10 +6846,15 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x18ApplyDependenciesRequest\x12B\n" +
 	"\x04plan\x18\x01 \x01(\v2..nimi.runtime.v1.LocalDependencyResolutionPlanR\x04plan\"`\n" +
 	"\x19ApplyDependenciesResponse\x12C\n" +
-	"\x06result\x18\x01 \x01(\v2+.nimi.runtime.v1.LocalDependencyApplyResultR\x06result\"\x1a\n" +
-	"\x18ListLocalServicesRequest\"`\n" +
+	"\x06result\x18\x01 \x01(\v2+.nimi.runtime.v1.LocalDependencyApplyResultR\x06result\"\xa0\x01\n" +
+	"\x18ListLocalServicesRequest\x12H\n" +
+	"\rstatus_filter\x18\x01 \x01(\x0e2#.nimi.runtime.v1.LocalServiceStatusR\fstatusFilter\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x88\x01\n" +
 	"\x19ListLocalServicesResponse\x12C\n" +
-	"\bservices\x18\x01 \x03(\v2'.nimi.runtime.v1.LocalServiceDescriptorR\bservices\"\xcf\x01\n" +
+	"\bservices\x18\x01 \x03(\v2'.nimi.runtime.v1.LocalServiceDescriptorR\bservices\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xcf\x01\n" +
 	"\x1aInstallLocalServiceRequest\x12\x1d\n" +
 	"\n" +
 	"service_id\x18\x01 \x01(\tR\tserviceId\x12\x14\n" +
@@ -6564,16 +6884,22 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"service_id\x18\x01 \x01(\tR\tserviceId\"_\n" +
 	"\x1aRemoveLocalServiceResponse\x12A\n" +
-	"\aservice\x18\x01 \x01(\v2'.nimi.runtime.v1.LocalServiceDescriptorR\aservice\"s\n" +
+	"\aservice\x18\x01 \x01(\v2'.nimi.runtime.v1.LocalServiceDescriptorR\aservice\"\xd0\x01\n" +
 	"\x16ListNodeCatalogRequest\x12\x1e\n" +
 	"\n" +
 	"capability\x18\x01 \x01(\tR\n" +
 	"capability\x12\x1d\n" +
 	"\n" +
 	"service_id\x18\x02 \x01(\tR\tserviceId\x12\x1a\n" +
-	"\bprovider\x18\x03 \x01(\tR\bprovider\"U\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\x12\x1f\n" +
+	"\vtype_filter\x18\x04 \x01(\tR\n" +
+	"typeFilter\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x06 \x01(\tR\tpageToken\"}\n" +
 	"\x17ListNodeCatalogResponse\x12:\n" +
-	"\x05nodes\x18\x01 \x03(\v2$.nimi.runtime.v1.LocalNodeDescriptorR\x05nodes\"\xc5\x02\n" +
+	"\x05nodes\x18\x01 \x03(\v2$.nimi.runtime.v1.LocalNodeDescriptorR\x05nodes\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xc0\x03\n" +
 	"\x16ListLocalAuditsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x1d\n" +
 	"\n" +
@@ -6587,9 +6913,16 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\vreason_code\x18\b \x01(\tR\n" +
 	"reasonCode\x12C\n" +
 	"\n" +
-	"time_range\x18\t \x01(\v2$.nimi.runtime.v1.LocalAuditTimeRangeR\ttimeRange\"S\n" +
+	"time_range\x18\t \x01(\v2$.nimi.runtime.v1.LocalAuditTimeRangeR\ttimeRange\x12\x1b\n" +
+	"\tpage_size\x18\n" +
+	" \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\v \x01(\tR\tpageToken\x12\x15\n" +
+	"\x06app_id\x18\f \x01(\tR\x05appId\x12&\n" +
+	"\x0fsubject_user_id\x18\r \x01(\tR\rsubjectUserId\"{\n" +
 	"\x17ListLocalAuditsResponse\x128\n" +
-	"\x06events\x18\x01 \x03(\v2 .nimi.runtime.v1.LocalAuditEventR\x06events\"\xb7\x03\n" +
+	"\x06events\x18\x01 \x03(\v2 .nimi.runtime.v1.LocalAuditEventR\x06events\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb7\x03\n" +
 	"\x1bAppendInferenceAuditRequest\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x15\n" +
@@ -6834,100 +7167,102 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	32,  // 42: nimi.runtime.v1.StartEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
 	32,  // 43: nimi.runtime.v1.StopEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
 	32,  // 44: nimi.runtime.v1.GetEngineStatusResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
-	6,   // 45: nimi.runtime.v1.ListLocalModelsResponse.models:type_name -> nimi.runtime.v1.LocalModelRecord
-	8,   // 46: nimi.runtime.v1.ListVerifiedModelsResponse.models:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor
-	12,  // 47: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor
-	95,  // 48: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
-	13,  // 49: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
-	96,  // 50: nimi.runtime.v1.InstallLocalModelRequest.hashes:type_name -> nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
-	6,   // 51: nimi.runtime.v1.InstallLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 52: nimi.runtime.v1.InstallVerifiedModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 53: nimi.runtime.v1.ImportLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 54: nimi.runtime.v1.RemoveLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 55: nimi.runtime.v1.StartLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	6,   // 56: nimi.runtime.v1.StopLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
-	7,   // 57: nimi.runtime.v1.CheckLocalModelHealthResponse.models:type_name -> nimi.runtime.v1.LocalModelHealth
-	18,  // 58: nimi.runtime.v1.CollectDeviceProfileResponse.profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	21,  // 59: nimi.runtime.v1.ResolveDependenciesRequest.dependencies:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
-	18,  // 60: nimi.runtime.v1.ResolveDependenciesRequest.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	25,  // 61: nimi.runtime.v1.ResolveDependenciesResponse.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
-	25,  // 62: nimi.runtime.v1.ApplyDependenciesRequest.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
-	28,  // 63: nimi.runtime.v1.ApplyDependenciesResponse.result:type_name -> nimi.runtime.v1.LocalDependencyApplyResult
-	27,  // 64: nimi.runtime.v1.ListLocalServicesResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 65: nimi.runtime.v1.InstallLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 66: nimi.runtime.v1.StartLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 67: nimi.runtime.v1.StopLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 68: nimi.runtime.v1.CheckLocalServiceHealthResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	27,  // 69: nimi.runtime.v1.RemoveLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	29,  // 70: nimi.runtime.v1.ListNodeCatalogResponse.nodes:type_name -> nimi.runtime.v1.LocalNodeDescriptor
-	31,  // 71: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
-	30,  // 72: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
-	97,  // 73: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
-	97,  // 74: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
-	97,  // 75: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
-	43,  // 76: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
-	45,  // 77: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
-	47,  // 78: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
-	49,  // 79: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
-	51,  // 80: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:input_type -> nimi.runtime.v1.InstallLocalModelRequest
-	53,  // 81: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:input_type -> nimi.runtime.v1.InstallVerifiedModelRequest
-	55,  // 82: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:input_type -> nimi.runtime.v1.ImportLocalModelRequest
-	57,  // 83: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:input_type -> nimi.runtime.v1.RemoveLocalModelRequest
-	59,  // 84: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
-	61,  // 85: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
-	63,  // 86: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
-	65,  // 87: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
-	67,  // 88: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
-	69,  // 89: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
-	71,  // 90: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
-	73,  // 91: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
-	75,  // 92: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
-	77,  // 93: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
-	79,  // 94: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
-	81,  // 95: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
-	83,  // 96: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
-	85,  // 97: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
-	87,  // 98: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
-	88,  // 99: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
-	33,  // 100: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
-	35,  // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
-	37,  // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
-	39,  // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
-	41,  // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
-	44,  // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
-	46,  // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
-	48,  // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
-	50,  // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
-	52,  // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
-	54,  // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
-	56,  // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
-	58,  // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
-	60,  // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
-	62,  // 114: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
-	64,  // 115: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
-	66,  // 116: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
-	68,  // 117: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
-	70,  // 118: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
-	72,  // 119: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
-	74,  // 120: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
-	76,  // 121: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
-	78,  // 122: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
-	80,  // 123: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
-	82,  // 124: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
-	84,  // 125: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
-	86,  // 126: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
-	98,  // 127: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
-	98,  // 128: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
-	34,  // 129: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
-	36,  // 130: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
-	38,  // 131: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
-	40,  // 132: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
-	42,  // 133: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
-	105, // [105:134] is the sub-list for method output_type
-	76,  // [76:105] is the sub-list for method input_type
-	76,  // [76:76] is the sub-list for extension type_name
-	76,  // [76:76] is the sub-list for extension extendee
-	0,   // [0:76] is the sub-list for field type_name
+	0,   // 45: nimi.runtime.v1.ListLocalModelsRequest.status_filter:type_name -> nimi.runtime.v1.LocalModelStatus
+	6,   // 46: nimi.runtime.v1.ListLocalModelsResponse.models:type_name -> nimi.runtime.v1.LocalModelRecord
+	8,   // 47: nimi.runtime.v1.ListVerifiedModelsResponse.models:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor
+	12,  // 48: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor
+	95,  // 49: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	13,  // 50: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
+	96,  // 51: nimi.runtime.v1.InstallLocalModelRequest.hashes:type_name -> nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
+	6,   // 52: nimi.runtime.v1.InstallLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	6,   // 53: nimi.runtime.v1.InstallVerifiedModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	6,   // 54: nimi.runtime.v1.ImportLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	6,   // 55: nimi.runtime.v1.RemoveLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	6,   // 56: nimi.runtime.v1.StartLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	6,   // 57: nimi.runtime.v1.StopLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
+	7,   // 58: nimi.runtime.v1.CheckLocalModelHealthResponse.models:type_name -> nimi.runtime.v1.LocalModelHealth
+	18,  // 59: nimi.runtime.v1.CollectDeviceProfileResponse.profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	21,  // 60: nimi.runtime.v1.ResolveDependenciesRequest.dependencies:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor
+	18,  // 61: nimi.runtime.v1.ResolveDependenciesRequest.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	25,  // 62: nimi.runtime.v1.ResolveDependenciesResponse.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
+	25,  // 63: nimi.runtime.v1.ApplyDependenciesRequest.plan:type_name -> nimi.runtime.v1.LocalDependencyResolutionPlan
+	28,  // 64: nimi.runtime.v1.ApplyDependenciesResponse.result:type_name -> nimi.runtime.v1.LocalDependencyApplyResult
+	1,   // 65: nimi.runtime.v1.ListLocalServicesRequest.status_filter:type_name -> nimi.runtime.v1.LocalServiceStatus
+	27,  // 66: nimi.runtime.v1.ListLocalServicesResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	27,  // 67: nimi.runtime.v1.InstallLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	27,  // 68: nimi.runtime.v1.StartLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	27,  // 69: nimi.runtime.v1.StopLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	27,  // 70: nimi.runtime.v1.CheckLocalServiceHealthResponse.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	27,  // 71: nimi.runtime.v1.RemoveLocalServiceResponse.service:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	29,  // 72: nimi.runtime.v1.ListNodeCatalogResponse.nodes:type_name -> nimi.runtime.v1.LocalNodeDescriptor
+	31,  // 73: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
+	30,  // 74: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
+	97,  // 75: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
+	97,  // 76: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
+	97,  // 77: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
+	43,  // 78: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
+	45,  // 79: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
+	47,  // 80: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
+	49,  // 81: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
+	51,  // 82: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:input_type -> nimi.runtime.v1.InstallLocalModelRequest
+	53,  // 83: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:input_type -> nimi.runtime.v1.InstallVerifiedModelRequest
+	55,  // 84: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:input_type -> nimi.runtime.v1.ImportLocalModelRequest
+	57,  // 85: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:input_type -> nimi.runtime.v1.RemoveLocalModelRequest
+	59,  // 86: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
+	61,  // 87: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
+	63,  // 88: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
+	65,  // 89: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
+	67,  // 90: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
+	69,  // 91: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
+	71,  // 92: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
+	73,  // 93: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
+	75,  // 94: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
+	77,  // 95: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
+	79,  // 96: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
+	81,  // 97: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
+	83,  // 98: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
+	85,  // 99: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
+	87,  // 100: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
+	88,  // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
+	33,  // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
+	35,  // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
+	37,  // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
+	39,  // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
+	41,  // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
+	44,  // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
+	46,  // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
+	48,  // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
+	50,  // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
+	52,  // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
+	54,  // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
+	56,  // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
+	58,  // 114: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
+	60,  // 115: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
+	62,  // 116: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
+	64,  // 117: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
+	66,  // 118: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
+	68,  // 119: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
+	70,  // 120: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
+	72,  // 121: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
+	74,  // 122: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
+	76,  // 123: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
+	78,  // 124: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
+	80,  // 125: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
+	82,  // 126: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
+	84,  // 127: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
+	86,  // 128: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
+	98,  // 129: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
+	98,  // 130: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
+	34,  // 131: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
+	36,  // 132: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
+	38,  // 133: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
+	40,  // 134: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
+	42,  // 135: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
+	107, // [107:136] is the sub-list for method output_type
+	78,  // [78:107] is the sub-list for method input_type
+	78,  // [78:78] is the sub-list for extension type_name
+	78,  // [78:78] is the sub-list for extension extendee
+	0,   // [0:78] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_proto_init() }

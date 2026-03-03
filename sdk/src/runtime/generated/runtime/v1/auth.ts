@@ -282,13 +282,9 @@ export enum ExternalProofType {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: EXTERNAL_PROOF_TYPE_ED25519 = 1;
+     * @generated from protobuf enum value: EXTERNAL_PROOF_TYPE_JWT = 1;
      */
-    ED25519 = 1,
-    /**
-     * @generated from protobuf enum value: EXTERNAL_PROOF_TYPE_HMAC_SHA256 = 2;
-     */
-    HMAC_SHA256 = 2
+    JWT = 1
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AppMode

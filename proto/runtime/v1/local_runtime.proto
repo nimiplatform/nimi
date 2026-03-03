@@ -57,6 +57,7 @@ message LocalModelRecord {
   string installed_at = 11;
   string updated_at = 12;
   string health_detail = 13;
+  string local_invoke_profile_id = 14;
 }
 
 message LocalModelHealth {
@@ -338,6 +339,11 @@ message LocalAuditEvent {
   string model_id = 8;
   string local_model_id = 9;
   google.protobuf.Struct payload = 10;
+  string trace_id = 11;
+  string app_id = 12;
+  string domain = 13;
+  string operation = 14;
+  string subject_user_id = 15;
 }
 
 message LocalAuditTimeRange {
@@ -411,26 +417,44 @@ message GetEngineStatusResponse {
   LocalEngineDescriptor engine = 1;
 }
 
-message ListLocalModelsRequest {}
+message ListLocalModelsRequest {
+  LocalModelStatus status_filter = 1;
+  string engine_filter = 2;
+  string category_filter = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
 
 message ListLocalModelsResponse {
   repeated LocalModelRecord models = 1;
+  string next_page_token = 2;
 }
 
-message ListVerifiedModelsRequest {}
+message ListVerifiedModelsRequest {
+  string category_filter = 1;
+  string engine_filter = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
 
 message ListVerifiedModelsResponse {
   repeated LocalVerifiedModelDescriptor models = 1;
+  string next_page_token = 2;
 }
 
 message SearchCatalogModelsRequest {
   string query = 1;
   string capability = 2;
   int32 limit = 3;
+  string category_filter = 4;
+  string engine_filter = 5;
+  int32 page_size = 6;
+  string page_token = 7;
 }
 
 message SearchCatalogModelsResponse {
   repeated LocalCatalogModelDescriptor items = 1;
+  string next_page_token = 2;
 }
 
 message ResolveModelInstallPlanRequest {
@@ -520,7 +544,9 @@ message CheckLocalModelHealthResponse {
   repeated LocalModelHealth models = 1;
 }
 
-message CollectDeviceProfileRequest {}
+message CollectDeviceProfileRequest {
+  repeated int32 extra_ports = 1;
+}
 
 message CollectDeviceProfileResponse {
   LocalDeviceProfile profile = 1;
@@ -545,10 +571,15 @@ message ApplyDependenciesResponse {
   LocalDependencyApplyResult result = 1;
 }
 
-message ListLocalServicesRequest {}
+message ListLocalServicesRequest {
+  LocalServiceStatus status_filter = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
 
 message ListLocalServicesResponse {
   repeated LocalServiceDescriptor services = 1;
+  string next_page_token = 2;
 }
 
 message InstallLocalServiceRequest {
@@ -600,10 +631,14 @@ message ListNodeCatalogRequest {
   string capability = 1;
   string service_id = 2;
   string provider = 3;
+  string type_filter = 4;
+  int32 page_size = 5;
+  string page_token = 6;
 }
 
 message ListNodeCatalogResponse {
   repeated LocalNodeDescriptor nodes = 1;
+  string next_page_token = 2;
 }
 
 message ListLocalAuditsRequest {
@@ -616,10 +651,15 @@ message ListLocalAuditsRequest {
   string mod_id = 7;
   string reason_code = 8;
   LocalAuditTimeRange time_range = 9;
+  int32 page_size = 10;
+  string page_token = 11;
+  string app_id = 12;
+  string subject_user_id = 13;
 }
 
 message ListLocalAuditsResponse {
   repeated LocalAuditEvent events = 1;
+  string next_page_token = 2;
 }
 
 message AppendInferenceAuditRequest {

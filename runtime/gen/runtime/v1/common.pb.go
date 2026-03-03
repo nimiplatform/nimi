@@ -94,6 +94,11 @@ const (
 	ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND       ReasonCode = 356
 	ReasonCode_AI_LOCAL_MANIFEST_INVALID         ReasonCode = 357
 	ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION ReasonCode = 358
+	ReasonCode_AI_LOCAL_DOWNLOAD_FAILED          ReasonCode = 359
+	ReasonCode_AI_LOCAL_DOWNLOAD_HASH_MISMATCH   ReasonCode = 360
+	ReasonCode_AI_LOCAL_HF_REPO_INVALID          ReasonCode = 361
+	ReasonCode_AI_LOCAL_HF_SEARCH_FAILED         ReasonCode = 362
+	ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID  ReasonCode = 363
 	// FINISH family (370+)
 	ReasonCode_AI_FINISH_LENGTH         ReasonCode = 370
 	ReasonCode_AI_FINISH_CONTENT_FILTER ReasonCode = 371
@@ -192,6 +197,11 @@ var (
 		356: "AI_LOCAL_TEMPLATE_NOT_FOUND",
 		357: "AI_LOCAL_MANIFEST_INVALID",
 		358: "AI_LOCAL_MODEL_INVALID_TRANSITION",
+		359: "AI_LOCAL_DOWNLOAD_FAILED",
+		360: "AI_LOCAL_DOWNLOAD_HASH_MISMATCH",
+		361: "AI_LOCAL_HF_REPO_INVALID",
+		362: "AI_LOCAL_HF_SEARCH_FAILED",
+		363: "AI_LOCAL_MANIFEST_SCHEMA_INVALID",
 		370: "AI_FINISH_LENGTH",
 		371: "AI_FINISH_CONTENT_FILTER",
 		380: "AI_MODEL_PROVIDER_MISMATCH",
@@ -278,6 +288,11 @@ var (
 		"AI_LOCAL_TEMPLATE_NOT_FOUND":           356,
 		"AI_LOCAL_MANIFEST_INVALID":             357,
 		"AI_LOCAL_MODEL_INVALID_TRANSITION":     358,
+		"AI_LOCAL_DOWNLOAD_FAILED":              359,
+		"AI_LOCAL_DOWNLOAD_HASH_MISMATCH":       360,
+		"AI_LOCAL_HF_REPO_INVALID":              361,
+		"AI_LOCAL_HF_SEARCH_FAILED":             362,
+		"AI_LOCAL_MANIFEST_SCHEMA_INVALID":      363,
 		"AI_FINISH_LENGTH":                      370,
 		"AI_FINISH_CONTENT_FILTER":              371,
 		"AI_MODEL_PROVIDER_MISMATCH":            380,
@@ -787,7 +802,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xbf\x14\n" +
+	"actionHint*\xe2\x15\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -847,7 +862,12 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1aAI_LOCAL_ENDPOINT_REQUIRED\x10\xe3\x02\x12 \n" +
 	"\x1bAI_LOCAL_TEMPLATE_NOT_FOUND\x10\xe4\x02\x12\x1e\n" +
 	"\x19AI_LOCAL_MANIFEST_INVALID\x10\xe5\x02\x12&\n" +
-	"!AI_LOCAL_MODEL_INVALID_TRANSITION\x10\xe6\x02\x12\x15\n" +
+	"!AI_LOCAL_MODEL_INVALID_TRANSITION\x10\xe6\x02\x12\x1d\n" +
+	"\x18AI_LOCAL_DOWNLOAD_FAILED\x10\xe7\x02\x12$\n" +
+	"\x1fAI_LOCAL_DOWNLOAD_HASH_MISMATCH\x10\xe8\x02\x12\x1d\n" +
+	"\x18AI_LOCAL_HF_REPO_INVALID\x10\xe9\x02\x12\x1e\n" +
+	"\x19AI_LOCAL_HF_SEARCH_FAILED\x10\xea\x02\x12%\n" +
+	" AI_LOCAL_MANIFEST_SCHEMA_INVALID\x10\xeb\x02\x12\x15\n" +
 	"\x10AI_FINISH_LENGTH\x10\xf2\x02\x12\x1d\n" +
 	"\x18AI_FINISH_CONTENT_FILTER\x10\xf3\x02\x12\x1f\n" +
 	"\x1aAI_MODEL_PROVIDER_MISMATCH\x10\xfc\x02\x12#\n" +
@@ -874,7 +894,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12%\n" +
 	" GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND\x10\xfe\x03\x12$\n" +
 	"\x1fGRANT_TOKEN_CHAIN_ROOT_REQUIRED\x10\xff\x03\x12\x17\n" +
-	"\x12PAGE_TOKEN_INVALID\x10\x88\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\xe8\x02\x10\xe8\x02\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"\x12PAGE_TOKEN_INVALID\x10\x88\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

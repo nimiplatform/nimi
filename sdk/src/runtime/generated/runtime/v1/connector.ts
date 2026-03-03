@@ -13,6 +13,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Ack } from "./common";
+import { FieldMask } from "../../google/protobuf/field_mask";
 /**
  * @generated from protobuf message nimi.runtime.v1.Connector
  */
@@ -86,10 +87,6 @@ export interface CreateConnectorRequest {
      * @generated from protobuf field: string api_key = 4
      */
     apiKey: string;
-    /**
-     * @generated from protobuf field: string owner_id = 5
-     */
-    ownerId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateConnectorResponse
@@ -108,10 +105,6 @@ export interface GetConnectorRequest {
      * @generated from protobuf field: string connector_id = 1
      */
     connectorId: string;
-    /**
-     * @generated from protobuf field: string owner_id = 2
-     */
-    ownerId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetConnectorResponse
@@ -126,10 +119,6 @@ export interface GetConnectorResponse {
  * @generated from protobuf message nimi.runtime.v1.ListConnectorsRequest
  */
 export interface ListConnectorsRequest {
-    /**
-     * @generated from protobuf field: string owner_id = 1
-     */
-    ownerId: string;
     /**
      * @generated from protobuf field: int32 page_size = 2
      */
@@ -173,25 +162,25 @@ export interface UpdateConnectorRequest {
      */
     connectorId: string;
     /**
-     * @generated from protobuf field: string owner_id = 2
+     * @generated from protobuf field: optional string label = 3
      */
-    ownerId: string;
+    label?: string;
     /**
-     * @generated from protobuf field: string label = 3
+     * @generated from protobuf field: optional string endpoint = 4
      */
-    label: string;
+    endpoint?: string;
     /**
-     * @generated from protobuf field: string endpoint = 4
+     * @generated from protobuf field: optional string api_key = 5
      */
-    endpoint: string;
-    /**
-     * @generated from protobuf field: string api_key = 5
-     */
-    apiKey: string;
+    apiKey?: string;
     /**
      * @generated from protobuf field: nimi.runtime.v1.ConnectorStatus status = 6
      */
     status: ConnectorStatus;
+    /**
+     * @generated from protobuf field: google.protobuf.FieldMask update_mask = 7
+     */
+    updateMask?: FieldMask;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateConnectorResponse
@@ -210,10 +199,6 @@ export interface DeleteConnectorRequest {
      * @generated from protobuf field: string connector_id = 1
      */
     connectorId: string;
-    /**
-     * @generated from protobuf field: string owner_id = 2
-     */
-    ownerId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DeleteConnectorResponse
@@ -232,10 +217,6 @@ export interface TestConnectorRequest {
      * @generated from protobuf field: string connector_id = 1
      */
     connectorId: string;
-    /**
-     * @generated from protobuf field: string owner_id = 2
-     */
-    ownerId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TestConnectorResponse
@@ -276,13 +257,17 @@ export interface ListConnectorModelsRequest {
      */
     connectorId: string;
     /**
-     * @generated from protobuf field: string owner_id = 2
-     */
-    ownerId: string;
-    /**
      * @generated from protobuf field: bool force_refresh = 3
      */
     forceRefresh: boolean;
+    /**
+     * @generated from protobuf field: int32 page_size = 4
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 5
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListConnectorModelsResponse
@@ -292,6 +277,10 @@ export interface ListConnectorModelsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.ConnectorModelDescriptor models = 1
      */
     models: ConnectorModelDescriptor[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ProviderCatalogEntry
@@ -562,8 +551,7 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
             { no: 1, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "api_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "api_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CreateConnectorRequest>): CreateConnectorRequest {
@@ -572,7 +560,6 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
         message.endpoint = "";
         message.label = "";
         message.apiKey = "";
-        message.ownerId = "";
         if (value !== undefined)
             reflectionMergePartial<CreateConnectorRequest>(this, message, value);
         return message;
@@ -593,9 +580,6 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
                     break;
                 case /* string api_key */ 4:
                     message.apiKey = reader.string();
-                    break;
-                case /* string owner_id */ 5:
-                    message.ownerId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -621,9 +605,6 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
         /* string api_key = 4; */
         if (message.apiKey !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.apiKey);
-        /* string owner_id = 5; */
-        if (message.ownerId !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.ownerId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -684,14 +665,12 @@ export const CreateConnectorResponse = new CreateConnectorResponse$Type();
 class GetConnectorRequest$Type extends MessageType<GetConnectorRequest> {
     constructor() {
         super("nimi.runtime.v1.GetConnectorRequest", [
-            { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetConnectorRequest>): GetConnectorRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectorId = "";
-        message.ownerId = "";
         if (value !== undefined)
             reflectionMergePartial<GetConnectorRequest>(this, message, value);
         return message;
@@ -703,9 +682,6 @@ class GetConnectorRequest$Type extends MessageType<GetConnectorRequest> {
             switch (fieldNo) {
                 case /* string connector_id */ 1:
                     message.connectorId = reader.string();
-                    break;
-                case /* string owner_id */ 2:
-                    message.ownerId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -722,9 +698,6 @@ class GetConnectorRequest$Type extends MessageType<GetConnectorRequest> {
         /* string connector_id = 1; */
         if (message.connectorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.connectorId);
-        /* string owner_id = 2; */
-        if (message.ownerId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.ownerId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -785,7 +758,6 @@ export const GetConnectorResponse = new GetConnectorResponse$Type();
 class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListConnectorsRequest", [
-            { no: 1, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 3, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "kind_filter", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorKind", ConnectorKind, "CONNECTOR_KIND_"] },
@@ -795,7 +767,6 @@ class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
     }
     create(value?: PartialMessage<ListConnectorsRequest>): ListConnectorsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.ownerId = "";
         message.pageSize = 0;
         message.pageToken = "";
         message.kindFilter = 0;
@@ -810,9 +781,6 @@ class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string owner_id */ 1:
-                    message.ownerId = reader.string();
-                    break;
                 case /* int32 page_size */ 2:
                     message.pageSize = reader.int32();
                     break;
@@ -840,9 +808,6 @@ class ListConnectorsRequest$Type extends MessageType<ListConnectorsRequest> {
         return message;
     }
     internalBinaryWrite(message: ListConnectorsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string owner_id = 1; */
-        if (message.ownerId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.ownerId);
         /* int32 page_size = 2; */
         if (message.pageSize !== 0)
             writer.tag(2, WireType.Varint).int32(message.pageSize);
@@ -928,20 +893,16 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
     constructor() {
         super("nimi.runtime.v1.UpdateConnectorRequest", [
             { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "api_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorStatus", ConnectorStatus, "CONNECTOR_STATUS_"] }
+            { no: 3, name: "label", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "endpoint", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "api_key", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorStatus", ConnectorStatus, "CONNECTOR_STATUS_"] },
+            { no: 7, name: "update_mask", kind: "message", T: () => FieldMask }
         ]);
     }
     create(value?: PartialMessage<UpdateConnectorRequest>): UpdateConnectorRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectorId = "";
-        message.ownerId = "";
-        message.label = "";
-        message.endpoint = "";
-        message.apiKey = "";
         message.status = 0;
         if (value !== undefined)
             reflectionMergePartial<UpdateConnectorRequest>(this, message, value);
@@ -955,20 +916,20 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
                 case /* string connector_id */ 1:
                     message.connectorId = reader.string();
                     break;
-                case /* string owner_id */ 2:
-                    message.ownerId = reader.string();
-                    break;
-                case /* string label */ 3:
+                case /* optional string label */ 3:
                     message.label = reader.string();
                     break;
-                case /* string endpoint */ 4:
+                case /* optional string endpoint */ 4:
                     message.endpoint = reader.string();
                     break;
-                case /* string api_key */ 5:
+                case /* optional string api_key */ 5:
                     message.apiKey = reader.string();
                     break;
                 case /* nimi.runtime.v1.ConnectorStatus status */ 6:
                     message.status = reader.int32();
+                    break;
+                case /* google.protobuf.FieldMask update_mask */ 7:
+                    message.updateMask = FieldMask.internalBinaryRead(reader, reader.uint32(), options, message.updateMask);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -985,21 +946,21 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
         /* string connector_id = 1; */
         if (message.connectorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.connectorId);
-        /* string owner_id = 2; */
-        if (message.ownerId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.ownerId);
-        /* string label = 3; */
-        if (message.label !== "")
+        /* optional string label = 3; */
+        if (message.label !== undefined)
             writer.tag(3, WireType.LengthDelimited).string(message.label);
-        /* string endpoint = 4; */
-        if (message.endpoint !== "")
+        /* optional string endpoint = 4; */
+        if (message.endpoint !== undefined)
             writer.tag(4, WireType.LengthDelimited).string(message.endpoint);
-        /* string api_key = 5; */
-        if (message.apiKey !== "")
+        /* optional string api_key = 5; */
+        if (message.apiKey !== undefined)
             writer.tag(5, WireType.LengthDelimited).string(message.apiKey);
         /* nimi.runtime.v1.ConnectorStatus status = 6; */
         if (message.status !== 0)
             writer.tag(6, WireType.Varint).int32(message.status);
+        /* google.protobuf.FieldMask update_mask = 7; */
+        if (message.updateMask)
+            FieldMask.internalBinaryWrite(message.updateMask, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1060,14 +1021,12 @@ export const UpdateConnectorResponse = new UpdateConnectorResponse$Type();
 class DeleteConnectorRequest$Type extends MessageType<DeleteConnectorRequest> {
     constructor() {
         super("nimi.runtime.v1.DeleteConnectorRequest", [
-            { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<DeleteConnectorRequest>): DeleteConnectorRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectorId = "";
-        message.ownerId = "";
         if (value !== undefined)
             reflectionMergePartial<DeleteConnectorRequest>(this, message, value);
         return message;
@@ -1079,9 +1038,6 @@ class DeleteConnectorRequest$Type extends MessageType<DeleteConnectorRequest> {
             switch (fieldNo) {
                 case /* string connector_id */ 1:
                     message.connectorId = reader.string();
-                    break;
-                case /* string owner_id */ 2:
-                    message.ownerId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1098,9 +1054,6 @@ class DeleteConnectorRequest$Type extends MessageType<DeleteConnectorRequest> {
         /* string connector_id = 1; */
         if (message.connectorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.connectorId);
-        /* string owner_id = 2; */
-        if (message.ownerId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.ownerId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1161,14 +1114,12 @@ export const DeleteConnectorResponse = new DeleteConnectorResponse$Type();
 class TestConnectorRequest$Type extends MessageType<TestConnectorRequest> {
     constructor() {
         super("nimi.runtime.v1.TestConnectorRequest", [
-            { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<TestConnectorRequest>): TestConnectorRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectorId = "";
-        message.ownerId = "";
         if (value !== undefined)
             reflectionMergePartial<TestConnectorRequest>(this, message, value);
         return message;
@@ -1180,9 +1131,6 @@ class TestConnectorRequest$Type extends MessageType<TestConnectorRequest> {
             switch (fieldNo) {
                 case /* string connector_id */ 1:
                     message.connectorId = reader.string();
-                    break;
-                case /* string owner_id */ 2:
-                    message.ownerId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1199,9 +1147,6 @@ class TestConnectorRequest$Type extends MessageType<TestConnectorRequest> {
         /* string connector_id = 1; */
         if (message.connectorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.connectorId);
-        /* string owner_id = 2; */
-        if (message.ownerId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.ownerId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1334,15 +1279,17 @@ class ListConnectorModelsRequest$Type extends MessageType<ListConnectorModelsReq
     constructor() {
         super("nimi.runtime.v1.ListConnectorModelsRequest", [
             { no: 1, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "force_refresh", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 3, name: "force_refresh", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListConnectorModelsRequest>): ListConnectorModelsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.connectorId = "";
-        message.ownerId = "";
         message.forceRefresh = false;
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListConnectorModelsRequest>(this, message, value);
         return message;
@@ -1355,11 +1302,14 @@ class ListConnectorModelsRequest$Type extends MessageType<ListConnectorModelsReq
                 case /* string connector_id */ 1:
                     message.connectorId = reader.string();
                     break;
-                case /* string owner_id */ 2:
-                    message.ownerId = reader.string();
-                    break;
                 case /* bool force_refresh */ 3:
                     message.forceRefresh = reader.bool();
+                    break;
+                case /* int32 page_size */ 4:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 5:
+                    message.pageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1376,12 +1326,15 @@ class ListConnectorModelsRequest$Type extends MessageType<ListConnectorModelsReq
         /* string connector_id = 1; */
         if (message.connectorId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.connectorId);
-        /* string owner_id = 2; */
-        if (message.ownerId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.ownerId);
         /* bool force_refresh = 3; */
         if (message.forceRefresh !== false)
             writer.tag(3, WireType.Varint).bool(message.forceRefresh);
+        /* int32 page_size = 4; */
+        if (message.pageSize !== 0)
+            writer.tag(4, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 5; */
+        if (message.pageToken !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1396,12 +1349,14 @@ export const ListConnectorModelsRequest = new ListConnectorModelsRequest$Type();
 class ListConnectorModelsResponse$Type extends MessageType<ListConnectorModelsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListConnectorModelsResponse", [
-            { no: 1, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ConnectorModelDescriptor }
+            { no: 1, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ConnectorModelDescriptor },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListConnectorModelsResponse>): ListConnectorModelsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.models = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListConnectorModelsResponse>(this, message, value);
         return message;
@@ -1413,6 +1368,9 @@ class ListConnectorModelsResponse$Type extends MessageType<ListConnectorModelsRe
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.ConnectorModelDescriptor models */ 1:
                     message.models.push(ConnectorModelDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1429,6 +1387,9 @@ class ListConnectorModelsResponse$Type extends MessageType<ListConnectorModelsRe
         /* repeated nimi.runtime.v1.ConnectorModelDescriptor models = 1; */
         for (let i = 0; i < message.models.length; i++)
             ConnectorModelDescriptor.internalBinaryWrite(message.models[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

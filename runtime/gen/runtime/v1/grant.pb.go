@@ -808,11 +808,14 @@ func (x *IssueDelegatedAccessTokenResponse) GetSecret() string {
 }
 
 type ListTokenChainRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	RootTokenId   string                 `protobuf:"bytes,2,opt,name=root_token_id,json=rootTokenId,proto3" json:"root_token_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AppId          string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	RootTokenId    string                 `protobuf:"bytes,2,opt,name=root_token_id,json=rootTokenId,proto3" json:"root_token_id,omitempty"`
+	IncludeRevoked bool                   `protobuf:"varint,3,opt,name=include_revoked,json=includeRevoked,proto3" json:"include_revoked,omitempty"`
+	PageSize       int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken      string                 `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListTokenChainRequest) Reset() {
@@ -859,33 +862,58 @@ func (x *ListTokenChainRequest) GetRootTokenId() string {
 	return ""
 }
 
-type TokenChainNode struct {
+func (x *ListTokenChainRequest) GetIncludeRevoked() bool {
+	if x != nil {
+		return x.IncludeRevoked
+	}
+	return false
+}
+
+func (x *ListTokenChainRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListTokenChainRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type TokenChainEntry struct {
 	state                     protoimpl.MessageState `protogen:"open.v1"`
 	TokenId                   string                 `protobuf:"bytes,1,opt,name=token_id,json=tokenId,proto3" json:"token_id,omitempty"`
 	ParentTokenId             string                 `protobuf:"bytes,2,opt,name=parent_token_id,json=parentTokenId,proto3" json:"parent_token_id,omitempty"`
-	ExternalPrincipalId       string                 `protobuf:"bytes,3,opt,name=external_principal_id,json=externalPrincipalId,proto3" json:"external_principal_id,omitempty"`
-	PolicyVersion             string                 `protobuf:"bytes,4,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
-	IssuedScopeCatalogVersion string                 `protobuf:"bytes,5,opt,name=issued_scope_catalog_version,json=issuedScopeCatalogVersion,proto3" json:"issued_scope_catalog_version,omitempty"`
+	PrincipalId               string                 `protobuf:"bytes,3,opt,name=principal_id,json=principalId,proto3" json:"principal_id,omitempty"`
+	PrincipalType             string                 `protobuf:"bytes,4,opt,name=principal_type,json=principalType,proto3" json:"principal_type,omitempty"`
+	EffectiveScopes           []string               `protobuf:"bytes,5,rep,name=effective_scopes,json=effectiveScopes,proto3" json:"effective_scopes,omitempty"`
 	IssuedAt                  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`
 	ExpiresAt                 *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Revoked                   bool                   `protobuf:"varint,8,opt,name=revoked,proto3" json:"revoked,omitempty"`
+	DelegationDepth           int32                  `protobuf:"varint,9,opt,name=delegation_depth,json=delegationDepth,proto3" json:"delegation_depth,omitempty"`
+	PolicyVersion             string                 `protobuf:"bytes,10,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+	IssuedScopeCatalogVersion string                 `protobuf:"bytes,11,opt,name=issued_scope_catalog_version,json=issuedScopeCatalogVersion,proto3" json:"issued_scope_catalog_version,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
 
-func (x *TokenChainNode) Reset() {
-	*x = TokenChainNode{}
+func (x *TokenChainEntry) Reset() {
+	*x = TokenChainEntry{}
 	mi := &file_runtime_v1_grant_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TokenChainNode) String() string {
+func (x *TokenChainEntry) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TokenChainNode) ProtoMessage() {}
+func (*TokenChainEntry) ProtoMessage() {}
 
-func (x *TokenChainNode) ProtoReflect() protoreflect.Message {
+func (x *TokenChainEntry) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_grant_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -897,63 +925,93 @@ func (x *TokenChainNode) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TokenChainNode.ProtoReflect.Descriptor instead.
-func (*TokenChainNode) Descriptor() ([]byte, []int) {
+// Deprecated: Use TokenChainEntry.ProtoReflect.Descriptor instead.
+func (*TokenChainEntry) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_grant_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *TokenChainNode) GetTokenId() string {
+func (x *TokenChainEntry) GetTokenId() string {
 	if x != nil {
 		return x.TokenId
 	}
 	return ""
 }
 
-func (x *TokenChainNode) GetParentTokenId() string {
+func (x *TokenChainEntry) GetParentTokenId() string {
 	if x != nil {
 		return x.ParentTokenId
 	}
 	return ""
 }
 
-func (x *TokenChainNode) GetExternalPrincipalId() string {
+func (x *TokenChainEntry) GetPrincipalId() string {
 	if x != nil {
-		return x.ExternalPrincipalId
+		return x.PrincipalId
 	}
 	return ""
 }
 
-func (x *TokenChainNode) GetPolicyVersion() string {
+func (x *TokenChainEntry) GetPrincipalType() string {
 	if x != nil {
-		return x.PolicyVersion
+		return x.PrincipalType
 	}
 	return ""
 }
 
-func (x *TokenChainNode) GetIssuedScopeCatalogVersion() string {
+func (x *TokenChainEntry) GetEffectiveScopes() []string {
 	if x != nil {
-		return x.IssuedScopeCatalogVersion
+		return x.EffectiveScopes
 	}
-	return ""
+	return nil
 }
 
-func (x *TokenChainNode) GetIssuedAt() *timestamppb.Timestamp {
+func (x *TokenChainEntry) GetIssuedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.IssuedAt
 	}
 	return nil
 }
 
-func (x *TokenChainNode) GetExpiresAt() *timestamppb.Timestamp {
+func (x *TokenChainEntry) GetExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.ExpiresAt
 	}
 	return nil
 }
 
+func (x *TokenChainEntry) GetRevoked() bool {
+	if x != nil {
+		return x.Revoked
+	}
+	return false
+}
+
+func (x *TokenChainEntry) GetDelegationDepth() int32 {
+	if x != nil {
+		return x.DelegationDepth
+	}
+	return 0
+}
+
+func (x *TokenChainEntry) GetPolicyVersion() string {
+	if x != nil {
+		return x.PolicyVersion
+	}
+	return ""
+}
+
+func (x *TokenChainEntry) GetIssuedScopeCatalogVersion() string {
+	if x != nil {
+		return x.IssuedScopeCatalogVersion
+	}
+	return ""
+}
+
 type ListTokenChainResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Nodes         []*TokenChainNode      `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Entries       []*TokenChainEntry     `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -988,11 +1046,25 @@ func (*ListTokenChainResponse) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_grant_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *ListTokenChainResponse) GetNodes() []*TokenChainNode {
+func (x *ListTokenChainResponse) GetEntries() []*TokenChainEntry {
 	if x != nil {
-		return x.Nodes
+		return x.Entries
 	}
 	return nil
+}
+
+func (x *ListTokenChainResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListTokenChainResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 var File_runtime_v1_grant_proto protoreflect.FileDescriptor
@@ -1072,21 +1144,32 @@ const file_runtime_v1_grant_proto_rawDesc = "" +
 	"\x10effective_scopes\x18\x03 \x03(\tR\x0feffectiveScopes\x129\n" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x16\n" +
-	"\x06secret\x18\x05 \x01(\tR\x06secret\"R\n" +
+	"\x06secret\x18\x05 \x01(\tR\x06secret\"\xb7\x01\n" +
 	"\x15ListTokenChainRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\"\n" +
-	"\rroot_token_id\x18\x02 \x01(\tR\vrootTokenId\"\xe3\x02\n" +
-	"\x0eTokenChainNode\x12\x19\n" +
+	"\rroot_token_id\x18\x02 \x01(\tR\vrootTokenId\x12'\n" +
+	"\x0finclude_revoked\x18\x03 \x01(\bR\x0eincludeRevoked\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\xea\x03\n" +
+	"\x0fTokenChainEntry\x12\x19\n" +
 	"\btoken_id\x18\x01 \x01(\tR\atokenId\x12&\n" +
-	"\x0fparent_token_id\x18\x02 \x01(\tR\rparentTokenId\x122\n" +
-	"\x15external_principal_id\x18\x03 \x01(\tR\x13externalPrincipalId\x12%\n" +
-	"\x0epolicy_version\x18\x04 \x01(\tR\rpolicyVersion\x12?\n" +
-	"\x1cissued_scope_catalog_version\x18\x05 \x01(\tR\x19issuedScopeCatalogVersion\x127\n" +
+	"\x0fparent_token_id\x18\x02 \x01(\tR\rparentTokenId\x12!\n" +
+	"\fprincipal_id\x18\x03 \x01(\tR\vprincipalId\x12%\n" +
+	"\x0eprincipal_type\x18\x04 \x01(\tR\rprincipalType\x12)\n" +
+	"\x10effective_scopes\x18\x05 \x03(\tR\x0feffectiveScopes\x127\n" +
 	"\tissued_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bissuedAt\x129\n" +
 	"\n" +
-	"expires_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"O\n" +
-	"\x16ListTokenChainResponse\x125\n" +
-	"\x05nodes\x18\x01 \x03(\v2\x1f.nimi.runtime.v1.TokenChainNodeR\x05nodes*Y\n" +
+	"expires_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x18\n" +
+	"\arevoked\x18\b \x01(\bR\arevoked\x12)\n" +
+	"\x10delegation_depth\x18\t \x01(\x05R\x0fdelegationDepth\x12%\n" +
+	"\x0epolicy_version\x18\n" +
+	" \x01(\tR\rpolicyVersion\x12?\n" +
+	"\x1cissued_scope_catalog_version\x18\v \x01(\tR\x19issuedScopeCatalogVersion\"\x97\x01\n" +
+	"\x16ListTokenChainResponse\x12:\n" +
+	"\aentries\x18\x01 \x03(\v2 .nimi.runtime.v1.TokenChainEntryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore*Y\n" +
 	"\n" +
 	"PolicyMode\x12\x1b\n" +
 	"\x17POLICY_MODE_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -1129,7 +1212,7 @@ var file_runtime_v1_grant_proto_goTypes = []any{
 	(*IssueDelegatedAccessTokenRequest)(nil),   // 7: nimi.runtime.v1.IssueDelegatedAccessTokenRequest
 	(*IssueDelegatedAccessTokenResponse)(nil),  // 8: nimi.runtime.v1.IssueDelegatedAccessTokenResponse
 	(*ListTokenChainRequest)(nil),              // 9: nimi.runtime.v1.ListTokenChainRequest
-	(*TokenChainNode)(nil),                     // 10: nimi.runtime.v1.TokenChainNode
+	(*TokenChainEntry)(nil),                    // 10: nimi.runtime.v1.TokenChainEntry
 	(*ListTokenChainResponse)(nil),             // 11: nimi.runtime.v1.ListTokenChainResponse
 	(ExternalPrincipalType)(0),                 // 12: nimi.runtime.v1.ExternalPrincipalType
 	(*timestamppb.Timestamp)(nil),              // 13: google.protobuf.Timestamp
@@ -1151,9 +1234,9 @@ var file_runtime_v1_grant_proto_depIdxs = []int32{
 	16, // 9: nimi.runtime.v1.ValidateAppAccessTokenResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	14, // 10: nimi.runtime.v1.IssueDelegatedAccessTokenRequest.resource_selectors:type_name -> nimi.runtime.v1.ResourceSelectors
 	13, // 11: nimi.runtime.v1.IssueDelegatedAccessTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	13, // 12: nimi.runtime.v1.TokenChainNode.issued_at:type_name -> google.protobuf.Timestamp
-	13, // 13: nimi.runtime.v1.TokenChainNode.expires_at:type_name -> google.protobuf.Timestamp
-	10, // 14: nimi.runtime.v1.ListTokenChainResponse.nodes:type_name -> nimi.runtime.v1.TokenChainNode
+	13, // 12: nimi.runtime.v1.TokenChainEntry.issued_at:type_name -> google.protobuf.Timestamp
+	13, // 13: nimi.runtime.v1.TokenChainEntry.expires_at:type_name -> google.protobuf.Timestamp
+	10, // 14: nimi.runtime.v1.ListTokenChainResponse.entries:type_name -> nimi.runtime.v1.TokenChainEntry
 	2,  // 15: nimi.runtime.v1.RuntimeGrantService.AuthorizeExternalPrincipal:input_type -> nimi.runtime.v1.AuthorizeExternalPrincipalRequest
 	4,  // 16: nimi.runtime.v1.RuntimeGrantService.ValidateAppAccessToken:input_type -> nimi.runtime.v1.ValidateAppAccessTokenRequest
 	6,  // 17: nimi.runtime.v1.RuntimeGrantService.RevokeAppAccessToken:input_type -> nimi.runtime.v1.RevokeAppAccessTokenRequest

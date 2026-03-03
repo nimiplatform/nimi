@@ -85,6 +85,10 @@ export interface LocalModelRecord {
      * @generated from protobuf field: string health_detail = 13
      */
     healthDetail: string;
+    /**
+     * @generated from protobuf field: string local_invoke_profile_id = 14
+     */
+    localInvokeProfileId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalModelHealth
@@ -1035,6 +1039,26 @@ export interface LocalAuditEvent {
      * @generated from protobuf field: google.protobuf.Struct payload = 10
      */
     payload?: Struct;
+    /**
+     * @generated from protobuf field: string trace_id = 11
+     */
+    traceId: string;
+    /**
+     * @generated from protobuf field: string app_id = 12
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string domain = 13
+     */
+    domain: string;
+    /**
+     * @generated from protobuf field: string operation = 14
+     */
+    operation: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 15
+     */
+    subjectUserId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAuditTimeRange
@@ -1204,6 +1228,26 @@ export interface GetEngineStatusResponse {
  * @generated from protobuf message nimi.runtime.v1.ListLocalModelsRequest
  */
 export interface ListLocalModelsRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalModelStatus status_filter = 1
+     */
+    statusFilter: LocalModelStatus;
+    /**
+     * @generated from protobuf field: string engine_filter = 2
+     */
+    engineFilter: string;
+    /**
+     * @generated from protobuf field: string category_filter = 3
+     */
+    categoryFilter: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 4
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 5
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalModelsResponse
@@ -1213,11 +1257,31 @@ export interface ListLocalModelsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalModelRecord models = 1
      */
     models: LocalModelRecord[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListVerifiedModelsRequest
  */
 export interface ListVerifiedModelsRequest {
+    /**
+     * @generated from protobuf field: string category_filter = 1
+     */
+    categoryFilter: string;
+    /**
+     * @generated from protobuf field: string engine_filter = 2
+     */
+    engineFilter: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 3
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 4
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListVerifiedModelsResponse
@@ -1227,6 +1291,10 @@ export interface ListVerifiedModelsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalVerifiedModelDescriptor models = 1
      */
     models: LocalVerifiedModelDescriptor[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SearchCatalogModelsRequest
@@ -1244,6 +1312,22 @@ export interface SearchCatalogModelsRequest {
      * @generated from protobuf field: int32 limit = 3
      */
     limit: number;
+    /**
+     * @generated from protobuf field: string category_filter = 4
+     */
+    categoryFilter: string;
+    /**
+     * @generated from protobuf field: string engine_filter = 5
+     */
+    engineFilter: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 6
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 7
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SearchCatalogModelsResponse
@@ -1253,6 +1337,10 @@ export interface SearchCatalogModelsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalCatalogModelDescriptor items = 1
      */
     items: LocalCatalogModelDescriptor[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveModelInstallPlanRequest
@@ -1498,6 +1586,10 @@ export interface CheckLocalModelHealthResponse {
  * @generated from protobuf message nimi.runtime.v1.CollectDeviceProfileRequest
  */
 export interface CollectDeviceProfileRequest {
+    /**
+     * @generated from protobuf field: repeated int32 extra_ports = 1
+     */
+    extraPorts: number[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CollectDeviceProfileResponse
@@ -1560,6 +1652,18 @@ export interface ApplyDependenciesResponse {
  * @generated from protobuf message nimi.runtime.v1.ListLocalServicesRequest
  */
 export interface ListLocalServicesRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalServiceStatus status_filter = 1
+     */
+    statusFilter: LocalServiceStatus;
+    /**
+     * @generated from protobuf field: int32 page_size = 2
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 3
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalServicesResponse
@@ -1569,6 +1673,10 @@ export interface ListLocalServicesResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalServiceDescriptor services = 1
      */
     services: LocalServiceDescriptor[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InstallLocalServiceRequest
@@ -1696,6 +1804,18 @@ export interface ListNodeCatalogRequest {
      * @generated from protobuf field: string provider = 3
      */
     provider: string;
+    /**
+     * @generated from protobuf field: string type_filter = 4
+     */
+    typeFilter: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 5
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 6
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListNodeCatalogResponse
@@ -1705,6 +1825,10 @@ export interface ListNodeCatalogResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalNodeDescriptor nodes = 1
      */
     nodes: LocalNodeDescriptor[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalAuditsRequest
@@ -1746,6 +1870,22 @@ export interface ListLocalAuditsRequest {
      * @generated from protobuf field: nimi.runtime.v1.LocalAuditTimeRange time_range = 9
      */
     timeRange?: LocalAuditTimeRange;
+    /**
+     * @generated from protobuf field: int32 page_size = 10
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 11
+     */
+    pageToken: string;
+    /**
+     * @generated from protobuf field: string app_id = 12
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string subject_user_id = 13
+     */
+    subjectUserId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalAuditsResponse
@@ -1755,6 +1895,10 @@ export interface ListLocalAuditsResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalAuditEvent events = 1
      */
     events: LocalAuditEvent[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AppendInferenceAuditRequest
@@ -2020,7 +2164,8 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
             { no: 10, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.LocalModelStatus", LocalModelStatus, "LOCAL_MODEL_STATUS_"] },
             { no: 11, name: "installed_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "health_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 13, name: "health_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "local_invoke_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalModelRecord>): LocalModelRecord {
@@ -2037,6 +2182,7 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
         message.installedAt = "";
         message.updatedAt = "";
         message.healthDetail = "";
+        message.localInvokeProfileId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalModelRecord>(this, message, value);
         return message;
@@ -2084,6 +2230,9 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
                     break;
                 case /* string health_detail */ 13:
                     message.healthDetail = reader.string();
+                    break;
+                case /* string local_invoke_profile_id */ 14:
+                    message.localInvokeProfileId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2152,6 +2301,9 @@ class LocalModelRecord$Type extends MessageType<LocalModelRecord> {
         /* string health_detail = 13; */
         if (message.healthDetail !== "")
             writer.tag(13, WireType.LengthDelimited).string(message.healthDetail);
+        /* string local_invoke_profile_id = 14; */
+        if (message.localInvokeProfileId !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.localInvokeProfileId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4701,7 +4853,12 @@ class LocalAuditEvent$Type extends MessageType<LocalAuditEvent> {
             { no: 7, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "payload", kind: "message", T: () => Struct }
+            { no: 10, name: "payload", kind: "message", T: () => Struct },
+            { no: 11, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAuditEvent>): LocalAuditEvent {
@@ -4715,6 +4872,11 @@ class LocalAuditEvent$Type extends MessageType<LocalAuditEvent> {
         message.detail = "";
         message.modelId = "";
         message.localModelId = "";
+        message.traceId = "";
+        message.appId = "";
+        message.domain = "";
+        message.operation = "";
+        message.subjectUserId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAuditEvent>(this, message, value);
         return message;
@@ -4753,6 +4915,21 @@ class LocalAuditEvent$Type extends MessageType<LocalAuditEvent> {
                     break;
                 case /* google.protobuf.Struct payload */ 10:
                     message.payload = Struct.internalBinaryRead(reader, reader.uint32(), options, message.payload);
+                    break;
+                case /* string trace_id */ 11:
+                    message.traceId = reader.string();
+                    break;
+                case /* string app_id */ 12:
+                    message.appId = reader.string();
+                    break;
+                case /* string domain */ 13:
+                    message.domain = reader.string();
+                    break;
+                case /* string operation */ 14:
+                    message.operation = reader.string();
+                    break;
+                case /* string subject_user_id */ 15:
+                    message.subjectUserId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4796,6 +4973,21 @@ class LocalAuditEvent$Type extends MessageType<LocalAuditEvent> {
         /* google.protobuf.Struct payload = 10; */
         if (message.payload)
             Struct.internalBinaryWrite(message.payload, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* string trace_id = 11; */
+        if (message.traceId !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.traceId);
+        /* string app_id = 12; */
+        if (message.appId !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.appId);
+        /* string domain = 13; */
+        if (message.domain !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.domain);
+        /* string operation = 14; */
+        if (message.operation !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.operation);
+        /* string subject_user_id = 15; */
+        if (message.subjectUserId !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.subjectUserId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5480,10 +5672,21 @@ export const GetEngineStatusResponse = new GetEngineStatusResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListLocalModelsRequest$Type extends MessageType<ListLocalModelsRequest> {
     constructor() {
-        super("nimi.runtime.v1.ListLocalModelsRequest", []);
+        super("nimi.runtime.v1.ListLocalModelsRequest", [
+            { no: 1, name: "status_filter", kind: "enum", T: () => ["nimi.runtime.v1.LocalModelStatus", LocalModelStatus, "LOCAL_MODEL_STATUS_"] },
+            { no: 2, name: "engine_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "category_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
     }
     create(value?: PartialMessage<ListLocalModelsRequest>): ListLocalModelsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.statusFilter = 0;
+        message.engineFilter = "";
+        message.categoryFilter = "";
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListLocalModelsRequest>(this, message, value);
         return message;
@@ -5493,6 +5696,21 @@ class ListLocalModelsRequest$Type extends MessageType<ListLocalModelsRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalModelStatus status_filter */ 1:
+                    message.statusFilter = reader.int32();
+                    break;
+                case /* string engine_filter */ 2:
+                    message.engineFilter = reader.string();
+                    break;
+                case /* string category_filter */ 3:
+                    message.categoryFilter = reader.string();
+                    break;
+                case /* int32 page_size */ 4:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 5:
+                    message.pageToken = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5505,6 +5723,21 @@ class ListLocalModelsRequest$Type extends MessageType<ListLocalModelsRequest> {
         return message;
     }
     internalBinaryWrite(message: ListLocalModelsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalModelStatus status_filter = 1; */
+        if (message.statusFilter !== 0)
+            writer.tag(1, WireType.Varint).int32(message.statusFilter);
+        /* string engine_filter = 2; */
+        if (message.engineFilter !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.engineFilter);
+        /* string category_filter = 3; */
+        if (message.categoryFilter !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.categoryFilter);
+        /* int32 page_size = 4; */
+        if (message.pageSize !== 0)
+            writer.tag(4, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 5; */
+        if (message.pageToken !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5519,12 +5752,14 @@ export const ListLocalModelsRequest = new ListLocalModelsRequest$Type();
 class ListLocalModelsResponse$Type extends MessageType<ListLocalModelsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListLocalModelsResponse", [
-            { no: 1, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalModelRecord }
+            { no: 1, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalModelRecord },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListLocalModelsResponse>): ListLocalModelsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.models = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListLocalModelsResponse>(this, message, value);
         return message;
@@ -5536,6 +5771,9 @@ class ListLocalModelsResponse$Type extends MessageType<ListLocalModelsResponse> 
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.LocalModelRecord models */ 1:
                     message.models.push(LocalModelRecord.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5552,6 +5790,9 @@ class ListLocalModelsResponse$Type extends MessageType<ListLocalModelsResponse> 
         /* repeated nimi.runtime.v1.LocalModelRecord models = 1; */
         for (let i = 0; i < message.models.length; i++)
             LocalModelRecord.internalBinaryWrite(message.models[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5565,10 +5806,19 @@ export const ListLocalModelsResponse = new ListLocalModelsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListVerifiedModelsRequest$Type extends MessageType<ListVerifiedModelsRequest> {
     constructor() {
-        super("nimi.runtime.v1.ListVerifiedModelsRequest", []);
+        super("nimi.runtime.v1.ListVerifiedModelsRequest", [
+            { no: 1, name: "category_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "engine_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
     }
     create(value?: PartialMessage<ListVerifiedModelsRequest>): ListVerifiedModelsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.categoryFilter = "";
+        message.engineFilter = "";
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListVerifiedModelsRequest>(this, message, value);
         return message;
@@ -5578,6 +5828,18 @@ class ListVerifiedModelsRequest$Type extends MessageType<ListVerifiedModelsReque
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* string category_filter */ 1:
+                    message.categoryFilter = reader.string();
+                    break;
+                case /* string engine_filter */ 2:
+                    message.engineFilter = reader.string();
+                    break;
+                case /* int32 page_size */ 3:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 4:
+                    message.pageToken = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5590,6 +5852,18 @@ class ListVerifiedModelsRequest$Type extends MessageType<ListVerifiedModelsReque
         return message;
     }
     internalBinaryWrite(message: ListVerifiedModelsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string category_filter = 1; */
+        if (message.categoryFilter !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.categoryFilter);
+        /* string engine_filter = 2; */
+        if (message.engineFilter !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.engineFilter);
+        /* int32 page_size = 3; */
+        if (message.pageSize !== 0)
+            writer.tag(3, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 4; */
+        if (message.pageToken !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5604,12 +5878,14 @@ export const ListVerifiedModelsRequest = new ListVerifiedModelsRequest$Type();
 class ListVerifiedModelsResponse$Type extends MessageType<ListVerifiedModelsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListVerifiedModelsResponse", [
-            { no: 1, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalVerifiedModelDescriptor }
+            { no: 1, name: "models", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalVerifiedModelDescriptor },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListVerifiedModelsResponse>): ListVerifiedModelsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.models = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListVerifiedModelsResponse>(this, message, value);
         return message;
@@ -5621,6 +5897,9 @@ class ListVerifiedModelsResponse$Type extends MessageType<ListVerifiedModelsResp
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.LocalVerifiedModelDescriptor models */ 1:
                     message.models.push(LocalVerifiedModelDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5637,6 +5916,9 @@ class ListVerifiedModelsResponse$Type extends MessageType<ListVerifiedModelsResp
         /* repeated nimi.runtime.v1.LocalVerifiedModelDescriptor models = 1; */
         for (let i = 0; i < message.models.length; i++)
             LocalVerifiedModelDescriptor.internalBinaryWrite(message.models[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5653,7 +5935,11 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         super("nimi.runtime.v1.SearchCatalogModelsRequest", [
             { no: 1, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 3, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "category_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "engine_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SearchCatalogModelsRequest>): SearchCatalogModelsRequest {
@@ -5661,6 +5947,10 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         message.query = "";
         message.capability = "";
         message.limit = 0;
+        message.categoryFilter = "";
+        message.engineFilter = "";
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<SearchCatalogModelsRequest>(this, message, value);
         return message;
@@ -5678,6 +5968,18 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
                     break;
                 case /* int32 limit */ 3:
                     message.limit = reader.int32();
+                    break;
+                case /* string category_filter */ 4:
+                    message.categoryFilter = reader.string();
+                    break;
+                case /* string engine_filter */ 5:
+                    message.engineFilter = reader.string();
+                    break;
+                case /* int32 page_size */ 6:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 7:
+                    message.pageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5700,6 +6002,18 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         /* int32 limit = 3; */
         if (message.limit !== 0)
             writer.tag(3, WireType.Varint).int32(message.limit);
+        /* string category_filter = 4; */
+        if (message.categoryFilter !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.categoryFilter);
+        /* string engine_filter = 5; */
+        if (message.engineFilter !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.engineFilter);
+        /* int32 page_size = 6; */
+        if (message.pageSize !== 0)
+            writer.tag(6, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 7; */
+        if (message.pageToken !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5714,12 +6028,14 @@ export const SearchCatalogModelsRequest = new SearchCatalogModelsRequest$Type();
 class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsResponse> {
     constructor() {
         super("nimi.runtime.v1.SearchCatalogModelsResponse", [
-            { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCatalogModelDescriptor }
+            { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCatalogModelDescriptor },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SearchCatalogModelsResponse>): SearchCatalogModelsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.items = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<SearchCatalogModelsResponse>(this, message, value);
         return message;
@@ -5731,6 +6047,9 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.LocalCatalogModelDescriptor items */ 1:
                     message.items.push(LocalCatalogModelDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5747,6 +6066,9 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
         /* repeated nimi.runtime.v1.LocalCatalogModelDescriptor items = 1; */
         for (let i = 0; i < message.items.length; i++)
             LocalCatalogModelDescriptor.internalBinaryWrite(message.items[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6721,10 +7043,13 @@ export const CheckLocalModelHealthResponse = new CheckLocalModelHealthResponse$T
 // @generated message type with reflection information, may provide speed optimized methods
 class CollectDeviceProfileRequest$Type extends MessageType<CollectDeviceProfileRequest> {
     constructor() {
-        super("nimi.runtime.v1.CollectDeviceProfileRequest", []);
+        super("nimi.runtime.v1.CollectDeviceProfileRequest", [
+            { no: 1, name: "extra_ports", kind: "scalar", repeat: 1 /*RepeatType.PACKED*/, T: 5 /*ScalarType.INT32*/ }
+        ]);
     }
     create(value?: PartialMessage<CollectDeviceProfileRequest>): CollectDeviceProfileRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.extraPorts = [];
         if (value !== undefined)
             reflectionMergePartial<CollectDeviceProfileRequest>(this, message, value);
         return message;
@@ -6734,6 +7059,13 @@ class CollectDeviceProfileRequest$Type extends MessageType<CollectDeviceProfileR
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* repeated int32 extra_ports */ 1:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.extraPorts.push(reader.int32());
+                    else
+                        message.extraPorts.push(reader.int32());
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6746,6 +7078,13 @@ class CollectDeviceProfileRequest$Type extends MessageType<CollectDeviceProfileR
         return message;
     }
     internalBinaryWrite(message: CollectDeviceProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated int32 extra_ports = 1; */
+        if (message.extraPorts.length) {
+            writer.tag(1, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.extraPorts.length; i++)
+                writer.int32(message.extraPorts[i]);
+            writer.join();
+        }
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7012,10 +7351,17 @@ export const ApplyDependenciesResponse = new ApplyDependenciesResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListLocalServicesRequest$Type extends MessageType<ListLocalServicesRequest> {
     constructor() {
-        super("nimi.runtime.v1.ListLocalServicesRequest", []);
+        super("nimi.runtime.v1.ListLocalServicesRequest", [
+            { no: 1, name: "status_filter", kind: "enum", T: () => ["nimi.runtime.v1.LocalServiceStatus", LocalServiceStatus, "LOCAL_SERVICE_STATUS_"] },
+            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
     }
     create(value?: PartialMessage<ListLocalServicesRequest>): ListLocalServicesRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.statusFilter = 0;
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListLocalServicesRequest>(this, message, value);
         return message;
@@ -7025,6 +7371,15 @@ class ListLocalServicesRequest$Type extends MessageType<ListLocalServicesRequest
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalServiceStatus status_filter */ 1:
+                    message.statusFilter = reader.int32();
+                    break;
+                case /* int32 page_size */ 2:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 3:
+                    message.pageToken = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7037,6 +7392,15 @@ class ListLocalServicesRequest$Type extends MessageType<ListLocalServicesRequest
         return message;
     }
     internalBinaryWrite(message: ListLocalServicesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalServiceStatus status_filter = 1; */
+        if (message.statusFilter !== 0)
+            writer.tag(1, WireType.Varint).int32(message.statusFilter);
+        /* int32 page_size = 2; */
+        if (message.pageSize !== 0)
+            writer.tag(2, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 3; */
+        if (message.pageToken !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7051,12 +7415,14 @@ export const ListLocalServicesRequest = new ListLocalServicesRequest$Type();
 class ListLocalServicesResponse$Type extends MessageType<ListLocalServicesResponse> {
     constructor() {
         super("nimi.runtime.v1.ListLocalServicesResponse", [
-            { no: 1, name: "services", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalServiceDescriptor }
+            { no: 1, name: "services", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalServiceDescriptor },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListLocalServicesResponse>): ListLocalServicesResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.services = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListLocalServicesResponse>(this, message, value);
         return message;
@@ -7068,6 +7434,9 @@ class ListLocalServicesResponse$Type extends MessageType<ListLocalServicesRespon
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.LocalServiceDescriptor services */ 1:
                     message.services.push(LocalServiceDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7084,6 +7453,9 @@ class ListLocalServicesResponse$Type extends MessageType<ListLocalServicesRespon
         /* repeated nimi.runtime.v1.LocalServiceDescriptor services = 1; */
         for (let i = 0; i < message.services.length; i++)
             LocalServiceDescriptor.internalBinaryWrite(message.services[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7606,7 +7978,10 @@ class ListNodeCatalogRequest$Type extends MessageType<ListNodeCatalogRequest> {
         super("nimi.runtime.v1.ListNodeCatalogRequest", [
             { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "type_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListNodeCatalogRequest>): ListNodeCatalogRequest {
@@ -7614,6 +7989,9 @@ class ListNodeCatalogRequest$Type extends MessageType<ListNodeCatalogRequest> {
         message.capability = "";
         message.serviceId = "";
         message.provider = "";
+        message.typeFilter = "";
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListNodeCatalogRequest>(this, message, value);
         return message;
@@ -7631,6 +8009,15 @@ class ListNodeCatalogRequest$Type extends MessageType<ListNodeCatalogRequest> {
                     break;
                 case /* string provider */ 3:
                     message.provider = reader.string();
+                    break;
+                case /* string type_filter */ 4:
+                    message.typeFilter = reader.string();
+                    break;
+                case /* int32 page_size */ 5:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 6:
+                    message.pageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7653,6 +8040,15 @@ class ListNodeCatalogRequest$Type extends MessageType<ListNodeCatalogRequest> {
         /* string provider = 3; */
         if (message.provider !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.provider);
+        /* string type_filter = 4; */
+        if (message.typeFilter !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.typeFilter);
+        /* int32 page_size = 5; */
+        if (message.pageSize !== 0)
+            writer.tag(5, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 6; */
+        if (message.pageToken !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7667,12 +8063,14 @@ export const ListNodeCatalogRequest = new ListNodeCatalogRequest$Type();
 class ListNodeCatalogResponse$Type extends MessageType<ListNodeCatalogResponse> {
     constructor() {
         super("nimi.runtime.v1.ListNodeCatalogResponse", [
-            { no: 1, name: "nodes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalNodeDescriptor }
+            { no: 1, name: "nodes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalNodeDescriptor },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListNodeCatalogResponse>): ListNodeCatalogResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.nodes = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListNodeCatalogResponse>(this, message, value);
         return message;
@@ -7684,6 +8082,9 @@ class ListNodeCatalogResponse$Type extends MessageType<ListNodeCatalogResponse> 
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.LocalNodeDescriptor nodes */ 1:
                     message.nodes.push(LocalNodeDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7700,6 +8101,9 @@ class ListNodeCatalogResponse$Type extends MessageType<ListNodeCatalogResponse> 
         /* repeated nimi.runtime.v1.LocalNodeDescriptor nodes = 1; */
         for (let i = 0; i < message.nodes.length; i++)
             LocalNodeDescriptor.internalBinaryWrite(message.nodes[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7722,7 +8126,11 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
             { no: 6, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "mod_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "time_range", kind: "message", T: () => LocalAuditTimeRange }
+            { no: 9, name: "time_range", kind: "message", T: () => LocalAuditTimeRange },
+            { no: 10, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 11, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListLocalAuditsRequest>): ListLocalAuditsRequest {
@@ -7735,6 +8143,10 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
         message.localModelId = "";
         message.modId = "";
         message.reasonCode = "";
+        message.pageSize = 0;
+        message.pageToken = "";
+        message.appId = "";
+        message.subjectUserId = "";
         if (value !== undefined)
             reflectionMergePartial<ListLocalAuditsRequest>(this, message, value);
         return message;
@@ -7770,6 +8182,18 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
                     break;
                 case /* nimi.runtime.v1.LocalAuditTimeRange time_range */ 9:
                     message.timeRange = LocalAuditTimeRange.internalBinaryRead(reader, reader.uint32(), options, message.timeRange);
+                    break;
+                case /* int32 page_size */ 10:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 11:
+                    message.pageToken = reader.string();
+                    break;
+                case /* string app_id */ 12:
+                    message.appId = reader.string();
+                    break;
+                case /* string subject_user_id */ 13:
+                    message.subjectUserId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7810,6 +8234,18 @@ class ListLocalAuditsRequest$Type extends MessageType<ListLocalAuditsRequest> {
         /* nimi.runtime.v1.LocalAuditTimeRange time_range = 9; */
         if (message.timeRange)
             LocalAuditTimeRange.internalBinaryWrite(message.timeRange, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* int32 page_size = 10; */
+        if (message.pageSize !== 0)
+            writer.tag(10, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 11; */
+        if (message.pageToken !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.pageToken);
+        /* string app_id = 12; */
+        if (message.appId !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.appId);
+        /* string subject_user_id = 13; */
+        if (message.subjectUserId !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.subjectUserId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7824,12 +8260,14 @@ export const ListLocalAuditsRequest = new ListLocalAuditsRequest$Type();
 class ListLocalAuditsResponse$Type extends MessageType<ListLocalAuditsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListLocalAuditsResponse", [
-            { no: 1, name: "events", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAuditEvent }
+            { no: 1, name: "events", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalAuditEvent },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListLocalAuditsResponse>): ListLocalAuditsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.events = [];
+        message.nextPageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListLocalAuditsResponse>(this, message, value);
         return message;
@@ -7841,6 +8279,9 @@ class ListLocalAuditsResponse$Type extends MessageType<ListLocalAuditsResponse> 
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.LocalAuditEvent events */ 1:
                     message.events.push(LocalAuditEvent.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7857,6 +8298,9 @@ class ListLocalAuditsResponse$Type extends MessageType<ListLocalAuditsResponse> 
         /* repeated nimi.runtime.v1.LocalAuditEvent events = 1; */
         for (let i = 0; i < message.events.length; i++)
             LocalAuditEvent.internalBinaryWrite(message.events[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -5,6 +5,7 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "runtime/v1/common.proto";
+import "google/protobuf/field_mask.proto";
 
 enum ConnectorKind {
   CONNECTOR_KIND_UNSPECIFIED = 0;
@@ -54,7 +55,7 @@ message CreateConnectorRequest {
   string endpoint = 2;
   string label = 3;
   string api_key = 4;
-  string owner_id = 5;
+  reserved 5;
 }
 
 message CreateConnectorResponse {
@@ -63,7 +64,7 @@ message CreateConnectorResponse {
 
 message GetConnectorRequest {
   string connector_id = 1;
-  string owner_id = 2;
+  reserved 2;
 }
 
 message GetConnectorResponse {
@@ -71,7 +72,7 @@ message GetConnectorResponse {
 }
 
 message ListConnectorsRequest {
-  string owner_id = 1;
+  reserved 1;
   int32 page_size = 2;
   string page_token = 3;
   ConnectorKind kind_filter = 4;
@@ -86,11 +87,12 @@ message ListConnectorsResponse {
 
 message UpdateConnectorRequest {
   string connector_id = 1;
-  string owner_id = 2;
-  string label = 3;
-  string endpoint = 4;
-  string api_key = 5;
+  reserved 2;
+  optional string label = 3;
+  optional string endpoint = 4;
+  optional string api_key = 5;
   ConnectorStatus status = 6;
+  google.protobuf.FieldMask update_mask = 7;
 }
 
 message UpdateConnectorResponse {
@@ -99,7 +101,7 @@ message UpdateConnectorResponse {
 
 message DeleteConnectorRequest {
   string connector_id = 1;
-  string owner_id = 2;
+  reserved 2;
 }
 
 message DeleteConnectorResponse {
@@ -108,7 +110,7 @@ message DeleteConnectorResponse {
 
 message TestConnectorRequest {
   string connector_id = 1;
-  string owner_id = 2;
+  reserved 2;
 }
 
 message TestConnectorResponse {
@@ -124,12 +126,15 @@ message ConnectorModelDescriptor {
 
 message ListConnectorModelsRequest {
   string connector_id = 1;
-  string owner_id = 2;
+  reserved 2;
   bool force_refresh = 3;
+  int32 page_size = 4;
+  string page_token = 5;
 }
 
 message ListConnectorModelsResponse {
   repeated ConnectorModelDescriptor models = 1;
+  string next_page_token = 2;
 }
 
 message ProviderCatalogEntry {

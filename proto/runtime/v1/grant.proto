@@ -98,20 +98,29 @@ message IssueDelegatedAccessTokenResponse {
 message ListTokenChainRequest {
   string app_id = 1;
   string root_token_id = 2;
+  bool include_revoked = 3;
+  int32 page_size = 4;
+  string page_token = 5;
 }
 
-message TokenChainNode {
+message TokenChainEntry {
   string token_id = 1;
   string parent_token_id = 2;
-  string external_principal_id = 3;
-  string policy_version = 4;
-  string issued_scope_catalog_version = 5;
+  string principal_id = 3;
+  string principal_type = 4;
+  repeated string effective_scopes = 5;
   google.protobuf.Timestamp issued_at = 6;
   google.protobuf.Timestamp expires_at = 7;
+  bool revoked = 8;
+  int32 delegation_depth = 9;
+  string policy_version = 10;
+  string issued_scope_catalog_version = 11;
 }
 
 message ListTokenChainResponse {
-  repeated TokenChainNode nodes = 1;
+  repeated TokenChainEntry entries = 1;
+  string next_page_token = 2;
+  bool has_more = 3;
 }
 
 service RuntimeGrantService {

@@ -1183,11 +1183,12 @@ func (x *ToolResultEvent) GetToolOutput() *structpb.Struct {
 }
 
 type StreamCompleted struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FinishReason  FinishReason           `protobuf:"varint,1,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
-	Usage         *UsageStats            `protobuf:"bytes,2,opt,name=usage,proto3" json:"usage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	FinishReason    FinishReason           `protobuf:"varint,1,opt,name=finish_reason,json=finishReason,proto3,enum=nimi.runtime.v1.FinishReason" json:"finish_reason,omitempty"`
+	Usage           *UsageStats            `protobuf:"bytes,2,opt,name=usage,proto3" json:"usage,omitempty"`
+	StreamSimulated bool                   `protobuf:"varint,3,opt,name=stream_simulated,json=streamSimulated,proto3" json:"stream_simulated,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *StreamCompleted) Reset() {
@@ -1232,6 +1233,13 @@ func (x *StreamCompleted) GetUsage() *UsageStats {
 		return x.Usage
 	}
 	return nil
+}
+
+func (x *StreamCompleted) GetStreamSimulated() bool {
+	if x != nil {
+		return x.StreamSimulated
+	}
+	return false
 }
 
 type StreamFailed struct {
@@ -3775,10 +3783,11 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0fToolResultEvent\x12\x1b\n" +
 	"\ttool_name\x18\x01 \x01(\tR\btoolName\x128\n" +
 	"\vtool_output\x18\x02 \x01(\v2\x17.google.protobuf.StructR\n" +
-	"toolOutput\"\x88\x01\n" +
+	"toolOutput\"\xb3\x01\n" +
 	"\x0fStreamCompleted\x12B\n" +
 	"\rfinish_reason\x18\x01 \x01(\x0e2\x1d.nimi.runtime.v1.FinishReasonR\ffinishReason\x121\n" +
-	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\"m\n" +
+	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12)\n" +
+	"\x10stream_simulated\x18\x03 \x01(\bR\x0fstreamSimulated\"m\n" +
 	"\fStreamFailed\x12<\n" +
 	"\vreason_code\x18\x01 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +

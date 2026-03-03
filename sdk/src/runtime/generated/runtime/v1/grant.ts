@@ -281,11 +281,23 @@ export interface ListTokenChainRequest {
      * @generated from protobuf field: string root_token_id = 2
      */
     rootTokenId: string;
+    /**
+     * @generated from protobuf field: bool include_revoked = 3
+     */
+    includeRevoked: boolean;
+    /**
+     * @generated from protobuf field: int32 page_size = 4
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 5
+     */
+    pageToken: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.TokenChainNode
+ * @generated from protobuf message nimi.runtime.v1.TokenChainEntry
  */
-export interface TokenChainNode {
+export interface TokenChainEntry {
     /**
      * @generated from protobuf field: string token_id = 1
      */
@@ -295,17 +307,17 @@ export interface TokenChainNode {
      */
     parentTokenId: string;
     /**
-     * @generated from protobuf field: string external_principal_id = 3
+     * @generated from protobuf field: string principal_id = 3
      */
-    externalPrincipalId: string;
+    principalId: string;
     /**
-     * @generated from protobuf field: string policy_version = 4
+     * @generated from protobuf field: string principal_type = 4
      */
-    policyVersion: string;
+    principalType: string;
     /**
-     * @generated from protobuf field: string issued_scope_catalog_version = 5
+     * @generated from protobuf field: repeated string effective_scopes = 5
      */
-    issuedScopeCatalogVersion: string;
+    effectiveScopes: string[];
     /**
      * @generated from protobuf field: google.protobuf.Timestamp issued_at = 6
      */
@@ -314,15 +326,39 @@ export interface TokenChainNode {
      * @generated from protobuf field: google.protobuf.Timestamp expires_at = 7
      */
     expiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: bool revoked = 8
+     */
+    revoked: boolean;
+    /**
+     * @generated from protobuf field: int32 delegation_depth = 9
+     */
+    delegationDepth: number;
+    /**
+     * @generated from protobuf field: string policy_version = 10
+     */
+    policyVersion: string;
+    /**
+     * @generated from protobuf field: string issued_scope_catalog_version = 11
+     */
+    issuedScopeCatalogVersion: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListTokenChainResponse
  */
 export interface ListTokenChainResponse {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.TokenChainNode nodes = 1
+     * @generated from protobuf field: repeated nimi.runtime.v1.TokenChainEntry entries = 1
      */
-    nodes: TokenChainNode[];
+    entries: TokenChainEntry[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+    /**
+     * @generated from protobuf field: bool has_more = 3
+     */
+    hasMore: boolean;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.PolicyMode
@@ -1064,13 +1100,19 @@ class ListTokenChainRequest$Type extends MessageType<ListTokenChainRequest> {
     constructor() {
         super("nimi.runtime.v1.ListTokenChainRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "root_token_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "root_token_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "include_revoked", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListTokenChainRequest>): ListTokenChainRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.rootTokenId = "";
+        message.includeRevoked = false;
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListTokenChainRequest>(this, message, value);
         return message;
@@ -1085,6 +1127,15 @@ class ListTokenChainRequest$Type extends MessageType<ListTokenChainRequest> {
                     break;
                 case /* string root_token_id */ 2:
                     message.rootTokenId = reader.string();
+                    break;
+                case /* bool include_revoked */ 3:
+                    message.includeRevoked = reader.bool();
+                    break;
+                case /* int32 page_size */ 4:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 5:
+                    message.pageToken = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1104,6 +1155,15 @@ class ListTokenChainRequest$Type extends MessageType<ListTokenChainRequest> {
         /* string root_token_id = 2; */
         if (message.rootTokenId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.rootTokenId);
+        /* bool include_revoked = 3; */
+        if (message.includeRevoked !== false)
+            writer.tag(3, WireType.Varint).bool(message.includeRevoked);
+        /* int32 page_size = 4; */
+        if (message.pageSize !== 0)
+            writer.tag(4, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 5; */
+        if (message.pageToken !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1115,30 +1175,38 @@ class ListTokenChainRequest$Type extends MessageType<ListTokenChainRequest> {
  */
 export const ListTokenChainRequest = new ListTokenChainRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class TokenChainNode$Type extends MessageType<TokenChainNode> {
+class TokenChainEntry$Type extends MessageType<TokenChainEntry> {
     constructor() {
-        super("nimi.runtime.v1.TokenChainNode", [
+        super("nimi.runtime.v1.TokenChainEntry", [
             { no: 1, name: "token_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "parent_token_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "external_principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "policy_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "issued_scope_catalog_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "principal_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "principal_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "effective_scopes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "issued_at", kind: "message", T: () => Timestamp },
-            { no: 7, name: "expires_at", kind: "message", T: () => Timestamp }
+            { no: 7, name: "expires_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "revoked", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "delegation_depth", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 10, name: "policy_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "issued_scope_catalog_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<TokenChainNode>): TokenChainNode {
+    create(value?: PartialMessage<TokenChainEntry>): TokenChainEntry {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tokenId = "";
         message.parentTokenId = "";
-        message.externalPrincipalId = "";
+        message.principalId = "";
+        message.principalType = "";
+        message.effectiveScopes = [];
+        message.revoked = false;
+        message.delegationDepth = 0;
         message.policyVersion = "";
         message.issuedScopeCatalogVersion = "";
         if (value !== undefined)
-            reflectionMergePartial<TokenChainNode>(this, message, value);
+            reflectionMergePartial<TokenChainEntry>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TokenChainNode): TokenChainNode {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TokenChainEntry): TokenChainEntry {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -1149,20 +1217,32 @@ class TokenChainNode$Type extends MessageType<TokenChainNode> {
                 case /* string parent_token_id */ 2:
                     message.parentTokenId = reader.string();
                     break;
-                case /* string external_principal_id */ 3:
-                    message.externalPrincipalId = reader.string();
+                case /* string principal_id */ 3:
+                    message.principalId = reader.string();
                     break;
-                case /* string policy_version */ 4:
-                    message.policyVersion = reader.string();
+                case /* string principal_type */ 4:
+                    message.principalType = reader.string();
                     break;
-                case /* string issued_scope_catalog_version */ 5:
-                    message.issuedScopeCatalogVersion = reader.string();
+                case /* repeated string effective_scopes */ 5:
+                    message.effectiveScopes.push(reader.string());
                     break;
                 case /* google.protobuf.Timestamp issued_at */ 6:
                     message.issuedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.issuedAt);
                     break;
                 case /* google.protobuf.Timestamp expires_at */ 7:
                     message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
+                case /* bool revoked */ 8:
+                    message.revoked = reader.bool();
+                    break;
+                case /* int32 delegation_depth */ 9:
+                    message.delegationDepth = reader.int32();
+                    break;
+                case /* string policy_version */ 10:
+                    message.policyVersion = reader.string();
+                    break;
+                case /* string issued_scope_catalog_version */ 11:
+                    message.issuedScopeCatalogVersion = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1175,28 +1255,40 @@ class TokenChainNode$Type extends MessageType<TokenChainNode> {
         }
         return message;
     }
-    internalBinaryWrite(message: TokenChainNode, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: TokenChainEntry, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string token_id = 1; */
         if (message.tokenId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.tokenId);
         /* string parent_token_id = 2; */
         if (message.parentTokenId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.parentTokenId);
-        /* string external_principal_id = 3; */
-        if (message.externalPrincipalId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.externalPrincipalId);
-        /* string policy_version = 4; */
-        if (message.policyVersion !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.policyVersion);
-        /* string issued_scope_catalog_version = 5; */
-        if (message.issuedScopeCatalogVersion !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.issuedScopeCatalogVersion);
+        /* string principal_id = 3; */
+        if (message.principalId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.principalId);
+        /* string principal_type = 4; */
+        if (message.principalType !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.principalType);
+        /* repeated string effective_scopes = 5; */
+        for (let i = 0; i < message.effectiveScopes.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.effectiveScopes[i]);
         /* google.protobuf.Timestamp issued_at = 6; */
         if (message.issuedAt)
             Timestamp.internalBinaryWrite(message.issuedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         /* google.protobuf.Timestamp expires_at = 7; */
         if (message.expiresAt)
             Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* bool revoked = 8; */
+        if (message.revoked !== false)
+            writer.tag(8, WireType.Varint).bool(message.revoked);
+        /* int32 delegation_depth = 9; */
+        if (message.delegationDepth !== 0)
+            writer.tag(9, WireType.Varint).int32(message.delegationDepth);
+        /* string policy_version = 10; */
+        if (message.policyVersion !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.policyVersion);
+        /* string issued_scope_catalog_version = 11; */
+        if (message.issuedScopeCatalogVersion !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.issuedScopeCatalogVersion);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1204,19 +1296,23 @@ class TokenChainNode$Type extends MessageType<TokenChainNode> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.TokenChainNode
+ * @generated MessageType for protobuf message nimi.runtime.v1.TokenChainEntry
  */
-export const TokenChainNode = new TokenChainNode$Type();
+export const TokenChainEntry = new TokenChainEntry$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListTokenChainResponse$Type extends MessageType<ListTokenChainResponse> {
     constructor() {
         super("nimi.runtime.v1.ListTokenChainResponse", [
-            { no: 1, name: "nodes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TokenChainNode }
+            { no: 1, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TokenChainEntry },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "has_more", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ListTokenChainResponse>): ListTokenChainResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.nodes = [];
+        message.entries = [];
+        message.nextPageToken = "";
+        message.hasMore = false;
         if (value !== undefined)
             reflectionMergePartial<ListTokenChainResponse>(this, message, value);
         return message;
@@ -1226,8 +1322,14 @@ class ListTokenChainResponse$Type extends MessageType<ListTokenChainResponse> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.TokenChainNode nodes */ 1:
-                    message.nodes.push(TokenChainNode.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.TokenChainEntry entries */ 1:
+                    message.entries.push(TokenChainEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                case /* bool has_more */ 3:
+                    message.hasMore = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1241,9 +1343,15 @@ class ListTokenChainResponse$Type extends MessageType<ListTokenChainResponse> {
         return message;
     }
     internalBinaryWrite(message: ListTokenChainResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.TokenChainNode nodes = 1; */
-        for (let i = 0; i < message.nodes.length; i++)
-            TokenChainNode.internalBinaryWrite(message.nodes[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TokenChainEntry entries = 1; */
+        for (let i = 0; i < message.entries.length; i++)
+            TokenChainEntry.internalBinaryWrite(message.entries[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        /* bool has_more = 3; */
+        if (message.hasMore !== false)
+            writer.tag(3, WireType.Varint).bool(message.hasMore);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

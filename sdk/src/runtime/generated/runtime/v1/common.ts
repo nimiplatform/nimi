@@ -363,6 +363,26 @@ export enum ReasonCode {
      */
     AI_LOCAL_MODEL_INVALID_TRANSITION = 358,
     /**
+     * @generated from protobuf enum value: AI_LOCAL_DOWNLOAD_FAILED = 359;
+     */
+    AI_LOCAL_DOWNLOAD_FAILED = 359,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_DOWNLOAD_HASH_MISMATCH = 360;
+     */
+    AI_LOCAL_DOWNLOAD_HASH_MISMATCH = 360,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_HF_REPO_INVALID = 361;
+     */
+    AI_LOCAL_HF_REPO_INVALID = 361,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_HF_SEARCH_FAILED = 362;
+     */
+    AI_LOCAL_HF_SEARCH_FAILED = 362,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MANIFEST_SCHEMA_INVALID = 363;
+     */
+    AI_LOCAL_MANIFEST_SCHEMA_INVALID = 363,
+    /**
      * FINISH family (370+)
      *
      * @generated from protobuf enum value: AI_FINISH_LENGTH = 370;
