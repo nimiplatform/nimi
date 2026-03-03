@@ -22,7 +22,8 @@ type CloudConfig struct {
 // ResolveProviderAlias returns the canonical provider ID for a given name.
 func ResolveProviderAlias(name string) string {
 	switch strings.TrimSpace(strings.ToLower(name)) {
-	case "nimillm", "openai", "anthropic", "dashscope", "volcengine", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
+	case "nimillm", "openai", "anthropic", "dashscope", "volcengine", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible",
+		"azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark":
 		return strings.TrimSpace(strings.ToLower(name))
 	default:
 		return ""

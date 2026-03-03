@@ -15,7 +15,12 @@ import (
 )
 
 // knownProviders lists the canonical provider IDs in priority order for default routing.
-var knownProviders = []string{"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter", "minimax", "kimi", "glm", "openai", "anthropic", "openai_compatible"}
+var knownProviders = []string{
+	"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter",
+	"minimax", "kimi", "glm",
+	"mistral", "groq", "xai", "azure", "qianfan", "hunyuan", "spark",
+	"openai", "anthropic", "openai_compatible",
+}
 
 // prefixToProvider maps model-ID prefix segments to canonical provider IDs.
 var prefixToProvider = map[string]string{
@@ -31,6 +36,13 @@ var prefixToProvider = map[string]string{
 	"openai":            "openai",
 	"anthropic":         "anthropic",
 	"openai_compatible": "openai_compatible",
+	"azure":             "azure",
+	"mistral":           "mistral",
+	"groq":              "groq",
+	"xai":               "xai",
+	"qianfan":           "qianfan",
+	"hunyuan":           "hunyuan",
+	"spark":             "spark",
 }
 
 // forbiddenPrefixToProvider maps legacy/non-canonical prefixes to the provider

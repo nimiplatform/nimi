@@ -1348,6 +1348,349 @@ func TestLiveSmokeVolcengineEmbed(t *testing.T) {
 	}
 }
 
+func TestLiveSmokeAzureGenerateText(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_AZURE_BASE_URL")
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_AZURE_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_AZURE_MODEL_ID")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"azure": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi Azure live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live azure generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live azure generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeAzureEmbed(t *testing.T) {
+	baseURL := requiredLiveEnv(t, "NIMI_LIVE_AZURE_BASE_URL")
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_AZURE_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_AZURE_EMBED_MODEL_ID")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"azure": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     30_000,
+		Inputs:        []string{"Nimi live smoke embedding test"},
+	})
+	if err != nil {
+		t.Fatalf("live azure embed failed: %v", err)
+	}
+	if len(resp.GetVectors()) == 0 {
+		t.Fatalf("live azure embed returned no vectors")
+	}
+}
+
+func TestLiveSmokeMistralGenerateText(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_MISTRAL_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_MISTRAL_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_MISTRAL_BASE_URL", "https://api.mistral.ai/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"mistral": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi Mistral live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live mistral generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live mistral generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeMistralEmbed(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_MISTRAL_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_MISTRAL_EMBED_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_MISTRAL_BASE_URL", "https://api.mistral.ai/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"mistral": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     30_000,
+		Inputs:        []string{"Nimi live smoke embedding test"},
+	})
+	if err != nil {
+		t.Fatalf("live mistral embed failed: %v", err)
+	}
+	if len(resp.GetVectors()) == 0 {
+		t.Fatalf("live mistral embed returned no vectors")
+	}
+}
+
+func TestLiveSmokeGroqGenerateText(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_GROQ_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_GROQ_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"groq": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi Groq live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live groq generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live groq generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeXAIGenerateText(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_XAI_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_XAI_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_XAI_BASE_URL", "https://api.x.ai/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"xai": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi xAI live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live xai generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live xai generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeQianfanGenerateText(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_QIANFAN_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_QIANFAN_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_QIANFAN_BASE_URL", "https://qianfan.baidubce.com/v2")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"qianfan": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi Qianfan live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live qianfan generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live qianfan generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeQianfanEmbed(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_QIANFAN_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_QIANFAN_EMBED_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_QIANFAN_BASE_URL", "https://qianfan.baidubce.com/v2")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"qianfan": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     30_000,
+		Inputs:        []string{"Nimi live smoke embedding test"},
+	})
+	if err != nil {
+		t.Fatalf("live qianfan embed failed: %v", err)
+	}
+	if len(resp.GetVectors()) == 0 {
+		t.Fatalf("live qianfan embed returned no vectors")
+	}
+}
+
+func TestLiveSmokeHunyuanGenerateText(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_HUNYUAN_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_HUNYUAN_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_HUNYUAN_BASE_URL", "https://api.hunyuan.cloud.tencent.com/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"hunyuan": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi Hunyuan live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live hunyuan generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live hunyuan generate returned empty text output")
+	}
+}
+
+func TestLiveSmokeHunyuanEmbed(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_HUNYUAN_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_HUNYUAN_EMBED_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_HUNYUAN_BASE_URL", "https://api.hunyuan.cloud.tencent.com/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"hunyuan": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:     30_000,
+		Inputs:        []string{"Nimi live smoke embedding test"},
+	})
+	if err != nil {
+		t.Fatalf("live hunyuan embed failed: %v", err)
+	}
+	if len(resp.GetVectors()) == 0 {
+		t.Fatalf("live hunyuan embed returned no vectors")
+	}
+}
+
+func TestLiveSmokeSparkGenerateText(t *testing.T) {
+	apiKey := requiredLiveEnv(t, "NIMI_LIVE_SPARK_API_KEY")
+	modelID := requiredLiveEnv(t, "NIMI_LIVE_SPARK_MODEL_ID")
+	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_SPARK_BASE_URL", "https://spark-api-open.xf-yun.com/v1")
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"spark": {BaseURL: baseURL, APIKey: apiKey},
+		},
+	})
+
+	resp, err := svc.Generate(context.Background(), &runtimev1.GenerateRequest{
+		AppId:         "nimi.live-smoke",
+		SubjectUserId: "smoke-user",
+		ModelId:       modelID,
+		Modal:         runtimev1.Modal_MODAL_TEXT,
+		Input: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "Say hello from Nimi Spark live smoke test."},
+		},
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:    runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		TimeoutMs:   45_000,
+	})
+	if err != nil {
+		t.Fatalf("live spark generate failed: %v", err)
+	}
+
+	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	if text == "" {
+		t.Fatalf("live spark generate returned empty text output")
+	}
+}
+
 func requiredLiveEnv(t *testing.T, key string) string {
 	t.Helper()
 	value := strings.TrimSpace(os.Getenv(key))

@@ -23,6 +23,13 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 		strings.HasPrefix(lower, "openrouter/") ||
 		strings.HasPrefix(lower, "openai/") ||
 		strings.HasPrefix(lower, "anthropic/") ||
+		strings.HasPrefix(lower, "azure/") ||
+		strings.HasPrefix(lower, "mistral/") ||
+		strings.HasPrefix(lower, "groq/") ||
+		strings.HasPrefix(lower, "xai/") ||
+		strings.HasPrefix(lower, "qianfan/") ||
+		strings.HasPrefix(lower, "hunyuan/") ||
+		strings.HasPrefix(lower, "spark/") ||
 		strings.HasPrefix(lower, "openai_compatible/") {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
 	}
