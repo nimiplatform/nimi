@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
@@ -391,7 +393,14 @@ func rollbackReasonCodeFromError(err error) string {
 	if err == nil {
 		return ""
 	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		return reason.String()
+	}
 	if st, ok := status.FromError(err); ok {
+		switch st.Code() {
+		case codes.NotFound, codes.InvalidArgument:
+			return runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
+		}
 		return strings.TrimSpace(st.Message())
 	}
 	return ""

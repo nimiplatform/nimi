@@ -16,6 +16,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -327,6 +328,30 @@ func TestLocalRuntimeCheckLocalServiceHealthRecoversAfterThreeProbes(t *testing.
 	}
 }
 
+func TestLocalRuntimeCheckLocalModelHealthNotFoundWhenTargetMissing(t *testing.T) {
+	svc := newTestService(t)
+
+	_, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
+		LocalModelId: "model_missing",
+	})
+	assertGRPCCode(t, err, "CheckLocalModelHealth(not_found)", codes.NotFound)
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		t.Fatalf("CheckLocalModelHealth(not_found): expected no reason code, got %s", reason)
+	}
+}
+
+func TestLocalRuntimeCheckLocalServiceHealthNotFoundWhenTargetMissing(t *testing.T) {
+	svc := newTestService(t)
+
+	_, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
+		ServiceId: "svc_missing",
+	})
+	assertGRPCCode(t, err, "CheckLocalServiceHealth(not_found)", codes.NotFound)
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		t.Fatalf("CheckLocalServiceHealth(not_found): expected no reason code, got %s", reason)
+	}
+}
+
 func TestLocalRuntimeDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 	receivedPath := ""
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -356,6 +381,283 @@ func TestLocalRuntimeDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 	}
 	if receivedPath != "/v1/models" {
 		t.Fatalf("probe path mismatch: got %s want /v1/models", receivedPath)
+	}
+}
+
+func TestLocalRuntimeStartLocalModelBootstrapsManagedEngine(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/bootstrap-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", started.GetModel().GetStatus())
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected one engine bootstrap start call, got %d", mgr.startCalls)
+	}
+	if mgr.lastStartEngine != "localai" {
+		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	}
+	if mgr.lastStartPort != 1234 {
+		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
+	}
+}
+
+func TestLocalRuntimeStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/bootstrap-service-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-bootstrap",
+		Engine:       "localai",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+
+	started, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-bootstrap",
+	})
+	if err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+	if started.GetService().GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", started.GetService().GetStatus())
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected one engine bootstrap start call, got %d", mgr.startCalls)
+	}
+	if mgr.lastStartEngine != "localai" {
+		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	}
+	if mgr.lastStartPort != 8080 {
+		t.Fatalf("expected bootstrap port 8080, got %d", mgr.lastStartPort)
+	}
+}
+
+func TestLocalRuntimeBootstrapSkipsNonLoopbackEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/non-loopback-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Endpoint:     "https://example.com/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", started.GetModel().GetStatus())
+	}
+	if mgr.startCalls != 0 {
+		t.Fatalf("expected no managed engine bootstrap for non-loopback endpoint, got %d calls", mgr.startCalls)
+	}
+}
+
+func TestLocalRuntimeCheckLocalModelHealthBootstrapsManagedEngine(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/health-bootstrap-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	localModelID := installed.GetModel().GetLocalModelId()
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+		t.Fatalf("promote model to active: %v", err)
+	}
+
+	resp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
+		LocalModelId: localModelID,
+	})
+	if err != nil {
+		t.Fatalf("check local model health: %v", err)
+	}
+	if len(resp.GetModels()) != 1 {
+		t.Fatalf("expected one model row, got %d", len(resp.GetModels()))
+	}
+	if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", resp.GetModels()[0].GetStatus())
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
+	}
+	if mgr.lastStartEngine != "localai" {
+		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	}
+	if mgr.lastStartPort != 1234 {
+		t.Fatalf("expected bootstrap port 1234, got %d", mgr.lastStartPort)
+	}
+}
+
+func TestLocalRuntimeCheckLocalServiceHealthBootstrapsManagedEngine(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/health-bootstrap-service-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-health-bootstrap",
+		Engine:       "localai",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.updateServiceStatus("svc-health-bootstrap", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "service active"); err != nil {
+		t.Fatalf("promote service to active: %v", err)
+	}
+
+	resp, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
+		ServiceId: "svc-health-bootstrap",
+	})
+	if err != nil {
+		t.Fatalf("check local service health: %v", err)
+	}
+	if len(resp.GetServices()) != 1 {
+		t.Fatalf("expected one service row, got %d", len(resp.GetServices()))
+	}
+	if resp.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", resp.GetServices()[0].GetStatus())
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
+	}
+	if mgr.lastStartEngine != "localai" {
+		t.Fatalf("expected engine localai, got %q", mgr.lastStartEngine)
+	}
+	if mgr.lastStartPort != 8080 {
+		t.Fatalf("expected bootstrap port 8080, got %d", mgr.lastStartPort)
+	}
+}
+
+func TestLocalRuntimeCheckLocalModelHealthUnhealthyPathBootstrapsManagedEngine(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/health-unhealthy-bootstrap-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	localModelID := installed.GetModel().GetLocalModelId()
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+		t.Fatalf("promote model to active: %v", err)
+	}
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, "model unhealthy"); err != nil {
+		t.Fatalf("promote model to unhealthy: %v", err)
+	}
+
+	resp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
+		LocalModelId: localModelID,
+	})
+	if err != nil {
+		t.Fatalf("check local model health: %v", err)
+	}
+	if len(resp.GetModels()) != 1 {
+		t.Fatalf("expected one model row, got %d", len(resp.GetModels()))
+	}
+	if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		t.Fatalf("expected UNHEALTHY before recovery threshold, got %s", resp.GetModels()[0].GetStatus())
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
+	}
+}
+
+func TestLocalRuntimeCheckLocalServiceHealthUnhealthyPathBootstrapsManagedEngine(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/health-unhealthy-bootstrap-service-model",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-health-unhealthy-bootstrap",
+		Engine:       "localai",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.updateServiceStatus("svc-health-unhealthy-bootstrap", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "service active"); err != nil {
+		t.Fatalf("promote service to active: %v", err)
+	}
+	if _, err := svc.updateServiceStatus("svc-health-unhealthy-bootstrap", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY, "service unhealthy"); err != nil {
+		t.Fatalf("promote service to unhealthy: %v", err)
+	}
+
+	resp, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
+		ServiceId: "svc-health-unhealthy-bootstrap",
+	})
+	if err != nil {
+		t.Fatalf("check local service health: %v", err)
+	}
+	if len(resp.GetServices()) != 1 {
+		t.Fatalf("expected one service row, got %d", len(resp.GetServices()))
+	}
+	if resp.GetServices()[0].GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
+		t.Fatalf("expected UNHEALTHY before recovery threshold, got %s", resp.GetServices()[0].GetStatus())
+	}
+	if mgr.startCalls != 1 {
+		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
 	}
 }
 
@@ -2083,6 +2385,11 @@ type mockEngineManager struct {
 	startErr  error
 	stopErr   error
 	statusErr error
+
+	startCalls       int
+	lastStartEngine  string
+	lastStartPort    int
+	lastStartVersion string
 }
 
 func (m *mockEngineManager) ListEngines() []EngineInfo {
@@ -2095,7 +2402,11 @@ func (m *mockEngineManager) EnsureEngine(_ context.Context, _ string, _ string) 
 	return m.ensureErr
 }
 
-func (m *mockEngineManager) StartEngine(_ context.Context, _ string, _ int, _ string) error {
+func (m *mockEngineManager) StartEngine(_ context.Context, engine string, port int, version string) error {
+	m.startCalls++
+	m.lastStartEngine = engine
+	m.lastStartPort = port
+	m.lastStartVersion = version
 	return m.startErr
 }
 
@@ -2127,6 +2438,24 @@ func assertGRPCCode(t *testing.T, err error, rpc string, wantCode codes.Code) {
 	}
 	if st.Code() != wantCode {
 		t.Errorf("%s: expected code %s, got %s (msg: %s)", rpc, wantCode, st.Code(), st.Message())
+	}
+}
+
+func assertGRPCReasonCode(t *testing.T, err error, rpc string, want runtimev1.ReasonCode) {
+	t.Helper()
+	got, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("%s: expected reason code %s, got none", rpc, want)
+	}
+	if got != want {
+		t.Fatalf("%s: expected reason code %s, got %s", rpc, want, got)
+	}
+}
+
+func assertNoGRPCReasonCode(t *testing.T, err error, rpc string) {
+	t.Helper()
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		t.Fatalf("%s: expected no reason code, got %s", rpc, reason)
 	}
 }
 
@@ -2197,7 +2526,99 @@ func TestEngineRPCEnsureEngineError(t *testing.T) {
 	})
 
 	_, err := svc.EnsureEngine(context.Background(), &runtimev1.EnsureEngineRequest{Engine: "localai"})
-	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Internal)
+	assertGRPCCode(t, err, "EnsureEngine(error)", codes.Unavailable)
+	assertGRPCReasonCode(t, err, "EnsureEngine(error)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+}
+
+func TestLocalRuntimeManagementRPCsUsePlainInvalidArgumentAndNotFoundForModelIDs(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	_, err := svc.StartLocalModel(ctx, &runtimev1.StartLocalModelRequest{LocalModelId: ""})
+	assertGRPCCode(t, err, "StartLocalModel(empty_id)", codes.InvalidArgument)
+	assertNoGRPCReasonCode(t, err, "StartLocalModel(empty_id)")
+
+	_, err = svc.StopLocalModel(ctx, &runtimev1.StopLocalModelRequest{LocalModelId: ""})
+	assertGRPCCode(t, err, "StopLocalModel(empty_id)", codes.InvalidArgument)
+	assertNoGRPCReasonCode(t, err, "StopLocalModel(empty_id)")
+
+	_, err = svc.RemoveLocalModel(ctx, &runtimev1.RemoveLocalModelRequest{LocalModelId: ""})
+	assertGRPCCode(t, err, "RemoveLocalModel(empty_id)", codes.InvalidArgument)
+	assertNoGRPCReasonCode(t, err, "RemoveLocalModel(empty_id)")
+
+	_, err = svc.StartLocalModel(ctx, &runtimev1.StartLocalModelRequest{LocalModelId: "model_missing"})
+	assertGRPCCode(t, err, "StartLocalModel(not_found)", codes.NotFound)
+	assertNoGRPCReasonCode(t, err, "StartLocalModel(not_found)")
+
+	_, err = svc.StopLocalModel(ctx, &runtimev1.StopLocalModelRequest{LocalModelId: "model_missing"})
+	assertGRPCCode(t, err, "StopLocalModel(not_found)", codes.NotFound)
+	assertNoGRPCReasonCode(t, err, "StopLocalModel(not_found)")
+
+	_, err = svc.RemoveLocalModel(ctx, &runtimev1.RemoveLocalModelRequest{LocalModelId: "model_missing"})
+	assertGRPCCode(t, err, "RemoveLocalModel(not_found)", codes.NotFound)
+	assertNoGRPCReasonCode(t, err, "RemoveLocalModel(not_found)")
+}
+
+func TestLocalRuntimeManagementRPCsUsePlainInvalidArgumentAndNotFoundForServiceIDs(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	_, err := svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: ""})
+	assertGRPCCode(t, err, "StartLocalService(empty_id)", codes.InvalidArgument)
+	assertNoGRPCReasonCode(t, err, "StartLocalService(empty_id)")
+
+	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{ServiceId: ""})
+	assertGRPCCode(t, err, "StopLocalService(empty_id)", codes.InvalidArgument)
+	assertNoGRPCReasonCode(t, err, "StopLocalService(empty_id)")
+
+	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: ""})
+	assertGRPCCode(t, err, "RemoveLocalService(empty_id)", codes.InvalidArgument)
+	assertNoGRPCReasonCode(t, err, "RemoveLocalService(empty_id)")
+
+	_, err = svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: "svc_missing"})
+	assertGRPCCode(t, err, "StartLocalService(not_found)", codes.NotFound)
+	assertNoGRPCReasonCode(t, err, "StartLocalService(not_found)")
+
+	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{ServiceId: "svc_missing"})
+	assertGRPCCode(t, err, "StopLocalService(not_found)", codes.NotFound)
+	assertNoGRPCReasonCode(t, err, "StopLocalService(not_found)")
+
+	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: "svc_missing"})
+	assertGRPCCode(t, err, "RemoveLocalService(not_found)", codes.NotFound)
+	assertNoGRPCReasonCode(t, err, "RemoveLocalService(not_found)")
+}
+
+func TestEngineRPCStartEngineAlreadyRunning(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		startErr: fmt.Errorf("engine localai already running"),
+	})
+
+	_, err := svc.StartEngine(context.Background(), &runtimev1.StartEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "StartEngine(already_running)", codes.AlreadyExists)
+	assertGRPCReasonCode(t, err, "StartEngine(already_running)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+}
+
+func TestEngineRPCStopEngineNotStarted(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		stopErr: fmt.Errorf("engine localai not started"),
+	})
+
+	_, err := svc.StopEngine(context.Background(), &runtimev1.StopEngineRequest{Engine: "localai"})
+	assertGRPCCode(t, err, "StopEngine(not_started)", codes.NotFound)
+	assertGRPCReasonCode(t, err, "StopEngine(not_started)", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+}
+
+func TestEngineRPCGetEngineStatusUnknownEngine(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		statusErr: fmt.Errorf("unknown engine kind: \"mystery\""),
+	})
+
+	_, err := svc.GetEngineStatus(context.Background(), &runtimev1.GetEngineStatusRequest{Engine: "mystery"})
+	assertGRPCCode(t, err, "GetEngineStatus(unknown_engine)", codes.InvalidArgument)
+	assertGRPCReasonCode(t, err, "GetEngineStatus(unknown_engine)", runtimev1.ReasonCode_AI_INPUT_INVALID)
 }
 
 // --- Enum mapping test ---

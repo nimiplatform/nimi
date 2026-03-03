@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -310,4 +312,92 @@ func recoveryProbeInterval(now time.Time, state *probeRecoveryState) time.Durati
 		return localRecoverySlowProbeInterval
 	}
 	return localRecoveryDefaultProbeInterval
+}
+
+func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, endpoint string) error {
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return nil
+	}
+	port, shouldManage, err := parseManagedEndpointPort(engine, endpoint)
+	if err != nil {
+		return err
+	}
+	if !shouldManage {
+		return nil
+	}
+	if err := mgr.StartEngine(ctx, strings.ToLower(strings.TrimSpace(engine)), port, ""); err != nil {
+		lower := strings.ToLower(strings.TrimSpace(err.Error()))
+		if strings.Contains(lower, "already running") {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *Service) engineManagerOrNil() EngineManager {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.engineMgr
+}
+
+func parseManagedEndpointPort(engine string, endpoint string) (int, bool, error) {
+	raw := strings.TrimSpace(endpoint)
+	if raw == "" {
+		def := defaultEnginePort(engine)
+		if def <= 0 {
+			return 0, false, nil
+		}
+		return def, true, nil
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return 0, false, fmt.Errorf("parse endpoint: %w", err)
+	}
+	host := strings.TrimSpace(parsed.Hostname())
+	if host == "" {
+		return 0, false, fmt.Errorf("parse endpoint host: empty")
+	}
+	if !isLoopbackHost(host) {
+		return 0, false, nil
+	}
+
+	port := strings.TrimSpace(parsed.Port())
+	if port == "" {
+		def := defaultEnginePort(engine)
+		if def <= 0 {
+			return 0, false, nil
+		}
+		return def, true, nil
+	}
+	value, err := strconv.Atoi(port)
+	if err != nil || value <= 0 {
+		return 0, false, fmt.Errorf("parse endpoint port: %q", port)
+	}
+	return value, true, nil
+}
+
+func isLoopbackHost(host string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(host))
+	switch normalized {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	}
+	ip := net.ParseIP(normalized)
+	return ip != nil && ip.IsLoopback()
+}
+
+func defaultEnginePort(engine string) int {
+	switch strings.ToLower(strings.TrimSpace(engine)) {
+	case "localai":
+		return 1234
+	case "nexa":
+		return 8000
+	default:
+		return 0
+	}
 }

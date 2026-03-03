@@ -48,6 +48,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		if localModelID == "" || !s.shouldProbeModelNow(localModelID, now) {
 			continue
 		}
+		bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
 		probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
 		if probe.healthy {
 			successes := s.modelRecoverySuccess(localModelID, now)
@@ -61,6 +62,9 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		}
 		failures, interval := s.modelRecoveryFailure(localModelID, now)
 		detail := defaultString(probe.detail, "model probe failed")
+		if bootstrapErr != nil {
+			detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+		}
 		if strings.TrimSpace(probe.probeURL) != "" {
 			detail += "; probe_url=" + probe.probeURL
 		}
@@ -73,6 +77,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		if serviceID == "" || !s.shouldProbeServiceNow(serviceID, now) {
 			continue
 		}
+		bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
 		probe := s.probeEndpoint(ctx, serviceProbeEndpoint(service))
 		if probe.healthy {
 			successes := s.serviceRecoverySuccess(serviceID, now)
@@ -86,6 +91,9 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		}
 		failures, interval := s.serviceRecoveryFailure(serviceID, now)
 		detail := defaultString(probe.detail, "service probe failed")
+		if bootstrapErr != nil {
+			detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+		}
 		if strings.TrimSpace(probe.probeURL) != "" {
 			detail += "; probe_url=" + probe.probeURL
 		}

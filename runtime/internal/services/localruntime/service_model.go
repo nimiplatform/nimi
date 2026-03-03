@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Service) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
@@ -663,7 +664,11 @@ func manifestStringMap(input map[string]any, key string) (map[string]string, err
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, status.Errorf(codes.InvalidArgument, "local model id is required")
+	}
+	current := s.modelByID(localModelID)
+	if current == nil {
+		return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
 	}
 	if boundServiceID := s.findBoundServiceID(localModelID); boundServiceID != "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
@@ -678,11 +683,11 @@ func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocal
 func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocalModelRequest) (*runtimev1.StartLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, status.Errorf(codes.InvalidArgument, "local model id is required")
 	}
 	current := s.modelByID(localModelID)
 	if current == nil {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
 	}
 	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
@@ -703,18 +708,22 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 		current = activated
 	}
 
+	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), modelProbeEndpoint(current))
 	probe := s.probeEndpoint(ctx, modelProbeEndpoint(current))
 	if probe.healthy {
 		s.resetModelRecovery(localModelID)
 		latest := s.modelByID(localModelID)
 		if latest == nil {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
 		}
 		return &runtimev1.StartLocalModelResponse{Model: latest}, nil
 	}
 
 	failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 	detail := appendWarnings(defaultString(probe.detail, "model probe failed"), warnings)
+	if bootstrapErr != nil {
+		detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+	}
 	if strings.TrimSpace(probe.probeURL) != "" {
 		detail += "; probe_url=" + probe.probeURL
 	}
@@ -727,7 +736,15 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 }
 
 func (s *Service) StopLocalModel(_ context.Context, req *runtimev1.StopLocalModelRequest) (*runtimev1.StopLocalModelResponse, error) {
-	model, err := s.updateModelStatus(req.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, "model stopped")
+	localModelID := strings.TrimSpace(req.GetLocalModelId())
+	if localModelID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "local model id is required")
+	}
+	current := s.modelByID(localModelID)
+	if current == nil {
+		return nil, status.Errorf(codes.NotFound, "local model %s not found", localModelID)
+	}
+	model, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, "model stopped")
 	if err != nil {
 		return nil, err
 	}
@@ -745,6 +762,9 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		models = append(models, cloneLocalModel(model))
 	}
 	s.mu.RUnlock()
+	if target != "" && len(models) == 0 {
+		return nil, status.Errorf(codes.NotFound, "local model %s not found", target)
+	}
 
 	result := make([]*runtimev1.LocalModelHealth, 0, len(models))
 	for _, model := range models {
@@ -754,6 +774,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		localModelID := strings.TrimSpace(model.GetLocalModelId())
 		switch model.GetStatus() {
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
 			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
 			if probe.healthy {
 				s.resetModelRecovery(localModelID)
@@ -762,6 +783,9 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			}
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			detail := defaultString(probe.detail, "model probe failed")
+			if bootstrapErr != nil {
+				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+			}
 			if strings.TrimSpace(probe.probeURL) != "" {
 				detail += "; probe_url=" + probe.probeURL
 			}
@@ -772,6 +796,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			}
 			result = append(result, modelHealth(transitioned))
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
 			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
 			if probe.healthy {
 				successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
@@ -796,6 +821,9 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			health := modelHealth(model)
 			detail := defaultString(probe.detail, "model probe failed")
+			if bootstrapErr != nil {
+				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+			}
 			if strings.TrimSpace(probe.probeURL) != "" {
 				detail += "; probe_url=" + probe.probeURL
 			}

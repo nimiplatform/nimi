@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalServicesRequest) (*runtimev1.ListLocalServicesResponse, error) {
@@ -116,11 +117,11 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLocalServiceRequest) (*runtimev1.StartLocalServiceResponse, error) {
 	serviceID := strings.TrimSpace(req.GetServiceId())
 	if serviceID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, status.Errorf(codes.InvalidArgument, "service id is required")
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
 	}
 	if current.GetStatus() == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
@@ -141,18 +142,22 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 		current = activated
 	}
 
+	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), serviceProbeEndpoint(current))
 	probe := s.probeEndpoint(ctx, serviceProbeEndpoint(current))
 	if probe.healthy {
 		s.resetServiceRecovery(serviceID)
 		latest := s.serviceByID(serviceID)
 		if latest == nil {
-			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
 		}
 		return &runtimev1.StartLocalServiceResponse{Service: latest}, nil
 	}
 
 	failures, _ := s.serviceRecoveryFailure(serviceID, time.Now().UTC())
 	detail := appendWarnings(defaultString(probe.detail, "service probe failed"), warnings)
+	if bootstrapErr != nil {
+		detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+	}
 	if strings.TrimSpace(probe.probeURL) != "" {
 		detail += "; probe_url=" + probe.probeURL
 	}
@@ -165,7 +170,15 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 }
 
 func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalServiceRequest) (*runtimev1.StopLocalServiceResponse, error) {
-	svc, err := s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED, "service stopped")
+	serviceID := strings.TrimSpace(req.GetServiceId())
+	if serviceID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "service id is required")
+	}
+	current := s.serviceByID(serviceID)
+	if current == nil {
+		return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
+	}
+	svc, err := s.updateServiceStatus(serviceID, runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED, "service stopped")
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +196,9 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		services = append(services, cloneServiceDescriptor(service))
 	}
 	s.mu.RUnlock()
+	if target != "" && len(services) == 0 {
+		return nil, status.Errorf(codes.NotFound, "local service %s not found", target)
+	}
 
 	healthRows := make([]*runtimev1.LocalServiceDescriptor, 0, len(services))
 	for _, service := range services {
@@ -192,6 +208,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		serviceID := strings.TrimSpace(service.GetServiceId())
 		switch service.GetStatus() {
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE:
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
 			probe := s.probeEndpoint(ctx, serviceProbeEndpoint(service))
 			if probe.healthy {
 				s.resetServiceRecovery(serviceID)
@@ -200,6 +217,9 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			}
 			failures, interval := s.serviceRecoveryFailure(serviceID, time.Now().UTC())
 			detail := defaultString(probe.detail, "service probe failed")
+			if bootstrapErr != nil {
+				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+			}
 			if strings.TrimSpace(probe.probeURL) != "" {
 				detail += "; probe_url=" + probe.probeURL
 			}
@@ -210,6 +230,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			}
 			healthRows = append(healthRows, transitioned)
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY:
+			bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), serviceProbeEndpoint(service))
 			probe := s.probeEndpoint(ctx, serviceProbeEndpoint(service))
 			if probe.healthy {
 				successes := s.serviceRecoverySuccess(serviceID, time.Now().UTC())
@@ -234,6 +255,9 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			failures, interval := s.serviceRecoveryFailure(serviceID, time.Now().UTC())
 			health := cloneServiceDescriptor(service)
 			detail := defaultString(probe.detail, "service probe failed")
+			if bootstrapErr != nil {
+				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
+			}
 			if strings.TrimSpace(probe.probeURL) != "" {
 				detail += "; probe_url=" + probe.probeURL
 			}
@@ -258,7 +282,15 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 }
 
 func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLocalServiceRequest) (*runtimev1.RemoveLocalServiceResponse, error) {
-	svc, err := s.updateServiceStatus(req.GetServiceId(), runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED, "service removed")
+	serviceID := strings.TrimSpace(req.GetServiceId())
+	if serviceID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "service id is required")
+	}
+	current := s.serviceByID(serviceID)
+	if current == nil {
+		return nil, status.Errorf(codes.NotFound, "local service %s not found", serviceID)
+	}
+	svc, err := s.updateServiceStatus(serviceID, runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED, "service removed")
 	if err != nil {
 		return nil, err
 	}
