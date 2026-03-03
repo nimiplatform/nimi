@@ -30,6 +30,15 @@ Applies to all files under:
 - `kernel/generated/*.md`: generated views from YAML tables.
 - `domain docs` (for example `spec/runtime/*.md`, `spec/sdk/*.md`, `spec/platform/*.md`, `spec/realm/*.md`): domain increments only, with rule references. Do not duplicate kernel prose.
 
+## Domain Doc Thinness Contract (MUST)
+
+- Domain docs are thin guides, not a second normative layer.
+- Domain docs MUST reference kernel Rule IDs and MUST NOT define new rule ID systems (for example `CFG-*`, `NIMI-*`, `SDKR-*`, `CODEGEN-*`).
+- Normative behavior MUST live in `kernel/*.md` and `kernel/tables/*.yaml`.
+- Execution-state content MUST stay out of `spec/**`; write plans to `dev/plan/*` and evidence/results to `dev/report/*`.
+- Domain docs SHOULD keep only: positioning, module map, kernel reading path, and non-goals.
+- Domain docs MUST NOT use contract-style sections such as `领域不变量`, `验收门`, `变更规则`, or equivalent headings as rule-definition containers.
+
 ## Editing Rules
 
 - Do not manually edit `spec/**/kernel/generated/*.md`.

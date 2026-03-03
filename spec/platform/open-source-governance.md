@@ -2,7 +2,7 @@
 
 > Domain: Platform / Governance
 > Status: Active
-> Date: 2026-03-01
+> Date: 2026-03-03
 
 ## 0. Normative Imports
 
@@ -12,34 +12,20 @@
 
 ## 1. 文档定位
 
-本文件是开源治理域增量文档。开源边界与许可证矩阵见 P-GOV-001、P-GOV-002。发布门禁见 P-GOV-003。
+本文件是开源治理域导引。许可证矩阵、发布门、治理任务分层以 P-GOV-* 为权威来源。
 
-## 2. 治理缺口模型
+## 2. 阅读路径
 
-优先级模型见 P-GOV-010。治理任务清单见 P-GOV-020。
+1. 先读 P-GOV-001、P-GOV-002，确认 license 与边界。
+2. 再读 P-GOV-003、P-GOV-011，确认发布门与 Go/No-Go 条件。
+3. 最后读 P-GOV-010、P-GOV-020，确认治理任务分级与执行模型。
 
-## 3. 落地路线
+## 3. 执行材料位置
 
-8-PR 实施路线图（执行计划）见 `dev/plan/open-source-rollout.md`。
+- 计划与排期：`dev/plan/*`。
+- 审计与结果证据：`dev/report/*`。
 
-## 4. Go/No-Go 发布门禁
+## 4. 非目标
 
-见 P-GOV-011。
-
-## 5. 验收命令基线
-
-```bash
-pnpm lint
-pnpm check:markdown
-pnpm test
-pnpm proto:lint
-pnpm proto:breaking
-pnpm proto:drift-check
-cd runtime && go test ./... && go vet ./...
-cd runtime && govulncheck ./...
-pnpm audit --prod --audit-level=high
-```
-
-## 6. 维护规则
-
-新增或变更开源治理能力时，先改 spec，再改实现。执行态证据写入 `dev/report/*`。
+- 不在本文件定义额外治理规则号。
+- 不在 spec 域文档记录阶段性执行状态。

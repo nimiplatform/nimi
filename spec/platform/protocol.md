@@ -2,65 +2,39 @@
 
 > Domain: Platform / Protocol
 > Status: Frozen
-> Date: 2026-03-01
+> Date: 2026-03-03
 
 ## 0. Normative Imports
 
 | Kernel Location | Rule IDs |
 |---|---|
 | `kernel/protocol-contract.md` | P-PROTO-001–105 |
-| `kernel/tables/protocol-error-codes.yaml` | 错误码字典 |
-| `kernel/tables/protocol-primitives.yaml` | 六原语字段 |
+| `kernel/tables/protocol-error-codes.yaml` | 协议错误码字典 |
+| `kernel/tables/protocol-primitives.yaml` | 六原语字段合同 |
 | `kernel/tables/compliance-test-matrix.yaml` | L0-L2 合规矩阵 |
 | `kernel/tables/audit-events.yaml` | 审计事件字典 |
-| `kernel/tables/app-authorization-presets.yaml` | 授权预设规则 |
-| `kernel/tables/participant-profiles.yaml` | 参与方能力画像 |
+| `kernel/tables/app-authorization-presets.yaml` | 授权预设 |
+| `kernel/tables/participant-profiles.yaml` | 参与方画像 |
 
 ## 1. 文档定位
 
-本文件是域增量文档，提供协议规范的阅读导引与补充语境。所有强制规则定义在 kernel 中。
+本文件提供协议阅读导引。封装字段、版本协商、授权语义、六原语规则以 P-PROTO-* 为唯一规范来源。
 
-## 2. 协议分层
+## 2. 阅读路径
 
-| 层 | 交互对象 | 关注点 |
-|---|---|---|
-| L0 Core Envelope | 任意参与方 | trace/idempotency/error/audit 基础封装 |
-| L1 Runtime Access | runtime ↔ app/external | AI 运行时访问、授权、App 间受控访问 |
-| L2 Realm Core Profile | realm ↔ app | world/agent/memory/social/economy 与六原语 |
+1. 版本与封装：P-PROTO-001、P-PROTO-010、P-PROTO-011。
+2. 授权与 scope：P-PROTO-020、P-PROTO-030、P-PROTO-035、P-PROTO-040。
+3. World-App 与模式边界：P-PROTO-050、P-PROTO-060。
+4. 六原语与一致性：P-PROTO-070、P-PROTO-100–105。
 
-## 3. 版本协商
+## 3. 事实源映射
 
-V1 strict-only（P-PROTO-001）。版本字段：protocolVersion, participantProtocolVersion, compatMode, capabilityProfileRef, scopeCatalogVersion 等。协商输出：accepted, effectiveProtocolVersion, compatMode, reasonCode, actionHint, requiredActions。
+- 错误码与 actionHint：`kernel/tables/protocol-error-codes.yaml`。
+- 原语字段合同：`kernel/tables/protocol-primitives.yaml`。
+- 合规测试矩阵：`kernel/tables/compliance-test-matrix.yaml`。
+- 参与方画像与 app 模式：`kernel/tables/participant-profiles.yaml`。
 
-## 4. 统一封装
+## 4. 非目标
 
-请求/响应封装规则见 P-PROTO-010, P-PROTO-011。能力画像采用固定发布（P-PROTO-002），详见 `tables/participant-profiles.yaml`。
-
-## 5. App 授权合同
-
-ExternalPrincipal 授权规则见 P-PROTO-020–040。三种预设见 `tables/app-authorization-presets.yaml`。委托规则见 P-PROTO-035。策略更新与 catalog 规则见 P-PROTO-040。
-
-## 6. World-App 关系
-
-产品绑定关系见 P-PROTO-050。render-app 只读，extension-app 需 1:1 绑定。
-
-## 7. 六原语合同
-
-六原语字段定义见 `tables/protocol-primitives.yaml`（P-PROTO-100–105）。跨原语一致性规则见 P-PROTO-070。
-
-## 8. 错误码
-
-完整错误码字典见 `tables/protocol-error-codes.yaml`。审计事件字典见 `tables/audit-events.yaml`。
-
-## 9. 合规测试
-
-L0-L2 合规测试矩阵见 `tables/compliance-test-matrix.yaml`。
-
-## 10. 验收门
-
-- CI 命令 `pnpm check:platform-spec-kernel-consistency` 与 `pnpm check:platform-spec-kernel-docs-drift` 必须通过。
-- 合规测试矩阵（`tables/compliance-test-matrix.yaml`）变更后需同步验证覆盖率。
-
-## 11. 决策收敛
-
-已决策：不允许 legacy-readonly、不允许 per-primitive 独立版本号、固定参与方不远程下发、不允许二次委托、策略更新立即失效、extension-app 固定 1:1、scope 采用 SDK 单入口。
+- 不在 domain 层新增协议规则号。
+- 不在本文件维护执行快照与门禁结果；结果写入 `dev/report/*`。
