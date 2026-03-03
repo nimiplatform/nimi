@@ -239,6 +239,49 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     },
   );
 
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.narrativeSpineGetOrCreate, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    const agentId = String(record.agentId || '').trim();
+    if (!worldId || !agentId) {
+      throw new Error('WORLD_ID_AND_AGENT_ID_REQUIRED');
+    }
+    return requestObject({
+      method: 'POST',
+      url: '/api/world/spine/by-world/{worldId}/by-agent/{agentId}',
+      path: { worldId, agentId },
+    });
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.satellitesBySpineList, async (query) => {
+    const spineId = String(toRecord(query).spineId || '').trim();
+    if (!spineId) {
+      throw new Error('SPINE_ID_REQUIRED');
+    }
+    const payload = await requestObject({
+      method: 'GET',
+      url: '/api/world/satellites/by-spine/{spineId}',
+      path: { spineId },
+    });
+    return toObjectOr(payload, { items: [] });
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.satellitesCreate, async (query) => {
+    const record = toRecord(query);
+    const body = toObjectOr(record.body, record);
+    const worldId = String(body.worldId || '').trim();
+    const content = String(body.content || '').trim();
+    if (!worldId || !content) {
+      throw new Error('WORLD_ID_AND_CONTENT_REQUIRED');
+    }
+    return requestObject({
+      method: 'POST',
+      url: '/api/world/satellites',
+      body,
+      mediaType: 'application/json',
+    });
+  });
+
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksBatchUpsert, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();

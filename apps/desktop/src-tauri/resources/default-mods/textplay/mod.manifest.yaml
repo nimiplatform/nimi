@@ -15,6 +15,9 @@ capabilities:
   - data.query.data-api.world.lorebooks.list
   - data.query.data-api.world.scenes.list
   - data.query.data-api.world.narrative-contexts.list
+  - data.query.data-api.world.spine.get-or-create
+  - data.query.data-api.world.satellites.by-spine.list
+  - data.query.data-api.world.satellites.create
   - data.query.data-api.core.agent.memory.recall.for-entity
   - data.register.data-api.textplay.render.persist
   - data.query.data-api.textplay.render.persist
