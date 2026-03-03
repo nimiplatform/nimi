@@ -48,6 +48,12 @@ export function ExploreView(props: ExploreViewProps) {
     }
   };
 
+  const prevBanner = () => {
+    if (worldsWithBanners.length > 1) {
+      setCurrentBannerIndex((prev) => (prev - 1 + worldsWithBanners.length) % worldsWithBanners.length);
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header bar */}
@@ -82,73 +88,113 @@ export function ExploreView(props: ExploreViewProps) {
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="mx-auto max-w-6xl px-6 py-6">
-          {/* World Banner Carousel */}
-          {worldsWithBanners.length > 0 && (
-            <section className="relative mb-6">
-              <div
-                className="relative h-[200px] rounded-2xl overflow-hidden cursor-pointer"
-                onClick={() => currentBanner && props.onWorldOpen?.(currentBanner.id)}
-              >
-                {/* Banner Image */}
-                <img
-                  src={currentBanner?.bannerUrl || ''}
-                  alt={currentBanner?.name || 'World'}
-                  className="w-full h-full object-cover transition-opacity duration-300"
-                />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                {/* World Info */}
-                <div className="absolute bottom-4 left-4">
-                  <h3 className="text-xl font-bold text-white">{currentBanner?.name}</h3>
-                  <span className="text-sm text-white/80">{currentBanner?.type}</span>
+           {/* World Banner Carousel */}
+           {worldsWithBanners.length > 0 && (
+             <section className="relative mb-6">
+               {/* Worlds Title */}
+                <div className="mb-3">
+                  <h2 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>Worlds</h2>
                 </div>
-                {/* Next Button */}
-                {worldsWithBanners.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextBanner();
-                    }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors"
-                    aria-label="Next banner"
+               <div
+                 className="relative h-[280px] rounded-2xl overflow-hidden cursor-pointer"
+                 onClick={() => currentBanner && props.onWorldOpen?.(currentBanner.id)}
+               >
+                  {/* Banner Images Container with Animation */}
+                  <div 
+                    className="flex h-full transition-transform duration-700 ease-in-out will-change-transform"
+                    style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
                   >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                )}
-                {/* Dots Indicator */}
-                {worldsWithBanners.length > 1 && (
-                  <div className="absolute bottom-4 right-4 flex gap-1.5">
-                    {worldsWithBanners.map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCurrentBannerIndex(idx);
-                        }}
-                        className={`w-2 h-2 rounded-full transition-colors ${
-                          idx === currentBannerIndex ? 'bg-white' : 'bg-white/40'
-                        }`}
-                        aria-label={`Go to banner ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
+                   {worldsWithBanners.map((world, idx) => (
+                     <div key={world.id} className="w-full h-full flex-shrink-0 relative">
+                       <img
+                         src={world.bannerUrl || ''}
+                         alt={world.name}
+                         className="w-full h-full object-cover"
+                       />
+                       {/* Gradient Overlay */}
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                       {/* World Info */}
+                       <div className="absolute bottom-4 left-4">
+                         <h3 className="text-2xl font-bold text-white">{world.name}</h3>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+                 
+                 {/* Prev Button - Left */}
+                 {worldsWithBanners.length > 1 && (
+                   <button
+                     type="button"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       prevBanner();
+                     }}
+                     className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors z-10"
+                     aria-label="Previous banner"
+                   >
+                     <svg
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="white"
+                       strokeWidth="2"
+                       strokeLinecap="round"
+                       strokeLinejoin="round"
+                     >
+                       <polyline points="15 18 9 12 15 6" />
+                     </svg>
+                   </button>
+                 )}
+                 
+                 {/* Next Button - Right */}
+                 {worldsWithBanners.length > 1 && (
+                   <button
+                     type="button"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       nextBanner();
+                     }}
+                     className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors z-10"
+                     aria-label="Next banner"
+                   >
+                     <svg
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="white"
+                       strokeWidth="2"
+                       strokeLinecap="round"
+                       strokeLinejoin="round"
+                     >
+                       <polyline points="9 18 15 12 9 6" />
+                     </svg>
+                   </button>
+                 )}
+                 
+                 {/* Dots Indicator */}
+                 {worldsWithBanners.length > 1 && (
+                   <div className="absolute bottom-4 right-4 flex gap-1.5">
+                     {worldsWithBanners.map((_, idx) => (
+                       <button
+                         key={idx}
+                         type="button"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setCurrentBannerIndex(idx);
+                         }}
+                         className={`w-2 h-2 rounded-full transition-colors ${
+                           idx === currentBannerIndex ? 'bg-white' : 'bg-white/40'
+                         }`}
+                         aria-label={`Go to banner ${idx + 1}`}
+                       />
+                     ))}
+                   </div>
+                 )}
+               </div>
+             </section>
+           )}
 
           {/* Category Chips */}
           <section className="mt-6 flex flex-wrap gap-2">
@@ -185,7 +231,7 @@ export function ExploreView(props: ExploreViewProps) {
             <div className="flex w-72 shrink-0 flex-col gap-6 order-1">
               {props.topAgents.length > 0 && (
                 <section>
-                  <h3 className="mb-3 text-sm font-semibold text-gray-900">Top Agents</h3>
+                   <h3 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>Top Agents</h3>
                   <div className="flex flex-col gap-3">
                     {props.topAgents.map((agent) => (
                        <TopAgentCard
@@ -201,7 +247,7 @@ export function ExploreView(props: ExploreViewProps) {
 
             {/* Right: Dynamic Feed */}
             <div className="min-w-0 flex-1 order-2">
-              <h2 className="mb-4 text-base font-semibold text-gray-900">Dynamic Feed</h2>
+               <h2 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>Dynamic Feed</h2>
               <PostFeed
                 key={props.postFeedKey}
                 fetchPage={props.fetchPostPage}

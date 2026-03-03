@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { WorldListItem } from '../world/world-list';
@@ -135,6 +136,7 @@ export function ExplorePanel() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
+  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -151,7 +153,13 @@ export function ExplorePanel() {
 
   const worldBanners = useMemo(() => {
     const worlds = worldsQuery.data ?? [];
-    return worlds.map((world) => ({
+    // Sort: MAIN worlds first, then by name for consistent ordering
+    const sortedWorlds = [...worlds].sort((a, b) => {
+      if (a.type === 'MAIN' && b.type !== 'MAIN') return -1;
+      if (a.type !== 'MAIN' && b.type === 'MAIN') return 1;
+      return a.name.localeCompare(b.name);
+    });
+    return sortedWorlds.map((world) => ({
       id: world.id,
       name: world.name,
       bannerUrl: world.bannerUrl,
@@ -230,7 +238,16 @@ export function ExplorePanel() {
   const onAgentAddFriend = useCallback(
     (agentId: string) => {
       const target = agents.find((item) => item.id === agentId);
-      console.log('Add friend request sent to agent:', agentId, target);
+      logRendererEvent({
+        level: 'info',
+        area: 'explore',
+        message: 'action:agent-add-friend:clicked',
+        details: {
+          agentId,
+          targetId: target?.id ?? null,
+          targetHandle: target?.handle ?? null,
+        },
+      });
     },
     [agents],
   );
@@ -244,6 +261,13 @@ export function ExplorePanel() {
       }
     },
     [],
+  );
+
+  const onWorldOpen = useCallback(
+    (worldId: string) => {
+      navigateToWorld(worldId);
+    },
+    [navigateToWorld],
   );
 
   return (
@@ -261,6 +285,7 @@ export function ExplorePanel() {
       onSearchTextChange={setSearchText}
       onToggleCategory={onToggleCategory}
       onAgentAddFriend={onAgentAddFriend}
+      onWorldOpen={onWorldOpen}
     />
   );
 }
