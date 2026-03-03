@@ -11,6 +11,17 @@ pub const DEFAULT_LOCAL_RUNTIME_ENDPOINT: &str = "http://127.0.0.1:1234/v1";
 pub const LOCAL_AI_DOWNLOAD_PROGRESS_EVENT: &str = "local-ai://download-progress";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum LocalAiDownloadState {
+    Queued,
+    Running,
+    Paused,
+    Failed,
+    Completed,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum LocalAiProviderAdapterKind {
     OpenaiCompatAdapter,
@@ -36,8 +47,57 @@ pub struct LocalAiDownloadProgressEvent {
     pub speed_bytes_per_sec: Option<f64>,
     pub eta_seconds: Option<f64>,
     pub message: Option<String>,
+    pub state: LocalAiDownloadState,
+    pub reason_code: Option<String>,
+    pub retryable: Option<bool>,
     pub done: bool,
     pub success: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiDownloadSessionRecord {
+    pub install_session_id: String,
+    pub model_id: String,
+    pub local_model_id: String,
+    pub request: LocalAiInstallRequest,
+    pub install_metadata: Option<serde_json::Value>,
+    pub phase: String,
+    pub state: LocalAiDownloadState,
+    pub bytes_received: u64,
+    pub bytes_total: Option<u64>,
+    pub speed_bytes_per_sec: Option<f64>,
+    pub eta_seconds: Option<f64>,
+    pub message: Option<String>,
+    pub reason_code: Option<String>,
+    pub retryable: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiDownloadSessionSummary {
+    pub install_session_id: String,
+    pub model_id: String,
+    pub local_model_id: String,
+    pub phase: String,
+    pub state: LocalAiDownloadState,
+    pub bytes_received: u64,
+    pub bytes_total: Option<u64>,
+    pub speed_bytes_per_sec: Option<f64>,
+    pub eta_seconds: Option<f64>,
+    pub message: Option<String>,
+    pub reason_code: Option<String>,
+    pub retryable: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiDownloadControlPayload {
+    pub install_session_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -402,6 +462,8 @@ pub struct LocalAiRuntimeState {
     pub capability_matrix: Vec<LocalAiCapabilityMatrixEntry>,
     #[serde(default)]
     pub services: Vec<LocalAiServiceDescriptor>,
+    #[serde(default)]
+    pub downloads: Vec<LocalAiDownloadSessionRecord>,
     pub audits: Vec<LocalAiAuditEvent>,
 }
 
@@ -413,6 +475,7 @@ impl Default for LocalAiRuntimeState {
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
+            downloads: Vec::new(),
             audits: Vec::new(),
         }
     }
@@ -684,10 +747,7 @@ mod tests {
         assert_eq!(ulid.len(), 26);
         let crockford_chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
         for ch in ulid.chars() {
-            assert!(
-                crockford_chars.contains(ch),
-                "invalid crockford char: {ch}"
-            );
+            assert!(crockford_chars.contains(ch), "invalid crockford char: {ch}");
         }
     }
 

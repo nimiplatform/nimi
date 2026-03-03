@@ -29,6 +29,13 @@ pub struct HfDownloadProgress {
     pub message: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HfDownloadControl {
+    Continue,
+    Pause,
+    Cancel,
+}
+
 /// Returns the base URL for HuggingFace downloads.
 /// Priority: NIMI_HF_MIRROR > HF_ENDPOINT > default "https://huggingface.co".
 pub(super) fn hf_download_base_url() -> String {
@@ -60,7 +67,10 @@ fn is_hf_repo(repo: &str) -> bool {
     }
     // Also match mirror URLs (e.g. hf-mirror.com).
     let base = hf_download_base_url();
-    if let Some(host) = base.strip_prefix("https://").or_else(|| base.strip_prefix("http://")) {
+    if let Some(host) = base
+        .strip_prefix("https://")
+        .or_else(|| base.strip_prefix("http://"))
+    {
         if normalized.contains(host) {
             return true;
         }
@@ -142,12 +152,12 @@ fn normalize_relative_file_path(value: &str) -> Result<String, String> {
     Ok(normalized)
 }
 
-fn normalize_install_files(request: &LocalAiInstallRequest) -> Result<(String, Vec<String>), String> {
-    let entry = normalize_relative_file_path(normalize_non_empty(
-        request.entry.as_deref().unwrap_or("model.bin"),
-        "model.bin",
-    )
-    .as_str())?;
+fn normalize_install_files(
+    request: &LocalAiInstallRequest,
+) -> Result<(String, Vec<String>), String> {
+    let entry = normalize_relative_file_path(
+        normalize_non_empty(request.entry.as_deref().unwrap_or("model.bin"), "model.bin").as_str(),
+    )?;
 
     let mut files = Vec::<String>::new();
     let mut seen = HashSet::<String>::new();
@@ -198,7 +208,39 @@ fn build_hf_download_url(repo_slug: &str, revision: &str, file_path: &str) -> St
     )
 }
 
-const HF_RETRY_BACKOFF_MS: [u64; 4] = [1_000, 5_000, 15_000, 30_000];
+const LOCAL_AI_HF_DOWNLOAD_PAUSED: &str = "LOCAL_AI_HF_DOWNLOAD_PAUSED";
+const LOCAL_AI_HF_DOWNLOAD_CANCELLED: &str = "LOCAL_AI_HF_DOWNLOAD_CANCELLED";
+const LOCAL_AI_HF_DOWNLOAD_DISK_FULL: &str = "LOCAL_AI_HF_DOWNLOAD_DISK_FULL";
+const LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH: &str = "LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH";
+const HF_RETRY_BACKOFF_MS: [u64; 8] = [300, 1_000, 5_000, 15_000, 30_000, 60_000, 120_000, 180_000];
+
+fn control_to_error(control: HfDownloadControl) -> Option<String> {
+    match control {
+        HfDownloadControl::Continue => None,
+        HfDownloadControl::Pause => Some(format!(
+            "{LOCAL_AI_HF_DOWNLOAD_PAUSED}: download paused by user"
+        )),
+        HfDownloadControl::Cancel => Some(format!(
+            "{LOCAL_AI_HF_DOWNLOAD_CANCELLED}: download cancelled by user"
+        )),
+    }
+}
+
+fn is_disk_full_io_error(error: &std::io::Error) -> bool {
+    if let Some(code) = error.raw_os_error() {
+        if code == 28 || code == 112 {
+            return true;
+        }
+    }
+    false
+}
+
+fn disk_full_error(destination: &Path, error: &std::io::Error) -> String {
+    format!(
+        "{LOCAL_AI_HF_DOWNLOAD_DISK_FULL}: disk full while writing {}: {error}",
+        destination.display()
+    )
+}
 
 fn download_file_with_resume<F>(
     url: &str,
@@ -206,7 +248,7 @@ fn download_file_with_resume<F>(
     on_progress: &mut F,
 ) -> Result<(), String>
 where
-    F: FnMut(HfDownloadProgress),
+    F: FnMut(HfDownloadProgress) -> HfDownloadControl,
 {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(300))
@@ -237,6 +279,17 @@ where
                         "LOCAL_AI_HF_DOWNLOAD_HTTP_STATUS: status={}, url={url}, attempt={attempt}",
                         status.as_u16()
                     ));
+                    if status == reqwest::StatusCode::NOT_FOUND
+                        || status == reqwest::StatusCode::UNAUTHORIZED
+                        || status == reqwest::StatusCode::FORBIDDEN
+                    {
+                        return Err(last_error.unwrap_or_else(|| {
+                            format!(
+                                "LOCAL_AI_HF_DOWNLOAD_HTTP_STATUS: status={}, url={url}, attempt={attempt}",
+                                status.as_u16()
+                            )
+                        }));
+                    }
                     if attempt < HF_RETRY_BACKOFF_MS.len() {
                         thread::sleep(Duration::from_millis(*backoff_ms));
                     }
@@ -245,14 +298,16 @@ where
 
                 if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
                     // Existing file already contains the full content.
-                    on_progress(HfDownloadProgress {
+                    if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
                         phase: "download".to_string(),
                         bytes_received: existing_bytes,
                         bytes_total: Some(existing_bytes),
                         speed_bytes_per_sec: None,
                         eta_seconds: Some(0.0),
                         message: Some("download already complete".to_string()),
-                    });
+                    })) {
+                        return Err(error);
+                    }
                     return Ok(());
                 }
 
@@ -262,17 +317,27 @@ where
                     .get(reqwest::header::CONTENT_LENGTH)
                     .and_then(|value| value.to_str().ok())
                     .and_then(|value| value.parse::<u64>().ok())
-                    .map(|value| if append { existing_bytes + value } else { value });
+                    .map(|value| {
+                        if append {
+                            existing_bytes + value
+                        } else {
+                            value
+                        }
+                    });
                 let mut file = if append {
                     OpenOptions::new()
                         .create(true)
                         .append(true)
                         .open(destination)
                         .map_err(|error| {
-                            format!(
-                                "LOCAL_AI_HF_DOWNLOAD_FILE_OPEN_FAILED: 打开断点续传文件失败 ({}): {error}",
-                                destination.display()
-                            )
+                            if is_disk_full_io_error(&error) {
+                                disk_full_error(destination.as_path(), &error)
+                            } else {
+                                format!(
+                                    "LOCAL_AI_HF_DOWNLOAD_FILE_OPEN_FAILED: 打开断点续传文件失败 ({}): {error}",
+                                    destination.display()
+                                )
+                            }
                         })?
                 } else {
                     OpenOptions::new()
@@ -281,23 +346,29 @@ where
                         .truncate(true)
                         .open(destination)
                         .map_err(|error| {
-                            format!(
-                                "LOCAL_AI_HF_DOWNLOAD_FILE_CREATE_FAILED: 创建下载文件失败 ({}): {error}",
-                                destination.display()
-                            )
+                            if is_disk_full_io_error(&error) {
+                                disk_full_error(destination.as_path(), &error)
+                            } else {
+                                format!(
+                                    "LOCAL_AI_HF_DOWNLOAD_FILE_CREATE_FAILED: 创建下载文件失败 ({}): {error}",
+                                    destination.display()
+                                )
+                            }
                         })?
                 };
 
                 let mut bytes_received = if append { existing_bytes } else { 0 };
                 let started_at = Instant::now();
-                on_progress(HfDownloadProgress {
+                if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
                     phase: "download".to_string(),
                     bytes_received,
                     bytes_total: total_bytes,
                     speed_bytes_per_sec: None,
                     eta_seconds: None,
                     message: Some(format!("downloading from Hugging Face (attempt {attempt})")),
-                });
+                })) {
+                    return Err(error);
+                }
 
                 let mut chunk = [0u8; 16 * 1024];
                 loop {
@@ -311,10 +382,14 @@ where
                     }
                     bytes_received = bytes_received.saturating_add(read_bytes as u64);
                     file.write_all(&chunk[..read_bytes]).map_err(|error| {
-                        format!(
-                            "LOCAL_AI_HF_DOWNLOAD_FILE_WRITE_FAILED: 写入下载文件失败 ({}): {error}",
-                            destination.display()
-                        )
+                        if is_disk_full_io_error(&error) {
+                            disk_full_error(destination.as_path(), &error)
+                        } else {
+                            format!(
+                                "LOCAL_AI_HF_DOWNLOAD_FILE_WRITE_FAILED: 写入下载文件失败 ({}): {error}",
+                                destination.display()
+                            )
+                        }
                     })?;
                     let elapsed_secs = started_at.elapsed().as_secs_f64();
                     let speed = if elapsed_secs > 0.0 {
@@ -328,29 +403,37 @@ where
                         }
                         _ => None,
                     };
-                    on_progress(HfDownloadProgress {
+                    if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
                         phase: "download".to_string(),
                         bytes_received,
                         bytes_total: total_bytes,
                         speed_bytes_per_sec: speed,
                         eta_seconds,
                         message: Some(format!("downloading from Hugging Face (attempt {attempt})")),
-                    });
+                    })) {
+                        return Err(error);
+                    }
                 }
                 file.flush().map_err(|error| {
-                    format!(
-                        "LOCAL_AI_HF_DOWNLOAD_FILE_FLUSH_FAILED: 刷新下载文件失败 ({}): {error}",
-                        destination.display()
-                    )
+                    if is_disk_full_io_error(&error) {
+                        disk_full_error(destination.as_path(), &error)
+                    } else {
+                        format!(
+                            "LOCAL_AI_HF_DOWNLOAD_FILE_FLUSH_FAILED: 刷新下载文件失败 ({}): {error}",
+                            destination.display()
+                        )
+                    }
                 })?;
-                on_progress(HfDownloadProgress {
+                if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
                     phase: "download".to_string(),
                     bytes_received,
                     bytes_total: total_bytes.or(Some(bytes_received)),
                     speed_bytes_per_sec: None,
                     eta_seconds: Some(0.0),
                     message: Some("download completed".to_string()),
-                });
+                })) {
+                    return Err(error);
+                }
                 return Ok(());
             }
             Err(error) => {
@@ -423,10 +506,7 @@ fn build_manifest_from_install_request(
         schema_version: "1.0.0".to_string(),
         model_id: request.model_id.trim().to_string(),
         capabilities,
-        engine: normalize_non_empty(
-            request.engine.as_deref().unwrap_or("localai"),
-            "localai",
-        ),
+        engine: normalize_non_empty(request.engine.as_deref().unwrap_or("localai"), "localai"),
         entry: entry_file.to_string(),
         files: files.to_vec(),
         license: normalize_non_empty(request.license.as_deref().unwrap_or("unknown"), "unknown"),
@@ -462,10 +542,31 @@ fn aggregate_progress(
     (bytes_received, bytes_total)
 }
 
+fn should_cleanup_staging_for_error(error: &str) -> bool {
+    let code = error
+        .split(':')
+        .next()
+        .map(|value| value.trim())
+        .unwrap_or_default();
+    code == LOCAL_AI_HF_DOWNLOAD_CANCELLED || code == LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH
+}
+
 pub fn install_from_hf(
     app: &AppHandle,
     request: &LocalAiInstallRequest,
     on_progress: &mut impl FnMut(HfDownloadProgress),
+) -> Result<super::types::LocalAiModelRecord, String> {
+    let mut wrapped_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
+        on_progress(progress);
+        HfDownloadControl::Continue
+    };
+    install_from_hf_with_control(app, request, &mut wrapped_progress)
+}
+
+pub fn install_from_hf_with_control(
+    app: &AppHandle,
+    request: &LocalAiInstallRequest,
+    on_progress: &mut impl FnMut(HfDownloadProgress) -> HfDownloadControl,
 ) -> Result<super::types::LocalAiModelRecord, String> {
     if request.model_id.trim().is_empty() {
         return Err("LOCAL_AI_INSTALL_MODEL_ID_EMPTY: 安装失败: modelId 不能为空".to_string());
@@ -493,11 +594,6 @@ pub fn install_from_hf(
     let staging_dir = models_dir.join(format!("{slug}-staging"));
     let backup_dir = models_dir.join(format!("{slug}-backup"));
 
-    if staging_dir.exists() {
-        fs::remove_dir_all(&staging_dir).map_err(|error| {
-            format!("清理 staging 目录失败 ({}): {error}", staging_dir.display())
-        })?;
-    }
     if backup_dir.exists() {
         fs::remove_dir_all(&backup_dir)
             .map_err(|error| format!("清理 backup 目录失败 ({}): {error}", backup_dir.display()))?;
@@ -566,7 +662,7 @@ pub fn install_from_hf(
 
         let completed_before_file = total_verified_bytes;
         let file_label = file_path.clone();
-        let mut on_file_progress = |progress: HfDownloadProgress| {
+        let mut on_file_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
             let (bytes_received, bytes_total) =
                 aggregate_progress(completed_before_file, total_bytes_known, &progress);
             let message = progress.message.as_ref().map(|detail| {
@@ -585,17 +681,23 @@ pub fn install_from_hf(
                 speed_bytes_per_sec: progress.speed_bytes_per_sec,
                 eta_seconds: progress.eta_seconds,
                 message,
-            });
+            })
         };
 
         if let Err(error) =
             download_file_with_resume(&download_url, &staged_file_path, &mut on_file_progress)
         {
-            rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
+            if should_cleanup_staging_for_error(error.as_str()) {
+                rollback_staging(
+                    staging_dir.as_path(),
+                    backup_dir.as_path(),
+                    model_dir.as_path(),
+                );
+            }
             return Err(error);
         }
 
-        on_progress(HfDownloadProgress {
+        if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
             phase: "verify".to_string(),
             bytes_received: total_verified_bytes,
             bytes_total: total_bytes_known,
@@ -607,18 +709,28 @@ pub fn install_from_hf(
                 file_count,
                 file_path
             )),
-        });
+        })) {
+            return Err(error);
+        }
 
         let file_hash = sha256_hex_streaming(&staged_file_path).map_err(|error| {
-            rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
+            rollback_staging(
+                staging_dir.as_path(),
+                backup_dir.as_path(),
+                model_dir.as_path(),
+            );
             error
         })?;
 
         if let Some(expected_hash) = resolve_expected_file_hash(request, file_path) {
             if expected_hash != file_hash {
-                rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
+                rollback_staging(
+                    staging_dir.as_path(),
+                    backup_dir.as_path(),
+                    model_dir.as_path(),
+                );
                 return Err(format!(
-                    "HF 下载 hash 校验失败: file={}, expected={}, actual={}",
+                    "{LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH}: file={}, expected={}, actual={}",
                     file_path, expected_hash, file_hash
                 ));
             }
@@ -630,7 +742,7 @@ pub fn install_from_hf(
         total_verified_bytes = total_verified_bytes.saturating_add(file_size);
         computed_hashes.insert(file_path.to_string(), format!("sha256:{file_hash}"));
 
-        on_progress(HfDownloadProgress {
+        if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
             phase: "verify".to_string(),
             bytes_received: total_verified_bytes,
             bytes_total: total_bytes_known.or(Some(total_verified_bytes)),
@@ -642,7 +754,9 @@ pub fn install_from_hf(
                 file_count,
                 file_path
             )),
-        });
+        })) {
+            return Err(error);
+        }
     }
 
     let manifest = match build_manifest_from_install_request(
@@ -653,7 +767,11 @@ pub fn install_from_hf(
     ) {
         Ok(value) => value,
         Err(error) => {
-            rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
+            rollback_staging(
+                staging_dir.as_path(),
+                backup_dir.as_path(),
+                model_dir.as_path(),
+            );
             return Err(error);
         }
     };
@@ -661,7 +779,11 @@ pub fn install_from_hf(
     let manifest_json = serde_json::to_string_pretty(&manifest)
         .map_err(|error| format!("序列化 HF manifest 失败: {error}"))?;
     fs::write(&manifest_path, manifest_json).map_err(|error| {
-        rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
+        rollback_staging(
+            staging_dir.as_path(),
+            backup_dir.as_path(),
+            model_dir.as_path(),
+        );
         format!(
             "写入 HF manifest 失败 ({}): {error}",
             manifest_path.display()
@@ -671,7 +793,11 @@ pub fn install_from_hf(
     let validated = match parse_and_validate_manifest(&manifest_path) {
         Ok(value) => value,
         Err(error) => {
-            rollback_staging(staging_dir.as_path(), backup_dir.as_path(), model_dir.as_path());
+            rollback_staging(
+                staging_dir.as_path(),
+                backup_dir.as_path(),
+                model_dir.as_path(),
+            );
             return Err(error);
         }
     };
@@ -700,14 +826,16 @@ pub fn install_from_hf(
         let _ = fs::remove_dir_all(&backup_dir);
     }
 
-    on_progress(HfDownloadProgress {
+    if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
         phase: "verify".to_string(),
         bytes_received: total_verified_bytes,
         bytes_total: total_bytes_known.or(Some(total_verified_bytes)),
         speed_bytes_per_sec: None,
         eta_seconds: Some(0.0),
         message: Some("manifest validated".to_string()),
-    });
+    })) {
+        return Err(error);
+    }
 
     manifest_to_model_record(&validated, Some(validated_endpoint.as_str()))
 }
@@ -716,9 +844,10 @@ pub fn install_from_hf(
 mod tests {
     use super::{
         aggregate_progress, build_hf_download_url, build_manifest_from_install_request,
-        hf_download_base_url, is_hf_repo, normalize_expected_hash, normalize_hf_repo_slug,
-        normalize_install_files, normalize_relative_file_path, resolve_expected_file_hash,
-        sha256_hex, sha256_hex_streaming,
+        control_to_error, hf_download_base_url, is_disk_full_io_error, is_hf_repo,
+        normalize_expected_hash, normalize_hf_repo_slug, normalize_install_files,
+        normalize_relative_file_path, resolve_expected_file_hash, sha256_hex,
+        sha256_hex_streaming, HfDownloadControl,
     };
     use crate::local_ai_runtime::types::LocalAiInstallRequest;
     use std::io::Write;
@@ -818,17 +947,17 @@ mod tests {
             capabilities: Some(vec!["tts".to_string()]),
             engine: Some("localai".to_string()),
             entry: Some("model.safetensors".to_string()),
-            files: Some(vec!["model.safetensors".to_string(), "config.json".to_string()]),
+            files: Some(vec![
+                "model.safetensors".to_string(),
+                "config.json".to_string(),
+            ]),
             license: Some("apache-2.0".to_string()),
             hashes: None,
             endpoint: None,
             provider_hints: None,
         };
         let hashes = std::collections::HashMap::from([
-            (
-                "model.safetensors".to_string(),
-                "sha256:111".to_string(),
-            ),
+            ("model.safetensors".to_string(), "sha256:111".to_string()),
             ("config.json".to_string(), "sha256:222".to_string()),
         ]);
         let manifest = build_manifest_from_install_request(
@@ -841,7 +970,10 @@ mod tests {
 
         assert_eq!(manifest.entry, "model.safetensors");
         assert_eq!(manifest.files.len(), 2);
-        assert_eq!(manifest.hashes.get("config.json"), Some(&"sha256:222".to_string()));
+        assert_eq!(
+            manifest.hashes.get("config.json"),
+            Some(&"sha256:222".to_string())
+        );
     }
 
     #[test]
@@ -986,9 +1118,28 @@ mod tests {
     // --- retry / timeout constants ---
 
     #[test]
-    fn hf_retry_backoff_has_four_entries() {
-        assert_eq!(super::HF_RETRY_BACKOFF_MS.len(), 4);
-        assert_eq!(super::HF_RETRY_BACKOFF_MS[0], 1_000);
-        assert_eq!(super::HF_RETRY_BACKOFF_MS[3], 30_000);
+    fn hf_retry_backoff_has_eight_entries() {
+        assert_eq!(super::HF_RETRY_BACKOFF_MS.len(), 8);
+        assert_eq!(super::HF_RETRY_BACKOFF_MS[0], 300);
+        assert_eq!(super::HF_RETRY_BACKOFF_MS[7], 180_000);
+    }
+
+    #[test]
+    fn control_to_error_maps_pause_and_cancel() {
+        assert!(control_to_error(HfDownloadControl::Continue).is_none());
+        let pause = control_to_error(HfDownloadControl::Pause).unwrap_or_default();
+        assert!(pause.starts_with("LOCAL_AI_HF_DOWNLOAD_PAUSED"));
+        let cancel = control_to_error(HfDownloadControl::Cancel).unwrap_or_default();
+        assert!(cancel.starts_with("LOCAL_AI_HF_DOWNLOAD_CANCELLED"));
+    }
+
+    #[test]
+    fn disk_full_error_detection_matches_common_errno() {
+        let err_unix = std::io::Error::from_raw_os_error(28);
+        assert!(is_disk_full_io_error(&err_unix));
+        let err_windows = std::io::Error::from_raw_os_error(112);
+        assert!(is_disk_full_io_error(&err_windows));
+        let other = std::io::Error::from_raw_os_error(5);
+        assert!(!is_disk_full_io_error(&other));
     }
 }

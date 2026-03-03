@@ -137,6 +137,7 @@ mod tests {
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
+            downloads: Vec::new(),
             audits: Vec::new(),
         };
 
@@ -167,6 +168,7 @@ mod tests {
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
+            downloads: Vec::new(),
             audits: Vec::new(),
         };
         assert_eq!(find_model_index(&state, "LOCAL:Model-A"), Some(0));
@@ -180,6 +182,7 @@ mod tests {
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
+            downloads: Vec::new(),
             audits: Vec::new(),
         };
         assert_eq!(find_model_index(&state, "local:model-a"), None);
@@ -196,6 +199,7 @@ mod tests {
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
+            downloads: Vec::new(),
             audits: Vec::new(),
         };
         rebuild_capability_index(&mut state);

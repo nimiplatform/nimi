@@ -11,8 +11,7 @@ const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
 const LOCAL_AI_RUNTIME_STATE_FILE: &str = "state.json";
 
 pub fn runtime_root_dir(_app: &AppHandle) -> Result<PathBuf, String> {
-    let home = dirs::home_dir()
-        .ok_or_else(|| "无法获取用户 home 目录".to_string())?;
+    let home = dirs::home_dir().ok_or_else(|| "无法获取用户 home 目录".to_string())?;
     let dir = home.join(NIMI_ROOT_DIR);
     fs::create_dir_all(&dir).map_err(|error| format!("创建 ~/.nimi/ 目录失败: {error}"))?;
     Ok(dir)
@@ -187,6 +186,7 @@ mod tests {
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
+            downloads: Vec::new(),
             audits: Vec::new(),
         };
         save_state_to_path(&state_path, &state).expect("save state");
