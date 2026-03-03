@@ -1,7 +1,14 @@
 # Spec AGENTS.md
 
 > Conventions for AI agents working under `spec/`.
-> Root `AGENTS.md` still applies. This file adds spec-specific execution gates.
+> Root `AGENTS.md` still applies for repo-wide boundaries.
+> This file is the single execution contract for spec authoring/editing/verification under `spec/**`.
+
+## Role in Instruction Precedence
+
+- `AGENTS.md` (repo root): global boundaries and safety rules
+- `spec/AGENTS.md` (this file): authoritative spec workflow rules
+- Tool compatibility files (`CLAUDE.md`, `.github/copilot-instructions.md`, `*context.md`): navigation only, no independent spec rules
 
 ## Scope
 
