@@ -1680,13 +1680,14 @@ Desktop 通过 `runtime_bridge_status` 轮询获取 `running` 状态。`running=
 
 Local AI 桥接通过 `loadLocalAiBridge()` 懒加载（`D-IPC-010`），命令集：
 
-- `local_ai_list_models` / `local_ai_list_verified_models`：列出本地/验证模型。
-- `local_ai_install_model` / `local_ai_install_verified_model` / `local_ai_import_model`：安装/导入模型。
-- `local_ai_start_model` / `local_ai_stop_model` / `local_ai_remove_model`：模型生命周期管理。
-- `local_ai_health_models`：模型健康检查。
-- `local_ai_list_audits` / `local_ai_append_inference_audit`：推理审计。
+- `local_ai_models_list` / `local_ai_models_verified_list`：列出本地/验证模型。
+- `local_ai_models_install` / `local_ai_models_install_verified` / `local_ai_models_import`：创建安装会话并入队 / 导入模型。
+- `local_ai_downloads_list` / `local_ai_downloads_pause` / `local_ai_downloads_resume` / `local_ai_downloads_cancel`：下载会话查询与控制。
+- `local_ai_models_start` / `local_ai_models_stop` / `local_ai_models_remove`：模型生命周期管理。
+- `local_ai_models_health`：模型健康检查。
+- `local_ai_audits_list` / `local_ai_append_inference_audit`：推理审计。
 - `local_ai_pick_manifest_path`：选取模型清单文件。
-- `local_ai_subscribe_download_progress`：订阅下载进度。
+- `local-ai://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
 ### 10.3 状态管理：四个 Zustand Slice
 
@@ -2333,6 +2334,7 @@ Desktop 的错误来自 4 个来源：Runtime gRPC 错误、Realm HTTP 错误、
 
 - `LOCAL_AI_IMPORT_*`：导入路径、清单、哈希校验错误。
 - `LOCAL_AI_MODEL_*`：模型不存在、哈希为空、能力无效。
+- `LOCAL_AI_HF_DOWNLOAD_*`：下载中断/暂停/取消、磁盘不足、不可恢复失败。
 - 所有错误通过 `BRIDGE_ERROR_CODE_MAP` 映射为中文用户消息。
 
 **D-ERR-002 — — Endpoint 安全错误码**
@@ -3418,22 +3420,38 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | external_agent_sync_action_descriptors | Sync external agent action descriptors |
 | external_agent_complete_execution | Complete external agent action execution |
 | external_agent_gateway_status | Get external agent gateway status |
-| local_ai_list_models | List local AI models |
-| local_ai_list_verified_models | List verified local AI models |
-| local_ai_install_model | Install a local AI model |
-| local_ai_install_verified_model | Install a verified local AI model |
-| local_ai_import_model | Import a local AI model from file |
-| local_ai_start_model | Start a local AI model |
-| local_ai_stop_model | Stop a local AI model |
-| local_ai_remove_model | Remove a local AI model |
-| local_ai_health_models | Health check for local AI models |
-| local_ai_list_audits | List local AI inference audits |
+| local_ai_models_list | List local AI models |
+| local_ai_models_verified_list | List verified local AI models |
+| local_ai_models_catalog_search | Search local AI model catalog (verified + Hugging Face) |
+| local_ai_models_catalog_resolve_install_plan | Resolve install plan for a selected catalog item |
+| local_ai_dependencies_resolve | Resolve local runtime dependencies for a mod capability |
+| local_ai_device_profile_collect | Collect local device profile (CPU/GPU/NPU/disk/ports) |
+| local_ai_dependencies_apply | Apply resolved local runtime dependency plan |
+| local_ai_services_list | List local runtime managed services |
+| local_ai_services_install | Install local runtime managed service |
+| local_ai_services_start | Start local runtime managed service |
+| local_ai_services_stop | Stop local runtime managed service |
+| local_ai_services_health | Health check local runtime managed services |
+| local_ai_services_remove | Remove local runtime managed service |
+| local_ai_nodes_catalog_list | List local capability nodes from active services |
+| local_ai_models_install | Install a local AI model |
+| local_ai_models_install_verified | Install a verified local AI model |
+| local_ai_downloads_list | List local AI model download sessions |
+| local_ai_downloads_pause | Pause a local AI model download session |
+| local_ai_downloads_resume | Resume a paused/failed local AI model download session |
+| local_ai_downloads_cancel | Cancel a local AI model download session |
+| local_ai_models_import | Import a local AI model from file |
+| local_ai_models_import_file | Import a model file with copy, hash, and manifest generation |
+| local_ai_models_start | Start a local AI model |
+| local_ai_models_stop | Stop a local AI model |
+| local_ai_models_remove | Remove a local AI model |
+| local_ai_models_health | Health check for local AI models |
+| local_ai_audits_list | List local AI inference audits |
 | local_ai_append_inference_audit | Append a local AI inference audit record |
 | local_ai_pick_manifest_path | Pick a local AI model manifest file path |
 | local_ai_pick_model_file | Pick a local model file for import via native file dialog |
-| local_ai_models_import_file | Import a model file with copy, hash, and manifest generation |
+| local_ai_append_runtime_audit | Append local runtime audit event |
 | local_ai_models_reveal_in_folder | Reveal installed model files in system file manager |
-| local_ai_subscribe_download_progress | Subscribe to local AI model download progress events |
 
 ### 12.13 Desktop — App Tabs
 
@@ -3576,6 +3594,14 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | LOCAL_AI_MODEL_NOT_FOUND | local-ai | No installed/active model found |
 | LOCAL_AI_MODEL_HASHES_EMPTY | local-ai | Model integrity check incomplete, cannot start |
 | LOCAL_AI_MODEL_CAPABILITY_INVALID | local-ai | Model capability configuration invalid |
+| LOCAL_AI_HF_DOWNLOAD_INTERRUPTED | local-ai | Download session interrupted by app exit/crash, manual resume required |
+| LOCAL_AI_HF_DOWNLOAD_PAUSED | local-ai | Download session paused by user control |
+| LOCAL_AI_HF_DOWNLOAD_CANCELLED | local-ai | Download session cancelled and staging cleaned |
+| LOCAL_AI_HF_DOWNLOAD_DISK_FULL | local-ai | Download failed due to insufficient disk space |
+| LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH | local-ai | Downloaded file hash mismatch, session cannot be resumed |
+| LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE | local-ai | Session state is not resumable, must start a new install |
+| LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS | local-ai | Active download session already exists for model |
+| LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND | local-ai | Download session ID not found |
 | LOCAL_AI_QWEN_GPU_REQUIRED | local-ai | Qwen TTS requires available NVIDIA GPU |
 | LOCAL_AI_QWEN_PYTHON_REQUIRED | local-ai | Qwen TTS requires Python 3.10+ |
 | LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED | local-ai | Qwen TTS Python version too low |

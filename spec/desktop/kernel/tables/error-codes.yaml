@@ -53,6 +53,46 @@ codes:
     description: Model capability configuration invalid
     source_rule: D-ERR-001
 
+  - code: LOCAL_AI_HF_DOWNLOAD_INTERRUPTED
+    domain: local-ai
+    description: Download session interrupted by app exit/crash, manual resume required
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_HF_DOWNLOAD_PAUSED
+    domain: local-ai
+    description: Download session paused by user control
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_HF_DOWNLOAD_CANCELLED
+    domain: local-ai
+    description: Download session cancelled and staging cleaned
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_HF_DOWNLOAD_DISK_FULL
+    domain: local-ai
+    description: Download failed due to insufficient disk space
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH
+    domain: local-ai
+    description: Downloaded file hash mismatch, session cannot be resumed
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE
+    domain: local-ai
+    description: Session state is not resumable, must start a new install
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS
+    domain: local-ai
+    description: Active download session already exists for model
+    source_rule: D-ERR-012
+
+  - code: LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND
+    domain: local-ai
+    description: Download session ID not found
+    source_rule: D-ERR-012
+
   - code: LOCAL_AI_QWEN_GPU_REQUIRED
     domain: local-ai
     description: Qwen TTS requires available NVIDIA GPU

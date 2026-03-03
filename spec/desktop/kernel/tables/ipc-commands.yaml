@@ -114,52 +114,137 @@ commands:
     source_rule: D-IPC-008
 
   # Local AI
-  - command: local_ai_list_models
+  - command: local_ai_models_list
     module: local-ai
     description: List local AI models
     source_rule: D-IPC-011
 
-  - command: local_ai_list_verified_models
+  - command: local_ai_models_verified_list
     module: local-ai
     description: List verified local AI models
     source_rule: D-IPC-011
 
-  - command: local_ai_install_model
+  - command: local_ai_models_catalog_search
+    module: local-ai
+    description: Search local AI model catalog (verified + Hugging Face)
+    source_rule: D-IPC-011
+
+  - command: local_ai_models_catalog_resolve_install_plan
+    module: local-ai
+    description: Resolve install plan for a selected catalog item
+    source_rule: D-IPC-011
+
+  - command: local_ai_dependencies_resolve
+    module: local-ai
+    description: Resolve local runtime dependencies for a mod capability
+    source_rule: D-IPC-011
+
+  - command: local_ai_device_profile_collect
+    module: local-ai
+    description: Collect local device profile (CPU/GPU/NPU/disk/ports)
+    source_rule: D-IPC-011
+
+  - command: local_ai_dependencies_apply
+    module: local-ai
+    description: Apply resolved local runtime dependency plan
+    source_rule: D-IPC-011
+
+  - command: local_ai_services_list
+    module: local-ai
+    description: List local runtime managed services
+    source_rule: D-IPC-011
+
+  - command: local_ai_services_install
+    module: local-ai
+    description: Install local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: local_ai_services_start
+    module: local-ai
+    description: Start local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: local_ai_services_stop
+    module: local-ai
+    description: Stop local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: local_ai_services_health
+    module: local-ai
+    description: Health check local runtime managed services
+    source_rule: D-IPC-011
+
+  - command: local_ai_services_remove
+    module: local-ai
+    description: Remove local runtime managed service
+    source_rule: D-IPC-011
+
+  - command: local_ai_nodes_catalog_list
+    module: local-ai
+    description: List local capability nodes from active services
+    source_rule: D-IPC-011
+
+  - command: local_ai_models_install
     module: local-ai
     description: Install a local AI model
     source_rule: D-IPC-011
 
-  - command: local_ai_install_verified_model
+  - command: local_ai_models_install_verified
     module: local-ai
     description: Install a verified local AI model
     source_rule: D-IPC-011
 
-  - command: local_ai_import_model
+  - command: local_ai_downloads_list
+    module: local-ai
+    description: List local AI model download sessions
+    source_rule: D-IPC-011
+
+  - command: local_ai_downloads_pause
+    module: local-ai
+    description: Pause a local AI model download session
+    source_rule: D-IPC-011
+
+  - command: local_ai_downloads_resume
+    module: local-ai
+    description: Resume a paused/failed local AI model download session
+    source_rule: D-IPC-011
+
+  - command: local_ai_downloads_cancel
+    module: local-ai
+    description: Cancel a local AI model download session
+    source_rule: D-IPC-011
+
+  - command: local_ai_models_import
     module: local-ai
     description: Import a local AI model from file
     source_rule: D-IPC-011
 
-  - command: local_ai_start_model
+  - command: local_ai_models_import_file
+    module: local-ai
+    description: Import a model file with copy, hash, and manifest generation
+    source_rule: D-IPC-011
+
+  - command: local_ai_models_start
     module: local-ai
     description: Start a local AI model
     source_rule: D-IPC-011
 
-  - command: local_ai_stop_model
+  - command: local_ai_models_stop
     module: local-ai
     description: Stop a local AI model
     source_rule: D-IPC-011
 
-  - command: local_ai_remove_model
+  - command: local_ai_models_remove
     module: local-ai
     description: Remove a local AI model
     source_rule: D-IPC-011
 
-  - command: local_ai_health_models
+  - command: local_ai_models_health
     module: local-ai
     description: Health check for local AI models
     source_rule: D-IPC-011
 
-  - command: local_ai_list_audits
+  - command: local_ai_audits_list
     module: local-ai
     description: List local AI inference audits
     source_rule: D-IPC-011
@@ -179,17 +264,12 @@ commands:
     description: Pick a local model file for import via native file dialog
     source_rule: D-IPC-011
 
-  - command: local_ai_models_import_file
+  - command: local_ai_append_runtime_audit
     module: local-ai
-    description: Import a model file with copy, hash, and manifest generation
+    description: Append local runtime audit event
     source_rule: D-IPC-011
 
   - command: local_ai_models_reveal_in_folder
     module: local-ai
     description: Reveal installed model files in system file manager
-    source_rule: D-IPC-011
-
-  - command: local_ai_subscribe_download_progress
-    module: local-ai
-    description: Subscribe to local AI model download progress events
     source_rule: D-IPC-011

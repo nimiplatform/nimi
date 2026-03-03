@@ -292,6 +292,12 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-ERR-012
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
   - rule_id: D-HOOK-001
     status: covered
     evidence_refs:

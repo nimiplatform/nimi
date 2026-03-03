@@ -279,13 +279,18 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 
 - **可恢复下载**: 使用 HTTP `Range` headers 实现断点续传。已下载的部分文件在重试时跳过已完成的字节范围。
 - **重试策略**: 指数退避，最多 8 次（300ms → 1s → 5s → 15s → 30s → 60s → 120s → 180s）。
-- **逐文件 SHA256 校验**: hash 格式 `sha256:{hex}`，`sha256:` 前缀可选（兼容纯 hex 输入）。校验失败返回 `AI_LOCAL_DOWNLOAD_HASH_MISMATCH`。
+- **会话状态机**: `queued → running → paused|failed|completed|cancelled`。`pause/resume/cancel` 必须通过显式控制命令驱动，不允许 UI 侧“假暂停”。
+- **重启恢复策略**: 进程重启后，残留 `running/queued` 会话必须转为 `paused` 且 reason code = `LOCAL_AI_HF_DOWNLOAD_INTERRUPTED`；系统不得自动续传，必须由用户手动 `resume`。
+- **逐文件 SHA256 校验**: hash 格式 `sha256:{hex}`，`sha256:` 前缀可选（兼容纯 hex 输入）。校验失败返回 `LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH`。
 - **原子提交**: staging → backup → commit（rename），失败 rollback：
   - staging 目录: `{models_dir}/{local_model_id}-staging/`
   - 全部文件下载 + 校验通过后，原子 rename 为最终目录
   - 失败时 rollback：删除 staging，恢复 backup（如有）
-- **进度上报**: 通过事件通道推送，结构包含 `install_session_id`/`phase`/`bytes_received`/`bytes_total`/`speed`/`eta`/`message`/`done`/`success` 字段。
-- **取消支持**: 下载可随时取消，取消后清理 staging 目录。
+- **进度上报**: 通过事件通道推送，结构包含 `install_session_id`/`phase`/`bytes_received`/`bytes_total`/`speed`/`eta`/`message`/`state`/`reason_code?`/`retryable?`/`done`/`success` 字段。
+- **失败分级**:
+  - 网络/超时/磁盘不足：`failed + retryable=true`，保留 partial staging，允许 `resume`。
+  - hash mismatch：`failed + retryable=false`，清理 staging，禁止 `resume`。
+  - cancel：`cancelled`，清理 staging。
 
 ## K-LOCAL-025 模型存储布局
 

@@ -14,6 +14,14 @@
 | `LOCAL_AI_MODEL_NOT_FOUND` | `local-ai` | No installed/active model found | `D-ERR-001` |
 | `LOCAL_AI_MODEL_HASHES_EMPTY` | `local-ai` | Model integrity check incomplete, cannot start | `D-ERR-001` |
 | `LOCAL_AI_MODEL_CAPABILITY_INVALID` | `local-ai` | Model capability configuration invalid | `D-ERR-001` |
+| `LOCAL_AI_HF_DOWNLOAD_INTERRUPTED` | `local-ai` | Download session interrupted by app exit/crash, manual resume required | `D-ERR-012` |
+| `LOCAL_AI_HF_DOWNLOAD_PAUSED` | `local-ai` | Download session paused by user control | `D-ERR-012` |
+| `LOCAL_AI_HF_DOWNLOAD_CANCELLED` | `local-ai` | Download session cancelled and staging cleaned | `D-ERR-012` |
+| `LOCAL_AI_HF_DOWNLOAD_DISK_FULL` | `local-ai` | Download failed due to insufficient disk space | `D-ERR-012` |
+| `LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH` | `local-ai` | Downloaded file hash mismatch, session cannot be resumed | `D-ERR-012` |
+| `LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE` | `local-ai` | Session state is not resumable, must start a new install | `D-ERR-012` |
+| `LOCAL_AI_HF_DOWNLOAD_SESSION_EXISTS` | `local-ai` | Active download session already exists for model | `D-ERR-012` |
+| `LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND` | `local-ai` | Download session ID not found | `D-ERR-012` |
 | `LOCAL_AI_QWEN_GPU_REQUIRED` | `local-ai` | Qwen TTS requires available NVIDIA GPU | `D-ERR-003` |
 | `LOCAL_AI_QWEN_PYTHON_REQUIRED` | `local-ai` | Qwen TTS requires Python 3.10+ | `D-ERR-003` |
 | `LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED` | `local-ai` | Qwen TTS Python version too low | `D-ERR-003` |

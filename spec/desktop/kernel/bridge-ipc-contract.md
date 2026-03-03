@@ -148,13 +148,14 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 Local AI 桥接通过 `loadLocalAiBridge()` 懒加载（`D-IPC-010`），命令集：
 
-- `local_ai_list_models` / `local_ai_list_verified_models`：列出本地/验证模型。
-- `local_ai_install_model` / `local_ai_install_verified_model` / `local_ai_import_model`：安装/导入模型。
-- `local_ai_start_model` / `local_ai_stop_model` / `local_ai_remove_model`：模型生命周期管理。
-- `local_ai_health_models`：模型健康检查。
-- `local_ai_list_audits` / `local_ai_append_inference_audit`：推理审计。
+- `local_ai_models_list` / `local_ai_models_verified_list`：列出本地/验证模型。
+- `local_ai_models_install` / `local_ai_models_install_verified` / `local_ai_models_import`：创建安装会话并入队 / 导入模型。
+- `local_ai_downloads_list` / `local_ai_downloads_pause` / `local_ai_downloads_resume` / `local_ai_downloads_cancel`：下载会话查询与控制。
+- `local_ai_models_start` / `local_ai_models_stop` / `local_ai_models_remove`：模型生命周期管理。
+- `local_ai_models_health`：模型健康检查。
+- `local_ai_audits_list` / `local_ai_append_inference_audit`：推理审计。
 - `local_ai_pick_manifest_path`：选取模型清单文件。
-- `local_ai_subscribe_download_progress`：订阅下载进度。
+- `local-ai://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
 ## Fact Sources
 

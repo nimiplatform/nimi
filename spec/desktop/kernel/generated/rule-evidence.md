@@ -60,6 +60,7 @@
 | `D-ERR-009` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-ERR-010` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-ERR-011` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-ERR-012` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-HOOK-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

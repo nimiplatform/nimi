@@ -25,19 +25,35 @@
 | `external_agent_sync_action_descriptors` | `external-agent` | Sync external agent action descriptors | `D-IPC-008` |
 | `external_agent_complete_execution` | `external-agent` | Complete external agent action execution | `D-IPC-008` |
 | `external_agent_gateway_status` | `external-agent` | Get external agent gateway status | `D-IPC-008` |
-| `local_ai_list_models` | `local-ai` | List local AI models | `D-IPC-011` |
-| `local_ai_list_verified_models` | `local-ai` | List verified local AI models | `D-IPC-011` |
-| `local_ai_install_model` | `local-ai` | Install a local AI model | `D-IPC-011` |
-| `local_ai_install_verified_model` | `local-ai` | Install a verified local AI model | `D-IPC-011` |
-| `local_ai_import_model` | `local-ai` | Import a local AI model from file | `D-IPC-011` |
-| `local_ai_start_model` | `local-ai` | Start a local AI model | `D-IPC-011` |
-| `local_ai_stop_model` | `local-ai` | Stop a local AI model | `D-IPC-011` |
-| `local_ai_remove_model` | `local-ai` | Remove a local AI model | `D-IPC-011` |
-| `local_ai_health_models` | `local-ai` | Health check for local AI models | `D-IPC-011` |
-| `local_ai_list_audits` | `local-ai` | List local AI inference audits | `D-IPC-011` |
+| `local_ai_models_list` | `local-ai` | List local AI models | `D-IPC-011` |
+| `local_ai_models_verified_list` | `local-ai` | List verified local AI models | `D-IPC-011` |
+| `local_ai_models_catalog_search` | `local-ai` | Search local AI model catalog (verified + Hugging Face) | `D-IPC-011` |
+| `local_ai_models_catalog_resolve_install_plan` | `local-ai` | Resolve install plan for a selected catalog item | `D-IPC-011` |
+| `local_ai_dependencies_resolve` | `local-ai` | Resolve local runtime dependencies for a mod capability | `D-IPC-011` |
+| `local_ai_device_profile_collect` | `local-ai` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
+| `local_ai_dependencies_apply` | `local-ai` | Apply resolved local runtime dependency plan | `D-IPC-011` |
+| `local_ai_services_list` | `local-ai` | List local runtime managed services | `D-IPC-011` |
+| `local_ai_services_install` | `local-ai` | Install local runtime managed service | `D-IPC-011` |
+| `local_ai_services_start` | `local-ai` | Start local runtime managed service | `D-IPC-011` |
+| `local_ai_services_stop` | `local-ai` | Stop local runtime managed service | `D-IPC-011` |
+| `local_ai_services_health` | `local-ai` | Health check local runtime managed services | `D-IPC-011` |
+| `local_ai_services_remove` | `local-ai` | Remove local runtime managed service | `D-IPC-011` |
+| `local_ai_nodes_catalog_list` | `local-ai` | List local capability nodes from active services | `D-IPC-011` |
+| `local_ai_models_install` | `local-ai` | Install a local AI model | `D-IPC-011` |
+| `local_ai_models_install_verified` | `local-ai` | Install a verified local AI model | `D-IPC-011` |
+| `local_ai_downloads_list` | `local-ai` | List local AI model download sessions | `D-IPC-011` |
+| `local_ai_downloads_pause` | `local-ai` | Pause a local AI model download session | `D-IPC-011` |
+| `local_ai_downloads_resume` | `local-ai` | Resume a paused/failed local AI model download session | `D-IPC-011` |
+| `local_ai_downloads_cancel` | `local-ai` | Cancel a local AI model download session | `D-IPC-011` |
+| `local_ai_models_import` | `local-ai` | Import a local AI model from file | `D-IPC-011` |
+| `local_ai_models_import_file` | `local-ai` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
+| `local_ai_models_start` | `local-ai` | Start a local AI model | `D-IPC-011` |
+| `local_ai_models_stop` | `local-ai` | Stop a local AI model | `D-IPC-011` |
+| `local_ai_models_remove` | `local-ai` | Remove a local AI model | `D-IPC-011` |
+| `local_ai_models_health` | `local-ai` | Health check for local AI models | `D-IPC-011` |
+| `local_ai_audits_list` | `local-ai` | List local AI inference audits | `D-IPC-011` |
 | `local_ai_append_inference_audit` | `local-ai` | Append a local AI inference audit record | `D-IPC-011` |
 | `local_ai_pick_manifest_path` | `local-ai` | Pick a local AI model manifest file path | `D-IPC-011` |
 | `local_ai_pick_model_file` | `local-ai` | Pick a local model file for import via native file dialog | `D-IPC-011` |
-| `local_ai_models_import_file` | `local-ai` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
+| `local_ai_append_runtime_audit` | `local-ai` | Append local runtime audit event | `D-IPC-011` |
 | `local_ai_models_reveal_in_folder` | `local-ai` | Reveal installed model files in system file manager | `D-IPC-011` |
-| `local_ai_subscribe_download_progress` | `local-ai` | Subscribe to local AI model download progress events | `D-IPC-011` |
