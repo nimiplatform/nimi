@@ -44,6 +44,39 @@ func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.
 	}
 }
 
+func TestAcquireRuntimeInstanceLock(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_LOCK_PATH", "")
+
+	unlock, err := acquireRuntimeInstanceLock()
+	if err != nil {
+		t.Fatalf("acquire first runtime lock: %v", err)
+	}
+	lockPath, err := runtimeInstanceLockPath()
+	if err != nil {
+		t.Fatalf("resolve runtime lock path: %v", err)
+	}
+	if _, statErr := os.Stat(lockPath); statErr != nil {
+		t.Fatalf("runtime lock file should exist: %v", statErr)
+	}
+
+	if _, err := acquireRuntimeInstanceLock(); err == nil {
+		t.Fatalf("expected second runtime lock acquire to fail")
+	}
+
+	unlock()
+	if _, statErr := os.Stat(lockPath); !os.IsNotExist(statErr) {
+		t.Fatalf("runtime lock file should be removed after unlock")
+	}
+
+	unlockAgain, err := acquireRuntimeInstanceLock()
+	if err != nil {
+		t.Fatalf("acquire runtime lock after unlock: %v", err)
+	}
+	unlockAgain()
+}
+
 func clearRuntimeConfigEnvForStartupTest(t *testing.T) {
 	t.Helper()
 	keys := []string{

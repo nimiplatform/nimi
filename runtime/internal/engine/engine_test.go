@@ -472,10 +472,20 @@ func TestNewManager(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 
-	// ListEngines should return empty.
+	// ListEngines should include known engines even when not running.
 	engines := mgr.ListEngines()
-	if len(engines) != 0 {
-		t.Errorf("expected 0 engines, got %d", len(engines))
+	if len(engines) != 2 {
+		t.Fatalf("expected 2 known engines (localai+nexa), got %d", len(engines))
+	}
+	seen := map[EngineKind]bool{}
+	for _, info := range engines {
+		seen[info.Kind] = true
+		if info.Status != StatusStopped {
+			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Kind, info.Status)
+		}
+	}
+	if !seen[EngineLocalAI] || !seen[EngineNexa] {
+		t.Fatalf("expected list to include localai and nexa, got %+v", engines)
 	}
 }
 
@@ -555,8 +565,18 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 
 	adapter := NewServiceAdapter(mgr)
 	engines := adapter.ListEngines()
-	if len(engines) != 0 {
-		t.Errorf("expected 0 engines, got %d", len(engines))
+	if len(engines) != 2 {
+		t.Fatalf("expected 2 known engines, got %d", len(engines))
+	}
+	seen := map[string]bool{}
+	for _, info := range engines {
+		seen[info.Engine] = true
+		if info.Status != string(StatusStopped) {
+			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Engine, info.Status)
+		}
+	}
+	if !seen[string(EngineLocalAI)] || !seen[string(EngineNexa)] {
+		t.Fatalf("expected adapter list to include localai and nexa, got %+v", engines)
 	}
 }
 

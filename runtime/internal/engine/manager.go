@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -194,16 +196,129 @@ func (m *Manager) EngineStatus(kind EngineKind) (SupervisorInfo, error) {
 // ListEngines returns status info for all managed engines.
 func (m *Manager) ListEngines() []SupervisorInfo {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	result := make([]SupervisorInfo, 0, len(m.supervisors))
-	for _, s := range m.supervisors {
-		result = append(result, s.Info())
+	running := make(map[EngineKind]SupervisorInfo, len(m.supervisors))
+	for kind, s := range m.supervisors {
+		running[kind] = s.Info()
 	}
+	m.mu.RUnlock()
+
+	knownKinds := []EngineKind{EngineLocalAI, EngineNexa}
+	result := make([]SupervisorInfo, 0, len(running)+len(knownKinds))
+	seen := make(map[EngineKind]bool, len(running)+len(knownKinds))
+
+	for _, kind := range knownKinds {
+		if info, ok := running[kind]; ok {
+			result = append(result, info)
+		} else {
+			result = append(result, m.stoppedEngineInfo(kind))
+		}
+		seen[kind] = true
+	}
+
+	for kind, info := range running {
+		if seen[kind] {
+			continue
+		}
+		result = append(result, info)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Kind < result[j].Kind
+	})
 	return result
 }
 
 // Registry returns the underlying engine binary registry.
 func (m *Manager) Registry() *Registry {
 	return m.registry
+}
+
+func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
+	var cfg EngineConfig
+	switch kind {
+	case EngineLocalAI:
+		cfg = DefaultLocalAIConfig()
+	case EngineNexa:
+		cfg = DefaultNexaConfig()
+	default:
+		return SupervisorInfo{Kind: kind, Status: StatusStopped}
+	}
+
+	info := SupervisorInfo{
+		Kind:     kind,
+		Version:  cfg.Version,
+		Port:     cfg.Port,
+		Status:   StatusStopped,
+		Endpoint: cfg.Endpoint(),
+	}
+
+	switch kind {
+	case EngineLocalAI:
+		if latest := m.latestRegistryEntry(EngineLocalAI); latest != nil {
+			if version := strings.TrimSpace(latest.Version); version != "" {
+				info.Version = version
+			}
+			info.BinaryPath = strings.TrimSpace(latest.BinaryPath)
+			if fi, err := os.Stat(info.BinaryPath); err == nil {
+				info.BinarySizeBytes = fi.Size()
+			}
+		}
+	case EngineNexa:
+		if path, err := nexaLookPath(); err == nil {
+			info.BinaryPath = strings.TrimSpace(path)
+			if fi, statErr := os.Stat(info.BinaryPath); statErr == nil {
+				info.BinarySizeBytes = fi.Size()
+			}
+		}
+	}
+
+	return info
+}
+
+func (m *Manager) latestRegistryEntry(kind EngineKind) *RegistryEntry {
+	if m.registry == nil {
+		return nil
+	}
+	entries := m.registry.List()
+	var latest *RegistryEntry
+	latestInstalledAt := ""
+	latestParsed := time.Time{}
+	latestHasParsed := false
+
+	for _, entry := range entries {
+		if entry == nil || entry.Engine != kind {
+			continue
+		}
+		currentInstalledAt := strings.TrimSpace(entry.InstalledAt)
+		parsed, parseErr := time.Parse(time.RFC3339, currentInstalledAt)
+		if latest == nil {
+			copyEntry := *entry
+			latest = &copyEntry
+			latestInstalledAt = currentInstalledAt
+			if parseErr == nil {
+				latestParsed = parsed
+				latestHasParsed = true
+			}
+			continue
+		}
+
+		if parseErr == nil {
+			if !latestHasParsed || parsed.After(latestParsed) {
+				copyEntry := *entry
+				latest = &copyEntry
+				latestInstalledAt = currentInstalledAt
+				latestParsed = parsed
+				latestHasParsed = true
+			}
+			continue
+		}
+
+		if !latestHasParsed && currentInstalledAt > latestInstalledAt {
+			copyEntry := *entry
+			latest = &copyEntry
+			latestInstalledAt = currentInstalledAt
+		}
+	}
+
+	return latest
 }

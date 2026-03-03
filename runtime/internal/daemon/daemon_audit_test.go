@@ -96,3 +96,17 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveProbeEndpointAvoidsDuplicateV1(t *testing.T) {
+	got := resolveProbeEndpoint("http://127.0.0.1:1234/v1", "/v1/models")
+	if got != "http://127.0.0.1:1234/v1/models" {
+		t.Fatalf("unexpected probe endpoint: %s", got)
+	}
+}
+
+func TestResolveProbeEndpointWithHealthPath(t *testing.T) {
+	got := resolveProbeEndpoint("http://127.0.0.1:1234/v1", "/healthz")
+	if got != "http://127.0.0.1:1234/v1/healthz" {
+		t.Fatalf("unexpected health probe endpoint: %s", got)
+	}
+}

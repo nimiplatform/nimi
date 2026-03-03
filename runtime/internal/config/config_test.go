@@ -214,6 +214,28 @@ func TestLoadRejectsLegacyNestedConfigSchema(t *testing.T) {
 	}
 }
 
+func TestLoadIgnoresUnknownConfigFields(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "grpcAddr": "127.0.0.1:50101",
+  "unknownFutureField": "ignored"
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected unknown fields to be ignored, got: %v", err)
+	}
+	if cfg.GRPCAddr != "127.0.0.1:50101" {
+		t.Fatalf("grpc addr mismatch: %q", cfg.GRPCAddr)
+	}
+}
+
 func TestLoadRejectsPlaintextProviderAPIKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{

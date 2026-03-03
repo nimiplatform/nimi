@@ -21,8 +21,8 @@ type StateChangeFunc func(kind EngineKind, status EngineStatus, detail string)
 
 // Supervisor manages the lifecycle of a single engine process.
 type Supervisor struct {
-	cfg    EngineConfig
-	logger *slog.Logger
+	cfg     EngineConfig
+	logger  *slog.Logger
 	onState StateChangeFunc
 
 	mu                  sync.RWMutex
@@ -192,7 +192,6 @@ func (s *Supervisor) spawn(ctx context.Context) error {
 	s.cmd = cmd
 	s.pid = cmd.Process.Pid
 	s.startedAt = time.Now()
-	s.consecutiveFailures = 0
 	s.mu.Unlock()
 
 	s.writePIDFile()
@@ -250,7 +249,7 @@ func (s *Supervisor) monitor(ctx context.Context) {
 				"engine", s.cfg.Kind,
 				"error", err,
 			)
-			s.handleCrash(ctx)
+			s.handleCrash(ctx, err)
 			return
 
 		case <-healthTicker.C:
@@ -284,23 +283,35 @@ func (s *Supervisor) monitor(ctx context.Context) {
 	}
 }
 
-func (s *Supervisor) handleCrash(ctx context.Context) {
+func (s *Supervisor) handleCrash(ctx context.Context, procErr error) {
 	s.mu.Lock()
 	s.consecutiveFailures++
 	failures := s.consecutiveFailures
 	s.mu.Unlock()
 
-	if failures > s.cfg.MaxRestarts {
-		s.setStatus(StatusUnhealthy, fmt.Sprintf("exceeded max restarts (%d)", s.cfg.MaxRestarts))
+	crashDetail := "process exited"
+	if procErr != nil {
+		crashDetail = strings.TrimSpace(procErr.Error())
+	}
+	if failures >= s.cfg.MaxRestarts {
+		s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d", crashDetail, failures, s.cfg.MaxRestarts))
 		s.removePIDFile()
 		return
 	}
 
 	// Exponential backoff with jitter.
-	delay := s.cfg.RestartBaseDelay * time.Duration(failures)
+	delay := s.cfg.RestartBaseDelay
+	for i := 1; i < failures; i++ {
+		delay *= 2
+		if delay > 30*time.Second {
+			delay = 30 * time.Second
+			break
+		}
+	}
 	jitter := time.Duration(rand.Int64N(int64(time.Second)))
 	delay += jitter
 
+	s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d restarting", crashDetail, failures, s.cfg.MaxRestarts))
 	s.logger.Info("restarting engine after crash",
 		"engine", s.cfg.Kind,
 		"attempt", failures,

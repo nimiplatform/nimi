@@ -135,24 +135,24 @@ type Config struct {
 // credentials are env-only and not represented here (except apiKeyEnv).
 // Pointer types distinguish "not set" from zero value for three-level fallback.
 type FileConfig struct {
-	SchemaVersion         int    `json:"schemaVersion"`
-	GRPCAddr              string `json:"grpcAddr,omitempty"`
-	HTTPAddr              string `json:"httpAddr,omitempty"`
-	ShutdownTimeoutSeconds *int  `json:"shutdownTimeoutSeconds,omitempty"`
-	LocalRuntimeStatePath string `json:"localRuntimeStatePath,omitempty"`
+	SchemaVersion          int    `json:"schemaVersion"`
+	GRPCAddr               string `json:"grpcAddr,omitempty"`
+	HTTPAddr               string `json:"httpAddr,omitempty"`
+	ShutdownTimeoutSeconds *int   `json:"shutdownTimeoutSeconds,omitempty"`
+	LocalRuntimeStatePath  string `json:"localRuntimeStatePath,omitempty"`
 
-	WorkerMode              *bool `json:"workerMode,omitempty"`
-	AIHealthIntervalSeconds *int  `json:"aiHealthIntervalSeconds,omitempty"`
-	AIHTTPTimeoutSeconds    *int  `json:"aiHttpTimeoutSeconds,omitempty"`
-	GlobalConcurrencyLimit  *int  `json:"globalConcurrencyLimit,omitempty"`
-	PerAppConcurrencyLimit  *int  `json:"perAppConcurrencyLimit,omitempty"`
-	IdempotencyCapacity     *int  `json:"idempotencyCapacity,omitempty"`
-	MaxDelegationDepth      *int  `json:"maxDelegationDepth,omitempty"`
-	AuditRingBufferSize     *int  `json:"auditRingBufferSize,omitempty"`
-	UsageStatsBufferSize    *int  `json:"usageStatsBufferSize,omitempty"`
-	LocalAuditCapacity      *int  `json:"localAuditCapacity,omitempty"`
-	SessionTTLMinSeconds    *int  `json:"sessionTtlMinSeconds,omitempty"`
-	SessionTTLMaxSeconds    *int  `json:"sessionTtlMaxSeconds,omitempty"`
+	WorkerMode              *bool  `json:"workerMode,omitempty"`
+	AIHealthIntervalSeconds *int   `json:"aiHealthIntervalSeconds,omitempty"`
+	AIHTTPTimeoutSeconds    *int   `json:"aiHttpTimeoutSeconds,omitempty"`
+	GlobalConcurrencyLimit  *int   `json:"globalConcurrencyLimit,omitempty"`
+	PerAppConcurrencyLimit  *int   `json:"perAppConcurrencyLimit,omitempty"`
+	IdempotencyCapacity     *int   `json:"idempotencyCapacity,omitempty"`
+	MaxDelegationDepth      *int   `json:"maxDelegationDepth,omitempty"`
+	AuditRingBufferSize     *int   `json:"auditRingBufferSize,omitempty"`
+	UsageStatsBufferSize    *int   `json:"usageStatsBufferSize,omitempty"`
+	LocalAuditCapacity      *int   `json:"localAuditCapacity,omitempty"`
+	SessionTTLMinSeconds    *int   `json:"sessionTtlMinSeconds,omitempty"`
+	SessionTTLMaxSeconds    *int   `json:"sessionTtlMaxSeconds,omitempty"`
 	LogLevel                string `json:"logLevel,omitempty"`
 
 	Auth      *FileConfigAuth              `json:"auth,omitempty"`
@@ -360,7 +360,6 @@ func readString(envKey string, fallback string) string {
 	return fallback
 }
 
-
 func firstNonEmptyString(values ...string) string {
 	for _, value := range values {
 		trimmed := strings.TrimSpace(value)
@@ -447,9 +446,14 @@ func LoadFileConfig(path string) (FileConfig, error) {
 	if len(strings.TrimSpace(string(content))) == 0 {
 		return FileConfig{SchemaVersion: DefaultSchemaVersion}, nil
 	}
+	var root map[string]json.RawMessage
+	if err := json.Unmarshal(content, &root); err == nil {
+		if _, legacyRuntime := root["runtime"]; legacyRuntime {
+			return FileConfig{}, fmt.Errorf("parse runtime config file %q: legacy nested runtime object is not supported", path)
+		}
+	}
 	var parsed FileConfig
 	decoder := json.NewDecoder(bytes.NewReader(content))
-	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&parsed); err != nil {
 		return FileConfig{}, fmt.Errorf("parse runtime config file %q: %w", path, err)
 	}
@@ -608,6 +612,41 @@ func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
 			baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
 			apiKeyKey:  "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
 		}, true
+	case "azure":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_AZURE_API_KEY",
+		}, true
+	case "mistral":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_MISTRAL_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_MISTRAL_API_KEY",
+		}, true
+	case "groq":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_GROQ_API_KEY",
+		}, true
+	case "xai":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_XAI_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_XAI_API_KEY",
+		}, true
+	case "qianfan":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_QIANFAN_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_QIANFAN_API_KEY",
+		}, true
+	case "hunyuan":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_HUNYUAN_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_HUNYUAN_API_KEY",
+		}, true
+	case "spark":
+		return providerEnvBinding{
+			baseURLKey: "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL",
+			apiKeyKey:  "NIMI_RUNTIME_CLOUD_SPARK_API_KEY",
+		}, true
 	case "volcengine_openspeech":
 		return providerEnvBinding{
 			baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
@@ -689,6 +728,20 @@ func ResolveCanonicalProviderID(raw string) (string, bool) {
 		return "dashscope", true
 	case "volcengine":
 		return "volcengine", true
+	case "azure":
+		return "azure", true
+	case "mistral":
+		return "mistral", true
+	case "groq":
+		return "groq", true
+	case "xai":
+		return "xai", true
+	case "qianfan":
+		return "qianfan", true
+	case "hunyuan":
+		return "hunyuan", true
+	case "spark":
+		return "spark", true
 	case "volcengine_openspeech":
 		return "volcengine_openspeech", true
 	case "gemini":
@@ -727,7 +780,7 @@ func isCanonicalProviderName(raw string) bool {
 		return false
 	}
 	switch trimmed {
-	case "local", "nexa", "nimillm", "openai", "anthropic", "dashscope", "volcengine", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
+	case "local", "nexa", "nimillm", "openai", "anthropic", "dashscope", "volcengine", "azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible":
 		return true
 	default:
 		return false

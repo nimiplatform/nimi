@@ -14,6 +14,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -55,6 +58,11 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
+	unlock, err := acquireRuntimeInstanceLock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 
 	slogLevel, err := config.ParseLogLevel(cfg.LogLevel)
 	if err != nil {
@@ -67,6 +75,43 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 
 	d := daemon.New(cfg, logger, runtimeVersion)
 	return d.Run(ctx)
+}
+
+func acquireRuntimeInstanceLock() (func(), error) {
+	lockPath, err := runtimeInstanceLockPath()
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
+		return nil, fmt.Errorf("create runtime lock directory: %w", err)
+	}
+	lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return nil, fmt.Errorf("runtime instance lock already held: %s", lockPath)
+		}
+		return nil, fmt.Errorf("acquire runtime instance lock: %w", err)
+	}
+	if _, err := lockFile.WriteString(strconv.Itoa(os.Getpid())); err != nil {
+		_ = lockFile.Close()
+		_ = os.Remove(lockPath)
+		return nil, fmt.Errorf("write runtime instance lock: %w", err)
+	}
+	return func() {
+		_ = lockFile.Close()
+		_ = os.Remove(lockPath)
+	}, nil
+}
+
+func runtimeInstanceLockPath() (string, error) {
+	if override := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCK_PATH")); override != "" {
+		return override, nil
+	}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve user home for runtime lock: %w", err)
+	}
+	return filepath.Join(homeDir, ".nimi", "runtime", "runtime.lock"), nil
 }
 
 // FetchHealth requests runtime health JSON from daemon HTTP endpoint.

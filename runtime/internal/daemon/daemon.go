@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -36,6 +38,8 @@ type Daemon struct {
 	auditStore *auditlog.Store
 	workers    *workers.Supervisor
 	engineMgr  *engine.Manager
+
+	newEngineManager func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
 }
 
 var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "localruntime"}
@@ -46,13 +50,14 @@ func New(cfg config.Config, logger *slog.Logger, version string) *Daemon {
 	}
 	state := health.NewState()
 	return &Daemon{
-		cfg:        cfg,
-		logger:     logger,
-		state:      state,
-		grpc:       grpcserver.New(cfg, state, logger, version),
-		http:       httpserver.New(cfg.HTTPAddr, state, logger),
-		aiHealth:   nil,
-		auditStore: nil,
+		cfg:              cfg,
+		logger:           logger,
+		state:            state,
+		grpc:             grpcserver.New(cfg, state, logger, version),
+		http:             httpserver.New(cfg.HTTPAddr, state, logger),
+		aiHealth:         nil,
+		auditStore:       nil,
+		newEngineManager: engine.NewManager,
 	}
 }
 
@@ -91,9 +96,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Start supervised engines if configured.
 	d.startSupervisedEngines(ctx)
 
-	d.state.SetStatus(health.StatusReady, "ready")
-	d.grpc.SyncServingState()
-	d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+	if d.state.Snapshot().Status == health.StatusDegraded {
+		d.logger.Warn("runtime started in degraded state", "reason", d.state.Snapshot().Reason)
+	} else {
+		d.state.SetStatus(health.StatusReady, "ready")
+		d.grpc.SyncServingState()
+		d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+	}
 
 	aiProbeStop := make(chan struct{})
 	go d.sampleAIProviderHealth(aiProbeStop)
@@ -303,16 +312,15 @@ func configuredAIProviderTargets() []aiProviderTarget {
 	return targets
 }
 
-
 // probeAIProvider checks provider health per K-PROV-003:
 //   - 2xx/401/403/429 = healthy
 //   - 404 = try next path
 //   - other 4xx/5xx = unhealthy
 func probeAIProvider(client *http.Client, target aiProviderTarget) error {
-	paths := []string{"/healthz", "/v1/models"}
+	paths := []string{"/healthz", "/models", "/v1/models"}
 	var lastErr error
 	for _, path := range paths {
-		endpoint := target.Base + path
+		endpoint := resolveProbeEndpoint(target.Base, path)
 		req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 		if err != nil {
 			lastErr = err
@@ -346,6 +354,34 @@ func probeAIProvider(client *http.Client, target aiProviderTarget) error {
 	return fmt.Errorf("unreachable")
 }
 
+func resolveProbeEndpoint(base string, path string) string {
+	trimmedBase := strings.TrimSuffix(strings.TrimSpace(base), "/")
+	normalizedPath := strings.TrimSpace(path)
+	if trimmedBase == "" || normalizedPath == "" {
+		return trimmedBase + normalizedPath
+	}
+	if !strings.HasPrefix(normalizedPath, "/") {
+		normalizedPath = "/" + normalizedPath
+	}
+
+	parsed, err := url.Parse(trimmedBase)
+	if err != nil {
+		return trimmedBase + normalizedPath
+	}
+
+	basePath := strings.TrimSuffix(parsed.Path, "/")
+	if strings.HasSuffix(basePath, "/v1") && strings.HasPrefix(normalizedPath, "/v1/") {
+		normalizedPath = strings.TrimPrefix(normalizedPath, "/v1")
+		if !strings.HasPrefix(normalizedPath, "/") {
+			normalizedPath = "/" + normalizedPath
+		}
+	}
+	parsed.Path = basePath + normalizedPath
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed.String()
+}
+
 func appendStartupFailureAudit(store *auditlog.Store, reason string) {
 	if store == nil {
 		return
@@ -369,6 +405,29 @@ func appendStartupFailureAudit(store *auditlog.Store, reason string) {
 	})
 }
 
+func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail string) {
+	if store == nil {
+		return
+	}
+	now := time.Now().UTC()
+	payload, _ := structpb.NewStruct(map[string]any{
+		"engine": engineName,
+		"detail": detail,
+	})
+	store.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:    ulid.Make().String(),
+		Domain:     "runtime.engine",
+		Operation:  "engine.unhealthy",
+		ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		TraceId:    ulid.Make().String(),
+		Timestamp:  timestamppb.New(now),
+		Payload:    payload,
+		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
+		CallerId:   "runtime-daemon",
+		SurfaceId:  "daemon",
+	})
+}
+
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if !d.cfg.EngineLocalAIEnabled && !d.cfg.EngineNexaEnabled {
 		return
@@ -378,9 +437,17 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		d.onEngineStateChange(string(kind), string(status), detail)
 	}
 
-	mgr, err := engine.NewManager(d.logger, "", onState)
+	managerFactory := d.newEngineManager
+	if managerFactory == nil {
+		managerFactory = engine.NewManager
+	}
+	mgr, err := managerFactory(d.logger, "", onState)
 	if err != nil {
 		d.logger.Error("create engine manager failed", "error", err)
+		reason := fmt.Sprintf("engine manager init failed (%v)", err)
+		d.state.SetStatus(health.StatusDegraded, reason)
+		d.grpc.SyncServingState()
+		appendStartupFailureAudit(d.auditStore, reason)
 		return
 	}
 	d.engineMgr = mgr
@@ -390,24 +457,53 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		svc.SetEngineManager(newEngineManagerBridge(engine.NewServiceAdapter(mgr)))
 	}
 
+	var wg sync.WaitGroup
+	failures := make(chan string, 2)
+	bootstrap := func(kind engine.EngineKind, version string, port int, envKey string) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := d.startEngine(ctx, kind, version, port, envKey); err != nil {
+				failures <- fmt.Sprintf("%s: %v", kind, err)
+			}
+		}()
+	}
+
 	if d.cfg.EngineLocalAIEnabled {
-		go d.startEngine(ctx, engine.EngineLocalAI, d.cfg.EngineLocalAIVersion, d.cfg.EngineLocalAIPort,
+		bootstrap(engine.EngineLocalAI, d.cfg.EngineLocalAIVersion, d.cfg.EngineLocalAIPort,
 			"NIMI_RUNTIME_LOCAL_AI_BASE_URL")
 	}
 
 	if d.cfg.EngineNexaEnabled {
-		go d.startEngine(ctx, engine.EngineNexa, d.cfg.EngineNexaVersion, d.cfg.EngineNexaPort,
+		bootstrap(engine.EngineNexa, d.cfg.EngineNexaVersion, d.cfg.EngineNexaPort,
 			"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL")
+	}
+
+	wg.Wait()
+	close(failures)
+
+	firstFailure := ""
+	for failure := range failures {
+		if firstFailure == "" {
+			firstFailure = failure
+		}
+		d.logger.Error("engine bootstrap failed", "detail", failure)
+	}
+	if firstFailure != "" {
+		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
+		d.grpc.SyncServingState()
 	}
 }
 
-func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) {
+func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error {
 	var cfg engine.EngineConfig
 	switch kind {
 	case engine.EngineLocalAI:
 		cfg = engine.DefaultLocalAIConfig()
 	case engine.EngineNexa:
 		cfg = engine.DefaultNexaConfig()
+	default:
+		return fmt.Errorf("unsupported engine kind: %s", kind)
 	}
 	if version != "" {
 		cfg.Version = version
@@ -422,9 +518,7 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 			"engine", kind,
 			"error", err,
 		)
-		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unavailable (%v)", kind, err))
-		d.grpc.SyncServingState()
-		return
+		return fmt.Errorf("ensure %s: %w", kind, err)
 	}
 
 	if err := d.engineMgr.StartEngine(ctx, cfg); err != nil {
@@ -432,21 +526,37 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 			"engine", kind,
 			"error", err,
 		)
-		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s start failed (%v)", kind, err))
-		d.grpc.SyncServingState()
-		return
+		return fmt.Errorf("start %s: %w", kind, err)
 	}
 
-	// Set env var for existing AI provider auto-detection.
-	endpoint, err := d.engineMgr.EngineEndpoint(kind)
-	if err == nil && endpoint != "" {
-		_ = os.Setenv(envKey, endpoint+"/v1")
-		d.logger.Info("engine ready, env var set",
-			"engine", kind,
-			"endpoint", endpoint,
-			"env", envKey,
-		)
+	d.injectEngineEndpointEnv(kind, envKey, "bootstrap")
+	return nil
+}
+
+func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, source string) {
+	if d.engineMgr == nil || strings.TrimSpace(envKey) == "" {
+		return
 	}
+	endpoint, err := d.engineMgr.EngineEndpoint(kind)
+	if err != nil {
+		d.logger.Warn("resolve engine endpoint failed",
+			"engine", kind,
+			"source", source,
+			"error", err,
+		)
+		return
+	}
+	trimmed := strings.TrimSuffix(strings.TrimSpace(endpoint), "/")
+	if trimmed == "" {
+		return
+	}
+	_ = os.Setenv(envKey, trimmed+"/v1")
+	d.logger.Info("engine endpoint env injected",
+		"engine", kind,
+		"source", source,
+		"endpoint", trimmed,
+		"env", envKey,
+	)
 }
 
 func (d *Daemon) onEngineStateChange(engineName string, status string, detail string) {
@@ -459,12 +569,27 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	case "unhealthy":
 		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
 		d.grpc.SyncServingState()
+		appendEngineCrashAudit(d.auditStore, engineName, detail)
 	case "healthy":
+		if kind, envKey, ok := engineEnvKey(engineName); ok {
+			d.injectEngineEndpointEnv(kind, envKey, "recovered")
+		}
 		current := d.state.Snapshot()
 		if current.Status == health.StatusDegraded && strings.HasPrefix(current.Reason, "engine:") {
 			d.state.SetStatus(health.StatusReady, "ready")
 			d.grpc.SyncServingState()
 		}
+	}
+}
+
+func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
+	switch strings.TrimSpace(strings.ToLower(engineName)) {
+	case string(engine.EngineLocalAI):
+		return engine.EngineLocalAI, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", true
+	case string(engine.EngineNexa):
+		return engine.EngineNexa, "NIMI_RUNTIME_LOCAL_NEXA_BASE_URL", true
+	default:
+		return "", "", false
 	}
 }
 

@@ -132,6 +132,19 @@ func main() {
 }
 
 func collectPassingTests() (map[string]bool, error) {
+	passed, err := collectPassingTestsOnce()
+	if err == nil {
+		return passed, nil
+	}
+	time.Sleep(500 * time.Millisecond)
+	retried, retryErr := collectPassingTestsOnce()
+	if retryErr == nil {
+		return retried, nil
+	}
+	return nil, fmt.Errorf("first attempt: %w; retry attempt: %w", err, retryErr)
+}
+
+func collectPassingTestsOnce() (map[string]bool, error) {
 	cmd := exec.Command("go", "test", "./...", "-json", "-count=1")
 	cmd.Dir = "."
 	stdout, err := cmd.StdoutPipe()
