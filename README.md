@@ -66,17 +66,6 @@ Building an AI app is easy. Giving it memory, context, and identity that persist
 
 **Realm** is the shared cloud state — identity, social graphs, economy, and persistent world/agent definitions. **Runtime** is the local AI daemon — model routing, inference, workflows, and knowledge indexing. They are **independent peers**. SDK bridges both. Apps access platform exclusively via `@nimiplatform/sdk`.
 
-## AI Coding in Nimi
-
-Nimi applies a Spec-first, AI-first engineering methodology where AI agents are primary executors and deterministic guards are the default safety net.
-
-- **Execution protocol:** every normative change follows `Rule -> Table -> Generate -> Check -> Evidence`.
-- **Fact governance:** rules and structured tables are the canonical source; generated docs are projections, not edit targets.
-- **Quality guard:** deterministic CI checks are Layer 1, semantic audit is Layer 2, and both are used in a bi-directional audit loop (`Spec -> Impl` and `Impl -> Spec`).
-- **Engineering outcome:** changes stay traceable, verifiable, and regression-resistant under continuous AI-assisted delivery.
-
-Method details: [AI_SPEC_CODING_METHODOLOGY.md](AI_SPEC_CODING_METHODOLOGY.md)
-
 ## Realm (Cloud Persistent World)
 
 `Realm` is Nimi's cloud state layer (managed, closed-source service) for cross-device and cross-app consistency.
@@ -272,7 +261,6 @@ await realm.posts.create({
 | [Getting Started](docs/getting-started/) | Zero to first AI call in minutes |
 | [SDK Reference](docs/reference/sdk.md) | Full `@nimiplatform/sdk` API guide |
 | [Runtime Guide](runtime/README.md) | CLI commands and daemon configuration |
-| [AI Coding Methodology](AI_SPEC_CODING_METHODOLOGY.md) | Spec-first and AI-first execution model used in Nimi |
 | [Platform Protocol](spec/platform/protocol.md) | Six primitives: Timeflow · Social · Economy · Transit · Context · Presence |
 | [Architecture](spec/platform/architecture.md) | Six-layer platform architecture contract |
 | [Mod Development](docs/guides/mod-developer.md) | Build desktop extensions |
