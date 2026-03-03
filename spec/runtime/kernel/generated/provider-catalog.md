@@ -16,3 +16,10 @@
 | `deepseek` | `https://api.deepseek.com/v1` | `false` | `K-RPC-001` |
 | `openrouter` | `https://openrouter.ai/api/v1` | `false` | `K-RPC-001` |
 | `openai_compatible` | — | `true` | `K-RPC-001` |
+| `azure` | — | `true` | `K-RPC-001` |
+| `mistral` | `https://api.mistral.ai/v1` | `false` | `K-RPC-001` |
+| `groq` | `https://api.groq.com/openai/v1` | `false` | `K-RPC-001` |
+| `xai` | `https://api.x.ai/v1` | `false` | `K-RPC-001` |
+| `qianfan` | `https://qianfan.baidubce.com/v2` | `false` | `K-RPC-001` |
+| `hunyuan` | `https://api.hunyuan.cloud.tencent.com/v1` | `false` | `K-RPC-001` |
+| `spark` | `https://spark-api-open.xf-yun.com/v1` | `false` | `K-RPC-001` |

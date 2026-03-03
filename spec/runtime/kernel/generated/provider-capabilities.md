@@ -17,3 +17,10 @@
 | `deepseek` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
 | `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
 | `openai_compatible` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-008`, `K-KEYSRC-001`, `K-RPC-001` |
+| `azure` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `mistral` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `qianfan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `hunyuan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `spark` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |

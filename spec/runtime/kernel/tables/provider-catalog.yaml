@@ -48,3 +48,31 @@ providers:
     default_endpoint: null
     requires_explicit_endpoint: true
     source: K-RPC-001
+  - provider: azure
+    default_endpoint: null
+    requires_explicit_endpoint: true
+    source: K-RPC-001
+  - provider: mistral
+    default_endpoint: https://api.mistral.ai/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: groq
+    default_endpoint: https://api.groq.com/openai/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: xai
+    default_endpoint: https://api.x.ai/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: qianfan
+    default_endpoint: https://qianfan.baidubce.com/v2
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: hunyuan
+    default_endpoint: https://api.hunyuan.cloud.tencent.com/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001
+  - provider: spark
+    default_endpoint: https://spark-api-open.xf-yun.com/v1
+    requires_explicit_endpoint: false
+    source: K-RPC-001

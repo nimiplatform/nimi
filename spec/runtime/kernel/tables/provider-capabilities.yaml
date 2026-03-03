@@ -91,3 +91,52 @@ providers:
     inline_supported: true
     endpoint_requirement: explicit_required
     sources: [K-RPC-007, K-KEYSRC-008, K-KEYSRC-001, K-RPC-001]
+  - provider: azure
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: mistral
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: groq
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: xai
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: qianfan
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: hunyuan
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+  - provider: spark
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
