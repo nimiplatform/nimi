@@ -12,6 +12,7 @@ Nimi is an AI-native open world platform. This is the open-source monorepo.
 | **nimi-sdk** | TypeScript | `sdk/` | Apache-2.0 |
 | **desktop** | Tauri + React 19 | `apps/desktop/` | MIT |
 | **nimi-web** | React 19 | `apps/web/` | MIT |
+| **landing** | React 19 | `apps/landing/` | MIT |
 | **nimi-mods** | TypeScript | `nimi-mods/` (external repo root) | MIT |
 | **proto** | Protocol Buffers | `proto/` | Apache-2.0 |
 | **docs** | Markdown | `docs/` | CC-BY-4.0 |
@@ -33,6 +34,7 @@ Each component has its own AGENTS.md with specific conventions:
 - [`scripts/AGENTS.md`](scripts/AGENTS.md) — CI checks, codegen, build, and release scripts
 - [`apps/desktop/AGENTS.md`](apps/desktop/AGENTS.md) — Tauri, React, nimi-hook
 - [`apps/web/AGENTS.md`](apps/web/AGENTS.md) — Web shell, desktop renderer reuse
+- [`apps/landing/AGENTS.md`](apps/landing/AGENTS.md) — Independent static landing site
 - [`nimi-mods/AGENTS.md`](nimi-mods/AGENTS.md) — External mod repo workflow and build contract
 
 ## Instruction Precedence (MUST)

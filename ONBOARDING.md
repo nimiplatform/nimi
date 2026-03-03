@@ -4,7 +4,7 @@
 
 1. 本地环境安装完成。
 2. `runtime` 可启动并返回健康状态。
-3. `sdk`、`desktop`、`web` 至少一个开发面可运行。
+3. `sdk`、`desktop`、`web`、`landing` 至少一个开发面可运行。
 4. 了解最基本的仓库边界、质量门禁和提交流程。
 
 ## 1. 仓库与组件
@@ -17,6 +17,7 @@
 | sdk | `sdk/` | TypeScript |
 | desktop | `apps/desktop/` | Tauri + React |
 | web | `apps/web/` | React |
+| landing | `apps/landing/` | React |
 | proto | `proto/` | Protocol Buffers |
 | docs | `docs/` | Markdown |
 
@@ -196,6 +197,12 @@ pnpm run check:desktop-mods-smoke:local-chat
 
 ```bash
 pnpm --filter @nimiplatform/web dev
+```
+
+### 6.3 Landing（独立静态站）
+
+```bash
+pnpm --filter @nimiplatform/landing dev
 ```
 
 ## 7. 常用开发命令

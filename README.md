@@ -90,6 +90,7 @@ For implementation details, see [Runtime Guide](runtime/README.md) and [SDK Refe
 | [sdk](sdk/README.md) | Unified SDK for Runtime + Realm | TypeScript, ESM |
 | [desktop](apps/desktop/README.md) | Desktop shell with mod ecosystem | Tauri, React 19 |
 | [web](apps/web/README.md) | Web client sharing desktop renderer | React 19 |
+| [landing](apps/landing/README.md) | Independent static landing site | React 19, Vite |
 | [mods](nimi-mods/) | Desktop extensions | TypeScript |
 | [proto](proto/README.md) | gRPC service contracts | Protobuf, Buf CLI |
 | [spec](spec/INDEX.md) | Normative platform contracts | Markdown, YAML |

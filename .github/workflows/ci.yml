@@ -91,7 +91,7 @@ jobs:
             if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
             fi
-            if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ ]]; then
+            if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ || "${file}" =~ ^apps/landing/ ]]; then
               desktop_web_changed=true
             fi
           done < /tmp/nimi_changed_files.txt
@@ -406,6 +406,15 @@ jobs:
 
       - name: Build web
         run: pnpm --filter @nimiplatform/web build
+
+      - name: Typecheck landing
+        run: pnpm --filter @nimiplatform/landing typecheck
+
+      - name: Test landing
+        run: pnpm --filter @nimiplatform/landing test
+
+      - name: Build landing
+        run: pnpm --filter @nimiplatform/landing build
 
   governance-security:
     needs: changes
