@@ -1,12 +1,13 @@
 import { hasTauriInvoke, RENDERER_DEBUG_ENABLED } from './env';
 import type { RendererLogLevel, RendererLogMessage, RendererLogPayload } from './types';
 
-const RENDERER_BOOT_DEBUG_KEY = 'nimi.renderer.debug.logs.v1';
 const MAX_RENDERER_DEBUG_LOGS = 80;
 const RENDERER_TRACE_SESSION_KEY = 'nimi.renderer.trace.sessionId.v1';
 const RENDERER_CONSOLE_DEDUP_MS = 1200;
 const RENDERER_CONSOLE_CACHE_LIMIT = 400;
 const rendererConsoleMirrorAt = new Map<string, number>();
+const rendererDebugLogs: Array<Record<string, unknown>> = [];
+let rendererSessionTraceIdCache = '';
 
 function sanitizeLogDetails(details: unknown): Record<string, unknown> {
   if (!details || typeof details !== 'object') {
@@ -27,28 +28,24 @@ export function resolveRendererSessionTraceId(): string {
   const fromWindow = String(window.__NIMI_HTML_BOOT_ID__ || '').trim();
   if (fromWindow) return fromWindow;
 
-  try {
-    const fromSession = String(sessionStorage.getItem(RENDERER_TRACE_SESSION_KEY) || '').trim();
-    if (fromSession) return fromSession;
-  } catch {
-    // ignore
+  if (rendererSessionTraceIdCache) {
+    return rendererSessionTraceIdCache;
   }
 
   try {
-    const fromLocal = String(localStorage.getItem(RENDERER_TRACE_SESSION_KEY) || '').trim();
-    if (fromLocal) return fromLocal;
+    const fromSession = String(sessionStorage.getItem(RENDERER_TRACE_SESSION_KEY) || '').trim();
+    if (fromSession) {
+      rendererSessionTraceIdCache = fromSession;
+      return fromSession;
+    }
   } catch {
     // ignore
   }
 
   const created = newTraceToken();
+  rendererSessionTraceIdCache = created;
   try {
     sessionStorage.setItem(RENDERER_TRACE_SESSION_KEY, created);
-  } catch {
-    // ignore
-  }
-  try {
-    localStorage.setItem(RENDERER_TRACE_SESSION_KEY, created);
   } catch {
     // ignore
   }
@@ -68,15 +65,19 @@ function persistRendererLogForDebug(payload: RendererLogPayload): void {
     details: sanitizeLogDetails(payload.details),
   };
 
+  rendererDebugLogs.push(record);
+  if (rendererDebugLogs.length > MAX_RENDERER_DEBUG_LOGS) {
+    rendererDebugLogs.splice(0, rendererDebugLogs.length - MAX_RENDERER_DEBUG_LOGS);
+  }
   try {
-    const raw = localStorage.getItem(RENDERER_BOOT_DEBUG_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    const normalized = Array.isArray(list) ? list.slice(-MAX_RENDERER_DEBUG_LOGS + 1) : [];
-    normalized.push(record);
-    localStorage.setItem(RENDERER_BOOT_DEBUG_KEY, JSON.stringify(normalized));
-    localStorage.setItem(`${RENDERER_BOOT_DEBUG_KEY}:latest`, JSON.stringify(record));
+    const runtimeWindow = window as typeof window & {
+      __NIMI_RENDERER_DEBUG_LOGS__?: Array<Record<string, unknown>>;
+      __NIMI_RENDERER_DEBUG_LOGS_LATEST__?: Record<string, unknown>;
+    };
+    runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS__ = [...rendererDebugLogs];
+    runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS_LATEST__ = record;
   } catch {
-    // localStorage may be unavailable in some contexts; ignore.
+    // ignore
   }
 }
 

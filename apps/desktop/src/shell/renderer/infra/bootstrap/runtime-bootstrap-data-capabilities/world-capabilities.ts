@@ -243,8 +243,16 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
     const agentId = String(record.agentId || '').trim();
+    const createIfMissing = record.createIfMissing !== false;
     if (!worldId || !agentId) {
       throw new Error('WORLD_ID_AND_AGENT_ID_REQUIRED');
+    }
+    if (!createIfMissing) {
+      return requestObjectOrNull({
+        method: 'GET',
+        url: '/api/world/spine/by-world/{worldId}/by-agent/{agentId}',
+        path: { worldId, agentId },
+      });
     }
     return requestObject({
       method: 'POST',

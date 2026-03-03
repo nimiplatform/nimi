@@ -21,8 +21,19 @@ capabilities:
   - data.query.data-api.core.agent.memory.recall.for-entity
   - data.register.data-api.textplay.render.persist
   - data.query.data-api.textplay.render.persist
+  - data.register.data-api.textplay.sessions.mine
+  - data.query.data-api.textplay.sessions.mine
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes
 ai:
   consume:
     - chat
+  dependencies:
+    required:
+      - dependencyId: textplay/chat-default
+        kind: model
+        capability: chat
+        engine: openai-compatible
+        title: Default Chat Model (runtime-resolved)
+    preferred:
+      chat: textplay/chat-default

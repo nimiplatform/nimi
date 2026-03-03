@@ -11,6 +11,7 @@ capabilities:
   - llm.text.generate
   - llm.image.generate
   - llm.video.generate
+  - llm.speech.synthesize
   - data.query.data-api.runtime.route.options
   - data.query.data-api.world.events.list
   - data.query.data-api.world.lorebooks.list
@@ -30,6 +31,7 @@ ai:
     - chat
     - image
     - video
+    - tts
   dependencies:
     required:
       - dependencyId: videoplay/chat-default
@@ -47,7 +49,13 @@ ai:
         capability: video
         engine: openai-compatible
         title: Default Video Model (runtime-resolved)
+      - dependencyId: videoplay/tts-default
+        kind: model
+        capability: tts
+        engine: openai-compatible
+        title: Default TTS Model (runtime-resolved)
     preferred:
       chat: videoplay/chat-default
       image: videoplay/image-default
       video: videoplay/video-default
+      tts: videoplay/tts-default

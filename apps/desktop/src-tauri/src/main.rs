@@ -3,11 +3,13 @@
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::sync::OnceLock;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, path::Path, path::PathBuf};
 
 use reqwest::{header::HeaderMap, Method, Url};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::Manager;
 
 mod external_agent_gateway;
@@ -53,6 +55,8 @@ struct HttpRequestPayload {
     method: Option<String>,
     headers: Option<HashMap<String, String>>,
     body: Option<String>,
+    #[serde(default)]
+    diagnostic_session_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -143,6 +147,25 @@ struct RendererLogPayload {
     details: Option<serde_json::Value>,
 }
 
+const DIAG_LOG_MESSAGE_PREVIEW_BYTES: usize = 4000;
+static APP_RUN_SESSION_ID: OnceLock<String> = OnceLock::new();
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DiagLogEntry {
+    ts: String,
+    source: String,
+    level: String,
+    area: String,
+    message: String,
+    session_trace_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    trace_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    flow_id: Option<String>,
+    details: serde_json::Value,
+}
+
 fn env_value(key: &str, default: &str) -> String {
     std::env::var(key)
         .ok()
@@ -157,8 +180,105 @@ fn now_ms() -> u128 {
         .as_millis()
 }
 
+fn now_iso() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+fn app_run_session_id() -> &'static str {
+    APP_RUN_SESSION_ID
+        .get_or_init(|| format!("desktop-run-{}-{}", now_ms(), std::process::id()))
+        .as_str()
+}
+
+fn normalize_session_trace_id(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return app_run_session_id().to_string();
+    }
+    let mut normalized = String::with_capacity(trimmed.len());
+    for ch in trimmed.chars() {
+        if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+            normalized.push(ch);
+        } else {
+            normalized.push('_');
+        }
+    }
+    let compact = normalized.trim_matches('_');
+    if compact.is_empty() {
+        app_run_session_id().to_string()
+    } else if compact.len() > 140 {
+        compact[..140].to_string()
+    } else {
+        compact.to_string()
+    }
+}
+
+fn append_diag_log_entry(
+    source: &str,
+    level: &str,
+    area: &str,
+    message: &str,
+    session_trace_id: Option<&str>,
+    trace_id: Option<&str>,
+    flow_id: Option<&str>,
+    details: serde_json::Value,
+) {
+    let session = normalize_session_trace_id(session_trace_id.unwrap_or_default());
+    let trace = trace_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string());
+    let flow = flow_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string());
+    let entry = DiagLogEntry {
+        ts: now_iso(),
+        source: source.trim().to_string(),
+        level: level.trim().to_string(),
+        area: area.trim().to_string(),
+        message: preview_text_utf8_safe(message, DIAG_LOG_MESSAGE_PREVIEW_BYTES),
+        session_trace_id: session.clone(),
+        trace_id: trace,
+        flow_id: flow,
+        details,
+    };
+    let line = match serde_json::to_string(&entry) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("[diag-log] serialize failed: {}", error);
+            return;
+        }
+    };
+    // Diagnostic logging is intentionally non-persistent: do not write to local files.
+    eprintln!("[diag-log] {line}");
+}
+
+fn session_trace_id_from_details(details: &Option<serde_json::Value>) -> Option<String> {
+    details
+        .as_ref()
+        .and_then(|value| value.as_object())
+        .and_then(|object| object.get("sessionTraceId"))
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string())
+}
+
 fn log_boot_marker(message: &str) {
-    eprintln!("[boot:{}] {}", now_ms(), message);
+    let boot_ms = now_ms();
+    let trace_id = format!("boot-{boot_ms}");
+    eprintln!("[boot:{boot_ms}] {}", message);
+    append_diag_log_entry(
+        "boot",
+        "info",
+        "boot",
+        message,
+        Some(app_run_session_id()),
+        Some(trace_id.as_str()),
+        None,
+        json!({ "bootMs": boot_ms }),
+    );
 }
 
 fn env_flag(name: &str) -> bool {
@@ -648,6 +768,12 @@ fn runtime_defaults() -> RuntimeDefaults {
 
 #[tauri::command]
 async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload, String> {
+    let diag_session_id = payload
+        .diagnostic_session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string());
     let method = normalize_http_method(payload.method)?;
     let url = Url::parse(payload.url.as_str()).map_err(|error| error.to_string())?;
     let origin = normalize_origin(&url)?;
@@ -665,6 +791,21 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
             origin,
             allowed_list.join(", ")
         );
+        append_diag_log_entry(
+            "http-request",
+            "warn",
+            "http_request",
+            "request:blocked-origin",
+            diag_session_id.as_deref(),
+            None,
+            None,
+            json!({
+                "method": method.to_string(),
+                "url": url.as_str(),
+                "origin": origin,
+                "allowedOrigins": allowed_list,
+            }),
+        );
         return Err(format!(
             "目标地址不在允许列表：{origin}。允许列表：{}",
             allowed_list.join(", ")
@@ -672,22 +813,30 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     }
 
     // 打印请求日志
-    let headers_str = payload
+    let redacted_headers = payload
         .headers
         .as_ref()
         .map(|h| {
             h.iter()
                 .map(|(k, v)| {
                     if is_sensitive_key(k) {
-                        format!("  {}: [REDACTED]", k)
+                        (k.clone(), "[REDACTED]".to_string())
                     } else {
-                        format!("  {}: {}", k, v)
+                        (k.clone(), v.clone())
                     }
                 })
-                .collect::<Vec<_>>()
-                .join("\n")
+                .collect::<HashMap<String, String>>()
         })
-        .unwrap_or_else(|| "  (无)".to_string());
+        .unwrap_or_default();
+    let headers_str = if redacted_headers.is_empty() {
+        "  (无)".to_string()
+    } else {
+        redacted_headers
+            .iter()
+            .map(|(k, v)| format!("  {}: {}", k, v))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
     let body_preview = payload
         .body
         .as_ref()
@@ -696,6 +845,22 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     eprintln!(
         "[http_request] → {} {}\n[http_request] Headers:\n{}\n[http_request] Body: {}",
         method, url, headers_str, body_preview
+    );
+    append_diag_log_entry(
+        "http-request",
+        "info",
+        "http_request",
+        "request:start",
+        diag_session_id.as_deref(),
+        None,
+        None,
+        json!({
+            "method": method.to_string(),
+            "url": url.as_str(),
+            "headers": redacted_headers,
+            "bodyPreview": body_preview,
+            "bodyBytes": payload.body.as_ref().map(|value| value.len()).unwrap_or(0),
+        }),
     );
 
     let headers = sanitize_headers(payload.headers)?;
@@ -709,8 +874,23 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     }
 
     let start = std::time::Instant::now();
+    let diag_session_for_request = diag_session_id.clone();
     let response = request.send().await.map_err(|error| {
         eprintln!("[http_request] × {} {} - 发送失败: {}", method, url, error);
+        append_diag_log_entry(
+            "http-request",
+            "error",
+            "http_request",
+            "request:send-failed",
+            diag_session_for_request.as_deref(),
+            None,
+            None,
+            json!({
+                "method": method.to_string(),
+                "url": url.as_str(),
+                "error": error.to_string(),
+            }),
+        );
         error.to_string()
     })?;
     let elapsed = start.elapsed();
@@ -736,6 +916,24 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     eprintln!(
         "[http_request] ← {} {} - {} ({:?})\n[http_request] Response Body: {}",
         method, url, status, elapsed, body_preview
+    );
+    append_diag_log_entry(
+        "http-request",
+        if status.is_success() { "info" } else { "warn" },
+        "http_request",
+        "request:complete",
+        diag_session_id.as_deref(),
+        None,
+        None,
+        json!({
+            "method": method.to_string(),
+            "url": url.as_str(),
+            "status": status.as_u16(),
+            "ok": status.is_success(),
+            "elapsedMs": elapsed.as_secs_f64() * 1000.0,
+            "responseBodyPreview": body_preview,
+            "responseBodyBytes": body.len(),
+        }),
     );
 
     Ok(HttpResponsePayload {
@@ -921,6 +1119,30 @@ fn log_renderer_event(payload: RendererLogPayload) {
             level, area, trace_id, flow_id, source, cost_ms, payload.message, detail_text,
         );
     }
+
+    let session_trace_id = session_trace_id_from_details(&payload.details)
+        .unwrap_or_else(|| app_run_session_id().to_string());
+    let details = payload.details.unwrap_or_else(|| json!({}));
+    let trace_id_for_diag = if trace_id.trim().is_empty() || trace_id == "-" {
+        None
+    } else {
+        Some(trace_id.as_str())
+    };
+    let flow_id_for_diag = if flow_id.trim().is_empty() || flow_id == "-" {
+        None
+    } else {
+        Some(flow_id.as_str())
+    };
+    append_diag_log_entry(
+        "renderer-log",
+        level.as_str(),
+        area,
+        payload.message.as_str(),
+        Some(session_trace_id.as_str()),
+        trace_id_for_diag,
+        flow_id_for_diag,
+        details,
+    );
 }
 
 #[tauri::command]

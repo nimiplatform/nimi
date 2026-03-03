@@ -1,5 +1,6 @@
 import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
+import { resolveRendererSessionTraceId } from './logging';
 
 type ProxyHttpPayload = {
   url: string;
@@ -110,5 +111,11 @@ export async function proxyHttp(payload: ProxyHttpPayload): Promise<ProxyHttpRes
     return proxyHttpFallback(payload);
   }
 
-  return invokeChecked('http_request', { payload }, parseProxyHttpResult);
+  const diagnosticSessionId = resolveRendererSessionTraceId();
+  return invokeChecked('http_request', {
+    payload: {
+      ...payload,
+      diagnosticSessionId,
+    },
+  }, parseProxyHttpResult);
 }
