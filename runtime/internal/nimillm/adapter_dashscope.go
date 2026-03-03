@@ -210,7 +210,8 @@ func ExecuteAlibabaNative(
 		payload := map[string]any{
 			"model": modelResolved,
 			"input": map[string]any{
-				"text": strings.TrimSpace(spec.GetText()),
+				"text":  strings.TrimSpace(spec.GetText()),
+				"voice": strings.TrimSpace(spec.GetVoice()),
 			},
 			"parameters": map[string]any{
 				"voice":       strings.TrimSpace(spec.GetVoice()),
