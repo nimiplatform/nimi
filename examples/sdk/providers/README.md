@@ -1,38 +1,44 @@
 # Provider Tutorials
 
 `examples/sdk/providers/*.ts` are end-user tutorials (not mock tests).
-`deepseek-chat.ts` and `bytedance-tts.ts` are now single-file runtime examples:
-1. save API key into app-managed connector storage
-2. get `connectorId`
-3. call runtime with `connectorId`-resolved request metadata (`keySource=inline`)
 
-## Core Rule
+> [!WARNING]
+> Start runtime with provider environment variables on the same runtime process before running these scripts.
+> If runtime starts without provider env vars, request routing will fail even if your shell has keys.
 
-Before running any script, start runtime and configure the corresponding provider env vars on the runtime process.
+## Minimum Successful Path
 
-Example runtime start:
+1. Start runtime with one provider configured (example: NimiLLM).
 
 ```bash
 cd runtime
+NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL=https://your-nimillm-endpoint \
+NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY=sk-xxx \
 go run ./cmd/nimi serve
 ```
 
-(Provider-specific runtime env vars are documented at the top of each script.)
+2. Run a single provider tutorial.
+
+```bash
+npx tsx examples/sdk/providers/nimillm.ts
+```
+
+3. Verify output includes generated text and optional artifact save path.
 
 ## Scripts
 
-| Script | Typical Usage |
-|---|---|
-| [localai.ts](./localai.ts) | local text + image |
-| [nexa.ts](./nexa.ts) | local text + tts + optional stt |
-| [nimillm.ts](./nimillm.ts) | cloud text + embedding (+ optional image) |
-| [deepseek-chat.ts](./deepseek-chat.ts) | cloud chat (DeepSeek via OpenAI-compatible endpoint) |
-| [bytedance-tts.ts](./bytedance-tts.ts) | cloud tts (Bytedance OpenSpeech only) |
-| [bytedance-openspeech.ts](./bytedance-openspeech.ts) | cloud tts + stt |
-| [gemini.ts](./gemini.ts) | cloud image + video |
-| [minimax.ts](./minimax.ts) | cloud image + video |
-| [glm.ts](./glm.ts) | cloud video + image + tts (+ optional stt) |
-| [kimi.ts](./kimi.ts) | cloud chat-multimodal image |
+| Script | Typical Usage | Minimum Prerequisites | Output Artifact |
+|---|---|---|---|
+| [localai.ts](./localai.ts) | local text + image | `NIMI_RUNTIME_LOCAL_AI_BASE_URL` | text + png |
+| [nexa.ts](./nexa.ts) | local text + tts + optional stt | `NIMI_RUNTIME_LOCAL_NEXA_BASE_URL` | text + mp3 (+ optional transcript) |
+| [nimillm.ts](./nimillm.ts) | cloud text + embedding (+ optional image) | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` | text + embedding (+ optional png) |
+| [deepseek-chat.ts](./deepseek-chat.ts) | cloud chat (DeepSeek via OpenAI-compatible endpoint) | `NIMI_DEEPSEEK_API_KEY` | text |
+| [bytedance-tts.ts](./bytedance-tts.ts) | cloud tts (Bytedance OpenSpeech only) | `NIMI_BYTEDANCE_API_KEY` | mp3 |
+| [bytedance-openspeech.ts](./bytedance-openspeech.ts) | cloud tts + stt | `NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY` | mp3 + transcript |
+| [gemini.ts](./gemini.ts) | cloud image + video | `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` | png + mp4 |
+| [minimax.ts](./minimax.ts) | cloud image + video | `NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY` | png + mp4 |
+| [glm.ts](./glm.ts) | cloud video + image + tts (+ optional stt) | `NIMI_RUNTIME_CLOUD_GLM_API_KEY` | mp4 + png + mp3 |
+| [kimi.ts](./kimi.ts) | cloud chat-multimodal image | `NIMI_RUNTIME_CLOUD_KIMI_API_KEY` | text + png |
 
 ## Run
 

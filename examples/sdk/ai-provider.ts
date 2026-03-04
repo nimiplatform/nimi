@@ -1,7 +1,7 @@
 /**
  * Vercel AI SDK v6 Integration
  *
- * Run: npx tsx examples/ai-provider.ts
+ * Run: npx tsx examples/sdk/ai-provider.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';

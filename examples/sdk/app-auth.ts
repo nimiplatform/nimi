@@ -1,7 +1,7 @@
 /**
  * App Authorization Lifecycle (ExternalPrincipal)
  *
- * Run: npx tsx examples/app-auth.ts
+ * Run: npx tsx examples/sdk/app-auth.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';
@@ -62,7 +62,7 @@ async function registerPrincipal() {
       issuer: APP_ID,
       clientId: 'demo-client',
       signatureKeyId: 'demo-key',
-      proofType: ExternalProofType.ED25519,
+      proofType: ExternalProofType.JWT,
     },
     { idempotencyKey: crypto.randomUUID() },
   );
@@ -130,11 +130,23 @@ async function listTokenChain(rootTokenId: string) {
   const result = await runtime.appAuth.listTokenChain({
     appId: APP_ID,
     rootTokenId,
+    includeRevoked: true,
+    pageSize: 50,
+    pageToken: '',
   });
 
-  console.log('token chain nodes:', result.nodes.length);
-  for (const node of result.nodes) {
-    console.log('-', node.tokenId, 'parent:', node.parentTokenId || '(root)');
+  console.log('token chain entries:', result.entries.length, 'hasMore:', result.hasMore);
+  for (const entry of result.entries) {
+    console.log(
+      '-',
+      entry.tokenId,
+      'parent:',
+      entry.parentTokenId || '(root)',
+      'principal:',
+      `${entry.principalType}:${entry.principalId}`,
+      'revoked:',
+      entry.revoked,
+    );
   }
 }
 

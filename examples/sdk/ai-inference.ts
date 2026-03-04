@@ -1,7 +1,7 @@
 /**
  * AI Inference Examples
  *
- * Run: npx tsx examples/ai-inference.ts
+ * Run: npx tsx examples/sdk/ai-inference.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';

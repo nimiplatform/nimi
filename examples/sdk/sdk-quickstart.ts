@@ -1,7 +1,7 @@
 /**
  * Nimi SDK Quick Start
  *
- * Run: npx tsx examples/sdk-quickstart.ts
+ * Run: npx tsx examples/sdk/sdk-quickstart.ts
  */
 
 import { Runtime } from '@nimiplatform/sdk';
@@ -27,14 +27,17 @@ async function checkHealth() {
 
 async function listModels() {
   const response = await runtime.model.list({});
-  if ((response.models || []).length === 0) {
-    console.log('No models registered.');
-    return;
+  const models = response.models || [];
+  if (models.length === 0) {
+    console.log('No models registered yet.');
+    console.log('Next step (local): cd runtime && go run ./cmd/nimi model pull --model-ref local/qwen2.5@latest --source official --json');
+    console.log('Next step (cloud): export provider API key (for example NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=...) and restart runtime');
   }
 
-  for (const model of response.models) {
+  for (const model of models) {
     console.log(`- ${model.modelId} (${ModelStatus[model.status]})`);
   }
+  return models;
 }
 
 async function generateText() {
@@ -60,10 +63,35 @@ async function main() {
   await checkHealth();
 
   console.log('\n=== Models ===');
-  await listModels();
+  const models = await listModels();
+  if (!models || models.length === 0) {
+    console.log('\n=== Generate ===');
+    console.log('Skipped: no model available yet.');
+    return;
+  }
 
   console.log('\n=== Generate ===');
-  await generateText();
+  try {
+    await generateText();
+  } catch (error) {
+    const reasonCode = typeof error === 'object' && error && 'reasonCode' in error
+      ? String((error as { reasonCode?: unknown }).reasonCode || '')
+      : '';
+
+    if (reasonCode === 'AI_LOCAL_MODEL_UNAVAILABLE') {
+      console.log('Generate failed: AI_LOCAL_MODEL_UNAVAILABLE');
+      console.log('Fix: cd runtime && go run ./cmd/nimi model pull --model-ref local/qwen2.5@latest --source official --json');
+      return;
+    }
+
+    if (reasonCode === 'AI_REQUEST_CREDENTIAL_INVALID') {
+      console.log('Generate failed: AI_REQUEST_CREDENTIAL_INVALID');
+      console.log('Fix: set provider credentials (for example NIMI_RUNTIME_CLOUD_GEMINI_API_KEY), then restart runtime');
+      return;
+    }
+
+    throw error;
+  }
 }
 
 main().catch((error) => {

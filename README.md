@@ -1,6 +1,6 @@
 <div align="center">
 
-  # 🪸 Nimi: The Infrastructure Layer for Next-Gen AI Apps
+  # 🪸 Nimi: The Last Mile from AI to Users
 
   [![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-black.svg?logo=github&style=flat-square)](https://github.com/nimiplatform/nimi)
   [![Last Commit](https://img.shields.io/github/last-commit/nimiplatform/nimi?style=flat-square)](https://github.com/nimiplatform/nimi)
@@ -16,8 +16,11 @@
 
 [Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [SDK Reference](docs/reference/sdk.md) |  [Protocol](spec/platform/protocol.md) | [Contributing](CONTRIBUTING.md)
 
-Build AI-native apps with persistent identity, shared memory, and cross-app context.
-Nimi gives you a local Runtime, a cloud Realm, and one unified SDK.
+Nimi is the last-mile infrastructure that turns model capability into reliable product behavior. 
+
+Developers run multimodal AI across local and cloud Runtime, while Realm keeps identity, memory, and governance consistent across apps.
+
+> Interconnected AI apps building shared worlds with a unified, Ready Player One-like user experience (vision)
 
 <p align="center">
   <img src="docs/assets/banner.jpg" alt="Nimi Banner" width="1200">
@@ -49,6 +52,26 @@ Nimi gives you a local Runtime, a cloud Realm, and one unified SDK.
 </td>
 </tr>
 </table>
+
+Nimi focuses on three practical delivery gaps:
+
+| Last-Mile Gap | What Usually Breaks | Nimi Approach |
+|---|---|---|
+| Execution reliability | route/model/provider behavior drifts across environments | Runtime enforces explicit route policy (`local-runtime` / `token-api`) with reason-coded failures |
+| Identity and context continuity | every app starts from zero user context | Realm provides persistent identity, world state, and memory across apps |
+| Governance and trust | hard to audit who called what and why | end-to-end traces (`trace_id`, principal, reason code), scoped grants, fail-close defaults |
+
+Most AI apps today are islands.
+Nimi's longer-term goal is to make them interoperable worlds where user identity, agent memory, and application semantics can move across boundaries.
+
+This is the "Ready Player One" narrative with system constraints:
+
+- interoperability is contract-driven (not ad-hoc glue)
+- app autonomy remains intact (no forced centralization)
+- cross-app behavior stays auditable and governable
+
+Core protocol primitives: `Timeflow`, `Social`, `Economy`, `Transit`, `Context`, `Presence`.
+
 
 ## Architecture At A Glance
 
@@ -98,14 +121,17 @@ For implementation details, see [Runtime Guide](runtime/README.md) and [SDK Refe
 
 ## Supported Models & Providers
 
-Nimi Runtime routes AI calls through a unified API — switch between local engines and cloud providers without changing your application code.
+Representative capabilities available now:
+
+| Route Plane | Representative Backends | Typical Use |
+|---|---|---|
+| `local-runtime` | LocalAI, Nexa | local-first inference and media generation |
+| `token-api` | Gemini, OpenAI, Anthropic, DeepSeek, MiniMax, GLM, Kimi, DashScope, Volcengine | cloud model access under one routing contract |
+
+<details>
+<summary>Full provider matrix</summary>
 
 ### Local (On-Device)
-
-Pick the engine that matches your device profile:
-
-- `LocalAI` delivers full multimodal performance on local CPU/GPU, supporting GGUF and OpenAI-compatible models (Qwen, LLaMA, Mistral, Phi, Gemma, and more).
-- `Nexa` is tuned for quantized, lower-footprint inference on edge-class devices. Video is currently policy-gated (`nexa.video.unsupported`) and returns `AI_ROUTE_UNSUPPORTED`.
 
 Status legend:
 
@@ -161,171 +187,98 @@ Capability legend:
 | [AssemblyAI](https://assemblyai.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: STT |
 | [Runway](https://runwayml.com) | `TBD` | `Planned` | ─ | ─ | ─ | ─ | ─ | ─ | Planned: Video |
 
-¹ **OpenAI-Compatible** — bring-your-own endpoint: Ollama, vLLM, LM Studio, LiteLLM, Xinference, etc.
+¹ OpenAI-Compatible means bring-your-own endpoint: Ollama, vLLM, LM Studio, LiteLLM, Xinference, etc.
+
+</details>
 
 ## Quickstart
 
 Prerequisites: Go `1.24+`, Node.js `24+`, pnpm `10+`.
 
-### 1. Start Runtime
+### 0. Install Dependencies
 
 ```bash
-cd runtime
-go run ./cmd/nimi serve
+pnpm install
 ```
 
-### 2. Check Health
+### 1. Start Runtime (Terminal A)
 
 ```bash
-cd runtime
-go run ./cmd/nimi health --source grpc
+pnpm runtime:serve
 ```
 
-Expected: command exits with code `0` and reports runtime health/status.
+### 2. Path A - Observe State (No model required)
 
-### 3. Run Your First AI Call
-
-```bash
-cd runtime
-go run ./cmd/nimi run local/qwen2.5 --prompt "Hello, Nimi!"
-```
-
-Expected: runtime returns generated text.
-
-### Optional SDK Quick Path
+In Terminal B:
 
 ```bash
+pnpm runtime:health
+pnpm runtime:providers
 npx tsx examples/sdk/sdk-quickstart.ts
 ```
 
-### Optional TypeScript Snippet
+Expected:
 
-```ts
-import { Runtime } from '@nimiplatform/sdk';
+- runtime health/status is printed
+- provider snapshot is printed
+- quickstart reports model inventory and exits gracefully when no model is ready
 
-const runtime = new Runtime({
-  appId: 'my_app',
-  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-});
+### 3. Path B - Produce Output (Choose one)
 
-const result = await runtime.ai.text.generate({
-  model: 'local/qwen2.5',
-  subjectUserId: 'local-user',
-  input: 'Hello from Nimi!',
-  route: 'local-runtime',
-  fallback: 'deny',
-  timeoutMs: 30000,
-});
+Option 1: local model route
 
-console.log(result.text);
+```bash
+cd runtime
+go run ./cmd/nimi model pull --model-ref local/qwen2.5@latest --source official --json
+cd ..
+npx tsx examples/sdk/last-mile-route-switch.ts
 ```
 
-### Optional Vercel AI SDK Snippet
+Option 2: cloud provider route (example: Gemini)
 
-```ts
-import { Runtime } from '@nimiplatform/sdk';
-import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
-import { generateText } from 'ai';
-
-const runtime = new Runtime({
-  appId: 'my_app',
-  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-});
-
-const nimi = createNimiAiProvider({
-  runtime,
-  appId: 'my_app',
-  subjectUserId: 'local-user',
-  routePolicy: 'local-runtime',
-  fallback: 'deny',
-});
-
-const { text } = await generateText({
-  model: nimi.text('local/qwen2.5'),
-  prompt: 'What is the Nimi platform?',
-});
-
-console.log(text);
+```bash
+cd runtime
+NIMI_RUNTIME_CLOUD_GEMINI_API_KEY=<your-key> \
+go run ./cmd/nimi serve
 ```
 
-### Optional Realm Snippet (Requires Realm Account)
+Then run in another terminal:
 
-```ts
-import { Realm } from '@nimiplatform/sdk';
-
-const guestRealm = new Realm({
-  baseUrl: process.env.NIMI_REALM_BASE_URL || 'https://api.nimi.xyz',
-  auth: { accessToken: Realm.NO_AUTH },
-});
-
-const tokens = await guestRealm.auth.passwordLogin({
-  email: process.env.NIMI_REALM_EMAIL || '',
-  password: process.env.NIMI_REALM_PASSWORD || '',
-});
-
-const realm = new Realm({
-  baseUrl: process.env.NIMI_REALM_BASE_URL || 'https://api.nimi.xyz',
-  auth: {
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken || undefined,
-  },
-});
-
-const me = await realm.users.me();
-console.log(me.id);
+```bash
+npx tsx examples/sdk/last-mile-route-switch.ts
 ```
 
-> Full onboarding and environment setup: [docs/getting-started/index.md](docs/getting-started/index.md)
+### 4. Troubleshooting
 
-## Realm Interconnect Paradigm (No More App Islands)
+| Error | Meaning | Exact Next Step |
+|---|---|---|
+| `AI_LOCAL_MODEL_UNAVAILABLE` | local model is not ready | `cd runtime && go run ./cmd/nimi model pull --model-ref local/qwen2.5@latest --source official --json` |
+| `AI_REQUEST_CREDENTIAL_INVALID` | runtime process has no valid provider credentials | set provider env vars on runtime startup command, then restart runtime |
+| `AI_PROVIDER_AUTH_FAILED` | provider rejected current auth config | verify API key + endpoint + provider health (`pnpm runtime:providers`) |
 
-Most ecosystems can scale the number of apps, but still fail to connect them semantically.
-Each app becomes its own island: identity does not carry, relationships break, context resets, and economic behaviors cannot be reconciled across boundaries.
+## Security and Governance
 
-Nimi positions `Realm` as a shared semantic layer for cross-app continuity, while preserving app autonomy.
-Apps can choose progressive integration levels (`runtime-only`, `render-app`, `extension-app`) instead of all-or-nothing adoption.
+Nimi uses an AI-native interface calling model with explicit machine interfaces, scoped permissions, and deterministic failure semantics.
 
-The six protocol primitives (`Timeflow`, `Social`, `Economy`, `Transit`, `Context`, `Presence`) are the interoperability contract that keeps cross-app behavior consistent and auditable.
-The goal is not centralized product control; the goal is consistent semantics across independently built worlds and apps.
+- sandboxed execution by default for high-risk capability surfaces
+- least-privilege grants with revocation and delegation boundaries
+- fail-close behavior for uncertain high-risk writes
+- end-to-end auditability across runtime layers
 
-Learn more:
+Details:
 
-- Realm interconnect narrative: [`docs/architecture/realm-interconnect-paradigm.md`](docs/architecture/realm-interconnect-paradigm.md)
-- Spec thin mapping: [`spec/realm/app-interconnect-model.md`](spec/realm/app-interconnect-model.md)
-- Protocol contracts: [`spec/platform/protocol.md`](spec/platform/protocol.md)
+- [AI Agent Security Interface](docs/architecture/ai-agent-security-interface.md)
+- [Spec mapping](spec/platform/ai-agent-security-interface.md)
 
-## New Agent Security Paradigm (What Nimi Is Trying to Solve)
+## Engineering Method
 
-Most agent systems still rely on "human-like operation" (clicking UI, imitating user workflows, api for human programs).  
-That can be fast for demos, but it becomes fragile in production: boundaries blur, permissions over-expand, and audit trails become hard to trust.
+Nimi applies Spec-first, AI-first engineering with deterministic checks.
 
-Nimi is testing a different path: **AI-native interface calling**.  
-Instead of acting like a fake human, the agent calls explicit machine interfaces with structured parameters, scoped permissions, and deterministic failure semantics.
+- execution protocol: `Rule -> Table -> Generate -> Check -> Evidence`
+- generated docs are projections; structured rules stay canonical
+- CI deterministic checks + semantic audits form a bidirectional loop
 
-In practice, this means:
-
-- **Sandboxed execution** by default (especially for extension/mod capabilities).
-- **Least-privilege grants** that are local, scoped, time-bound, and revocable.
-- **Fail-close for high-risk writes** when authorization or execution certainty is missing.
-- **End-to-end auditable traces** (`trace_id`, principal, operation, reason code) across layers.
-
-This is Nimi's core attempt: keep the openness and speed of agent ecosystems, while making security and governance first-class system properties instead of afterthought patches.
-
-Learn more:
-
-- Full whitepaper: [`docs/architecture/ai-agent-security-interface.md`](docs/architecture/ai-agent-security-interface.md)
-- Spec mapping: [`spec/platform/ai-agent-security-interface.md`](spec/platform/ai-agent-security-interface.md)
-
-## AI Coding in Nimi
-
-Nimi applies a Spec-first, AI-first engineering methodology where AI agents are primary executors and deterministic guards are the default safety net.
-
-- **Execution protocol:** every normative change follows `Rule -> Table -> Generate -> Check -> Evidence`.
-- **Fact governance:** rules and structured tables are the canonical source; generated docs are projections, not edit targets.
-- **Quality guard:** deterministic CI checks are Layer 1, semantic audit is Layer 2, and both are used in a bi-directional audit loop (`Spec -> Impl` and `Impl -> Spec`).
-- **Engineering outcome:** changes stay traceable, verifiable, and regression-resistant under continuous AI-assisted delivery.
-
-Method details: [ai_spec_coding_methodology.md](docs/architecture/ai_spec_coding_methodology.md)
+Details: [ai_spec_coding_methodology.md](docs/architecture/ai_spec_coding_methodology.md)
 
 ## Roadmap
 
@@ -370,7 +323,8 @@ Policies and workflow:
 
 | Resource | Description |
 |---|---|
-| [Getting Started](docs/getting-started/index.md) | Zero to first AI call |
+| [Getting Started](docs/getting-started/index.md) | Zero to first verifiable run |
+| [Examples](examples/README.md) | Goal-oriented runnable examples |
 | [SDK Reference](docs/reference/sdk.md) | `@nimiplatform/sdk` API surface |
 | [Runtime Guide](runtime/README.md) | Runtime CLI and daemon operations |
 | [Protocol](spec/platform/protocol.md) | Six primitives: Timeflow, Social, Economy, Transit, Context, Presence |
