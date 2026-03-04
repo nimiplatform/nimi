@@ -11,7 +11,6 @@ import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import type { AuthMenuProps, AuthView } from './auth-helpers.js';
 import {
-  LOGO_URL,
   dataSync,
   getGoogleClientId,
   getUserDisplayLabel,
@@ -20,6 +19,7 @@ import {
   resolveDesktopCallbackRequestFromLocation,
   WEB_AUTH_SESSION_KEY,
 } from './auth-helpers.js';
+import logoUrl from '@renderer/assets/logo.png';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import {
   handleGoogleLogin as doGoogleLogin,
@@ -306,7 +306,7 @@ export function AuthMenu({
               `}
             />
             <div className="rounded-full bg-white/70 p-8 shadow-[0_20px_44px_rgba(188,130,108,0.22)] ring-1 ring-white/80 backdrop-blur-md transition-transform duration-200 group-hover:scale-105">
-              <img src={LOGO_URL} alt="Nimi Logo" className="h-16 w-16 rounded-full object-cover" />
+              <img src={logoUrl} alt="Nimi Logo" className="h-32 w-32 rounded-full object-cover" />
             </div>
           </button>
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
@@ -7,6 +7,8 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { WorldListItem } from '../world/world-list';
+import { QuickAddFriendModal } from './quick-add-friend-modal';
+import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
 
 const PAGE_SIZE = 20;
 const DEFAULT_CATEGORIES = ['Research', 'Coding', 'Writing', 'Analysis', 'Creative', 'Education', 'Health & Finance'];
@@ -53,7 +55,7 @@ function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
 }
 
-function mapAgent(raw: unknown): ExploreAgentCardData | null {
+function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number }>): ExploreAgentCardData | null {
   const source = toRecord(raw);
   if (!source) {
     return null;
@@ -74,6 +76,11 @@ function mapAgent(raw: unknown): ExploreAgentCardData | null {
   const worldId = asString(agent?.worldId).trim()
     || asString(agentProfile?.worldId).trim()
     || null;
+  
+  // Get world data if worldId exists
+  const worldData = worldId ? worldsMap.get(worldId) : null;
+  const worldBannerUrl = worldData?.bannerUrl ?? null;
+  const worldScoreEwma = worldData?.scoreEwma ?? 0;
 
   return {
     id,
@@ -84,14 +91,16 @@ function mapAgent(raw: unknown): ExploreAgentCardData | null {
     tags,
     badgeText: origin ? `Origin: ${origin}` : 'Community',
     worldId,
+    worldBannerUrl,
+    worldScoreEwma,
   };
 }
 
-function parseAgents(agentsResult: unknown): ExploreAgentCardData[] {
+function parseAgents(agentsResult: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number }>): ExploreAgentCardData[] {
   const payload = toRecord(agentsResult);
   const raw = Array.isArray(payload?.items) ? payload.items : [];
   return raw
-    .map((item) => mapAgent(item))
+    .map((item) => mapAgent(item, worldsMap))
     .filter((item): item is ExploreAgentCardData => item !== null);
 }
 
@@ -167,6 +176,12 @@ export function ExplorePanel() {
     }));
   }, [worldsQuery.data]);
 
+  // Create worlds map for agent mapping
+  const worldsMap = useMemo(() => {
+    const worlds = worldsQuery.data ?? [];
+    return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma }]));
+  }, [worldsQuery.data]);
+
   // Fetch agents for sidebar
   const agentsQuery = useQuery({
     queryKey: ['explore-agents', authStatus, selectedCategory, searchText],
@@ -189,12 +204,19 @@ export function ExplorePanel() {
         undefined,
         query,
       ));
-      return parseAgents(result);
+      return parseAgents(result, worldsMap);
     },
     enabled: authStatus === 'authenticated',
   });
 
   const agents = agentsQuery.data ?? [];
+  
+  // Refetch agents when worlds data is loaded to ensure worldBannerUrl is populated
+  useEffect(() => {
+    if (worldsQuery.data && agentsQuery.data) {
+      agentsQuery.refetch();
+    }
+  }, [worldsQuery.data]);
 
   const categories = useMemo(() => {
     const dynamicTags = new Set<string>();
@@ -235,9 +257,23 @@ export function ExplorePanel() {
   const [refreshKey, setRefreshKey] = useState(0);
   const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
 
+  // Add Contact Modal state
+  const [addContactModalOpen, setAddContactModalOpen] = useState(false);
+  const [selectedAgentForAdd, setSelectedAgentForAdd] = useState<ExploreAgentCardData | null>(null);
+
+  // Agent friend limit query
+  const agentLimitQuery = useQuery({
+    queryKey: ['agent-friend-limit'],
+    queryFn: async () => resolveAgentFriendLimit(),
+  });
+
   const onAgentAddFriend = useCallback(
     (agentId: string) => {
       const target = agents.find((item) => item.id === agentId);
+      if (target) {
+        setSelectedAgentForAdd(target);
+        setAddContactModalOpen(true);
+      }
       logRendererEvent({
         level: 'info',
         area: 'explore',
@@ -251,6 +287,15 @@ export function ExplorePanel() {
     },
     [agents],
   );
+
+  const onAddFriend = useCallback(async (agentId: string, _message?: string) => {
+    if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
+      throw new Error(agentLimitQuery.data.reason || 'Agent friend limit reached');
+    }
+    await dataSync.requestOrAcceptFriend(agentId);
+    setAddContactModalOpen(false);
+    setSelectedAgentForAdd(null);
+  }, [agentLimitQuery.data]);
 
   const onToggleCategory = useCallback(
     (category: string) => {
@@ -270,22 +315,36 @@ export function ExplorePanel() {
     [navigateToWorld],
   );
 
+  const agentLimit = agentLimitQuery.data ?? null;
+
   return (
-    <ExploreView
-      searchText={searchText}
-      selectedCategory={selectedCategory}
-      categories={categories}
-      featuredWorlds={DEFAULT_FEATURED_WORLDS}
-      topAgents={topAgents}
-      worldBanners={worldBanners}
-      fetchPostPage={fetchPostPage}
-      postFeedKey={postFeedKey}
-      onPostDelete={() => setRefreshKey((k) => k + 1)}
-      loading={agentsQuery.isPending}
-      onSearchTextChange={setSearchText}
-      onToggleCategory={onToggleCategory}
-      onAgentAddFriend={onAgentAddFriend}
-      onWorldOpen={onWorldOpen}
-    />
+    <>
+      <ExploreView
+        searchText={searchText}
+        selectedCategory={selectedCategory}
+        categories={categories}
+        featuredWorlds={DEFAULT_FEATURED_WORLDS}
+        topAgents={topAgents}
+        worldBanners={worldBanners}
+        fetchPostPage={fetchPostPage}
+        postFeedKey={postFeedKey}
+        onPostDelete={() => setRefreshKey((k) => k + 1)}
+        loading={agentsQuery.isPending}
+        onSearchTextChange={setSearchText}
+        onToggleCategory={onToggleCategory}
+        onAgentAddFriend={onAgentAddFriend}
+        onWorldOpen={onWorldOpen}
+      />
+      <QuickAddFriendModal
+        open={addContactModalOpen}
+        agent={selectedAgentForAdd}
+        agentLimit={agentLimit}
+        onClose={() => {
+          setAddContactModalOpen(false);
+          setSelectedAgentForAdd(null);
+        }}
+        onAdd={onAddFriend}
+      />
+    </>
   );
 }

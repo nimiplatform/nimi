@@ -26,9 +26,16 @@ export type ExploreAgentCardData = {
   tags: string[];
   badgeText: string;
   worldId: string | null;
+  worldBannerUrl: string | null;
   isPublic?: boolean;
   age?: number | null;
   location?: string | null;
+  // Stats for display
+  likes?: number;
+  posts?: number;
+  views?: number;
+  // World score for progress bar
+  worldScoreEwma?: number;
 };
 
 export type ExplorePostCardData = {
@@ -212,6 +219,71 @@ export function ExploreAgentCard({
   );
 }
 
+// Default gradient backgrounds for agents without world banner
+const DEFAULT_AGENT_BACKGROUNDS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+  'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+  'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+];
+
+function getDefaultBackgroundForAgent(agentId: string): string {
+  // Use agentId to deterministically pick a background
+  const index = agentId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % DEFAULT_AGENT_BACKGROUNDS.length;
+  return DEFAULT_AGENT_BACKGROUNDS[index] || DEFAULT_AGENT_BACKGROUNDS[0]!;
+}
+
+// World score progress bar with rainbow gradient (no label)
+// scoreEwma is 0-100, display as percentage
+function ScoreProgressBar({ score = 0 }: { score?: number }) {
+  const percentage = Math.min(100, Math.max(0, score));
+  
+  return (
+    <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+      <div 
+        className="h-full rounded-full"
+        style={{ 
+          width: `${percentage}%`,
+          background: 'linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff)',
+        }}
+      />
+    </div>
+  );
+}
+
+// Social icons component
+function SocialIcons() {
+  return (
+    <div className="flex items-center justify-center gap-4 mt-3">
+      {/* Dribbble */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32" />
+      </svg>
+      {/* Facebook */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
+        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+      </svg>
+      {/* Instagram */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+      </svg>
+      {/* Pinterest */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
+        <line x1="12" y1="8" x2="12" y2="21" />
+        <path d="M6 12a6 6 0 0 1 12 0c0 3.12-1.5 5-3 6.5" />
+        <path d="M9 21c.97.66 2.15 1 3.5 1 4.14 0 7.5-3.36 7.5-7.5A7.5 7.5 0 0 0 12 7a7.5 7.5 0 0 0-7.5 7.5c0 1.82.65 3.5 1.74 4.8" />
+      </svg>
+    </div>
+  );
+}
+
 export function TopAgentCard({
   agent,
   onAddFriend,
@@ -219,53 +291,98 @@ export function TopAgentCard({
   agent: ExploreAgentCardData;
   onAddFriend?: () => void;
 }) {
+  const backgroundUrl = agent.worldBannerUrl || getDefaultBackgroundForAgent(agent.id);
+  const likes = agent.likes ?? Math.floor(Math.random() * 50) + 50; // Placeholder: random between 50-100K
+  const posts = agent.posts ?? Math.floor(Math.random() * 200) + 200;
+  const views = agent.views ?? Math.floor(Math.random() * 200) + 300;
+  const worldScore = agent.worldScoreEwma ?? 0; // 0-100 from world data
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  // Determine background style based on URL type
+  const isImageUrl = backgroundUrl.startsWith('http') || backgroundUrl.startsWith('/') || backgroundUrl.startsWith('data:');
+  const backgroundStyle = isImageUrl 
+    ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: backgroundUrl };
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3">
-      <div className="flex items-center gap-3">
-        {agent.avatarUrl ? (
-          <img
-            src={agent.avatarUrl}
-            alt={agent.name}
-            className="h-10 w-10 rounded object-cover"
-            style={{
-              boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)',
-            }}
-          />
-        ) : (
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded bg-slate-100 text-xs font-bold text-slate-700"
-            style={{
-              boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)',
-            }}
-          >
-            {agent.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-gray-800">{agent.name}</span>
-            {agent.isPublic !== false && <PublicBadge size="small" />}
-          </div>
-          <span className="block truncate text-xs text-gray-400">@{agent.handle}</span>
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+      {/* Header with background image */}
+      <div 
+        className="relative h-20"
+        style={backgroundStyle}
+      >
+        {/* Add Friend button - circle with plus */}
+        <button
+          type="button"
+          onClick={onAddFriend}
+          className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all hover:bg-white hover:shadow-md"
+          aria-label="Add friend"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Avatar - positioned to overlap the background */}
+      <div className="relative px-4 -mt-8">
+        <div className="relative">
+          {agent.avatarUrl ? (
+            <img
+              src={agent.avatarUrl}
+              alt={agent.name}
+              className="h-16 w-16 rounded-full object-cover border-4 border-white shadow-md"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-mint-100 to-mint-50 text-lg font-bold text-mint-600 border-4 border-white shadow-md">
+              {agent.name.charAt(0).toUpperCase()}
+            </div>
+          )}
         </div>
       </div>
 
-      <p className="mt-2 line-clamp-1 text-xs text-gray-500">{agent.description}</p>
+      {/* Content */}
+      <div className="px-4 pb-4 pt-2">
+        {/* Name */}
+        <h3 className="text-base font-bold text-gray-900">{agent.name}</h3>
+        
+        {/* Description */}
+        <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{agent.description}</p>
 
-      <div className="mt-3 flex items-center gap-2">
-        <button
-          type="button"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-mint-600"
-          onClick={onAddFriend}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="8.5" cy="7" r="4" />
-            <line x1="20" y1="8" x2="20" y2="14" />
-            <line x1="23" y1="11" x2="17" y2="11" />
-          </svg>
-          Add Friend
-        </button>
+        {/* World Score bar */}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-[10px] text-gray-500 font-medium">Score</span>
+          <ScoreProgressBar score={worldScore} />
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-gray-100 my-3" />
+
+        {/* Stats */}
+        <div className="flex items-center justify-between">
+          <div className="text-center flex-1">
+            <div className="text-lg font-bold text-gray-900">{formatNumber(likes)}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Likes</div>
+          </div>
+          <div className="text-center flex-1">
+            <div className="text-lg font-bold text-gray-900">{formatNumber(posts)}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Posts</div>
+          </div>
+          <div className="text-center flex-1">
+            <div className="text-lg font-bold text-gray-900">{formatNumber(views)}</div>
+            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Views</div>
+          </div>
+        </div>
+
+        {/* Social icons */}
+        <SocialIcons />
       </div>
     </div>
   );

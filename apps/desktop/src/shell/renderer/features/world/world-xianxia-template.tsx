@@ -55,6 +55,24 @@ const statusGlowStyles = `
       opacity: 0.7;
     }
   }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
 `;
 
 // Helper function to get status-based glow styles
@@ -148,7 +166,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
     new Date(d).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
   const formatDateTime = (d: string) => {
     const date = new Date(d);
-    if (Number.isNaN(date.getTime())) return d; // non-ISO string (e.g. "修仙纪元 11190年") — display as-is
+    if (Number.isNaN(date.getTime())) return d;
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
@@ -178,38 +196,61 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
       {/* Inject status-based glow animation CSS */}
       <style>{statusGlowStyles}</style>
       <div className="min-h-screen bg-[#0a0f0c] text-[#e8f5ee] font-sans relative overflow-x-hidden">
-        {/* Global background - dark cultivation theme */}
+        {/* Global background - dark cultivation theme with stars */}
         <div className="fixed inset-0 pointer-events-none">
-          {/* Base gradient */}
+          {/* Base gradient - deep dark green/black */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#0d1f16] via-[#0a0f0c] to-[#050705]" />
-          {/* Stars */}
+          
+          {/* Stars background */}
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `radial-gradient(circle, rgba(78, 204, 163, 0.3) 1px, transparent 1px)`,
+              backgroundSize: '50px 50px',
+            }}
+          />
+          
+          {/* Additional smaller stars */}
           <div
             className="absolute inset-0 opacity-20"
             style={{
-              backgroundImage: `radial-gradient(circle, #4ECCA3 1px, transparent 1px)`,
-              backgroundSize: '60px 60px',
+              backgroundImage: `radial-gradient(circle, rgba(78, 204, 163, 0.5) 0.5px, transparent 0.5px)`,
+              backgroundSize: '25px 25px',
             }}
           />
-          {/* Glow effects */}
+          
+          {/* Glow effects - aurora-like */}
           <div
-            className="absolute -top-20 -right-20 w-96 h-96 rounded-full opacity-20"
-            style={{ background: 'radial-gradient(circle, rgba(78,204,163,0.3), transparent 70%)' }}
+            className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(78, 204, 163, 0.15) 0%, transparent 70%)',
+              animation: 'pulse-glow 4s ease-in-out infinite'
+            }}
           />
           <div
-            className="absolute bottom-0 left-0 w-80 h-80 rounded-full opacity-10"
-            style={{ background: 'radial-gradient(circle, rgba(78,204,163,0.2), transparent 70%)' }}
+            className="absolute top-1/3 -left-40 w-[500px] h-[500px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(78, 204, 163, 0.1) 0%, transparent 70%)',
+              animation: 'pulse-glow 5s ease-in-out infinite 1s'
+            }}
+          />
+          <div
+            className="absolute bottom-20 right-1/4 w-[400px] h-[400px] rounded-full"
+            style={{ 
+              background: 'radial-gradient(circle, rgba(78, 204, 163, 0.08) 0%, transparent 70%)',
+              animation: 'pulse-glow 6s ease-in-out infinite 0.5s'
+            }}
           />
         </div>
 
-        {/* Fixed back button - positioned at banner top-left with transform offset */}
+        {/* Fixed back button - top left */}
         {props.onBack && (
           <button
             onClick={props.onBack}
-            className="fixed z-50 flex items-center justify-center w-10 h-10 rounded-xl bg-black/40 text-white/90 hover:bg-black/60 hover:text-white transition-all"
+            className="fixed z-50 flex items-center justify-center w-10 h-10 rounded-full bg-black/50 border border-[#4ECCA3]/20 text-[#4ECCA3] hover:bg-black/70 hover:border-[#4ECCA3]/40 transition-all"
             style={{ 
-              top: 'calc(24px + 15px)',
-              left: 'max(39px, calc((100vw - 1400px) / 2 + 24px + 15px))',
-              transform: 'translate(45px, 60px)'
+              top: '24px',
+              left: '24px'
             }}
             aria-label="Go Back"
           >
@@ -219,97 +260,112 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
           </button>
         )}
 
-        <div className="relative z-10 w-[min(1400px,calc(100vw-48px))] mx-auto my-6 mb-16 flex flex-col gap-5">
-          {/* Hero Banner - Reference Image Style */}
-          <section className="relative overflow-hidden rounded-[24px] border border-[#4ECCA3]/20 bg-[#0f1612]/80 backdrop-blur-sm">
-            {/* Background image with overlay */}
-            <div
-              className="w-full h-[min(45vw,420px)] object-cover object-center block"
-              style={{
-                background: world.bannerUrl
-                  ? `linear-gradient(180deg, rgba(10,15,12,0.2) 0%, rgba(10,15,12,0.4) 50%, rgba(10,15,12,0.9) 100%), url(${world.bannerUrl}) center/cover no-repeat`
-                  : `linear-gradient(180deg, rgba(10,15,12,0.2) 0%, rgba(10,15,12,0.4) 50%, rgba(10,15,12,0.9) 100%), url(/images/worlds/xianxia-banner.png) center/cover no-repeat`,
-              }}
-            />
+        <div className="relative z-10 w-[min(1400px,calc(100vw-48px))] mx-auto py-6 flex flex-col gap-5">
+          {/* Hero Banner - Large sci-fi/cultivation themed image */}
+          <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/20">
+            {/* Background image container */}
+            <div className="relative w-full h-[380px]">
+              {/* Banner background image */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: world.bannerUrl
+                    ? `url(${world.bannerUrl}) center/cover no-repeat`
+                    : `linear-gradient(135deg, #0d2b1f 0%, #0a1f15 50%, #071912 100%)`,
+                }}
+              />
+              
+              {/* Gradient overlays for depth */}
+              <div 
+                className="absolute inset-0"
+                style={{
+                  background: `
+                    radial-gradient(ellipse at 30% 20%, rgba(78, 204, 163, 0.1) 0%, transparent 50%),
+                    radial-gradient(ellipse at 70% 80%, rgba(78, 204, 163, 0.05) 0%, transparent 40%),
+                    linear-gradient(180deg, rgba(10, 15, 12, 0.3) 0%, rgba(10, 15, 12, 0.5) 50%, rgba(10, 15, 12, 0.95) 100%)
+                  `
+                }}
+              />
 
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0f0c]" />
+              {/* Futuristic grid lines overlay */}
+              <div 
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(90deg, rgba(78, 204, 163, 0.3) 1px, transparent 1px),
+                    linear-gradient(0deg, rgba(78, 204, 163, 0.3) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '100px 100px'
+                }}
+              />
 
-            {/* Hero content */}
-            <div className="absolute inset-0 flex flex-col justify-between p-8">
-              {/* Top bar: Type badge right */}
-              <div className="flex items-start justify-end">
-                {/* Type badge - top right */}
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs tracking-wider uppercase bg-[#4ECCA3]/20 text-[#4ECCA3] border border-[#4ECCA3]/40 font-semibold">
-                  {displayValue(world.type, 'Unknown')} WORLD
+              {/* Top right badge */}
+              <div className="absolute top-4 right-4">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs tracking-wider uppercase bg-[#4ECCA3]/20 text-[#4ECCA3] border border-[#4ECCA3]/40 font-semibold backdrop-blur-sm">
+                  MAIN WORLD
                 </span>
               </div>
 
-              {/* Bottom: icon + title + TimeFlowDynamics */}
-              <div className="flex items-end justify-between gap-6">
-                {/* Left: Icon + Title */}
-                <div className="flex items-start gap-6 flex-1 min-w-0">
-                  {world.iconUrl ? (
-                    <div className="relative flex-shrink-0">
-                      {/* Status-based Glow Effect */}
-                      <div
-                        className="absolute inset-0 rounded-2xl"
-                        style={{
-                          boxShadow: glowConfig.boxShadow,
-                          animation: glowConfig.animation,
-                        }}
-                      />
-                      <img
-                        src={world.iconUrl}
-                        alt={world.name}
-                        className={`w-24 h-24 rounded-2xl object-cover border-2 shadow-lg relative z-10 ${glowConfig.borderColor}`}
-                      />
-                    </div>
-                  ) : (
-                    <div className="relative flex-shrink-0">
-                      {/* Status-based Glow Effect */}
-                      <div
-                        className="absolute inset-0 rounded-2xl"
-                        style={{
-                          boxShadow: glowConfig.boxShadow,
-                          animation: glowConfig.animation,
-                        }}
-                      />
-                      <div
-                        className={`w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-serif border-2 bg-gradient-to-br relative z-10 ${glowConfig.textColor} ${glowConfig.borderColor} ${glowConfig.bgGradient}`}
-                      >
-                        {world.name ? world.name.charAt(0) : '凡'}
+              {/* Hero content - bottom area */}
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <div className="flex items-end justify-between gap-6">
+                  {/* Left: Icon + Title + Description */}
+                  <div className="flex items-end gap-6 flex-1 min-w-0">
+                    {/* World icon with glow */}
+                    {world.iconUrl ? (
+                      <div className="relative flex-shrink-0" style={{ animation: 'float 6s ease-in-out infinite' }}>
+                        <div
+                          className="absolute inset-0 rounded-2xl"
+                          style={{
+                            boxShadow: glowConfig.boxShadow,
+                            animation: glowConfig.animation,
+                          }}
+                        />
+                        <img
+                          src={world.iconUrl}
+                          alt={world.name}
+                          className={`w-24 h-24 rounded-2xl object-cover border-2 shadow-lg relative z-10 ${glowConfig.borderColor}`}
+                        />
                       </div>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0 pb-2">
-                    <h1
-                      className="text-[clamp(28px,4vw,48px)] leading-tight font-serif tracking-wide text-white drop-shadow-lg"
-                      style={{ fontFamily: '"Noto Serif SC", serif' }}
-                    >
-                      {displayValue(world.name)}
-                    </h1>
-                    <p className="mt-2 text-base text-white/70 leading-relaxed max-w-2xl">
-                      {world.subtitle && (
-                        <span
-                          className="text-[#4ECCA3]/50 text-xs mr-1"
-                          title="Sample data — no API field available"
+                    ) : (
+                      <div className="relative flex-shrink-0" style={{ animation: 'float 6s ease-in-out infinite' }}>
+                        <div
+                          className="absolute inset-0 rounded-2xl"
+                          style={{
+                            boxShadow: glowConfig.boxShadow,
+                            animation: glowConfig.animation,
+                          }}
+                        />
+                        <div
+                          className={`w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-serif border-2 bg-gradient-to-br relative z-10 ${glowConfig.textColor} ${glowConfig.borderColor} ${glowConfig.bgGradient}`}
                         >
-                          *
-                        </span>
-                      )}
-                      {displayValue(world.subtitle || world.description)}
-                    </p>
+                          {world.name ? world.name.charAt(0) : '凡'}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Title and description */}
+                    <div className="flex-1 min-w-0 pb-1">
+                      <h1
+                        className="text-[42px] leading-tight font-serif tracking-wide text-white drop-shadow-lg mb-2"
+                        style={{ fontFamily: '"Noto Serif SC", serif' }}
+                      >
+                        {displayValue(world.name)}
+                      </h1>
+                      <p className="text-base text-white/70 leading-relaxed max-w-2xl">
+                        {world.subtitle || world.description}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Right: Time Flow Dynamics */}
-                <div className="flex-shrink-0 w-[140px] h-[140px] -mt-4">
-                  <TimeFlowDynamics
-                    ratio={world.timeFlowRatio || 1.0}
-                    className="h-full"
-                    variant="compact"
-                  />
+                  {/* Right: Time Flow Dynamics */}
+                  <div className="flex-shrink-0 w-[120px] h-[120px]">
+                    <TimeFlowDynamics
+                      ratio={world.timeFlowRatio || 1.0}
+                      className="h-full"
+                      variant="compact"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -318,35 +374,27 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
           {/* Main Content Grid - 3 Columns */}
           <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-5">
             {/* Left Column - World Overview */}
-            <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/15 bg-[#0f1612]/60 backdrop-blur-sm p-5">
+            <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm p-5">
+              {/* Top glow line */}
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
 
               {/* Section Title */}
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm text-[#4ECCA3]">World Overview</span>
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-sm text-[#4ECCA3] font-medium">World Overview</span>
               </div>
 
               {/* World Name + ID Badge */}
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <h3 className="text-xl font-bold text-[#e8f5ee]">{displayValue(world.name)}</h3>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 text-xs text-[#4ECCA3] font-mono">
-                  ID: {world.id || 'N/A'}
+                  ID: {world.id ? (world.id.length > 20 ? world.id.slice(0, 16) + '...' : world.id) : 'N/A'}
                 </div>
               </div>
 
-              {/* Meta info row - Created At + Agent Count */}
-              <div className="flex items-center gap-4 mb-4 text-xs text-[#e8f5ee]/60">
+              {/* Meta info row */}
+              <div className="flex items-center gap-4 mb-5 text-xs text-[#e8f5ee]/60">
                 <span className="inline-flex items-center gap-1.5">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -355,16 +403,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   {world.createdAt ? formatDateTime(world.createdAt) : 'N/A'}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
@@ -373,41 +412,30 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               </div>
 
               {/* Description */}
-              <div className="mb-4">
-                <div className="text-xs text-[#4ECCA3] mb-1">Description</div>
+              <div className="mb-5">
+                <div className="text-xs text-[#4ECCA3] mb-2">Description</div>
                 <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
                   {displayValue(world.description)}
                 </p>
               </div>
 
-              {/* Narrative — mock data, API 无对应字段 */}
+              {/* World Narrative */}
               {world.narrative && (
-                <div className="mb-4">
-                  <div className="text-xs text-[#4ECCA3] mb-1">
-                    World Narrative{' '}
-                    <span
-                      className="text-[#4ECCA3]/50"
-                      title="Sample data — no API field available"
-                    >
-                      *
-                    </span>
+                <div className="mb-5">
+                  <div className="text-xs text-[#4ECCA3] mb-2 flex items-center gap-1">
+                    World Narrative
+                    <span className="text-[#4ECCA3]/50" title="Sample data">*</span>
                   </div>
-                  <p className="text-sm text-[#e8f5ee]/70 leading-relaxed">
+                  <p className="text-sm text-[#e8f5ee]/70 leading-relaxed whitespace-pre-line">
                     {displayValue(world.narrative)}
                   </p>
                 </div>
               )}
 
-              {/* Quote — mock data, API 无对应字段 */}
+              {/* Quote */}
               {world.quote && (
-                <div className="p-4 rounded-xl bg-[#0a0f0c]/40 border border-[#4ECCA3]/10">
+                <div className="p-4 rounded-xl bg-[#4ECCA3]/5 border border-[#4ECCA3]/10">
                   <p className="text-sm text-[#e8f5ee]/80 leading-relaxed italic">
-                    <span
-                      className="text-[#4ECCA3]/50 text-xs not-italic mr-1"
-                      title="Sample data — no API field available"
-                    >
-                      *
-                    </span>
                     {displayValue(world.quote)}
                   </p>
                 </div>
@@ -415,10 +443,8 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             </section>
 
             {/* Middle Column - Scoring Matrix */}
-            <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/15 bg-[#0f1612]/60 backdrop-blur-sm">
+            <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
-
-              {/* 3D Crystal Scoring Matrix with EWMA */}
               <WorldScoringMatrix
                 data={{
                   scoreA: world.scoreA,
@@ -431,13 +457,13 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               />
             </section>
 
-            {/* Right Column - Chronicle/Timeline */}
-            <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/15 bg-[#0f1612]/60 backdrop-blur-sm p-5">
+            {/* Right Column - Chronicle */}
+            <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm p-5">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
 
               {/* Section Title */}
               <div className="flex items-center gap-2 mb-5">
-                <span className="text-sm text-[#4ECCA3]">Chronicle</span>
+                <span className="text-sm text-[#4ECCA3] font-medium">Chronicle</span>
               </div>
 
               {/* Timeline */}
@@ -453,7 +479,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                 ) : props.events.length > 0 ? (
                   props.events.slice(0, 5).map((event) => (
                     <div key={event.id} className="relative pl-8">
-                      {/* Timeline dot with icon */}
+                      {/* Timeline dot */}
                       <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-[#0f1612] border-2 border-[#4ECCA3]/30 flex items-center justify-center">
                         <div className="w-2 h-2 rounded-full bg-[#4ECCA3]" />
                       </div>
@@ -464,7 +490,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                       </div>
 
                       {/* Content */}
-                      <div className="p-3 rounded-xl bg-[#0a0f0c]/40 border border-[#4ECCA3]/10">
+                      <div className="p-3 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10">
                         <h4 className="text-sm font-bold text-[#e8f5ee] mb-1">
                           {displayValue(event.title)}
                         </h4>
@@ -483,63 +509,51 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
             </section>
           </div>
 
-          {/* Bottom Section - Agent Directory */}
-          <section className="relative overflow-hidden rounded-[20px] border border-[#4ECCA3]/15 bg-[#0f1612]/60 backdrop-blur-sm p-5">
+          {/* Bottom Section - World Agents */}
+          <section className="relative overflow-hidden rounded-[16px] border border-[#4ECCA3]/15 bg-[#0f1612]/80 backdrop-blur-sm p-5">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
 
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-5">
-              <span className="text-sm text-[#4ECCA3]">World Agents</span>
+              <span className="text-sm text-[#4ECCA3] font-medium">World Agents</span>
             </div>
 
-            {/* Agent Grid - 3 columns */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Agent Grid - horizontal layout */}
+            <div className="flex gap-4 overflow-x-auto pb-2">
               {props.agentsLoading ? (
-                <div className="col-span-3 py-16 flex flex-col items-center justify-center gap-2">
+                <div className="flex-1 py-16 flex flex-col items-center justify-center gap-2">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
                   <span className="text-xs text-[#e8f5ee]/40">Loading agents...</span>
                 </div>
               ) : props.agents.length > 0 ? (
-                props.agents.slice(0, 6).map((agent) => (
+                props.agents.map((agent) => (
                   <article
                     key={agent.id}
-                    className="relative p-4 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10 overflow-hidden"
+                    className="relative flex-shrink-0 w-[280px] p-4 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10 overflow-hidden"
                   >
-                    {/* Avatar with Add Button */}
+                    {/* Agent header */}
                     <div className="flex items-start gap-3 mb-3">
                       <div className="relative">
                         {agent.avatarUrl ? (
                           <img
                             src={agent.avatarUrl}
                             alt={agent.name}
-                            className="w-16 h-16 rounded-xl object-cover"
-                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5)' }}
+                            className="w-14 h-14 rounded-xl object-cover"
+                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.3)' }}
                           />
                         ) : (
-                          <div className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-serif text-[#a855f7] bg-gradient-to-br from-[#a855f7]/10 to-transparent"
-                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5)' }}
+                          <div 
+                            className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-serif text-[#a855f7] bg-gradient-to-br from-[#a855f7]/10 to-transparent"
+                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.3)' }}
                           >
                             {agent.name ? agent.name.charAt(0) : '修'}
                           </div>
                         )}
-                        {/* Add Button - bottom right of avatar */}
-                        <button
-                          onClick={() => props.onVoiceAgent?.(agent)}
-                          className="absolute -bottom-0.5 -right-0.5 h-5 w-5 bg-[#4ECCA3] rounded-full flex items-center justify-center hover:bg-[#3DBB94] transition-colors shadow-sm"
-                          title="Add friend"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0f1612" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                          </svg>
-                        </button>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-base font-bold text-[#e8f5ee] truncate">
-                            {displayValue(agent.name)}
-                          </h4>
-                        </div>
+                        <h4 className="text-sm font-bold text-[#e8f5ee] truncate">
+                          {displayValue(agent.name)}
+                        </h4>
                         <div className="text-xs text-[#4ECCA3] truncate">
                           {displayValue(agent.handle)}
                         </div>
@@ -553,18 +567,9 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   </article>
                 ))
               ) : (
-                <div className="col-span-3 py-16 flex flex-col items-center justify-center text-center">
+                <div className="flex-1 py-16 flex flex-col items-center justify-center text-center">
                   <div className="w-16 h-16 mb-4 rounded-full bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 flex items-center justify-center">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#4ECCA3"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ECCA3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                       <circle cx="9" cy="7" r="4" />
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />

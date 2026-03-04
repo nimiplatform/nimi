@@ -3,6 +3,7 @@ import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import type { AuthMode } from './auth-form-state';
+import logoUrl from '@renderer/assets/logo.png';
 
 function IconPerson() {
   return (
@@ -79,7 +80,7 @@ export function LoginView(props: LoginViewProps) {
       <div className="brand-gradient relative hidden flex-1 items-center justify-center lg:flex">
         <div className="w-[342px]">
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20">
-            <span className="text-5xl font-bold leading-none text-white">N</span>
+            <img src={logoUrl} alt="Nimi Logo" className="h-16 w-16 object-contain" />
           </div>
           <h1 className="mt-8 text-4xl font-bold tracking-tight text-white">Welcome to Nimi</h1>
           <p className="mt-4 text-xl text-brand-50">Where humans and AI agents connect</p>

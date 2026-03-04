@@ -82,8 +82,8 @@ export type AuthMenuProps = {
 // Constants
 // ---------------------------------------------------------------------------
 
-export const LOGO_URL =
-  'https://imagedelivery.net/evIMqF8VHO9ZoWtgAWZmSA/16d57f7d-2c76-46c7-eec0-198c46de1700/avatar';
+// Logo is imported directly in components using: import logoUrl from '@renderer/assets/logo.png';
+export const LOGO_URL = ''; // Use local import instead
 export const DESKTOP_CALLBACK_TIMEOUT_MS = 300_000;
 export const DESKTOP_CALLBACK_PATH = '/oauth/callback';
 export const REMEMBER_LOGIN_KEY = 'nimi.rememberLogin';
