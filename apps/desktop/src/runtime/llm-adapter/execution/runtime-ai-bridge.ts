@@ -8,13 +8,15 @@ const ROUTE_POLICY_TOKEN_API = 2;
 const FALLBACK_POLICY_DENY = 1;
 
 const RUNTIME_REASON_CODE_TO_LOCAL_AI: Record<string, string> = {
-  AI_MODEL_NOT_FOUND: 'LOCAL_AI_CAPABILITY_MISSING',
+  AI_MODEL_NOT_FOUND: ReasonCode.AI_MODEL_NOT_FOUND,
   AI_MODEL_NOT_READY: 'LOCAL_AI_CAPABILITY_MISSING',
+  AI_MODALITY_NOT_SUPPORTED: ReasonCode.AI_MODALITY_NOT_SUPPORTED,
+  AI_MEDIA_OPTION_UNSUPPORTED: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
   AI_PROVIDER_UNAVAILABLE: 'LOCAL_AI_SERVICE_UNREACHABLE',
   AI_PROVIDER_TIMEOUT: 'LOCAL_AI_PROVIDER_TIMEOUT',
   AI_ROUTE_UNSUPPORTED: 'LOCAL_AI_CAPABILITY_MISSING',
   AI_ROUTE_FALLBACK_DENIED: 'LOCAL_AI_CAPABILITY_MISSING',
-  AI_INPUT_INVALID: 'LOCAL_AI_CAPABILITY_MISSING',
+  AI_INPUT_INVALID: ReasonCode.AI_INPUT_INVALID,
   AI_OUTPUT_INVALID: 'LOCAL_AI_PROVIDER_INTERNAL_ERROR',
   AI_STREAM_BROKEN: 'LOCAL_AI_PROVIDER_INTERNAL_ERROR',
   AI_CONTENT_FILTER_BLOCKED: 'LOCAL_AI_CAPABILITY_MISSING',
@@ -31,6 +33,8 @@ const AI_REASON_CODE_NUMERIC: Record<number, string> = {
   207: 'AI_OUTPUT_INVALID',
   208: 'AI_STREAM_BROKEN',
   209: 'AI_CONTENT_FILTER_BLOCKED',
+  351: 'AI_MODALITY_NOT_SUPPORTED',
+  411: 'AI_MEDIA_OPTION_UNSUPPORTED',
 };
 
 const DEFAULT_RUNTIME_ACTION_HINT = 'retry_or_check_runtime_status';
@@ -386,7 +390,7 @@ export function extractRuntimeReasonCode(error: unknown): string | null {
   if (!message) return null;
   const explicit = message.match(/\b(AI_[A-Z_]+)\b/);
   if (explicit?.[1]) return explicit[1];
-  const numeric = message.match(/\b(20\d)\b/);
+  const numeric = message.match(/\b(\d{3})\b/);
   if (numeric?.[1]) {
     const mapped = AI_REASON_CODE_NUMERIC[Number(numeric[1])];
     if (mapped) return mapped;

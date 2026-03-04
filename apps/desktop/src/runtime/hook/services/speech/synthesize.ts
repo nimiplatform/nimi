@@ -15,6 +15,7 @@ import type {
   SpeechSynthesizeResultPayload,
 } from './types.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { resolveSpeechVoiceId } from './voice-resolution.js';
 
 export async function synthesizeModSpeech(
   context: SpeechServiceInput,
@@ -71,6 +72,15 @@ export async function synthesizeModSpeech(
     connectorId,
     providerEndpoint: endpoint,
   });
+  const resolvedVoiceId = await resolveSpeechVoiceId({
+    context,
+    providerId: input.providerId || resolved?.provider,
+    routeSource: source,
+    connectorId,
+    model,
+    providerEndpoint: endpoint,
+    requestedVoiceId: input.voiceId,
+  });
 
   let audioUri = '';
   let mimeType = 'audio/mpeg';
@@ -81,7 +91,7 @@ export async function synthesizeModSpeech(
       subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model,
       text: input.text,
-      voice: input.voiceId,
+      voice: resolvedVoiceId,
       audioFormat: input.format,
       sampleRateHz: input.sampleRateHz,
       speed: input.speakingRate,

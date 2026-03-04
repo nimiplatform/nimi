@@ -15,6 +15,7 @@ import type {
   SpeechStreamCloseInput,
   SpeechStreamOpenInput,
 } from './types.js';
+import { resolveSpeechVoiceId } from './voice-resolution.js';
 
 type SpeechStreamOpenResultPayload = {
   streamId: string;
@@ -82,6 +83,15 @@ export async function openSpeechStream(
       endpoint,
       extra: { stream: true },
     });
+    const resolvedVoiceId = await resolveSpeechVoiceId({
+      context,
+      providerId: input.providerId || resolved?.provider,
+      routeSource: source,
+      connectorId,
+      model,
+      providerEndpoint: endpoint,
+      requestedVoiceId: input.voiceId,
+    });
     const result: SpeechStreamOpenResult = await context.speechEngine.openStream({
       model,
       routeSource: source,
@@ -94,7 +104,7 @@ export async function openSpeechStream(
       request: {
         model,
         text: input.text,
-        voice: input.voiceId,
+        voice: resolvedVoiceId,
         format: input.format,
         sampleRateHz: input.sampleRateHz,
         providerParams,
