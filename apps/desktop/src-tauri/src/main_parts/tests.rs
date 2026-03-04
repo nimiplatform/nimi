@@ -1,7 +1,34 @@
 #[cfg(test)]
 mod tests {
-    use super::{allowed_http_origins, is_private_lan_http_origin, normalize_origin};
+    use super::{
+        allowed_http_origins, is_private_lan_http_origin, normalize_origin, runtime_defaults,
+    };
     use reqwest::Url;
+    use std::collections::HashMap;
+
+    fn with_env(updates: &[(&str, Option<&str>)], run: impl FnOnce()) {
+        let mut previous = HashMap::<String, Option<String>>::new();
+        for (key, value) in updates {
+            previous.insert(
+                (*key).to_string(),
+                std::env::var(key).ok(),
+            );
+            match value {
+                Some(next) => std::env::set_var(key, next),
+                None => std::env::remove_var(key),
+            }
+        }
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
+        for (key, value) in previous {
+            match value {
+                Some(prev) => std::env::set_var(key, prev),
+                None => std::env::remove_var(key),
+            }
+        }
+        if let Err(payload) = result {
+            std::panic::resume_unwind(payload);
+        }
+    }
 
     #[test]
     fn normalize_origin_keeps_scheme_host_and_default_port() {
@@ -19,15 +46,58 @@ mod tests {
 
     #[test]
     fn allowed_http_origins_contains_runtime_defaults() {
-        std::env::set_var("NIMI_REALM_URL", "https://gateway.nimi.xyz/v1");
-        std::env::set_var("NIMI_LOCAL_PROVIDER_ENDPOINT", "http://127.0.0.1:1234/v1");
-        std::env::set_var("NIMI_LOCAL_OPENAI_ENDPOINT", "http://localhost:1234/v1");
+        with_env(
+            &[
+                ("NIMI_REALM_URL", Some("https://gateway.nimi.xyz/v1")),
+                (
+                    "NIMI_LOCAL_PROVIDER_ENDPOINT",
+                    Some("http://127.0.0.1:1234/v1"),
+                ),
+                (
+                    "NIMI_LOCAL_OPENAI_ENDPOINT",
+                    Some("http://localhost:1234/v1"),
+                ),
+            ],
+            || {
+                let origins = allowed_http_origins();
+                assert!(origins.contains("https://gateway.nimi.xyz:443"));
+                assert!(origins.contains("http://127.0.0.1:1234"));
+                assert!(origins.contains("http://localhost:1234"));
+            },
+        );
+    }
 
-        let origins = allowed_http_origins();
+    #[test]
+    fn runtime_defaults_normalizes_loopback_realm_jwt_fields() {
+        with_env(
+            &[
+                ("NIMI_REALM_URL", Some("http://localhost")),
+                ("NIMI_REALM_JWKS_URL", None),
+                ("NIMI_REALM_JWT_ISSUER", None),
+            ],
+            || {
+                let defaults = runtime_defaults();
+                assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
+                assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+                assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
+            },
+        );
+    }
 
-        assert!(origins.contains("https://gateway.nimi.xyz:443"));
-        assert!(origins.contains("http://127.0.0.1:1234"));
-        assert!(origins.contains("http://localhost:1234"));
+    #[test]
+    fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
+        with_env(
+            &[
+                ("NIMI_REALM_URL", Some("http://localhost")),
+                ("NIMI_REALM_JWKS_URL", Some("http://localhost/api/auth/jwks")),
+                ("NIMI_REALM_JWT_ISSUER", Some("http://localhost")),
+            ],
+            || {
+                let defaults = runtime_defaults();
+                assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+                assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
+            },
+        );
     }
 
     #[test]

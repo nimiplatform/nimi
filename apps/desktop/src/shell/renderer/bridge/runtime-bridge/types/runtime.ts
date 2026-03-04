@@ -8,6 +8,9 @@ export type RealmDefaults = {
   realmBaseUrl: string;
   realtimeUrl: string;
   accessToken: string;
+  jwksUrl: string;
+  jwtIssuer: string;
+  jwtAudience: string;
 };
 
 export type RuntimeExecutionDefaults = {
@@ -129,6 +132,21 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
       ),
       realtimeUrl: String(realmRecord.realtimeUrl || '').trim(),
       accessToken: String(realmRecord.accessToken || '').trim(),
+      jwksUrl: parseRequiredString(
+        realmRecord.jwksUrl,
+        'realm.jwksUrl',
+        'runtime_defaults',
+      ),
+      jwtIssuer: parseRequiredString(
+        realmRecord.jwtIssuer,
+        'realm.jwtIssuer',
+        'runtime_defaults',
+      ),
+      jwtAudience: parseRequiredString(
+        realmRecord.jwtAudience,
+        'realm.jwtAudience',
+        'runtime_defaults',
+      ),
     },
     runtime: {
       localProviderEndpoint: parseRequiredString(

@@ -36,6 +36,9 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
       realmBaseUrl: 'http://localhost:3002',
       realtimeUrl: 'http://localhost:3003',
       accessToken: 'token-1',
+      jwksUrl: 'http://localhost:3002/api/auth/jwks',
+      jwtIssuer: 'http://localhost:3002',
+      jwtAudience: 'nimi-runtime',
     },
     runtime: {
       localProviderEndpoint: 'http://127.0.0.1:1234/v1',
@@ -54,6 +57,9 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
   assert.equal(parsed.realm.realmBaseUrl, 'http://localhost:3002');
   assert.equal(parsed.realm.realtimeUrl, 'http://localhost:3003');
   assert.equal(parsed.realm.accessToken, 'token-1');
+  assert.equal(parsed.realm.jwksUrl, 'http://localhost:3002/api/auth/jwks');
+  assert.equal(parsed.realm.jwtIssuer, 'http://localhost:3002');
+  assert.equal(parsed.realm.jwtAudience, 'nimi-runtime');
   assert.equal(parsed.runtime.localProviderModel, 'local-model');
   assert.equal(parsed.runtime.targetType, 'AGENT');
   assert.equal(parsed.runtime.userConfirmedUpload, true);

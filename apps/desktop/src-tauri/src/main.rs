@@ -23,6 +23,9 @@ struct RealmDefaults {
     realm_base_url: String,
     realtime_url: String,
     access_token: String,
+    jwks_url: String,
+    jwt_issuer: String,
+    jwt_audience: String,
 }
 
 #[derive(Debug, Serialize)]

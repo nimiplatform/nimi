@@ -34,6 +34,7 @@ import {
 import {
   buildRuntimeHostCapabilities,
 } from './runtime-bootstrap-host-capabilities';
+import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
 import {
   startExternalAgentActionBridge,
   resyncExternalAgentActionDescriptors,
@@ -79,6 +80,24 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await desktopBridge.getRuntimeDefaults();
+    let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+    if (desktopBridge.hasTauriInvoke()) {
+      daemonStatus = await syncRuntimeJwtConfig({
+        daemonStatus,
+        realmDefaults: defaults.realm,
+        bridge: {
+          getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+          setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+          restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+        },
+      });
+    }
+    const versionResult = checkDaemonVersion(daemonStatus.version);
+    if (!versionResult.ok) {
+      throw new Error(versionResult.message);
+    }
+    registerExitHandler({ managed: daemonStatus.managed });
+
     const resolveCurrentAccessToken = () => {
       const store = useAppStore.getState();
       const authToken = String(store.auth.token || '').trim();
@@ -122,14 +141,6 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     startAuthStateWatcher();
-
-    const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-    const versionResult = checkDaemonVersion(daemonStatus.version);
-    if (!versionResult.ok) {
-      throw new Error(versionResult.message);
-    }
-
-    registerExitHandler({ managed: daemonStatus.managed });
 
     let runtimeModFailures: RuntimeModRegisterFailure[] = [];
     let manifestCount = 0;
