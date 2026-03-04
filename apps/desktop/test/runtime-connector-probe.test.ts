@@ -3,9 +3,79 @@ import test from 'node:test';
 
 import {
   sdkConnectorToApiConnector,
+  sdkCreateConnector,
   providerToVendor,
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service';
+import { initializePlatformClient } from '../src/runtime/platform-client';
+
+type TauriInvokeCall = {
+  command: string;
+  payload: Record<string, unknown>;
+};
+
+type TauriRuntime = {
+  core: {
+    invoke: (command: string, payload?: unknown) => Promise<unknown>;
+  };
+  event: {
+    listen: () => () => void;
+  };
+};
+
+type MutableGlobalTauri = typeof globalThis & {
+  __TAURI__?: TauriRuntime;
+  window?: { __TAURI__?: TauriRuntime };
+};
+
+function unwrapPayload(payload: unknown): Record<string, unknown> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return {};
+  }
+  const root = payload as Record<string, unknown>;
+  const nested = root.payload;
+  if (!nested || typeof nested !== 'object' || Array.isArray(nested)) {
+    return {};
+  }
+  return nested as Record<string, unknown>;
+}
+
+function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
+  const target = globalThis as MutableGlobalTauri;
+  const previousRoot = target.__TAURI__;
+  const previousWindow = target.window;
+  const runtime: TauriRuntime = {
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        calls.push({
+          command,
+          payload: unwrapPayload(payload),
+        });
+        return { responseBytesBase64: '' };
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  };
+  const windowObject = previousWindow || {};
+  windowObject.__TAURI__ = runtime;
+  target.__TAURI__ = runtime;
+  target.window = windowObject;
+
+  return () => {
+    if (typeof previousRoot === 'undefined') {
+      delete target.__TAURI__;
+    } else {
+      target.__TAURI__ = previousRoot;
+    }
+    if (typeof previousWindow === 'undefined') {
+      delete target.window;
+    } else {
+      target.window = previousWindow;
+    }
+  };
+}
 
 test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () => {
   const sdkConnector = {
@@ -147,4 +217,40 @@ test('providerToVendor is case-insensitive', () => {
   assert.equal(providerToVendor('DEEPSEEK'), 'deepseek');
   assert.equal(providerToVendor('Gemini'), 'gemini');
   assert.equal(providerToVendor('OpenAI'), 'gpt');
+});
+
+test('sdkCreateConnector runtime calls include auto authorization and pick refreshed token', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  let token = 'connector-token-1';
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => token,
+    });
+
+    await sdkCreateConnector({
+      provider: 'openai',
+      endpoint: 'https://api.openai.com/v1',
+      label: 'Connector A',
+      apiKey: 'sk-a',
+    });
+
+    token = 'connector-token-2';
+    await sdkCreateConnector({
+      provider: 'openai',
+      endpoint: 'https://api.openai.com/v1',
+      label: 'Connector B',
+      apiKey: 'sk-b',
+    });
+
+    const unaryCalls = calls.filter((call) => call.command === 'runtime_bridge_unary');
+    assert.ok(unaryCalls.length >= 2);
+    const firstCall = unaryCalls[unaryCalls.length - 2];
+    const secondCall = unaryCalls[unaryCalls.length - 1];
+    assert.equal(firstCall?.payload.authorization, 'Bearer connector-token-1');
+    assert.equal(secondCall?.payload.authorization, 'Bearer connector-token-2');
+  } finally {
+    restoreTauri();
+  }
 });
