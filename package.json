@@ -7,6 +7,7 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
+    "preinstall": "node scripts/check-go-env.mjs",
     "build": "pnpm build:sdk && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm check:bundle-size",
     "build:all": "pnpm -r build",
     "build:sdk": "pnpm --filter @nimiplatform/sdk build",
@@ -90,6 +91,7 @@
     "check:realm-spec-kernel-consistency": "node scripts/check-realm-spec-kernel-consistency.mjs",
     "check:realm-spec-kernel-docs-drift": "node scripts/generate-realm-spec-kernel-docs.mjs --check",
     "check:no-legacy-imports": "if rg -n \"@nimiplatform/core-api-client\" . | rg -v \"check:no-legacy-imports\"; then echo \"legacy import @nimiplatform/core-api-client is forbidden\" && exit 1; else exit 0; fi",
+    "check:go-env": "node scripts/check-go-env.mjs",
     "check:no-legacy-app-auth-cli": "if rg -n \"nimi grant|\\`grant \\\\*\\`|\\|grant\\||case \\\"grant\\\"|grant failed\" runtime docs runtime/README.md | rg -v \"runtime/cmd/nimi/usage_text_test.go\" | rg -v \"check:no-legacy-app-auth-cli\"; then echo \"legacy CLI command grant is forbidden; use app-auth\" && exit 1; else exit 0; fi",
     "check:local-chat-service-boundary": "node scripts/check-local-chat-service-boundary.mjs",
     "check:desktop-mods-smoke": "node scripts/check-desktop-mods-smoke.mjs",
