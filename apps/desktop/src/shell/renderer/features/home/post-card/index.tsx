@@ -1,14 +1,16 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
+import { ReportReason } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { dataSync } from '@runtime/data-sync';
 import { AddFriendModal } from './add-friend-modal';
 import { PostCardArticle } from './article';
 import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals';
+import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
 import { normalizeMediaType, resolveMediaUrl, resolveVideoPlaybackSource } from './utils';
@@ -27,6 +29,13 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
   const authorId = String(post.author?.id || (post.author as unknown as { _id?: string })?._id || '').trim();
   const hasMedia = post.media && post.media.length > 0;
   const isOwnPost = Boolean(currentUserId && post.author?.id && post.author.id === currentUserId);
+  const [isLikePending, setIsLikePending] = useState(false);
+  const [isVisibilityPending, setIsVisibilityPending] = useState(false);
+  const [postVisibility, setPostVisibility] = useState<'PUBLIC' | 'FRIENDS' | 'PRIVATE'>(
+    post.visibility === 'PUBLIC' || post.visibility === 'FRIENDS' || post.visibility === 'PRIVATE'
+      ? post.visibility
+      : 'PUBLIC',
+  );
 
   const ui = usePostCardUi({
     authorId,
@@ -55,6 +64,12 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
     ui.setIsFriend(isAuthorFriend);
   }, [isAuthorFriend, ui.setIsFriend]);
 
+  useEffect(() => {
+    if (post.visibility === 'PUBLIC' || post.visibility === 'FRIENDS' || post.visibility === 'PRIVATE') {
+      setPostVisibility(post.visibility);
+    }
+  }, [post.visibility]);
+
   const handleBlockUser = useCallback(async () => {
     if (!authorId) {
       return;
@@ -82,12 +97,13 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
     }
   }, [authorId, post.author.avatarUrl, post.author.displayName, post.author.handle, setStatusBanner, ui]);
 
-  const handleReportPost = useCallback(async (reason: string) => {
+  const handleReportPost = useCallback(async (payload: { reason: keyof typeof ReportReason; description?: string }) => {
     try {
-      await (dataSync as unknown as { createReport: (params: { targetType: string; targetId: string; reason: string }) => Promise<void> }).createReport({
+      await dataSync.createReport({
         targetType: 'POST',
         targetId: post.id,
-        reason,
+        reason: payload.reason,
+        description: payload.description,
       });
       setStatusBanner({ kind: 'success', message: 'Report submitted successfully' });
     } catch (error) {
@@ -99,6 +115,54 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
       ui.setShowReportModal(false);
     }
   }, [post.id, setStatusBanner, ui]);
+
+  const handleToggleLike = useCallback(async () => {
+    if (!post.id || isLikePending) {
+      return;
+    }
+    const previous = ui.isLiked;
+    const next = !previous;
+    ui.setIsLiked(next);
+    setIsLikePending(true);
+    try {
+      if (next) {
+        await dataSync.likePost(post.id);
+      } else {
+        await dataSync.unlikePost(post.id);
+      }
+    } catch (error) {
+      ui.setIsLiked(previous);
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update like',
+      });
+    } finally {
+      setIsLikePending(false);
+    }
+  }, [isLikePending, post.id, setStatusBanner, ui]);
+
+  const handleUpdateVisibility = useCallback(async (visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
+    if (!post.id || isVisibilityPending) {
+      return;
+    }
+    setIsVisibilityPending(true);
+    try {
+      await dataSync.updatePostVisibility(post.id, visibility);
+      setPostVisibility(visibility);
+      setStatusBanner({
+        kind: 'success',
+        message: 'Post visibility updated',
+      });
+      ui.setShowEditVisibilityModal(false);
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update post visibility',
+      });
+    } finally {
+      setIsVisibilityPending(false);
+    }
+  }, [isVisibilityPending, post.id, setStatusBanner, ui]);
 
   const handleDeletePost = useCallback(async () => {
     if (!post.id) {
@@ -221,6 +285,7 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
         isFriend={ui.isFriend}
         isOwnPost={isOwnPost}
         isLiked={ui.isLiked}
+        isLikePending={isLikePending}
         showPostMenu={ui.showPostMenu}
         menuButtonRef={ui.menuButtonRef}
         firstMediaType={firstMediaType}
@@ -234,7 +299,9 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
         onOpenDeleteConfirm={ui.openDeleteConfirm}
         onOpenBlockConfirm={ui.openBlockConfirm}
         onOpenReportModal={ui.openReportModal}
-        onToggleLike={ui.toggleLike}
+        onToggleLike={() => {
+          void handleToggleLike();
+        }}
         onChat={() => {
           void handleChat();
         }}
@@ -284,6 +351,15 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
           post={post}
           onClose={() => ui.setShowReportModal(false)}
           onSubmit={handleReportPost}
+        />
+      ) : null}
+
+      {ui.showEditVisibilityModal ? (
+        <EditVisibilityModal
+          currentVisibility={postVisibility}
+          pending={isVisibilityPending}
+          onClose={() => ui.setShowEditVisibilityModal(false)}
+          onSubmit={handleUpdateVisibility}
         />
       ) : null}
 

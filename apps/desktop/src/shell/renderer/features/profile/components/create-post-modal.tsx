@@ -57,21 +57,25 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
-// Mock locations data
-const MOCK_LOCATIONS: Location[] = [
-  { id: '1', name: 'Central Park', address: 'New York, NY, USA' },
-  { id: '2', name: 'Times Square', address: 'Manhattan, New York, NY' },
-  { id: '3', name: 'Eiffel Tower', address: 'Paris, France' },
-  { id: '4', name: 'Tokyo Tower', address: 'Minato City, Tokyo, Japan' },
-  { id: '5', name: 'Sydney Opera House', address: 'Sydney NSW, Australia' },
-  { id: '6', name: 'Big Ben', address: 'London, UK' },
-  { id: '7', name: 'Burj Khalifa', address: 'Dubai, United Arab Emirates' },
-  { id: '8', name: 'Golden Gate Bridge', address: 'San Francisco, CA, USA' },
-  { id: '9', name: 'Great Wall of China', address: 'Beijing, China' },
-  { id: '10', name: 'Mount Fuji', address: 'Shizuoka, Japan' },
-  { id: '11', name: 'Statue of Liberty', address: 'New York, NY, USA' },
-  { id: '12', name: 'Colosseum', address: 'Rome, Italy' },
-];
+function mapWorldToLocation(raw: unknown): Location | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+  const record = raw as Record<string, unknown>;
+  const id = String(record.id || '').trim();
+  const name = String(record.name || '').trim();
+  if (!id || !name) {
+    return null;
+  }
+  const genre = String(record.genre || '').trim();
+  const era = String(record.era || '').trim();
+  const address = [genre, era].filter(Boolean).join(' · ') || 'Nimi World';
+  return {
+    id,
+    name,
+    address,
+  };
+}
 
 function extractHashtags(text: string): string[] {
   const matches = text.match(/#[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+/g);
@@ -93,6 +97,8 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
   const [showLocationPanel, setShowLocationPanel] = useState(false);
   const [showTagPanel, setShowTagPanel] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
   const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
   const [locationSearch, setLocationSearch] = useState('');
@@ -138,7 +144,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
   const captionTags = extractHashtags(caption);
   const tags = [...new Set([...selectedTags, ...captionTags])];
 
-  const filteredLocations = MOCK_LOCATIONS.filter(
+  const filteredLocations = availableLocations.filter(
     (loc) =>
       loc.name.toLowerCase().includes(locationSearch.toLowerCase()) ||
       loc.address.toLowerCase().includes(locationSearch.toLowerCase())
@@ -159,6 +165,39 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     setTagSearch('');
     setSelectedTags([]);
   }, [selectedFile]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    let canceled = false;
+    setLoadingLocations(true);
+    void dataSync.loadWorlds()
+      .then((payload) => {
+        if (canceled) {
+          return;
+        }
+        const normalized = Array.isArray(payload)
+          ? payload
+            .map((item) => mapWorldToLocation(item))
+            .filter((item): item is Location => item !== null)
+          : [];
+        setAvailableLocations(normalized);
+      })
+      .catch(() => {
+        if (!canceled) {
+          setAvailableLocations([]);
+        }
+      })
+      .finally(() => {
+        if (!canceled) {
+          setLoadingLocations(false);
+        }
+      });
+    return () => {
+      canceled = true;
+    };
+  }, [open]);
 
   const handleClose = useCallback(() => {
     reset();
@@ -766,7 +805,11 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
           </div>
           {/* Location list */}
           <div className="max-h-48 overflow-y-auto py-2">
-            {filteredLocations.length > 0 ? (
+            {loadingLocations ? (
+              <div className="px-3 py-4 text-center text-sm text-gray-500">
+                Loading locations...
+              </div>
+            ) : filteredLocations.length > 0 ? (
               filteredLocations.map((location) => (
                 <button
                   key={location.id}
@@ -793,7 +836,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
               ))
             ) : (
               <div className="px-3 py-4 text-center text-sm text-gray-500">
-                No locations found
+                {availableLocations.length > 0 ? 'No locations found' : 'No worlds available'}
               </div>
             )}
           </div>

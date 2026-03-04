@@ -11,6 +11,7 @@ export type PostCardArticleProps = {
   isFriend: boolean;
   isOwnPost: boolean;
   isLiked: boolean;
+  isLikePending?: boolean;
   showPostMenu: boolean;
   menuButtonRef: RefObject<HTMLButtonElement | null>;
   firstMediaType: PostMediaType | null;
@@ -223,9 +224,10 @@ export function PostCardArticle(props: PostCardArticleProps) {
               event.stopPropagation();
               props.onToggleLike();
             }}
+            disabled={props.isLikePending}
             className={`flex items-center justify-center transition-colors ${
               props.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
-            }`}
+            } disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <HeartIcon size={18} filled={props.isLiked} />
           </button>

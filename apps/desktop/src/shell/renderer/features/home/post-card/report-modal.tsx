@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import type { PostDto } from '@nimiplatform/sdk/realm';
+import { ReportReason } from '@nimiplatform/sdk/realm';
 
 const REPORT_REASONS = [
-  { value: 'SPAM', label: 'Spam' },
-  { value: 'HARASSMENT', label: 'Harassment or bullying' },
-  { value: 'INAPPROPRIATE_CONTENT', label: 'Inappropriate content' },
-  { value: 'MISINFORMATION', label: 'Misinformation' },
-  { value: 'HATE_SPEECH', label: 'Hate speech' },
-  { value: 'VIOLENCE', label: 'Violence or dangerous content' },
-  { value: 'COPYRIGHT', label: 'Copyright infringement' },
-  { value: 'OTHER', label: 'Other' },
+  { value: ReportReason.SPAM, label: 'Spam' },
+  { value: ReportReason.NSFW, label: 'NSFW content' },
+  { value: ReportReason.HATE_SPEECH, label: 'Hate speech' },
+  { value: ReportReason.SCAM, label: 'Scam or fraud' },
+  { value: ReportReason.OTHER, label: 'Other' },
 ] as const;
 
 export function ReportModal({
@@ -19,9 +17,9 @@ export function ReportModal({
 }: {
   post: PostDto;
   onClose: () => void;
-  onSubmit: (reason: string) => Promise<void>;
+  onSubmit: (payload: { reason: keyof typeof ReportReason; description?: string }) => Promise<void>;
 }) {
-  const [selectedReason, setSelectedReason] = useState('');
+  const [selectedReason, setSelectedReason] = useState<keyof typeof ReportReason | ''>('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,7 +29,10 @@ export function ReportModal({
     }
     setIsSubmitting(true);
     try {
-      await onSubmit(selectedReason);
+      await onSubmit({
+        reason: selectedReason,
+        description: description.trim() || undefined,
+      });
     } finally {
       setIsSubmitting(false);
     }

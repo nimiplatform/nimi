@@ -18,15 +18,18 @@ export type UsePostCardUiResult = {
   showPostMenu: boolean;
   showBlockConfirm: boolean;
   showReportModal: boolean;
+  showEditVisibilityModal: boolean;
   showDeleteConfirm: boolean;
   isBlocking: boolean;
   isDeleting: boolean;
   menuButtonRef: RefObject<HTMLButtonElement | null>;
+  setIsLiked: (next: boolean) => void;
   setIsFriend: (next: boolean) => void;
   setIsSendGiftOpen: (next: boolean) => void;
   setShowAddFriendModal: (next: boolean) => void;
   setShowBlockConfirm: (next: boolean) => void;
   setShowReportModal: (next: boolean) => void;
+  setShowEditVisibilityModal: (next: boolean) => void;
   setShowDeleteConfirm: (next: boolean) => void;
   setIsBlocking: (next: boolean) => void;
   setIsDeleting: (next: boolean) => void;
@@ -50,6 +53,7 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showEditVisibilityModal, setShowEditVisibilityModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -106,12 +110,9 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
   const openEditPost = useCallback(() => {
     setShowPostMenu(false);
     setTimeout(() => {
-      setStatusBanner({
-        kind: 'info',
-        message: 'Edit post feature coming soon',
-      });
+      setShowEditVisibilityModal(true);
     }, 0);
-  }, [setStatusBanner]);
+  }, []);
 
   const openDeleteConfirm = useCallback(() => {
     setShowPostMenu(false);
@@ -142,15 +143,18 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     showPostMenu,
     showBlockConfirm,
     showReportModal,
+    showEditVisibilityModal,
     showDeleteConfirm,
     isBlocking,
     isDeleting,
     menuButtonRef,
+    setIsLiked,
     setIsFriend,
     setIsSendGiftOpen,
     setShowAddFriendModal,
     setShowBlockConfirm,
     setShowReportModal,
+    setShowEditVisibilityModal,
     setShowDeleteConfirm,
     setIsBlocking,
     setIsDeleting,
