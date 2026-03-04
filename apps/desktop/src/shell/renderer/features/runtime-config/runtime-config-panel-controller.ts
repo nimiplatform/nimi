@@ -133,7 +133,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     return () => {
       clearInterval(timer);
     };
-  }, [daemon, panelState.hydrated]);
+  }, [daemon.refreshRuntimeDaemonStatus, panelState.hydrated]);
 
   useEffect(() => {
     if (!panelState.hydrated || !panelState.state) return;
