@@ -2,9 +2,18 @@ import type { DesktopChatRouteRequestDto } from '@runtime/chat';
 import type { DesktopChatRouteResultDto } from '@runtime/chat';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
+import type { CreateReportDto } from '@nimiplatform/sdk/realm';
+import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
+import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
+import type { OAuthProvider } from '@nimiplatform/sdk/realm';
+import type { RequestAccountDeletionInput } from '@nimiplatform/sdk/realm';
+import type { RequestAccountDeletionOutput } from '@nimiplatform/sdk/realm';
+import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
+import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
+import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { PasswordAuthDebug } from './auth';
@@ -96,16 +105,28 @@ import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import {
+  createReport,
   createImageDirectUpload,
   createPost,
   createVideoDirectUpload,
   deletePost,
+  likePost,
   loadPostFeed,
+  unlikePost,
+  updatePostVisibility,
 } from './flows/post-media-flow';
 import {
+  disableTwoFactor,
+  enableTwoFactor,
+  linkOauth,
   loadMyCreatorEligibility,
   loadMyNotificationSettings,
   loadMySettings,
+  prepareTwoFactor,
+  requestAccountDeletion,
+  requestDataExport,
+  unlinkOauth,
+  updatePassword,
   updateMyNotificationSettings,
   updateMySettings,
 } from './flows/settings-flow';
@@ -306,6 +327,17 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
     deletePost: async (postId: string) =>
       deletePost(input.callApiTask, input.emitFacadeError, postId),
+    updatePostVisibility: async (
+      postId: string,
+      visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
+    ) =>
+      updatePostVisibility(input.callApiTask, input.emitFacadeError, postId, visibility),
+    likePost: async (postId: string) =>
+      likePost(input.callApiTask, input.emitFacadeError, postId),
+    unlikePost: async (postId: string) =>
+      unlikePost(input.callApiTask, input.emitFacadeError, postId),
+    createReport: async (payload: CreateReportDto) =>
+      createReport(input.callApiTask, input.emitFacadeError, payload),
     loadCurrencyBalances: async () =>
       loadCurrencyBalances(input.callApiTask, input.emitFacadeError),
     loadSparkTransactionHistory: async (limit = 30, cursor?: string) =>
@@ -355,6 +387,24 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       updateMyNotificationSettings(input.callApiTask, input.emitFacadeError, payload),
     loadMyCreatorEligibility: async () =>
       loadMyCreatorEligibility(input.callApiTask, input.emitFacadeError),
+    updatePassword: async (payload: UpdatePasswordRequestDto) =>
+      updatePassword(input.callApiTask, input.emitFacadeError, payload),
+    prepareTwoFactor: async (): Promise<MeTwoFactorPrepareOutput> =>
+      prepareTwoFactor(input.callApiTask, input.emitFacadeError),
+    enableTwoFactor: async (payload: MeTwoFactorVerifyInput) =>
+      enableTwoFactor(input.callApiTask, input.emitFacadeError, payload),
+    disableTwoFactor: async (payload: MeTwoFactorVerifyInput) =>
+      disableTwoFactor(input.callApiTask, input.emitFacadeError, payload),
+    linkOauth: async (provider: OAuthProvider, accessToken: string) =>
+      linkOauth(input.callApiTask, input.emitFacadeError, provider, accessToken),
+    unlinkOauth: async (provider: OAuthProvider) =>
+      unlinkOauth(input.callApiTask, input.emitFacadeError, provider),
+    requestDataExport: async (payload: RequestDataExportInput): Promise<RequestDataExportOutput> =>
+      requestDataExport(input.callApiTask, input.emitFacadeError, payload),
+    requestAccountDeletion: async (
+      payload: RequestAccountDeletionInput,
+    ): Promise<RequestAccountDeletionOutput> =>
+      requestAccountDeletion(input.callApiTask, input.emitFacadeError, payload),
     loadAgentDetails: async (agentIdentifier: string) =>
       loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier),
     recallAgentMemoryForEntity: async (inputPayload: {

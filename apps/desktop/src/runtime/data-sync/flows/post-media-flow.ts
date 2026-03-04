@@ -1,8 +1,10 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
+import type { CreateReportDto } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { DirectUploadResponseDto } from '@nimiplatform/sdk/realm';
 import type { FeedResponseDto } from '@nimiplatform/sdk/realm';
 import type { PostDto } from '@nimiplatform/sdk/realm';
+import type { ReportResponseDto } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -129,6 +131,78 @@ export async function deletePost(
     );
   } catch (error) {
     emitDataSyncError('delete-post', error, { postId });
+    throw error;
+  }
+}
+
+export async function updatePostVisibility(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  postId: string,
+  visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
+): Promise<PostDto> {
+  try {
+    return await callApi(
+      (realm) => realm.services.PostService.updatePost(postId, { visibility }),
+      '更新帖子可见性失败',
+    );
+  } catch (error) {
+    emitDataSyncError('update-post-visibility', error, {
+      postId,
+      visibility,
+    });
+    throw error;
+  }
+}
+
+export async function likePost(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  postId: string,
+): Promise<void> {
+  try {
+    await callApi(
+      (realm) => realm.services.PostService.likePost(postId),
+      '点赞失败',
+    );
+  } catch (error) {
+    emitDataSyncError('like-post', error, { postId });
+    throw error;
+  }
+}
+
+export async function unlikePost(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  postId: string,
+): Promise<void> {
+  try {
+    await callApi(
+      (realm) => realm.services.PostService.unlikePost(postId),
+      '取消点赞失败',
+    );
+  } catch (error) {
+    emitDataSyncError('unlike-post', error, { postId });
+    throw error;
+  }
+}
+
+export async function createReport(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  payload: CreateReportDto,
+): Promise<ReportResponseDto> {
+  try {
+    return await callApi(
+      (realm) => realm.services.GovernanceService.reportControllerCreateReport(payload),
+      '举报失败',
+    );
+  } catch (error) {
+    emitDataSyncError('create-report', error, {
+      targetType: payload.targetType,
+      targetId: payload.targetId,
+      reason: payload.reason,
+    });
     throw error;
   }
 }

@@ -1,8 +1,20 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
+import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
+import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
+import type { OAuthProvider } from '@nimiplatform/sdk/realm';
+import type { RequestAccountDeletionInput } from '@nimiplatform/sdk/realm';
+import type { RequestAccountDeletionOutput } from '@nimiplatform/sdk/realm';
+import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
+import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
+import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserSettingsDto } from '@nimiplatform/sdk/realm';
+import {
+  requestAccountDeletion as requestRealmAccountDeletion,
+  requestDataExport as requestRealmDataExport,
+} from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -120,6 +132,149 @@ export async function loadMyCreatorEligibility(
     };
   } catch (error) {
     emitDataSyncError('load-my-creator-eligibility', error);
+    throw error;
+  }
+}
+
+export async function updatePassword(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  payload: UpdatePasswordRequestDto,
+): Promise<{ success: boolean }> {
+  try {
+    await callApi(
+      (realm) => realm.services.AuthService.updatePassword(payload),
+      '修改密码失败',
+    );
+    return {
+      success: true,
+    };
+  } catch (error) {
+    emitDataSyncError('update-password', error);
+    throw error;
+  }
+}
+
+export async function prepareTwoFactor(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+): Promise<MeTwoFactorPrepareOutput> {
+  try {
+    return await callApi(
+      (realm) => realm.services.MeTwoFactorService.prepareTwoFactor(),
+      '生成 2FA 配置失败',
+    );
+  } catch (error) {
+    emitDataSyncError('prepare-two-factor', error);
+    throw error;
+  }
+}
+
+export async function enableTwoFactor(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  payload: MeTwoFactorVerifyInput,
+): Promise<{ enabled: boolean }> {
+  try {
+    await callApi(
+      (realm) => realm.services.MeTwoFactorService.enableTwoFactor(payload),
+      '启用 2FA 失败',
+    );
+    return {
+      enabled: true,
+    };
+  } catch (error) {
+    emitDataSyncError('enable-two-factor', error);
+    throw error;
+  }
+}
+
+export async function disableTwoFactor(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  payload: MeTwoFactorVerifyInput,
+): Promise<{ enabled: boolean }> {
+  try {
+    await callApi(
+      (realm) => realm.services.MeTwoFactorService.disableTwoFactor(payload),
+      '停用 2FA 失败',
+    );
+    return {
+      enabled: false,
+    };
+  } catch (error) {
+    emitDataSyncError('disable-two-factor', error);
+    throw error;
+  }
+}
+
+export async function linkOauth(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  provider: OAuthProvider,
+  accessToken: string,
+): Promise<{ linked: boolean }> {
+  try {
+    await callApi(
+      (realm) => realm.services.AuthService.linkOauth({ provider, accessToken }),
+      '绑定第三方账号失败',
+    );
+    return {
+      linked: true,
+    };
+  } catch (error) {
+    emitDataSyncError('link-oauth', error, { provider });
+    throw error;
+  }
+}
+
+export async function unlinkOauth(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  provider: OAuthProvider,
+): Promise<{ linked: boolean }> {
+  try {
+    await callApi(
+      (realm) => realm.services.AuthService.unlinkOauth(provider),
+      '解绑第三方账号失败',
+    );
+    return {
+      linked: false,
+    };
+  } catch (error) {
+    emitDataSyncError('unlink-oauth', error, { provider });
+    throw error;
+  }
+}
+
+export async function requestDataExport(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  payload: RequestDataExportInput,
+): Promise<RequestDataExportOutput> {
+  try {
+    return await callApi(
+      (realm) => requestRealmDataExport(realm, payload),
+      '请求数据导出失败',
+    );
+  } catch (error) {
+    emitDataSyncError('request-data-export', error);
+    throw error;
+  }
+}
+
+export async function requestAccountDeletion(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  payload: RequestAccountDeletionInput,
+): Promise<RequestAccountDeletionOutput> {
+  try {
+    return await callApi(
+      (realm) => requestRealmAccountDeletion(realm, payload),
+      '请求删除账号失败',
+    );
+  } catch (error) {
+    emitDataSyncError('request-account-deletion', error);
     throw error;
   }
 }

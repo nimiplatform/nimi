@@ -3,12 +3,21 @@ import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@run
 import { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
+import type { CreateReportDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
+import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
+import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
+import type { OAuthProvider } from '@nimiplatform/sdk/realm';
+import type { RequestAccountDeletionInput } from '@nimiplatform/sdk/realm';
+import type { RequestAccountDeletionOutput } from '@nimiplatform/sdk/realm';
+import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
+import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
+import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
@@ -338,6 +347,12 @@ export class DataSync {
   createImageDirectUpload() { return this.actions.createImageDirectUpload(); }
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }
   deletePost(postId: string) { return this.actions.deletePost(postId); }
+  updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') {
+    return this.actions.updatePostVisibility(postId, visibility);
+  }
+  likePost(postId: string): Promise<void> { return this.actions.likePost(postId); }
+  unlikePost(postId: string): Promise<void> { return this.actions.unlikePost(postId); }
+  createReport(payload: CreateReportDto) { return this.actions.createReport(payload); }
   loadCurrencyBalances() { return this.actions.loadCurrencyBalances(); }
   loadSparkTransactionHistory(limit = 30, cursor?: string) {
     return this.actions.loadSparkTransactionHistory(limit, cursor);
@@ -383,6 +398,30 @@ export class DataSync {
   }
   loadMyCreatorEligibility(): Promise<CreatorEligibility> {
     return this.actions.loadMyCreatorEligibility();
+  }
+  updatePassword(payload: UpdatePasswordRequestDto): Promise<{ success: boolean }> {
+    return this.actions.updatePassword(payload);
+  }
+  prepareTwoFactor(): Promise<MeTwoFactorPrepareOutput> {
+    return this.actions.prepareTwoFactor();
+  }
+  enableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> {
+    return this.actions.enableTwoFactor(payload);
+  }
+  disableTwoFactor(payload: MeTwoFactorVerifyInput): Promise<{ enabled: boolean }> {
+    return this.actions.disableTwoFactor(payload);
+  }
+  linkOauth(provider: OAuthProvider, accessToken: string): Promise<{ linked: boolean }> {
+    return this.actions.linkOauth(provider, accessToken);
+  }
+  unlinkOauth(provider: OAuthProvider): Promise<{ linked: boolean }> {
+    return this.actions.unlinkOauth(provider);
+  }
+  requestDataExport(payload: RequestDataExportInput): Promise<RequestDataExportOutput> {
+    return this.actions.requestDataExport(payload);
+  }
+  requestAccountDeletion(payload: RequestAccountDeletionInput): Promise<RequestAccountDeletionOutput> {
+    return this.actions.requestAccountDeletion(payload);
   }
   loadMyAgents() { return this.actions.loadMyAgents(); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }
