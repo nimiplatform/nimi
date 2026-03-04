@@ -1,8 +1,12 @@
 import type { SpeechServiceInput } from './types.js';
 import { normalizeSpeechProviderId } from './types.js';
 
+type SpeechVoiceResolverContext = {
+  speechEngine: Pick<SpeechServiceInput['speechEngine'], 'listVoices'>;
+};
+
 type ResolveSpeechVoiceIdInput = {
-  context: SpeechServiceInput;
+  context: SpeechVoiceResolverContext;
   providerId?: string;
   routeSource: 'local-runtime' | 'token-api';
   connectorId?: string;

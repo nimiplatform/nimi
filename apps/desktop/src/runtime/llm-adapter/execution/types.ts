@@ -59,6 +59,7 @@ export type InvokeModLlmInput = {
 export type InvokeModLlmOutput = {
   text: string;
   promptTraceId: string;
+  traceId: string;
 };
 
 export type InvokeModEmbeddingInput = {
@@ -76,6 +77,7 @@ export type InvokeModEmbeddingInput = {
 
 export type InvokeModEmbeddingOutput = {
   embeddings: number[][];
+  traceId: string;
 };
 
 export type InvokeModTranscribeInput = {
@@ -111,6 +113,7 @@ export type InvokeModImageInput = {
 
 export type InvokeModImageOutput = {
   images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>;
+  traceId: string;
 };
 
 export type InvokeModVideoInput = {
@@ -129,10 +132,12 @@ export type InvokeModVideoInput = {
 
 export type InvokeModVideoOutput = {
   videos: Array<{ uri?: string; mimeType?: string }>;
+  traceId: string;
 };
 
 export type InvokeModTranscribeOutput = {
   text: string;
+  traceId: string;
 };
 
 export type InvokeModLlmStreamEvent =

@@ -26,6 +26,10 @@ type OpenStreamInput = {
   };
 };
 
+type RuntimeClientLike = ReturnType<typeof getRuntimeClient>;
+type RuntimeClientResolver = () => RuntimeClientLike;
+type MetadataBuilder = typeof buildRuntimeRequestMetadata;
+
 export type ListVoicesInput = {
   providerId?: string;
   model?: string;
@@ -34,16 +38,36 @@ export type ListVoicesInput = {
   providerEndpoint?: string;
 };
 
+function ensureRouteSpeechModelId(model: string, routeSource: 'local-runtime' | 'token-api'): string {
+  const normalized = String(model || '').trim();
+  if (!normalized) return normalized;
+  if (routeSource !== 'token-api') return normalized;
+
+  const lower = normalized.toLowerCase();
+  if (lower.startsWith('cloud/')) return normalized;
+  if (lower.startsWith('local/')) return `cloud/${normalized.slice('local/'.length).trim() || 'default'}`;
+  if (lower.startsWith('token/')) return `cloud/${normalized.slice('token/'.length).trim() || 'default'}`;
+  return `cloud/${normalized}`;
+}
+
 export class NimiSpeechEngine {
   private readonly streamRuntime?: SpeechStreamRuntime;
   private fetchImpl?: typeof fetch;
+  private readonly resolveRuntimeClient: RuntimeClientResolver;
+  private readonly buildMetadata: MetadataBuilder;
 
-  constructor(input?: { publish?: StreamPublisher }) {
+  constructor(input?: {
+    publish?: StreamPublisher;
+    getRuntimeClient?: RuntimeClientResolver;
+    buildRuntimeRequestMetadata?: MetadataBuilder;
+  }) {
     this.streamRuntime = input?.publish
       ? new SpeechStreamRuntime({
         publish: async (topic, event) => input.publish?.(topic, event as unknown as Record<string, unknown>) ?? Promise.resolve(),
       })
       : undefined;
+    this.resolveRuntimeClient = input?.getRuntimeClient || getRuntimeClient;
+    this.buildMetadata = input?.buildRuntimeRequestMetadata || buildRuntimeRequestMetadata;
   }
 
   setFetchImpl(fn: typeof fetch): void {
@@ -56,14 +80,18 @@ export class NimiSpeechEngine {
 
   async listVoices(input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
     if (!input?.model) return [];
-    const runtime = getRuntimeClient();
-    const metadata = await buildRuntimeRequestMetadata({
-      source: input.routeSource || 'token-api',
+    const routeSource = input.routeSource === 'local-runtime' ? 'local-runtime' : 'token-api';
+    const model = ensureRouteSpeechModelId(input.model, routeSource);
+    const runtime = this.resolveRuntimeClient();
+    const metadata = await this.buildMetadata({
+      source: routeSource,
       connectorId: input.connectorId,
       providerEndpoint: input.providerEndpoint,
     });
     const result = await runtime.media.tts.listVoices({
-      model: input.model,
+      model,
+      route: routeSource,
+      fallback: 'deny',
       connectorId: input.connectorId,
       metadata,
     });

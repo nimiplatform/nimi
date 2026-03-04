@@ -15,6 +15,21 @@ evidence_catalog:
     command: pnpm --filter @nimiplatform/desktop test
     path: apps/desktop/package.json
     description: Desktop quality + unit tests for behavior regression coverage.
+  desktop_mods_smoke_gate:
+    type: smoke_gate
+    command: pnpm check:desktop-mods-smoke:local-chat
+    path: scripts/check-desktop-mods-smoke.mjs
+    description: Desktop hook runtime can discover/build/sync local-chat mod resources.
+  local_chat_e2e_gate:
+    type: e2e_gate
+    command: pnpm check:local-chat-e2e
+    path: nimi-mods/local-chat/test/local-chat-run-text-turn.e2e.test.ts
+    description: Deterministic local-chat turn pipeline e2e coverage for planner/fallback semantics.
+  local_chat_live_smoke_gate:
+    type: live_gate
+    command: pnpm check:local-chat-live-smoke
+    path: nimi-mods/local-chat/test/local-chat-live-smoke.test.ts
+    description: Live local-chat e2e gate for real provider routing and trace continuity.
 rules:
   - rule_id: D-AUTH-001
     status: covered
@@ -466,6 +481,27 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+  - rule_id: D-LLM-007
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - desktop_mods_smoke_gate
+  - rule_id: D-LLM-008
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_lint_gate
+      - desktop_test_gate
+      - local_chat_e2e_gate
+  - rule_id: D-LLM-009
+    status: covered
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_mods_smoke_gate
+      - local_chat_e2e_gate
+      - local_chat_live_smoke_gate
   - rule_id: D-MOD-001
     status: covered
     evidence_refs:

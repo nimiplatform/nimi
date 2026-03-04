@@ -4,6 +4,7 @@ import { createHookRecord } from '../utils.js';
 import {
   asRuntimeInvokeError,
   buildRuntimeRequestMetadata,
+  createRuntimeTraceId,
   extractRuntimeReasonCode,
   getRuntimeClient,
   toLocalAiReasonCode,
@@ -54,23 +55,25 @@ export async function synthesizeModSpeech(
   if (String(input.stylePrompt || '').trim()) {
     providerParams.instruct = String(input.stylePrompt || '').trim();
   }
-  emitInferenceAudit({
-    eventType: 'inference_invoked',
-    modId: input.modId,
-    source,
-    provider: resolved?.provider || 'openai-compatible',
-    modality: 'tts',
-    adapter: resolved?.adapter || 'openai_compat_adapter',
-    model,
-    endpoint,
-    extra: { connectorId },
-  });
-
   const runtime = getRuntimeClient();
   const metadata = await buildRuntimeRequestMetadata({
     source,
     connectorId,
     providerEndpoint: endpoint,
+  });
+  let runtimeTraceId = String(metadata.traceId || metadata['x-nimi-trace-id'] || '').trim() || createRuntimeTraceId('mod-tts');
+  emitInferenceAudit({
+    eventType: 'inference_invoked',
+    modId: input.modId,
+    source,
+    routeSource: source,
+    provider: resolved?.provider || 'openai-compatible',
+    modality: 'tts',
+    adapter: resolved?.adapter || 'openai_compat_adapter',
+    model,
+    endpoint,
+    traceId: runtimeTraceId,
+    extra: { connectorId },
   });
   const resolvedVoiceId = await resolveSpeechVoiceId({
     context,
@@ -88,7 +91,6 @@ export async function synthesizeModSpeech(
 
   try {
     const generated = await runtime.media.tts.synthesize({
-      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model,
       text: input.text,
       voice: resolvedVoiceId,
@@ -118,8 +120,10 @@ export async function synthesizeModSpeech(
     const base64 = toBase64(artifact.bytes);
     audioUri = base64 ? `data:${mimeType};base64,${base64}` : '';
     providerTraceId = String(generated.trace.traceId || '').trim();
+    runtimeTraceId = providerTraceId || runtimeTraceId;
   } catch (error) {
     const normalizedError = asRuntimeInvokeError(error, {
+      traceId: runtimeTraceId,
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
       actionHint: 'retry_or_check_runtime_status',
     });
@@ -132,11 +136,13 @@ export async function synthesizeModSpeech(
       eventType: 'inference_failed',
       modId: input.modId,
       source,
+      routeSource: source,
       provider: resolved?.provider || 'openai-compatible',
       modality: 'tts',
       adapter: resolved?.adapter || 'openai_compat_adapter',
       model,
       endpoint,
+      traceId: normalizedError.traceId || runtimeTraceId || undefined,
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: {
@@ -153,11 +159,13 @@ export async function synthesizeModSpeech(
       eventType: 'inference_failed',
       modId: input.modId,
       source,
+      routeSource: source,
       provider: resolved?.provider || 'openai-compatible',
       modality: 'tts',
       adapter: resolved?.adapter || 'openai_compat_adapter',
       model,
       endpoint,
+      traceId: runtimeTraceId,
       reasonCode: ReasonCode.PLAY_PROVIDER_UNAVAILABLE,
       detail: 'speech provider returned empty audioUri',
       extra: { connectorId },
@@ -183,6 +191,7 @@ export async function synthesizeModSpeech(
     mimeType,
     durationMs: undefined,
     sampleRateHz: input.sampleRateHz,
+    traceId: runtimeTraceId || providerTraceId || createRuntimeTraceId('mod-tts'),
     providerTraceId: providerTraceId || `speech:${Date.now().toString(36)}`,
     cacheKey: undefined,
   };

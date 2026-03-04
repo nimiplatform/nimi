@@ -9,6 +9,9 @@
 | `desktop_kernel_consistency` | `static_gate` | `pnpm check:desktop-spec-kernel-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
+| `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke:local-chat` | `scripts/check-desktop-mods-smoke.mjs` | Desktop hook runtime can discover/build/sync local-chat mod resources. |
+| `local_chat_e2e_gate` | `e2e_gate` | `pnpm check:local-chat-e2e` | `nimi-mods/local-chat/test/local-chat-run-text-turn.e2e.test.ts` | Deterministic local-chat turn pipeline e2e coverage for planner/fallback semantics. |
+| `local_chat_live_smoke_gate` | `live_gate` | `pnpm check:local-chat-live-smoke` | `nimi-mods/local-chat/test/local-chat-live-smoke.test.ts` | Live local-chat e2e gate for real provider routing and trace continuity. |
 
 ## Rule Coverage Matrix
 
@@ -89,6 +92,9 @@
 | `D-LLM-004` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-006` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-007` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_mods_smoke_gate` |
+| `D-LLM-008` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `local_chat_e2e_gate` |
+| `D-LLM-009` | `covered` | `desktop_kernel_consistency`, `desktop_mods_smoke_gate`, `local_chat_e2e_gate`, `local_chat_live_smoke_gate` |
 | `D-MOD-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MOD-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-MOD-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

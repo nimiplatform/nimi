@@ -1,6 +1,7 @@
 import { emitInferenceAudit } from './inference-audit';
 import {
   asRuntimeInvokeError,
+  createRuntimeTraceId,
   extractRuntimeReasonCode,
   buildRuntimeCallOptions,
   extractEmbeddings,
@@ -23,15 +24,18 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
     ...input,
     model: input.model,
   });
+  let runtimeTraceId = createRuntimeTraceId('mod-embedding');
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
     source: resolved.source,
+    routeSource: resolved.source,
     provider: resolved.provider,
     modality: 'embedding',
     adapter: resolved.adapter,
     model: resolved.modelId,
     endpoint: resolved.endpoint,
+    traceId: runtimeTraceId,
   });
 
   const inputs = normalizeEmbeddingInputs(input.input);
@@ -46,6 +50,7 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
+      traceId: runtimeTraceId,
       reasonCode: ReasonCode.AI_INPUT_INVALID,
       detail,
       extra: { localReasonCode: ReasonCode.LOCAL_AI_CAPABILITY_MISSING },
@@ -54,11 +59,11 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       message: detail,
       reasonCode: ReasonCode.AI_INPUT_INVALID,
       actionHint: 'set_embedding_input',
+      traceId: runtimeTraceId,
       source: 'runtime',
     });
   }
 
-  let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
     const callOptions = await buildRuntimeCallOptions({
@@ -68,10 +73,9 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       connectorId: input.connectorId,
       providerEndpoint: resolved.endpoint,
     });
-    runtimeTraceId = callOptions.metadata.traceId;
+    runtimeTraceId = String(callOptions.metadata.traceId || '').trim() || runtimeTraceId;
     const response = await runtime.ai.embed({
       appId: runtime.appId,
-      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       modelId: resolved.modelId,
       inputs,
       routePolicy: resolved.routePolicy,
@@ -81,6 +85,7 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
     }, callOptions);
     return {
       embeddings: extractEmbeddings((response as { vectors?: unknown }).vectors),
+      traceId: runtimeTraceId || createRuntimeTraceId('mod-embedding'),
     };
   } catch (error) {
     const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
@@ -92,11 +97,13 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       eventType: 'inference_failed',
       modId: input.modId,
       source: resolved.source,
+      routeSource: resolved.source,
       provider: resolved.provider,
       modality: 'embedding',
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
+      traceId: normalizedError.traceId || runtimeTraceId || undefined,
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: localReasonCode ? { localReasonCode } : undefined,

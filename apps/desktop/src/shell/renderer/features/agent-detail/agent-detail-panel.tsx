@@ -9,16 +9,6 @@ import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-det
 import { toAgentDetailData } from './agent-detail-model';
 import { AgentDetailView } from './agent-detail-view';
 
-function toErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) {
-    const message = error.message.trim();
-    if (message) {
-      return message;
-    }
-  }
-  return fallback;
-}
-
 export function AgentDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);

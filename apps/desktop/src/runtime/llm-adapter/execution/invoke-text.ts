@@ -3,6 +3,7 @@ import {
   asRuntimeInvokeError,
   extractRuntimeReasonCode,
   buildRuntimeCallOptions,
+  createRuntimeTraceId,
   extractTextFromGenerateOutput,
   getRuntimeClient,
   resolveSourceAndModel,
@@ -46,22 +47,32 @@ function normalizeRouteDecision(value: unknown): string {
 
 export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
   const resolved = resolveSourceAndModel(input);
-  emitInferenceAudit({
-    eventType: 'inference_invoked',
-    modId: input.modId,
-    source: resolved.source,
-    provider: resolved.provider,
-    modality: 'chat',
-    adapter: resolved.adapter,
-    model: resolved.modelId,
-    endpoint: resolved.endpoint,
-  });
+  let runtimeTraceId = '';
 
   try {
     const runtime = getRuntimeClient();
+    const callOptions = await buildRuntimeCallOptions({
+      modId: input.modId,
+      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+      source: resolved.source,
+      connectorId: input.connectorId,
+      providerEndpoint: resolved.endpoint,
+    });
+    runtimeTraceId = String(callOptions.metadata.traceId || '').trim();
+    emitInferenceAudit({
+      eventType: 'inference_invoked',
+      modId: input.modId,
+      source: resolved.source,
+      routeSource: resolved.source,
+      provider: resolved.provider,
+      modality: 'chat',
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
+      traceId: runtimeTraceId,
+    });
     const response = await runtime.ai.generate({
       appId: runtime.appId,
-      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       modelId: resolved.modelId,
       modal: RUNTIME_MODAL_TEXT,
       input: [{
@@ -78,16 +89,11 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       fallback: resolved.fallbackPolicy,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       connectorId: String(input.connectorId || ''),
-    }, await buildRuntimeCallOptions({
-      modId: input.modId,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      source: resolved.source,
-      connectorId: input.connectorId,
-      providerEndpoint: resolved.endpoint,
-    }));
+    }, callOptions);
 
     const responseRecord = asRecord(response);
-    const responseTraceId = String(responseRecord.traceId || '').trim();
+    const responseTraceId = String(responseRecord.traceId || '').trim() || runtimeTraceId;
+    runtimeTraceId = responseTraceId;
     const responseModelResolved = String(responseRecord.modelResolved || '').trim();
     const responseFinishReasonRaw = Number(responseRecord.finishReason);
     const responseRouteDecisionRaw = Number(responseRecord.routeDecision);
@@ -147,12 +153,14 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       });
     }
 
+    const traceId = responseTraceId || createRuntimeTraceId('mod-text');
     return {
       text,
-      promptTraceId: responseTraceId || buildLocalId('prompt-trace'),
+      promptTraceId: traceId || buildLocalId('prompt-trace'),
+      traceId,
     };
   } catch (error) {
-    const normalizedError = asRuntimeInvokeError(error);
+    const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
     const runtimeReasonCode = extractRuntimeReasonCode(normalizedError)
       || normalizedError.reasonCode
       || ReasonCode.RUNTIME_CALL_FAILED;
@@ -161,11 +169,13 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       eventType: 'inference_failed',
       modId: input.modId,
       source: resolved.source,
+      routeSource: resolved.source,
       provider: resolved.provider,
       modality: 'chat',
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
+      traceId: normalizedError.traceId || runtimeTraceId || undefined,
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: localReasonCode ? { localReasonCode } : undefined,

@@ -3,7 +3,10 @@ import test from 'node:test';
 
 import { resolveSpeechVoiceId } from '../src/runtime/hook/services/speech/voice-resolution';
 
-function buildContext(voices: string[], shouldThrow = false) {
+function buildContext(
+  voices: string[],
+  shouldThrow = false,
+): Parameters<typeof resolveSpeechVoiceId>[0]['context'] {
   return {
     speechEngine: {
       listVoices: async () => {
@@ -13,7 +16,7 @@ function buildContext(voices: string[], shouldThrow = false) {
         return voices.map((voice) => ({ id: voice }));
       },
     },
-  } as any;
+  };
 }
 
 test('returns requested voice when available', async () => {

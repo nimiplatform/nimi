@@ -385,9 +385,11 @@ export type LocalAiInferenceAuditPayload = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_token_api';
   modId: string;
   source: 'local-runtime' | 'token-api';
+  routeSource?: 'local-runtime' | 'token-api';
   provider: string;
   modality: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
   adapter: LocalAiProviderAdapter;
+  traceId?: string;
   model?: string;
   localModelId?: string;
   endpoint?: string;

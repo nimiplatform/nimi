@@ -18,6 +18,7 @@
     "dev:shell:clean": "pnpm run clean:src-js && pnpm run dev:shell",
     "smoke:mods": "pnpm run env:check:dev && node scripts/dev-mods-smoke.mjs",
     "smoke:mod:local-chat": "pnpm run env:check:dev && node scripts/dev-mods-smoke.mjs --mod local-chat",
+    "debug:dashscope-tts-voices": "node scripts/debug-dashscope-tts-voices.mjs",
     "clean:src-js": "find src -type f -name '*.js' -delete",
     "build:renderer": "pnpm run env:check:mods-root && pnpm run sync:mod-tailwind-source && vite build",
     "prepare:default-mod-resources": "pnpm run env:check:mods-root && node scripts/prepare-default-mods.mjs",

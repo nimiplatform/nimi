@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getStatusBadgeStyle } from './shared.js';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
 
 export type WorldAgentItem = {
@@ -97,19 +96,19 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
   };
 }
 
+const DEFAULT_TAG_STYLE: { bg: string; text: string } = { bg: 'bg-gray-100', text: 'text-gray-600' };
+
 // Morandi color palette for tags
 const tagStyles: Record<string, { bg: string; text: string }> = {
   genre: { bg: 'bg-slate-100', text: 'text-slate-600' },
   era: { bg: 'bg-stone-100', text: 'text-stone-600' },
-  theme: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  theme: DEFAULT_TAG_STYLE,
   active: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
   draft: { bg: 'bg-amber-50', text: 'text-amber-600' },
   frozen: { bg: 'bg-rose-50', text: 'text-rose-600' },
   open: { bg: 'bg-teal-50', text: 'text-teal-600' },
   closed: { bg: 'bg-orange-50', text: 'text-orange-600' },
 };
-
-const DEFAULT_TAG_STYLE: { bg: string; text: string } = { bg: 'bg-gray-100', text: 'text-gray-600' };
 
 function getTagStyle(type: string, value?: string): { bg: string; text: string } {
   const key = value?.toLowerCase() || type.toLowerCase();
@@ -358,7 +357,6 @@ export function WorldList() {
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {subWorlds.map((world) => {
-                  const statusStyle = getStatusBadgeStyle(world.status);
                   return (
                     <div
                       key={world.id}

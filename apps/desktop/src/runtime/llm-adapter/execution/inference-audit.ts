@@ -20,9 +20,11 @@ export type InferenceAuditInput = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_token_api';
   modId: string;
   source: InferenceRouteSource;
+  routeSource?: InferenceRouteSource;
   provider: string;
   modality: InferenceAuditModality;
   adapter: 'openai_compat_adapter' | 'localai_native_adapter' | string;
+  traceId?: string;
   model?: string;
   localModelId?: string;
   endpoint?: string | null;
@@ -113,6 +115,7 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
     : 'warn';
   const model = String(input.model || '').trim() || null;
   const adapter = String(input.adapter || '').trim();
+  const traceId = String(input.traceId || '').trim() || null;
   const localModelId = String(input.localModelId || '').trim() || null;
   const endpoint = String(input.endpoint || '').trim() || null;
   const reasonCode = input.reasonCode ? String(input.reasonCode).trim() : null;
@@ -128,9 +131,11 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
     details: {
       modId: input.modId,
       source: input.source,
+      routeSource: input.routeSource || input.source,
       provider: input.provider,
       modality: input.modality,
       adapter,
+      traceId,
       model,
       localModelId,
       endpoint,
@@ -163,9 +168,11 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
     eventType: input.eventType,
     modId: input.modId,
     source: input.source,
+    routeSource: input.routeSource || input.source,
     provider: input.provider,
     modality: input.modality,
     adapter,
+    traceId: traceId || undefined,
     model: model || undefined,
     localModelId: localModelId || undefined,
     endpoint: endpoint || undefined,

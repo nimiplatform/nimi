@@ -4,6 +4,7 @@ import {
   extractRuntimeReasonCode,
   base64FromBytes,
   buildRuntimeRequestMetadata,
+  createRuntimeTraceId,
   getRuntimeClient,
   resolveSourceAndModel,
   toLocalAiReasonCode,
@@ -18,16 +19,6 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
     ...input,
     model: input.model || input.localProviderModel,
   });
-  emitInferenceAudit({
-    eventType: 'inference_invoked',
-    modId: input.modId,
-    source: resolved.source,
-    provider: resolved.provider,
-    modality: 'video',
-    adapter: resolved.adapter,
-    model: resolved.modelId,
-    endpoint: resolved.endpoint,
-  });
 
   let runtimeTraceId = '';
   try {
@@ -38,8 +29,19 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       providerEndpoint: resolved.endpoint,
     });
     runtimeTraceId = String(metadata.traceId || metadata['x-nimi-trace-id'] || '').trim();
+    emitInferenceAudit({
+      eventType: 'inference_invoked',
+      modId: input.modId,
+      source: resolved.source,
+      routeSource: resolved.source,
+      provider: resolved.provider,
+      modality: 'video',
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
+      traceId: runtimeTraceId,
+    });
     const generated = await runtime.media.video.generate({
-      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model: resolved.modelId,
       prompt: String(input.prompt || '').trim(),
       route: resolved.source,
@@ -64,6 +66,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
         source: 'runtime',
       });
     }
+    const traceId = runtimeTraceId || createRuntimeTraceId('mod-video');
 
     return {
       videos: artifacts.map((artifact) => {
@@ -74,6 +77,7 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
           mimeType,
         };
       }),
+      traceId,
     };
   } catch (error) {
     const normalizedError = asRuntimeInvokeError(error, { traceId: runtimeTraceId });
@@ -85,11 +89,13 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       eventType: 'inference_failed',
       modId: input.modId,
       source: resolved.source,
+      routeSource: resolved.source,
       provider: resolved.provider,
       modality: 'video',
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
+      traceId: normalizedError.traceId || runtimeTraceId || undefined,
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: localReasonCode ? { localReasonCode } : undefined,

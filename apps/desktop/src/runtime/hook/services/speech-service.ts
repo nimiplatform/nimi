@@ -125,6 +125,11 @@ export class HookRuntimeSpeechService {
     } catch {
       const fallback = await this.context.speechEngine.listVoices({
         providerId: normalizeSpeechProviderId(input.providerId || 'openai-compatible'),
+        model: input.model,
+        routeSource: input.routeSource === 'local-runtime' || input.routeSource === 'token-api'
+          ? input.routeSource
+          : 'token-api',
+        connectorId: input.connectorId,
       });
       return fallback.map((voice) => this.mapVoice(voice));
     }

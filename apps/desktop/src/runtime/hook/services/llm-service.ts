@@ -86,6 +86,10 @@ export interface LlmSpeechTranscribeInput {
   connectorId?: string;
 }
 
+function createFallbackTraceId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function appendAllowAudit(
   audit: HookAuditTrail,
   input: {
@@ -137,6 +141,7 @@ export class HookRuntimeLlmService {
   async generateModText(input: LlmTextInput): Promise<{
     text: string;
     promptTraceId: string;
+    traceId: string;
   }> {
     const startedAt = Date.now();
     const permission = this.context.evaluatePermission({
@@ -221,7 +226,7 @@ export class HookRuntimeLlmService {
     }
   }
 
-  async generateModImage(input: LlmImageInput): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }> {
+  async generateModImage(input: LlmImageInput): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }> {
     const startedAt = Date.now();
     const permission = this.context.evaluatePermission({
       modId: input.modId,
@@ -256,7 +261,7 @@ export class HookRuntimeLlmService {
     return result;
   }
 
-  async generateModVideo(input: LlmVideoInput): Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }> {
+  async generateModVideo(input: LlmVideoInput): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }> {
     const startedAt = Date.now();
     const permission = this.context.evaluatePermission({
       modId: input.modId,
@@ -290,7 +295,7 @@ export class HookRuntimeLlmService {
     return result;
   }
 
-  async generateModEmbedding(input: LlmEmbeddingInput): Promise<{ embeddings: number[][] }> {
+  async generateModEmbedding(input: LlmEmbeddingInput): Promise<{ embeddings: number[][]; traceId: string }> {
     const startedAt = Date.now();
     const permission = this.context.evaluatePermission({
       modId: input.modId,
@@ -320,7 +325,7 @@ export class HookRuntimeLlmService {
     });
   }
 
-  async transcribeModSpeech(input: LlmSpeechTranscribeInput): Promise<{ text: string }> {
+  async transcribeModSpeech(input: LlmSpeechTranscribeInput): Promise<{ text: string; traceId: string }> {
     const startedAt = Date.now();
     const permission = this.context.evaluatePermission({
       modId: input.modId,
@@ -343,13 +348,13 @@ export class HookRuntimeLlmService {
     if (isPlainTextPayload) {
       const decodedText = tryDecodeDataText(input.audioBase64);
       if (decodedText) {
-        return { text: decodedText };
+        return { text: decodedText, traceId: createFallbackTraceId('stt-inline') };
       }
     }
 
     if (input.audioUri && input.audioUri.startsWith('data:text/plain;base64,')) {
       const maybeDecoded = tryDecodeDataText(input.audioUri);
-      if (maybeDecoded) return { text: maybeDecoded };
+      if (maybeDecoded) return { text: maybeDecoded, traceId: createFallbackTraceId('stt-inline') };
     }
 
     return invokeModTranscribe({

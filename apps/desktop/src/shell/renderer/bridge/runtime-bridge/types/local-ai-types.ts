@@ -53,9 +53,11 @@ export type LocalAiInferenceAuditPayload = {
   eventType: LocalAiInferenceAuditEventType;
   modId: string;
   source: 'local-runtime' | 'token-api';
+  routeSource?: 'local-runtime' | 'token-api';
   provider: string;
   modality: LocalAiInferenceAuditModality;
   adapter: 'openai_compat_adapter' | 'localai_native_adapter' | string;
+  traceId?: string;
   model?: string;
   localModelId?: string;
   endpoint?: string;

@@ -201,7 +201,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ text: string; promptTraceId: string }>;
+  }): Promise<{ text: string; promptTraceId: string; traceId: string }>;
   streamModText(input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -228,7 +228,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }>;
+  }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }>;
   generateModVideo(input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -240,7 +240,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }>;
+  }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }>;
   generateModEmbedding(input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -251,7 +251,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ embeddings: number[][] }>;
+  }): Promise<{ embeddings: number[][]; traceId: string }>;
 
   listSpeechProviders(input: {
     modId: string;
@@ -299,6 +299,7 @@ export interface DesktopHookRuntimeFacade {
     mimeType: string;
     durationMs?: number;
     sampleRateHz?: number;
+    traceId: string;
     providerTraceId?: string;
     cacheKey?: string;
   }>;
@@ -357,7 +358,7 @@ export interface DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ text: string }>;
+  }): Promise<{ text: string; traceId: string }>;
 
   getAudit(filter?: {
     modId?: string;

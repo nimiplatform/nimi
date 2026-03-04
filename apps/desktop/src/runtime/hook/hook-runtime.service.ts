@@ -341,7 +341,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ text: string; promptTraceId: string }> {
+  }): Promise<{ text: string; promptTraceId: string; traceId: string }> {
     return this.llmService.generateModText(input);
   }
   streamModText(input: {
@@ -372,7 +372,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }> {
+  }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }> {
     return this.llmService.generateModImage(input);
   }
   generateModVideo(input: {
@@ -386,7 +386,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }> {
+  }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }> {
     return this.llmService.generateModVideo(input);
   }
   generateModEmbedding(input: {
@@ -399,7 +399,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ embeddings: number[][] }> {
+  }): Promise<{ embeddings: number[][]; traceId: string }> {
     return this.llmService.generateModEmbedding(input);
   }
   listSpeechProviders(input: {
@@ -452,6 +452,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     mimeType: string;
     durationMs?: number;
     sampleRateHz?: number;
+    traceId: string;
     providerTraceId?: string;
     cacheKey?: string;
   }> {
@@ -517,7 +518,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
-  }): Promise<{ text: string }> {
+  }): Promise<{ text: string; traceId: string }> {
     return this.llmService.transcribeModSpeech(input);
   }
   getAudit(filter?: {

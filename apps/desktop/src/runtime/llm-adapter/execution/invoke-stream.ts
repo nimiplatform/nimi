@@ -1,6 +1,7 @@
 import { emitInferenceAudit } from './inference-audit';
 import {
   asRuntimeInvokeError,
+  createRuntimeTraceId,
   extractRuntimeReasonCode,
   buildRuntimeStreamOptions,
   getRuntimeClient,
@@ -18,15 +19,18 @@ export async function* invokeModLlmStream(
   input: InvokeModLlmInput,
 ): AsyncIterable<InvokeModLlmStreamEvent> {
   const resolved = resolveSourceAndModel(input);
+  let runtimeTraceId = createRuntimeTraceId('mod-stream');
   emitInferenceAudit({
     eventType: 'inference_invoked',
     modId: input.modId,
     source: resolved.source,
+    routeSource: resolved.source,
     provider: resolved.provider,
     modality: 'chat',
     adapter: resolved.adapter,
     model: resolved.modelId,
     endpoint: resolved.endpoint,
+    traceId: runtimeTraceId,
     extra: { stream: true },
   });
 
@@ -55,7 +59,6 @@ export async function* invokeModLlmStream(
 
   const scopedAbort = createScopedAbortSignal(PRIVATE_PROVIDER_TIMEOUT_MS, input.abortSignal);
   let doneEmitted = false;
-  let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
     const streamOptions = await buildRuntimeStreamOptions({
@@ -69,7 +72,6 @@ export async function* invokeModLlmStream(
     runtimeTraceId = streamOptions.metadata.traceId;
     const stream = await runtime.ai.streamGenerate({
       appId: runtime.appId,
-      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       modelId: resolved.modelId,
       modal: RUNTIME_MODAL_TEXT,
       input: [{
@@ -131,11 +133,13 @@ export async function* invokeModLlmStream(
         eventType: 'inference_failed',
         modId: input.modId,
         source: resolved.source,
+        routeSource: resolved.source,
         provider: resolved.provider,
         modality: 'chat',
         adapter: resolved.adapter,
         model: resolved.modelId,
         endpoint: resolved.endpoint,
+        traceId: runtimeTraceId,
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
         detail: `provider did not respond within ${PRIVATE_PROVIDER_TIMEOUT_MS / 1000}s`,
         extra: {
@@ -156,11 +160,13 @@ export async function* invokeModLlmStream(
         eventType: 'inference_failed',
         modId: input.modId,
         source: resolved.source,
+        routeSource: resolved.source,
         provider: resolved.provider,
         modality: 'chat',
         adapter: resolved.adapter,
         model: resolved.modelId,
         endpoint: resolved.endpoint,
+        traceId: runtimeTraceId,
         reasonCode: ReasonCode.OPERATION_ABORTED,
         detail: 'stream aborted by caller',
         extra: { stream: true },
@@ -182,11 +188,13 @@ export async function* invokeModLlmStream(
       eventType: 'inference_failed',
       modId: input.modId,
       source: resolved.source,
+      routeSource: resolved.source,
       provider: resolved.provider,
       modality: 'chat',
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
+      traceId: normalizedError.traceId || runtimeTraceId || undefined,
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: {

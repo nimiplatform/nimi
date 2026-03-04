@@ -22,6 +22,20 @@ type MutableGlobalTauri = typeof globalThis & {
   window?: { __TAURI__?: TauriRuntime };
 };
 
+function toBase64Url(input: string): string {
+  return Buffer.from(input, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function createJwtWithSub(sub: string): string {
+  const header = toBase64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = toBase64Url(JSON.stringify({ sub }));
+  return `${header}.${payload}.signature`;
+}
+
 function unwrapPayload(payload: unknown): Record<string, unknown> {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return {};
@@ -73,6 +87,37 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
   };
 }
 
+async function invokeGenerateWithoutSubject(): Promise<void> {
+  await getPlatformClient().runtime.ai.generate({
+    appId: getPlatformClient().runtime.appId,
+    modelId: 'cloud/default',
+    modal: 1,
+    input: [{
+      role: 'user',
+      content: 'hello',
+      name: '',
+    }],
+    systemPrompt: '',
+    tools: [],
+    temperature: 0,
+    topP: 0,
+    maxTokens: 32,
+    routePolicy: 2,
+    fallback: 1,
+    timeoutMs: 1000,
+    connectorId: '',
+  });
+}
+
+function assertUnaryRequestContains(calls: TauriInvokeCall[], expectedText: string): void {
+  const unaryCall = calls.findLast((item) => item.command === 'runtime_bridge_unary');
+  assert.ok(unaryCall);
+  const requestBytesBase64 = String(unaryCall.payload.requestBytesBase64 || '').trim();
+  assert.ok(requestBytesBase64.length > 0);
+  const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
+  assert.equal(requestText.includes(expectedText), true);
+}
+
 test('platform runtime call injects bearer token from accessTokenProvider', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
@@ -110,6 +155,40 @@ test('platform runtime call resolves fresh token on each invocation', async () =
     assert.ok(unaryCalls.length >= 2);
     assert.equal(unaryCalls[0]?.payload.authorization, 'Bearer token-initial');
     assert.equal(unaryCalls[1]?.payload.authorization, 'Bearer token-refreshed');
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform runtime call injects subjectUserId from subjectUserIdProvider', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
+      subjectUserIdProvider: () => 'subject-from-provider',
+    });
+
+    await invokeGenerateWithoutSubject();
+    assertUnaryRequestContains(calls, 'subject-from-provider');
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform runtime call falls back to jwt sub when subjectUserIdProvider is empty', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => createJwtWithSub('jwt-subject-fallback'),
+      subjectUserIdProvider: () => '',
+    });
+
+    await invokeGenerateWithoutSubject();
+    assertUnaryRequestContains(calls, 'jwt-subject-fallback');
   } finally {
     restoreTauri();
   }

@@ -1,6 +1,7 @@
 import { emitInferenceAudit } from './inference-audit';
 import {
   asRuntimeInvokeError,
+  createRuntimeTraceId,
   extractRuntimeReasonCode,
   buildRuntimeRequestMetadata,
   getRuntimeClient,
@@ -17,18 +18,8 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
     ...input,
     model: input.model || input.localProviderModel,
   });
-  emitInferenceAudit({
-    eventType: 'inference_invoked',
-    modId: input.modId,
-    source: resolved.source,
-    provider: resolved.provider,
-    modality: 'stt',
-    adapter: resolved.adapter,
-    model: resolved.modelId,
-    endpoint: resolved.endpoint,
-  });
 
-  let runtimeTraceId = '';
+  let runtimeTraceId = createRuntimeTraceId('mod-stt');
   try {
     const audio = await resolveTranscribeAudio({
       audioUri: input.audioUri,
@@ -44,8 +35,19 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       providerEndpoint: resolved.endpoint,
     });
     runtimeTraceId = String(metadata.traceId || metadata['x-nimi-trace-id'] || '').trim();
+    emitInferenceAudit({
+      eventType: 'inference_invoked',
+      modId: input.modId,
+      source: resolved.source,
+      routeSource: resolved.source,
+      provider: resolved.provider,
+      modality: 'stt',
+      adapter: resolved.adapter,
+      model: resolved.modelId,
+      endpoint: resolved.endpoint,
+      traceId: runtimeTraceId,
+    });
     const response = await runtime.media.stt.transcribe({
-      subjectUserId: String(input.modId || '').trim() || 'mod:unknown',
       model: resolved.modelId,
       audio: {
         kind: 'bytes',
@@ -63,6 +65,7 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
 
     return {
       text: String((response as { text?: unknown }).text || '').trim(),
+      traceId: runtimeTraceId || createRuntimeTraceId('mod-stt'),
     };
   } catch (error) {
     const normalizedError = asRuntimeInvokeError(error, {
@@ -77,11 +80,13 @@ export async function invokeModTranscribe(input: InvokeModTranscribeInput): Prom
       eventType: 'inference_failed',
       modId: input.modId,
       source: resolved.source,
+      routeSource: resolved.source,
       provider: resolved.provider,
       modality: 'stt',
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
+      traceId: normalizedError.traceId || runtimeTraceId || undefined,
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: localReasonCode ? { localReasonCode } : undefined,

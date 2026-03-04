@@ -174,10 +174,29 @@ export function bootstrapRuntime(): Promise<void> {
       return '';
     };
 
+    const resolveCurrentSubjectUserId = () => {
+      const store = useAppStore.getState();
+      const authUser = store.auth.user;
+      if (!authUser || typeof authUser !== 'object' || Array.isArray(authUser)) {
+        return '';
+      }
+      const user = authUser as Record<string, unknown>;
+      const id = String(user.id || '').trim();
+      if (id) {
+        return id;
+      }
+      const userId = String(user.userId || '').trim();
+      if (userId) {
+        return userId;
+      }
+      return String(user.accountId || '').trim();
+    };
+
     await initializePlatformClient({
       realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken: defaults.realm.accessToken,
       accessTokenProvider: resolveCurrentAccessToken,
+      subjectUserIdProvider: resolveCurrentSubjectUserId,
     });
     const proxyFetch = createProxyFetch();
     useAppStore.getState().setRuntimeDefaults(defaults);

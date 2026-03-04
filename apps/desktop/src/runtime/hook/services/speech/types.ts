@@ -79,6 +79,7 @@ export interface SpeechSynthesizeResultPayload {
   mimeType: string;
   durationMs?: number;
   sampleRateHz?: number;
+  traceId: string;
   providerTraceId?: string;
   cacheKey?: string;
 }
