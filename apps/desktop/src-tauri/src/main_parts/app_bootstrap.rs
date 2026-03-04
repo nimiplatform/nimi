@@ -82,6 +82,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             runtime_defaults,
+            get_system_resource_snapshot,
             http_request,
             open_external_url,
             oauth_token_exchange,

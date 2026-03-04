@@ -16,9 +16,6 @@ const CONNECTOR_CALL_OPTIONS = {
   },
 };
 
-const DESKTOP_OWNER_ID = 'desktop';
-const SYSTEM_OWNER_ID = 'system';
-
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
@@ -109,7 +106,7 @@ export function sdkConnectorToApiConnector(
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listConnectors(
-    { ownerId: DESKTOP_OWNER_ID, pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
+    { pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
     CONNECTOR_CALL_OPTIONS,
   );
   const remoteConnectors = (response.connectors || []).filter(
@@ -130,7 +127,6 @@ export async function sdkCreateConnector(input: {
     endpoint: input.endpoint,
     label: input.label,
     apiKey: input.apiKey,
-    ownerId: DESKTOP_OWNER_ID,
   }, CONNECTOR_CALL_OPTIONS);
   if (!response.connector) return null;
   return sdkConnectorToApiConnector(response.connector);
@@ -145,7 +141,6 @@ export async function sdkUpdateConnector(input: {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.updateConnector({
     connectorId: input.connectorId,
-    ownerId: DESKTOP_OWNER_ID,
     label: input.label || '',
     endpoint: input.endpoint || '',
     apiKey: input.apiKey || '',
@@ -158,7 +153,7 @@ export async function sdkUpdateConnector(input: {
 export async function sdkDeleteConnector(connectorId: string): Promise<void> {
   const runtime = getPlatformClient().runtime;
   await runtime.connector.deleteConnector(
-    { connectorId, ownerId: DESKTOP_OWNER_ID },
+    { connectorId },
     CONNECTOR_CALL_OPTIONS,
   );
 }
@@ -166,7 +161,7 @@ export async function sdkDeleteConnector(connectorId: string): Promise<void> {
 export async function sdkTestConnector(connectorId: string): Promise<void> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.testConnector(
-    { connectorId, ownerId: DESKTOP_OWNER_ID },
+    { connectorId },
     CONNECTOR_CALL_OPTIONS,
   );
   const ack = response.ack;
@@ -200,11 +195,10 @@ export async function sdkTestConnector(connectorId: string): Promise<void> {
 export async function sdkListConnectorModels(
   connectorId: string,
   forceRefresh: boolean = false,
-  ownerId: string = DESKTOP_OWNER_ID,
 ): Promise<string[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listConnectorModels(
-    { connectorId, ownerId: String(ownerId || '').trim() || DESKTOP_OWNER_ID, forceRefresh },
+    { connectorId, forceRefresh, pageSize: 0, pageToken: '' },
     CONNECTOR_CALL_OPTIONS,
   );
   return (response.models || [])
@@ -221,24 +215,14 @@ export type ConnectorModelInfo = {
 export async function sdkListConnectorModelDescriptors(
   connectorId: string,
   forceRefresh: boolean = false,
-  ownerId: string = DESKTOP_OWNER_ID,
 ): Promise<ConnectorModelInfo[]> {
   const runtime = getPlatformClient().runtime;
   const response = await runtime.connector.listConnectorModels(
-    { connectorId, ownerId: String(ownerId || '').trim() || DESKTOP_OWNER_ID, forceRefresh },
+    { connectorId, forceRefresh, pageSize: 0, pageToken: '' },
     CONNECTOR_CALL_OPTIONS,
   );
   return (response.models || [])
     .filter((m) => m.available)
     .map((m) => ({ modelId: m.modelId, capabilities: m.capabilities || [] }))
     .filter((m) => Boolean(m.modelId));
-}
-
-export function ownerIdForConnector(input: {
-  isSystemOwned?: boolean;
-  ownerId?: string;
-}): string {
-  const explicit = String(input.ownerId || '').trim();
-  if (explicit) return explicit;
-  return input.isSystemOwned ? SYSTEM_OWNER_ID : DESKTOP_OWNER_ID;
 }

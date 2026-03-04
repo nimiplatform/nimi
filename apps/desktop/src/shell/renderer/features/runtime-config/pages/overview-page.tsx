@@ -6,9 +6,9 @@ import {
 } from '@renderer/features/runtime-config/state/types';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';
-import { Button, Card, StatusBadge } from '../panels/primitives';
-import { useMockSystemResources } from '../domain/system-resources';
-import { useMockCostEstimate } from '../domain/cost-estimator';
+import { Button, Card } from '../panels/primitives';
+import { useSystemResources } from '../domain/system-resources';
+import { useUsageEstimate } from '../domain/cost-estimator';
 
 type OverviewPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -41,10 +41,18 @@ function deriveCapabilityStatuses(state: RuntimeConfigStateV11): CapabilityStatu
 }
 
 function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+function formatCount(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0';
+  }
+  return new Intl.NumberFormat('en-US').format(Math.round(value));
 }
 
 function ProgressBar({ percent, color }: { percent: number; color: string }) {
@@ -60,14 +68,20 @@ function ProgressBar({ percent, color }: { percent: number; color: string }) {
 
 export function OverviewPage({ model, state }: OverviewPageProps) {
   const capabilityStatuses = useMemo(() => deriveCapabilityStatuses(state), [state]);
-  const sysResources = useMockSystemResources();
-  const costEstimate = useMockCostEstimate();
+  const sysResources = useSystemResources();
+  const usageEstimate = useUsageEstimate();
 
   const installedModelCount = state.localRuntime.models.filter((m) => m.status !== 'removed').length;
   const activeModelCount = state.localRuntime.models.filter((m) => m.status === 'active').length;
   const healthyConnectorCount = state.connectors.filter((c) => c.status === 'healthy').length;
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const daemonBusy = model.runtimeDaemonBusyAction !== null;
+  const memoryPercent = sysResources.memoryTotalBytes > 0
+    ? (sysResources.memoryUsedBytes / sysResources.memoryTotalBytes) * 100
+    : 0;
+  const diskPercent = sysResources.diskTotalBytes > 0
+    ? (sysResources.diskUsedBytes / sysResources.diskTotalBytes) * 100
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -106,7 +120,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <Card className="space-y-3 p-4">
           <div>
             <p className="text-sm font-semibold text-gray-900">System Resources</p>
-            <p className="text-[11px] text-gray-400">Mock data — will connect to Tauri sysinfo</p>
+            <p className="text-[11px] text-gray-400">Live snapshot from desktop runtime</p>
           </div>
           <div className="space-y-2.5">
             <div>
@@ -124,7 +138,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 </span>
               </div>
               <ProgressBar
-                percent={(sysResources.memoryUsedBytes / sysResources.memoryTotalBytes) * 100}
+                percent={memoryPercent}
                 color="bg-purple-500"
               />
             </div>
@@ -136,41 +150,67 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 </span>
               </div>
               <ProgressBar
-                percent={(sysResources.diskUsedBytes / sysResources.diskTotalBytes) * 100}
+                percent={diskPercent}
                 color="bg-amber-500"
               />
             </div>
-            {sysResources.temperatureCelsius !== null ? (
+            {typeof sysResources.temperatureCelsius === 'number' ? (
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600">Temperature</span>
                 <span className="text-xs font-medium text-gray-900">{sysResources.temperatureCelsius.toFixed(0)}°C</span>
               </div>
             ) : null}
+            <div className="pt-1 text-[11px] text-gray-500">
+              Source: {sysResources.source}
+              {' · '}
+              Captured: {formatLocaleDateTime(new Date(sysResources.capturedAtMs).toISOString())}
+            </div>
           </div>
         </Card>
 
         <Card className="space-y-3 p-4">
           <div>
-            <p className="text-sm font-semibold text-gray-900">Estimated Cost</p>
-            <p className="text-[11px] text-gray-400">Mock data — will derive from usage stats</p>
+            <p className="text-sm font-semibold text-gray-900">Usage Estimate</p>
+            <p className="text-[11px] text-gray-400">Aggregated from runtime usage stats</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-2.5">
-              <p className="text-[11px] text-gray-500">Daily</p>
-              <p className="text-lg font-semibold text-gray-900">${costEstimate.dailyUsd.toFixed(2)}</p>
+              <p className="text-[11px] text-gray-500">Requests</p>
+              <p className="text-lg font-semibold text-gray-900">{formatCount(usageEstimate.totalRequests)}</p>
             </div>
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-2.5">
-              <p className="text-[11px] text-gray-500">Monthly</p>
-              <p className="text-lg font-semibold text-gray-900">${costEstimate.monthlyUsd.toFixed(2)}</p>
+              <p className="text-[11px] text-gray-500">Compute</p>
+              <p className="text-lg font-semibold text-gray-900">{formatCount(usageEstimate.totalComputeMs)} ms</p>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-2.5">
+              <p className="text-[11px] text-gray-500">Input Tokens</p>
+              <p className="text-base font-semibold text-gray-900">{formatCount(usageEstimate.totalInputTokens)}</p>
+            </div>
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-2.5">
+              <p className="text-[11px] text-gray-500">Output Tokens</p>
+              <p className="text-base font-semibold text-gray-900">{formatCount(usageEstimate.totalOutputTokens)}</p>
+            </div>
+          </div>
+          {usageEstimate.error ? (
+            <p className="text-[11px] text-red-600">{usageEstimate.error}</p>
+          ) : null}
           <div className="space-y-1">
-            {costEstimate.breakdown.map((entry) => (
-              <div key={entry.provider} className="flex items-center justify-between text-xs text-gray-600">
-                <span>{entry.provider}</span>
-                <span className="font-medium">${entry.monthlyUsd.toFixed(2)}/mo</span>
+            {usageEstimate.breakdown.map((entry) => (
+              <div key={entry.label} className="flex items-center justify-between text-xs text-gray-600">
+                <span className="truncate pr-3">{entry.label}</span>
+                <span className="font-medium">{formatCount(entry.requests)} req</span>
               </div>
             ))}
+            {usageEstimate.breakdown.length === 0 && !usageEstimate.loading ? (
+              <p className="text-xs text-gray-500">No usage records in current window.</p>
+            ) : null}
+            {usageEstimate.updatedAt ? (
+              <p className="pt-1 text-[11px] text-gray-500">
+                Updated: {formatLocaleDateTime(usageEstimate.updatedAt)}
+              </p>
+            ) : null}
           </div>
         </Card>
       </div>

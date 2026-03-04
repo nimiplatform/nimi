@@ -8,6 +8,7 @@ import {
   startRuntimeBridge,
   stopRuntimeBridge,
 } from './runtime-bridge/runtime-daemon';
+import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
@@ -225,6 +226,7 @@ export type {
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeDefaults,
+  SystemResourceSnapshot,
   RuntimeLocalManifestSummary,
   OpenExternalUrlResult,
   OauthTokenExchangePayload,
@@ -262,6 +264,7 @@ export {
   toRendererLogMessage,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
+  getSystemResourceSnapshot,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,
@@ -282,6 +285,7 @@ export const desktopBridge = {
   logRendererEvent,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
+  getSystemResourceSnapshot,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,

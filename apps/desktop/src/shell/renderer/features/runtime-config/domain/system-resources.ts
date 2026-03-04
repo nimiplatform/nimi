@@ -1,47 +1,71 @@
 import { useEffect, useState } from 'react';
+import { desktopBridge } from '@renderer/bridge';
+import type { SystemResourceSnapshot as BridgeSystemResourceSnapshot } from '@renderer/bridge';
 
-export type SystemResourceSnapshot = {
-  cpuPercent: number;
-  memoryUsedBytes: number;
-  memoryTotalBytes: number;
-  diskUsedBytes: number;
-  diskTotalBytes: number;
-  temperatureCelsius: number | null;
-};
+export type SystemResourceSnapshot = BridgeSystemResourceSnapshot;
 
-const MOCK_BASE: SystemResourceSnapshot = {
-  cpuPercent: 23,
-  memoryUsedBytes: 6.8 * 1024 ** 3,
-  memoryTotalBytes: 16 * 1024 ** 3,
-  diskUsedBytes: 187 * 1024 ** 3,
-  diskTotalBytes: 512 * 1024 ** 3,
-  temperatureCelsius: 52,
-};
-
-function jitter(base: number, range: number): number {
-  return base + (Math.random() - 0.5) * 2 * range;
-}
-
-function createMockSnapshot(): SystemResourceSnapshot {
+function fallbackSnapshot(source: string): SystemResourceSnapshot {
   return {
-    cpuPercent: Math.max(0, Math.min(100, jitter(MOCK_BASE.cpuPercent, 8))),
-    memoryUsedBytes: Math.max(0, jitter(MOCK_BASE.memoryUsedBytes, 0.3 * 1024 ** 3)),
-    memoryTotalBytes: MOCK_BASE.memoryTotalBytes,
-    diskUsedBytes: MOCK_BASE.diskUsedBytes,
-    diskTotalBytes: MOCK_BASE.diskTotalBytes,
-    temperatureCelsius: Math.max(30, Math.min(95, jitter(MOCK_BASE.temperatureCelsius!, 3))),
+    cpuPercent: 0,
+    memoryUsedBytes: 0,
+    memoryTotalBytes: 0,
+    diskUsedBytes: 0,
+    diskTotalBytes: 0,
+    temperatureCelsius: undefined,
+    capturedAtMs: Date.now(),
+    source,
   };
 }
 
-export function useMockSystemResources(): SystemResourceSnapshot {
-  const [snapshot, setSnapshot] = useState(createMockSnapshot);
+function normalizeSnapshot(raw: SystemResourceSnapshot): SystemResourceSnapshot {
+  return {
+    cpuPercent: Math.max(0, Math.min(100, Number(raw.cpuPercent) || 0)),
+    memoryUsedBytes: Math.max(0, Number(raw.memoryUsedBytes) || 0),
+    memoryTotalBytes: Math.max(0, Number(raw.memoryTotalBytes) || 0),
+    diskUsedBytes: Math.max(0, Number(raw.diskUsedBytes) || 0),
+    diskTotalBytes: Math.max(0, Number(raw.diskTotalBytes) || 0),
+    temperatureCelsius: Number.isFinite(Number(raw.temperatureCelsius))
+      ? Number(raw.temperatureCelsius)
+      : undefined,
+    capturedAtMs: Number(raw.capturedAtMs) > 0 ? Number(raw.capturedAtMs) : Date.now(),
+    source: String(raw.source || '').trim() || 'tauri-unknown',
+  };
+}
+
+export function useSystemResources(pollIntervalMs = 5000): SystemResourceSnapshot {
+  const [snapshot, setSnapshot] = useState<SystemResourceSnapshot>(() => fallbackSnapshot('initial'));
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSnapshot(createMockSnapshot());
-    }, 3000);
-    return () => { clearInterval(timer); };
-  }, []);
+    let canceled = false;
+    const load = async () => {
+      try {
+        const payload = await desktopBridge.getSystemResourceSnapshot();
+        if (canceled) {
+          return;
+        }
+        setSnapshot(normalizeSnapshot(payload));
+      } catch {
+        if (canceled) {
+          return;
+        }
+        setSnapshot((prev) => ({
+          ...prev,
+          capturedAtMs: Date.now(),
+          source: `${prev.source}:stale`,
+        }));
+      }
+    };
+
+    void load();
+    const timer = window.setInterval(() => {
+      void load();
+    }, Math.max(1500, pollIntervalMs));
+
+    return () => {
+      canceled = true;
+      window.clearInterval(timer);
+    };
+  }, [pollIntervalMs]);
 
   return snapshot;
 }

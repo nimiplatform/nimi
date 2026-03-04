@@ -124,13 +124,12 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       const connectors = await Promise.all(sdkConnectors.map(async (connector) => {
         let sdkModels: string[] = [];
         try {
-          const { sdkListConnectorModels, ownerIdForConnector } = await import(
+          const { sdkListConnectorModels } = await import(
             '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
           );
           sdkModels = await sdkListConnectorModels(
             connector.id,
             true,
-            ownerIdForConnector({ isSystemOwned: connector.isSystemOwned }),
           );
         } catch (error) {
           const normalized = asNimiError(error, {

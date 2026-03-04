@@ -41,7 +41,6 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
       const runtime = getRuntimeClient();
       const result = await runtime.connector.testConnector({
         connectorId: input.connectorId,
-        ownerId: 'desktop',
       });
       const ok = result?.ack?.ok !== false;
       return {

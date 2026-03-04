@@ -47,6 +47,19 @@ struct RuntimeDefaults {
     runtime: RuntimeExecutionDefaults,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SystemResourceSnapshot {
+    cpu_percent: f64,
+    memory_used_bytes: u64,
+    memory_total_bytes: u64,
+    disk_used_bytes: u64,
+    disk_total_bytes: u64,
+    temperature_celsius: Option<f64>,
+    captured_at_ms: u64,
+    source: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HttpRequestPayload {

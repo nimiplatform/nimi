@@ -5,7 +5,6 @@ import {
   formatTokenCount,
   formatComputeMs,
   formatNumber,
-  callerKindLabel,
   usageWindowLabel,
   timestampToIso,
   relativeTimeShort,

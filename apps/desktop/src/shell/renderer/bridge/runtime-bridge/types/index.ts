@@ -9,6 +9,7 @@ export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeDefaults,
+  SystemResourceSnapshot,
   RuntimeBridgeDaemonStatus,
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
@@ -24,6 +25,7 @@ export type {
 
 export {
   parseRuntimeDefaults,
+  parseSystemResourceSnapshot,
   parseRuntimeBridgeDaemonStatus,
   parseRuntimeBridgeConfigGetResult,
   parseRuntimeBridgeConfigSetResult,

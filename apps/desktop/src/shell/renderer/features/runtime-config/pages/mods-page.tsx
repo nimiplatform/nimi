@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
-import type { CapabilityV11 } from '@renderer/features/runtime-config/state/types';
 import type { RuntimeConfigPanelControllerModel, RuntimeDependencyTargetDescriptor } from '../runtime-config-panel-types';
 import { ModelCenterDependencySection } from '../panels/setup/model-center-dependency-section';
 import { Button, Card } from '../panels/primitives';

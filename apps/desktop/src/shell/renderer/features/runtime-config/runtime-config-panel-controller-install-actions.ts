@@ -70,7 +70,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       meta.set(sessionId, { plan: entry.plan, installSource: entry.installSource });
     }
     return meta;
-  }, [pendingInstallVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pendingInstallVersion]);
 
   const onDownloadComplete = useCallback(async (installSessionId: string, success: boolean, message?: string, localModelId?: string, modelId?: string) => {
     const session = pendingInstallsRef.current.get(installSessionId);

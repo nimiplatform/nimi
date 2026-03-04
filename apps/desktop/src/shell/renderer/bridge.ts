@@ -5,6 +5,7 @@ import {
   getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
   getRuntimeDefaults,
+  getSystemResourceSnapshot,
   healthLocalAiModels,
   issueExternalAgentToken,
   listExternalAgentTokens,
@@ -63,6 +64,7 @@ import type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
+  SystemResourceSnapshot,
   RuntimeLocalManifestSummary,
 } from '@renderer/bridge/runtime-bridge';
 
@@ -94,6 +96,7 @@ export type {
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
+  SystemResourceSnapshot,
   RuntimeLocalManifestSummary,
 };
 
@@ -103,6 +106,7 @@ export const desktopBridge = {
   hasTauriInvoke: runtimeDesktopBridge.hasTauriInvoke,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
+  getSystemResourceSnapshot,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,
