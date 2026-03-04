@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "bash scripts/ensure-rust.sh",
+    "postinstall": "node scripts/ensure-rust.mjs",
     "dev": "pnpm run dev:cli",
     "dev:cli": "tsx src/index.ts",
     "env:check:mods-root": "node scripts/dev-env-check.mjs --require-mods-root",
