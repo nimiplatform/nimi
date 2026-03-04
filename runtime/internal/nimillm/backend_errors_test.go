@@ -5,12 +5,28 @@ import (
 	"net"
 	"testing"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
+
+func extractErrorInfoMetadata(err error) map[string]string {
+	st, ok := status.FromError(err)
+	if !ok {
+		return nil
+	}
+	for _, detail := range st.Details() {
+		info, ok := detail.(*errdetails.ErrorInfo)
+		if !ok {
+			continue
+		}
+		return info.GetMetadata()
+	}
+	return nil
+}
 
 func TestMapProviderHTTPError_ProviderAuthFailed(t *testing.T) {
 	for _, code := range []int{401, 403} {
@@ -96,6 +112,78 @@ func TestMapProviderHTTPError_BadRequest(t *testing.T) {
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
 		t.Fatalf("expected AI_INPUT_INVALID, got %v", reason)
+	}
+}
+
+func TestMapProviderHTTPError_BadRequestModelNotFound(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "Model not found: qwen-tts-2025-05-22",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 model-not-found")
+	}
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("expected AI_MODEL_NOT_FOUND, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["provider_message"] == "" {
+		t.Fatalf("expected provider_message metadata, got %#v", metadata)
+	}
+	if metadata["action_hint"] != "switch_tts_model_or_refresh_connector_models" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+}
+
+func TestMapProviderHTTPError_BadRequestModalityNotSupported(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "This model does not support audio generation for TTS",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 modality-not-supported")
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+		t.Fatalf("expected AI_MODALITY_NOT_SUPPORTED, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "select_model_with_audio_synthesize_capability" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+}
+
+func TestMapProviderHTTPError_BadRequestMediaOptionUnsupported(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "unsupported voice parameter: alloy",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 media-option-unsupported")
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "adjust_tts_voice_or_audio_options" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
 }
 

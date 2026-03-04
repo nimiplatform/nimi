@@ -19,6 +19,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
@@ -382,6 +383,9 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
+		if err := validateConnectorTTSModelSupport(ctx, req, backendModelID, remoteTarget, cloudProvider); err != nil {
+			return nil, nil, "", err
+		}
 		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec)
 		if err != nil {
 			return nil, nil, "", err
@@ -426,6 +430,114 @@ func executeBackendSyncMedia(
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+}
+
+func validateConnectorTTSModelSupport(
+	ctx context.Context,
+	req *runtimev1.SubmitMediaJobRequest,
+	resolvedModelID string,
+	remoteTarget *nimillm.RemoteTarget,
+	cloudProvider *nimillm.CloudProvider,
+) error {
+	if req == nil || req.GetModal() != runtimev1.Modal_MODAL_TTS {
+		return nil
+	}
+	if strings.TrimSpace(req.GetConnectorId()) == "" {
+		return nil
+	}
+	if remoteTarget == nil || cloudProvider == nil {
+		return nil
+	}
+
+	probeBackend, _, err := cloudProvider.ResolveProbeBackend(
+		remoteTarget.ProviderType,
+		remoteTarget.Endpoint,
+		remoteTarget.APIKey,
+	)
+	if err != nil {
+		return err
+	}
+	models, err := probeBackend.ListModels(ctx)
+	if err != nil {
+		return err
+	}
+
+	matchedModelID, ok := findProbeModelID(models, resolvedModelID)
+	if !ok {
+		providerMessage := fmt.Sprintf(
+			"connector model %q not listed by provider",
+			strings.TrimSpace(resolvedModelID),
+		)
+		return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+			ActionHint: "switch_tts_model_or_refresh_connector_models",
+			Message:    providerMessage,
+			Metadata: map[string]string{
+				"provider_message": providerMessage,
+			},
+		})
+	}
+
+	capabilities := modelregistry.InferCapabilities(matchedModelID)
+	if !supportsTTSCapability(capabilities) {
+		providerMessage := fmt.Sprintf(
+			"model %q does not advertise tts capability",
+			strings.TrimSpace(matchedModelID),
+		)
+		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, grpcerr.ReasonOptions{
+			ActionHint: "select_model_with_audio_synthesize_capability",
+			Message:    providerMessage,
+			Metadata: map[string]string{
+				"provider_message": providerMessage,
+			},
+		})
+	}
+
+	return nil
+}
+
+func findProbeModelID(models []nimillm.ProbeModel, targetModelID string) (string, bool) {
+	normalizedTarget := normalizeComparableModelID(targetModelID)
+	targetBase := modelIDBase(normalizedTarget)
+	for _, model := range models {
+		candidate := normalizeComparableModelID(model.ModelID)
+		if candidate == "" {
+			continue
+		}
+		if candidate == normalizedTarget {
+			return strings.TrimSpace(model.ModelID), true
+		}
+		if modelIDBase(candidate) == targetBase {
+			return strings.TrimSpace(model.ModelID), true
+		}
+	}
+	return "", false
+}
+
+func normalizeComparableModelID(value string) string {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	normalized = strings.TrimPrefix(normalized, "cloud/")
+	normalized = strings.TrimPrefix(normalized, "token/")
+	normalized = strings.TrimPrefix(normalized, "local/")
+	return normalized
+}
+
+func modelIDBase(value string) string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return ""
+	}
+	parts := strings.Split(normalized, "/")
+	return strings.TrimSpace(parts[len(parts)-1])
+}
+
+func supportsTTSCapability(capabilities []string) bool {
+	for _, capability := range capabilities {
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "tts", "audio.synthesize", "speech.synthesize", "llm.speech.synthesize":
+			return true
+		}
+	}
+	return false
 }
 
 func resolveMediaAdapterName(modelID string, modelResolved string, modal runtimev1.Modal, providerType string) string {
@@ -651,6 +763,9 @@ func defaultMediaTimeoutForModal(modal runtimev1.Modal) time.Duration {
 func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {
 	if err == nil {
 		return runtimev1.ReasonCode_ACTION_EXECUTED
+	}
+	if reasonCode, ok := grpcerr.ExtractReasonCode(err); ok {
+		return reasonCode
 	}
 	st, ok := status.FromError(err)
 	if !ok {

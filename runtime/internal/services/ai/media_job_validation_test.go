@@ -423,6 +423,18 @@ func TestReasonCodeFromMediaErrorMapping(t *testing.T) {
 			want: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 		},
 		{
+			name: "error info reason code",
+			err: grpcerr.WithReasonCodeOptions(
+				codes.InvalidArgument,
+				runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+				grpcerr.ReasonOptions{
+					ActionHint: "adjust_tts_voice_or_audio_options",
+					Message:    "unsupported voice parameter",
+				},
+			),
+			want: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+		},
+		{
 			name: "non status",
 			err:  io.EOF,
 			want: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,

@@ -26,6 +26,75 @@ func normalizeProviderErrorMessage(input string) string {
 	return normalized
 }
 
+func containsAnyToken(input string, tokens ...string) bool {
+	for _, token := range tokens {
+		if token == "" {
+			continue
+		}
+		if strings.Contains(input, token) {
+			return true
+		}
+	}
+	return false
+}
+
+func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.ReasonCode, string) {
+	normalized := strings.ToLower(strings.TrimSpace(providerMessage))
+
+	modelNotFound := containsAnyToken(
+		normalized,
+		"model not found",
+		"unknown model",
+		"no such model",
+		"model does not exist",
+		"model is not available",
+		"invalid model",
+	)
+	if modelNotFound {
+		return codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "switch_tts_model_or_refresh_connector_models"
+	}
+
+	modalityNotSupported := containsAnyToken(
+		normalized,
+		"modality not supported",
+		"unsupported modality",
+		"does not support tts",
+		"not support tts",
+		"audio generation is not supported",
+		"speech synthesis is not supported",
+		"does not support audio",
+	)
+	if modalityNotSupported {
+		return codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, "select_model_with_audio_synthesize_capability"
+	}
+
+	mentionsMediaOption := containsAnyToken(
+		normalized,
+		"voice",
+		"audio format",
+		"sample rate",
+		"speaker",
+		"speed",
+		"pitch",
+		"style",
+		"instruct",
+	)
+	invalidOrUnsupported := containsAnyToken(
+		normalized,
+		"unsupported",
+		"not supported",
+		"invalid",
+		"must be",
+		"out of range",
+		"unrecognized",
+	)
+	if mentionsMediaOption && invalidOrUnsupported {
+		return codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, "adjust_tts_voice_or_audio_options"
+	}
+
+	return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_tts_input_and_provider_options"
+}
+
 // MapProviderRequestError maps a network/request error to gRPC status.
 func MapProviderRequestError(err error) error {
 	if err == nil {
@@ -48,13 +117,26 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	}
 	switch statusCode {
 	case http.StatusBadRequest:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
+		if providerMessage != "" {
+			return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
+				ActionHint: actionHint,
+				Message:    providerMessage,
+				Metadata: map[string]string{
+					"provider_message": providerMessage,
+				},
+			})
+		}
+		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+		})
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
 	case http.StatusNotFound:
 		if providerMessage != "" {
 			return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
-				Message: providerMessage,
+				ActionHint: "switch_tts_model_or_refresh_connector_models",
+				Message:    providerMessage,
 				Metadata: map[string]string{
 					"provider_message": providerMessage,
 				},
