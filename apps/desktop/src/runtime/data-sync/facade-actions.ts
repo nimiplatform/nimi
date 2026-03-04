@@ -12,6 +12,7 @@ import type { RequestDataExportInput } from '@nimiplatform/sdk/realm';
 import type { RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
+import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
 import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
@@ -86,9 +87,11 @@ import {
 import {
   claimGift,
   createGiftReview,
+  createSparkCheckout,
   createWithdrawal,
   loadGemTransactionHistory,
   loadGiftCatalog,
+  loadSparkPackages,
   loadCurrencyBalances,
   loadNotificationUnreadCount,
   loadNotifications,
@@ -346,6 +349,10 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadGemTransactionHistory(input.callApiTask, input.emitFacadeError, limit, cursor),
     loadSubscriptionStatus: async () =>
       loadSubscriptionStatus(input.callApiTask, input.emitFacadeError),
+    loadSparkPackages: async () =>
+      loadSparkPackages(input.callApiTask, input.emitFacadeError),
+    createSparkCheckout: async (payload: CreateSparkCheckoutDto) =>
+      createSparkCheckout(input.callApiTask, input.emitFacadeError, payload),
     loadWithdrawalEligibility: async () =>
       loadWithdrawalEligibility(input.callApiTask, input.emitFacadeError),
     loadWithdrawalHistory: async (limit = 20, cursor?: string) =>

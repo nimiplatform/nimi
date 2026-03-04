@@ -1,9 +1,12 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { MarkNotificationsReadInputDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
+import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
 import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
+import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
+import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
 
 type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
 type DataSyncErrorEmitter = (
@@ -72,6 +75,39 @@ export async function loadSubscriptionStatus(
     );
   } catch (error) {
     emitDataSyncError('load-subscription-status', error);
+    throw error;
+  }
+}
+
+export async function loadSparkPackages(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+): Promise<SparkPackageDto[]> {
+  try {
+    return await callApi(
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetSparkPackages(),
+      '加载 Spark 充值套餐失败',
+    ) as SparkPackageDto[];
+  } catch (error) {
+    emitDataSyncError('load-spark-packages', error);
+    throw error;
+  }
+}
+
+export async function createSparkCheckout(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  input: CreateSparkCheckoutDto,
+): Promise<SparkCheckoutSessionDto> {
+  try {
+    return await callApi(
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerCreateSparkCheckout(input),
+      '创建 Spark 充值会话失败',
+    ) as SparkCheckoutSessionDto;
+  } catch (error) {
+    emitDataSyncError('create-spark-checkout', error, {
+      packageId: input?.packageId || null,
+    });
     throw error;
   }
 }

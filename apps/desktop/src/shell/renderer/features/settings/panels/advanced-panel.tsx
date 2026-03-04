@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { desktopBridge } from '@renderer/bridge';
 import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
 import { PageShell, SectionTitle } from '../settings-layout-components';
 
@@ -13,6 +14,156 @@ type WalletTimelineItem = {
   amount: string;
   createdAt: string;
 };
+
+type SparkPackageItem = {
+  id: string;
+  label: string;
+  sparkAmount: number;
+  usdPrice: number;
+  popular: boolean;
+};
+
+type WalletCheckoutStatus = 'success' | 'cancel';
+
+function readEnv(name: string): string {
+  const importMetaEnv = (import.meta as { env?: Record<string, string | undefined> }).env;
+  const fromImportMeta = String(importMetaEnv?.[name] || '').trim();
+  if (fromImportMeta) {
+    return fromImportMeta;
+  }
+  const globalProcess = (globalThis as {
+    process?: { env?: Record<string, string | undefined> };
+  }).process;
+  return String(globalProcess?.env?.[name] || '').trim();
+}
+
+function normalizeWalletCheckoutStatus(input: unknown): WalletCheckoutStatus | null {
+  const normalized = String(input || '').trim().toLowerCase();
+  if (normalized === 'success') {
+    return 'success';
+  }
+  if (normalized === 'cancel') {
+    return 'cancel';
+  }
+  return null;
+}
+
+function toSparkPackages(input: unknown): SparkPackageItem[] {
+  const root = input && typeof input === 'object' ? input as Record<string, unknown> : null;
+  const rawItems = Array.isArray(root)
+    ? root
+    : (Array.isArray(root?.items) ? root.items : []);
+  return rawItems
+    .map((item) => {
+      const record = item && typeof item === 'object' ? item as Record<string, unknown> : null;
+      const id = String(record?.id || '').trim();
+      if (!id) {
+        return null;
+      }
+      const label = String(record?.label || id).trim() || id;
+      const sparkAmount = parseNumber(record?.sparkAmount);
+      const usdPrice = parseNumber(record?.usdPrice);
+      const popular = record?.popular === true;
+      return {
+        id,
+        label,
+        sparkAmount,
+        usdPrice,
+        popular,
+      };
+    })
+    .filter((item): item is SparkPackageItem => Boolean(item));
+}
+
+function pickDefaultSparkPackage(packages: SparkPackageItem[]): SparkPackageItem | null {
+  if (packages.length === 0) {
+    return null;
+  }
+  const sortByPrice = (left: SparkPackageItem, right: SparkPackageItem) =>
+    left.usdPrice - right.usdPrice;
+  const popularPackages = packages.filter((item) => item.popular).sort(sortByPrice);
+  if (popularPackages.length > 0) {
+    return popularPackages[0] || null;
+  }
+  return [...packages].sort(sortByPrice)[0] || null;
+}
+
+function resolveCheckoutBaseUrl(): URL {
+  const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+  const raw = readEnv('NIMI_WEB_URL') || fallbackOrigin;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error();
+    }
+    return parsed;
+  } catch {
+    return new URL(fallbackOrigin);
+  }
+}
+
+function buildWalletCheckoutRedirectUrl(status: WalletCheckoutStatus): string {
+  const base = resolveCheckoutBaseUrl();
+  const query = new URLSearchParams();
+  query.set('wallet_checkout', status);
+  base.hash = `/?${query.toString()}`;
+  return base.toString();
+}
+
+function readWalletCheckoutStatusFromLocation(): WalletCheckoutStatus | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const searchStatus = normalizeWalletCheckoutStatus(searchParams.get('wallet_checkout'));
+  if (searchStatus) {
+    return searchStatus;
+  }
+
+  const hash = String(window.location.hash || '');
+  const queryStart = hash.indexOf('?');
+  if (queryStart < 0) {
+    return null;
+  }
+  const hashQuery = hash.slice(queryStart + 1);
+  const hashParams = new URLSearchParams(hashQuery);
+  return normalizeWalletCheckoutStatus(hashParams.get('wallet_checkout'));
+}
+
+function clearWalletCheckoutStatusFromLocation(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const current = new URL(window.location.href);
+  let changed = false;
+
+  if (current.searchParams.has('wallet_checkout')) {
+    current.searchParams.delete('wallet_checkout');
+    changed = true;
+  }
+
+  const hashRaw = current.hash.startsWith('#') ? current.hash.slice(1) : current.hash;
+  const [hashPathRaw = '/', hashQueryRaw = ''] = hashRaw.split('?');
+  const hashPath = hashPathRaw || '/';
+  const hashParams = new URLSearchParams(hashQueryRaw);
+  if (hashParams.has('wallet_checkout')) {
+    hashParams.delete('wallet_checkout');
+    changed = true;
+  }
+  if (!changed) {
+    return;
+  }
+
+  const hashQuery = hashParams.toString();
+  current.hash = hashQuery ? `${hashPath}?${hashQuery}` : hashPath;
+  window.history.replaceState({}, document.title, current.toString());
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function parseNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -130,6 +281,8 @@ export function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
   const [withdrawalMessage, setWithdrawalMessage] = useState<string | null>(null);
+  const [launchingRecharge, setLaunchingRecharge] = useState(false);
+  const [rechargeMessage, setRechargeMessage] = useState<string | null>(null);
 
   const balancesQuery = useQuery({
     queryKey: ['wallet-balances'],
@@ -151,6 +304,11 @@ export function WalletPage() {
     queryFn: async () => dataSync.loadSubscriptionStatus(),
   });
 
+  const sparkPackagesQuery = useQuery({
+    queryKey: ['wallet-spark-packages'],
+    queryFn: async () => dataSync.loadSparkPackages(),
+  });
+
   const withdrawEligibilityQuery = useQuery({
     queryKey: ['wallet-withdrawal-eligibility'],
     queryFn: async () => dataSync.loadWithdrawalEligibility(),
@@ -168,6 +326,11 @@ export function WalletPage() {
   const canWithdraw = (withdrawEligibilityQuery.data as Record<string, unknown> | undefined)?.canWithdraw === true;
   const withdrawReason = String((withdrawEligibilityQuery.data as Record<string, unknown> | undefined)?.reason || '');
   const withdrawMin = formatAmount((withdrawEligibilityQuery.data as Record<string, unknown> | undefined)?.minAmount, 0);
+  const sparkPackages = useMemo(() => toSparkPackages(sparkPackagesQuery.data), [sparkPackagesQuery.data]);
+  const defaultSparkPackage = useMemo(
+    () => pickDefaultSparkPackage(sparkPackages),
+    [sparkPackages],
+  );
 
   const timeline = useMemo(() => {
     const sparkItems = toTimelineItems(sparkHistoryQuery.data);
@@ -196,6 +359,73 @@ export function WalletPage() {
       };
     });
   }, [withdrawalHistoryQuery.data]);
+
+  const refreshSparkWalletSnapshot = useCallback(async () => {
+    await Promise.all([
+      balancesQuery.refetch(),
+      sparkHistoryQuery.refetch(),
+    ]);
+  }, [balancesQuery, sparkHistoryQuery]);
+
+  const startRechargeRefreshLoop = useCallback(() => {
+    void (async () => {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await refreshSparkWalletSnapshot();
+        if (attempt < 5) {
+          await sleep(5000);
+        }
+      }
+    })();
+  }, [refreshSparkWalletSnapshot]);
+
+  useEffect(() => {
+    const checkoutStatus = readWalletCheckoutStatusFromLocation();
+    if (!checkoutStatus) {
+      return;
+    }
+    clearWalletCheckoutStatusFromLocation();
+    setRechargeMessage(
+      checkoutStatus === 'success'
+        ? t('Wallet.rechargeCheckoutSuccess')
+        : t('Wallet.rechargeCheckoutCanceled'),
+    );
+    void refreshSparkWalletSnapshot();
+  }, [refreshSparkWalletSnapshot, t]);
+
+  const handleStartRecharge = async () => {
+    if (!defaultSparkPackage) {
+      setRechargeMessage(
+        sparkPackagesQuery.isError
+          ? t('Wallet.rechargePackagesLoadError')
+          : t('Wallet.rechargePackageUnavailable'),
+      );
+      return;
+    }
+
+    setLaunchingRecharge(true);
+    setRechargeMessage(null);
+    try {
+      const checkout = await dataSync.createSparkCheckout({
+        packageId: defaultSparkPackage.id,
+        successUrl: buildWalletCheckoutRedirectUrl('success'),
+        cancelUrl: buildWalletCheckoutRedirectUrl('cancel'),
+      });
+      const checkoutUrl = String(checkout?.url || '').trim();
+      if (!checkoutUrl) {
+        throw new Error(t('Wallet.rechargeLaunchError'));
+      }
+      const launchResult = await desktopBridge.openExternalUrl(checkoutUrl);
+      if (!launchResult.opened) {
+        throw new Error(t('Wallet.rechargeLaunchError'));
+      }
+      setRechargeMessage(t('Wallet.rechargeRedirecting'));
+      startRechargeRefreshLoop();
+    } catch (error) {
+      setRechargeMessage(error instanceof Error ? error.message : t('Wallet.rechargeLaunchError'));
+    } finally {
+      setLaunchingRecharge(false);
+    }
+  };
 
   const handleCreateWithdrawal = async () => {
     const normalized = withdrawAmount.trim();
@@ -228,6 +458,15 @@ export function WalletPage() {
     || gemHistoryQuery.isPending
     || subscriptionQuery.isPending
     || withdrawEligibilityQuery.isPending;
+
+  const defaultSparkPackageLabel = defaultSparkPackage?.label || '';
+  const defaultSparkAmount = formatLocaleNumber(defaultSparkPackage?.sparkAmount || 0, {
+    maximumFractionDigits: 0,
+  });
+  const defaultSparkPrice = formatLocaleNumber(defaultSparkPackage?.usdPrice || 0, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <PageShell title={t('Wallet.pageTitle')} description={t('Wallet.pageDescription')}>
@@ -283,6 +522,51 @@ export function WalletPage() {
               {t('Wallet.withdrawMinRequirement', { min: withdrawMin, unit: t('Wallet.gemUnit') })}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Spark Recharge Section */}
+      <section className="mt-8">
+        <SectionTitle>{t('Wallet.sectionRecharge')}</SectionTitle>
+        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-900">{t('Wallet.rechargeTitle')}</p>
+              <p className="text-xs text-gray-500">
+                {defaultSparkPackage
+                  ? t('Wallet.rechargePackageLine', {
+                    label: defaultSparkPackageLabel,
+                    spark: defaultSparkAmount,
+                    usd: defaultSparkPrice,
+                  })
+                  : (sparkPackagesQuery.isPending
+                    ? t('Wallet.rechargeLoadingPackages')
+                    : t('Wallet.rechargePackageUnavailable'))}
+              </p>
+              <p className="text-xs text-gray-500">{t('Wallet.rechargeComplianceHint')}</p>
+            </div>
+            <button
+              type="button"
+              disabled={sparkPackagesQuery.isPending || launchingRecharge || !defaultSparkPackage}
+              onClick={() => { void handleStartRecharge(); }}
+              className="flex items-center justify-center gap-2 rounded-xl bg-mint-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-mint-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+            >
+              <SparkIcon className="h-4 w-4" />
+              {launchingRecharge ? t('Wallet.rechargeLaunching') : t('Wallet.recharge')}
+            </button>
+          </div>
+
+          {sparkPackagesQuery.isError ? (
+            <div className="mt-3 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-700">
+              {t('Wallet.rechargePackagesLoadError')}
+            </div>
+          ) : null}
+
+          {rechargeMessage ? (
+            <div className="mt-3 rounded-lg bg-gray-50 px-4 py-2 text-sm text-gray-600">
+              {rechargeMessage}
+            </div>
+          ) : null}
         </div>
       </section>
 

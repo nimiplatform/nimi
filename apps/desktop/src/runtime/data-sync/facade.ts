@@ -5,6 +5,7 @@ import type { RealmTokenRefreshResult } from '@nimiplatform/sdk/realm';
 import type { CreatePostDto } from '@nimiplatform/sdk/realm';
 import type { CreateReportDto } from '@nimiplatform/sdk/realm';
 import type { CreateReviewDto } from '@nimiplatform/sdk/realm';
+import type { CreateSparkCheckoutDto } from '@nimiplatform/sdk/realm';
 import type { CreateWithdrawalDto } from '@nimiplatform/sdk/realm';
 import type { MeTwoFactorPrepareOutput } from '@nimiplatform/sdk/realm';
 import type { MeTwoFactorVerifyInput } from '@nimiplatform/sdk/realm';
@@ -17,6 +18,8 @@ import type { RejectGiftDto } from '@nimiplatform/sdk/realm';
 import type { SendMessageInputDto } from '@nimiplatform/sdk/realm';
 import type { SendGiftDto } from '@nimiplatform/sdk/realm';
 import type { ChatSyncResultDto } from '@nimiplatform/sdk/realm';
+import type { SparkCheckoutSessionDto } from '@nimiplatform/sdk/realm';
+import type { SparkPackageDto } from '@nimiplatform/sdk/realm';
 import type { UpdatePasswordRequestDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserNotificationSettingsDto } from '@nimiplatform/sdk/realm';
 import type { UpdateUserSettingsDto } from '@nimiplatform/sdk/realm';
@@ -361,6 +364,12 @@ export class DataSync {
     return this.actions.loadGemTransactionHistory(limit, cursor);
   }
   loadSubscriptionStatus() { return this.actions.loadSubscriptionStatus(); }
+  loadSparkPackages(): Promise<SparkPackageDto[]> {
+    return this.actions.loadSparkPackages();
+  }
+  createSparkCheckout(payload: CreateSparkCheckoutDto): Promise<SparkCheckoutSessionDto> {
+    return this.actions.createSparkCheckout(payload);
+  }
   loadWithdrawalEligibility() { return this.actions.loadWithdrawalEligibility(); }
   loadWithdrawalHistory(limit = 20, cursor?: string) {
     return this.actions.loadWithdrawalHistory(limit, cursor);
