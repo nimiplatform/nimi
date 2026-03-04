@@ -105,6 +105,8 @@ Source Rule: `D-DSYNC-006`
 | `loadSparkTransactionHistory` |
 | `loadGemTransactionHistory` |
 | `loadSubscriptionStatus` |
+| `loadSparkPackages` |
+| `createSparkCheckout` |
 | `loadWithdrawalEligibility` |
 | `loadWithdrawalHistory` |
 | `createWithdrawal` |

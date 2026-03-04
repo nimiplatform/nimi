@@ -6,12 +6,13 @@
 
 ## Scope
 
-经济系统功能域 — 货币余额、交易历史、订阅状态、提现、礼物系统。
+经济系统功能域 — 货币余额、交易历史、充值、订阅状态、提现、礼物系统。
 
 ## Module Map
 
 - `features/economy/` — 经济系统 UI（礼物发送弹窗等）
-- `runtime/data-sync/flows/economy-flow.ts` — 经济数据流
+- `features/settings/panels/advanced-panel.tsx` — Wallet 页面（余额、充值、提现、流水）
+- `runtime/data-sync/flows/economy-notification-flow.ts` — 经济数据流
 
 ## UI 交互
 
@@ -23,6 +24,12 @@
 ### 订阅
 
 - 订阅状态查询：`loadSubscriptionStatus` 获取当前订阅计划与到期时间。
+
+### 充值
+
+- 套餐查询：`loadSparkPackages` 获取 Spark 充值套餐。
+- 发起充值：`createSparkCheckout` 创建 Spark Checkout 会话并跳转收银台。
+- 回跳处理：Wallet 页面消费 `wallet_checkout` 回跳参数并刷新余额/流水。
 
 ### 提现
 

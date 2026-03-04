@@ -75,6 +75,8 @@ flows:
       - loadSparkTransactionHistory
       - loadGemTransactionHistory
       - loadSubscriptionStatus
+      - loadSparkPackages
+      - createSparkCheckout
       - loadWithdrawalEligibility
       - loadWithdrawalHistory
       - createWithdrawal

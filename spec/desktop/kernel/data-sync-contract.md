@@ -69,6 +69,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 - 余额：`loadCurrencyBalances`
 - 交易：`loadSparkTransactionHistory`、`loadGemTransactionHistory`
 - 订阅：`loadSubscriptionStatus`
+- 充值：`loadSparkPackages`、`createSparkCheckout`
 - 提现：`loadWithdrawalEligibility`、`loadWithdrawalHistory`、`createWithdrawal`
 - 礼物：`loadGiftCatalog`、`sendGift`、`claimGift`、`rejectGift`、`createGiftReview`
 
