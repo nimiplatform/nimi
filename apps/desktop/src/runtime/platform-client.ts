@@ -20,10 +20,13 @@ async function loadSdkModule(): Promise<typeof import('@nimiplatform/sdk')> {
 export type PlatformClientRuntimeDefaults = {
   realmBaseUrl: string;
   accessToken?: string;
+  accessTokenProvider?: () => string | Promise<string>;
 };
 
 export async function initializePlatformClient(input: PlatformClientRuntimeDefaults): Promise<PlatformClient> {
   const sdk = await loadSdkModule();
+  const tokenValue = String(input.accessToken || '').trim();
+  const runtimeAccessTokenProvider = input.accessTokenProvider || tokenValue;
   const runtime = new sdk.Runtime({
     appId: DEFAULT_APP_ID,
     transport: {
@@ -31,8 +34,10 @@ export async function initializePlatformClient(input: PlatformClientRuntimeDefau
       commandNamespace: 'runtime_bridge',
       eventNamespace: 'runtime_bridge',
     },
+    auth: {
+      accessToken: runtimeAccessTokenProvider,
+    },
   });
-  const tokenValue = String(input.accessToken || '').trim();
   const realm = new sdk.Realm({
     baseUrl: String(input.realmBaseUrl || '').trim(),
     auth: {

@@ -82,6 +82,12 @@ export function bootstrapRuntime(): Promise<void> {
     await initializePlatformClient({
       realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken: defaults.realm.accessToken,
+      accessTokenProvider: () => {
+        const store = useAppStore.getState();
+        const runtimeDefaultsAccessToken = String(store.runtimeDefaults?.realm?.accessToken || '').trim();
+        const authToken = String(store.auth.token || '').trim();
+        return authToken || runtimeDefaultsAccessToken || defaults.realm.accessToken;
+      },
     });
     const proxyFetch = createProxyFetch();
     useAppStore.getState().setRuntimeDefaults(defaults);
