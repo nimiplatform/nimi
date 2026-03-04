@@ -16,7 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
-func buildConnectorTTSRequest(modelID string) *runtimev1.SubmitMediaJobRequest {
+func buildConnectorTTSRequest(modelID string, voice string) *runtimev1.SubmitMediaJobRequest {
 	return &runtimev1.SubmitMediaJobRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
@@ -28,7 +28,7 @@ func buildConnectorTTSRequest(modelID string) *runtimev1.SubmitMediaJobRequest {
 		Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
 			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
 				Text:        "hello",
-				Voice:       "alloy",
+				Voice:       voice,
 				AudioFormat: "mp3",
 			},
 		},
@@ -78,7 +78,8 @@ func TestExecuteBackendSyncMediaTTSGatewayModelNotFound(t *testing.T) {
 
 	_, _, _, err := executeBackendSyncMedia(
 		context.Background(),
-		buildConnectorTTSRequest("cloud/qwen-tts-2025-05-22"),
+		nil,
+		buildConnectorTTSRequest("cloud/qwen-tts-2025-05-22", "alloy"),
 		nil,
 		"cloud/qwen-tts-2025-05-22",
 		adapterOpenAICompat,
@@ -122,7 +123,8 @@ func TestExecuteBackendSyncMediaTTSGatewayModalityNotSupported(t *testing.T) {
 
 	_, _, _, err := executeBackendSyncMedia(
 		context.Background(),
-		buildConnectorTTSRequest("cloud/deepseek-chat"),
+		nil,
+		buildConnectorTTSRequest("cloud/deepseek-chat", "alloy"),
 		nil,
 		"cloud/deepseek-chat",
 		adapterOpenAICompat,
@@ -167,7 +169,8 @@ func TestExecuteBackendSyncMediaTTSGatewayPassesValidModel(t *testing.T) {
 
 	artifacts, _, _, err := executeBackendSyncMedia(
 		context.Background(),
-		buildConnectorTTSRequest("cloud/qwen-tts-2025-05-22"),
+		nil,
+		buildConnectorTTSRequest("cloud/qwen-tts-2025-05-22", "Cherry"),
 		nil,
 		"cloud/qwen-tts-2025-05-22",
 		adapterOpenAICompat,
@@ -192,9 +195,56 @@ func TestExecuteBackendSyncMediaTTSGatewayPassesValidModel(t *testing.T) {
 	}
 }
 
+func TestExecuteBackendSyncMediaTTSGatewayRejectsUnsupportedVoice(t *testing.T) {
+	var ttsCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/models":
+			_, _ = io.WriteString(w, `{"data":[{"id":"qwen-tts-2025-05-22"}]}`)
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/audio/speech":
+			ttsCalls.Add(1)
+			w.Header().Set("Content-Type", "audio/mpeg")
+			_, _ = w.Write([]byte("tts-audio"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	_, _, _, err := executeBackendSyncMedia(
+		context.Background(),
+		nil,
+		buildConnectorTTSRequest("cloud/qwen-tts-2025-05-22", "alloy"),
+		nil,
+		"cloud/qwen-tts-2025-05-22",
+		adapterOpenAICompat,
+		&nimillm.RemoteTarget{
+			ProviderType: "dashscope",
+			Endpoint:     server.URL,
+			APIKey:       "test-api-key",
+		},
+		buildConnectorCloudProvider(server.URL),
+	)
+	if err == nil {
+		t.Fatal("expected unsupported voice preflight error")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
+	}
+	metadata := extractErrorMetadata(err)
+	if metadata["action_hint"] != "adjust_tts_voice_or_audio_options" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+	if ttsCalls.Load() != 0 {
+		t.Fatalf("tts provider should not be called when voice is unsupported, calls=%d", ttsCalls.Load())
+	}
+}
+
 func TestValidateConnectorTTSModelSupportNoConnectorSkipsGateway(t *testing.T) {
 	err := validateConnectorTTSModelSupport(
 		context.Background(),
+		nil,
 		&runtimev1.SubmitMediaJobRequest{
 			ModelId: "cloud/qwen-tts-2025-05-22",
 			Modal:   runtimev1.Modal_MODAL_TTS,

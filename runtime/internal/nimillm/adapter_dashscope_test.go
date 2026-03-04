@@ -48,7 +48,7 @@ func TestNativeOriginURL(t *testing.T) {
 	}
 }
 
-func TestExecuteAlibabaNativeTTSNormalizesQwenVoice(t *testing.T) {
+func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 	var capturedVoice string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/aigc/multimodal-generation/generation" {
@@ -89,8 +89,8 @@ func TestExecuteAlibabaNativeTTSNormalizesQwenVoice(t *testing.T) {
 	if len(artifacts) != 1 {
 		t.Fatalf("expected 1 artifact, got=%d", len(artifacts))
 	}
-	if capturedVoice != "Cherry" {
-		t.Fatalf("expected normalized voice Cherry, got=%q", capturedVoice)
+	if capturedVoice != "alloy" {
+		t.Fatalf("expected requested voice alloy, got=%q", capturedVoice)
 	}
 }
 

@@ -206,16 +206,16 @@ func ExecuteAlibabaNative(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		normalizedVoice := normalizeSpeechVoiceForTarget(AdapterAlibabaNative, modelResolved, strings.TrimSpace(spec.GetVoice()))
+		requestedVoice := strings.TrimSpace(spec.GetVoice())
 		providerOptions := StructToMap(spec.GetProviderOptions())
 		payload := map[string]any{
 			"model": modelResolved,
 			"input": map[string]any{
 				"text":  strings.TrimSpace(spec.GetText()),
-				"voice": normalizedVoice,
+				"voice": requestedVoice,
 			},
 			"parameters": map[string]any{
-				"voice":       normalizedVoice,
+				"voice":       requestedVoice,
 				"language":    strings.TrimSpace(spec.GetLanguage()),
 				"emotion":     strings.TrimSpace(spec.GetEmotion()),
 				"speed":       spec.GetSpeed(),
@@ -245,7 +245,7 @@ func ExecuteAlibabaNative(
 		artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
 			"adapter":          AdapterAlibabaNative,
 			"endpoint":         resolveAlibabaTTSPath(spec),
-			"voice":            normalizedVoice,
+			"voice":            requestedVoice,
 			"language":         strings.TrimSpace(spec.GetLanguage()),
 			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
 			"emotion":          strings.TrimSpace(spec.GetEmotion()),

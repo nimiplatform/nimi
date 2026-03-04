@@ -35,7 +35,7 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 		return nil, err
 	}
 
-	_, _, modelResolved, _, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
+	selectedProvider, _, modelResolved, _, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,19 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 	if remoteTarget != nil {
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
 	}
-	voices := resolveVoicePresets(modelResolved, providerType)
+	backend := resolveSpeechVoiceBackend(modelResolved, remoteTarget, selectedProvider, s.selector.cloudProvider)
+	voices, source, err := resolveSpeechVoicesForModel(ctx, modelResolved, remoteTarget, backend)
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.Debug(
+		"voice-list-resolved",
+		"source", string(source),
+		"model_resolved", strings.TrimSpace(modelResolved),
+		"provider_type", providerType,
+		"connector_id", strings.TrimSpace(req.GetConnectorId()),
+	)
 
 	return &runtimev1.GetSpeechVoicesResponse{
 		Voices:        voices,
@@ -168,60 +180,4 @@ func validateStreamSpeechSynthesisRequest(req *runtimev1.StreamSpeechSynthesisRe
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return nil
-}
-
-// resolveVoicePresets returns a list of voice descriptors based on the resolved
-// provider backend. For cloud providers, built-in presets are returned based on
-// the model ID prefix. For local providers, a minimal default set is returned.
-func resolveVoicePresets(modelResolved string, providerType string) []*runtimev1.SpeechVoiceDescriptor {
-	lowerProvider := strings.ToLower(strings.TrimSpace(providerType))
-	switch lowerProvider {
-	case "dashscope":
-		return dashScopeVoicePresets()
-	case "volcengine", "volcengine_openspeech":
-		return volcengineVoicePresets()
-	}
-
-	lower := strings.ToLower(modelResolved)
-
-	switch {
-	case strings.HasPrefix(lower, "dashscope/"):
-		return dashScopeVoicePresets()
-	case strings.Contains(lower, "qwen3-tts"), strings.Contains(lower, "qwen-tts"):
-		return dashScopeVoicePresets()
-	case strings.HasPrefix(lower, "volcengine/") || strings.HasPrefix(lower, "volcengine_openspeech/"):
-		return volcengineVoicePresets()
-	default:
-		return openAIVoicePresets()
-	}
-}
-
-func dashScopeVoicePresets() []*runtimev1.SpeechVoiceDescriptor {
-	return []*runtimev1.SpeechVoiceDescriptor{
-		{VoiceId: "Cherry", Name: "Cherry", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Serena", Name: "Serena", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Ethan", Name: "Ethan", Lang: "en", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Chelsie", Name: "Chelsie", Lang: "en", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Aura", Name: "Aura", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Breeze", Name: "Breeze", Lang: "zh", SupportedLangs: []string{"zh", "en"}},
-		{VoiceId: "Haruto", Name: "Haruto", Lang: "ja", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Maple", Name: "Maple", Lang: "zh", SupportedLangs: []string{"zh", "en"}},
-		{VoiceId: "Sierra", Name: "Sierra", Lang: "en", SupportedLangs: []string{"zh", "en"}},
-		{VoiceId: "River", Name: "River", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-	}
-}
-
-func volcengineVoicePresets() []*runtimev1.SpeechVoiceDescriptor {
-	return []*runtimev1.SpeechVoiceDescriptor{
-		{VoiceId: "BV001_streaming", Name: "BV001", Lang: "zh", SupportedLangs: []string{"zh"}},
-		{VoiceId: "BV002_streaming", Name: "BV002", Lang: "zh", SupportedLangs: []string{"zh"}},
-	}
-}
-
-func openAIVoicePresets() []*runtimev1.SpeechVoiceDescriptor {
-	return []*runtimev1.SpeechVoiceDescriptor{
-		{VoiceId: "alloy", Name: "Alloy", Lang: "en", SupportedLangs: []string{"en", "zh", "ja", "ko", "es", "fr", "de"}},
-		{VoiceId: "nova", Name: "Nova", Lang: "en", SupportedLangs: []string{"en", "zh", "ja", "ko", "es", "fr", "de"}},
-		{VoiceId: "shimmer", Name: "Shimmer", Lang: "en", SupportedLangs: []string{"en", "zh", "ja", "ko", "es", "fr", "de"}},
-	}
 }

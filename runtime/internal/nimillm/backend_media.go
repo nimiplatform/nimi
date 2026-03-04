@@ -17,62 +17,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-var (
-	dashScopeSpeechVoicePresets = []string{
-		"Cherry", "Serena", "Ethan", "Chelsie", "Aura", "Breeze", "Haruto", "Maple", "Sierra", "River",
-	}
-	volcengineSpeechVoicePresets = []string{
-		"BV001_streaming", "BV002_streaming",
-	}
-)
-
-func normalizeSpeechVoiceFromPresets(voice string, presets []string, fallback string) string {
-	if len(presets) == 0 {
-		return strings.TrimSpace(voice)
-	}
-	fallbackVoice := strings.TrimSpace(fallback)
-	if fallbackVoice == "" {
-		fallbackVoice = strings.TrimSpace(presets[0])
-	}
-	trimmed := strings.TrimSpace(voice)
-	if trimmed == "" {
-		return fallbackVoice
-	}
-	trimmedLower := strings.ToLower(trimmed)
-	for _, preset := range presets {
-		candidate := strings.TrimSpace(preset)
-		if candidate == "" {
-			continue
-		}
-		if candidate == trimmed || strings.ToLower(candidate) == trimmedLower {
-			return candidate
-		}
-	}
-	return fallbackVoice
-}
-
-func normalizeSpeechVoiceForTarget(backendName string, modelID string, requestedVoice string) string {
-	backendLower := strings.ToLower(strings.TrimSpace(backendName))
-	modelLower := strings.ToLower(strings.TrimSpace(modelID))
-	voice := strings.TrimSpace(requestedVoice)
-
-	// DashScope TTS models are often called via openai-compatible connectors.
-	// When stale OpenAI voice IDs (e.g. alloy) leak through, coerce to
-	// a provider-supported preset to avoid AI_INPUT_INVALID.
-	if strings.Contains(backendLower, "dashscope") || strings.Contains(modelLower, "qwen3-tts") || strings.Contains(modelLower, "qwen-tts") {
-		return normalizeSpeechVoiceFromPresets(voice, dashScopeSpeechVoicePresets, "Cherry")
-	}
-
-	if strings.Contains(backendLower, "volcengine") || strings.Contains(modelLower, "volcengine") {
-		return normalizeSpeechVoiceFromPresets(voice, volcengineSpeechVoicePresets, "BV001_streaming")
-	}
-
-	if voice == "" {
-		return "alloy"
-	}
-	return voice
-}
-
 // Embed sends an embeddings request.
 func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	type embeddingsRequest struct {
@@ -416,11 +360,10 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 		text = strings.TrimSpace(spec.GetText())
 		requestedVoice = strings.TrimSpace(spec.GetVoice())
 	}
-	voice := normalizeSpeechVoiceForTarget(b.Name, modelID, requestedVoice)
 	payload, err := b.postRaw(ctx, "/v1/audio/speech", speechRequest{
 		Model:           modelID,
 		Input:           text,
-		Voice:           voice,
+		Voice:           requestedVoice,
 		Language:        strings.TrimSpace(spec.GetLanguage()),
 		AudioFormat:     strings.TrimSpace(spec.GetAudioFormat()),
 		SampleRateHz:    spec.GetSampleRateHz(),

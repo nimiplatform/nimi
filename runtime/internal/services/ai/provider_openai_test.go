@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -75,7 +76,7 @@ func TestOpenAIBackendImageAndSpeech(t *testing.T) {
 	}
 }
 
-func TestOpenAIBackendSpeechVoiceFallbackForQwenTTS(t *testing.T) {
+func TestOpenAIBackendSpeechVoiceKeepsRequestedVoiceForQwenTTS(t *testing.T) {
 	var capturedVoice string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/audio/speech" {
@@ -103,8 +104,8 @@ func TestOpenAIBackendSpeechVoiceFallbackForQwenTTS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("synthesize speech: %v", err)
 	}
-	if capturedVoice != "Cherry" {
-		t.Fatalf("expected fallback voice Cherry, got=%s", capturedVoice)
+	if capturedVoice != "alloy" {
+		t.Fatalf("expected requested voice alloy, got=%s", capturedVoice)
 	}
 }
 
@@ -422,8 +423,9 @@ func TestMapProviderHTTPErrorBadRequest(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("unexpected code: %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_INPUT_INVALID.String() {
-		t.Fatalf("unexpected reason: %s", st.Message())
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("unexpected reason: %v (ok=%v)", reason, ok)
 	}
 }
 

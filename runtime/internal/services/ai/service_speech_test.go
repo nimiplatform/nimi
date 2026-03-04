@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -75,6 +76,80 @@ func TestGetSpeechVoicesValidation(t *testing.T) {
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument, got=%v", status.Code(err))
+	}
+}
+
+func TestGetSpeechVoicesUsesProviderLiveVoicesWhenAvailable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/v1/audio/voices" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"voices": []map[string]any{
+					{
+						"id":              "LiveCherry",
+						"name":            "LiveCherry",
+						"lang":            "zh",
+						"supported_langs": []string{"zh", "en"},
+						"models":          []string{"qwen3-tts-instruct-flash-2026-01-26"},
+					},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+
+	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "dashscope/qwen3-tts-instruct-flash-2026-01-26",
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	})
+	if err != nil {
+		t.Fatalf("getSpeechVoices: %v", err)
+	}
+	if len(resp.GetVoices()) != 1 {
+		t.Fatalf("expected 1 live voice, got=%d", len(resp.GetVoices()))
+	}
+	if resp.GetVoices()[0].GetVoiceId() != "LiveCherry" {
+		t.Fatalf("expected live voice LiveCherry, got=%q", resp.GetVoices()[0].GetVoiceId())
+	}
+}
+
+func TestGetSpeechVoicesFallsBackToCatalogWhenLiveListingUnsupported(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+
+	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "dashscope/qwen3-tts-instruct-flash-2026-01-26",
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	})
+	if err != nil {
+		t.Fatalf("getSpeechVoices: %v", err)
+	}
+	if len(resp.GetVoices()) != 10 {
+		t.Fatalf("expected 10 fallback catalog voices, got=%d", len(resp.GetVoices()))
+	}
+	if resp.GetVoices()[0].GetVoiceId() != "Cherry" {
+		t.Fatalf("expected fallback catalog voice Cherry, got=%q", resp.GetVoices()[0].GetVoiceId())
 	}
 }
 

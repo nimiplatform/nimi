@@ -64,7 +64,7 @@ test('falls back to first available voice when requested voice is empty', async 
   assert.equal(resolved, 'Cherry');
 });
 
-test('falls back to model-compatible voice when voice listing fails', async () => {
+test('returns requested voice when voice listing fails', async () => {
   const resolved = await resolveSpeechVoiceId({
     context: buildContext([], true),
     providerId: 'dashscope-compatible',
@@ -73,10 +73,10 @@ test('falls back to model-compatible voice when voice listing fails', async () =
     model: 'cloud/qwen3-tts-instruct-flash-2026-01-26',
     requestedVoiceId: 'alloy',
   });
-  assert.equal(resolved, 'Cherry');
+  assert.equal(resolved, 'alloy');
 });
 
-test('normalizes stale voice catalog result by model family', async () => {
+test('keeps runtime-listed voice without model-family hardcode remap', async () => {
   const resolved = await resolveSpeechVoiceId({
     context: buildContext(['alloy', 'nova']),
     providerId: 'openai-compatible',
@@ -85,5 +85,5 @@ test('normalizes stale voice catalog result by model family', async () => {
     model: 'cloud/qwen3-tts-instruct-flash-2026-01-26',
     requestedVoiceId: 'alloy',
   });
-  assert.equal(resolved, 'Cherry');
+  assert.equal(resolved, 'alloy');
 });

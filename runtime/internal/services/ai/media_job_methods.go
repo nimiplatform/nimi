@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -234,33 +235,39 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 		err           error
 	)
 
-	switch adapterName {
-	case adapterBytedanceOpenSpeech:
-		cfg := s.resolveNativeAdapterConfig("volcengine_openspeech", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceOpenSpeech(ctx, cfg, req, modelResolved)
-	case adapterBytedanceARKTask:
-		cfg := s.resolveNativeAdapterConfig("volcengine", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceARKTask(ctx, cfg, s, jobID, req, modelResolved)
-	case adapterAlibabaNative:
-		cfg := s.resolveNativeAdapterConfig("dashscope", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteAlibabaNative(ctx, cfg, s, jobID, req, modelResolved)
-	case adapterGeminiOperation:
-		cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
-	case adapterMiniMaxTask:
-		cfg := s.resolveNativeAdapterConfig("minimax", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
-	case adapterGLMTask:
-		cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteGLMTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
-	case adapterGLMNative:
-		cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteGLMNative(ctx, cfg, req, modelResolved)
-	case adapterKimiChatMultimodal:
-		cfg := s.resolveNativeAdapterConfig("kimi", remoteTarget)
-		artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
-	default:
-		artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider)
+	if req.GetModal() == runtimev1.Modal_MODAL_TTS {
+		err = validateConnectorTTSModelSupport(ctx, s.logger, req, modelResolved, remoteTarget, s.selector.cloudProvider)
+	}
+
+	if err == nil {
+		switch adapterName {
+		case adapterBytedanceOpenSpeech:
+			cfg := s.resolveNativeAdapterConfig("volcengine_openspeech", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceOpenSpeech(ctx, cfg, req, modelResolved)
+		case adapterBytedanceARKTask:
+			cfg := s.resolveNativeAdapterConfig("volcengine", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceARKTask(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterAlibabaNative:
+			cfg := s.resolveNativeAdapterConfig("dashscope", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteAlibabaNative(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterGeminiOperation:
+			cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
+		case adapterMiniMaxTask:
+			cfg := s.resolveNativeAdapterConfig("minimax", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
+		case adapterGLMTask:
+			cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGLMTask(ctx, cfg, s, jobID, req, modelResolved, extractProviderOptions)
+		case adapterGLMNative:
+			cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGLMNative(ctx, cfg, req, modelResolved)
+		case adapterKimiChatMultimodal:
+			cfg := s.resolveNativeAdapterConfig("kimi", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
+		default:
+			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider)
+		}
 	}
 
 	if err != nil {
@@ -302,6 +309,7 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 // This is the OpenAI-compat fallback adapter path.
 func executeBackendSyncMedia(
 	ctx context.Context,
+	logger *slog.Logger,
 	req *runtimev1.SubmitMediaJobRequest,
 	selectedProvider provider,
 	modelResolved string,
@@ -383,7 +391,7 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		if err := validateConnectorTTSModelSupport(ctx, req, backendModelID, remoteTarget, cloudProvider); err != nil {
+		if err := validateConnectorTTSModelSupport(ctx, logger, req, backendModelID, remoteTarget, cloudProvider); err != nil {
 			return nil, nil, "", err
 		}
 		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec)
@@ -434,6 +442,7 @@ func executeBackendSyncMedia(
 
 func validateConnectorTTSModelSupport(
 	ctx context.Context,
+	logger *slog.Logger,
 	req *runtimev1.SubmitMediaJobRequest,
 	resolvedModelID string,
 	remoteTarget *nimillm.RemoteTarget,
@@ -488,6 +497,52 @@ func validateConnectorTTSModelSupport(
 			Message:    providerMessage,
 			Metadata: map[string]string{
 				"provider_message": providerMessage,
+			},
+		})
+	}
+
+	voices, source, err := resolveSpeechVoicesForModelWithProviderType(
+		ctx,
+		strings.TrimSpace(matchedModelID),
+		strings.TrimSpace(remoteTarget.ProviderType),
+		probeBackend,
+	)
+	if err != nil {
+		return err
+	}
+	if logger != nil {
+		logger.Debug(
+			"voice-list-resolved",
+			"source", string(source),
+			"model_resolved", strings.TrimSpace(matchedModelID),
+			"provider_type", strings.TrimSpace(remoteTarget.ProviderType),
+			"connector_id", strings.TrimSpace(req.GetConnectorId()),
+		)
+	}
+
+	requestedVoice := strings.TrimSpace(req.GetSpeechSpec().GetVoice())
+	if !isSpeechVoiceSupported(requestedVoice, voices) {
+		providerMessage := fmt.Sprintf(
+			"voice %q is not supported by model %q",
+			requestedVoice,
+			strings.TrimSpace(matchedModelID),
+		)
+		if logger != nil {
+			logger.Warn(
+				"voice-validation-failed",
+				"voice", requestedVoice,
+				"model_resolved", strings.TrimSpace(matchedModelID),
+				"connector_id", strings.TrimSpace(req.GetConnectorId()),
+				"source", string(source),
+			)
+		}
+		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+			ActionHint: "adjust_tts_voice_or_audio_options",
+			Message:    providerMessage,
+			Metadata: map[string]string{
+				"provider_message":     providerMessage,
+				"voice_catalog_source": string(source),
+				"requested_voice":      requestedVoice,
 			},
 		})
 	}
