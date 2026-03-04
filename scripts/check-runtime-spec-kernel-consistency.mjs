@@ -524,6 +524,11 @@ function checkMetadataKeyContract() {
       fail(`metadata-keys x-nimi-key-source must include allowed value: ${required}`);
     }
   }
+
+  const authorization = byKey.get('authorization');
+  if (!authorization) {
+    fail('metadata-keys missing authorization');
+  }
 }
 
 function checkMetadataKeyCrossReferences() {
@@ -533,9 +538,9 @@ function checkMetadataKeyCrossReferences() {
     keys.map((item) => String(item?.key || '').trim()).filter(Boolean),
   );
 
-  // Scan all kernel + domain markdown for x-nimi-* metadata key references
+  // Scan all kernel + domain markdown for metadata key references
   const allMdFiles = [...runtimeMarkdownFiles, ...domainFiles];
-  const keyRefPattern = /`(x-nimi-[a-z][a-z0-9-]*)`/g;
+  const keyRefPattern = /`(x-nimi-[a-z][a-z0-9-]*|authorization)`/g;
 
   for (const rel of allMdFiles) {
     if (!fs.existsSync(path.join(cwd, rel))) continue;

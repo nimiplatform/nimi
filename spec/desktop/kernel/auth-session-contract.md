@@ -46,7 +46,7 @@ anonymous     → authenticated  (login 成功)
 | Desktop 状态 | Realm SDK 行为 | Runtime 层关系 |
 |---|---|---|
 | `bootstrapping` | Realm SDK `connect()` / token 获取 | Runtime 无活跃请求（Desktop 尚未开始调用） |
-| `authenticated` | Realm SDK session active，`auth.accessToken` 注入请求 header | Runtime K-AUTHN-001~008 通过 gRPC metadata 中的 token 验证请求合法性 |
+| `authenticated` | Realm SDK session active，维护 `auth.accessToken` 最新值 | Runtime SDK 调用时自动注入 `Authorization: Bearer <realm_access_token>`，Runtime K-AUTHN-001~008 验证请求合法性 |
 | `anonymous` | Realm SDK 无 token，仅公开 API 可用 | Runtime 拒绝需认证的 RPC（`UNAUTHENTICATED`） |
 
 **Desktop 与 RuntimeAuthService 的关系**：
@@ -56,7 +56,7 @@ Desktop **不直接使用** RuntimeAuthService（K-AUTHSVC-001~013）的 `OpenSe
 - 外部 Agent 通过 SDK 建立 Runtime session（K-AUTHSVC-006、RegisterExternalPrincipal）
 - 独立 SDK 消费者（非 Desktop）直接与 Runtime 交互
 
-Runtime 对 Desktop 请求的认证路径：Desktop → Realm SDK 注入 `Authorization: Bearer <realm_access_token>` → Runtime gRPC metadata → K-AUTHN-001~008 token 验证拦截器。此 token 由 Realm 后端签发，Runtime 仅做 claims 校验，不管理其生命周期。
+Runtime 对 Desktop 请求的认证路径：Desktop 持有 Realm SDK session token → Runtime SDK 在每次调用前读取最新 token 并注入 `Authorization: Bearer <realm_access_token>` → Runtime gRPC metadata `authorization` → K-AUTHN-001~008 token 验证拦截器。此 token 由 Realm 后端签发，Runtime 仅做 claims 校验，不管理其生命周期。
 
 **AppMode 声明**（K-AUTHSVC-009）：Desktop 使用 `AppMode=FULL`、`WorldRelation=RENDER` 注册（K-AUTHSVC-010）。`FULL` 模式允许同时访问 `runtime.*` 和 `realm.*` 域。若注册时使用错误的 AppMode，Runtime 返回 `APP_MODE_DOMAIN_FORBIDDEN`（D-ERR-007 映射表兜底处理）。
 

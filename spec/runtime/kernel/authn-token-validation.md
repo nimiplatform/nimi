@@ -4,9 +4,10 @@
 
 ## K-AUTHN-001 Bearer token 输入模型
 
-- `Authorization` 仅接受 `Bearer <jwt>` 形式。
+- gRPC metadata 认证头键固定为 `authorization`（HTTP `Authorization` 在 gRPC 层归一化为该键）。
+- `authorization` 仅接受 `Bearer <jwt>` 形式。
 - 无 `Authorization` 视为 anonymous，不报错。
-- 头存在但格式非法，必须 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
+- `authorization` 存在但格式非法，必须 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`，不得降级为 anonymous。
 
 ## K-AUTHN-002 必校验 claims
 

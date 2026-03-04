@@ -28,7 +28,7 @@ Nimi 平台采用固定六层架构：nimi-realm（云端持久世界）、nimi-
 
 ## P-ARCH-011 — Credential Plane 双平面
 
-`MUST`: daemon-config plane（由 `ai.providers.*.apiKeyEnv` 驱动）与 request-credential plane（受信宿主请求期注入）不可混用。Runtime 不承担 `connectorId -> secret` 解析。
+`MUST`: daemon-config plane（由 `ai.providers.*.apiKeyEnv` 驱动）与 request-credential plane（受信宿主请求期注入）不可在同一请求混用。Runtime 在 managed connector 路径下承担 `connectorId -> secret` 解析（`K-CONN-001` / `K-KEYSRC-004`），在 inline 路径下消费请求期凭据注入。
 
 ## P-ARCH-020 — SDK 统一入口
 

@@ -121,6 +121,11 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 
+**Runtime IPC payload 鉴权字段**：
+- `runtime_bridge_unary` / `runtime_bridge_stream_open` payload 必须支持顶层可选字段 `authorization`。
+- 该字段由 SDK Runtime transport 自动注入，不从 `metadata.extra` 透传。
+- Renderer 业务层不得手工构造此字段。
+
 **IPC 桥路径**（Tauri backend → daemon）：
 - 平台层 Runtime 管理：daemon 生命周期（D-IPC-002: start/stop/restart/status）
 - 配置管理（D-IPC-003: config_get/config_set + hot-reload 提示）

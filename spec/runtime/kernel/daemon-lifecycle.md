@@ -82,14 +82,16 @@ Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervi
 
 ## K-DAEMON-005 gRPC 拦截器链
 
-gRPC 请求经过 4 层有序拦截器，unary 与 stream 分别注册：
+gRPC 请求经过 6 层有序拦截器，unary 与 stream 分别注册：
 
 | 顺序 | 名称 | Unary | Stream | 职责 |
 |---|---|---|---|---|
-| 1 | lifecycle | 是 | 是 | 健康状态门控：`STOPPING`/`STOPPED` 时拒绝非只读请求（`UNAVAILABLE`） |
-| 2 | protocol | 是 | 是（仅解析） | 信封解析、幂等性检查（unary only，`K-DAEMON-006`）、metadata 提取 |
-| 3 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
-| 4 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
+| 1 | version | 是 | 是 | 版本协商：向 response header 注入 `x-nimi-runtime-version` |
+| 2 | lifecycle | 是 | 是 | 健康状态门控：`STOPPING`/`STOPPED` 时拒绝非只读请求（`UNAVAILABLE`） |
+| 3 | protocol | 是 | 是（仅解析） | 信封解析、幂等性检查（unary only，`K-DAEMON-006`）、metadata 提取 |
+| 4 | authn | 是 | 是 | 认证校验：解析并校验 metadata `authorization`，投影调用方身份 |
+| 5 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
+| 6 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
 
 ## K-DAEMON-006 幂等性契约
 

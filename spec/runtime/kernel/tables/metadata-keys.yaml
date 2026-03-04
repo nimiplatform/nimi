@@ -22,6 +22,9 @@ keys:
   - key: x-nimi-idempotency-key
     required_when: optional dedup context
     source: K-DAEMON-006
+  - key: authorization
+    required_when: authenticated runtime call (optional for anonymous)
+    source: K-AUTHN-001
   - key: x-nimi-runtime-version
     required_when: always (response header metadata)
     source: K-DAEMON-011

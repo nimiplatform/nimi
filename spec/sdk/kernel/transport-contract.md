@@ -17,6 +17,7 @@ Runtime SDK 必须遵循 metadata/body 分离：
 
 - `connectorId` 在 request body
 - provider endpoint/api_key 在 transport metadata
+- Runtime 鉴权 token 不属于业务 metadata；必须通过 transport auth 通道注入到 gRPC metadata `authorization`
 
 ## S-TRANSPORT-003 流式行为边界
 
@@ -90,3 +91,11 @@ Mode D 投影规则按 Phase 分层：
 
 - Runtime chunk 缓冲至最小 32 bytes（`K-STREAM-006`）。
 - SDK 不重新拆分或合并 chunk，直接透传 runtime 边界。
+
+## S-TRANSPORT-010 Runtime 鉴权注入边界
+
+- Runtime SDK 必须支持 `auth.accessToken`（`string` 或 token provider 函数）作为统一鉴权来源。
+- 每次 unary/stream 调用前都必须重新解析 token（不得在 client 构造时静态固化）。
+- 解析到 token 时，SDK 必须自动注入 `Authorization: Bearer <token>` 到 Runtime transport。
+- 未解析到 token 时，SDK 发送匿名请求；受保护 RPC 的拒绝语义由 runtime 侧定义（`K-AUTHN-*` / `K-AUTH-*`）。
+- 上层应用不得通过 `metadata.extra` 手工拼接 `authorization`；该字段属于 transport 内部实现细节。

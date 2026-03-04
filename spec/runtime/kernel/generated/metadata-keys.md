@@ -11,4 +11,5 @@
 | `x-nimi-app-id` | — | ConnectorService RPC |
 | `x-nimi-client-id` | — | optional audit context |
 | `x-nimi-idempotency-key` | — | optional dedup context |
+| `authorization` | — | authenticated runtime call (optional for anonymous) |
 | `x-nimi-runtime-version` | — | always (response header metadata) |

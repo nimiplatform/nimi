@@ -37,3 +37,16 @@ blocked 与 deferred 是不同状态：blocked 由依赖缺失造成，deferred 
 ## S-RUNTIME-066 Pagination Projection
 
 Runtime List RPC 的分页默认值与 Realm REST 客户端分页默认值可不同，必须在文档层显式说明。
+
+## S-RUNTIME-067 鉴权与主体上下文分离
+
+Runtime SDK 必须将“鉴权 token”与“业务主体标识”分离建模：
+
+- `auth.accessToken`：用于 Runtime AuthN（`authorization` 注入）。
+- `subjectContext`：用于填充请求体 `subjectUserId`。
+
+两者语义独立，不得复用同一配置字段。
+
+## S-RUNTIME-068 Subject Context 命名规范
+
+RuntimeOptions 公开字段必须使用 `subjectContext` 命名，不得继续暴露 `authContext` 旧命名。
