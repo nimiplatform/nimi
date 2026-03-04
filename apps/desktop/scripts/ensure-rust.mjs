@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import process from "node:process";
 
 const RUSTUP_URL = "https://rustup.rs";
 const CARGO_HOME_BIN = path.join(homedir(), ".cargo", "bin");

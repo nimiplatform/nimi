@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
 import { getContactInitial } from './contacts-model.js';
-import type { BlockedUserInfo } from './contacts-view-types.js';
 import { CATEGORIES } from './contacts-view-types.js';
 import { BlockedUsersList } from './contacts-blocked-users.js';
 

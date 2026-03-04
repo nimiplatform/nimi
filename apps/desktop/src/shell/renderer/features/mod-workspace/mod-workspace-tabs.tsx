@@ -10,7 +10,6 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
   const modWorkspaceTabs = useAppStore((state) => state.modWorkspaceTabs);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
-  const isModActive = activeTab.startsWith('mod:');
 
   if (modWorkspaceTabs.length === 0) {
     return null;
