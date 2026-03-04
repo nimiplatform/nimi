@@ -113,6 +113,75 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigSetProvidersLocalRequiresRestart(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	setOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "providers.local.baseUrl=http://127.0.0.1:1234/v1",
+			"--set", "providers.local.apiKeyEnv=LOCALAI_API_KEY",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeConfig set providers.local.*: %v", err)
+	}
+	setPayload := parseJSONMap(t, setOutput)
+	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	}
+}
+
+func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	setOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "engines.localai.enabled=true",
+			"--set", "engines.localai.port=2234",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeConfig set engines.localai.*: %v", err)
+	}
+	setPayload := parseJSONMap(t, setOutput)
+	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.Engines == nil || cfg.Engines.LocalAI == nil || cfg.Engines.LocalAI.Enabled == nil {
+		t.Fatalf("engines.localai.enabled should be persisted: %#v", cfg.Engines)
+	}
+	if !*cfg.Engines.LocalAI.Enabled {
+		t.Fatalf("engines.localai.enabled value mismatch: got=%v", *cfg.Engines.LocalAI.Enabled)
+	}
+	if cfg.Engines.LocalAI.Port == nil || *cfg.Engines.LocalAI.Port != 2234 {
+		t.Fatalf("engines.localai.port value mismatch: %#v", cfg.Engines.LocalAI.Port)
+	}
+}
+
 func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -415,6 +484,12 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_AUTH_JWT_ISSUER",
 		"NIMI_RUNTIME_AUTH_JWT_AUDIENCE",
 		"NIMI_RUNTIME_AUTH_JWT_JWKS_URL",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT",
+		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED",
+		"NIMI_RUNTIME_ENGINE_NEXA_VERSION",
+		"NIMI_RUNTIME_ENGINE_NEXA_PORT",
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")

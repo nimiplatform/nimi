@@ -2,11 +2,18 @@ package connector
 
 import (
 	"context"
+	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -494,7 +501,7 @@ func TestTestConnectorDisabled(t *testing.T) {
 	}
 }
 
-func TestModelCacheTTLAndInvalidation(t *testing.T) {
+func TestModelCacheSetGetAndInvalidation(t *testing.T) {
 	cache := NewModelCache()
 
 	models := []*runtimev1.ConnectorModelDescriptor{
@@ -512,6 +519,80 @@ func TestModelCacheTTLAndInvalidation(t *testing.T) {
 	got = cache.Get("conn-1")
 	if got != nil {
 		t.Error("expected nil after invalidation")
+	}
+}
+
+func TestListConnectorModelsConcurrentRequestsShareSingleRemoteFetch(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	var hits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		hits.Add(1)
+		time.Sleep(120 * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"id":"qwen-plus","name":"qwen-plus"}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Endpoint: server.URL,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+	if connectorID == "" {
+		t.Fatalf("expected connector id")
+	}
+
+	const workers = 8
+	start := make(chan struct{})
+	errCh := make(chan error, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			resp, callErr := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+				ConnectorId: connectorID,
+				PageSize:    20,
+			})
+			if callErr != nil {
+				errCh <- callErr
+				return
+			}
+			if len(resp.GetModels()) != 1 || resp.GetModels()[0].GetModelId() != "qwen-plus" {
+				errCh <- status.Errorf(codes.Internal, "unexpected models payload: %+v", resp.GetModels())
+			}
+		}()
+	}
+
+	close(start)
+	wg.Wait()
+	close(errCh)
+	for callErr := range errCh {
+		if callErr != nil {
+			t.Fatalf("ListConnectorModels concurrent call failed: %v", callErr)
+		}
+	}
+
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("expected exactly one upstream /v1/models call, got %d", got)
 	}
 }
 

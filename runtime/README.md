@@ -102,6 +102,7 @@ go run ./cmd/nimi serve
 Config precedence: CLI flags > environment variables > config file > built-in defaults.
 
 `nimi config set` writes are restart-required; runtime does not hot-reload config.
+This explicitly includes `providers.*`, `engines.localai.*`, and `engines.nexa.*` changes.
 
 In another terminal:
 

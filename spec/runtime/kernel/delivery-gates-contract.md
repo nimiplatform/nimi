@@ -22,6 +22,21 @@ SDK 投影、边界、错误语义与文档漂移检查必须通过。
 
 provider 覆盖矩阵、可用性探测、错误映射必须满足基线。
 
+执行命令（PR 必须通过）：
+
+- `pnpm check:no-legacy-cloud-provider-keys`
+- `pnpm check:runtime-ai-media-coverage`
+- `pnpm check:live-provider-invariants`
+
+阻断语义：
+
+- 任一命令失败均阻断 Runtime 进入下游层（SDK/Desktop/mod）。
+
+证据路由：
+
+- `dev/report/live-test-coverage.yaml`
+- `dev/report/*`
+
 ## K-GATE-050 G4 Workflow Async Gate
 
 external async 事件与任务语义必须一致可追溯。
@@ -30,13 +45,42 @@ external async 事件与任务语义必须一致可追溯。
 
 至少覆盖 provider x modality x route x sync/async x failure class 的矩阵。
 
+执行命令：
+
+- `node scripts/run-live-test-matrix.mjs`
+
+阻断策略：
+
+- PR：允许未配置 provider 的单元以 `skipped` 通过（skip-safe）。
+- 夜间与发布前：required provider 若出现 `failed` 或 `skipped`，必须阻断。
+
+证据路由：
+
+- `dev/report/live-test-coverage.yaml`
+
 ## K-GATE-070 G6 Observability Gate
 
 关键路径必须提供审计与结构化日志，禁止黑盒失败。
 
+执行命令（PR 必须通过）：
+
+- `cd runtime && go run ./cmd/runtime-compliance --gate`
+
+阻断语义：
+
+- compliance gate 未通过时，SDK/Desktop/mod 层不得继续执行 workaround 调试。
+
 ## K-GATE-080 G7 Release Candidate Gate
 
 发布候选必须满足 gate 结果齐备与回归全绿。
+
+执行命令（发布前硬门）：
+
+- `pnpm check:live-smoke-gate --require-release`
+
+阻断语义：
+
+- required provider 出现 `failed` 或 `skipped` 时，release job 必须在 publish 前终止。
 
 ## K-GATE-090 Evidence Routing
 

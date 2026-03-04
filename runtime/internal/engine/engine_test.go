@@ -1017,7 +1017,7 @@ func TestLocalAICommandArgs(t *testing.T) {
 	cmd := localAICommand(cfg)
 	args := strings.Join(cmd.Args[1:], " ")
 
-	for _, want := range []string{"run", "--address", ":5555", "--disable-webui", "--log-level", "info"} {
+	for _, want := range []string{"run", "--address", ":5555", "--disable-web-ui", "--log-level", "info"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("expected args to contain %q, got: %s", want, args)
 		}

@@ -25,7 +25,7 @@ Daemon 启动固定为以下阶段：
 1. **Config**：加载配置（`K-DAEMON-009`），校验地址与超时。
 2. **Workers**：若 worker 模式启用，启动 worker supervisor（`K-DAEMON-004`）。失败则状态置 `STOPPED`，写审计（`runtime.lifecycle` / `startup.failed`），返回错误。
 3. **Servers**：并行启动 gRPC server 与 HTTP server。
-4. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004d`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`。
+4. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004d`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
 5. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
 6. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
 
@@ -182,7 +182,7 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `auth.jwt.issuer` | string | `` | restart | JWT `iss` 校验目标；空值=不校验 | K-AUTHN-003 |
 | `auth.jwt.audience` | string | `` | restart | JWT `aud` 校验目标；空值=不校验 | K-AUTHN-003 |
 | `auth.jwt.jwksUrl` | string | `` | restart | JWT 公钥来源 JWKS 地址；空值=拒绝所有 bearer token | K-AUTHN-004 |
-| `providers` | map | `{}` | hot | AI Provider 路由表（key=provider name） | K-DAEMON-009 |
+| `providers` | map | `{}` | restart | AI Provider 路由表（key=provider name） | K-DAEMON-009 |
 | `engines.localai.enabled` | bool | `false` | restart | 启用 LocalAI 引擎 SUPERVISED 模式 | K-LENG-004d |
 | `engines.localai.version` | string | `3.12.1` | restart | LocalAI 二进制版本 | K-LENG-004d |
 | `engines.localai.port` | int | `1234` | restart | LocalAI 监听端口 | K-LENG-004d |
@@ -208,6 +208,8 @@ JWT 验签配置仅支持 `auth.jwt.jwksUrl`，不支持 `auth.jwt.publicKeyPath
 - `CONFIG_APPLIED`：仅 `hot` 列字段发生变更，或无实质变更。
 
 消费端（Desktop）仅在收到 `CONFIG_RESTART_REQUIRED` 时提示用户重启 runtime。
+
+`providers.*`、`engines.localai.*`、`engines.nexa.*` 变更属于 restart 范畴，必须返回 `CONFIG_RESTART_REQUIRED`。
 
 ## K-DAEMON-011 版本 Metadata 交换协议
 

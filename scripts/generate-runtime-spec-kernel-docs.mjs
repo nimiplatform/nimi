@@ -636,15 +636,18 @@ function renderRuntimeDeliveryGates(doc, sourceName) {
   const gates = Array.isArray(doc?.gates) ? doc.gates : [];
   let out = header('Generated Runtime Delivery Gates', sourceName);
 
-  out += '| Gate | Name | Objective | Source Rule |\n';
-  out += '|---|---|---|---|\n';
+  out += '| Gate | Name | Objective | Command | Blocking | Evidence Route | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|\n';
   for (const item of gates) {
     const gate = String(item?.gate || '').trim();
     if (!gate) continue;
     const name = String(item?.name || '').trim() || '—';
     const objective = String(item?.objective || '').trim() || '—';
+    const command = String(item?.command || '').trim() || '—';
+    const blocking = String(item?.blocking || '').trim() || '—';
+    const evidenceRoute = String(item?.evidence_route || '').trim() || '—';
     const sourceRule = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${gate}\` | \`${name}\` | ${objective} | \`${sourceRule}\` |\n`;
+    out += `| \`${gate}\` | \`${name}\` | ${objective} | \`${command}\` | \`${blocking}\` | \`${evidenceRoute}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 

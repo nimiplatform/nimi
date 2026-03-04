@@ -110,6 +110,10 @@ type Config struct {
 	// Default: false. (K-LENG-004)
 	EngineLocalAIEnabled bool
 
+	// EngineLocalAIAutoManaged reports whether LocalAI supervised mode was
+	// inferred from a loopback providers.local endpoint.
+	EngineLocalAIAutoManaged bool
+
 	// EngineLocalAIVersion is the LocalAI release version to download/use.
 	// Default: "3.12.1". (K-LENG-004)
 	EngineLocalAIVersion string
@@ -231,6 +235,11 @@ func Load() (Config, error) {
 	applyProviderEnvDefaults(fileCfg)
 	applyImplicitProviderDefaults()
 
+	localAIEnabledFromFile := fileConfigEngineBool(fileCfg, "localai")
+	localAIPortFromFile := fileConfigEngineInt(fileCfg, "localai", "port")
+	nexaEnabledFromFile := fileConfigEngineBool(fileCfg, "nexa")
+	nexaPortFromFile := fileConfigEngineInt(fileCfg, "nexa", "port")
+
 	cfg := Config{
 		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", firstNonEmptyString(fileCfg.GRPCAddr, defaultGRPCAddr)),
 		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.HTTPAddr, defaultHTTPAddr)),
@@ -254,12 +263,26 @@ func Load() (Config, error) {
 		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
 		AuthJWTJWKSURL:                readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
 		Providers:                     fileCfg.Providers,
-		EngineLocalAIEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED", fileConfigEngineBool(fileCfg, "localai"), false),
+		EngineLocalAIEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED", localAIEnabledFromFile, false),
 		EngineLocalAIVersion:          readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_VERSION", fileConfigEngineString(fileCfg, "localai", "version"), "3.12.1"),
-		EngineLocalAIPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_PORT", fileConfigEngineInt(fileCfg, "localai", "port"), 1234),
-		EngineNexaEnabled:             readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", fileConfigEngineBool(fileCfg, "nexa"), false),
+		EngineLocalAIPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_PORT", localAIPortFromFile, 1234),
+		EngineNexaEnabled:             readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_ENABLED", nexaEnabledFromFile, false),
 		EngineNexaVersion:             readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_VERSION", fileConfigEngineString(fileCfg, "nexa", "version"), ""),
-		EngineNexaPort:                readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", fileConfigEngineInt(fileCfg, "nexa", "port"), 8000),
+		EngineNexaPort:                readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_NEXA_PORT", nexaPortFromFile, 8000),
+	}
+
+	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL"))
+	localAIEnabledExplicit := localAIEnabledFromFile != nil || isBoolEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED")
+	localAIPortExplicit := localAIPortFromFile != nil || isIntEnvValueExplicit("NIMI_RUNTIME_ENGINE_LOCALAI_PORT")
+
+	if inferredPort, autoManaged := inferLoopbackLocalAIPort(localBaseURL); autoManaged {
+		if !localAIEnabledExplicit {
+			cfg.EngineLocalAIEnabled = true
+			cfg.EngineLocalAIAutoManaged = true
+		}
+		if cfg.EngineLocalAIEnabled && !localAIPortExplicit {
+			cfg.EngineLocalAIPort = inferredPort
+		}
 	}
 
 	// shutdownTimeoutSeconds: env (duration string) > FileConfig (int seconds) > default 10
@@ -308,6 +331,77 @@ func readBoolWithFileConfigFallback(envKey string, fileValue *bool, fallback boo
 		}
 		return fallback
 	}
+}
+
+func isBoolEnvValueExplicit(envKey string) bool {
+	raw, ok := os.LookupEnv(envKey)
+	if !ok {
+		return false
+	}
+	switch strings.TrimSpace(strings.ToLower(raw)) {
+	case "true", "1", "yes", "false", "0", "no":
+		return true
+	default:
+		return false
+	}
+}
+
+func isIntEnvValueExplicit(envKey string) bool {
+	raw, ok := os.LookupEnv(envKey)
+	if !ok {
+		return false
+	}
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return false
+	}
+	_, err := strconv.Atoi(raw)
+	return err == nil
+}
+
+func inferLoopbackLocalAIPort(baseURL string) (int, bool) {
+	parsed, ok := parseProviderEndpointURL(baseURL)
+	if !ok {
+		return 0, false
+	}
+	host := strings.TrimSpace(strings.ToLower(parsed.Hostname()))
+	if host == "" {
+		return 0, false
+	}
+	if host != "localhost" {
+		ip := net.ParseIP(host)
+		if ip == nil || !ip.IsLoopback() {
+			return 0, false
+		}
+	}
+	if portValue := strings.TrimSpace(parsed.Port()); portValue != "" {
+		if port, err := strconv.Atoi(portValue); err == nil && port > 0 {
+			return port, true
+		}
+	}
+	return 1234, true
+}
+
+func parseProviderEndpointURL(raw string) (*url.URL, bool) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, false
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return nil, false
+	}
+	if strings.TrimSpace(parsed.Hostname()) != "" {
+		return parsed, true
+	}
+	if strings.Contains(trimmed, "://") {
+		return nil, false
+	}
+	fallback, err := url.Parse("http://" + trimmed)
+	if err != nil || strings.TrimSpace(fallback.Hostname()) == "" {
+		return nil, false
+	}
+	return fallback, true
 }
 
 // Validate ensures addresses and timeout are usable before boot.

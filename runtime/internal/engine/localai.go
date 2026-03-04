@@ -46,7 +46,7 @@ func localAICommand(cfg EngineConfig) *exec.Cmd {
 	args := []string{
 		"run",
 		"--address", ":" + itoa(cfg.Port),
-		"--disable-webui",
+		"--disable-web-ui",
 		"--log-level", "info",
 	}
 	if cfg.ModelsPath != "" {

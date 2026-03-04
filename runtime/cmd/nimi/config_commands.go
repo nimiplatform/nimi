@@ -234,7 +234,7 @@ func runRuntimeConfigSet(args []string) error {
 	if err != nil {
 		return err
 	}
-	previous := mutated
+	previous := cloneFileConfig(mutated)
 
 	if *fromStdin || strings.TrimSpace(*inputFile) != "" {
 		payloadBytes, readErr := readConfigInput(*fromStdin, strings.TrimSpace(*inputFile))
@@ -402,7 +402,40 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 		}
 		merged.Providers = mergedProviders
 	}
+	if raw.Engines != nil {
+		merged.Engines = &config.FileConfigEngines{
+			LocalAI: cloneFileConfigEngine(raw.Engines.LocalAI),
+			Nexa:    cloneFileConfigEngine(raw.Engines.Nexa),
+		}
+		pruneEmptyEnginesConfig(&merged)
+	}
 	return merged
+}
+
+func cloneFileConfig(fileCfg config.FileConfig) config.FileConfig {
+	cloned := fileCfg
+	if fileCfg.Auth != nil {
+		authCopy := *fileCfg.Auth
+		cloned.Auth = &authCopy
+		if fileCfg.Auth.JWT != nil {
+			jwtCopy := *fileCfg.Auth.JWT
+			cloned.Auth.JWT = &jwtCopy
+		}
+	}
+	if fileCfg.Providers != nil {
+		clonedProviders := make(map[string]config.RuntimeFileTarget, len(fileCfg.Providers))
+		for k, v := range fileCfg.Providers {
+			clonedProviders[k] = v
+		}
+		cloned.Providers = clonedProviders
+	}
+	if fileCfg.Engines != nil {
+		cloned.Engines = &config.FileConfigEngines{
+			LocalAI: cloneFileConfigEngine(fileCfg.Engines.LocalAI),
+			Nexa:    cloneFileConfigEngine(fileCfg.Engines.Nexa),
+		}
+	}
+	return cloned
 }
 
 func validateMergedRuntimeFields(fileCfg config.FileConfig) error {
@@ -611,6 +644,40 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "auth.jwt.jwksUrl":
 		ensureAuthJWTConfig(cfg).JWKSURL = value
 		return nil
+	case "engines.localai.enabled":
+		parsed, err := parseBooleanConfigValue(value)
+		if err != nil {
+			return fmt.Errorf("engines.localai.enabled must be boolean: %w", err)
+		}
+		ensureEngineConfig(cfg, "localai").Enabled = &parsed
+		return nil
+	case "engines.localai.version":
+		ensureEngineConfig(cfg, "localai").Version = value
+		return nil
+	case "engines.localai.port":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("engines.localai.port must be integer: %w", err)
+		}
+		ensureEngineConfig(cfg, "localai").Port = &parsed
+		return nil
+	case "engines.nexa.enabled":
+		parsed, err := parseBooleanConfigValue(value)
+		if err != nil {
+			return fmt.Errorf("engines.nexa.enabled must be boolean: %w", err)
+		}
+		ensureEngineConfig(cfg, "nexa").Enabled = &parsed
+		return nil
+	case "engines.nexa.version":
+		ensureEngineConfig(cfg, "nexa").Version = value
+		return nil
+	case "engines.nexa.port":
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("engines.nexa.port must be integer: %w", err)
+		}
+		ensureEngineConfig(cfg, "nexa").Port = &parsed
+		return nil
 	}
 
 	parts := strings.Split(normalizedKey, ".")
@@ -709,6 +776,30 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		ensureAuthJWTConfig(cfg).JWKSURL = ""
 		pruneEmptyAuthConfig(cfg)
 		return nil
+	case "engines.localai.enabled":
+		ensureEngineConfig(cfg, "localai").Enabled = nil
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.version":
+		ensureEngineConfig(cfg, "localai").Version = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.localai.port":
+		ensureEngineConfig(cfg, "localai").Port = nil
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.nexa.enabled":
+		ensureEngineConfig(cfg, "nexa").Enabled = nil
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.nexa.version":
+		ensureEngineConfig(cfg, "nexa").Version = ""
+		pruneEmptyEnginesConfig(cfg)
+		return nil
+	case "engines.nexa.port":
+		ensureEngineConfig(cfg, "nexa").Port = nil
+		pruneEmptyEnginesConfig(cfg)
+		return nil
 	}
 
 	parts := strings.Split(normalizedKey, ".")
@@ -792,10 +883,8 @@ func invokeConfigWriteLockHook(lockPath string) {
 	}
 }
 
-// restartRequiredFieldsChanged compares fields classified as "restart" in
-// K-DAEMON-009. Only changes to these fields require a daemon restart;
-// all other fields (providers, concurrency limits, timeouts, etc.) are
-// hot-reloadable and take effect without restart.
+// restartRequiredFieldsChanged compares fields classified as restart-only in
+// K-DAEMON-009. Changes to these fields require daemon restart to take effect.
 func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if strings.TrimSpace(before.GRPCAddr) != strings.TrimSpace(after.GRPCAddr) {
 		return true
@@ -819,6 +908,12 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 		return true
 	}
 	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.JWKSURL }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.JWKSURL }) {
+		return true
+	}
+	if !runtimeProvidersEqual(before.Providers, after.Providers) {
+		return true
+	}
+	if !fileConfigEnginesEqual(before.Engines, after.Engines) {
 		return true
 	}
 	return false
@@ -859,6 +954,82 @@ func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
 	}
 }
 
+func ensureEngineConfig(fileCfg *config.FileConfig, engineName string) *config.FileConfigEngine {
+	if fileCfg == nil {
+		return &config.FileConfigEngine{}
+	}
+	if fileCfg.Engines == nil {
+		fileCfg.Engines = &config.FileConfigEngines{}
+	}
+	switch strings.TrimSpace(strings.ToLower(engineName)) {
+	case "localai":
+		if fileCfg.Engines.LocalAI == nil {
+			fileCfg.Engines.LocalAI = &config.FileConfigEngine{}
+		}
+		return fileCfg.Engines.LocalAI
+	case "nexa":
+		if fileCfg.Engines.Nexa == nil {
+			fileCfg.Engines.Nexa = &config.FileConfigEngine{}
+		}
+		return fileCfg.Engines.Nexa
+	default:
+		return &config.FileConfigEngine{}
+	}
+}
+
+func pruneEmptyEnginesConfig(fileCfg *config.FileConfig) {
+	if fileCfg == nil || fileCfg.Engines == nil {
+		return
+	}
+	if isEmptyFileConfigEngine(fileCfg.Engines.LocalAI) {
+		fileCfg.Engines.LocalAI = nil
+	}
+	if isEmptyFileConfigEngine(fileCfg.Engines.Nexa) {
+		fileCfg.Engines.Nexa = nil
+	}
+	if fileCfg.Engines.LocalAI == nil && fileCfg.Engines.Nexa == nil {
+		fileCfg.Engines = nil
+	}
+}
+
+func isEmptyFileConfigEngine(engineCfg *config.FileConfigEngine) bool {
+	if engineCfg == nil {
+		return true
+	}
+	return engineCfg.Enabled == nil &&
+		strings.TrimSpace(engineCfg.Version) == "" &&
+		engineCfg.Port == nil
+}
+
+func cloneFileConfigEngine(engineCfg *config.FileConfigEngine) *config.FileConfigEngine {
+	if engineCfg == nil {
+		return nil
+	}
+	cloned := &config.FileConfigEngine{
+		Version: strings.TrimSpace(engineCfg.Version),
+	}
+	if engineCfg.Enabled != nil {
+		enabled := *engineCfg.Enabled
+		cloned.Enabled = &enabled
+	}
+	if engineCfg.Port != nil {
+		port := *engineCfg.Port
+		cloned.Port = &port
+	}
+	return cloned
+}
+
+func parseBooleanConfigValue(raw string) (bool, error) {
+	switch strings.TrimSpace(strings.ToLower(raw)) {
+	case "true", "1", "yes":
+		return true, nil
+	case "false", "0", "no":
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid boolean value %q", raw)
+	}
+}
+
 func authJWTFieldValue(fileCfg config.FileConfig, selector func(*config.FileConfigJWT) string) string {
 	if fileCfg.Auth == nil || fileCfg.Auth.JWT == nil {
 		return ""
@@ -878,6 +1049,63 @@ func boolPtrValue(p *bool) bool {
 		return false
 	}
 	return *p
+}
+
+func intPtrEqual(left *int, right *int) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
+}
+
+func boolPtrEqual(left *bool, right *bool) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
+}
+
+func runtimeProvidersEqual(before, after map[string]config.RuntimeFileTarget) bool {
+	if len(before) != len(after) {
+		return false
+	}
+	for providerName, beforeTarget := range before {
+		afterTarget, ok := after[providerName]
+		if !ok {
+			return false
+		}
+		if strings.TrimSpace(beforeTarget.BaseURL) != strings.TrimSpace(afterTarget.BaseURL) {
+			return false
+		}
+		if strings.TrimSpace(beforeTarget.APIKeyEnv) != strings.TrimSpace(afterTarget.APIKeyEnv) {
+			return false
+		}
+		if strings.TrimSpace(beforeTarget.APIKey) != strings.TrimSpace(afterTarget.APIKey) {
+			return false
+		}
+	}
+	return true
+}
+
+func fileConfigEnginesEqual(before, after *config.FileConfigEngines) bool {
+	if before == nil || after == nil {
+		return before == nil && after == nil
+	}
+	return fileConfigEngineEqual(before.LocalAI, after.LocalAI) &&
+		fileConfigEngineEqual(before.Nexa, after.Nexa)
+}
+
+func fileConfigEngineEqual(before, after *config.FileConfigEngine) bool {
+	if before == nil || after == nil {
+		return before == nil && after == nil
+	}
+	if !boolPtrEqual(before.Enabled, after.Enabled) {
+		return false
+	}
+	if !intPtrEqual(before.Port, after.Port) {
+		return false
+	}
+	return strings.TrimSpace(before.Version) == strings.TrimSpace(after.Version)
 }
 
 func isSecretPolicyViolation(err error) bool {

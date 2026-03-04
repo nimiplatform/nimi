@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc/codes"
 
@@ -29,6 +30,15 @@ type Service struct {
 	audit      *auditlog.Store
 	cloud      *nimillm.CloudProvider
 	localModel localModelLister
+
+	modelFetchMu       sync.Mutex
+	modelFetchInFlight map[string]*modelFetchCall
+}
+
+type modelFetchCall struct {
+	done   chan struct{}
+	models []*runtimev1.ConnectorModelDescriptor
+	err    error
 }
 
 // New creates a new ConnectorService.
@@ -38,6 +48,8 @@ func New(logger *slog.Logger, store *ConnectorStore, audit *auditlog.Store) *Ser
 		store:      store,
 		modelCache: NewModelCache(),
 		audit:      audit,
+
+		modelFetchInFlight: make(map[string]*modelFetchCall),
 	}
 }
 
@@ -600,36 +612,10 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 			}
 		}
 		if models == nil {
-			// Load credential
-			apiKey, err := s.store.LoadCredential(connectorID)
+			models, err = s.listRemoteConnectorModels(ctx, connectorID, rec)
 			if err != nil {
-				return nil, s.internalProviderError("list_connector_models.load_credential", err)
+				return nil, err
 			}
-			if apiKey == "" {
-				return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
-			}
-
-			// Fetch models via backend
-			if s.cloud != nil {
-				backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
-				if probeErr != nil {
-					return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-				}
-				rawModels, listErr := backend.ListModels(ctx)
-				if listErr != nil {
-					s.logger.Warn("list connector models failed", "connector_id", connectorID, "error", listErr)
-					return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-				}
-				for _, m := range rawModels {
-					models = append(models, &runtimev1.ConnectorModelDescriptor{
-						ModelId:      m.ModelID,
-						ModelLabel:   m.ModelLabel,
-						Available:    m.Available,
-						Capabilities: modelregistry.InferCapabilities(m.ModelID),
-					})
-				}
-			}
-
 			s.modelCache.Set(connectorID, models)
 		}
 	}
@@ -735,6 +721,83 @@ func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalModelRecord, c
 		})
 	}
 	return descriptors
+}
+
+func (s *Service) listRemoteConnectorModels(ctx context.Context, connectorID string, rec ConnectorRecord) ([]*runtimev1.ConnectorModelDescriptor, error) {
+	call, owner := s.beginRemoteModelFetch(connectorID)
+	if !owner {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-call.done:
+			if call.err != nil {
+				return nil, call.err
+			}
+			return append([]*runtimev1.ConnectorModelDescriptor(nil), call.models...), nil
+		}
+	}
+
+	models, err := s.fetchRemoteConnectorModelsUncached(ctx, connectorID, rec)
+	s.completeRemoteModelFetch(connectorID, call, models, err)
+	if err != nil {
+		return nil, err
+	}
+	return append([]*runtimev1.ConnectorModelDescriptor(nil), models...), nil
+}
+
+func (s *Service) beginRemoteModelFetch(connectorID string) (*modelFetchCall, bool) {
+	s.modelFetchMu.Lock()
+	defer s.modelFetchMu.Unlock()
+	if call, ok := s.modelFetchInFlight[connectorID]; ok {
+		return call, false
+	}
+	call := &modelFetchCall{done: make(chan struct{})}
+	s.modelFetchInFlight[connectorID] = call
+	return call, true
+}
+
+func (s *Service) completeRemoteModelFetch(connectorID string, call *modelFetchCall, models []*runtimev1.ConnectorModelDescriptor, err error) {
+	call.models = models
+	call.err = err
+	close(call.done)
+
+	s.modelFetchMu.Lock()
+	delete(s.modelFetchInFlight, connectorID)
+	s.modelFetchMu.Unlock()
+}
+
+func (s *Service) fetchRemoteConnectorModelsUncached(ctx context.Context, connectorID string, rec ConnectorRecord) ([]*runtimev1.ConnectorModelDescriptor, error) {
+	apiKey, err := s.store.LoadCredential(connectorID)
+	if err != nil {
+		return nil, s.internalProviderError("list_connector_models.load_credential", err)
+	}
+	if apiKey == "" {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
+	}
+	if s.cloud == nil {
+		return []*runtimev1.ConnectorModelDescriptor{}, nil
+	}
+
+	backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
+	if probeErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	rawModels, listErr := backend.ListModels(ctx)
+	if listErr != nil {
+		s.logger.Warn("list connector models failed", "connector_id", connectorID, "error", listErr)
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+
+	models := make([]*runtimev1.ConnectorModelDescriptor, 0, len(rawModels))
+	for _, m := range rawModels {
+		models = append(models, &runtimev1.ConnectorModelDescriptor{
+			ModelId:      m.ModelID,
+			ModelLabel:   m.ModelLabel,
+			Available:    m.Available,
+			Capabilities: modelregistry.InferCapabilities(m.ModelID),
+		})
+	}
+	return models, nil
 }
 
 func modelMatchesCategory(model *runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) bool {

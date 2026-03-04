@@ -136,6 +136,171 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadAutoManagesLocalAIForLoopbackProvider(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "local": {
+      "baseUrl": "http://127.0.0.1:2234/v1",
+      "apiKeyEnv": "LOCALAI_API_KEY"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if !cfg.EngineLocalAIEnabled {
+		t.Fatalf("localai should be auto-enabled for loopback providers.local")
+	}
+	if !cfg.EngineLocalAIAutoManaged {
+		t.Fatalf("localai should be marked auto-managed for loopback providers.local")
+	}
+	if cfg.EngineLocalAIPort != 2234 {
+		t.Fatalf("localai port should be inferred from providers.local baseUrl: got=%d want=2234", cfg.EngineLocalAIPort)
+	}
+}
+
+func TestLoadDoesNotAutoManageLocalAIForNonLoopbackProvider(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "local": {
+      "baseUrl": "https://example.com/v1",
+      "apiKeyEnv": "LOCALAI_API_KEY"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.EngineLocalAIEnabled {
+		t.Fatalf("localai should remain disabled for non-loopback providers.local")
+	}
+	if cfg.EngineLocalAIAutoManaged {
+		t.Fatalf("localai should not be marked auto-managed for non-loopback providers.local")
+	}
+}
+
+func TestLoadLocalAIExplicitEnabledFalseDisablesAutoManagement(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "local": {
+      "baseUrl": "http://127.0.0.1:2234/v1",
+      "apiKeyEnv": "LOCALAI_API_KEY"
+    }
+  },
+  "engines": {
+    "localai": {
+      "enabled": false
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.EngineLocalAIEnabled {
+		t.Fatalf("explicit engines.localai.enabled=false must override auto-management")
+	}
+	if cfg.EngineLocalAIAutoManaged {
+		t.Fatalf("auto-managed flag should be false when localai.enabled is explicitly configured")
+	}
+}
+
+func TestLoadAutoManagedLocalAIPortInferenceFallbackAndOverride(t *testing.T) {
+	t.Run("fallback default port", func(t *testing.T) {
+		configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+		configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "local": {
+      "baseUrl": "http://localhost/v1",
+      "apiKeyEnv": "LOCALAI_API_KEY"
+    }
+  }
+}`
+		if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+			t.Fatalf("write config file: %v", err)
+		}
+
+		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+		clearRuntimeConfigEnv(t)
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("Load returned error: %v", err)
+		}
+		if !cfg.EngineLocalAIEnabled || !cfg.EngineLocalAIAutoManaged {
+			t.Fatalf("localai should be auto-managed for localhost endpoint")
+		}
+		if cfg.EngineLocalAIPort != 1234 {
+			t.Fatalf("localai port fallback mismatch: got=%d want=1234", cfg.EngineLocalAIPort)
+		}
+	})
+
+	t.Run("explicit port override", func(t *testing.T) {
+		configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+		configBody := `{
+  "schemaVersion": 1,
+  "providers": {
+    "local": {
+      "baseUrl": "http://127.0.0.1:2234/v1",
+      "apiKeyEnv": "LOCALAI_API_KEY"
+    }
+  },
+  "engines": {
+    "localai": {
+      "port": 3344
+    }
+  }
+}`
+		if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+			t.Fatalf("write config file: %v", err)
+		}
+
+		t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+		clearRuntimeConfigEnv(t)
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatalf("Load returned error: %v", err)
+		}
+		if !cfg.EngineLocalAIEnabled || !cfg.EngineLocalAIAutoManaged {
+			t.Fatalf("localai should be auto-managed for loopback endpoint")
+		}
+		if cfg.EngineLocalAIPort != 3344 {
+			t.Fatalf("explicit localai port must override inferred provider port: got=%d want=3344", cfg.EngineLocalAIPort)
+		}
+	})
+}
+
 func TestLoadEnvOverridesConfigFile(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
@@ -590,6 +755,12 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE",
 		"NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE",
 		"NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT",
+		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED",
+		"NIMI_RUNTIME_ENGINE_NEXA_VERSION",
+		"NIMI_RUNTIME_ENGINE_NEXA_PORT",
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")

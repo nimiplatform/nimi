@@ -42,6 +42,10 @@ type Daemon struct {
 	engineMgr  *engine.Manager
 
 	newEngineManager func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
+	startEngineFn    func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+
+	providerFailureHintMu sync.RWMutex
+	providerFailureHints  map[string]string
 }
 
 var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "localruntime"}
@@ -57,14 +61,15 @@ func New(cfg config.Config, logger *slog.Logger, version string) *Daemon {
 	}
 	state := health.NewState()
 	return &Daemon{
-		cfg:              cfg,
-		logger:           logger,
-		state:            state,
-		grpc:             grpcserver.New(cfg, state, logger, version),
-		http:             httpserver.New(cfg.HTTPAddr, state, logger),
-		aiHealth:         nil,
-		auditStore:       nil,
-		newEngineManager: engine.NewManager,
+		cfg:                  cfg,
+		logger:               logger,
+		state:                state,
+		grpc:                 grpcserver.New(cfg, state, logger, version),
+		http:                 httpserver.New(cfg.HTTPAddr, state, logger),
+		aiHealth:             nil,
+		auditStore:           nil,
+		newEngineManager:     engine.NewManager,
+		providerFailureHints: map[string]string{},
 	}
 }
 
@@ -234,6 +239,7 @@ func (d *Daemon) sampleAIProviderHealth(stop <-chan struct{}) {
 				previous = d.aiHealth.Snapshot(target.Name)
 			}
 			if err := probeAIProvider(client, target); err != nil {
+				err = d.decorateProviderProbeError(target.Name, err)
 				if d.aiHealth != nil {
 					d.aiHealth.Mark(target.Name, false, err.Error())
 					appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.Snapshot(target.Name))
@@ -439,6 +445,30 @@ func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail str
 	})
 }
 
+func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string, providerName string, detail string) {
+	if store == nil {
+		return
+	}
+	now := time.Now().UTC()
+	payload, _ := structpb.NewStruct(map[string]any{
+		"engine":   strings.TrimSpace(engineName),
+		"provider": strings.TrimSpace(providerName),
+		"detail":   detail,
+	})
+	store.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:    ulid.Make().String(),
+		Domain:     "runtime.engine",
+		Operation:  "engine.bootstrap_failed",
+		ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		TraceId:    ulid.Make().String(),
+		Timestamp:  timestamppb.New(now),
+		Payload:    payload,
+		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
+		CallerId:   "runtime-daemon",
+		SurfaceId:  "daemon",
+	})
+}
+
 func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {
 	exitCode = -1
 	matches := engineCrashAttemptPattern.FindStringSubmatch(strings.TrimSpace(detail))
@@ -489,13 +519,24 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 
 	var wg sync.WaitGroup
-	failures := make(chan string, 2)
+	type bootstrapFailure struct {
+		kind   engine.EngineKind
+		detail string
+	}
+	failures := make(chan bootstrapFailure, 2)
+	startEngine := d.startEngineFn
+	if startEngine == nil {
+		startEngine = d.startEngine
+	}
 	bootstrap := func(kind engine.EngineKind, version string, port int, envKey string) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := d.startEngine(ctx, kind, version, port, envKey); err != nil {
-				failures <- fmt.Sprintf("%s: %v", kind, err)
+			if err := startEngine(ctx, kind, version, port, envKey); err != nil {
+				failures <- bootstrapFailure{
+					kind:   kind,
+					detail: err.Error(),
+				}
 			}
 		}()
 	}
@@ -516,9 +557,19 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	firstFailure := ""
 	for failure := range failures {
 		if firstFailure == "" {
-			firstFailure = failure
+			firstFailure = fmt.Sprintf("%s: %s", failure.kind, failure.detail)
 		}
-		d.logger.Error("engine bootstrap failed", "detail", failure)
+		d.logger.Error("engine bootstrap failed", "engine", failure.kind, "detail", failure.detail)
+		if providerName, ok := providerTargetNameForEngine(failure.kind); ok {
+			reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", failure.kind, failure.detail)
+			d.setProviderFailureHint(providerName, reason)
+			if d.aiHealth != nil {
+				previous := d.aiHealth.Snapshot(providerName)
+				d.aiHealth.Mark(providerName, false, reason)
+				appendProviderHealthAudit(d.auditStore, providerName, previous, d.aiHealth.Snapshot(providerName))
+			}
+			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail)
+		}
 	}
 	if firstFailure != "" {
 		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
@@ -601,9 +652,17 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
 		d.grpc.SyncServingState()
 		appendEngineCrashAudit(d.auditStore, engineName, detail)
+		if kind, _, ok := engineEnvKey(engineName); ok {
+			if providerName, ok := providerTargetNameForEngine(kind); ok {
+				d.setProviderFailureHint(providerName, fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail))
+			}
+		}
 	case "healthy":
 		if kind, envKey, ok := engineEnvKey(engineName); ok {
 			d.injectEngineEndpointEnv(kind, envKey, "recovered")
+			if providerName, ok := providerTargetNameForEngine(kind); ok {
+				d.clearProviderFailureHint(providerName)
+			}
 		}
 		current := d.state.Snapshot()
 		if current.Status == health.StatusDegraded && strings.HasPrefix(current.Reason, "engine:") {
@@ -622,6 +681,63 @@ func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
 	default:
 		return "", "", false
 	}
+}
+
+func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
+	switch kind {
+	case engine.EngineLocalAI:
+		return "local", true
+	case engine.EngineNexa:
+		return "local-nexa", true
+	default:
+		return "", false
+	}
+}
+
+func (d *Daemon) setProviderFailureHint(providerName string, hint string) {
+	key := strings.TrimSpace(strings.ToLower(providerName))
+	value := strings.TrimSpace(hint)
+	if key == "" || value == "" {
+		return
+	}
+	d.providerFailureHintMu.Lock()
+	if d.providerFailureHints == nil {
+		d.providerFailureHints = map[string]string{}
+	}
+	d.providerFailureHints[key] = value
+	d.providerFailureHintMu.Unlock()
+}
+
+func (d *Daemon) clearProviderFailureHint(providerName string) {
+	key := strings.TrimSpace(strings.ToLower(providerName))
+	if key == "" {
+		return
+	}
+	d.providerFailureHintMu.Lock()
+	delete(d.providerFailureHints, key)
+	d.providerFailureHintMu.Unlock()
+}
+
+func (d *Daemon) providerFailureHint(providerName string) string {
+	key := strings.TrimSpace(strings.ToLower(providerName))
+	if key == "" {
+		return ""
+	}
+	d.providerFailureHintMu.RLock()
+	value := strings.TrimSpace(d.providerFailureHints[key])
+	d.providerFailureHintMu.RUnlock()
+	return value
+}
+
+func (d *Daemon) decorateProviderProbeError(providerName string, probeErr error) error {
+	if probeErr == nil {
+		return nil
+	}
+	hint := d.providerFailureHint(providerName)
+	if hint == "" {
+		return probeErr
+	}
+	return fmt.Errorf("%s; probe error: %w", hint, probeErr)
 }
 
 // engineManagerBridge adapts engine.ServiceAdapter to localruntime.EngineManager interface.

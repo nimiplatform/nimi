@@ -74,6 +74,13 @@ FileConfig `engines` 段：
 
 ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALAI_VERSION`、`NIMI_RUNTIME_ENGINE_LOCALAI_PORT`；Nexa 同理（`NEXA` 替代 `LOCALAI`）。
 
+自动托管推导（LocalAI）：
+
+- 当 `providers.local.baseUrl`（等价 env：`NIMI_RUNTIME_LOCAL_AI_BASE_URL`）为回环地址（`localhost`/`127.0.0.1`/`::1`）且 `engines.localai.enabled` 未被显式设置（配置文件与环境变量均未给值）时，runtime MUST 推导 `engines.localai.enabled=true`，并进入 SUPERVISED 启动链路。
+- 显式覆盖优先级：`engines.localai.enabled` 的显式配置（`true` 或 `false`）始终高于自动推导。
+- 端口推导：当 `engines.localai.port` 未显式设置时，runtime MUST 从 `providers.local.baseUrl` 解析端口；解析失败或未提供端口时回退 `1234`。
+- `engines.localai.port` 显式配置始终高于 URL 端口推导。
+
 ### K-LENG-004e gRPC RPC
 
 `RuntimeLocalRuntimeService` 新增 5 个 Engine RPC：
