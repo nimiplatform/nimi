@@ -13,7 +13,6 @@ use serde_json::json;
 use tauri::Manager;
 
 mod external_agent_gateway;
-mod llm_adapter;
 mod local_ai_runtime;
 mod runtime_bridge;
 mod runtime_mod;
@@ -1241,21 +1240,11 @@ fn main() {
             confirm_private_sync,
             log_renderer_event,
             start_window_drag,
-            llm_adapter::commands::credential_upsert_entry,
-            llm_adapter::commands::credential_list_entries,
-            llm_adapter::commands::credential_delete_entry,
-            llm_adapter::commands::credential_set_secret,
-            llm_adapter::commands::credential_get_secret,
-            llm_adapter::commands::credential_delete_secret,
-            llm_adapter::commands::usage_insert_record,
-            llm_adapter::commands::usage_query_records,
-            llm_adapter::commands::usage_summary_records,
             runtime_mod::commands::runtime_mod_append_audit,
             runtime_mod::commands::runtime_mod_query_audit,
             runtime_mod::commands::runtime_mod_delete_audit,
             runtime_mod::commands::runtime_mod_list_local_manifests,
             runtime_mod::commands::runtime_mod_read_local_entry,
-            runtime_mod::commands::runtime_mod_pick_manifest_path,
             runtime_mod::commands::runtime_mod_get_action_idempotency,
             runtime_mod::commands::runtime_mod_put_action_idempotency,
             runtime_mod::commands::runtime_mod_purge_action_idempotency,

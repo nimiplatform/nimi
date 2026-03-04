@@ -220,30 +220,6 @@ pub fn runtime_mod_read_local_entry(
 }
 
 #[tauri::command]
-pub fn runtime_mod_pick_manifest_path() -> Result<Option<String>, String> {
-    let selected = rfd::FileDialog::new()
-        .set_title("Select model.manifest.json")
-        .add_filter("Model Manifest", &["json"])
-        .pick_file();
-    let Some(path) = selected else {
-        return Ok(None);
-    };
-    let file_name = path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .trim()
-        .to_string();
-    if file_name != "model.manifest.json" {
-        return Err(
-            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: only model.manifest.json is supported"
-                .to_string(),
-        );
-    }
-    Ok(Some(path.to_string_lossy().to_string()))
-}
-
-#[tauri::command]
 pub fn runtime_mod_get_action_idempotency(
     app: AppHandle,
     payload: RuntimeActionIdempotencyGetPayload,
