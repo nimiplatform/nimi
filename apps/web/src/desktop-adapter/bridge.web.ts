@@ -9,6 +9,7 @@ import {
   startRuntimeBridge as startDesktopRuntimeBridge,
   stopRuntimeBridge as stopDesktopRuntimeBridge,
 } from '@renderer/bridge/runtime-bridge/runtime-daemon';
+import { getSystemResourceSnapshot } from '@renderer/bridge/runtime-bridge/system-resources';
 import { getRuntimeDefaults } from '@renderer/bridge/runtime-bridge/runtime-defaults';
 import { oauthListenForCode, oauthTokenExchange } from '@renderer/bridge/runtime-bridge/oauth';
 import { confirmPrivateSync, openExternalUrl, startWindowDrag } from '@renderer/bridge/runtime-bridge/ui';
@@ -24,6 +25,7 @@ import type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
+  SystemResourceSnapshot,
 } from '@renderer/bridge/runtime-bridge/types';
 
 export type {
@@ -38,6 +40,7 @@ export type {
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   RuntimeLocalManifestSummary,
+  SystemResourceSnapshot,
 };
 
 export { logRendererEvent, toRendererLogMessage };
@@ -78,6 +81,7 @@ export const desktopBridge = {
   hasTauriInvoke,
   getRuntimeBridgeStatus,
   getRuntimeBridgeConfig,
+  getSystemResourceSnapshot,
   startRuntimeBridge,
   stopRuntimeBridge,
   restartRuntimeBridge,
