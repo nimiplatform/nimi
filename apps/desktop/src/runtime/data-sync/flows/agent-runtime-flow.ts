@@ -25,7 +25,7 @@ export type AgentMemoryRecallResult = {
   e2e: AgentMemoryRecord[];
 };
 
-// Module-level TTL cache (replaces legacy store.cacheGet/cacheSet)
+// Module-level TTL cache for profile lookups.
 const profileCache = new Map<string, { value: unknown; expiresAt: number }>();
 
 function cacheGet(key: string): unknown | null {

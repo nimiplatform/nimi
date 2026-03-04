@@ -28,7 +28,7 @@ export type SocialContactSnapshot = {
   blocked: Array<Record<string, unknown>>;
 };
 
-// Module-level contacts cache (replaces legacy store contact reads)
+// Module-level contacts cache for sync snapshots.
 let _cachedContacts: SocialContactSnapshot = {
   friends: [],
   agents: [],
