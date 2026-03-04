@@ -32,6 +32,7 @@ pub struct RuntimeBridgeUnaryPayload {
     pub method_id: String,
     pub request_bytes_base64: String,
     pub metadata: Option<RuntimeBridgeMetadata>,
+    pub authorization: Option<String>,
     pub timeout_ms: Option<u64>,
 }
 
@@ -41,6 +42,7 @@ pub struct RuntimeBridgeStreamOpenPayload {
     pub method_id: String,
     pub request_bytes_base64: String,
     pub metadata: Option<RuntimeBridgeMetadata>,
+    pub authorization: Option<String>,
     pub timeout_ms: Option<u64>,
     pub event_namespace: Option<String>,
 }

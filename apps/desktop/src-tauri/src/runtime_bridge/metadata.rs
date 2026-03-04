@@ -151,6 +151,7 @@ fn validate_protocol_version(value: &str, expected: &str, header: &str) -> Resul
 pub fn apply_metadata(
     request: &mut Request<Vec<u8>>,
     metadata: Option<&RuntimeBridgeMetadata>,
+    authorization: Option<&str>,
     method_id: &str,
 ) -> Result<(), String> {
     let value = metadata.cloned().unwrap_or_default();
@@ -225,6 +226,7 @@ pub fn apply_metadata(
         "x-nimi-provider-api-key",
         normalize(value.provider_api_key.as_deref()),
     )?;
+    insert_metadata_value(request, "authorization", normalize(authorization))?;
 
     if let Some(extra) = value.extra {
         for (key, extra_value) in extra {
@@ -276,6 +278,7 @@ mod tests {
         let mut request = Request::new(Vec::<u8>::new());
         apply_metadata(
             &mut request,
+            None,
             None,
             "/nimi.runtime.v1.RuntimeAiService/Generate",
         )
@@ -330,6 +333,7 @@ mod tests {
         apply_metadata(
             &mut request,
             Some(&metadata),
+            Some("Bearer top-level-token"),
             "/nimi.runtime.v1.RuntimeAiService/Generate",
         )
         .expect("apply metadata with explicit values");
@@ -390,7 +394,10 @@ mod tests {
             read_metadata(&request, "x-nimi-extra").as_deref(),
             Some("allow")
         );
-        assert!(read_metadata(&request, "authorization").is_none());
+        assert_eq!(
+            read_metadata(&request, "authorization").as_deref(),
+            Some("Bearer top-level-token")
+        );
     }
 
     #[test]
@@ -404,6 +411,7 @@ mod tests {
         let error = apply_metadata(
             &mut request,
             Some(&metadata),
+            None,
             "/nimi.runtime.v1.RuntimeAiService/Generate",
         )
         .expect_err("unsupported protocol version should fail");
@@ -425,6 +433,7 @@ mod tests {
         let error = apply_metadata(
             &mut request,
             Some(&metadata),
+            None,
             "/nimi.runtime.v1.RuntimeAiService/Generate",
         )
         .expect_err("metadata with invalid header value should fail");
@@ -446,6 +455,7 @@ mod tests {
         let error = apply_metadata(
             &mut request,
             Some(&metadata),
+            None,
             "/nimi.runtime.v1.RuntimeAiService/Generate",
         )
         .expect_err("reserved metadata key override should fail");

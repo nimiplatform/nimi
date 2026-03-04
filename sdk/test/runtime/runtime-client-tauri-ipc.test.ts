@@ -153,6 +153,9 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
         commandNamespace: 'runtime_bridge',
         eventNamespace: 'runtime_bridge',
       },
+      auth: {
+        accessToken: () => 'token-tauri-unary',
+      },
     });
 
     const response = await client.ai.generate(createGenerateRequest());
@@ -164,6 +167,7 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
     assert.equal(metadata.appId, APP_ID);
     assert.equal(typeof metadata.idempotencyKey, 'string');
     assert.ok(String(metadata.idempotencyKey || '').length > 0);
+    assert.equal(capturedPayload.authorization, 'Bearer token-tauri-unary');
   } finally {
     restoreTauri();
   }
@@ -549,6 +553,9 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
         commandNamespace: 'runtime_bridge',
         eventNamespace: 'custom_events',
       },
+      auth: {
+        accessToken: () => 'token-tauri-stream',
+      },
     });
 
     const stream = await client.ai.streamGenerate(createStreamGenerateRequest());
@@ -558,6 +565,7 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
 
     assert.ok(streamOpenPayload);
     assert.equal(streamOpenPayload.eventNamespace, 'custom_events');
+    assert.equal(streamOpenPayload.authorization, 'Bearer token-tauri-stream');
   } finally {
     restoreTauri();
   }

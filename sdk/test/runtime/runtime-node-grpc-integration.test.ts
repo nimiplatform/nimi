@@ -560,3 +560,37 @@ test('node-grpc metadata only forwards x-nimi extra headers', async () => {
     await server.close();
   }
 });
+
+test('node-grpc injects authorization header from runtime auth provider', async () => {
+  setNodeGrpcBridge(null);
+
+  let unaryMetadata: Record<string, unknown> | null = null;
+  const server = await startRuntimeGrpcServer({
+    listModels: (call, callback) => {
+      unaryMetadata = call.metadata.getMap();
+      callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
+    },
+    streamGenerate: (call) => {
+      call.end();
+    },
+  });
+
+  try {
+    let accessToken = 'token-initial';
+    const client = createRuntimeClient({
+      ...createRuntimeConfig(server.endpoint),
+      auth: {
+        accessToken: () => accessToken,
+      },
+    });
+
+    await client.model.list({});
+    assert.equal(unaryMetadata?.authorization, 'Bearer token-initial');
+
+    accessToken = 'token-refreshed';
+    await client.model.list({});
+    assert.equal(unaryMetadata?.authorization, 'Bearer token-refreshed');
+  } finally {
+    await server.close();
+  }
+});

@@ -240,6 +240,7 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
           methodId: input.methodId,
           requestBytesBase64: toBase64(normalizeRequestBytes(input.request)),
           metadata: input.metadata,
+          authorization: input.authorization,
           timeoutMs: input.timeoutMs,
         });
         const response = asObject(result) as Partial<UnaryResponse>;
@@ -348,12 +349,13 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
 
       try {
         const opened = await invokeCommand(invoke, config, 'stream_open', {
-          methodId: input.methodId,
-          requestBytesBase64: toBase64(normalizeRequestBytes(input.request)),
-          metadata: input.metadata,
-          timeoutMs: input.timeoutMs,
-          eventNamespace: config.eventNamespace,
-        });
+        methodId: input.methodId,
+        requestBytesBase64: toBase64(normalizeRequestBytes(input.request)),
+        metadata: input.metadata,
+        authorization: input.authorization,
+        timeoutMs: input.timeoutMs,
+        eventNamespace: config.eventNamespace,
+      });
         const response = asObject(opened) as Partial<StreamOpenResponse>;
         streamId = String(response.streamId || '').trim();
         if (!streamId) {

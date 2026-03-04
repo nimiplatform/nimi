@@ -53,6 +53,7 @@ pub async fn invoke_unary(
     metadata::apply_metadata(
         &mut request,
         payload.metadata.as_ref(),
+        payload.authorization.as_deref(),
         payload.method_id.as_str(),
     )?;
     if let Some(timeout_ms) = payload.timeout_ms {
@@ -84,6 +85,7 @@ mod tests {
             method_id: method_id.to_string(),
             request_bytes_base64: request_bytes_base64.to_string(),
             metadata: None,
+            authorization: None,
             timeout_ms: None,
         }
     }
