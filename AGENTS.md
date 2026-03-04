@@ -85,6 +85,18 @@ nimi-mods──nimi-hook──→ desktop ──@nimiplatform/sdk──→ runti
 - Mods must not bypass nimi-hook to call SDK directly
 - Runtime must not import from `sdk/` or `apps/desktop/`
 
+## Layered Debugging Responsibility (MUST)
+
+- Debug ownership is layer-local:
+  - Runtime defects are fixed and validated in `runtime/` first.
+  - SDK defects are fixed in `sdk/` only after runtime gates are green.
+  - Desktop/Mod defects are fixed in `apps/desktop/` and `nimi-mods/` only after runtime + sdk gates are green.
+- CI gate order is hard: `runtime-quality` → `sdk-quality` → `desktop-web-quality` / `mods-quality`.
+- Do not use downstream legacy shims, hardcoded provider/model lists, or bypass paths to hide upstream contract gaps.
+- Live smoke enforcement is mandatory for nightly and release workflows:
+  - Required providers with `failed` or `skipped` status block release.
+  - PR workflows remain skip-safe and rely on deterministic gates.
+
 ## Language-Specific Rules
 
 ### TypeScript (SDK, Desktop, Web, Mods)

@@ -120,6 +120,13 @@ Fix at the source layer. For example: if TTS connectors don't return TTS models,
 - Local UI state (panel open/closed, selected tab, scroll position)
 - Mapping SDK response data to UI view-models (but not inventing data the SDK doesn't provide)
 
+## Layered Entry/Exit (MUST)
+
+- Desktop runtime/hook debugging starts only after runtime + sdk gates are green.
+- If a defect traces to runtime or sdk contracts, fix upstream instead of adding desktop workaround logic.
+- Do not introduce legacy/hardcode bypasses for provider capability, modality support, trace propagation, or route fallback.
+- Desktop mod smoke and local-chat E2E are downstream validation gates, not substitutes for upstream fixes.
+
 ## Test Placement
 
 Tests live in `apps/desktop/test/` as flat test files. Test file names describe the feature under test (e.g., `runtime-daemon-state.test.ts`, `runtime-bridge-config.test.ts`). Tests import from `../src/` using relative paths.

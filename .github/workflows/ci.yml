@@ -11,6 +11,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NIMI_MODS_REF: 1936c644557ebbaa0a3741668ba1b788bcc71e2f
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -21,6 +24,7 @@ jobs:
       sdk_changed: ${{ steps.detect.outputs.sdk_changed }}
       runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
       desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
+      mods_changed: ${{ steps.detect.outputs.mods_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -45,6 +49,7 @@ jobs:
             echo "sdk_changed=true" >> "${GITHUB_OUTPUT}"
             echo "runtime_changed=true" >> "${GITHUB_OUTPUT}"
             echo "desktop_web_changed=true" >> "${GITHUB_OUTPUT}"
+            echo "mods_changed=true" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
@@ -69,6 +74,7 @@ jobs:
           sdk_changed=false
           runtime_changed=false
           desktop_web_changed=false
+          mods_changed=false
 
           docs_regex='^(docs/|examples/|README\.md$|CHANGELOG\.md$)'
           shared_regex='^(scripts/|package\.json$|pnpm-workspace\.yaml$|pnpm-lock\.yaml$|\.github/workflows/|\.gitignore$|\.editorconfig$)'
@@ -94,6 +100,9 @@ jobs:
             if [[ "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ || "${file}" =~ ^apps/landing/ ]]; then
               desktop_web_changed=true
             fi
+            if [[ "${file}" =~ ^nimi-mods/ ]]; then
+              mods_changed=true
+            fi
           done < /tmp/nimi_changed_files.txt
 
           if [[ "${shared_changed}" == "true" ]]; then
@@ -106,6 +115,7 @@ jobs:
           echo "sdk_changed=${sdk_changed}" >> "${GITHUB_OUTPUT}"
           echo "runtime_changed=${runtime_changed}" >> "${GITHUB_OUTPUT}"
           echo "desktop_web_changed=${desktop_web_changed}" >> "${GITHUB_OUTPUT}"
+          echo "mods_changed=${mods_changed}" >> "${GITHUB_OUTPUT}"
 
   docs-contract:
     needs: changes
@@ -273,8 +283,10 @@ jobs:
         run: pnpm report:ai-hotspots --limit 120
 
   sdk-quality:
-    needs: changes
-    if: needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    needs:
+      - changes
+      - runtime-quality
+    if: needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.mods_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -315,7 +327,7 @@ jobs:
 
   runtime-quality:
     needs: changes
-    if: needs.changes.outputs.runtime_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
+    if: needs.changes.outputs.runtime_changed == 'true' || needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.mods_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -341,6 +353,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+
+      - name: Live provider invariants gate
+        run: pnpm check:live-provider-invariants
 
       - name: Proto lint
         run: pnpm proto:lint
@@ -385,7 +400,9 @@ jobs:
         run: go run ./cmd/runtime-compliance --gate
 
   desktop-web-quality:
-    needs: changes
+    needs:
+      - changes
+      - sdk-quality
     if: needs.changes.outputs.desktop_web_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -412,6 +429,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Desktop token-api runtime-only gate
+        run: pnpm check:desktop-token-api-runtime-only
+
       - name: Rust cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 
@@ -430,6 +450,9 @@ jobs:
       - name: Typecheck desktop
         run: pnpm --filter @nimiplatform/desktop typecheck
 
+      - name: Test desktop
+        run: pnpm --filter @nimiplatform/desktop test
+
       - name: Typecheck web
         run: pnpm --filter @nimiplatform/web typecheck
 
@@ -444,6 +467,56 @@ jobs:
 
       - name: Build landing
         run: pnpm --filter @nimiplatform/landing build
+
+  mods-quality:
+    needs:
+      - changes
+      - sdk-quality
+    if: needs.changes.outputs.mods_changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
+      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Checkout nimi-mods (pinned external repo)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: nimiplatform/nimi-mods
+          ref: ${{ env.NIMI_MODS_REF }}
+          path: nimi-mods
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install nimi-mods dependencies
+        run: pnpm --dir nimi-mods install --no-frozen-lockfile
+
+      - name: Mods boundary gate
+        run: pnpm check:mods-no-runtime-sdk
+
+      - name: local-chat deterministic e2e gate
+        run: pnpm check:local-chat-e2e
+
+      - name: Desktop mod smoke gate (local-chat)
+        run: pnpm check:desktop-mods-smoke:local-chat
 
   governance-security:
     needs: changes
@@ -489,6 +562,7 @@ jobs:
       - sdk-quality
       - runtime-quality
       - desktop-web-quality
+      - mods-quality
       - governance-security
     if: always()
     runs-on: ubuntu-latest
@@ -502,6 +576,7 @@ jobs:
           SDK_QUALITY_RESULT: ${{ needs.sdk-quality.result }}
           RUNTIME_QUALITY_RESULT: ${{ needs.runtime-quality.result }}
           DESKTOP_WEB_QUALITY_RESULT: ${{ needs.desktop-web-quality.result }}
+          MODS_QUALITY_RESULT: ${{ needs.mods-quality.result }}
           GOVERNANCE_SECURITY_RESULT: ${{ needs.governance-security.result }}
         run: |
           set -euo pipefail
@@ -515,6 +590,7 @@ jobs:
             "sdk-quality:${SDK_QUALITY_RESULT}" \
             "runtime-quality:${RUNTIME_QUALITY_RESULT}" \
             "desktop-web-quality:${DESKTOP_WEB_QUALITY_RESULT}" \
+            "mods-quality:${MODS_QUALITY_RESULT}" \
             "governance-security:${GOVERNANCE_SECURITY_RESULT}"; do
             name="${item%%:*}"
             result="${item#*:}"

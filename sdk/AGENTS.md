@@ -112,6 +112,13 @@ if (err.reasonCode === ReasonCode.AI_PROVIDER_TIMEOUT) {
 - `pnpm check:sdk-consumer-smoke`
 - `pnpm --filter @nimiplatform/sdk test`
 
+## Layered Entry/Exit (MUST)
+
+- SDK debugging starts only after runtime gates are green.
+- SDK fixes must preserve runtime contracts (reasonCode/trace semantics, route semantics, provider mapping), not reinterpret them.
+- If SDK exposes a runtime gap, escalate/fix runtime or spec first; do not patch with SDK-only hardcode/legacy branches.
+- Desktop/Mod work must not proceed on unresolved SDK contract failures.
+
 ### Live Smoke Tests
 
 SDK live tests validate the full SDK → runtime gRPC → cloud provider chain. They live in `test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts`.

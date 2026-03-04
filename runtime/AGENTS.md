@@ -177,6 +177,14 @@ Runtime code must pass all of these:
 | Proto breaking | `cd ../proto && buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb` |
 | Proto drift | `cd .. && pnpm proto:drift-check` |
 
+## Layered Entry/Exit (MUST)
+
+- Runtime is the first blocking layer for mod AI chains.
+- Before SDK/Desktop/Mod debugging starts, runtime must be green on:
+  - deterministic quality gates
+  - provider invariants (`pnpm check:live-provider-invariants`)
+- Do not accept fixes that rely on SDK/Desktop hardcode or legacy compatibility to compensate runtime contract drift.
+
 ## Testing
 
 ```bash

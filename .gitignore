@@ -40,3 +40,8 @@ _external/
 
 # AI session artifacts (plans, reports, research)
 dev/
+!dev/
+dev/*
+!dev/config/
+dev/config/*
+!dev/config/live-gate-baseline.yaml

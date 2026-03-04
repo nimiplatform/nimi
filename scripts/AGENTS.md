@@ -35,6 +35,8 @@ Validation scripts run in CI. Each enforces a specific invariant.
 | `check-runtime-ai-media-coverage.mjs` | Runtime | AI media capability coverage |
 | `check-runtime-go-coverage.mjs` | Runtime | Go test coverage threshold |
 | `check-runtime-spec-kernel-consistency.mjs` | Spec | Runtime spec YAML ↔ markdown consistency |
+| `check-live-provider-invariants.mjs` | Cross-layer | provider.go/env/template/live-smoke coverage invariants |
+| `check-live-smoke-gate.mjs` | Cross-layer | baseline + changed-provider live gate evaluation |
 | `check-scope-catalog-drift.mjs` | SDK | Scope catalog drift detection |
 | `check-sdk-consumer-smoke.mjs` | SDK | SDK consumer smoke test |
 | `check-sdk-coverage.mjs` | SDK | SDK test coverage threshold |
@@ -89,6 +91,7 @@ Scripts that produce derived artifacts from source-of-truth inputs.
 | Script | Purpose |
 |--------|---------|
 | `run-live-test-matrix.mjs` | Runs cross-layer live smoke tests |
+| `live-provider-utils.mjs` | Shared provider catalog/test/env parsing utilities |
 | `report-ai-hotspots.mjs` | Reports top AI context hotspots by lines/bytes |
 | `bundle-size-baseline.json` | Bundle size baseline data (not a script) |
 

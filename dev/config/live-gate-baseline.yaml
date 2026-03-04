@@ -1,0 +1,44 @@
+version: 1
+runtime:
+  required_interfaces:
+    - generate
+  baseline_providers:
+    - openai
+    - dashscope
+  conditional_baselines:
+    - provider: local
+      when_env_all:
+        - NIMI_LIVE_LOCAL_BASE_URL
+        - NIMI_LIVE_LOCAL_MODEL_ID
+sdk:
+  required_interfaces:
+    - generate
+  baseline_providers:
+    - openai
+    - dashscope
+  conditional_baselines:
+    - provider: local
+      when_env_all:
+        - NIMI_LIVE_LOCAL_BASE_URL
+        - NIMI_LIVE_LOCAL_MODEL_ID
+exemptions:
+  runtime_bindings_without_catalog:
+    - volcengine_openspeech
+  catalog_without_runtime_binding:
+    - openai_compatible
+  runtime_live_generate_exemptions:
+    - glm
+    - volcengine_openspeech
+  sdk_live_smoke_exemptions:
+    - openai_compatible
+    - azure
+    - groq
+    - hunyuan
+    - kimi
+    - minimax
+    - mistral
+    - openrouter
+    - qianfan
+    - spark
+    - xai
+    - glm

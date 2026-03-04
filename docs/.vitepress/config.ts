@@ -89,6 +89,7 @@ export default defineConfig({
             { text: 'Overview', link: '/architecture/' },
             { text: 'Spec Map', link: '/architecture/spec-map' },
             { text: 'Realm Interconnect Paradigm', link: '/architecture/realm-interconnect-paradigm' },
+            { text: 'MCP Agent Interaction (CN)', link: '/architecture/mcp-agent-interaction_cn' },
           ],
         },
         {

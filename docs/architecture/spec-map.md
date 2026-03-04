@@ -11,6 +11,7 @@ This page maps developer-facing topics to normative spec sources.
 - AI Agent security summary (one-page): [`docs/architecture/ai-agent-security-interface-summary.md`](./ai-agent-security-interface-summary.md)
 - AI Agent security whitepaper (external-facing): [`docs/architecture/ai-agent-security-interface.md`](./ai-agent-security-interface.md)
 - AI Agent rule mapping (spec thin-domain): [`spec/platform/ai-agent-security-interface.md`](../../spec/platform/ai-agent-security-interface.md)
+- MCP × Agent interaction whitepaper (CN): [`docs/architecture/mcp-agent-interaction_cn.md`](./mcp-agent-interaction_cn.md)
 
 ## Domain entries
 
