@@ -306,6 +306,30 @@ function createIdempotencyKey(): string {
   return `sdk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function formatAuthorizationHeader(accessToken: string): string {
+  const normalized = normalizeText(accessToken);
+  if (!normalized) {
+    return '';
+  }
+  if (normalized.toLowerCase().startsWith('bearer ')) {
+    const token = normalizeText(normalized.slice(7));
+    return token ? `Bearer ${token}` : '';
+  }
+  return `Bearer ${normalized}`;
+}
+
+async function resolveAuthorization(
+  config: RuntimeClientConfig,
+): Promise<string | undefined> {
+  const accessTokenInput = config.auth?.accessToken;
+  if (typeof accessTokenInput === 'function') {
+    const resolved = formatAuthorizationHeader(await accessTokenInput());
+    return resolved || undefined;
+  }
+  const resolved = formatAuthorizationHeader(accessTokenInput || '');
+  return resolved || undefined;
+}
+
 function withIdempotencyKey(
   methodId: string,
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
@@ -322,32 +346,34 @@ function withIdempotencyKey(
   };
 }
 
-function toUnaryCall(
+async function toUnaryCall(
   config: RuntimeClientConfig,
   methodId: string,
   request: RuntimeWireMessage,
   options?: RuntimeCallOptions,
-): RuntimeUnaryCall<RuntimeWireMessage> {
+): Promise<RuntimeUnaryCall<RuntimeWireMessage>> {
   const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeCallOptions | undefined;
   return {
     methodId,
     request,
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
+    authorization: await resolveAuthorization(config),
     timeoutMs: resolvedOptions?.timeoutMs,
   };
 }
 
-function toStreamCall(
+async function toStreamCall(
   config: RuntimeClientConfig,
   methodId: string,
   request: RuntimeWireMessage,
   options?: RuntimeStreamCallOptions,
-): RuntimeOpenStreamCall<RuntimeWireMessage> {
+): Promise<RuntimeOpenStreamCall<RuntimeWireMessage>> {
   const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeStreamCallOptions | undefined;
   return {
     methodId,
     request,
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
+    authorization: await resolveAuthorization(config),
     timeoutMs: resolvedOptions?.timeoutMs,
     signal: resolvedOptions?.signal,
   };
@@ -442,8 +468,9 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
 
     const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
+    const call = await toUnaryCall(config, methodId, wireRequest, options);
     const wireResponse = await transport.invokeUnary(
-      toUnaryCall(config, methodId, wireRequest, options),
+      call,
     );
     return decodeUnaryResponse(methodId, codec as RuntimeUnaryMethodCodec<unknown, Response>, wireResponse);
   };
@@ -466,8 +493,9 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
 
     const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
+    const call = await toStreamCall(config, methodId, wireRequest, options);
     const wireStream = await transport.openStream(
-      toStreamCall(config, methodId, wireRequest, options),
+      call,
     );
 
     return {

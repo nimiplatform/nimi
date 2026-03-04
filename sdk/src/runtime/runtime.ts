@@ -166,7 +166,7 @@ export class Runtime {
       resolveRuntimeStreamOptions: (input) => resolveRuntimeStreamOptions(this.#options, input),
       resolveSubjectUserId: (explicit) => resolveRuntimeSubjectUserId({
         explicit,
-        authContext: this.#options.authContext,
+        subjectContext: this.#options.subjectContext,
       }),
       emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
     };

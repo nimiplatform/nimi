@@ -39,6 +39,7 @@ export async function connectRuntime(input: {
       appId: input.appId,
       transport: input.options.transport,
       defaults: input.options.defaults,
+      auth: input.options.auth,
     }));
     input.setState({
       ...input.state,

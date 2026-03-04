@@ -38,7 +38,7 @@ function clearNodeGrpcBridge(): void {
   setNodeGrpcBridge(null);
 }
 
-test('Runtime auto mode connects lazily and injects subjectUserId from authContext provider', async () => {
+test('Runtime auto mode connects lazily and injects subjectUserId from subjectContext provider', async () => {
   let capturedGenerateRequest: GenerateRequest | null = null;
 
   installNodeGrpcBridge({
@@ -70,7 +70,7 @@ test('Runtime auto mode connects lazily and injects subjectUserId from authConte
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         getSubjectUserId: async () => 'user-from-provider',
       },
     });
@@ -144,7 +144,7 @@ test('Runtime auto mode retries retryable runtime errors with configured backoff
         maxAttempts: 2,
         backoffMs: 1,
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'retry-user',
       },
     });
@@ -203,7 +203,7 @@ test('Runtime auto mode does not retry non-retryable runtime errors', async () =
         maxAttempts: 3,
         backoffMs: 1,
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'retry-user',
       },
     });
@@ -237,7 +237,7 @@ test('Runtime manual mode requires explicit connect before API calls', async () 
       type: 'node-grpc',
       endpoint: '127.0.0.1:46371',
     },
-    authContext: {
+    subjectContext: {
       subjectUserId: 'manual-user',
     },
   });
@@ -392,7 +392,7 @@ test('retry backoff includes jitter', async () => {
         maxAttempts: 3,
         backoffMs: 100,
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'jitter-user',
       },
     });
@@ -449,7 +449,7 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'metadata-user',
       },
     });
@@ -505,7 +505,7 @@ test('Runtime ai.text.generate omits x-nimi-key-source unless explicitly provide
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'metadata-default-user',
       },
     });
@@ -582,7 +582,7 @@ test('Runtime runtimeVersion() returns null before any RPC and caches after meta
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'version-user',
       },
     });
@@ -646,7 +646,7 @@ test('Runtime retry defaults to maxAttempts=3 backoffMs=200 when retry is omitte
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'default-retry-user',
       },
     });
@@ -696,7 +696,7 @@ test('OPERATION_ABORTED reasonCode prevents retry even when retryable is true', 
         maxAttempts: 3,
         backoffMs: 1,
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'abort-user',
       },
     });
@@ -748,7 +748,7 @@ test('Runtime version negotiation: incompatible major version throws SDK_RUNTIME
     const runtime = new Runtime({
       appId: APP_ID,
       transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-      authContext: { subjectUserId: 'version-user' },
+      subjectContext: { subjectUserId: 'version-user' },
     });
 
     let thrown: unknown = null;
@@ -791,7 +791,7 @@ test('Runtime version negotiation: compatible version 0.x.y proceeds normally', 
     const runtime = new Runtime({
       appId: APP_ID,
       transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-      authContext: { subjectUserId: 'version-user' },
+      subjectContext: { subjectUserId: 'version-user' },
     });
 
     const output = await runtime.ai.text.generate({ model: 'local/test', input: 'hi' });
@@ -831,7 +831,7 @@ test('Mode B: subscribeMediaJobEvents stops after terminal COMPLETED event', asy
     const runtime = new Runtime({
       appId: APP_ID,
       transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-      authContext: { subjectUserId: 'mode-b-user' },
+      subjectContext: { subjectUserId: 'mode-b-user' },
     });
 
     await runtime.connect();
@@ -877,7 +877,7 @@ test('Mode B: subscribeMediaJobEvents stops after FAILED event', async () => {
     const runtime = new Runtime({
       appId: APP_ID,
       transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-      authContext: { subjectUserId: 'mode-b-user' },
+      subjectContext: { subjectUserId: 'mode-b-user' },
     });
 
     await runtime.connect();

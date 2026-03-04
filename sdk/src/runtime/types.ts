@@ -249,6 +249,7 @@ export type RuntimeClientConfig = {
   appId: string;
   transport: RuntimeTransportConfig;
   defaults?: RuntimeClientDefaults;
+  auth?: RuntimeAuthProvider;
 };
 
 export type RuntimeWireMessage = Uint8Array;
@@ -257,6 +258,7 @@ export type RuntimeUnaryCall<Request = RuntimeWireMessage> = {
   methodId: string;
   request: Request;
   metadata: RuntimeMetadata;
+  authorization?: string;
   timeoutMs?: number;
 };
 
@@ -264,6 +266,7 @@ export type RuntimeOpenStreamCall<Request = RuntimeWireMessage> = {
   methodId: string;
   request: Request;
   metadata: RuntimeMetadata;
+  authorization?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
 };
@@ -441,7 +444,11 @@ export type RuntimeTelemetryEvent = {
   data?: Record<string, unknown>;
 };
 
-export type RuntimeAuthContextProvider = {
+export type RuntimeAuthProvider = {
+  accessToken?: string | (() => string | Promise<string>);
+};
+
+export type RuntimeSubjectContextProvider = {
   subjectUserId?: string;
   getSubjectUserId?: () => string | Promise<string>;
 };
@@ -454,12 +461,13 @@ export type RuntimeOptions = {
   };
   transport: RuntimeTransportConfig;
   defaults?: RuntimeClientDefaults;
+  auth?: RuntimeAuthProvider;
   timeoutMs?: number;
   retry?: {
     maxAttempts?: number;
     backoffMs?: number;
   };
-  authContext?: RuntimeAuthContextProvider;
+  subjectContext?: RuntimeSubjectContextProvider;
   telemetry?: {
     enabled?: boolean;
     onEvent?: (event: RuntimeTelemetryEvent) => void;

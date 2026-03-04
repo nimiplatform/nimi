@@ -245,7 +245,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         getSubjectUserId: async () => 'subject-from-context',
       },
     });
@@ -537,7 +537,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
       },
-      authContext: {
+      subjectContext: {
         subjectUserId: 'subject-1',
       },
     });

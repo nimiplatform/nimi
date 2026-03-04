@@ -104,19 +104,19 @@ export function wrapModeDStream<T>(input: {
 
 export async function resolveRuntimeSubjectUserId(input: {
   explicit?: string;
-  authContext?: RuntimeOptions['authContext'];
+  subjectContext?: RuntimeOptions['subjectContext'];
 }): Promise<string> {
   const direct = normalizeText(input.explicit);
   if (direct) {
     return direct;
   }
 
-  const configured = normalizeText(input.authContext?.subjectUserId);
+  const configured = normalizeText(input.subjectContext?.subjectUserId);
   if (configured) {
     return configured;
   }
 
-  const resolver = input.authContext?.getSubjectUserId;
+  const resolver = input.subjectContext?.getSubjectUserId;
   if (typeof resolver === 'function') {
     const resolved = normalizeText(await resolver());
     if (resolved) {
@@ -125,9 +125,9 @@ export async function resolveRuntimeSubjectUserId(input: {
   }
 
   throw createNimiError({
-    message: 'subjectUserId is required (set authContext or pass per call)',
+    message: 'subjectUserId is required (set subjectContext or pass per call)',
     reasonCode: ReasonCode.AUTH_CONTEXT_MISSING,
-    actionHint: 'set_runtime_auth_context_subject_user',
+    actionHint: 'set_runtime_subject_context_subject_user',
     source: 'sdk',
   });
 }
