@@ -114,3 +114,22 @@ test('platform runtime call resolves fresh token on each invocation', async () =
     restoreTauri();
   }
 });
+
+test('platform runtime call omits authorization when token provider returns empty', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => '',
+    });
+
+    await getPlatformClient().runtime.model.list({});
+
+    const unaryCall = calls.find((item) => item.command === 'runtime_bridge_unary');
+    assert.ok(unaryCall);
+    assert.equal(unaryCall.payload.authorization, undefined);
+  } finally {
+    restoreTauri();
+  }
+});

@@ -79,15 +79,25 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await desktopBridge.getRuntimeDefaults();
+    const resolveCurrentAccessToken = () => {
+      const store = useAppStore.getState();
+      const authToken = String(store.auth.token || '').trim();
+      if (authToken) {
+        return authToken;
+      }
+
+      // During initial auth bootstrapping we may still rely on env-provided token defaults.
+      if (store.auth.status === 'bootstrapping') {
+        const runtimeDefaultsAccessToken = String(store.runtimeDefaults?.realm?.accessToken || '').trim();
+        return runtimeDefaultsAccessToken || defaults.realm.accessToken;
+      }
+      return '';
+    };
+
     await initializePlatformClient({
       realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken: defaults.realm.accessToken,
-      accessTokenProvider: () => {
-        const store = useAppStore.getState();
-        const runtimeDefaultsAccessToken = String(store.runtimeDefaults?.realm?.accessToken || '').trim();
-        const authToken = String(store.auth.token || '').trim();
-        return authToken || runtimeDefaultsAccessToken || defaults.realm.accessToken;
-      },
+      accessTokenProvider: resolveCurrentAccessToken,
     });
     const proxyFetch = createProxyFetch();
     useAppStore.getState().setRuntimeDefaults(defaults);
@@ -128,11 +138,9 @@ export function bootstrapRuntime(): Promise<void> {
       setRuntimeHttpContextProvider(() => {
         const store = useAppStore.getState();
         const runtimeDefaultsRealmBaseUrl = String(store.runtimeDefaults?.realm?.realmBaseUrl || '').trim();
-        const runtimeDefaultsAccessToken = String(store.runtimeDefaults?.realm?.accessToken || '').trim();
-        const token = String(store.auth.token || '').trim() || defaults.realm.accessToken;
         return {
           realmBaseUrl: runtimeDefaultsRealmBaseUrl || defaults.realm.realmBaseUrl,
-          accessToken: token || runtimeDefaultsAccessToken || defaults.realm.accessToken,
+          accessToken: resolveCurrentAccessToken(),
           fetchImpl: proxyFetch,
         };
       });
