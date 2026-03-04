@@ -30,13 +30,58 @@ export async function registerBootstrapRuntimeMods(input: {
 
   const runtimeModFailures: RuntimeModRegisterFailure[] = [];
   const sideloadDiscoverFailures: RuntimeModRegisterFailure[] = [];
+  if (!desktopBridge.hasTauriInvoke()) {
+    const errorMessage = 'Desktop mods require Tauri runtime. Start with `pnpm --filter @nimiplatform/desktop run dev:shell`.';
+    runtimeModFailures.push({
+      modId: 'runtime.tauri-unavailable',
+      sourceType: 'sideload',
+      stage: 'discover',
+      error: errorMessage,
+    });
+    useAppStore.getState().setLocalManifestSummaries([]);
+    useAppStore.getState().setRuntimeModFailures(runtimeModFailures);
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:register-runtime-mods:tauri-unavailable',
+      flowId: input.flowId,
+      details: {
+        error: errorMessage,
+      },
+    });
+    return {
+      runtimeModFailures,
+      manifestCount: 0,
+    };
+  }
+
   const injectedResult = await registerInjectedRuntimeMods();
   runtimeModFailures.push(...injectedResult.failedMods);
 
   const appStore = useAppStore.getState();
   const disabledModIds = new Set(appStore.runtimeModDisabledIds);
   const uninstalledModIds = new Set(appStore.runtimeModUninstalledIds);
-  const manifests = await desktopBridge.listRuntimeLocalModManifests().catch(() => []);
+  let manifests: Awaited<ReturnType<typeof desktopBridge.listRuntimeLocalModManifests>> = [];
+  try {
+    manifests = await desktopBridge.listRuntimeLocalModManifests();
+  } catch (error) {
+    const errorMessage = safeErrorMessage(error);
+    runtimeModFailures.push({
+      modId: 'runtime.local-manifest-scan',
+      sourceType: 'sideload',
+      stage: 'discover',
+      error: errorMessage,
+    });
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:register-runtime-mods:manifest-scan-failed',
+      flowId: input.flowId,
+      details: {
+        error: errorMessage,
+      },
+    });
+  }
   const manifestCount = manifests.length;
   appStore.setLocalManifestSummaries(manifests);
   const eligibleManifests = manifests.filter((manifest) => {
