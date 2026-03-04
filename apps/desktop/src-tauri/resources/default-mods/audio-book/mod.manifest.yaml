@@ -11,6 +11,7 @@ capabilities:
   - llm.speech.voices.list
   - llm.speech.providers.list
   - llm.speech.synthesize
+  - data.query.data-api.runtime.route.options
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes
   - event.publish.ab:synthesis:progress
@@ -18,7 +19,7 @@ capabilities:
 ai:
   consume:
     - chat
-    - speech
+    - tts
   dependencies:
     required:
       - dependencyId: audio-book/chat-qwen2.5-7b
@@ -31,8 +32,29 @@ ai:
     optional:
       - dependencyId: audio-book/tts-token-node
         kind: node
-        capability: speech
+        capability: tts
         nodeId: speech.synthesize.token-api
         title: Token API TTS node
+    alternatives:
+      - alternativeId: audio-book-tts-qwen3
+        preferredDependencyId: audio-book/tts-qwen3-1.7b
+        options:
+          - dependencyId: audio-book/tts-qwen3-1.7b
+            kind: service
+            capability: tts
+            serviceId: qwen-tts-python
+            modelId: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+            repo: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+            engine: qwen-tts-python
+            title: Qwen3 TTS 1.7B (recommended)
+          - dependencyId: audio-book/tts-qwen3-0.6b
+            kind: service
+            capability: tts
+            serviceId: qwen-tts-python
+            modelId: Qwen/Qwen3-TTS-12Hz-0.6B-VoiceDesign
+            repo: Qwen/Qwen3-TTS-12Hz-0.6B-VoiceDesign
+            engine: qwen-tts-python
+            title: Qwen3 TTS 0.6B
     preferred:
       chat: audio-book/chat-qwen2.5-7b
+      tts: audio-book/tts-qwen3-1.7b

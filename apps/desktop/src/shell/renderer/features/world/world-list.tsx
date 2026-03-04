@@ -109,9 +109,11 @@ const tagStyles: Record<string, { bg: string; text: string }> = {
   closed: { bg: 'bg-orange-50', text: 'text-orange-600' },
 };
 
+const DEFAULT_TAG_STYLE: { bg: string; text: string } = { bg: 'bg-gray-100', text: 'text-gray-600' };
+
 function getTagStyle(type: string, value?: string): { bg: string; text: string } {
   const key = value?.toLowerCase() || type.toLowerCase();
-  return tagStyles[key] || tagStyles.theme;
+  return tagStyles[key] ?? DEFAULT_TAG_STYLE;
 }
 
 export function WorldList() {

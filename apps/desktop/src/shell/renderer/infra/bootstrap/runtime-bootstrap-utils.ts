@@ -34,6 +34,7 @@ export function toRecord(input: unknown): Record<string, unknown> {
 export const WORLD_DATA_API_CAPABILITIES = {
   runtimeRouteOptions: 'data-api.runtime.route.options',
   accessMe: 'data-api.world.access.me',
+  oasisGet: 'data-api.world.oasis.get',
   landingResolve: 'data-api.world.landing.resolve',
   draftCreate: 'data-api.world.draft.create',
   draftGet: 'data-api.world.draft.get',

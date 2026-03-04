@@ -1,0 +1,64 @@
+id: world.nimi.knowledge-base
+name: Knowledge Base
+version: 1.0.0
+kind: capability-mod
+entry: ./dist/mods/knowledge-base/index.js
+description: >
+  Private local knowledge base with document import, semantic search, and RAG-powered Q&A.
+capabilities:
+  # AI
+  - llm.text.generate
+  - llm.text.stream
+  - llm.embedding.generate
+  # Data register + query pairs (8 APIs)
+  - data.register.data-api.knowledge-base.documents.list
+  - data.query.data-api.knowledge-base.documents.list
+  - data.register.data-api.knowledge-base.documents.import
+  - data.query.data-api.knowledge-base.documents.import
+  - data.register.data-api.knowledge-base.documents.delete
+  - data.query.data-api.knowledge-base.documents.delete
+  - data.register.data-api.knowledge-base.search
+  - data.query.data-api.knowledge-base.search
+  - data.register.data-api.knowledge-base.conversations.list
+  - data.query.data-api.knowledge-base.conversations.list
+  - data.register.data-api.knowledge-base.conversations.get
+  - data.query.data-api.knowledge-base.conversations.get
+  - data.register.data-api.knowledge-base.conversations.upsert
+  - data.query.data-api.knowledge-base.conversations.upsert
+  - data.register.data-api.knowledge-base.conversations.delete
+  - data.query.data-api.knowledge-base.conversations.delete
+  # Route
+  - data.query.data-api.runtime.route.options
+  # UI
+  - ui.register.ui-extension.app.sidebar.mods
+  - ui.register.ui-extension.app.content.routes
+ai:
+  consume:
+    - chat
+    - embedding
+  dependencies:
+    required:
+      - dependencyId: knowledge-base/chat-qwen2.5-7b
+        kind: model
+        capability: chat
+        modelId: qwen2.5-7b-instruct
+        repo: Qwen/Qwen2.5-7B-Instruct-GGUF
+        engine: openai-compatible
+        title: Qwen2.5 7B Instruct (default)
+    alternatives:
+      - alternativeId: knowledge-base-embedding-runtime
+        preferredDependencyId: knowledge-base/embedding-localai
+        options:
+          - dependencyId: knowledge-base/embedding-localai
+            kind: node
+            capability: embedding
+            nodeId: embedding.generate.localai
+            title: Local embedding node (LocalAI)
+          - dependencyId: knowledge-base/embedding-nexa
+            kind: node
+            capability: embedding
+            nodeId: embedding.generate.nexa
+            title: Local embedding node (Nexa)
+    preferred:
+      chat: knowledge-base/chat-qwen2.5-7b
+      embedding: knowledge-base/embedding-localai

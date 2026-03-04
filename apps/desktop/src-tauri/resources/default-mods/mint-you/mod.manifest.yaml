@@ -1,0 +1,27 @@
+id: world.nimi.mint-you
+name: Mint-You
+version: 1.0.0
+kind: capability-mod
+icon: mint-you
+entry: ./dist/mods/mint-you/index.js
+description: >
+  Behavioral personality profiling and social-persona agent creation.
+  Users complete scenario-based intake to create an AI agent that
+  represents their social personality. Includes photo trust-unlock
+  for mutual identity reveal between matched users.
+capabilities:
+  - llm.text.generate
+  - data.query.data-api.creator.agents.create
+  - data.query.data-api.world.access.me
+  - data.query.data-api.world.oasis.get
+  - data.query.data-api.runtime.route.options
+  - hook.agent-profile.read
+  - data.store.mod-state
+  - ui.register.ui-extension.app.sidebar.mods
+  - ui.register.ui-extension.app.content.routes
+ai:
+  consume:
+    - chat
+  dependencies:
+    required: []
+    optional: []

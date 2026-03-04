@@ -1,6 +1,6 @@
 id: world.nimi.videoplay
 name: VideoPlay
-version: 1.0.0
+version: 1.1.0
 kind: capability-mod
 icon: videoplay
 entry: ./dist/mods/videoplay/index.js

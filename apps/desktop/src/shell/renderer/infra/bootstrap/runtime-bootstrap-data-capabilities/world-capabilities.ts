@@ -78,6 +78,13 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     })
   ));
 
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.oasisGet, async () => (
+    requestObject({
+      method: 'GET',
+      url: '/api/world/oasis',
+    })
+  ));
+
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.landingResolve, async () => (
     requestObject({
       method: 'GET',
