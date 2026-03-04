@@ -49,7 +49,9 @@ Runtime wallet login is available in web mode when wallet providers are injected
 API base URL policy in web mode:
 
 - `@nimiplatform/web` always uses same-origin API routing from current page origin.
-- `NIMI_REALM_URL` is ignored for web-shell API requests to avoid accidental `localhost` lock-in on LAN access.
+- `NIMI_REALM_URL` is not read by runtime request code in web-shell mode (to avoid client-side host lock-in).
+- In local dev (`pnpm --filter @nimiplatform/web dev`), Vite proxies `/api`, `/healthz`, `/readyz`, `/health`, and `/socket.io` to `NIMI_REALM_URL` when it is set.
+- Monorepo root `.env` is auto-loaded for web dev, so `NIMI_REALM_URL` can be configured once at repo root.
 
 Desktop browser authorization note:
 
