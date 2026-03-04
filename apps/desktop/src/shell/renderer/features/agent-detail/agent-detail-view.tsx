@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import type { AgentDetailData } from './agent-detail-model';
-import { getAgentInitial } from './agent-detail-model';
+import { getAgentInitial, getStateBadgeColor } from './agent-detail-model';
 
 type AgentDetailViewProps = {
   agent: AgentDetailData;
   memoryStats: { coreCount: number; e2eCount: number; profileCount: number } | null;
+  stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
+  worldScore?: number;
   loading: boolean;
   error: boolean;
   onBack: () => void;
@@ -16,6 +18,79 @@ type AgentDetailViewProps = {
   onSendGift: () => void;
   isFriend?: boolean;
 };
+
+// Score progress bar with rainbow gradient
+function ScoreProgressBar({ score = 0 }: { score?: number }) {
+  const percentage = Math.min(100, Math.max(0, score));
+  
+  return (
+    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div 
+        className="h-full rounded-full"
+        style={{ 
+          width: `${percentage}%`,
+          background: 'linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff)',
+        }}
+      />
+    </div>
+  );
+}
+
+// Agent state badge
+function AgentStateBadge({ state }: { state?: string }) {
+  if (!state) return null;
+  const colors = getStateBadgeColor(state);
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.bg} ${colors.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+      {state}
+    </span>
+  );
+}
+
+// Tier badge
+function TierBadge({ tier }: { tier?: string }) {
+  if (!tier) return null;
+  const tierColors: Record<string, { bg: string; text: string; dot: string }> = {
+    'COMMUNITY': { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' },
+    'VERIFIED': { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' },
+    'PREMIUM': { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' },
+    'OFFICIAL': { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  };
+  const colors = tierColors[tier] || { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.bg} ${colors.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+      {tier}
+    </span>
+  );
+}
+
+// Ownership badge
+function OwnershipBadge({ ownershipType }: { ownershipType?: string }) {
+  if (!ownershipType) return null;
+  const isMasterOwned = ownershipType === 'MASTER_OWNED';
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${isMasterOwned ? 'bg-purple-100 text-purple-700' : 'bg-cyan-100 text-cyan-700'}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${isMasterOwned ? 'bg-purple-500' : 'bg-cyan-500'}`} />
+      {isMasterOwned ? 'My Agent' : 'World Owned'}
+    </span>
+  );
+}
+
+// Breathing online indicator
+function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
+  if (!isOnline) return null;
+  
+  return (
+    <span className="absolute bottom-1 right-1 h-4 w-4">
+      {/* Breathing glow effect using Tailwind animate-pulse */}
+      <span className="absolute inset-0 rounded-full bg-green-400 animate-pulse opacity-75" />
+      {/* Core dot with border */}
+      <span className="absolute inset-0 rounded-full border-2 border-white bg-green-400" />
+    </span>
+  );
+}
 
 export function AgentDetailView(props: AgentDetailViewProps) {
   const { t } = useTranslation();
@@ -74,10 +149,19 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-purple-400 via-pink-300 to-blue-300" />
+                <div className="w-full h-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400" />
               )}
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20" />
+              
+              {/* Tag Pill - Top Left */}
+              {agent.tags.length > 0 && (
+                <div className="absolute top-4 left-4">
+                  <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm">
+                    {agent.tags[0]}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Add Button - Top Right */}
@@ -118,22 +202,29 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                         className="h-full w-full rounded-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100 text-2xl font-semibold text-purple-600">
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 via-cyan-100 to-violet-100 text-2xl font-semibold text-violet-600">
                         {getAgentInitial(agent.displayName)}
                       </div>
                     )}
                   </div>
                 </div>
-                {agent.isOnline && (
-                  <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-green-400" />
-                )}
+                <OnlineIndicator isOnline={agent.isOnline} />
               </div>
 
-              {/* Name and Handle */}
-              <h2 className="mt-4 text-xl font-bold text-gray-900">
-                {agent.displayName}
-              </h2>
-              <p className="text-sm text-gray-500">@{agent.handle}</p>
+              {/* Name and Badges */}
+              <div className="mt-4 flex items-center gap-2 flex-wrap justify-center">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {agent.displayName}
+                </h2>
+                <AgentStateBadge state={agent.state} />
+                <TierBadge tier={agent.tier} />
+              </div>
+              
+              {/* Handle with ownership badge */}
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-gray-500 font-mono">{agent.handle}</p>
+                <OwnershipBadge ownershipType={agent.ownershipType} />
+              </div>
 
               {/* Bio */}
               {agent.bio ? (
@@ -142,27 +233,42 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                 </p>
               ) : null}
 
-              {/* Stats */}
-              <div className="mt-6 flex w-full items-center justify-around px-4 py-4 bg-gray-50 rounded-2xl">
+              {/* Category & Origin */}
+              {(agent.category || agent.origin) && (
+                <p className="mt-2 text-xs text-gray-400">
+                  {agent.category}{agent.category && agent.origin ? ' • ' : ''}{agent.origin ? `Origin: ${agent.origin}` : ''}
+                </p>
+              )}
+
+              {/* Score Progress Bar */}
+              <div className="mt-5 w-full px-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Score</span>
+                  <ScoreProgressBar score={props.worldScore} />
+                </div>
+              </div>
+
+              {/* Stats - Friends / Posts / Likes */}
+              <div className="mt-5 flex w-full items-center justify-around px-4 py-4 bg-gray-50 rounded-2xl">
                 <div className="text-center">
-                  <p className="text-lg font-bold text-gray-900">
-                    {props.memoryStats ? props.memoryStats.coreCount : 0}
+                  <p className="text-xl font-bold text-gray-900">
+                    {props.stats?.friendsCount ?? '--'}
                   </p>
-                  <p className="text-xs text-gray-500">{t('AgentDetail.memoryCore')}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Friends</p>
                 </div>
                 <div className="w-px h-10 bg-gray-200" />
                 <div className="text-center">
-                  <p className="text-lg font-bold text-gray-900">
-                    {props.memoryStats ? props.memoryStats.e2eCount : 0}
+                  <p className="text-xl font-bold text-gray-900">
+                    {props.stats?.postsCount ?? '--'}
                   </p>
-                  <p className="text-xs text-gray-500">{t('AgentDetail.memoryE2E')}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Posts</p>
                 </div>
                 <div className="w-px h-10 bg-gray-200" />
                 <div className="text-center">
-                  <p className="text-lg font-bold text-gray-900">
-                    {props.memoryStats ? props.memoryStats.profileCount : 0}
+                  <p className="text-xl font-bold text-gray-900">
+                    {props.stats?.likesCount ?? '--'}
                   </p>
-                  <p className="text-xs text-gray-500">{t('AgentDetail.memoryProfiles')}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">Likes</p>
                 </div>
               </div>
 
@@ -209,48 +315,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
             </div>
           </div>
 
-          {/* Additional Info Cards */}
-          <div className="mt-4 space-y-3">
-            {/* Tags */}
-            {agent.tags.length > 0 ? (
-              <div className="rounded-2xl bg-white p-4 shadow-sm">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('AgentDetail.tags')}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {agent.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
 
-            {/* Metadata */}
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('AgentDetail.title')}</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t('AgentDetail.metaCategory')}</span>
-                  <span className="font-medium text-gray-900">{agent.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t('AgentDetail.metaOrigin')}</span>
-                  <span className="font-medium text-gray-900">{agent.origin}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t('AgentDetail.metaTier')}</span>
-                  <span className="font-medium text-gray-900">{agent.tier}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t('AgentDetail.metaWakeStrategy')}</span>
-                  <span className="font-medium text-gray-900">{agent.wakeStrategy}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

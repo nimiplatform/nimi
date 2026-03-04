@@ -97,6 +97,23 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
   };
 }
 
+// Morandi color palette for tags
+const tagStyles: Record<string, { bg: string; text: string }> = {
+  genre: { bg: 'bg-slate-100', text: 'text-slate-600' },
+  era: { bg: 'bg-stone-100', text: 'text-stone-600' },
+  theme: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  active: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  draft: { bg: 'bg-amber-50', text: 'text-amber-600' },
+  frozen: { bg: 'bg-rose-50', text: 'text-rose-600' },
+  open: { bg: 'bg-teal-50', text: 'text-teal-600' },
+  closed: { bg: 'bg-orange-50', text: 'text-orange-600' },
+};
+
+function getTagStyle(type: string, value?: string): { bg: string; text: string } {
+  const key = value?.toLowerCase() || type.toLowerCase();
+  return tagStyles[key] || tagStyles.theme;
+}
+
 export function WorldList() {
   const { t } = useTranslation();
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
@@ -132,7 +149,7 @@ export function WorldList() {
 
   if (worldsQuery.isPending) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50">
+      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F7F8FA' }}>
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-mint-500" />
           <span className="text-sm">{t('World.loading')}</span>
@@ -143,19 +160,19 @@ export function WorldList() {
 
   if (worldsQuery.isError) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50">
+      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F7F8FA' }}>
         <span className="text-sm text-red-600">{t('World.loadError')}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F7F8FA' }}>
       {/* Header bar */}
-      <div className="flex h-auto shrink-0 flex-col justify-center gap-1 bg-gray-50 px-6 py-3">
-        <h1 className="text-lg font-semibold tracking-tight text-gray-900">{t('World.title')}</h1>
-        <span className="text-xs text-gray-400">Synced from Desktop</span>
-        <div className="mt-2">
+      <div className="flex h-auto shrink-0 flex-col justify-center gap-1 px-6 py-4" style={{ backgroundColor: '#F7F8FA' }}>
+        <h1 className="text-lg font-semibold tracking-tight" style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
+        <span className="text-xs" style={{ color: '#888888' }}>Synced from Desktop</span>
+        <div className="mt-3">
           <input
             type="search"
             value={searchText}
@@ -163,51 +180,62 @@ export function WorldList() {
               setSearchText(event.target.value);
             }}
             placeholder="Search worlds by name or description..."
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition-colors placeholder:text-gray-400 focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
+            className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm shadow-sm outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-mint-100"
+            style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}
           />
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="mx-auto max-w-6xl px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#F7F8FA' }}>
+        <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (
-            <div className="mb-6">
-              <h2 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>{t('World.mainWorld')}</h2>
+            <div className="mb-8">
+              <h2 className="text-[19px] font-semibold leading-7 mb-4" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif', color: '#1A1A1A' }}>{t('World.mainWorld')}</h2>
               <div
                 onClick={() => openWorldDetail(mainWorld.id)}
-                className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md"
+                className="group cursor-pointer rounded-3xl bg-white p-6 transition-all duration-300 hover:-translate-y-1"
+                style={{ 
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.04)';
+                }}
               >
                 {mainWorld.bannerUrl && (
-                  <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden rounded-t-2xl">
+                  <div className="relative -mx-6 -mt-6 mb-5 h-40 overflow-hidden rounded-t-3xl">
                     <img
                       src={mainWorld.bannerUrl}
                       alt={mainWorld.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
                   </div>
                 )}
 
-                <div className="flex items-start gap-4">
-                  <div className="relative">
+                <div className="flex items-start gap-5">
+                  <div className="relative shrink-0">
                     {mainWorld.iconUrl ? (
                       <img
                         src={mainWorld.iconUrl}
                         alt={mainWorld.name}
-                        className="h-20 w-20 rounded-2xl object-cover"
+                        className="h-20 w-20 rounded-2xl object-cover shadow-sm"
                       />
                     ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-mint-100 to-mint-50 text-3xl font-bold text-mint-600">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-sm"
+                        style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' }}>
                         {mainWorld.name.charAt(0).toUpperCase()}
                       </div>
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-gray-900">{mainWorld.name}</h3>
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                      <h3 className="text-xl font-semibold truncate" style={{ color: '#1A1A1A', fontWeight: 600 }}>{mainWorld.name}</h3>
+                      <span className="inline-flex items-center gap-1 text-xs shrink-0" style={{ color: '#666666' }}>
                         <svg
                           width="14"
                           height="14"
@@ -228,41 +256,53 @@ export function WorldList() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex items-center gap-2 mt-2">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(mainWorld.status).bg} ${getStatusBadgeStyle(mainWorld.status).text}`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getTagStyle('status', mainWorld.status).bg} ${getTagStyle('status', mainWorld.status).text}`}
+                        style={{ borderRadius: '9999px' }}
                       >
                         {mainWorld.status}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${mainWorld.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getTagStyle('creation', mainWorld.nativeCreationState).bg} ${getTagStyle('creation', mainWorld.nativeCreationState).text}`}
+                        style={{ borderRadius: '9999px' }}
                       >
                         {mainWorld.nativeCreationState}
                       </span>
                     </div>
 
                     {(mainWorld.genre || mainWorld.era || mainWorld.themes.length > 0) && (
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         {mainWorld.genre && (
-                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">
+                          <span 
+                            className={`inline-block px-3 py-1 text-xs font-medium ${getTagStyle('genre').bg} ${getTagStyle('genre').text}`}
+                            style={{ borderRadius: '9999px' }}
+                          >
                             {mainWorld.genre}
                           </span>
                         )}
                         {mainWorld.era && (
-                          <span className="inline-block px-2 py-0.5 bg-purple-50 text-purple-600 rounded text-xs">
+                          <span 
+                            className={`inline-block px-3 py-1 text-xs font-medium ${getTagStyle('era').bg} ${getTagStyle('era').text}`}
+                            style={{ borderRadius: '9999px' }}
+                          >
                             {mainWorld.era}
                           </span>
                         )}
                         {mainWorld.themes.slice(0, 3).map((theme, idx) => (
                           <span
                             key={idx}
-                            className="inline-block px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-xs"
+                            className={`inline-block px-3 py-1 text-xs font-medium ${getTagStyle('theme').bg} ${getTagStyle('theme').text}`}
+                            style={{ borderRadius: '9999px' }}
                           >
                             {theme}
                           </span>
                         ))}
                         {mainWorld.themes.length > 3 && (
-                          <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
+                          <span 
+                            className="inline-block px-3 py-1 text-xs font-medium bg-gray-100 text-gray-500"
+                            style={{ borderRadius: '9999px' }}
+                          >
                             +{mainWorld.themes.length - 3}
                           </span>
                         )}
@@ -270,13 +310,16 @@ export function WorldList() {
                     )}
 
                     {mainWorld.description && (
-                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                      <p 
+                        className="mt-3 text-sm line-clamp-2"
+                        style={{ color: '#666666', lineHeight: 1.5 }}
+                      >
                         {mainWorld.description}
                       </p>
                     )}
 
                     {mainWorld.creatorId && (
-                      <div className="mt-1 text-xs text-gray-400">
+                      <div className="mt-2 text-xs" style={{ color: '#888888' }}>
                         {t('WorldDetail.creatorId', { id: mainWorld.creatorId })}
                       </div>
                     )}
@@ -288,11 +331,11 @@ export function WorldList() {
 
           {/* Sub Worlds Grid */}
           <div>
-            <h2 className="text-[19px] font-semibold leading-7 text-gray-900 mb-3" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>
+            <h2 className="text-[19px] font-semibold leading-7 mb-4" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif', color: '#1A1A1A' }}>
               {searchText ? t('World.searchResults') : t('World.subWorlds')}
             </h2>
             {subWorlds.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <div className="flex flex-col items-center justify-center py-16" style={{ color: '#888888' }}>
                 <svg
                   width="48"
                   height="48"
@@ -311,23 +354,32 @@ export function WorldList() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {subWorlds.map((world) => {
                   const statusStyle = getStatusBadgeStyle(world.status);
                   return (
                     <div
                       key={world.id}
                       onClick={() => openWorldDetail(world.id)}
-                      className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+                      className="group cursor-pointer rounded-2xl bg-white p-5 transition-all duration-300 hover:-translate-y-1"
+                      style={{ 
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.04)';
+                      }}
                     >
                       {world.bannerUrl && (
-                        <div className="relative -mx-5 -mt-5 mb-3 h-20 overflow-hidden rounded-t-xl">
+                        <div className="relative -mx-5 -mt-5 mb-4 h-24 overflow-hidden rounded-t-2xl">
                           <img
                             src={world.bannerUrl}
                             alt={world.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         </div>
                       )}
 
@@ -337,18 +389,19 @@ export function WorldList() {
                             <img
                               src={world.iconUrl}
                               alt={world.name}
-                              className="h-14 w-14 rounded-xl object-cover"
+                              className="h-14 w-14 rounded-xl object-cover shadow-sm"
                             />
                           ) : (
-                            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-mint-100 to-mint-50 text-xl font-bold text-mint-600">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-xl text-xl font-bold text-white shadow-sm"
+                              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' }}>
                               {world.name.charAt(0).toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-semibold text-gray-900 truncate">{world.name}</h3>
-                            <span className="inline-flex items-center gap-1 text-[10px] text-gray-500">
+                            <h3 className="font-semibold truncate" style={{ color: '#1A1A1A', fontWeight: 600 }}>{world.name}</h3>
+                            <span className="inline-flex items-center gap-1 text-[10px] shrink-0" style={{ color: '#666666' }}>
                               <svg
                                 width="12"
                                 height="12"
@@ -368,40 +421,52 @@ export function WorldList() {
                               {world.agentCount}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1 mt-1">
+                          <div className="flex items-center gap-1.5 mt-1.5">
                             <span
-                              className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                              className={`inline-block px-2.5 py-0.5 text-[10px] font-medium ${getTagStyle('status', world.status).bg} ${getTagStyle('status', world.status).text}`}
+                              style={{ borderRadius: '9999px' }}
                             >
                               {world.status}
                             </span>
                             <span
-                              className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${world.nativeCreationState === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
+                              className={`inline-block px-2.5 py-0.5 text-[10px] font-medium ${getTagStyle('creation', world.nativeCreationState).bg} ${getTagStyle('creation', world.nativeCreationState).text}`}
+                              style={{ borderRadius: '9999px' }}
                             >
                               {world.nativeCreationState}
                             </span>
                           </div>
                           {(world.genre || world.era || world.themes.length > 0) && (
-                            <div className="mt-2 flex flex-wrap items-center gap-1">
+                            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                               {world.genre && (
-                                <span className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px]">
+                                <span 
+                                  className={`inline-block px-2.5 py-0.5 text-[10px] font-medium ${getTagStyle('genre').bg} ${getTagStyle('genre').text}`}
+                                  style={{ borderRadius: '9999px' }}
+                                >
                                   {world.genre}
                                 </span>
                               )}
                               {world.era && (
-                                <span className="inline-block px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-[10px]">
+                                <span 
+                                  className={`inline-block px-2.5 py-0.5 text-[10px] font-medium ${getTagStyle('era').bg} ${getTagStyle('era').text}`}
+                                  style={{ borderRadius: '9999px' }}
+                                >
                                   {world.era}
                                 </span>
                               )}
                               {world.themes.slice(0, 2).map((theme, idx) => (
                                 <span
                                   key={idx}
-                                  className="inline-block px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px]"
+                                  className={`inline-block px-2.5 py-0.5 text-[10px] font-medium ${getTagStyle('theme').bg} ${getTagStyle('theme').text}`}
+                                  style={{ borderRadius: '9999px' }}
                                 >
                                   {theme}
                                 </span>
                               ))}
                               {world.themes.length > 2 && (
-                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
+                                <span 
+                                  className="inline-block px-2.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500"
+                                  style={{ borderRadius: '9999px' }}
+                                >
                                   +{world.themes.length - 2}
                                 </span>
                               )}
@@ -409,13 +474,16 @@ export function WorldList() {
                           )}
 
                           {world.description && (
-                            <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                            <p 
+                              className="mt-2.5 text-xs line-clamp-2"
+                              style={{ color: '#666666', lineHeight: 1.5 }}
+                            >
                               {world.description}
                             </p>
                           )}
 
                           {world.freezeReason && (
-                            <div className="mt-1 text-[10px] text-red-500">
+                            <div className="mt-1 text-[10px]" style={{ color: '#e11d48' }}>
                               {t('WorldDetail.freezeReason', { reason: world.freezeReason })}
                             </div>
                           )}

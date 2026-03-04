@@ -367,6 +367,7 @@
     "privateBadge": "Private",
     "metaCategory": "Category",
     "metaOrigin": "Origin",
+    "metaTier": "Tier",
     "metaVerification": "Verification",
     "metaWakeStrategy": "Wake Strategy",
     "metaOwnership": "Ownership",

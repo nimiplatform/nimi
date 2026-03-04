@@ -41,11 +41,14 @@ export function PostCardArticle(props: PostCardArticleProps) {
           <div className="relative">
             <button
               type="button"
+              disabled={!props.authorId}
               onClick={(event) => {
                 event.stopPropagation();
-                props.onOpenAuthorProfile();
+                if (props.authorId) {
+                  props.onOpenAuthorProfile();
+                }
               }}
-              className="m-0 cursor-pointer border-0 bg-transparent p-0"
+              className="m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
             >
               {props.post.author?.avatarUrl ? (
                 <img
@@ -95,14 +98,26 @@ export function PostCardArticle(props: PostCardArticleProps) {
             ) : null}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-gray-900">{authorName}</span>
-            </div>
-            {authorHandle ? (
-              <div className="text-xs text-gray-400">
-                <span>@{authorHandle}</span>
+            <button
+              type="button"
+              disabled={!props.authorId}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (props.authorId) {
+                  props.onOpenAuthorProfile();
+                }
+              }}
+              className="block text-left m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-gray-900 hover:text-mint-600 transition-colors">{authorName}</span>
               </div>
-            ) : null}
+              {authorHandle ? (
+                <div className="text-xs text-gray-400 hover:text-mint-500 transition-colors">
+                  <span>@{authorHandle}</span>
+                </div>
+              ) : null}
+            </button>
           </div>
         </div>
 

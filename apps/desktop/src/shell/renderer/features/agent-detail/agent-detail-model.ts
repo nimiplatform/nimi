@@ -94,19 +94,19 @@ export function getAgentInitial(name: string): string {
   return name.charAt(0).toUpperCase();
 }
 
-export function getStateBadgeColor(state: string): { bg: string; text: string } {
+export function getStateBadgeColor(state: string): { bg: string; text: string; dot: string } {
   switch (state) {
     case 'ACTIVE':
-      return { bg: 'bg-green-100', text: 'text-green-700' };
+      return { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' };
     case 'READY':
-      return { bg: 'bg-blue-100', text: 'text-blue-700' };
+      return { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' };
     case 'INCUBATING':
-      return { bg: 'bg-yellow-100', text: 'text-yellow-700' };
+      return { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' };
     case 'SUSPENDED':
-      return { bg: 'bg-orange-100', text: 'text-orange-700' };
+      return { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
     case 'FAILED':
-      return { bg: 'bg-red-100', text: 'text-red-700' };
+      return { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' };
     default:
-      return { bg: 'bg-gray-100', text: 'text-gray-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
   }
 }

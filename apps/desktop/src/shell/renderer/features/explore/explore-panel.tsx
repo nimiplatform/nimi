@@ -4,6 +4,7 @@ import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { WorldListItem } from '../world/world-list';
@@ -56,7 +57,20 @@ function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
 }
 
-function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number }>): ExploreAgentCardData | null {
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number; name?: string }>): ExploreAgentCardData | null {
   const source = toRecord(raw);
   if (!source) {
     return null;
@@ -68,36 +82,110 @@ function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | nul
 
   const agent = toRecord(source.agent);
   const agentProfile = toRecord(source.agentProfile);
-  const displayName = asString(source.displayName).trim() || asString(source.handle).trim() || 'Unknown Agent';
-  const handle = asString(source.handle).trim() || displayName;
-  const category = asString(agent?.category).trim();
-  const origin = asString(agent?.origin).trim();
-  const wakeStrategy = asString(agent?.wakeStrategy).trim();
-  const tags = [category, origin, wakeStrategy].filter(Boolean);
+  const stats = toRecord(source.stats);
+  
+  // Basic info
+  const displayName = asString(source.displayName).trim()
+    || asString(source.name).trim()
+    || asString(agentProfile?.displayName).trim()
+    || asString(source.handle).trim()
+    || asString(agentProfile?.handle).trim()
+    || 'Unknown Agent';
+  const handle = asString(source.handle).trim()
+    || asString(agentProfile?.handle).trim()
+    || displayName;
+  const avatarUrl = asString(source.avatarUrl).trim()
+    || asString(agentProfile?.avatarUrl).trim()
+    || null;
+  const bio = asString(source.bio).trim()
+    || asString(agentProfile?.bio).trim()
+    || null;
+  const isAgent = source.isAgent === true || handle.startsWith('~');
+  const isOnline = source.isOnline === true;
+  
+  // Agent fields
+  const category = asString(agent?.category).trim()
+    || asString(agentProfile?.category).trim()
+    || asString(source.category).trim();
+  const origin = asString(agent?.origin).trim()
+    || asString(agentProfile?.origin).trim()
+    || asString(source.origin).trim();
+  const tier = asString(agent?.tier).trim()
+    || asString(agentProfile?.tier).trim()
+    || asString(source.tier).trim();
+  const state = asString(agent?.state).trim()
+    || asString(agentProfile?.state).trim()
+    || asString(source.state).trim();
+  const wakeStrategy = asString(agent?.wakeStrategy).trim()
+    || asString(agentProfile?.wakeStrategy).trim();
+  const ownershipType = asString(agent?.ownershipType || agentProfile?.ownershipType).trim();
+  const isPublic = agent?.isPublic === true;
+  
+  // Tags - combine category, origin, and any custom tags
+  const customTags = Array.isArray(source.tags) 
+    ? source.tags.map(String).filter(Boolean)
+    : [];
+  const tags = [category, origin, wakeStrategy].filter(Boolean).concat(customTags);
+  
+  // World info
   const worldId = asString(agent?.worldId).trim()
     || asString(agentProfile?.worldId).trim()
     || null;
-  
-  // Get world data if worldId exists
   const worldData = worldId ? worldsMap.get(worldId) : null;
   const worldBannerUrl = worldData?.bannerUrl ?? null;
+  const worldName = worldData?.name ?? null;
   const worldScoreEwma = worldData?.scoreEwma ?? 0;
+  
+  // Stats
+  const friendsCount = asNumber(stats?.friendsCount)
+    ?? asNumber(source.friendsCount)
+    ?? asNumber(source.friendCount);
+  const postsCount = asNumber(stats?.postsCount)
+    ?? asNumber(source.postsCount)
+    ?? asNumber(source.postCount);
+  const likesCount = asNumber(stats?.likesCount)
+    ?? asNumber(source.likesCount)
+    ?? asNumber(source.likeCount);
+  const giftStats = typeof source.giftStats === 'object' && source.giftStats !== null
+    ? source.giftStats as Record<string, number>
+    : undefined;
 
   return {
+    // Basic contact info
     id,
     name: displayName,
     handle,
-    avatarUrl: asString(source.avatarUrl).trim() || null,
-    description: category ? `${category} agent` : 'Public agent',
-    tags,
-    badgeText: origin ? `Origin: ${origin}` : 'Community',
+    avatarUrl,
+    bio,
+    isAgent,
+    // World info
     worldId,
+    worldName,
     worldBannerUrl,
+    // Agent specific fields
+    category,
+    origin,
+    tier,
+    state,
+    ownershipType,
+    wakeStrategy,
+    isPublic,
+    isOnline,
+    // Social/Stats
+    tags,
+    friendsCount,
+    postsCount,
+    likesCount,
+    giftStats,
+    // World score
     worldScoreEwma,
+    // Legacy fields
+    description: category ? `${category} agent` : 'Public agent',
+    badgeText: origin ? `Origin: ${origin}` : 'Community',
   };
 }
 
-function parseAgents(agentsResult: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number }>): ExploreAgentCardData[] {
+function parseAgents(agentsResult: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number; name?: string }>): ExploreAgentCardData[] {
   const payload = toRecord(agentsResult);
   const raw = Array.isArray(payload?.items) ? payload.items : [];
   return raw
@@ -144,6 +232,8 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
 export function ExplorePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -177,7 +267,7 @@ export function ExplorePanel() {
   // Create worlds map for agent mapping
   const worldsMap = useMemo(() => {
     const worlds = worldsQuery.data ?? [];
-    return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma }]));
+    return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma, name: w.name }]));
   }, [worldsQuery.data]);
 
   // Fetch agents for sidebar
@@ -259,6 +349,10 @@ export function ExplorePanel() {
   const [addContactModalOpen, setAddContactModalOpen] = useState(false);
   const [selectedAgentForAdd, setSelectedAgentForAdd] = useState<ExploreAgentCardData | null>(null);
 
+  // Send Gift Modal state
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [selectedAgentForGift, setSelectedAgentForGift] = useState<ExploreAgentCardData | null>(null);
+
   // Agent friend limit query
   const agentLimitQuery = useQuery({
     queryKey: ['agent-friend-limit'],
@@ -295,6 +389,17 @@ export function ExplorePanel() {
     setSelectedAgentForAdd(null);
   }, [agentLimitQuery.data]);
 
+  const onAgentSendGift = useCallback(
+    (agentId: string) => {
+      const target = agents.find((item) => item.id === agentId);
+      if (target) {
+        setSelectedAgentForGift(target);
+        setGiftModalOpen(true);
+      }
+    },
+    [agents],
+  );
+
   const onToggleCategory = useCallback(
     (category: string) => {
       if (category === '') {
@@ -312,6 +417,13 @@ export function ExplorePanel() {
       navigateToWorld(worldId);
     },
     [navigateToWorld],
+  );
+
+  const onAgentOpen = useCallback(
+    (agentId: string) => {
+      navigateToProfile(agentId, 'agent-detail');
+    },
+    [navigateToProfile],
   );
 
   const agentLimit = agentLimitQuery.data ?? null;
@@ -332,6 +444,8 @@ export function ExplorePanel() {
         onSearchTextChange={setSearchText}
         onToggleCategory={onToggleCategory}
         onAgentAddFriend={onAgentAddFriend}
+        onAgentSendGift={onAgentSendGift}
+        onAgentOpen={onAgentOpen}
         onWorldOpen={onWorldOpen}
       />
       <QuickAddFriendModal
@@ -343,6 +457,25 @@ export function ExplorePanel() {
           setSelectedAgentForAdd(null);
         }}
         onAdd={onAddFriend}
+      />
+      <SendGiftModal
+        open={giftModalOpen}
+        receiverId={selectedAgentForGift?.id || ''}
+        receiverName={selectedAgentForGift?.name || 'Agent'}
+        receiverHandle={selectedAgentForGift?.handle}
+        receiverAvatarUrl={selectedAgentForGift?.avatarUrl}
+        onClose={() => {
+          setGiftModalOpen(false);
+          setSelectedAgentForGift(null);
+        }}
+        onSent={() => {
+          setStatusBanner({
+            kind: 'success',
+            message: `Gift sent to ${selectedAgentForGift?.name || 'agent'}`,
+          });
+          setGiftModalOpen(false);
+          setSelectedAgentForGift(null);
+        }}
       />
     </>
   );

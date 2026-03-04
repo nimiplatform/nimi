@@ -367,6 +367,7 @@
     "privateBadge": "私有",
     "metaCategory": "分类",
     "metaOrigin": "来源",
+    "metaTier": "层级",
     "metaVerification": "认证",
     "metaWakeStrategy": "唤醒策略",
     "metaOwnership": "归属类型",

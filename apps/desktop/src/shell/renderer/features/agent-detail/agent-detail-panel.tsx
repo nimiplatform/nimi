@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
+import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
 import { toAgentDetailData } from './agent-detail-model';
@@ -28,6 +29,7 @@ export function AgentDetailPanel() {
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
 
   const agentIdentifier = String(selectedProfileId || '').trim();
 
@@ -85,6 +87,27 @@ export function AgentDetailPanel() {
     };
   }, [memoryStatsQuery.data]);
 
+  // Extract stats from profile data (if available from API)
+  const stats = useMemo(() => {
+    if (!profileQuery.data) return null;
+    const data = profileQuery.data as Record<string, unknown>;
+    const statsData = data.stats as Record<string, number> | undefined;
+    return {
+      friendsCount: statsData?.friendsCount ?? 0,
+      postsCount: statsData?.postsCount ?? 0,
+      likesCount: 0, // Not available from current API, can be added later
+    };
+  }, [profileQuery.data]);
+
+  // World score from agent data (if available)
+  const worldScore = useMemo(() => {
+    if (!profileQuery.data) return 0;
+    const data = profileQuery.data as Record<string, unknown>;
+    // Try to get score from various possible sources
+    const worldData = data.world as Record<string, unknown> | undefined;
+    return (worldData?.scoreEwma as number) ?? (data.worldScoreEwma as number) ?? 0;
+  }, [profileQuery.data]);
+
   const onChat = () => {
     if (!agent) {
       return;
@@ -101,24 +124,25 @@ export function AgentDetailPanel() {
     setActiveTab('mod:local-chat');
   };
 
-  const onAddFriend = async () => {
+  const handleAddFriendClick = () => {
     if (!resolvedAgentId) return;
-    try {
-      if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
-        throw new Error(agentLimitQuery.data.reason || 'Agent friend limit reached');
-      }
-      await dataSync.requestOrAcceptFriend(resolvedAgentId);
-      setStatusBanner({
-        kind: 'success',
-        message: 'Friend request sent or accepted',
-      });
-      void agentLimitQuery.refetch();
-    } catch (error) {
+    if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
       setStatusBanner({
         kind: 'error',
-        message: toErrorMessage(error, 'Failed to add friend'),
+        message: agentLimitQuery.data.reason || 'Agent friend limit reached',
       });
+      return;
     }
+    setAddFriendModalOpen(true);
+  };
+
+  const handleAddFriendSubmit = async (agentId: string, _message?: string) => {
+    await dataSync.requestOrAcceptFriend(agentId);
+    setStatusBanner({
+      kind: 'success',
+      message: 'Friend request sent or accepted',
+    });
+    void agentLimitQuery.refetch();
   };
 
   if (!agentIdentifier) {
@@ -142,6 +166,8 @@ export function AgentDetailPanel() {
       <AgentDetailView
         agent={agent!}
         memoryStats={memoryStats}
+        stats={stats}
+        worldScore={worldScore}
         loading={profileQuery.isPending}
         error={profileQuery.isError}
         onBack={navigateBack}
@@ -153,7 +179,7 @@ export function AgentDetailPanel() {
           prefetchWorldDetailAndEvents(agent.worldId);
           navigateToWorld(agent.worldId);
         }}
-        onAddFriend={() => { void onAddFriend(); }}
+        onAddFriend={handleAddFriendClick}
         canAddFriend={agentLimitQuery.data?.canAdd !== false}
         addFriendHint={agentLimitQuery.data
           ? (
@@ -177,6 +203,26 @@ export function AgentDetailPanel() {
             message: 'Gift sent',
           });
         }}
+      />
+      <QuickAddFriendModal
+        open={addFriendModalOpen}
+        agent={agent ? {
+          id: agent.id,
+          name: agent.displayName,
+          handle: agent.handle,
+          avatarUrl: agent.avatarUrl,
+          description: agent.category || '',
+          tags: [],
+          badgeText: '',
+          worldId: agent.worldId,
+          worldName: null,
+          worldBannerUrl: agent.worldBannerUrl,
+          isAgent: true,
+          bio: agent.bio,
+        } : null}
+        agentLimit={agentLimitQuery.data ?? null}
+        onClose={() => setAddFriendModalOpen(false)}
+        onAdd={handleAddFriendSubmit}
       />
     </>
   );

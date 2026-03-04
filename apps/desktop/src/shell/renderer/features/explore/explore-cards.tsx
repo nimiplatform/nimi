@@ -18,24 +18,37 @@ export const EXPLORE_COLORS = {
 } as const;
 
 export type ExploreAgentCardData = {
+  // Basic contact info
   id: string;
   name: string;
   handle: string;
   avatarUrl: string | null;
-  description: string;
-  tags: string[];
-  badgeText: string;
+  bio: string | null;
+  isAgent: boolean;
+  // World info
   worldId: string | null;
+  worldName: string | null;
   worldBannerUrl: string | null;
+  // Agent specific fields
+  category?: string;
+  origin?: string;
+  tier?: string;
+  state?: string;
+  ownershipType?: string;
+  wakeStrategy?: string;
   isPublic?: boolean;
-  age?: number | null;
-  location?: string | null;
-  // Stats for display
-  likes?: number;
-  posts?: number;
-  views?: number;
+  isOnline?: boolean;
+  // Social/Stats
+  tags: string[];
+  friendsCount?: number;
+  postsCount?: number;
+  likesCount?: number;
+  giftStats?: Record<string, number>;
   // World score for progress bar
   worldScoreEwma?: number;
+  // Legacy fields for compatibility
+  description: string;
+  badgeText: string;
 };
 
 export type ExplorePostCardData = {
@@ -155,10 +168,21 @@ export function ExploreAgentCard({
 }) {
   const { t } = useTranslation();
 
+  const handleOpen = () => {
+    if (agent.id && onOpen) {
+      onOpen();
+    }
+  };
+
   return (
     <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <button type="button" className="shrink-0 cursor-pointer" onClick={onOpen}>
+        <button 
+          type="button" 
+          disabled={!agent.id || !onOpen}
+          className="shrink-0 cursor-pointer disabled:cursor-default" 
+          onClick={handleOpen}
+        >
           {agent.avatarUrl ? (
             <img
               src={agent.avatarUrl}
@@ -181,7 +205,12 @@ export function ExploreAgentCard({
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <button type="button" className="min-w-0 cursor-pointer text-left" onClick={onOpen}>
+            <button 
+              type="button" 
+              disabled={!agent.id || !onOpen}
+              className="min-w-0 cursor-pointer text-left disabled:cursor-default" 
+              onClick={handleOpen}
+            >
               <span className="block truncate text-sm font-bold text-gray-800">{agent.name}</span>
               <span className="block truncate text-xs text-gray-400">@{agent.handle}</span>
             </button>
@@ -219,8 +248,89 @@ export function ExploreAgentCard({
   );
 }
 
+// Compact Agent Card for horizontal scrolling recommendation section
+export function AgentRecommendationCard({
+  agent,
+  onAddFriend,
+  onOpen,
+}: {
+  agent: ExploreAgentCardData;
+  onAddFriend?: () => void;
+  onOpen?: () => void;
+}) {
+  return (
+    <div 
+      className="group relative w-[176px] flex-shrink-0 cursor-pointer rounded-2xl bg-white px-4 pb-4 pt-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+      onClick={() => onOpen?.()}
+    >
+      {/* Add Button - Top Right */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddFriend?.();
+        }}
+        className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow-sm transition-all hover:scale-110 hover:bg-white"
+        aria-label="Add friend"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
+      {/* Avatar */}
+      <div className="relative mx-auto mb-3 flex justify-center">
+        <div
+          className="h-[72px] w-[72px] rounded-full p-0.5 shadow-md"
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+          }}
+        >
+          <div className="h-full w-full rounded-full bg-white p-0.5">
+            {agent.avatarUrl ? (
+              <img
+                src={agent.avatarUrl}
+                alt={agent.name}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100 text-lg font-semibold text-purple-600">
+                {agent.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        </div>
+        <OnlineIndicator isOnline={agent.isOnline} />
+      </div>
+
+      {/* Content */}
+      <div className="text-center">
+        <h3 className="truncate text-[15px] font-bold text-gray-900 transition-colors group-hover:text-mint-600">{agent.name}</h3>
+        <p className="mt-1 truncate text-[12px] font-mono text-gray-500">{agent.handle}</p>
+        
+        {/* Badges */}
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
+          {agent.state && (
+            <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] font-medium text-green-600">
+              {agent.state}
+            </span>
+          )}
+          {agent.tier && (
+            <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-600">
+              {agent.tier}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Default gradient backgrounds for agents without world banner
+// Updated to match the design: teal/cyan to pink gradient
 const DEFAULT_AGENT_BACKGROUNDS = [
+  'linear-gradient(135deg, #5ee7c0 0%, #f5c6d6 100%)',  // Teal to pink (matches attachment)
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
@@ -237,8 +347,7 @@ function getDefaultBackgroundForAgent(agentId: string): string {
   return DEFAULT_AGENT_BACKGROUNDS[index] || DEFAULT_AGENT_BACKGROUNDS[0]!;
 }
 
-// World score progress bar with rainbow gradient (no label)
-// scoreEwma is 0-100, display as percentage
+// World score progress bar with rainbow gradient
 function ScoreProgressBar({ score = 0 }: { score?: number }) {
   const percentage = Math.min(100, Math.max(0, score));
   
@@ -255,76 +364,123 @@ function ScoreProgressBar({ score = 0 }: { score?: number }) {
   );
 }
 
-// Social icons component
-function SocialIcons() {
+// Agent state badge with color coding
+function AgentStateBadge({ state }: { state?: string }) {
+  if (!state) return null;
+  
+  const getStateStyles = (s: string) => {
+    switch (s.toUpperCase()) {
+      case 'ACTIVE':
+        return { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' };
+      case 'READY':
+        return { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' };
+      case 'INCUBATING':
+        return { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' };
+      case 'SUSPENDED':
+        return { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
+      case 'FAILED':
+        return { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' };
+      default:
+        return { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
+    }
+  };
+  
+  const styles = getStateStyles(state);
+  
   return (
-    <div className="flex items-center justify-center gap-4 mt-3">
-      {/* Dribbble */}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32" />
-      </svg>
-      {/* Facebook */}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
-        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-      </svg>
-      {/* Instagram */}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-      </svg>
-      {/* Pinterest */}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="hover:stroke-gray-600 cursor-pointer transition-colors">
-        <line x1="12" y1="8" x2="12" y2="21" />
-        <path d="M6 12a6 6 0 0 1 12 0c0 3.12-1.5 5-3 6.5" />
-        <path d="M9 21c.97.66 2.15 1 3.5 1 4.14 0 7.5-3.36 7.5-7.5A7.5 7.5 0 0 0 12 7a7.5 7.5 0 0 0-7.5 7.5c0 1.82.65 3.5 1.74 4.8" />
-      </svg>
-    </div>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${styles.bg} ${styles.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />
+      {state}
+    </span>
+  );
+}
+
+// Online status indicator
+function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
+  if (!isOnline) return null;
+  return (
+    <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" title="Online" />
+  );
+}
+
+// Tier badge
+function TierBadge({ tier }: { tier?: string }) {
+  if (!tier) return null;
+  const tierColors: Record<string, { bg: string; text: string }> = {
+    'COMMUNITY': { bg: 'bg-blue-50', text: 'text-blue-600' },
+    'VERIFIED': { bg: 'bg-purple-50', text: 'text-purple-600' },
+    'PREMIUM': { bg: 'bg-amber-50', text: 'text-amber-600' },
+    'OFFICIAL': { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  };
+  const colors = tierColors[tier] || { bg: 'bg-gray-50', text: 'text-gray-600' };
+  return (
+    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${colors.bg} ${colors.text}`}>
+      {tier}
+    </span>
+  );
+}
+
+// Ownership badge
+function OwnershipBadge({ ownershipType }: { ownershipType?: string }) {
+  if (!ownershipType) return null;
+  const isMasterOwned = ownershipType === 'MASTER_OWNED';
+  return (
+    <span 
+      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+        isMasterOwned ? 'bg-purple-50 text-purple-600' : 'bg-cyan-50 text-cyan-600'
+      }`}
+      title={isMasterOwned ? 'Owned by you' : 'World owned'}
+    >
+      {isMasterOwned ? 'My Agent' : 'World'}
+    </span>
   );
 }
 
 export function TopAgentCard({
   agent,
   onAddFriend,
+  onSendGift,
+  onOpen,
 }: {
   agent: ExploreAgentCardData;
   onAddFriend?: () => void;
+  onSendGift?: () => void;
+  onOpen?: () => void;
 }) {
   const backgroundUrl = agent.worldBannerUrl || getDefaultBackgroundForAgent(agent.id);
-  const likes = typeof agent.likes === 'number' ? agent.likes : null;
-  const posts = typeof agent.posts === 'number' ? agent.posts : null;
-  const views = typeof agent.views === 'number' ? agent.views : null;
-  const worldScore = agent.worldScoreEwma ?? 0; // 0-100 from world data
+  const friendsCount = typeof agent.friendsCount === 'number' ? agent.friendsCount : 0;
+  const postsCount = typeof agent.postsCount === 'number' ? agent.postsCount : 0;
+  const likesCount = typeof agent.likesCount === 'number' ? agent.likesCount : 0;
+  const worldScore = agent.worldScoreEwma ?? 0;
+  const topLeftLabel = agent.tags[0] || agent.category || agent.origin || 'community';
 
   const formatNumber = (num: number | null): string => {
-    if (num === null) {
-      return '--';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
+    if (num === null) return '--';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
-  // Determine background style based on URL type
   const isImageUrl = backgroundUrl.startsWith('http') || backgroundUrl.startsWith('/') || backgroundUrl.startsWith('data:');
-  const backgroundStyle = isImageUrl 
+  const backgroundStyle = isImageUrl
     ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: backgroundUrl };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-      {/* Header with background image */}
-      <div 
-        className="relative h-20"
-        style={backgroundStyle}
-      >
-        {/* Add Friend button - circle with plus */}
+    <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <div className="relative h-32" style={backgroundStyle}>
+        {topLeftLabel && (
+          <div className="absolute top-3 left-3">
+            <span className="rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-medium capitalize text-gray-700 backdrop-blur-sm">
+              {topLeftLabel}
+            </span>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onAddFriend}
-          className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all hover:bg-white hover:shadow-md"
+          className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition-all hover:scale-105 hover:bg-white hover:shadow-md"
           aria-label="Add friend"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -332,60 +488,144 @@ export function TopAgentCard({
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         </button>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/25" />
       </div>
 
-      {/* Avatar - positioned to overlap the background */}
-      <div className="relative px-4 -mt-8">
-        <div className="relative">
-          {agent.avatarUrl ? (
-            <img
-              src={agent.avatarUrl}
-              alt={agent.name}
-              className="h-16 w-16 rounded-full object-cover border-4 border-white shadow-md"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-mint-100 to-mint-50 text-lg font-bold text-mint-600 border-4 border-white shadow-md">
-              {agent.name.charAt(0).toUpperCase()}
+      <div className="relative -mt-12 flex justify-center">
+        <button
+          type="button"
+          disabled={!agent.id || !onOpen}
+          onClick={() => {
+            if (agent.id && onOpen) {
+              onOpen();
+            }
+          }}
+          className="relative inline-block cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
+        >
+          <div
+            className="h-24 w-24 rounded-full p-1 shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+            }}
+          >
+            <div className="h-full w-full rounded-full bg-white p-1">
+              {agent.avatarUrl ? (
+                <img
+                  src={agent.avatarUrl}
+                  alt={agent.name}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100 text-2xl font-semibold text-purple-600">
+                  {agent.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <OnlineIndicator isOnline={agent.isOnline} />
             </div>
-          )}
-        </div>
+          </div>
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="px-4 pb-4 pt-2">
-        {/* Name */}
-        <h3 className="text-base font-bold text-gray-900">{agent.name}</h3>
-        
-        {/* Description */}
-        <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{agent.description}</p>
+      <div className="px-6 pb-7 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={!agent.id || !onOpen}
+            onClick={() => {
+              if (agent.id && onOpen) {
+                onOpen();
+              }
+            }}
+            className="m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
+          >
+            <h3 className="text-lg font-bold text-gray-900 transition-colors hover:text-mint-600">{agent.name}</h3>
+          </button>
+          <AgentStateBadge state={agent.state} />
+          <TierBadge tier={agent.tier} />
+        </div>
 
-        {/* World Score bar */}
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-[10px] text-gray-500 font-medium">Score</span>
+        <div className="mt-1 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={!agent.id || !onOpen}
+            onClick={() => {
+              if (agent.id && onOpen) {
+                onOpen();
+              }
+            }}
+            className="m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
+          >
+            <p className="mt-0.5 font-mono text-sm text-gray-500 transition-colors hover:text-mint-500">{agent.handle}</p>
+          </button>
+          <OwnershipBadge ownershipType={agent.ownershipType} />
+        </div>
+
+        {agent.bio && (
+          <p className="mx-auto mt-3 line-clamp-2 max-w-[88%] text-center text-sm text-gray-600">{agent.bio}</p>
+        )}
+
+        {(agent.category || agent.origin || agent.worldName) && (
+          <div className="mt-2 flex items-center justify-center gap-2 text-[11px] font-medium text-gray-400">
+            <span>{agent.category || 'GENERAL'}</span>
+            <span>·</span>
+            <span>Origin: {agent.origin || agent.worldName || 'COMMUNITY'}</span>
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center gap-3">
+          <span className="whitespace-nowrap text-xs font-medium text-gray-500">Score</span>
           <ScoreProgressBar score={worldScore} />
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-gray-100 my-3" />
-
-        {/* Stats */}
-        <div className="flex items-center justify-between">
-          <div className="text-center flex-1">
-            <div className="text-lg font-bold text-gray-900">{formatNumber(likes)}</div>
-            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Likes</div>
+        <div className="mt-4 flex items-center justify-around rounded-2xl bg-gray-50 px-4 py-4">
+          <div className="flex-1 text-center">
+            <div className="text-xl font-bold text-gray-900">{formatNumber(friendsCount)}</div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Friends</div>
           </div>
-          <div className="text-center flex-1">
-            <div className="text-lg font-bold text-gray-900">{formatNumber(posts)}</div>
-            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Posts</div>
+          <div className="h-10 w-px bg-gray-200" />
+          <div className="flex-1 text-center">
+            <div className="text-xl font-bold text-gray-900">{formatNumber(postsCount)}</div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Posts</div>
           </div>
-          <div className="text-center flex-1">
-            <div className="text-lg font-bold text-gray-900">{formatNumber(views)}</div>
-            <div className="text-[10px] text-gray-400 uppercase tracking-wide">Views</div>
+          <div className="h-10 w-px bg-gray-200" />
+          <div className="flex-1 text-center">
+            <div className="text-xl font-bold text-gray-900">{formatNumber(likesCount)}</div>
+            <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Likes</div>
           </div>
         </div>
 
-        {/* Social icons */}
-        <SocialIcons />
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddFriend?.();
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
+            title="Add Friend"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSendGift?.();
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
+            title="Send Gift"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="8" width="18" height="4" rx="1" />
+              <path d="M12 8v13" />
+              <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
+              <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

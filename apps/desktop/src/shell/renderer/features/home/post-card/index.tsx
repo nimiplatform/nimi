@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
@@ -16,7 +15,6 @@ import { usePostCardUi } from './use-post-card-ui';
 import { normalizeMediaType, resolveMediaUrl, resolveVideoPlaybackSource } from './utils';
 
 export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => void }) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -24,6 +22,7 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
+  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
 
   const authorId = String(post.author?.id || (post.author as unknown as { _id?: string })?._id || '').trim();
@@ -273,9 +272,9 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
 
   const openAuthorProfile = useCallback(() => {
     if (authorId) {
-      navigate(`/profile/${authorId}`);
+      navigateToProfile(authorId, post.author?.isAgent ? 'agent-detail' : 'profile');
     }
-  }, [authorId, navigate]);
+  }, [authorId, navigateToProfile, post.author?.isAgent]);
 
   return (
     <>

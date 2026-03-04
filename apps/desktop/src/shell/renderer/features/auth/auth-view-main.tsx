@@ -48,7 +48,7 @@ export function AuthViewMain(props: {
           <rect x="2" y="5" width="20" height="14" rx="2" />
           <path d="m2 5 8.65 5.8a2 2 0 0 0 2.7 0L22 5" />
         </svg>
-        <span className="text-sm font-medium text-white">{t('Auth.continueWithEmailOtp')}</span>
+        <span className="text-[16px] font-semibold text-white" style={{ fontFamily: 'Inter, sans-serif' }}>{t('Auth.continueWithEmailOtp')}</span>
       </button>
 
       <button
@@ -56,10 +56,10 @@ export function AuthViewMain(props: {
         onClick={() => {
           onSetView('email_login');
         }}
-        className="w-[300px] mx-auto mb-4 text-center text-xs text-muted-foreground hover:text-foreground"
+        className="w-[300px] mx-auto mb-4 text-center text-[13px] font-normal text-muted-foreground hover:text-foreground"
         disabled={pending}
       >
-        <span style={{ color: '#666666' }}>{t('Auth.continueWithEmailPassword')}</span>
+        <span style={{ color: '#888888', fontFamily: 'Inter, sans-serif' }}>{t('Auth.continueWithEmailPassword')}</span>
       </button>
 
       <div className="mb-6 flex items-center justify-center gap-3">
@@ -120,7 +120,7 @@ export function AuthViewMain(props: {
           <div className="w-full border-t" style={{ borderColor: '#E5E5E5' }} />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-card px-3 text-[11px] uppercase font-semibold" style={{ color: '#888888', fontFamily: 'Inter, sans-serif', letterSpacing: '0.1em' }}>
+          <span className="bg-card px-3 text-[12px] uppercase font-medium tracking-[0.08em]" style={{ color: '#888888', fontFamily: 'Inter, sans-serif' }}>
             {t('Auth.walletSection')}
           </span>
         </div>
@@ -137,9 +137,9 @@ export function AuthViewMain(props: {
         >
           <div className="flex items-center gap-3">
             <MetaMaskIcon className="h-5 w-5" />
-            <span className="text-sm font-medium" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif', letterSpacing: '0' }}>MetaMask</span>
+            <span className="text-[15px] font-medium" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif' }}>MetaMask</span>
           </div>
-          <span className="rounded-full px-2 py-1 text-[10px] tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#1A1A1A' }}>
+          <span className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#666666', fontFamily: 'Inter, sans-serif' }}>
             Multichain
           </span>
         </button>
@@ -154,9 +154,9 @@ export function AuthViewMain(props: {
         >
           <div className="flex items-center gap-3">
             <BinanceIcon className="h-5 w-5" />
-            <span className="text-sm font-medium" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif', letterSpacing: '0' }}>Binance Wallet</span>
+            <span className="text-[15px] font-medium" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif' }}>Binance Wallet</span>
           </div>
-          <span className="rounded-full px-2 py-1 text-[10px] tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#1A1A1A' }}>
+          <span className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#666666', fontFamily: 'Inter, sans-serif' }}>
             Multichain
           </span>
         </button>
@@ -171,9 +171,9 @@ export function AuthViewMain(props: {
         >
           <div className="flex items-center gap-3">
             <OKXIcon className="h-5 w-5" />
-            <span className="text-sm font-medium" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif', letterSpacing: '0' }}>OKX Wallet</span>
+            <span className="text-[15px] font-medium" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif' }}>OKX Wallet</span>
           </div>
-          <span className="rounded-full px-2 py-1 text-[10px] tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#1A1A1A' }}>
+          <span className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide" style={{ backgroundColor: '#F2F2F2', color: '#666666', fontFamily: 'Inter, sans-serif' }}>
             Multichain
           </span>
         </button>
