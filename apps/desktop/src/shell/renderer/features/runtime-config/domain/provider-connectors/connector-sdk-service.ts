@@ -15,6 +15,8 @@ const CONNECTOR_CALL_OPTIONS = {
     surfaceId: 'runtime.config',
   },
 };
+const CONNECTOR_MODELS_PAGE_SIZE = 200;
+const CONNECTOR_MODELS_MAX_PAGES = 200;
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
@@ -196,15 +198,8 @@ export async function sdkListConnectorModels(
   connectorId: string,
   forceRefresh: boolean = false,
 ): Promise<string[]> {
-  const runtime = getPlatformClient().runtime;
-  const response = await runtime.connector.listConnectorModels(
-    { connectorId, forceRefresh, pageSize: 0, pageToken: '' },
-    CONNECTOR_CALL_OPTIONS,
-  );
-  return (response.models || [])
-    .filter((m) => m.available)
-    .map((m) => m.modelId)
-    .filter(Boolean);
+  const descriptors = await sdkListConnectorModelDescriptors(connectorId, forceRefresh);
+  return descriptors.map((item) => item.modelId);
 }
 
 export type ConnectorModelInfo = {
@@ -217,12 +212,39 @@ export async function sdkListConnectorModelDescriptors(
   forceRefresh: boolean = false,
 ): Promise<ConnectorModelInfo[]> {
   const runtime = getPlatformClient().runtime;
-  const response = await runtime.connector.listConnectorModels(
-    { connectorId, forceRefresh, pageSize: 0, pageToken: '' },
-    CONNECTOR_CALL_OPTIONS,
-  );
-  return (response.models || [])
-    .filter((m) => m.available)
-    .map((m) => ({ modelId: m.modelId, capabilities: m.capabilities || [] }))
-    .filter((m) => Boolean(m.modelId));
+  const descriptors: ConnectorModelInfo[] = [];
+  const seenModelIds = new Set<string>();
+  let pageToken = '';
+  for (let pageIndex = 0; pageIndex < CONNECTOR_MODELS_MAX_PAGES; pageIndex += 1) {
+    const response = await runtime.connector.listConnectorModels(
+      {
+        connectorId,
+        forceRefresh: pageIndex === 0 ? forceRefresh : false,
+        pageSize: CONNECTOR_MODELS_PAGE_SIZE,
+        pageToken,
+      },
+      CONNECTOR_CALL_OPTIONS,
+    );
+    const pageItems = (response.models || [])
+      .filter((item) => item.available)
+      .map((item) => ({
+        modelId: String(item.modelId || '').trim(),
+        capabilities: Array.isArray(item.capabilities)
+          ? item.capabilities.map((capability) => String(capability || '').trim()).filter(Boolean)
+          : [],
+      }))
+      .filter((item) => item.modelId.length > 0);
+    for (const item of pageItems) {
+      if (seenModelIds.has(item.modelId)) {
+        continue;
+      }
+      seenModelIds.add(item.modelId);
+      descriptors.push(item);
+    }
+    pageToken = String(response.nextPageToken || '').trim();
+    if (!pageToken) {
+      break;
+    }
+  }
+  return descriptors;
 }

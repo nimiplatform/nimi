@@ -123,14 +123,22 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
       const sdkConnectors = await sdkListConnectors();
       const connectors = await Promise.all(sdkConnectors.map(async (connector) => {
         let sdkModels: string[] = [];
+        let modelCapabilities: Record<string, string[]> = {};
         try {
-          const { sdkListConnectorModels } = await import(
+          const { sdkListConnectorModelDescriptors } = await import(
             '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
           );
-          sdkModels = await sdkListConnectorModels(
+          const descriptors = await sdkListConnectorModelDescriptors(
             connector.id,
             true,
           );
+          sdkModels = descriptors.map((item) => item.modelId);
+          modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
+            if (item.capabilities.length > 0) {
+              accumulator[item.modelId] = item.capabilities;
+            }
+            return accumulator;
+          }, {});
         } catch (error) {
           const normalized = asNimiError(error, {
             reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -158,6 +166,7 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
           vendor: connector.vendor || '',
           endpoint: connector.endpoint || '',
           models: sdkModels,
+          modelCapabilities,
           modelProfiles: [],
           status: connector.status || 'idle',
         };

@@ -23,6 +23,7 @@ export type RuntimeRouteConnectorOption = {
   label: string;
   vendor?: string;
   models: string[];
+  modelCapabilities?: Record<string, string[]>;
   modelProfiles?: RuntimeRouteModelProfile[];
 };
 
@@ -106,6 +107,24 @@ function parseRuntimeRouteModelProfiles(value: unknown): RuntimeRouteModelProfil
   return parsed;
 }
 
+function parseRuntimeRouteConnectorModelCapabilities(value: unknown): Record<string, string[]> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const rawRecord = asRecord(value);
+  const normalized: Record<string, string[]> = {};
+  for (const [rawModelId, rawCapabilities] of Object.entries(rawRecord)) {
+    const modelId = String(rawModelId || '').trim();
+    if (!modelId) continue;
+    const capabilities = Array.isArray(rawCapabilities)
+      ? rawCapabilities.map((capability) => String(capability || '').trim()).filter(Boolean)
+      : [];
+    if (capabilities.length === 0) continue;
+    normalized[modelId] = capabilities;
+  }
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
 function parseLocalRuntimeModels(value: unknown): RuntimeRouteLocalRuntimeOption[] {
   if (!Array.isArray(value)) return [];
   const deduped = new Set<string>();
@@ -158,6 +177,7 @@ export function parseRuntimeRouteOptions(
         models: Array.isArray(connector.models)
           ? connector.models.map((model) => String(model || '').trim()).filter(Boolean)
           : [],
+        modelCapabilities: parseRuntimeRouteConnectorModelCapabilities(connector.modelCapabilities),
         ...(modelProfiles.length > 0 ? { modelProfiles } : {}),
       };
     })
