@@ -78,6 +78,12 @@ features/
 - Shared components go in `components/`, not duplicated across features
 - Path aliases: `@renderer/*`, `@runtime/*`, `@types/*`
 
+## AI Retrieval Defaults
+
+- Default code search SHOULD focus on `src/` and `src-tauri/src/`
+- Default retrieval SHOULD skip generated/lock/asset noise (`src-tauri/gen/**`, `**/generated/**`, `**/gen/**`, `Cargo.lock`, binary image assets)
+- If debugging requires generated/schema artifacts, agents MUST declare the exception before reading those files
+
 ## Platform Access Rules
 
 **MUST:**

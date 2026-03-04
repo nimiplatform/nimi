@@ -243,6 +243,35 @@ jobs:
       - name: Runtime bridge method drift check
         run: pnpm check:runtime-bridge-method-drift
 
+  ai-context-budget:
+    needs: changes
+    if: needs.changes.outputs.core_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.27.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: AI context budget gate
+        run: pnpm check:ai-context-budget
+
+      - name: AI hotspots report
+        run: pnpm report:ai-hotspots --limit 120
+
   sdk-quality:
     needs: changes
     if: needs.changes.outputs.sdk_changed == 'true' || needs.changes.outputs.shared_changed == 'true'
@@ -456,6 +485,7 @@ jobs:
       - changes
       - docs-contract
       - core-static
+      - ai-context-budget
       - sdk-quality
       - runtime-quality
       - desktop-web-quality
@@ -468,6 +498,7 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           DOCS_CONTRACT_RESULT: ${{ needs.docs-contract.result }}
           CORE_STATIC_RESULT: ${{ needs.core-static.result }}
+          AI_CONTEXT_BUDGET_RESULT: ${{ needs.ai-context-budget.result }}
           SDK_QUALITY_RESULT: ${{ needs.sdk-quality.result }}
           RUNTIME_QUALITY_RESULT: ${{ needs.runtime-quality.result }}
           DESKTOP_WEB_QUALITY_RESULT: ${{ needs.desktop-web-quality.result }}
@@ -480,6 +511,7 @@ jobs:
             "changes:${CHANGES_RESULT}" \
             "docs-contract:${DOCS_CONTRACT_RESULT}" \
             "core-static:${CORE_STATIC_RESULT}" \
+            "ai-context-budget:${AI_CONTEXT_BUDGET_RESULT}" \
             "sdk-quality:${SDK_QUALITY_RESULT}" \
             "runtime-quality:${RUNTIME_QUALITY_RESULT}" \
             "desktop-web-quality:${DESKTOP_WEB_QUALITY_RESULT}" \

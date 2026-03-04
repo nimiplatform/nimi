@@ -1,0 +1,21 @@
+# Generated code and generated docs
+**/generated/**
+**/gen/**
+spec/generated/**
+
+# Lock / baseline artifacts
+pnpm-lock.yaml
+**/Cargo.lock
+runtime/proto/runtime-v1.baseline.binpb
+
+# Generated desktop schema artifacts
+apps/desktop/src-tauri/gen/**
+
+# Heavy binary/static assets (noise for code search)
+**/*.ico
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.svg

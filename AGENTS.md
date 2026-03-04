@@ -56,6 +56,12 @@ This project uses AI as primary executor. **Do NOT default to MVP/phased approac
 - **Prefer one complex PR over three simple PRs.** Each boundary introduces merge risk and state drift
 - **Never "save cognitive load" for AI.** Don't simplify schemas, defer features, or add compatibility shims
 
+## AI Context Retrieval Hygiene
+
+- Default retrieval SHOULD skip generated/lock/asset noise (`**/generated/**`, `**/gen/**`, `spec/generated/**`, lockfiles, large binaries/images)
+- If a task requires generated artifacts or lockfiles, agents MUST state the exception explicitly before reading them
+- Prefer targeted search paths (`apps/**/src`, `runtime/internal`, `sdk/src`, `spec/*/kernel`) before repo-wide scans
+
 ## Code Organization for AI
 
 - **No file/directory name collisions.** If `foo.ts` extracts to `foo/`, the file must move into that directory

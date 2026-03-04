@@ -38,6 +38,7 @@ Validation scripts run in CI. Each enforces a specific invariant.
 | `check-scope-catalog-drift.mjs` | SDK | Scope catalog drift detection |
 | `check-sdk-consumer-smoke.mjs` | SDK | SDK consumer smoke test |
 | `check-sdk-coverage.mjs` | SDK | SDK test coverage threshold |
+| `check-ai-context-budget.mjs` | Repo | AI context file-size budget and waiver policy |
 | `check-sdk-import-boundary.mjs` | SDK | Import boundary enforcement |
 | `check-sdk-public-naming.mjs` | SDK | Public API naming conventions |
 | `check-sdk-realm-legacy-clean.mjs` | SDK | No legacy realm naming |
@@ -88,6 +89,7 @@ Scripts that produce derived artifacts from source-of-truth inputs.
 | Script | Purpose |
 |--------|---------|
 | `run-live-test-matrix.mjs` | Runs cross-layer live smoke tests |
+| `report-ai-hotspots.mjs` | Reports top AI context hotspots by lines/bytes |
 | `bundle-size-baseline.json` | Bundle size baseline data (not a script) |
 
 ## Subdirectories

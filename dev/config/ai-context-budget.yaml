@@ -1,0 +1,92 @@
+version: 1
+
+default_profile: production
+
+profiles:
+  production:
+    warning_lines: 500
+    warning_bytes: 61440
+    error_lines: 800
+    error_bytes: 102400
+  tests_and_scripts:
+    warning_lines: 900
+    error_lines: 1400
+  spec_yaml:
+    warning_lines: 800
+    error_lines: 1200
+
+classifiers:
+  tests_and_scripts:
+    - "scripts/**"
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    - "**/*_test.go"
+    - "**/__tests__/**"
+  spec_yaml:
+    - "spec/**/*.yaml"
+    - "spec/**/*.yml"
+
+exclude:
+  - "**/generated/**"
+  - "**/gen/**"
+  - "runtime/**/*.pb.go"
+  - "runtime/**/*.binpb"
+  - "spec/generated/**"
+  - "pnpm-lock.yaml"
+  - "**/Cargo.lock"
+  - "apps/desktop/src-tauri/gen/**"
+  - "**/*.ico"
+  - "**/*.png"
+  - "**/*.jpg"
+  - "**/*.jpeg"
+  - "**/*.gif"
+  - "**/*.webp"
+  - "**/*.svg"
+  - "**/locales/en.json"
+  - "**/locales/zh.json"
+
+waivers:
+  - path: scripts/generate-spec-human-doc.mjs
+    until: 2026-09-30
+    reason: Human-spec generator pending structured split.
+  - path: runtime/internal/services/localruntime/service_test.go
+    until: 2026-09-30
+    reason: Large integration coverage suite retained as a single trace narrative.
+  - path: runtime/internal/services/ai/live_provider_smoke_test.go
+    until: 2026-09-30
+    reason: Provider matrix smoke tests retained as one contract matrix file.
+  - path: apps/desktop/src-tauri/src/local_ai_runtime/engine_host.rs
+    until: 2026-09-30
+    reason: Runtime engine host split queued after download pipeline hardening.
+  - path: apps/desktop/src-tauri/src/local_ai_runtime/catalog.rs
+    until: 2026-09-30
+    reason: Catalog resolution refactor pending.
+  - path: apps/desktop/src-tauri/src/local_ai_runtime/service_lifecycle.rs
+    until: 2026-09-30
+    reason: Service lifecycle state machine split pending.
+  - path: apps/web/src/dapp-globals.css
+    until: 2026-09-30
+    reason: Design-token extraction pending.
+  - path: runtime/internal/services/localruntime/service_model.go
+    until: 2026-09-30
+    reason: Local runtime model service split pending.
+  - path: apps/desktop/src/shell/renderer/features/profile/components/create-post-modal.tsx
+    until: 2026-09-30
+    reason: Modal view-model/action split pending.
+  - path: sdk/src/runtime/types.ts
+    until: 2026-09-30
+    reason: Runtime type family split pending.
+  - path: runtime/internal/config/config.go
+    until: 2026-09-30
+    reason: Runtime config parser split pending.
+  - path: apps/desktop/src/shell/renderer/features/turns/message-timeline.tsx
+    until: 2026-09-30
+    reason: Timeline rendering split pending.
+  - path: sdk/src/realm/client.ts
+    until: 2026-09-30
+    reason: Realm client facade split pending.
+  - path: apps/desktop/src-tauri/src/runtime_bridge/daemon_manager.rs
+    until: 2026-09-30
+    reason: Daemon manager lifecycle split pending.
