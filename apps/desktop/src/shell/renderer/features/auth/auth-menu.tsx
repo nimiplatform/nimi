@@ -25,6 +25,7 @@ import {
   handleGoogleLogin as doGoogleLogin,
   handleEmailLogin as doEmailLogin,
   handleEmailRegister as doEmailRegister,
+  handleSocialLogin as doSocialLogin,
 } from './auth-menu-handlers.js';
 import {
   handleRequestEmailOtp as doRequestEmailOtp,
@@ -44,6 +45,7 @@ import {
   AuthViewEmail2Fa,
 } from './auth-view-email.js';
 import { AuthViewDesktopAuthorize } from './auth-view-desktop.js';
+import { resolveSocialOauthConfig } from './social-oauth.js';
 
 const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');
@@ -122,6 +124,8 @@ export function AuthMenu({
   const [twoFactorCode, setTwoFactorCode] = useState('');
 
   const googleClientId = useMemo(() => getGoogleClientId(), []);
+  const twitterOauthConfig = useMemo(() => resolveSocialOauthConfig('TWITTER'), []);
+  const tikTokOauthConfig = useMemo(() => resolveSocialOauthConfig('TIKTOK'), []);
 
   // -- Shared setter/context objects for handler delegation ----------------
 
@@ -176,13 +180,17 @@ export function AuthMenu({
       if (!latestToken) {
         return;
       }
+      const latestRefreshToken = String(latest?.refreshToken || '').trim();
 
       const latestUser = latest?.user && typeof latest.user === 'object'
         ? latest.user
         : null;
 
       dataSync.setToken(latestToken);
-      setAuthSession(latestUser, latestToken);
+      if (latestRefreshToken) {
+        dataSync.setRefreshToken(latestRefreshToken);
+      }
+      setAuthSession(latestUser, latestToken, latestRefreshToken || undefined);
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -301,13 +309,11 @@ export function AuthMenu({
           >
             <div
               className={`
-                absolute inset-0 rounded-full bg-[#e8b9aa] opacity-30 blur-2xl transition-all duration-1000
+                absolute inset-0 -z-10 rounded-full bg-[#4ECCA3] opacity-30 blur-2xl transition-all duration-1000
                 ${isHoveringLogo ? 'scale-150 opacity-40' : 'scale-110 animate-pulse'}
               `}
             />
-            <div className="rounded-full bg-white/70 p-8 shadow-[0_20px_44px_rgba(188,130,108,0.22)] ring-1 ring-white/80 backdrop-blur-md transition-transform duration-200 group-hover:scale-105">
-              <img src={logoUrl} alt="Nimi Logo" className="h-32 w-32 rounded-full object-cover" />
-            </div>
+            <img src={logoUrl} alt="Nimi Logo" className="h-32 w-32 rounded-full object-cover transition-transform duration-200 group-hover:scale-105" />
           </button>
 
           <div className="text-center">
@@ -366,7 +372,11 @@ export function AuthMenu({
                     setLoginError(null);
                   }}
                   onGoogleLogin={() => { void doGoogleLogin(googleClientId, setters, desktopCtx); }}
+                  onTwitterLogin={() => { void doSocialLogin('TWITTER', setters, desktopCtx); }}
+                  onTikTokLogin={() => { void doSocialLogin('TIKTOK', setters, desktopCtx); }}
                   onWalletLogin={(wt) => { void doWalletLogin(wt, setters, desktopCtx); }}
+                  twitterDisabledReason={twitterOauthConfig.enabled ? undefined : twitterOauthConfig.disabledReason}
+                  tikTokDisabledReason={tikTokOauthConfig.enabled ? undefined : tikTokOauthConfig.disabledReason}
                 />
               ) : null}
 

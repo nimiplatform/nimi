@@ -4,7 +4,7 @@ import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetr
 import type { FormEvent } from 'react';
 import type { AuthMode } from './auth-form-state';
 import { getAuthErrorMessage } from './auth-form-state';
-import { persistAccessToken } from './auth-session-storage';
+import { persistAuthSession } from './auth-session-storage';
 
 type AuthSubmitInput = {
   mode: AuthMode;
@@ -13,7 +13,7 @@ type AuthSubmitInput = {
   setPending: (value: boolean) => void;
   setPassword: (value: string) => void;
   setStatusBanner: (payload: { kind: 'success' | 'error' | 'warning'; message: string }) => void;
-  setAuthSession: (user: Record<string, unknown> | null, token: string) => void;
+  setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
 };
 
 export function createAuthSubmitHandler(input: AuthSubmitInput) {
@@ -85,6 +85,7 @@ export function createAuthSubmitHandler(input: AuthSubmitInput) {
 
       const tokens = result?.tokens;
       const accessToken = typeof tokens?.accessToken === 'string' ? tokens.accessToken : '';
+      const refreshToken = typeof tokens?.refreshToken === 'string' ? tokens.refreshToken : '';
       if (!accessToken) {
         throw new Error('登录响应缺少 accessToken');
       }
@@ -94,8 +95,15 @@ export function createAuthSubmitHandler(input: AuthSubmitInput) {
         : null;
 
       dataSync.setToken(accessToken);
-      input.setAuthSession(user, accessToken);
-      persistAccessToken(accessToken);
+      if (refreshToken) {
+        dataSync.setRefreshToken(refreshToken);
+      }
+      input.setAuthSession(user, accessToken, refreshToken || undefined);
+      persistAuthSession({
+        accessToken,
+        refreshToken,
+        user,
+      });
 
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['chats'] }),

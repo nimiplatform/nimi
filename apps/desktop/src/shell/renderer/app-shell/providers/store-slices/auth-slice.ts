@@ -23,14 +23,16 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
         },
       })),
     setAuthSession: (user, token, refreshToken) =>
-      set({
+      set((state) => ({
         auth: {
           status: 'authenticated',
           user,
           token,
-          refreshToken: refreshToken || '',
+          refreshToken: refreshToken === undefined
+            ? state.auth.refreshToken
+            : (refreshToken || ''),
         },
-      }),
+      })),
     clearAuthSession: () =>
       set({
         auth: {

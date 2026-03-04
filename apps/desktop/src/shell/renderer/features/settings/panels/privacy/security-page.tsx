@@ -1,21 +1,133 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { PageShell, SaveFooter, SectionTitle } from '../../settings-layout-components';
 
 export function SecurityPage() {
   const { t } = useTranslation();
+  const authToken = useAppStore((state) => state.auth.token);
+  const refreshToken = useAppStore((state) => state.auth.refreshToken);
+  const authUser = useAppStore((state) => state.auth.user);
+  const setAuthSession = useAppStore((state) => state.setAuthSession);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const initialTwoFactorEnabled = authUser?.isTwoFactorEnabled === true;
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [twoFactor, setTwoFactor] = useState(false);
+  const [twoFactor, setTwoFactor] = useState(initialTwoFactorEnabled);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorSecret, setTwoFactorSecret] = useState('');
+  const [twoFactorUri, setTwoFactorUri] = useState('');
+  const [preparingTwoFactor, setPreparingTwoFactor] = useState(false);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [saving, setSaving] = useState(false);
   const passwordsMatch = newPw === confirmPw;
 
-  const handleSave = () => {
+  useEffect(() => {
+    setTwoFactor(initialTwoFactorEnabled);
+  }, [initialTwoFactorEnabled]);
+
+  useEffect(() => {
+    if (!twoFactor || initialTwoFactorEnabled || twoFactorSecret || preparingTwoFactor) {
+      return;
+    }
+    setPreparingTwoFactor(true);
+    void dataSync.prepareTwoFactor()
+      .then((payload) => {
+        setTwoFactorSecret(String(payload.secret || ''));
+        setTwoFactorUri(String(payload.otpauthUri || ''));
+      })
+      .catch((error) => {
+        setStatusBanner({
+          kind: 'error',
+          message: error instanceof Error ? error.message : 'Failed to prepare two-factor authentication',
+        });
+        setTwoFactor(false);
+      })
+      .finally(() => {
+        setPreparingTwoFactor(false);
+      });
+  }, [
+    initialTwoFactorEnabled,
+    preparingTwoFactor,
+    setStatusBanner,
+    twoFactor,
+    twoFactorSecret,
+  ]);
+
+  const refreshCurrentUser = async () => {
+    const latest = await dataSync.loadCurrentUser();
+    const normalized = latest && typeof latest === 'object'
+      ? (latest as Record<string, unknown>)
+      : null;
+    setAuthSession(normalized, authToken, refreshToken || undefined);
+  };
+
+  const handleSave = async () => {
+    if (saving) {
+      return;
+    }
+    if (newPw && !passwordsMatch) {
+      setStatusBanner({
+        kind: 'error',
+        message: t('SecuritySettings.passwordMismatch'),
+      });
+      return;
+    }
+    if (twoFactor !== initialTwoFactorEnabled && twoFactorCode.trim().length !== 6) {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Please enter a 6-digit 2FA code to confirm this change.',
+      });
+      return;
+    }
     setSaving(true);
-    setTimeout(() => setSaving(false), 1000);
+    try {
+      if (newPw.trim()) {
+        await dataSync.updatePassword({
+          oldPassword: currentPw.trim() || undefined,
+          newPassword: newPw.trim(),
+        });
+      }
+
+      if (twoFactor !== initialTwoFactorEnabled) {
+        const payload = {
+          code: twoFactorCode.trim(),
+        };
+        if (twoFactor) {
+          await dataSync.enableTwoFactor(payload);
+        } else {
+          await dataSync.disableTwoFactor(payload);
+        }
+      }
+
+      if (newPw.trim() || twoFactor !== initialTwoFactorEnabled) {
+        await refreshCurrentUser();
+      }
+
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+      setTwoFactorCode('');
+      if (!twoFactor) {
+        setTwoFactorSecret('');
+        setTwoFactorUri('');
+      }
+
+      setStatusBanner({
+        kind: 'success',
+        message: 'Security settings updated.',
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update security settings',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -80,6 +192,7 @@ export function SecurityPage() {
             description={t('SecuritySettings.enable2faDescription')}
             checked={twoFactor}
             onChange={setTwoFactor}
+            disabled={preparingTwoFactor || saving}
           />
         </div>
         {twoFactor && (
@@ -92,6 +205,47 @@ export function SecurityPage() {
             </div>
           </div>
         )}
+        {twoFactor && !initialTwoFactorEnabled ? (
+          <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-700">New 2FA setup</p>
+            {twoFactorSecret ? (
+              <p className="mt-1 break-all text-xs text-gray-500">Secret: {twoFactorSecret}</p>
+            ) : null}
+            {twoFactorUri ? (
+              <p className="mt-1 break-all text-xs text-gray-400">URI: {twoFactorUri}</p>
+            ) : null}
+            <div className="mt-3">
+              <label className="mb-2 block text-xs font-medium text-gray-700">
+                Enter current authenticator code
+              </label>
+              <input
+                type="text"
+                value={twoFactorCode}
+                onChange={(event) => {
+                  setTwoFactorCode(event.target.value.replace(/\D+/g, '').slice(0, 6));
+                }}
+                placeholder="123456"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+              />
+            </div>
+          </div>
+        ) : null}
+        {!twoFactor && initialTwoFactorEnabled ? (
+          <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <label className="mb-2 block text-xs font-medium text-gray-700">
+              Enter current authenticator code to disable 2FA
+            </label>
+            <input
+              type="text"
+              value={twoFactorCode}
+              onChange={(event) => {
+                setTwoFactorCode(event.target.value.replace(/\D+/g, '').slice(0, 6));
+              }}
+              placeholder="123456"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+            />
+          </div>
+        ) : null}
       </section>
 
       {/* Login Alerts */}
@@ -182,15 +336,17 @@ function SettingRow({
   description,
   checked,
   onChange,
+  disabled = false,
 }: {
   icon?: React.ReactNode;
   title: string;
   description: string;
   checked: boolean;
   onChange: (value: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
+    <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-gray-50/50">
       <div className="flex items-center gap-4">
         {icon && (
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${checked ? 'bg-mint-100 text-mint-600' : 'bg-gray-100 text-gray-500'}`}>
@@ -202,20 +358,29 @@ function SettingRow({
           <p className="text-xs text-gray-500">{description}</p>
         </div>
       </div>
-      <ToggleSwitch checked={checked} onChange={onChange} />
+      <ToggleSwitch checked={checked} onChange={onChange} disabled={disabled} />
     </div>
   );
 }
 
 // Toggle Switch Component
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) {
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={() => onChange(!checked)}
+      disabled={disabled}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
         checked ? 'bg-mint-500' : 'bg-gray-200'
-      }`}
+      } disabled:cursor-not-allowed disabled:opacity-60`}
     >
       <span
         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

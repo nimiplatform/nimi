@@ -1,37 +1,177 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
+import { dataSync } from '@runtime/data-sync';
 import {
   PageShell,
   SectionTitle,
 } from '../../settings-layout-components';
 
+type StorageSnapshot = {
+  queryCacheBytes: number;
+  localStorageBytes: number;
+  estimatedUsageBytes: number;
+  estimatedQuotaBytes: number;
+};
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 B';
+  }
+  if (bytes < 1024) return `${bytes.toFixed(0)} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+}
+
+function estimateLocalStorageBytes(): number {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return 0;
+  }
+  let total = 0;
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const key = window.localStorage.key(i);
+    if (!key) continue;
+    const value = window.localStorage.getItem(key) || '';
+    total += (key.length + value.length) * 2;
+  }
+  return total;
+}
+
+function estimateQueryCacheBytes(): number {
+  const queries = queryClient.getQueryCache().findAll();
+  let total = 0;
+  for (const query of queries) {
+    try {
+      total += JSON.stringify(query.state.data ?? null).length * 2;
+    } catch {
+      total += 0;
+    }
+  }
+  return total;
+}
+
 export function DataManagementPage() {
   const { t } = useTranslation();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
   const setStatusBanner = useAppStore((s) => s.setStatusBanner);
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [storage, setStorage] = useState<StorageSnapshot>({
+    queryCacheBytes: 0,
+    localStorageBytes: 0,
+    estimatedUsageBytes: 0,
+    estimatedQuotaBytes: 0,
+  });
 
-  const handleExport = () => {
-    setStatusBanner({ kind: 'info', message: t('DataManagement.exportStarted') });
+  const refreshStorageSnapshot = useCallback(async () => {
+    const queryCacheBytes = estimateQueryCacheBytes();
+    const localStorageBytes = estimateLocalStorageBytes();
+    let estimatedUsageBytes = 0;
+    let estimatedQuotaBytes = 0;
+    if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
+      try {
+        const estimate = await navigator.storage.estimate();
+        estimatedUsageBytes = Number(estimate.usage || 0);
+        estimatedQuotaBytes = Number(estimate.quota || 0);
+      } catch {
+        estimatedUsageBytes = 0;
+        estimatedQuotaBytes = 0;
+      }
+    }
+    setStorage({
+      queryCacheBytes,
+      localStorageBytes,
+      estimatedUsageBytes,
+      estimatedQuotaBytes,
+    });
+  }, []);
+
+  useEffect(() => {
+    void refreshStorageSnapshot();
+  }, [refreshStorageSnapshot]);
+
+  const totalTrackedBytes = useMemo(
+    () => storage.queryCacheBytes + storage.localStorageBytes + storage.estimatedUsageBytes,
+    [storage.estimatedUsageBytes, storage.localStorageBytes, storage.queryCacheBytes],
+  );
+
+  const usagePercent = storage.estimatedQuotaBytes > 0
+    ? Math.min(100, Math.round((storage.estimatedUsageBytes / storage.estimatedQuotaBytes) * 100))
+    : 0;
+
+  const handleExport = async () => {
+    if (exporting) {
+      return;
+    }
+    setExporting(true);
+    try {
+      const result = await dataSync.requestDataExport({
+        format: 'JSON',
+        includeMedia: true,
+      });
+      if (!result.accepted) {
+        setStatusBanner({
+          kind: 'warning',
+          message: result.message || `${result.reasonCode || 'EXPORT_UNAVAILABLE'}: ${result.actionHint || 'check backend support'}`,
+        });
+        return;
+      }
+      setStatusBanner({
+        kind: 'success',
+        message: result.taskId
+          ? `Data export queued (task ${result.taskId}).`
+          : t('DataManagement.exportStarted'),
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to request data export.',
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleClearCache = () => {
     queryClient.clear();
     setStatusBanner({ kind: 'success', message: t('DataManagement.cacheCleared') });
+    void refreshStorageSnapshot();
   };
 
-  const handleDeleteAccount = () => {
-    setStatusBanner({ kind: 'warning', message: t('DataManagement.deleteAccountWarning') });
+  const handleDeleteAccount = async () => {
+    if (deleting) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const result = await dataSync.requestAccountDeletion({
+        reason: 'user_request',
+      });
+      if (!result.accepted) {
+        setStatusBanner({
+          kind: 'warning',
+          message: result.message || `${result.reasonCode || 'DELETE_UNAVAILABLE'}: ${result.actionHint || 'check backend support'}`,
+        });
+        return;
+      }
+      setStatusBanner({
+        kind: 'warning',
+        message: result.taskId
+          ? `Account deletion requested (task ${result.taskId}).`
+          : t('DataManagement.deleteAccountWarning'),
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Failed to request account deletion.',
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
-
-  // Storage data
-  const storageItems = [
-    { label: t('DataManagement.storageChats'), value: '12.4 MB' },
-    { label: t('DataManagement.storageMediaFiles'), value: '48.7 MB' },
-    { label: t('DataManagement.storageCache'), value: '8.2 MB' },
-  ];
 
   return (
     <PageShell title={t('DataManagement.pageTitle')} description={t('DataManagement.pageDescription')}>
@@ -40,23 +180,36 @@ export function DataManagementPage() {
         <SectionTitle>{t('DataManagement.storageUsageTitle')}</SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="divide-y divide-gray-50">
-            {storageItems.map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-3">
-                <span className="text-sm text-gray-600">{item.label}</span>
-                <span className="text-sm font-medium text-gray-900">{item.value}</span>
-              </div>
-            ))}
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-gray-600">{t('DataManagement.storageChats')}</span>
+              <span className="text-sm font-medium text-gray-900">{formatBytes(storage.queryCacheBytes)}</span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-gray-600">{t('DataManagement.storageMediaFiles')}</span>
+              <span className="text-sm font-medium text-gray-900">{formatBytes(storage.estimatedUsageBytes)}</span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-gray-600">{t('DataManagement.storageCache')}</span>
+              <span className="text-sm font-medium text-gray-900">{formatBytes(storage.localStorageBytes)}</span>
+            </div>
             <div className="flex items-center justify-between py-3">
               <span className="text-sm font-medium text-gray-900">{t('DataManagement.storageTotalUsed')}</span>
-              <span className="text-sm font-semibold text-mint-600">{t('DataManagement.storageTotalUsedValue')}</span>
+              <span className="text-sm font-semibold text-mint-600">{formatBytes(totalTrackedBytes)}</span>
             </div>
           </div>
           {/* Progress Bar */}
           <div className="mt-4">
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full w-[35%] rounded-full bg-gradient-to-r from-mint-400 to-mint-500" />
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-mint-400 to-mint-500"
+                style={{ width: `${usagePercent}%` }}
+              />
             </div>
-            <p className="mt-2 text-xs text-gray-500">{t('DataManagement.storageUsageFootnote')}</p>
+            <p className="mt-2 text-xs text-gray-500">
+              {storage.estimatedQuotaBytes > 0
+                ? `${usagePercent}% of ${formatBytes(storage.estimatedQuotaBytes)} used`
+                : t('DataManagement.storageUsageFootnote')}
+            </p>
           </div>
         </div>
       </section>
@@ -70,11 +223,12 @@ export function DataManagementPage() {
           <p className="text-sm text-gray-600">{t('DataManagement.exportBody')}</p>
           <button
             type="button"
-            onClick={handleExport}
+            onClick={() => { void handleExport(); }}
+            disabled={exporting}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300"
           >
             <DownloadIcon className="h-4 w-4" />
-            {t('DataManagement.exportButton')}
+            {exporting ? 'Requesting...' : t('DataManagement.exportButton')}
           </button>
         </div>
       </section>
@@ -114,11 +268,12 @@ export function DataManagementPage() {
               </p>
               <button
                 type="button"
-                onClick={handleDeleteAccount}
+                onClick={() => { void handleDeleteAccount(); }}
+                disabled={deleting}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-all hover:bg-red-50"
               >
                 <TrashIcon className="h-4 w-4" />
-                {t('DataManagement.deleteAccountButton')}
+                {deleting ? 'Requesting...' : t('DataManagement.deleteAccountButton')}
               </button>
             </div>
           </div>

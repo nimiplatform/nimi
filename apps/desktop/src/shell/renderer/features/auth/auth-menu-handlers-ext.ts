@@ -195,7 +195,11 @@ export async function handleConfirmDesktopAuthorization(
       ? (user as Record<string, unknown>)
       : null;
 
-    setters.setAuthSession(normalizedUser, accessToken);
+    setters.setAuthSession(
+      normalizedUser,
+      accessToken,
+      latestPersistedAuthSession?.refreshToken || undefined,
+    );
     persistAuthSession({
       accessToken,
       refreshToken: latestPersistedAuthSession?.refreshToken || '',

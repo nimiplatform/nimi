@@ -13,6 +13,7 @@ import {
   saveRememberedLogin,
   toErrorMessage,
 } from './auth-helpers.js';
+import { startSocialOauth, toOauthProvider, type SocialOauthProvider } from './social-oauth.js';
 
 // ---------------------------------------------------------------------------
 // State setter interface — passed by the AuthMenu component
@@ -28,7 +29,7 @@ export type AuthMenuSetters = {
   setTempToken: (token: string) => void;
   setTwoFactorCode: (code: string) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
-  setAuthSession: (user: Record<string, unknown> | null, token: string) => void;
+  setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
 };
 
 export type DesktopCallbackContext = {
@@ -60,7 +61,10 @@ export async function applyTokens(
     : null;
 
   dataSync.setToken(accessToken);
-  setters.setAuthSession(user, accessToken);
+  if (refreshToken) {
+    dataSync.setRefreshToken(refreshToken);
+  }
+  setters.setAuthSession(user, accessToken, refreshToken || undefined);
   persistAuthSession({
     accessToken,
     refreshToken,
@@ -185,6 +189,31 @@ export async function handleGoogleLogin(
     tokenClient.requestAccessToken();
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, 'Google 初始化失败'));
+    setters.setPending(false);
+  }
+}
+
+export async function handleSocialLogin(
+  provider: SocialOauthProvider,
+  setters: AuthMenuSetters,
+  desktopCtx: DesktopCallbackContext,
+): Promise<void> {
+  const providerLabel = provider === 'TWITTER' ? 'Twitter' : 'TikTok';
+  setters.setLoginError(null);
+  setters.setPending(true);
+  try {
+    const oauthResult = await startSocialOauth(provider);
+    const result = await dataSync.callApi(
+      (realm) => realm.services.AuthService.oauthLogin({
+        provider: toOauthProvider(oauthResult.provider),
+        accessToken: oauthResult.accessToken,
+      }),
+      `${providerLabel} 登录失败`,
+    );
+    await handleLoginResult(result, `${providerLabel} 登录成功。`, setters, desktopCtx);
+  } catch (error) {
+    setters.setLoginError(toErrorMessage(error, `${providerLabel} 登录失败`));
+  } finally {
     setters.setPending(false);
   }
 }

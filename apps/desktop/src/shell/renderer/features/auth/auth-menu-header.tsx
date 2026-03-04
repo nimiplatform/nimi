@@ -21,6 +21,7 @@ export function CircleIconButton(props: {
     <button
       type="button"
       aria-label={props.label}
+      title={props.label}
       onClick={props.onClick}
       disabled={props.disabled}
       className="h-[40px] w-[40px] rounded-full border border-border bg-card text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
