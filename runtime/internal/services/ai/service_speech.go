@@ -187,6 +187,8 @@ func resolveVoicePresets(modelResolved string, providerType string) []*runtimev1
 	switch {
 	case strings.HasPrefix(lower, "dashscope/"):
 		return dashScopeVoicePresets()
+	case strings.Contains(lower, "qwen3-tts"), strings.Contains(lower, "qwen-tts"):
+		return dashScopeVoicePresets()
 	case strings.HasPrefix(lower, "volcengine/") || strings.HasPrefix(lower, "volcengine_openspeech/"):
 		return volcengineVoicePresets()
 	default:

@@ -276,6 +276,16 @@ func TestResolveVoicePresetsUsesProviderTypeForBareModel(t *testing.T) {
 	}
 }
 
+func TestResolveVoicePresetsInfersDashScopeFromQwenTTSModel(t *testing.T) {
+	voices := resolveVoicePresets("qwen3-tts-instruct-flash-2026-01-26", "")
+	if len(voices) != 10 {
+		t.Fatalf("expected 10 DashScope voices for qwen-tts model, got=%d", len(voices))
+	}
+	if voices[0].GetVoiceId() != "Cherry" {
+		t.Fatalf("expected Cherry as first DashScope voice, got=%s", voices[0].GetVoiceId())
+	}
+}
+
 // mockArtifactChunkStream implements grpc.ServerStreamingServer[runtimev1.ArtifactChunk]
 // for testing StreamSpeechSynthesis.
 type mockArtifactChunkStream struct {

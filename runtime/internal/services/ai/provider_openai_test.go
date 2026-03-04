@@ -75,6 +75,39 @@ func TestOpenAIBackendImageAndSpeech(t *testing.T) {
 	}
 }
 
+func TestOpenAIBackendSpeechVoiceFallbackForQwenTTS(t *testing.T) {
+	var capturedVoice string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		var payload map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&payload)
+		capturedVoice = strings.TrimSpace(fmt.Sprintf("%v", payload["voice"]))
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("speech-bytes"))
+	}))
+	defer server.Close()
+
+	// Simulate openai-compatible connector routing to DashScope qwen-tts model.
+	backend := nimillm.NewBackend("cloud-openai_compatible", server.URL, "", 3*time.Second)
+	if backend == nil {
+		t.Fatalf("backend must not be nil")
+	}
+
+	_, _, err := backend.SynthesizeSpeech(context.Background(), "qwen3-tts-instruct-flash-2026-01-26", &runtimev1.SpeechSynthesisSpec{
+		Text:  "hello",
+		Voice: "alloy",
+	})
+	if err != nil {
+		t.Fatalf("synthesize speech: %v", err)
+	}
+	if capturedVoice != "Cherry" {
+		t.Fatalf("expected fallback voice Cherry, got=%s", capturedVoice)
+	}
+}
+
 func TestOpenAIBackendVideoFallbackPath(t *testing.T) {
 	videoBytes := []byte("video-bytes")
 	videoB64 := base64.StdEncoding.EncodeToString(videoBytes)
