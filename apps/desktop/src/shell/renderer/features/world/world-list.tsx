@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getStatusBadgeStyle, getStatusDotColor } from './shared.js';
-import { WorldDetail } from './world-detail.js';
+import { getStatusBadgeStyle } from './shared.js';
+import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
 
 export type WorldAgentItem = {
   id: string;
@@ -46,7 +46,7 @@ export type WorldListItem = {
   agents?: WorldAgentItem[];
 };
 
-function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
+export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
   let parsedAgents: WorldAgentItem[] | undefined;
   if (Array.isArray(raw.agents)) {
     parsedAgents = raw.agents.map((a: unknown) => {
@@ -99,19 +99,16 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
 
 export function WorldList() {
   const { t } = useTranslation();
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [searchText, setSearchText] = useState('');
-  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
 
   const openWorldDetail = (worldId: string) => {
-    setRuntimeFields({
-      worldId,
-    });
-    setSelectedWorldId(worldId);
+    prefetchWorldDetailAndEvents(worldId);
+    navigateToWorld(worldId);
   };
 
   const worldsQuery = useQuery({
-    queryKey: ['worlds-list'],
+    queryKey: worldListQueryKey(),
     queryFn: async () => {
       const result = await dataSync.loadWorlds();
       return Array.isArray(result)
@@ -132,13 +129,6 @@ export function WorldList() {
 
   const mainWorld = worlds.find((w) => w.type === 'MAIN');
   const subWorlds = filteredWorlds.filter((w) => w.type === 'SUB');
-
-  if (selectedWorldId) {
-    const selectedWorld = worlds.find((w) => w.id === selectedWorldId);
-    if (selectedWorld) {
-      return <WorldDetail world={selectedWorld} onBack={() => setSelectedWorldId(null)} />;
-    }
-  }
 
   if (worldsQuery.isPending) {
     return (
@@ -165,6 +155,17 @@ export function WorldList() {
       <div className="flex h-auto shrink-0 flex-col justify-center gap-1 bg-gray-50 px-6 py-3">
         <h1 className="text-lg font-semibold tracking-tight text-gray-900">{t('World.title')}</h1>
         <span className="text-xs text-gray-400">Synced from Desktop</span>
+        <div className="mt-2">
+          <input
+            type="search"
+            value={searchText}
+            onChange={(event) => {
+              setSearchText(event.target.value);
+            }}
+            placeholder="Search worlds by name or description..."
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none transition-colors placeholder:text-gray-400 focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
+          />
+        </div>
       </div>
 
       {/* Scrollable content */}

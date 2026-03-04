@@ -292,12 +292,15 @@ export function TopAgentCard({
   onAddFriend?: () => void;
 }) {
   const backgroundUrl = agent.worldBannerUrl || getDefaultBackgroundForAgent(agent.id);
-  const likes = agent.likes ?? Math.floor(Math.random() * 50) + 50; // Placeholder: random between 50-100K
-  const posts = agent.posts ?? Math.floor(Math.random() * 200) + 200;
-  const views = agent.views ?? Math.floor(Math.random() * 200) + 300;
+  const likes = typeof agent.likes === 'number' ? agent.likes : null;
+  const posts = typeof agent.posts === 'number' ? agent.posts : null;
+  const views = typeof agent.views === 'number' ? agent.views : null;
   const worldScore = agent.worldScoreEwma ?? 0; // 0-100 from world data
 
-  const formatNumber = (num: number): string => {
+  const formatNumber = (num: number | null): string => {
+    if (num === null) {
+      return '--';
+    }
     if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'K';
     }

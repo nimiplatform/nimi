@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 // World 数据类型定义（与 WorldDetailDto 对应）
 export type WorldDetailData = {
@@ -128,7 +127,6 @@ const scoreDefinitions = [
 
 export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [activeTheme, setActiveTheme] = useState<ThemeKey>('xianxia');
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
@@ -617,7 +615,7 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
             />
 
             {props.events
-              .map((event, index) => (
+              .map((event, _index) => (
                 <div key={event.id} className="relative pl-7 mb-4 last:mb-0">
                   {/* 时间点标记 */}
                   <div

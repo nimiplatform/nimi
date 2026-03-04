@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { AgentDetailData } from './agent-detail-model';
-import { getAgentInitial, getStateBadgeColor } from './agent-detail-model';
+import { getAgentInitial } from './agent-detail-model';
 
 type AgentDetailViewProps = {
   agent: AgentDetailData;

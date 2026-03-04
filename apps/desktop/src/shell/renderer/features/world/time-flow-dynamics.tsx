@@ -142,7 +142,7 @@ const InnerRing = ({ color, speedFactor, isCompact }: { color: string; speedFact
 
 // Main 3D Scene
 const FlowRingScene = ({ ratio, isCompact }: { ratio: number; isCompact?: boolean }) => {
-  const { color, label, speedFactor } = useMemo(() => getTheme(ratio), [ratio]);
+  const { color, speedFactor } = useMemo(() => getTheme(ratio), [ratio]);
   const particlesRef = useRef<any>(null);
   
   useFrame((state, delta) => {

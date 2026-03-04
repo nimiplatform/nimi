@@ -1,10 +1,19 @@
+/**
+ * @deprecated Legacy detail view.
+ * Active navigation now routes to features/world-detail/world-detail-view.tsx.
+ */
 import { useQuery } from '@tanstack/react-query';
-import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
 import type { WorldListItem } from './world-list';
-import type { WorldAgent, WorldEvent } from './world-detail-template';
+import type { WorldAgent } from './world-detail-template';
+import {
+  fetchWorldDetailWithAgents,
+  fetchWorldEvents,
+  worldDetailWithAgentsQueryKey,
+  worldEventsQueryKey,
+} from './world-detail-queries.js';
 
 // Build XianxiaWorldData from list item + optional composite detail (with agents)
 function toXianxiaWorldData(
@@ -47,25 +56,6 @@ function toXianxiaWorldData(
   };
 }
 
-// Map eventHorizon to display tag
-const EVENT_HORIZON_TAG: Record<string, string> = {
-  PAST: 'Past',
-  ONGOING: 'Ongoing',
-  FUTURE: 'Future',
-};
-
-// Convert API event records to WorldEvent format
-function toWorldEvent(raw: Record<string, unknown>): WorldEvent {
-  const horizon = typeof raw.eventHorizon === 'string' ? raw.eventHorizon : '';
-  return {
-    id: String(raw.id || ''),
-    title: String(raw.title || 'Untitled Event'),
-    description: String(raw.summary || raw.cause || raw.process || raw.result || ''),
-    time: String(raw.timeRef || raw.createdAt || ''),
-    tag: EVENT_HORIZON_TAG[horizon] || horizon || 'Event',
-  };
-}
-
 type WorldDetailProps = {
   world: WorldListItem;
   onBack: () => void;
@@ -77,22 +67,21 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
 
   // Combined API call: world detail + agent summaries in one request
   const worldCompositeQuery = useQuery({
-    queryKey: ['world-detail-with-agents', world.id],
-    queryFn: () => dataSync.loadWorldDetailWithAgents(world.id),
+    queryKey: worldDetailWithAgentsQueryKey(world.id),
+    queryFn: () => fetchWorldDetailWithAgents(world.id),
     enabled: isReady,
   });
 
   // Independent API call for world events (Chronicle) — stays separate (different controller/auth)
   const worldEventsQuery = useQuery({
-    queryKey: ['world-events', world.id],
-    queryFn: async () => {
-      const events = await dataSync.loadWorldEvents(world.id);
-      return events.map(toWorldEvent);
-    },
+    queryKey: worldEventsQueryKey(world.id),
+    queryFn: () => fetchWorldEvents(world.id),
     enabled: isReady,
   });
 
   const detail = worldCompositeQuery.data;
+  const initialLoading = worldCompositeQuery.isPending && !detail;
+  const initialError = worldCompositeQuery.isError && !detail;
   const worldData = toXianxiaWorldData(world, detail);
 
   // Map agent summaries from composite response (backend already flattened dna fields)
@@ -160,6 +149,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         world={worldData}
         agents={agents}
         events={events}
+        loading={initialLoading}
+        error={initialError}
         agentsLoading={worldCompositeQuery.isPending}
         eventsLoading={worldEventsQuery.isPending}
         onBack={onBack}

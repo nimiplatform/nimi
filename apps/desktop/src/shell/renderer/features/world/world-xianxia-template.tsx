@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import type { WorldDetailData, WorldAgent, WorldEvent } from './world-detail-template';
 import { TimeFlowDynamics } from './time-flow-dynamics';
 import { WorldScoringMatrix } from './world-scoring-matrix';
@@ -158,12 +157,7 @@ const displayValue = (value: unknown, fallback = 'N/A') => {
 };
 
 export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
-  const { t } = useTranslation();
-
   const world = props.world;
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
   const formatDateTime = (d: string) => {
     const date = new Date(d);
     if (Number.isNaN(date.getTime())) return d;
@@ -175,7 +169,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
       <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-[#4ECCA3]">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
-          <span className="text-sm text-[#e8f5ee]/60">"Loading..."</span>
+          <span className="text-sm text-[#e8f5ee]/60">Loading world...</span>
         </div>
       </div>
     );
@@ -184,7 +178,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   if (props.error || !world) {
     return (
       <div className="min-h-screen bg-[#0a0f0c] flex items-center justify-center">
-        <span className="text-sm text-red-400">"Error loading world data"</span>
+        <span className="text-sm text-red-400">Error loading world data</span>
       </div>
     );
   }

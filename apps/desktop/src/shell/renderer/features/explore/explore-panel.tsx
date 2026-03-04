@@ -7,6 +7,7 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { WorldListItem } from '../world/world-list';
+import { prefetchWorldDetailAndEvents } from '../world/world-detail-queries.js';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
 
@@ -142,9 +143,6 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
 
 export function ExplorePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -310,6 +308,7 @@ export function ExplorePanel() {
 
   const onWorldOpen = useCallback(
     (worldId: string) => {
+      prefetchWorldDetailAndEvents(worldId);
       navigateToWorld(worldId);
     },
     [navigateToWorld],

@@ -4,7 +4,6 @@ import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostCard } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
 import {
-  FeaturedWorldCard,
   TopAgentCard,
   type ExploreAgentCardData,
   type FeaturedWorldCardData,
@@ -104,7 +103,7 @@ export function ExploreView(props: ExploreViewProps) {
                     className="flex h-full transition-transform duration-700 ease-in-out will-change-transform"
                     style={{ transform: `translateX(-${currentBannerIndex * 100}%)` }}
                   >
-                   {worldsWithBanners.map((world, idx) => (
+                   {worldsWithBanners.map((world, _idx) => (
                      <div key={world.id} className="w-full h-full flex-shrink-0 relative">
                        <img
                          src={world.bannerUrl || ''}

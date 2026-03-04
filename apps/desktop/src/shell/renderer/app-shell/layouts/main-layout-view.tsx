@@ -54,8 +54,8 @@ const AgentDetailPanel = lazy(async () => {
   return { default: mod.AgentDetailPanel };
 });
 const WorldDetailPanel = lazy(async () => {
-  const mod = await import('@renderer/features/world-detail/world-detail-panel');
-  return { default: mod.WorldDetailPanel };
+  const mod = await import('@renderer/features/world/world-detail-active-panel');
+  return { default: mod.WorldDetailActivePanel };
 });
 const WorldList = lazy(async () => {
   const mod = await import('@renderer/features/world/world-list');

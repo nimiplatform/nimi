@@ -4,6 +4,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
 import { toAgentDetailData } from './agent-detail-model';
 import { AgentDetailView } from './agent-detail-view';
 
@@ -149,6 +150,7 @@ export function AgentDetailPanel() {
           if (!agent?.worldId) {
             return;
           }
+          prefetchWorldDetailAndEvents(agent.worldId);
           navigateToWorld(agent.worldId);
         }}
         onAddFriend={() => { void onAddFriend(); }}
