@@ -229,10 +229,11 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		return fmt.Errorf("start engine %s: %w", s.cfg.Kind, startErr)
 	}
 	if s.runEpoch != epoch {
-		pid := cmd.Process.Pid
 		s.mu.Unlock()
 		cancel()
-		_ = syscall.Kill(pid, syscall.SIGKILL)
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
 		return nil
 	}
 	s.cmd = cmd
@@ -538,5 +539,9 @@ func processAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	return syscall.Kill(pid, 0) == nil
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return process.Signal(syscall.Signal(0)) == nil
 }
