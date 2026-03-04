@@ -268,6 +268,9 @@ export interface DesktopHookRuntimeFacade {
     modId: string;
     sourceType?: HookSourceType;
     providerId?: string;
+    routeSource?: 'auto' | 'local-runtime' | 'token-api';
+    connectorId?: string;
+    model?: string;
   }): Promise<Array<{
     id: string;
     providerId: string;

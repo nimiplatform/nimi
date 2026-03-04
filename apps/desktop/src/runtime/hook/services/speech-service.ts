@@ -111,6 +111,7 @@ export class HookRuntimeSpeechService {
         providerId: input.providerId,
         routeSource: input.routeSource,
         connectorId: input.connectorId,
+        model: input.model,
       });
       const endpoint = String(resolved?.localProviderEndpoint || resolved?.localOpenAiEndpoint || '').trim();
       const voices = await this.context.speechEngine.listVoices({

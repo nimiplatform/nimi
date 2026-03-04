@@ -94,6 +94,7 @@ export type SpeechVoicesInput = SpeechBasePermissionInput & {
   providerId?: string;
   routeSource?: 'auto' | 'local-runtime' | 'token-api';
   connectorId?: string;
+  model?: string;
 };
 
 export type SpeechSynthesizeInput = SpeechBasePermissionInput & {

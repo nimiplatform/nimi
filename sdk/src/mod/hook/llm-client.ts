@@ -149,11 +149,12 @@ export function createLlmClient(input: {
       listProviders: async () => input.runtime.listSpeechProviders({
         modId: input.modId,
       }),
-      listVoices: async ({ providerId, routeSource, connectorId } = {}) => input.runtime.listSpeechVoices({
+      listVoices: async ({ providerId, routeSource, connectorId, model } = {}) => input.runtime.listSpeechVoices({
         modId: input.modId,
         providerId,
         routeSource,
         connectorId,
+        model,
       }),
       synthesize: async ({
         text,

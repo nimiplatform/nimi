@@ -115,6 +115,7 @@ export type RuntimeHookLlmFacade = {
     providerId?: string;
     routeSource?: 'auto' | 'local-runtime' | 'token-api';
     connectorId?: string;
+    model?: string;
   }) => Promise<HookSpeechVoiceDescriptor[]>;
   synthesizeModSpeech: (input: {
     modId: string;
@@ -240,7 +241,12 @@ export type HookLlmClient = {
   checkHealth: (input: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult>;
   speech: {
     listProviders: () => Promise<HookSpeechProviderDescriptor[]>;
-    listVoices: (input?: { providerId?: string; routeSource?: 'auto' | 'local-runtime' | 'token-api'; connectorId?: string }) => Promise<HookSpeechVoiceDescriptor[]>;
+    listVoices: (input?: {
+      providerId?: string;
+      routeSource?: 'auto' | 'local-runtime' | 'token-api';
+      connectorId?: string;
+      model?: string;
+    }) => Promise<HookSpeechVoiceDescriptor[]>;
     synthesize: (input: {
       text: string;
       providerId?: string;

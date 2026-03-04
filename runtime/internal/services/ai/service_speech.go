@@ -35,13 +35,17 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 		return nil, err
 	}
 
-	selectedProvider, _, modelResolved, _, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
+	_, _, modelResolved, _, err := s.selector.resolveProviderWithTarget(ctx, req.GetRoutePolicy(), req.GetFallback(), req.GetModelId(), remoteTarget)
 	if err != nil {
 		return nil, err
 	}
 
 	traceID := ulid.Make().String()
-	voices := resolveVoicePresets(selectedProvider, modelResolved)
+	providerType := ""
+	if remoteTarget != nil {
+		providerType = strings.TrimSpace(remoteTarget.ProviderType)
+	}
+	voices := resolveVoicePresets(modelResolved, providerType)
 
 	return &runtimev1.GetSpeechVoicesResponse{
 		Voices:        voices,
@@ -169,7 +173,15 @@ func validateStreamSpeechSynthesisRequest(req *runtimev1.StreamSpeechSynthesisRe
 // resolveVoicePresets returns a list of voice descriptors based on the resolved
 // provider backend. For cloud providers, built-in presets are returned based on
 // the model ID prefix. For local providers, a minimal default set is returned.
-func resolveVoicePresets(selectedProvider provider, modelResolved string) []*runtimev1.SpeechVoiceDescriptor {
+func resolveVoicePresets(modelResolved string, providerType string) []*runtimev1.SpeechVoiceDescriptor {
+	lowerProvider := strings.ToLower(strings.TrimSpace(providerType))
+	switch lowerProvider {
+	case "dashscope":
+		return dashScopeVoicePresets()
+	case "volcengine", "volcengine_openspeech":
+		return volcengineVoicePresets()
+	}
+
 	lower := strings.ToLower(modelResolved)
 
 	switch {

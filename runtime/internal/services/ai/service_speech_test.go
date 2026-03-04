@@ -261,6 +261,21 @@ func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
 	}
 }
 
+func TestResolveVoicePresetsUsesProviderTypeForBareModel(t *testing.T) {
+	dashscopeVoices := resolveVoicePresets("qwen3-tts-instruct-flash-2026-01-26", "dashscope")
+	if len(dashscopeVoices) != 10 {
+		t.Fatalf("expected 10 DashScope voices from provider hint, got=%d", len(dashscopeVoices))
+	}
+	if dashscopeVoices[0].GetVoiceId() != "Cherry" {
+		t.Fatalf("dashscope first voice should be Cherry, got=%s", dashscopeVoices[0].GetVoiceId())
+	}
+
+	volcengineVoices := resolveVoicePresets("tts-model", "volcengine")
+	if len(volcengineVoices) != 2 {
+		t.Fatalf("expected 2 Volcengine voices from provider hint, got=%d", len(volcengineVoices))
+	}
+}
+
 // mockArtifactChunkStream implements grpc.ServerStreamingServer[runtimev1.ArtifactChunk]
 // for testing StreamSpeechSynthesis.
 type mockArtifactChunkStream struct {
