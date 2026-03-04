@@ -130,7 +130,6 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
           );
           const descriptors = await sdkListConnectorModelDescriptors(
             connector.id,
-            true,
           );
           sdkModels = descriptors.map((item) => item.modelId);
           modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
