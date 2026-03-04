@@ -42,8 +42,11 @@ func NewStreamInterceptor(v *Validator) grpc.StreamServerInterceptor {
 
 // authenticate extracts the bearer token from gRPC metadata and validates it.
 func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
-	token := extractBearerToken(ctx)
-	if token == "" {
+	token, hasAuthHeader, malformed := extractBearerToken(ctx)
+	if malformed {
+		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	}
+	if !hasAuthHeader {
 		// Anonymous request — no Authorization header
 		return ctx, nil
 	}
@@ -60,23 +63,32 @@ func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
 }
 
 // extractBearerToken extracts the JWT from "Authorization: Bearer <token>" metadata.
-func extractBearerToken(ctx context.Context) string {
+// Returns (token, hasAuthHeader, malformedHeader).
+func extractBearerToken(ctx context.Context) (string, bool, bool) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return ""
+		return "", false, false
 	}
 	values := md.Get(authorizationHeader)
 	if len(values) == 0 {
-		return ""
+		return "", false, false
 	}
+	hasAuthHeader := true
 	auth := strings.TrimSpace(values[0])
-	if len(auth) <= len(bearerPrefix) {
-		return ""
+	if auth == "" {
+		return "", hasAuthHeader, true
+	}
+	if len(auth) < len(bearerPrefix) {
+		return "", hasAuthHeader, true
 	}
 	if !strings.EqualFold(auth[:len(bearerPrefix)], bearerPrefix) {
-		return ""
+		return "", hasAuthHeader, true
 	}
-	return strings.TrimSpace(auth[len(bearerPrefix):])
+	token := strings.TrimSpace(auth[len(bearerPrefix):])
+	if token == "" {
+		return "", hasAuthHeader, true
+	}
+	return token, hasAuthHeader, false
 }
 
 // wrappedStream wraps a grpc.ServerStream with a modified context.
