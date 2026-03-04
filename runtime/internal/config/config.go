@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -96,10 +97,10 @@ type Config struct {
 	// audience validation is skipped. (K-AUTHN-003, K-DAEMON-009)
 	AuthJWTAudience string
 
-	// AuthJWTPublicKeyPath is the file path to a PEM-encoded public key used
-	// for JWT signature verification. Supports RSA and EC keys.
-	// If empty, JWT verification is disabled (all tokens rejected). (K-AUTHN-004, K-DAEMON-009)
-	AuthJWTPublicKeyPath string
+	// AuthJWTJWKSURL is the JWKS endpoint URL used for JWT signature
+	// verification. If empty, JWT verification is disabled (all tokens
+	// rejected). (K-AUTHN-004, K-DAEMON-009)
+	AuthJWTJWKSURL string
 
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
@@ -180,9 +181,9 @@ type FileConfigAuth struct {
 
 // FileConfigJWT holds JWT-specific authentication configuration.
 type FileConfigJWT struct {
-	Issuer        string `json:"issuer,omitempty"`
-	Audience      string `json:"audience,omitempty"`
-	PublicKeyPath string `json:"publicKeyPath,omitempty"`
+	Issuer   string `json:"issuer,omitempty"`
+	Audience string `json:"audience,omitempty"`
+	JWKSURL  string `json:"jwksUrl,omitempty"`
 }
 
 type RuntimeFileTarget struct {
@@ -251,7 +252,7 @@ func Load() (Config, error) {
 		LogLevel:                      readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
 		AuthJWTIssuer:                 readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_ISSUER", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Issuer }), ""),
 		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
-		AuthJWTPublicKeyPath:          expandUserPath(readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_PUBLIC_KEY_PATH", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.PublicKeyPath }), "")),
+		AuthJWTJWKSURL:                readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
 		Providers:                     fileCfg.Providers,
 		EngineLocalAIEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED", fileConfigEngineBool(fileCfg, "localai"), false),
 		EngineLocalAIVersion:          readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LOCALAI_VERSION", fileConfigEngineString(fileCfg, "localai", "version"), "3.12.1"),
@@ -479,6 +480,21 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		}
 		if strings.TrimSpace(providerCfg.APIKeyEnv) == "" {
 			return fmt.Errorf("provider %q apiKeyEnv is required", providerName)
+		}
+	}
+	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
+		jwksURL := strings.TrimSpace(fileCfg.Auth.JWT.JWKSURL)
+		if jwksURL != "" {
+			parsed, err := url.Parse(jwksURL)
+			if err != nil {
+				return fmt.Errorf("auth.jwt.jwksUrl invalid: %w", err)
+			}
+			if parsed.Scheme != "http" && parsed.Scheme != "https" {
+				return fmt.Errorf("auth.jwt.jwksUrl must use http/https scheme")
+			}
+			if strings.TrimSpace(parsed.Host) == "" {
+				return fmt.Errorf("auth.jwt.jwksUrl must include host")
+			}
 		}
 	}
 	return nil

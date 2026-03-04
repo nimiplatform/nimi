@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -385,6 +386,15 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.SessionTTLMaxSeconds != nil {
 		merged.SessionTTLMaxSeconds = raw.SessionTTLMaxSeconds
 	}
+	if raw.Auth != nil && raw.Auth.JWT != nil {
+		merged.Auth = &config.FileConfigAuth{
+			JWT: &config.FileConfigJWT{
+				Issuer:   strings.TrimSpace(raw.Auth.JWT.Issuer),
+				Audience: strings.TrimSpace(raw.Auth.JWT.Audience),
+				JWKSURL:  strings.TrimSpace(raw.Auth.JWT.JWKSURL),
+			},
+		}
+	}
 	if raw.Providers != nil {
 		mergedProviders := map[string]config.RuntimeFileTarget{}
 		for k, v := range raw.Providers {
@@ -408,6 +418,21 @@ func validateMergedRuntimeFields(fileCfg config.FileConfig) error {
 	}
 	if fileCfg.ShutdownTimeoutSeconds != nil && *fileCfg.ShutdownTimeoutSeconds <= 0 {
 		return fmt.Errorf("shutdownTimeoutSeconds must be > 0")
+	}
+	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
+		jwksURL := strings.TrimSpace(fileCfg.Auth.JWT.JWKSURL)
+		if jwksURL != "" {
+			parsed, err := url.Parse(jwksURL)
+			if err != nil {
+				return fmt.Errorf("auth.jwt.jwksUrl invalid: %w", err)
+			}
+			if parsed.Scheme != "http" && parsed.Scheme != "https" {
+				return fmt.Errorf("auth.jwt.jwksUrl must use http/https scheme")
+			}
+			if strings.TrimSpace(parsed.Host) == "" {
+				return fmt.Errorf("auth.jwt.jwksUrl must include host")
+			}
+		}
 	}
 	return nil
 }
@@ -577,6 +602,15 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		cfg.SessionTTLMaxSeconds = &parsed
 		return nil
+	case "auth.jwt.issuer":
+		ensureAuthJWTConfig(cfg).Issuer = value
+		return nil
+	case "auth.jwt.audience":
+		ensureAuthJWTConfig(cfg).Audience = value
+		return nil
+	case "auth.jwt.jwksUrl":
+		ensureAuthJWTConfig(cfg).JWKSURL = value
+		return nil
 	}
 
 	parts := strings.Split(normalizedKey, ".")
@@ -662,6 +696,18 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "sessionTtlMaxSeconds":
 		cfg.SessionTTLMaxSeconds = defaultCfg.SessionTTLMaxSeconds
+		return nil
+	case "auth.jwt.issuer":
+		ensureAuthJWTConfig(cfg).Issuer = ""
+		pruneEmptyAuthConfig(cfg)
+		return nil
+	case "auth.jwt.audience":
+		ensureAuthJWTConfig(cfg).Audience = ""
+		pruneEmptyAuthConfig(cfg)
+		return nil
+	case "auth.jwt.jwksUrl":
+		ensureAuthJWTConfig(cfg).JWKSURL = ""
+		pruneEmptyAuthConfig(cfg)
 		return nil
 	}
 
@@ -766,7 +812,58 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if boolPtrValue(before.WorkerMode) != boolPtrValue(after.WorkerMode) {
 		return true
 	}
+	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.Issuer }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.Issuer }) {
+		return true
+	}
+	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.Audience }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.Audience }) {
+		return true
+	}
+	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.JWKSURL }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.JWKSURL }) {
+		return true
+	}
 	return false
+}
+
+func ensureAuthJWTConfig(fileCfg *config.FileConfig) *config.FileConfigJWT {
+	if fileCfg == nil {
+		return &config.FileConfigJWT{}
+	}
+	if fileCfg.Auth == nil {
+		fileCfg.Auth = &config.FileConfigAuth{}
+	} else {
+		authCopy := *fileCfg.Auth
+		fileCfg.Auth = &authCopy
+	}
+	if fileCfg.Auth.JWT == nil {
+		fileCfg.Auth.JWT = &config.FileConfigJWT{}
+	} else {
+		jwtCopy := *fileCfg.Auth.JWT
+		fileCfg.Auth.JWT = &jwtCopy
+	}
+	return fileCfg.Auth.JWT
+}
+
+func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
+	if fileCfg == nil || fileCfg.Auth == nil {
+		return
+	}
+	if fileCfg.Auth.JWT != nil {
+		if strings.TrimSpace(fileCfg.Auth.JWT.Issuer) == "" &&
+			strings.TrimSpace(fileCfg.Auth.JWT.Audience) == "" &&
+			strings.TrimSpace(fileCfg.Auth.JWT.JWKSURL) == "" {
+			fileCfg.Auth.JWT = nil
+		}
+	}
+	if fileCfg.Auth.JWT == nil {
+		fileCfg.Auth = nil
+	}
+}
+
+func authJWTFieldValue(fileCfg config.FileConfig, selector func(*config.FileConfigJWT) string) string {
+	if fileCfg.Auth == nil || fileCfg.Auth.JWT == nil {
+		return ""
+	}
+	return strings.TrimSpace(selector(fileCfg.Auth.JWT))
 }
 
 func intPtrValue(p *int) int {

@@ -76,8 +76,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	h := grpcHealth.NewServer()
 	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog, grantservice.WithAuditStore(auditStore))
 
-	// AuthN validator — local public key mode (K-AUTHN-004)
-	authnValidator, authnErr := authn.NewValidator(cfg.AuthJWTPublicKeyPath, cfg.AuthJWTIssuer, cfg.AuthJWTAudience)
+	// AuthN validator — JWKS mode (K-AUTHN-004)
+	authnValidator, authnErr := authn.NewValidator(cfg.AuthJWTJWKSURL, cfg.AuthJWTIssuer, cfg.AuthJWTAudience)
 	if authnErr != nil {
 		logger.Warn("JWT authn validator init failed; all JWT tokens will be rejected", "error", authnErr)
 		authnValidator, _ = authn.NewValidator("", "", "")

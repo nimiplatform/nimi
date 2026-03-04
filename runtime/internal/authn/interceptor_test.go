@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/golang-jwt/jwt/v5"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -64,12 +65,17 @@ func TestAuthenticateRejectsMalformedHeader(t *testing.T) {
 }
 
 func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "test-issuer", "test-audience")
+	key := generateRSAKey(t)
+	claims := validClaims()
+	server := newJWKSTestServer(t, jwksDocument{
+		Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")},
+	})
+	defer server.Close()
+	v, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	token := signRS256(t, key, validClaims())
+	token := signRS256(t, key, "kid-1", claims)
 
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Bearer "+token,
@@ -84,5 +90,35 @@ func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
 	}
 	if identity.SubjectUserID != "user-123" {
 		t.Fatalf("subject mismatch: %s", identity.SubjectUserID)
+	}
+}
+
+func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
+	validator, err := NewValidator("", "", "")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodNone, validClaims())
+	tokenString, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	if err != nil {
+		t.Fatalf("sign none token: %v", err)
+	}
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"authorization", "Bearer "+tokenString,
+	))
+	_, authErr := authenticate(ctx, validator)
+	if authErr == nil {
+		t.Fatalf("expected auth error")
+	}
+	st, ok := status.FromError(authErr)
+	if !ok {
+		t.Fatalf("expected grpc status error")
+	}
+	if st.Code() != codes.Unauthenticated {
+		t.Fatalf("unexpected code: %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String() {
+		t.Fatalf("unexpected reason code: %s", st.Message())
 	}
 }
