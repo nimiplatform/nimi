@@ -37,10 +37,12 @@ fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
         parsed.insert(key, value);
     }
 
-    // Keep explicit process env precedence while still honoring last declaration
-    // within the same dotenv file (Node loadEnvFile semantics).
+    // For project-scoped NIMI variables, prefer dotenv values to avoid stale
+    // inherited shell/IDE env overriding repository .env unexpectedly.
+    // For non-NIMI keys, keep explicit process env precedence.
     for (key, value) in parsed {
-        if env::var_os(&key).is_none() {
+        let should_override = key.starts_with("NIMI_") || key.starts_with("VITE_NIMI_");
+        if should_override || env::var_os(&key).is_none() {
             env::set_var(key, value);
         }
     }
@@ -107,6 +109,35 @@ fn allowed_http_origins() -> HashSet<String> {
     }
 
     origins
+}
+
+fn is_private_lan_http_origin(url: &Url) -> bool {
+    if url.scheme() != "http" {
+        return false;
+    }
+
+    let Some(host) = url.host_str() else {
+        return false;
+    };
+
+    let Ok(ip) = host.parse::<std::net::IpAddr>() else {
+        return false;
+    };
+
+    match ip {
+        std::net::IpAddr::V4(addr) => {
+            let octets = addr.octets();
+            // RFC1918 private IPv4 ranges.
+            octets[0] == 10
+                || (octets[0] == 172 && (16..=31).contains(&octets[1]))
+                || (octets[0] == 192 && octets[1] == 168)
+        }
+        std::net::IpAddr::V6(addr) => {
+            let first = addr.segments()[0];
+            // Unique local (fc00::/7) and link-local (fe80::/10).
+            (first & 0xfe00) == 0xfc00 || (first & 0xffc0) == 0xfe80
+        }
+    }
 }
 
 fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMap, String> {

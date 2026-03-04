@@ -80,6 +80,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
+    envPrefix: ['VITE_', 'NIMI_'],
     publicDir: false,
     resolve: {
       alias: {

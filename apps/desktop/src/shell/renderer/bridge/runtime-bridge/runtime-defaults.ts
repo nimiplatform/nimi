@@ -73,10 +73,26 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
   };
 }
 
+function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
+  const realmBaseUrl = readEnv('NIMI_REALM_URL');
+  const realtimeUrl = readEnv('NIMI_REALTIME_URL');
+  const accessToken = readEnv('NIMI_ACCESS_TOKEN');
+
+  return {
+    ...base,
+    realm: {
+      ...base.realm,
+      realmBaseUrl: realmBaseUrl || base.realm.realmBaseUrl,
+      realtimeUrl: realtimeUrl || base.realm.realtimeUrl,
+      accessToken: accessToken || base.realm.accessToken,
+    },
+  };
+}
+
 export async function getRuntimeDefaults() {
   if (!hasTauriInvoke()) {
     return readRuntimeDefaultsFallback();
   }
-
-  return invokeChecked('runtime_defaults', {}, parseRuntimeDefaults);
+  const defaults = await invokeChecked('runtime_defaults', {}, parseRuntimeDefaults);
+  return applyEnvOverrides(defaults);
 }

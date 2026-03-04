@@ -50,9 +50,9 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     let allowed = allowed_http_origins();
 
     // Allow all HTTPS origins (matches CSP connect-src 'self' https:).
-    // HTTP origins still require explicit allow-list (localhost only).
+    // HTTP origins require explicit allow-list or LAN private IP targets.
     let is_https = url.scheme() == "https";
-    if !is_https && !allowed.contains(&origin) {
+    if !is_https && !allowed.contains(&origin) && !is_private_lan_http_origin(&url) {
         let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
         eprintln!(
             "[http_request] × {} {} - blocked origin={} allowed={}",
