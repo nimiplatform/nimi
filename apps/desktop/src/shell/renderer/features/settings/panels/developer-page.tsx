@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { PageShell, SectionTitle } from '../settings-layout-components';
 
-function formatBoolean(value: boolean): string {
-  return value ? 'true' : 'false';
+function formatBoolean(value: boolean, yes: string, no: string): string {
+  return value ? yes : no;
 }
 
 export function DeveloperPage() {
+  const { t } = useTranslation();
   const auth = useAppStore((state) => state.auth);
   const activeTab = useAppStore((state) => state.activeTab);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
@@ -30,52 +32,60 @@ export function DeveloperPage() {
       await navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
       setStatusBanner({
         kind: 'success',
-        message: 'Developer snapshot copied to clipboard.',
+        message: t('DeveloperSettings.snapshotCopied'),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to copy developer snapshot.',
+        message: error instanceof Error ? error.message : t('DeveloperSettings.snapshotCopyFailed'),
       });
     }
   };
 
   return (
     <PageShell
-      title="Developer"
-      description="Runtime diagnostics, auth state, and integration debug helpers"
+      title={t('DeveloperSettings.pageTitle')}
+      description={t('DeveloperSettings.pageDescription')}
     >
       <section>
-        <SectionTitle>Session Snapshot</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.sessionSnapshotTitle')}</SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="space-y-2 text-sm text-gray-700">
             <p>
-              <span className="font-semibold text-gray-900">Auth status:</span>
+              <span className="font-semibold text-gray-900">{t('DeveloperSettings.authStatusLabel')}</span>
               {' '}
               {auth.status}
             </p>
             <p>
-              <span className="font-semibold text-gray-900">Has access token:</span>
+              <span className="font-semibold text-gray-900">{t('DeveloperSettings.hasAccessTokenLabel')}</span>
               {' '}
-              {formatBoolean(Boolean(auth.token))}
+              {formatBoolean(
+                Boolean(auth.token),
+                t('DeveloperSettings.booleanTrue'),
+                t('DeveloperSettings.booleanFalse'),
+              )}
             </p>
             <p>
-              <span className="font-semibold text-gray-900">Has refresh token:</span>
+              <span className="font-semibold text-gray-900">{t('DeveloperSettings.hasRefreshTokenLabel')}</span>
               {' '}
-              {formatBoolean(Boolean(auth.refreshToken))}
+              {formatBoolean(
+                Boolean(auth.refreshToken),
+                t('DeveloperSettings.booleanTrue'),
+                t('DeveloperSettings.booleanFalse'),
+              )}
             </p>
             <p>
-              <span className="font-semibold text-gray-900">Active tab:</span>
+              <span className="font-semibold text-gray-900">{t('DeveloperSettings.activeTabLabel')}</span>
               {' '}
               {activeTab}
             </p>
             <p>
-              <span className="font-semibold text-gray-900">Selected chat:</span>
+              <span className="font-semibold text-gray-900">{t('DeveloperSettings.selectedChatLabel')}</span>
               {' '}
               {selectedChatId || '-'}
             </p>
             <p>
-              <span className="font-semibold text-gray-900">Selected world:</span>
+              <span className="font-semibold text-gray-900">{t('DeveloperSettings.selectedWorldLabel')}</span>
               {' '}
               {selectedWorldId || '-'}
             </p>
@@ -84,17 +94,17 @@ export function DeveloperPage() {
       </section>
 
       <section>
-        <SectionTitle>Debug Helpers</SectionTitle>
+        <SectionTitle>{t('DeveloperSettings.debugHelpersTitle')}</SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-600">
-            Copy current app snapshot for bug reports and integration debugging.
+            {t('DeveloperSettings.debugHelpersDescription')}
           </p>
           <button
             type="button"
             onClick={() => { void copySnapshot(); }}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 hover:border-gray-300"
           >
-            Copy Developer Snapshot
+            {t('DeveloperSettings.copySnapshotButton')}
           </button>
         </div>
       </section>

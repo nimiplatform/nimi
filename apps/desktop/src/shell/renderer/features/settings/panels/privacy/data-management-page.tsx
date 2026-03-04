@@ -128,7 +128,7 @@ export function DataManagementPage() {
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to request data export.',
+        message: error instanceof Error ? error.message : t('DataManagement.exportRequestFailed'),
       });
     } finally {
       setExporting(false);
@@ -166,7 +166,7 @@ export function DataManagementPage() {
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to request account deletion.',
+        message: error instanceof Error ? error.message : t('DataManagement.deleteRequestFailed'),
       });
     } finally {
       setDeleting(false);
@@ -228,7 +228,7 @@ export function DataManagementPage() {
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300"
           >
             <DownloadIcon className="h-4 w-4" />
-            {exporting ? 'Requesting...' : t('DataManagement.exportButton')}
+            {exporting ? t('DataManagement.requesting') : t('DataManagement.exportButton')}
           </button>
         </div>
       </section>
@@ -273,7 +273,7 @@ export function DataManagementPage() {
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-all hover:bg-red-50"
               >
                 <TrashIcon className="h-4 w-4" />
-                {deleting ? 'Requesting...' : t('DataManagement.deleteAccountButton')}
+                {deleting ? t('DataManagement.requesting') : t('DataManagement.deleteAccountButton')}
               </button>
             </div>
           </div>

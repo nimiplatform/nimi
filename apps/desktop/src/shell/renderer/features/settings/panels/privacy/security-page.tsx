@@ -42,7 +42,7 @@ export function SecurityPage() {
       .catch((error) => {
         setStatusBanner({
           kind: 'error',
-          message: error instanceof Error ? error.message : 'Failed to prepare two-factor authentication',
+          message: error instanceof Error ? error.message : t('SecuritySettings.prepareTwoFactorFailed'),
         });
         setTwoFactor(false);
       })
@@ -79,7 +79,7 @@ export function SecurityPage() {
     if (twoFactor !== initialTwoFactorEnabled && twoFactorCode.trim().length !== 6) {
       setStatusBanner({
         kind: 'error',
-        message: 'Please enter a 6-digit 2FA code to confirm this change.',
+        message: t('SecuritySettings.twoFactorCodeRequired'),
       });
       return;
     }
@@ -118,12 +118,12 @@ export function SecurityPage() {
 
       setStatusBanner({
         kind: 'success',
-        message: 'Security settings updated.',
+        message: t('SecuritySettings.updateSuccess'),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update security settings',
+        message: error instanceof Error ? error.message : t('SecuritySettings.updateError'),
       });
     } finally {
       setSaving(false);
@@ -207,7 +207,7 @@ export function SecurityPage() {
         )}
         {twoFactor && !initialTwoFactorEnabled ? (
           <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <p className="text-xs font-medium text-gray-700">New 2FA setup</p>
+            <p className="text-xs font-medium text-gray-700">{t('SecuritySettings.newTwoFactorSetup')}</p>
             {twoFactorSecret ? (
               <p className="mt-1 break-all text-xs text-gray-500">Secret: {twoFactorSecret}</p>
             ) : null}
@@ -216,7 +216,7 @@ export function SecurityPage() {
             ) : null}
             <div className="mt-3">
               <label className="mb-2 block text-xs font-medium text-gray-700">
-                Enter current authenticator code
+                {t('SecuritySettings.authenticatorCodeLabel')}
               </label>
               <input
                 type="text"
@@ -233,7 +233,7 @@ export function SecurityPage() {
         {!twoFactor && initialTwoFactorEnabled ? (
           <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <label className="mb-2 block text-xs font-medium text-gray-700">
-              Enter current authenticator code to disable 2FA
+              {t('SecuritySettings.disableTwoFactorCodeLabel')}
             </label>
             <input
               type="text"

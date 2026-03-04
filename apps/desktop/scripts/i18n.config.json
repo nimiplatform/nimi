@@ -4,6 +4,10 @@
     "zh"
   ],
   "modPolicies": {
+    "audio-book": {
+      "enforced": false,
+      "reason": "Mod currently does not ship JSON locale bundles under src/locales; excluded from JSON parity enforcement."
+    },
     "kismet": {
       "enforced": false,
       "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
@@ -19,6 +23,14 @@
     "test-chat-tts": {
       "enforced": false,
       "reason": "Diagnostic test mod without locale bundles; excluded from parity enforcement."
+    },
+    "textplay": {
+      "enforced": false,
+      "reason": "Mod currently does not ship JSON locale bundles under src/locales; excluded from JSON parity enforcement."
+    },
+    "videoplay": {
+      "enforced": false,
+      "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
     }
   },
   "audit": {

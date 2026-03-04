@@ -95,13 +95,13 @@ export function ProfilePage() {
   const requestGoogleAccessToken = async (): Promise<string> => {
     const clientId = String(googleClientId || '').trim();
     if (!clientId) {
-      throw new Error('Missing Google OAuth client ID');
+      throw new Error(t('Profile.googleOauthClientIdMissing'));
     }
     await loadGoogleScript();
     const win = window as GoogleWindow;
     const initTokenClient = win.google?.accounts?.oauth2?.initTokenClient;
     if (!initTokenClient) {
-      throw new Error('Google OAuth initialization failed');
+      throw new Error(t('Profile.googleOauthInitFailed'));
     }
     return new Promise((resolve, reject) => {
       const tokenClient = initTokenClient({
