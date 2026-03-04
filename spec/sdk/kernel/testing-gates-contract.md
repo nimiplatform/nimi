@@ -38,9 +38,19 @@ provider 名称与 runtime provider catalog 必须对齐。
 
 live smoke 在配置完整时必须可运行并给出可审计结果。
 
+执行命令：
+
+- `node scripts/run-live-test-matrix.mjs`
+- `pnpm check:live-provider-invariants`
+- `pnpm check:live-smoke-gate`
+
 ## S-GATE-090 Release Parity Gate
 
 PR 与 release 的门禁策略保持同级，不允许 release 专属降级。
+
+执行命令（release 前硬阻断）：
+
+- `pnpm check:live-smoke-gate --require-release`
 
 ## S-GATE-091 Docs Drift Gate
 

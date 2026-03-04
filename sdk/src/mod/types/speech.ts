@@ -21,6 +21,7 @@ export type HookSpeechSynthesizeResult = {
   mimeType: string;
   durationMs?: number;
   sampleRateHz?: number;
+  traceId: string;
   providerTraceId?: string;
   cacheKey?: string;
 };

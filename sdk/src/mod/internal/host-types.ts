@@ -59,6 +59,7 @@ export type RuntimeKernelTurnInput = {
 
 export type RuntimeKernelTurnResult = {
   text?: string;
+  traceId?: string;
   promptTraceId?: string;
   latencyMs?: number;
   provider?: string;

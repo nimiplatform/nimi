@@ -272,6 +272,23 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     assert.equal(capturedGenerateRequests[0]?.fallback, FallbackPolicy.ALLOW);
     assert.equal(capturedGenerateRequests[0]?.systemPrompt, 'system-one\n\nsystem-two');
 
+    await runtime.ai.generate({
+      appId: APP_ID,
+      modelId: 'cloud/model-low-level',
+      modal: Modal.TEXT,
+      input: [{ role: 'user', content: 'low level', name: '' }],
+      systemPrompt: '',
+      tools: [],
+      temperature: 0,
+      topP: 0,
+      maxTokens: 8,
+      routePolicy: RoutePolicy.TOKEN_API,
+      fallback: FallbackPolicy.ALLOW,
+      timeoutMs: 1000,
+      connectorId: '',
+    });
+    assert.equal(capturedGenerateRequests[1]?.subjectUserId, 'subject-from-context');
+
     const streamResult = await runtime.ai.text.stream({
       model: 'cloud/stream-model',
       input: 'stream this',
@@ -318,6 +335,17 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     assert.equal(capturedEmbedRequests[0]?.subjectUserId, 'subject-explicit');
     assert.equal(capturedEmbedRequests[0]?.routePolicy, RoutePolicy.TOKEN_API);
 
+    await runtime.ai.embed({
+      appId: APP_ID,
+      modelId: 'cloud/embed-model',
+      inputs: ['gamma'],
+      routePolicy: RoutePolicy.TOKEN_API,
+      fallback: FallbackPolicy.ALLOW,
+      timeoutMs: 1000,
+      connectorId: '',
+    });
+    assert.equal(capturedEmbedRequests[1]?.subjectUserId, 'subject-from-context');
+
     await assert.rejects(
       async () => runtime.ai.embedding.generate({
         model: 'cloud/embed-model',
@@ -345,6 +373,24 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       async () => runtimeWithoutAuthContext.ai.text.generate({
         model: 'cloud/model',
         input: 'requires subject',
+      }),
+      (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.AUTH_CONTEXT_MISSING,
+    );
+    await assert.rejects(
+      async () => runtimeWithoutAuthContext.ai.generate({
+        appId: APP_ID,
+        modelId: 'cloud/model',
+        modal: Modal.TEXT,
+        input: [{ role: 'user', content: 'low level requires subject', name: '' }],
+        systemPrompt: '',
+        tools: [],
+        temperature: 0,
+        topP: 0,
+        maxTokens: 8,
+        routePolicy: RoutePolicy.TOKEN_API,
+        fallback: FallbackPolicy.ALLOW,
+        timeoutMs: 1000,
+        connectorId: '',
       }),
       (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.AUTH_CONTEXT_MISSING,
     );
@@ -751,8 +797,13 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
 
     const oneSubmitRequest = submitted[0];
     assert.ok(oneSubmitRequest);
-    const lowLevelSubmit = await runtime.ai.submitMediaJob(oneSubmitRequest);
+    const submitRequestWithoutSubject = {
+      ...oneSubmitRequest,
+      subjectUserId: undefined,
+    };
+    const lowLevelSubmit = await runtime.ai.submitMediaJob(submitRequestWithoutSubject);
     assert.ok(lowLevelSubmit.job);
+    assert.equal(submitted[submitted.length - 1]?.subjectUserId, 'subject-1');
     const lowLevelGet = await runtime.ai.getMediaJob({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
     assert.ok(lowLevelGet.job);
     const lowLevelArtifacts = await runtime.ai.getMediaResult({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });

@@ -23,6 +23,8 @@ export type AiTextRequest = AiRouteInput & {
 
 export type AiTextResult = {
   text: string;
+  traceId: string;
+  /** Text compatibility field, alias of traceId. */
   promptTraceId: string;
   route: ResolvedRuntimeRouteBinding;
 };
@@ -48,6 +50,7 @@ export type AiGenerateImageResult = {
     b64Json?: string;
     mimeType?: string;
   }>;
+  traceId: string;
   route: ResolvedRuntimeRouteBinding;
 };
 
@@ -62,6 +65,7 @@ export type AiGenerateVideoResult = {
     uri?: string;
     mimeType?: string;
   }>;
+  traceId: string;
   route: ResolvedRuntimeRouteBinding;
 };
 
@@ -74,6 +78,7 @@ export type AiTranscribeAudioRequest = AiRouteInput & {
 
 export type AiTranscribeAudioResult = {
   text: string;
+  traceId: string;
   route: ResolvedRuntimeRouteBinding;
 };
 
@@ -84,6 +89,7 @@ export type AiGenerateEmbeddingRequest = AiRouteInput & {
 
 export type AiGenerateEmbeddingResult = {
   embeddings: number[][];
+  traceId: string;
   route: ResolvedRuntimeRouteBinding;
 };
 
@@ -108,6 +114,7 @@ export type AiSynthesizeSpeechResult = {
   mimeType: string;
   durationMs?: number;
   sampleRateHz?: number;
+  traceId: string;
   providerTraceId?: string;
   cacheKey?: string;
   route: ResolvedRuntimeRouteBinding;
@@ -121,6 +128,8 @@ export type ModAiClient = {
   generateObject: (input: AiGenerateObjectRequest) => Promise<{
     object: Record<string, unknown>;
     text: string;
+    traceId: string;
+    /** Text compatibility field, alias of traceId. */
     promptTraceId: string;
     route: ResolvedRuntimeRouteBinding;
   }>;

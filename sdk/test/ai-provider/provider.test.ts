@@ -162,6 +162,56 @@ test('createNimiAiProvider requires Runtime class instance', () => {
   assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_PROVIDER_RUNTIME_REQUIRED);
 });
 
+test('createNimiAiProvider accepts missing subjectUserId and keeps request subject unset', async () => {
+  let capturedRequest: Record<string, unknown> | null = null;
+  const runtime = createRuntimeStub({
+    generate: async (request) => {
+      capturedRequest = request as Record<string, unknown>;
+      return {
+        output: {
+          fields: {
+            text: {
+              kind: {
+                oneofKind: 'stringValue',
+                stringValue: 'hello without explicit subject',
+              },
+            },
+          },
+        },
+        finishReason: 1,
+        usage: {
+          inputTokens: '1',
+          outputTokens: '1',
+        },
+        routeDecision: 1,
+        modelResolved: 'chat/default',
+        traceId: 'trace-no-subject',
+      };
+    },
+  });
+
+  const nimi = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+  });
+
+  const model = nimi('chat/default');
+  const result = await model.doGenerate({
+    prompt: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: 'hello',
+      }],
+    }],
+    providerOptions: {},
+  });
+
+  assert.ok(capturedRequest);
+  assert.equal(capturedRequest.subjectUserId, undefined);
+  assert.equal(result.content[0]?.type, 'text');
+});
+
 test('createNimiAiProvider text model maps runtime generate response', async () => {
   let capturedRequest: Record<string, unknown> | null = null;
   const runtime = createRuntimeStub({

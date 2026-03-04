@@ -7,7 +7,7 @@
 
 ## 0. 权威导入
 
-- `kernel/testing-gates-contract.md`（S-GATE-001, S-GATE-020, S-GATE-070, S-GATE-091）
+- `kernel/testing-gates-contract.md`（S-GATE-001, S-GATE-020, S-GATE-070, S-GATE-080, S-GATE-090, S-GATE-091）
 - `kernel/transport-contract.md`（S-TRANSPORT-003, S-TRANSPORT-006）
 - `kernel/error-projection.md`（S-ERROR-001, S-ERROR-005）
 - `kernel/boundary-contract.md`（S-BOUNDARY-001, S-BOUNDARY-004）

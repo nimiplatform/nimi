@@ -25,6 +25,10 @@ import {
 } from './runtime-modality.js';
 import type {
   RuntimeAiModule,
+  RuntimeAiEmbedRequestInput,
+  RuntimeAiGenerateRequestInput,
+  RuntimeAiStreamGenerateRequestInput,
+  RuntimeAiSubmitMediaJobRequestInput,
   RuntimeAppAuthClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
@@ -281,19 +285,41 @@ export function createAiModule(
   },
 ): RuntimeAiModule {
   const { invokeWithClient, ctx } = input;
+  const withSubjectUserId = async <T extends { subjectUserId?: string }>(
+    request: T,
+  ): Promise<Omit<T, 'subjectUserId'> & { subjectUserId: string }> => {
+    const subjectUserId = await ctx.resolveSubjectUserId(request.subjectUserId);
+    return {
+      ...request,
+      subjectUserId,
+    };
+  };
+
   return {
-    generate: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.generate(request, optionsValue),
-    ),
-    streamGenerate: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.streamGenerate(request, optionsValue),
-    ),
-    embed: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.embed(request, optionsValue),
-    ),
-    submitMediaJob: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.submitMediaJob(request, optionsValue),
-    ),
+    generate: async (request, optionsValue) => {
+      const normalizedRequest = await withSubjectUserId(request as RuntimeAiGenerateRequestInput);
+      return invokeWithClient(
+        async (client) => client.ai.generate(normalizedRequest, optionsValue),
+      );
+    },
+    streamGenerate: async (request, optionsValue) => {
+      const normalizedRequest = await withSubjectUserId(request as RuntimeAiStreamGenerateRequestInput);
+      return invokeWithClient(
+        async (client) => client.ai.streamGenerate(normalizedRequest, optionsValue),
+      );
+    },
+    embed: async (request, optionsValue) => {
+      const normalizedRequest = await withSubjectUserId(request as RuntimeAiEmbedRequestInput);
+      return invokeWithClient(
+        async (client) => client.ai.embed(normalizedRequest, optionsValue),
+      );
+    },
+    submitMediaJob: async (request, optionsValue) => {
+      const normalizedRequest = await withSubjectUserId(request as RuntimeAiSubmitMediaJobRequestInput);
+      return invokeWithClient(
+        async (client) => client.ai.submitMediaJob(normalizedRequest, optionsValue),
+      );
+    },
     getMediaJob: async (request, optionsValue) => invokeWithClient(
       async (client) => client.ai.getMediaJob(request, optionsValue),
     ),

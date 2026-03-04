@@ -106,9 +106,12 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
         abortSignal: input.abortSignal,
         ...payload,
       });
+      const traceId = String(result.traceId || result.promptTraceId || '').trim();
+      const promptTraceId = String(result.promptTraceId || traceId).trim();
       return {
         text: String(result.text || ''),
-        promptTraceId: String(result.promptTraceId || ''),
+        traceId,
+        promptTraceId,
         route,
       };
     },
@@ -170,7 +173,8 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       return {
         object,
         text: textResult.text,
-        promptTraceId: textResult.promptTraceId,
+        traceId: textResult.traceId,
+        promptTraceId: textResult.promptTraceId || textResult.traceId,
         route: textResult.route,
       };
     },
@@ -192,6 +196,7 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       });
       return {
         images: result.images,
+        traceId: String(result.traceId || '').trim(),
         route,
       };
     },
@@ -212,6 +217,7 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       });
       return {
         videos: result.videos,
+        traceId: String(result.traceId || '').trim(),
         route,
       };
     },
@@ -233,6 +239,7 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       });
       return {
         text: String(result.text || ''),
+        traceId: String(result.traceId || '').trim(),
         route,
       };
     },
@@ -252,6 +259,7 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       });
       return {
         embeddings: result.embeddings,
+        traceId: String(result.traceId || '').trim(),
         route,
       };
     },
@@ -280,6 +288,7 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       });
       return {
         ...result,
+        traceId: String(result.traceId || result.providerTraceId || '').trim(),
         route,
       };
     },

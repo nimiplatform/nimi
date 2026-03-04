@@ -761,15 +761,37 @@ export type RuntimeScopeModule = {
   list(input?: { include?: Array<'realm' | 'runtime' | 'app'> }): Promise<ScopeCatalogDescriptor>;
 };
 
+export type RuntimeAiGenerateRequestInput =
+  Omit<GenerateRequest, 'subjectUserId'>
+  & { subjectUserId?: string };
+
+export type RuntimeAiStreamGenerateRequestInput =
+  Omit<StreamGenerateRequest, 'subjectUserId'>
+  & { subjectUserId?: string };
+
+export type RuntimeAiEmbedRequestInput =
+  Omit<EmbedRequest, 'subjectUserId'>
+  & { subjectUserId?: string };
+
+export type RuntimeAiSubmitMediaJobRequestInput =
+  Omit<SubmitMediaJobRequest, 'subjectUserId'>
+  & { subjectUserId?: string };
+
 export type RuntimeAiModule = {
-  generate(request: GenerateRequest, options?: RuntimeCallOptions): Promise<GenerateResponse>;
+  generate(
+    request: RuntimeAiGenerateRequestInput,
+    options?: RuntimeCallOptions,
+  ): Promise<GenerateResponse>;
   streamGenerate(
-    request: StreamGenerateRequest,
+    request: RuntimeAiStreamGenerateRequestInput,
     options?: RuntimeStreamCallOptions,
   ): Promise<AsyncIterable<StreamGenerateEvent>>;
-  embed(request: EmbedRequest, options?: RuntimeCallOptions): Promise<EmbedResponse>;
+  embed(
+    request: RuntimeAiEmbedRequestInput,
+    options?: RuntimeCallOptions,
+  ): Promise<EmbedResponse>;
   submitMediaJob(
-    request: SubmitMediaJobRequest,
+    request: RuntimeAiSubmitMediaJobRequestInput,
     options?: RuntimeCallOptions,
   ): Promise<SubmitMediaJobResponse>;
   getMediaJob(request: GetMediaJobRequest, options?: RuntimeCallOptions): Promise<GetMediaJobResponse>;

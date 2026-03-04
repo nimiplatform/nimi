@@ -425,15 +425,7 @@ export function ensureRuntime(config: NimiAiProviderConfig): {
     });
   }
 
-  const subjectUserId = normalizeText(config.subjectUserId);
-  if (!subjectUserId) {
-    throw createNimiError({
-      message: 'subjectUserId is required',
-      reasonCode: ReasonCode.SDK_AI_PROVIDER_SUBJECT_USER_ID_REQUIRED,
-      actionHint: 'set_subject_user_id',
-      source: 'sdk',
-    });
-  }
+  const subjectUserId = normalizeText(config.subjectUserId) || undefined;
 
   return {
     runtime: config.runtime,

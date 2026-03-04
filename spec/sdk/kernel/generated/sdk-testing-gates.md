@@ -5,6 +5,12 @@
 | Gate | Command | Source Rule |
 |---|---|---|
 | `unit_module` | `pnpm --filter @nimiplatform/sdk test` | `S-GATE-010` |
-| `boundary_checks` | `pnpm check:sdk-import-boundary` | `S-GATE-020` |
+| `boundary_checks` | `pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming` | `S-GATE-020` |
+| `vnext_matrix` | `pnpm check:sdk-vnext-matrix` | `S-GATE-030` |
+| `mod_scope` | `pnpm check:mods-no-runtime-sdk` | `S-GATE-040` |
+| `runtime_projection` | `pnpm check:runtime-bridge-method-drift` | `S-GATE-050` |
+| `coverage` | `pnpm check:sdk-coverage` | `S-GATE-060` |
 | `provider_alignment` | `pnpm check:sdk-spec-kernel-consistency` | `S-GATE-070` |
+| `live_smoke` | `node scripts/run-live-test-matrix.mjs && pnpm check:live-provider-invariants && pnpm check:live-smoke-gate` | `S-GATE-080` |
+| `release_parity` | `pnpm check:live-smoke-gate --require-release` | `S-GATE-090` |
 | `docs_drift` | `pnpm check:sdk-spec-kernel-docs-drift` | `S-GATE-091` |

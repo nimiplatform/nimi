@@ -22,7 +22,7 @@ export const MEDIA_JOB_STATUS_TIMEOUT = 7;
 
 export type RuntimeDefaults = {
   appId: string;
-  subjectUserId: string;
+  subjectUserId?: string;
   routePolicy: AiRoutePolicy;
   fallback: AiFallbackPolicy;
   timeoutMs?: number;
@@ -32,7 +32,7 @@ export type RuntimeDefaults = {
 export type NimiAiProviderConfig = {
   runtime: Runtime;
   appId: string;
-  subjectUserId: string;
+  subjectUserId?: string;
   routePolicy?: AiRoutePolicy;
   fallback?: AiFallbackPolicy;
   timeoutMs?: number;

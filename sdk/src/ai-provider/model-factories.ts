@@ -47,6 +47,20 @@ import {
   toUtf8,
 } from './helpers.js';
 
+function withOptionalSubjectUserId<T extends Record<string, unknown>>(
+  request: T,
+  subjectUserId: string | undefined,
+): T | (T & { subjectUserId: string }) {
+  const normalized = normalizeText(subjectUserId);
+  if (!normalized) {
+    return request;
+  }
+  return {
+    ...request,
+    subjectUserId: normalized,
+  };
+}
+
 export function createLanguageModel(
   runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
@@ -69,9 +83,8 @@ export function createLanguageModel(
           });
         }
 
-        const response = await runtime.ai.generate({
+        const response = await runtime.ai.generate(withOptionalSubjectUserId({
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
           modelId,
           modal: MODAL_TEXT,
           input: prompt.input,
@@ -84,7 +97,7 @@ export function createLanguageModel(
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs: defaults.timeoutMs || 0,
           connectorId: '',
-        }, toCallOptions(defaults, {
+        }, defaults.subjectUserId), toCallOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
         }));
 
@@ -122,9 +135,8 @@ export function createLanguageModel(
           });
         }
 
-        const runtimeStream = await runtime.ai.streamGenerate({
+        const runtimeStream = await runtime.ai.streamGenerate(withOptionalSubjectUserId({
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
           modelId,
           modal: MODAL_TEXT,
           input: prompt.input,
@@ -137,7 +149,7 @@ export function createLanguageModel(
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs: defaults.timeoutMs || 0,
           connectorId: '',
-        }, toStreamOptions(defaults, {
+        }, defaults.subjectUserId), toStreamOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
           signal: options.abortSignal,
         }));
@@ -249,16 +261,15 @@ export function createEmbeddingModel(
     supportsParallelCalls: true,
     doEmbed: async (options: EmbeddingModelV3CallOptions): Promise<EmbeddingModelV3Result> => {
       try {
-        const response = await runtime.ai.embed({
+        const response = await runtime.ai.embed(withOptionalSubjectUserId({
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
           modelId,
           inputs: options.values,
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs: defaults.timeoutMs || 0,
           connectorId: '',
-        }, toCallOptions(defaults, {
+        }, defaults.subjectUserId), toCallOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
           metadata: undefined,
         }));
@@ -300,7 +311,9 @@ export function createImageModel(
         const requestLabels = toLabels(providerOptions.labels);
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
+          ...(normalizeText(defaults.subjectUserId)
+            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
+            : {}),
           modelId,
           modal: MODAL_IMAGE,
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
@@ -368,7 +381,9 @@ export function createVideoModel(
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
+          ...(normalizeText(defaults.subjectUserId)
+            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
+            : {}),
           modelId,
           modal: MODAL_VIDEO,
           routePolicy: resolveRoutePolicy(resolvedRoute),
@@ -417,7 +432,9 @@ export function createSpeechModel(
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
+          ...(normalizeText(defaults.subjectUserId)
+            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
+            : {}),
           modelId,
           modal: MODAL_TTS,
           routePolicy: resolveRoutePolicy(resolvedRoute),
@@ -502,7 +519,9 @@ export function createTranscriptionModel(
               : undefined;
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
-          subjectUserId: defaults.subjectUserId,
+          ...(normalizeText(defaults.subjectUserId)
+            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
+            : {}),
           modelId,
           modal: MODAL_STT,
           routePolicy: resolveRoutePolicy(resolvedRoute),

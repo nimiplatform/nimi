@@ -33,7 +33,7 @@ export type RuntimeHookLlmFacade = {
     localOpenAiEndpoint?: string;
     connectorId?: string;
     providerHints?: LocalAiProviderHints;
-  }) => Promise<{ text: string; promptTraceId: string }>;
+  }) => Promise<{ text: string; promptTraceId: string; traceId: string }>;
   streamModText: (input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -65,7 +65,7 @@ export type RuntimeHookLlmFacade = {
     localOpenAiEndpoint?: string;
     connectorId?: string;
     providerHints?: LocalAiProviderHints;
-  }) => Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }>;
+  }) => Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }>;
   generateModVideo: (input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -78,7 +78,7 @@ export type RuntimeHookLlmFacade = {
     localOpenAiEndpoint?: string;
     connectorId?: string;
     providerHints?: LocalAiProviderHints;
-  }) => Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }>;
+  }) => Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }>;
   generateModEmbedding: (input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -90,7 +90,7 @@ export type RuntimeHookLlmFacade = {
     localOpenAiEndpoint?: string;
     connectorId?: string;
     providerHints?: LocalAiProviderHints;
-  }) => Promise<{ embeddings: number[][] }>;
+  }) => Promise<{ embeddings: number[][]; traceId: string }>;
   transcribeModSpeech: (input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -104,7 +104,7 @@ export type RuntimeHookLlmFacade = {
     localOpenAiEndpoint?: string;
     connectorId?: string;
     providerHints?: LocalAiProviderHints;
-  }) => Promise<{ text: string }>;
+  }) => Promise<{ text: string; traceId: string }>;
   listSpeechProviders: (input: {
     modId: string;
     sourceType?: HookSourceType;
@@ -181,7 +181,7 @@ export type HookLlmClient = {
       localOpenAiEndpoint?: string;
       connectorId?: string;
       providerHints?: LocalAiProviderHints;
-    }) => Promise<{ text: string; promptTraceId: string }>;
+    }) => Promise<{ text: string; promptTraceId: string; traceId: string }>;
     stream: (input: {
       provider: string;
       prompt: string;
@@ -211,7 +211,7 @@ export type HookLlmClient = {
       localOpenAiEndpoint?: string;
       connectorId?: string;
       providerHints?: LocalAiProviderHints;
-    }) => Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }> }>;
+    }) => Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }>;
   };
   video: {
     generate: (input: {
@@ -224,7 +224,7 @@ export type HookLlmClient = {
       localOpenAiEndpoint?: string;
       connectorId?: string;
       providerHints?: LocalAiProviderHints;
-    }) => Promise<{ videos: Array<{ uri?: string; mimeType?: string }> }>;
+    }) => Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }>;
   };
   embedding: {
     generate: (input: {
@@ -236,7 +236,7 @@ export type HookLlmClient = {
       localOpenAiEndpoint?: string;
       connectorId?: string;
       providerHints?: LocalAiProviderHints;
-    }) => Promise<{ embeddings: number[][] }>;
+    }) => Promise<{ embeddings: number[][]; traceId: string }>;
   };
   checkHealth: (input: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult>;
   speech: {
@@ -274,7 +274,7 @@ export type HookLlmClient = {
       localOpenAiEndpoint?: string;
       connectorId?: string;
       providerHints?: LocalAiProviderHints;
-    }) => Promise<{ text: string }>;
+    }) => Promise<{ text: string; traceId: string }>;
     stream: {
       open: (input: {
         text: string;
