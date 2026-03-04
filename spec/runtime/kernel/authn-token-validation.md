@@ -25,13 +25,14 @@ Realm JWT 最小必校验集合：
 
 - 仅允许配置白名单算法（Phase 1 默认 `RS256`/`ES256`）。
 - `alg=none` 必须拒绝。
-- `kid` 缺失且无法定位有效公钥时必须拒绝。
+- `kid` 缺失必须拒绝。
 
 ## K-AUTHN-004 JWKS 缓存与刷新
 
 - JWKS 读取采用缓存优先，缓存 miss 或 `kid` miss 触发单次刷新。
 - 刷新失败时不得降级为 anonymous，必须返回 `UNAUTHENTICATED`。
 - 必须具备失败回退窗口：可在短 TTL 内继续使用最近一次成功快照（仅用于已命中 `kid`）。
+- `auth.jwt.jwksUrl` 是 Runtime 验签公钥的唯一来源；`publicKeyPath` 不属于有效验签链路。
 
 ## K-AUTHN-005 时钟偏差
 

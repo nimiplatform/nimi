@@ -16,6 +16,7 @@ export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
   'realm.human_chat.read' as ScopeName,
   'realm.human_nsfw_consent.read' as ScopeName,
   'realm.invitations.read' as ScopeName,
+  'realm.jwks.read' as ScopeName,
   'realm.me.read' as ScopeName,
   'realm.me_two_factor.read' as ScopeName,
   'realm.media.read' as ScopeName,

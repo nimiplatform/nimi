@@ -34,6 +34,10 @@ export function writeRealmFacade(repoRoot) {
   }
 
   lines.push('');
+  lines.push('// Account data extension exports.');
+  lines.push("export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';");
+  lines.push("export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';");
+  lines.push('');
   lines.push('// Explicit service type exports for public naming checks.');
   lines.push("export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';");
   lines.push('');

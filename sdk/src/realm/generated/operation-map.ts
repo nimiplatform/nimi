@@ -1898,6 +1898,17 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json"
   },
+  "JwksService.getAuthJwks": {
+    "operationId": "getAuthJwks",
+    "method": "GET",
+    "path": "/api/auth/jwks",
+    "service": "JwksService",
+    "methodName": "getAuthJwks",
+    "tag": "Jwks",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false
+  },
   "MediaService.createImageDirectUpload": {
     "operationId": "createImageDirectUpload",
     "method": "POST",
@@ -5080,6 +5091,9 @@ export const REALM_SERVICE_METHODS = {
     "invitationControllerGenerateCode": "InvitationsService.invitationControllerGenerateCode",
     "invitationControllerListMyCodes": "InvitationsService.invitationControllerListMyCodes",
     "invitationControllerVerifyCode": "InvitationsService.invitationControllerVerifyCode"
+  },
+  "JwksService": {
+    "getAuthJwks": "JwksService.getAuthJwks"
   },
   "MediaService": {
     "createImageDirectUpload": "MediaService.createImageDirectUpload",

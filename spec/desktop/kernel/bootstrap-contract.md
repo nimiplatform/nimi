@@ -10,11 +10,26 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 ## D-BOOT-001 — Runtime Defaults 加载
 
-启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken）和 `RuntimeExecutionDefaults`（provider、model、agent 绑定）。
+启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model、agent 绑定）。
 
 - **daemon 就绪前置条件**：Tauri backend 在返回 `runtime_defaults` 前确保 daemon 可达。若 daemon 处于 `STARTING` 状态（K-DAEMON-001），backend 等待 daemon 就绪（最长等待 30s，与 D-IPC-002 启动超时一致）。超时后返回错误，进入 `D-BOOT-008` 错误路径。
 - 失败行为：抛出异常，进入 `D-BOOT-008` 错误路径。
 - 后续依赖：DataSync 初始化、Platform Client 初始化。
+
+### Runtime JWT Config Sync
+
+在 `D-BOOT-001` 之后、业务初始化之前，Desktop 必须将 Realm JWT 验签参数写入 Runtime 配置：
+
+- 写入目标：`auth.jwt.jwksUrl`、`auth.jwt.issuer`、`auth.jwt.audience`（K-DAEMON-009）。
+- 数据来源：`runtime_defaults.realm.{jwksUrl,jwtIssuer,jwtAudience}`。
+- 写入流程：`runtime_bridge_config_get` → 合并配置 → `runtime_bridge_config_set`。
+
+重启分支（基于 `reasonCode`）：
+
+- `CONFIG_APPLIED`：继续 bootstrap。
+- `CONFIG_RESTART_REQUIRED` 且 daemon `running=true` 且 `managed=true`：Desktop 自动执行 `runtime_bridge_restart` 后继续 bootstrap。
+- `CONFIG_RESTART_REQUIRED` 且 daemon `running=true` 且 `managed=false`：bootstrap fail-close，返回明确错误要求用户手动重启外部 Runtime。
+- `CONFIG_RESTART_REQUIRED` 且 daemon `running=false`：继续 bootstrap（配置已落盘，等待后续启动生效）。
 
 ## D-BOOT-002 — Platform Client 初始化
 

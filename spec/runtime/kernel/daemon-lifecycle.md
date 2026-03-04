@@ -179,6 +179,9 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `localAuditCapacity` | int | `5000` | hot | Local 审计事件存储上限 | K-LOCAL-016 |
 | `sessionTtlMinSeconds` | int | `60` | hot | Session TTL 下限（秒） | K-AUTHSVC-004 |
 | `sessionTtlMaxSeconds` | int | `86400` | hot | Session TTL 上限（秒） | K-AUTHSVC-004 |
+| `auth.jwt.issuer` | string | `` | restart | JWT `iss` 校验目标；空值=不校验 | K-AUTHN-003 |
+| `auth.jwt.audience` | string | `` | restart | JWT `aud` 校验目标；空值=不校验 | K-AUTHN-003 |
+| `auth.jwt.jwksUrl` | string | `` | restart | JWT 公钥来源 JWKS 地址；空值=拒绝所有 bearer token | K-AUTHN-004 |
 | `providers` | map | `{}` | hot | AI Provider 路由表（key=provider name） | K-DAEMON-009 |
 | `engines.localai.enabled` | bool | `false` | restart | 启用 LocalAI 引擎 SUPERVISED 模式 | K-LENG-004d |
 | `engines.localai.version` | string | `3.12.1` | restart | LocalAI 二进制版本 | K-LENG-004d |
@@ -188,6 +191,8 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `engines.nexa.port` | int | `8000` | restart | Nexa 监听端口 | K-LENG-004d |
 
 `providers` 值结构：`{ baseUrl: string, apiKeyEnv: string }`。`apiKey` 明文字段被禁止（写入校验拒绝，`CONFIG_SECRET_POLICY_VIOLATION`），仅允许 `apiKeyEnv` 引用环境变量名。
+
+JWT 验签配置仅支持 `auth.jwt.jwksUrl`，不支持 `auth.jwt.publicKeyPath`。
 
 未知字段在解析时忽略（向前兼容）。
 

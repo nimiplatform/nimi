@@ -765,6 +765,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/jwks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get JWKS */
+        get: operations["getAuthJwks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/logout": {
         parameters: {
             query?: never;
