@@ -22,17 +22,10 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 }
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
-  if (value === 'local' || value === 'cloud' || value === 'runtime' || value === 'mods') return value;
-  // Legacy value mapping
-  if (value === 'models') return 'local';
-  if (value === 'cloud-api' || value === 'token-api') return 'cloud';
-  if (value === 'providers' || value === 'audit') return 'runtime';
+  if (value === 'overview' || value === 'local' || value === 'cloud' || value === 'runtime' || value === 'mods') {
+    return value;
+  }
   return 'overview';
-}
-
-/** @deprecated Use normalizePageIdV11 */
-export function normalizeSetupPageV11(value: unknown): RuntimeSetupPageIdV11 {
-  return normalizePageIdV11(value);
 }
 
 export function normalizeCapabilityV11(value: unknown): CapabilityV11 {

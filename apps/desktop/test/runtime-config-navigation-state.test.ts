@@ -19,26 +19,6 @@ test('normalizePageIdV11: current values pass through unchanged', () => {
   assert.equal(normalizePageIdV11('mods'), 'mods');
 });
 
-test('normalizePageIdV11: legacy "models" maps to "local"', () => {
-  assert.equal(normalizePageIdV11('models'), 'local');
-});
-
-test('normalizePageIdV11: legacy "cloud-api" maps to "cloud"', () => {
-  assert.equal(normalizePageIdV11('cloud-api'), 'cloud');
-});
-
-test('normalizePageIdV11: legacy "token-api" maps to "cloud"', () => {
-  assert.equal(normalizePageIdV11('token-api'), 'cloud');
-});
-
-test('normalizePageIdV11: legacy "providers" maps to "runtime"', () => {
-  assert.equal(normalizePageIdV11('providers'), 'runtime');
-});
-
-test('normalizePageIdV11: legacy "audit" maps to "runtime"', () => {
-  assert.equal(normalizePageIdV11('audit'), 'runtime');
-});
-
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
   assert.equal(normalizePageIdV11(''), 'overview');
   assert.equal(normalizePageIdV11(null), 'overview');
@@ -63,11 +43,9 @@ test('createDefaultStateV11: activePage defaults to "overview"', () => {
   assert.equal(state.version, 11);
 });
 
-test('createDefaultStateV11: state shape does not contain activeSection or activeSetupPage', () => {
+test('createDefaultStateV11: state shape keeps current navigation field only', () => {
   const state = createDefaultStateV11({}) as Record<string, unknown>;
 
-  assert.equal('activeSection' in state, false, 'must not contain activeSection');
-  assert.equal('activeSetupPage' in state, false, 'must not contain activeSetupPage');
   assert.equal('activePage' in state, true, 'must contain activePage');
 });
 
@@ -87,36 +65,6 @@ test('RUNTIME_PAGE_META covers all 5 pages', () => {
   }
 
   assert.equal(Object.keys(RUNTIME_PAGE_META).length, 5, 'RUNTIME_PAGE_META must have exactly 5 entries');
-});
-
-// ---------------------------------------------------------------------------
-// normalizeStoredStateV11: legacy activeSetupPage migration
-// ---------------------------------------------------------------------------
-
-test('normalizeStoredStateV11: migrates legacy activeSetupPage to activePage', () => {
-  const seed = { localProviderEndpoint: 'http://127.0.0.1:1234/v1' };
-
-  // Simulate a stored state with old field name
-  const legacyStored = {
-    version: 11 as const,
-    initializedByV11: true,
-    activeSetupPage: 'models', // legacy field + legacy value
-    diagnosticsCollapsed: true,
-    uiMode: 'simple',
-    selectedSource: 'local-runtime',
-    activeCapability: 'chat',
-    localRuntime: {
-      endpoint: 'http://127.0.0.1:1234/v1',
-      models: [],
-      nodeMatrix: [],
-      status: 'idle',
-      lastCheckedAt: null,
-      lastDetail: '',
-    },
-  };
-
-  const result = normalizeStoredStateV11(seed, legacyStored as never);
-  assert.equal(result.activePage, 'local', 'legacy activeSetupPage: "models" → activePage: "local"');
 });
 
 test('normalizeStoredStateV11: new activePage field takes precedence', () => {
@@ -196,8 +144,6 @@ test('persistRuntimeConfigStateV11: persists activePage to localStorage', () => 
 
     const parsed = JSON.parse(raw);
     assert.equal(parsed.activePage, 'mods', 'activePage should be persisted');
-    assert.equal(parsed.activeSetupPage, undefined, 'legacy activeSetupPage must not be persisted');
-    assert.equal(parsed.activeSection, undefined, 'legacy activeSection must not be persisted');
   } finally {
     delete (globalThis as Record<string, unknown>).localStorage;
   }

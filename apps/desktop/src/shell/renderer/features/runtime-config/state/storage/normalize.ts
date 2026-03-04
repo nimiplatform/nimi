@@ -55,10 +55,7 @@ export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: Stor
   const parsedRecord = parsed as StoredStateV11 & Record<string, unknown>;
   const localRuntime = normalizeLocalRuntimeFromAny(seed, parsedRecord, fallback);
 
-  // Support legacy field names: activeSetupPage → activePage
-  const rawActivePage = parsedRecord.activePage
-    || (parsedRecord as Record<string, unknown>).activeSetupPage
-    || fallback.activePage;
+  const rawActivePage = parsedRecord.activePage || fallback.activePage;
 
   // Connectors are NOT loaded from localStorage — runtime bridge config (config.json)
   // is the single source of truth. Connectors start empty and are populated by bridge merge.

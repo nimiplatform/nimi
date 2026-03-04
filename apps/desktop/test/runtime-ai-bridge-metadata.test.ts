@@ -15,9 +15,6 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
     core: {
       invoke: async (command: string, payload?: unknown) => {
         calls.push({ command, payload });
-        if (command === 'credential_get_secret') {
-          return 'sk-live-in-memory';
-        }
         return null;
       },
     },
@@ -64,7 +61,7 @@ test('runtime ai bridge metadata remains managed only for token-api requests', a
     assert.ok(streamOptions.metadata.traceId.length > 0);
 
     assert.equal(
-      calls.some((call) => call.command === 'credential_get_secret'),
+      calls.some((call) => call.command.startsWith('credential')),
       false,
     );
   } finally {
