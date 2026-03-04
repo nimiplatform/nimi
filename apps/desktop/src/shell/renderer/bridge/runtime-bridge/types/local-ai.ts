@@ -1,0 +1,31 @@
+export type {
+  LocalAiModelStatus,
+  LocalAiModelRecord,
+  LocalAiInstallAcceptedResponse,
+  LocalAiModelHealth,
+  LocalAiModelsHealthResult,
+  LocalAiInferenceAuditEventType,
+  LocalAiInferenceAuditModality,
+  LocalAiInferenceAuditPayload,
+  LocalAiAuditEvent,
+  LocalAiAuditTimeRange,
+  LocalAiDownloadProgressEvent,
+  LocalAiDownloadSessionSummary,
+  LocalAiAuditListPayload,
+  LocalAiInstallPayload,
+  LocalAiVerifiedModelDescriptor,
+  LocalAiInstallVerifiedPayload,
+  LocalAiImportPayload,
+} from './local-ai-types.js';
+
+export {
+  parseLocalAiModelRecord,
+  parseLocalAiVerifiedModelDescriptor,
+  parseLocalAiVerifiedModelDescriptorList,
+  parseLocalAiModelRecordList,
+  parseLocalAiModelsHealthResult,
+  parseLocalAiAuditEvent,
+  parseLocalAiAuditEventList,
+  parseLocalAiPickManifestResult,
+  parseLocalAiDownloadProgressEvent,
+} from './local-ai-parsers.js';
