@@ -19,13 +19,13 @@ mod tests {
 
     #[test]
     fn allowed_http_origins_contains_runtime_defaults() {
-        std::env::set_var("NIMI_REALM_URL", "https://gateway.nimi.local/v1");
+        std::env::set_var("NIMI_REALM_URL", "https://gateway.nimi.xyz/v1");
         std::env::set_var("NIMI_LOCAL_PROVIDER_ENDPOINT", "http://127.0.0.1:1234/v1");
         std::env::set_var("NIMI_LOCAL_OPENAI_ENDPOINT", "http://localhost:1234/v1");
 
         let origins = allowed_http_origins();
 
-        assert!(origins.contains("https://gateway.nimi.local:443"));
+        assert!(origins.contains("https://gateway.nimi.xyz:443"));
         assert!(origins.contains("http://127.0.0.1:1234"));
         assert!(origins.contains("http://localhost:1234"));
     }

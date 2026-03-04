@@ -92,11 +92,11 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
 
   try {
     const realmA = new Realm({
-      baseUrl: 'https://realm-a.nimi.local',
+      baseUrl: 'https://realm-a.nimi.xyz',
       auth: { accessToken: 'token-a' },
     });
     const realmB = new Realm({
-      baseUrl: 'https://realm-b.nimi.local',
+      baseUrl: 'https://realm-b.nimi.xyz',
       auth: { accessToken: 'token-b' },
     });
 
@@ -104,9 +104,9 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
     await realmB.raw.request({ method: 'GET', path: '/api/b' });
 
     assert.equal(calls.length, 2);
-    assert.equal(calls[0]?.url, 'https://realm-a.nimi.local/api/a');
+    assert.equal(calls[0]?.url, 'https://realm-a.nimi.xyz/api/a');
     assert.equal(calls[0]?.authorization, 'Bearer token-a');
-    assert.equal(calls[1]?.url, 'https://realm-b.nimi.local/api/b');
+    assert.equal(calls[1]?.url, 'https://realm-b.nimi.xyz/api/b');
     assert.equal(calls[1]?.authorization, 'Bearer token-b');
   } finally {
     globalThis.fetch = originalFetch;
@@ -129,17 +129,17 @@ test('Realm services facade uses instance config (no global OpenAPI mutation)', 
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-service.nimi.local',
+      baseUrl: 'https://realm-service.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
     await realm.services.AuthService.passwordLogin({
-      email: 'test@nimi.local',
+      email: 'test@nimi.xyz',
       password: 'secret',
     });
 
     assert.equal(calls.length, 1);
-    assert.equal(calls[0], 'https://realm-service.nimi.local/api/auth/password/login');
+    assert.equal(calls[0], 'https://realm-service.nimi.xyz/api/auth/password/login');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -164,7 +164,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-error.nimi.local',
+      baseUrl: 'https://realm-error.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
@@ -205,7 +205,7 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-validation.nimi.local',
+      baseUrl: 'https://realm-validation.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
@@ -249,7 +249,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-status-map.nimi.local',
+      baseUrl: 'https://realm-status-map.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
@@ -289,7 +289,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-network.nimi.local',
+      baseUrl: 'https://realm-network.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
@@ -332,7 +332,7 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-timeout.nimi.local',
+      baseUrl: 'https://realm-timeout.nimi.xyz',
       timeoutMs: 10,
       auth: { accessToken: Realm.NO_AUTH },
     });
@@ -377,7 +377,7 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-abort.nimi.local',
+      baseUrl: 'https://realm-abort.nimi.xyz',
       timeoutMs: 1000,
       auth: { accessToken: Realm.NO_AUTH },
     });
@@ -482,7 +482,7 @@ test('Realm 401 with refreshToken triggers refresh then retries successfully', a
   try {
     let refreshedResult: unknown = null;
     const realm = new Realm({
-      baseUrl: 'https://realm-refresh.nimi.local',
+      baseUrl: 'https://realm-refresh.nimi.xyz',
       auth: {
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh-token',
@@ -516,7 +516,7 @@ test('Realm 401 without refreshToken throws directly (existing behavior)', async
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-no-refresh.nimi.local',
+      baseUrl: 'https://realm-no-refresh.nimi.xyz',
       auth: { accessToken: 'expired-token' },
     });
 
@@ -563,7 +563,7 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
   try {
     let failedError: unknown = null;
     const realm = new Realm({
-      baseUrl: 'https://realm-refresh-fail.nimi.local',
+      baseUrl: 'https://realm-refresh-fail.nimi.xyz',
       auth: {
         accessToken: 'expired-token',
         refreshToken: 'expired-refresh-token',
@@ -606,7 +606,7 @@ test('Realm 403 does not trigger refresh', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-403.nimi.local',
+      baseUrl: 'https://realm-403.nimi.xyz',
       auth: {
         accessToken: 'valid-token',
         refreshToken: 'valid-refresh',
@@ -662,7 +662,7 @@ test('Realm refreshToken supports function mode', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-fn-refresh.nimi.local',
+      baseUrl: 'https://realm-fn-refresh.nimi.xyz',
       auth: {
         accessToken: 'expired-token',
         refreshToken: () => 'dynamic-refresh-token',
@@ -719,7 +719,7 @@ test('Realm NO_AUTH does not send Authorization header (SDKREALM-016)', async ()
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-noauth.nimi.local',
+      baseUrl: 'https://realm-noauth.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
@@ -749,7 +749,7 @@ test('Realm ready() emits error event on probe failure (SDKREALM-019)', async ()
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-ready-error.nimi.local',
+      baseUrl: 'https://realm-ready-error.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 
@@ -783,7 +783,7 @@ test('Realm services support path-first call pattern for mixed path/query method
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-params.nimi.local',
+      baseUrl: 'https://realm-params.nimi.xyz',
       auth: { accessToken: Realm.NO_AUTH },
     });
 

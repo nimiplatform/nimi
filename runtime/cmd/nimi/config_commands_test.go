@@ -113,6 +113,122 @@ func TestRunRuntimeConfigSetAndSecretPolicy(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	setOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "auth.jwt.jwksUrl=https://realm.nimi.xyz/api/auth/jwks",
+			"--set", "auth.jwt.issuer=https://realm.nimi.xyz",
+			"--set", "auth.jwt.audience=nimi-runtime",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeConfig set auth.jwt.*: %v", err)
+	}
+	setPayload := parseJSONMap(t, setOutput)
+	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.Auth == nil || cfg.Auth.JWT == nil {
+		t.Fatalf("auth.jwt config should exist after set: %#v", cfg.Auth)
+	}
+	if cfg.Auth.JWT.JWKSURL != "https://realm.nimi.xyz/api/auth/jwks" {
+		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
+	}
+	if cfg.Auth.JWT.Issuer != "https://realm.nimi.xyz" {
+		t.Fatalf("issuer mismatch: %q", cfg.Auth.JWT.Issuer)
+	}
+	if cfg.Auth.JWT.Audience != "nimi-runtime" {
+		t.Fatalf("audience mismatch: %q", cfg.Auth.JWT.Audience)
+	}
+}
+
+func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	if err := runRuntimeConfig([]string{
+		"set",
+		"--set", "auth.jwt.jwksUrl=https://realm.nimi.xyz/api/auth/jwks",
+		"--set", "auth.jwt.issuer=https://realm.nimi.xyz",
+		"--set", "auth.jwt.audience=nimi-runtime",
+		"--json",
+	}); err != nil {
+		t.Fatalf("set auth.jwt.*: %v", err)
+	}
+
+	unsetOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--unset", "auth.jwt.jwksUrl",
+			"--unset", "auth.jwt.issuer",
+			"--unset", "auth.jwt.audience",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("unset auth.jwt.*: %v", err)
+	}
+	unsetPayload := parseJSONMap(t, unsetOutput)
+	if asString(unsetPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("unset reasonCode mismatch: %s", unsetOutput)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.Auth != nil {
+		t.Fatalf("auth block should be pruned when all jwt fields unset: %#v", cfg.Auth)
+	}
+}
+
+func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	err := runRuntimeConfig([]string{
+		"set",
+		"--set", "auth.jwt.jwksUrl=ftp://realm.nimi.xyz/jwks.json",
+		"--json",
+	})
+	if err == nil {
+		t.Fatalf("expected schema invalid error for bad jwksUrl")
+	}
+	if !strings.Contains(err.Error(), configReasonSchemaInvalid) {
+		t.Fatalf("expected %s, got %v", configReasonSchemaInvalid, err)
+	}
+}
+
 func TestRunRuntimeConfigRejectsMigrateSubcommand(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -296,6 +412,9 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
 		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
 		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
+		"NIMI_RUNTIME_AUTH_JWT_ISSUER",
+		"NIMI_RUNTIME_AUTH_JWT_AUDIENCE",
+		"NIMI_RUNTIME_AUTH_JWT_JWKS_URL",
 	}
 	for _, key := range keys {
 		t.Setenv(key, "")

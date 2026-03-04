@@ -5,289 +5,459 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"os"
-	"path/filepath"
+	"encoding/base64"
+	"encoding/json"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func generateRSAKeyPair(t *testing.T) (*rsa.PrivateKey, string) {
+type jwksTestServer struct {
+	t        *testing.T
+	server   *httptest.Server
+	mu       sync.Mutex
+	document jwksDocument
+	status   int
+	hits     int
+}
+
+func newJWKSTestServer(t *testing.T, document jwksDocument) *jwksTestServer {
+	t.Helper()
+	s := &jwksTestServer{
+		t:        t,
+		document: document,
+		status:   http.StatusOK,
+	}
+	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		s.mu.Lock()
+		s.hits++
+		status := s.status
+		doc := s.document
+		s.mu.Unlock()
+
+		if status != http.StatusOK {
+			w.WriteHeader(status)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(doc); err != nil {
+			t.Fatalf("encode jwks response: %v", err)
+		}
+	}))
+	return s
+}
+
+func (s *jwksTestServer) Close() {
+	s.server.Close()
+}
+
+func (s *jwksTestServer) URL() string {
+	return s.server.URL
+}
+
+func (s *jwksTestServer) SetDocument(document jwksDocument) {
+	s.mu.Lock()
+	s.document = document
+	s.mu.Unlock()
+}
+
+func (s *jwksTestServer) SetStatus(status int) {
+	s.mu.Lock()
+	s.status = status
+	s.mu.Unlock()
+}
+
+func (s *jwksTestServer) HitCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.hits
+}
+
+func generateRSAKey(t *testing.T) *rsa.PrivateKey {
 	t.Helper()
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("generate RSA key: %v", err)
 	}
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-	if err != nil {
-		t.Fatalf("marshal public key: %v", err)
-	}
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubKeyBytes})
-	path := filepath.Join(t.TempDir(), "pub.pem")
-	if err := os.WriteFile(path, pubPEM, 0o644); err != nil {
-		t.Fatalf("write public key: %v", err)
-	}
-	return privateKey, path
+	return privateKey
 }
 
-func generateECKeyPair(t *testing.T) (*ecdsa.PrivateKey, string) {
+func generateECKey(t *testing.T) *ecdsa.PrivateKey {
 	t.Helper()
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		t.Fatalf("generate EC key: %v", err)
+		t.Fatalf("generate ECDSA key: %v", err)
 	}
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-	if err != nil {
-		t.Fatalf("marshal public key: %v", err)
-	}
-	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubKeyBytes})
-	path := filepath.Join(t.TempDir(), "pub.pem")
-	if err := os.WriteFile(path, pubPEM, 0o644); err != nil {
-		t.Fatalf("write public key: %v", err)
-	}
-	return privateKey, path
+	return privateKey
 }
 
-func signRS256(t *testing.T, key *rsa.PrivateKey, claims jwt.MapClaims) string {
+func rsaJWKFromPrivateKey(t *testing.T, key *rsa.PrivateKey, kid string) jwkEntry {
+	t.Helper()
+	return jwkEntry{
+		Kid: kid,
+		Kty: "RSA",
+		Use: "sig",
+		Alg: "RS256",
+		N:   base64.RawURLEncoding.EncodeToString(key.PublicKey.N.Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(key.PublicKey.E)).Bytes()),
+	}
+}
+
+func ecJWKFromPrivateKey(t *testing.T, key *ecdsa.PrivateKey, kid string) jwkEntry {
+	t.Helper()
+	return jwkEntry{
+		Kid: kid,
+		Kty: "EC",
+		Use: "sig",
+		Alg: "ES256",
+		Crv: "P-256",
+		X:   base64.RawURLEncoding.EncodeToString(key.PublicKey.X.Bytes()),
+		Y:   base64.RawURLEncoding.EncodeToString(key.PublicKey.Y.Bytes()),
+	}
+}
+
+func signRS256(t *testing.T, key *rsa.PrivateKey, kid string, claims jwt.MapClaims) string {
 	t.Helper()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	if strings.TrimSpace(kid) != "" {
+		token.Header["kid"] = kid
+	}
 	signed, err := token.SignedString(key)
 	if err != nil {
-		t.Fatalf("sign token: %v", err)
+		t.Fatalf("sign RS256 token: %v", err)
 	}
 	return signed
 }
 
-func signES256(t *testing.T, key *ecdsa.PrivateKey, claims jwt.MapClaims) string {
+func signES256(t *testing.T, key *ecdsa.PrivateKey, kid string, claims jwt.MapClaims) string {
 	t.Helper()
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	if strings.TrimSpace(kid) != "" {
+		token.Header["kid"] = kid
+	}
 	signed, err := token.SignedString(key)
 	if err != nil {
-		t.Fatalf("sign token: %v", err)
+		t.Fatalf("sign ES256 token: %v", err)
+	}
+	return signed
+}
+
+func signHS256(t *testing.T, secret string, kid string, claims jwt.MapClaims) string {
+	t.Helper()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	if strings.TrimSpace(kid) != "" {
+		token.Header["kid"] = kid
+	}
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		t.Fatalf("sign HS256 token: %v", err)
 	}
 	return signed
 }
 
 func validClaims() jwt.MapClaims {
+	now := time.Now()
 	return jwt.MapClaims{
 		"sub": "user-123",
 		"iss": "test-issuer",
 		"aud": "test-audience",
-		"exp": time.Now().Add(1 * time.Hour).Unix(),
-		"iat": time.Now().Unix(),
-		"nbf": time.Now().Unix(),
+		"exp": now.Add(1 * time.Hour).Unix(),
+		"iat": now.Unix(),
+		"nbf": now.Unix(),
 		"sid": "session-abc",
 	}
 }
 
-func TestValidateRS256_ValidToken(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "test-issuer", "test-audience")
+func TestValidateRS256ValidTokenWithJWKS(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	token := signRS256(t, key, validClaims())
-	id, err := v.Validate(token)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	identity, err := validator.Validate(token)
 	if err != nil {
 		t.Fatalf("Validate: %v", err)
 	}
-	if id == nil {
-		t.Fatal("expected non-nil identity")
+	if identity == nil {
+		t.Fatal("expected identity")
 	}
-	if id.SubjectUserID != "user-123" {
-		t.Errorf("expected sub user-123, got %s", id.SubjectUserID)
+	if identity.SubjectUserID != "user-123" {
+		t.Fatalf("subject mismatch: %q", identity.SubjectUserID)
 	}
-	if id.Issuer != "test-issuer" {
-		t.Errorf("expected issuer test-issuer, got %s", id.Issuer)
+	if identity.Issuer != "test-issuer" {
+		t.Fatalf("issuer mismatch: %q", identity.Issuer)
 	}
-	if id.Audience != "test-audience" {
-		t.Errorf("expected audience test-audience, got %s", id.Audience)
+	if identity.Audience != "test-audience" {
+		t.Fatalf("audience mismatch: %q", identity.Audience)
 	}
-	if id.SessionID != "session-abc" {
-		t.Errorf("expected session session-abc, got %s", id.SessionID)
+	if identity.SessionID != "session-abc" {
+		t.Fatalf("session mismatch: %q", identity.SessionID)
+	}
+	if server.HitCount() != 1 {
+		t.Fatalf("expected one jwks request, got %d", server.HitCount())
 	}
 }
 
-func TestValidateES256_ValidToken(t *testing.T) {
-	key, path := generateECKeyPair(t)
-	v, err := NewValidator(path, "test-issuer", "test-audience")
+func TestValidateES256ValidTokenWithJWKS(t *testing.T) {
+	key := generateECKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{ecJWKFromPrivateKey(t, key, "ec-kid")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	token := signES256(t, key, validClaims())
-	id, err := v.Validate(token)
+
+	token := signES256(t, key, "ec-kid", validClaims())
+	identity, err := validator.Validate(token)
 	if err != nil {
 		t.Fatalf("Validate: %v", err)
 	}
-	if id == nil {
-		t.Fatal("expected non-nil identity")
-	}
-	if id.SubjectUserID != "user-123" {
-		t.Errorf("expected sub user-123, got %s", id.SubjectUserID)
+	if identity == nil || identity.SubjectUserID != "user-123" {
+		t.Fatalf("identity mismatch: %#v", identity)
 	}
 }
 
-func TestValidate_ExpiredToken(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "test-issuer", "test-audience")
+func TestValidateKidMissTriggersRefreshAndPasses(t *testing.T) {
+	key1 := generateRSAKey(t)
+	key2 := generateRSAKey(t)
+
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key1, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	claims := validClaims()
-	claims["exp"] = time.Now().Add(-2 * time.Minute).Unix() // Beyond 60s skew
-	token := signRS256(t, key, claims)
-	_, err = v.Validate(token)
+
+	firstToken := signRS256(t, key1, "kid-1", validClaims())
+	if _, err := validator.Validate(firstToken); err != nil {
+		t.Fatalf("first Validate should pass: %v", err)
+	}
+
+	server.SetDocument(jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key2, "kid-2")}})
+
+	secondToken := signRS256(t, key2, "kid-2", validClaims())
+	if _, err := validator.Validate(secondToken); err != nil {
+		t.Fatalf("second Validate after kid miss refresh should pass: %v", err)
+	}
+
+	if server.HitCount() < 2 {
+		t.Fatalf("expected at least two jwks requests, got %d", server.HitCount())
+	}
+}
+
+func TestValidateMissingJWKSURLRejectsToken(t *testing.T) {
+	key := generateRSAKey(t)
+	validator, err := NewValidator("", "", "")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error for expired token")
+		t.Fatal("expected validation error")
+	}
+	if !strings.Contains(err.Error(), "no jwks url configured") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestValidate_ClockSkewWithin60s(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "test-issuer", "test-audience")
-	if err != nil {
-		t.Fatalf("NewValidator: %v", err)
-	}
-	claims := validClaims()
-	// Token expired 50s ago — within 60s skew, should pass
-	claims["exp"] = time.Now().Add(-50 * time.Second).Unix()
-	token := signRS256(t, key, claims)
-	id, err := v.Validate(token)
-	if err != nil {
-		t.Fatalf("expected token within skew to pass, got: %v", err)
-	}
-	if id == nil {
-		t.Fatal("expected non-nil identity")
-	}
-}
+func TestValidateMissingKidRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
 
-func TestValidate_AlgNone_Rejected(t *testing.T) {
-	_, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "", "")
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	// Create token with alg=none (unsigned)
-	token := jwt.NewWithClaims(jwt.SigningMethodNone, validClaims())
-	tokenString, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
-	if err != nil {
-		t.Fatalf("sign none token: %v", err)
-	}
-	_, err = v.Validate(tokenString)
+
+	token := signRS256(t, key, "", validClaims())
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error for alg=none token")
+		t.Fatal("expected missing kid error")
 	}
 }
 
-func TestValidate_WrongIssuer_Rejected(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "expected-issuer", "")
+func TestValidateUnsupportedAlgorithmRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+
+	token := signHS256(t, "secret", "kid-1", validClaims())
+	_, err = validator.Validate(token)
+	if err == nil {
+		t.Fatal("expected unsupported algorithm error")
+	}
+}
+
+func TestValidateWrongIssuerRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "expected-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
 	claims := validClaims()
 	claims["iss"] = "wrong-issuer"
-	token := signRS256(t, key, claims)
-	_, err = v.Validate(token)
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error for wrong issuer")
+		t.Fatal("expected issuer validation failure")
 	}
 }
 
-func TestValidate_WrongAudience_Rejected(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "", "expected-audience")
+func TestValidateWrongAudienceRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "expected-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+
 	claims := validClaims()
 	claims["aud"] = "wrong-audience"
-	token := signRS256(t, key, claims)
-	_, err = v.Validate(token)
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error for wrong audience")
+		t.Fatal("expected audience validation failure")
 	}
 }
 
-func TestValidate_MissingSub_Rejected(t *testing.T) {
-	key, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "", "")
+func TestValidateMissingSubjectRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
+
 	claims := validClaims()
 	delete(claims, "sub")
-	token := signRS256(t, key, claims)
-	_, err = v.Validate(token)
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error for missing sub")
+		t.Fatal("expected missing sub validation failure")
 	}
 }
 
-func TestValidate_EmptyToken_Anonymous(t *testing.T) {
-	_, path := generateRSAKeyPair(t)
-	v, err := NewValidator(path, "", "")
+func TestValidateMissingIssuedAtRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	id, err := v.Validate("")
-	if err != nil {
-		t.Fatalf("expected no error for empty token, got: %v", err)
-	}
-	if id != nil {
-		t.Fatal("expected nil identity for anonymous")
+
+	claims := validClaims()
+	delete(claims, "iat")
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
+	if err == nil {
+		t.Fatal("expected missing iat validation failure")
 	}
 }
 
-func TestValidate_NoPublicKey_RejectsToken(t *testing.T) {
-	v, err := NewValidator("", "", "")
+func TestValidateNbfInFutureRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	// Generate a key just to sign the token, but validator has no key
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("generate key: %v", err)
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, validClaims())
-	signed, err := token.SignedString(key)
-	if err != nil {
-		t.Fatalf("sign token: %v", err)
-	}
-	_, err = v.Validate(signed)
+
+	claims := validClaims()
+	claims["nbf"] = time.Now().Add(3 * time.Minute).Unix()
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error when no public key configured")
+		t.Fatal("expected nbf validation failure")
 	}
 }
 
-func TestNewValidator_InvalidKeyFile_Error(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "bad.pem")
-	if err := os.WriteFile(path, []byte("not a pem key"), 0o644); err != nil {
-		t.Fatalf("write bad key: %v", err)
-	}
-	_, err := NewValidator(path, "", "")
-	if err == nil {
-		t.Fatal("expected error for invalid key file")
-	}
-}
+func TestValidateExpiredTokenRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
 
-func TestValidate_WrongKeyType_Rejected(t *testing.T) {
-	// Sign with RSA but validator has EC key
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("generate RSA key: %v", err)
-	}
-	_, ecPath := generateECKeyPair(t)
-	v, err := NewValidator(ecPath, "", "")
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
-	token := signRS256(t, rsaKey, validClaims())
-	_, err = v.Validate(token)
+
+	claims := validClaims()
+	claims["exp"] = time.Now().Add(-2 * time.Minute).Unix()
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
 	if err == nil {
-		t.Fatal("expected error for key type mismatch")
+		t.Fatal("expected expiration validation failure")
+	}
+}
+
+func TestValidateEmptyTokenReturnsAnonymous(t *testing.T) {
+	validator, err := NewValidator("https://realm.nimi.xyz/api/auth/jwks", "", "")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	identity, err := validator.Validate("")
+	if err != nil {
+		t.Fatalf("Validate empty token: %v", err)
+	}
+	if identity != nil {
+		t.Fatalf("expected anonymous identity, got %#v", identity)
+	}
+}
+
+func TestValidateFallbackUsesCachedHistoricalKeyOnRefreshFailure(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.cacheTTL = 5 * time.Millisecond
+	validator.fallbackTTL = time.Second
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	if _, err := validator.Validate(token); err != nil {
+		t.Fatalf("initial Validate should pass: %v", err)
+	}
+
+	time.Sleep(10 * time.Millisecond)
+	server.SetStatus(http.StatusInternalServerError)
+	if _, err := validator.Validate(token); err != nil {
+		t.Fatalf("validate with stale historical key fallback should pass: %v", err)
 	}
 }

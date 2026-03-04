@@ -463,6 +463,77 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	}
 }
 
+func TestLoadAuthJWTFromConfigFile(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "jwt": {
+      "issuer": "https://realm.nimi.xyz",
+      "audience": "nimi-runtime",
+      "jwksUrl": "https://realm.nimi.xyz/api/auth/jwks"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.AuthJWTIssuer != "https://realm.nimi.xyz" {
+		t.Fatalf("issuer mismatch: %q", cfg.AuthJWTIssuer)
+	}
+	if cfg.AuthJWTAudience != "nimi-runtime" {
+		t.Fatalf("audience mismatch: %q", cfg.AuthJWTAudience)
+	}
+	if cfg.AuthJWTJWKSURL != "https://realm.nimi.xyz/api/auth/jwks" {
+		t.Fatalf("jwksUrl mismatch: %q", cfg.AuthJWTJWKSURL)
+	}
+}
+
+func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "jwt": {
+      "issuer": "https://realm.config.test",
+      "audience": "runtime-config",
+      "jwksUrl": "https://realm.config.test/api/auth/jwks"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_AUTH_JWT_ISSUER", "https://realm.env.test")
+	t.Setenv("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", "runtime-env")
+	t.Setenv("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", "https://realm.env.test/api/auth/jwks")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.AuthJWTIssuer != "https://realm.env.test" {
+		t.Fatalf("issuer env override mismatch: %q", cfg.AuthJWTIssuer)
+	}
+	if cfg.AuthJWTAudience != "runtime-env" {
+		t.Fatalf("audience env override mismatch: %q", cfg.AuthJWTAudience)
+	}
+	if cfg.AuthJWTJWKSURL != "https://realm.env.test/api/auth/jwks" {
+		t.Fatalf("jwksUrl env override mismatch: %q", cfg.AuthJWTJWKSURL)
+	}
+}
+
 func clearRuntimeConfigEnv(t *testing.T) {
 	t.Helper()
 	keys := []string{
@@ -502,6 +573,9 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
 		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
 		"NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
+		"NIMI_RUNTIME_AUTH_JWT_ISSUER",
+		"NIMI_RUNTIME_AUTH_JWT_AUDIENCE",
+		"NIMI_RUNTIME_AUTH_JWT_JWKS_URL",
 		"LOCALAI_API_KEY",
 		"NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT",
 		"NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS",

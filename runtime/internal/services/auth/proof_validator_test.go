@@ -34,10 +34,10 @@ func TestValidateExternalProofRequiresSignatureKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate rsa key: %v", err)
 	}
-	token := buildTestJWT(t, "https://issuer.nimi.local", time.Now().Add(5*time.Minute), privateKey)
+	token := buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey)
 	principal := externalPrincipal{
 		ProofType: runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:    "https://issuer.nimi.local",
+		Issuer:    "https://issuer.nimi.xyz",
 	}
 	if err := validateExternalProof(token, principal); err == nil {
 		t.Fatalf("expected invalid proof for missing signature key")
@@ -51,10 +51,10 @@ func TestValidateExternalProofAcceptsValidSignature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate rsa key: %v", err)
 	}
-	token := buildTestJWT(t, "https://issuer.nimi.local", time.Now().Add(5*time.Minute), privateKey)
+	token := buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.local",
+		Issuer:         "https://issuer.nimi.xyz",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err != nil {
