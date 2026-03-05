@@ -5,60 +5,167 @@ models:
   - model_id: gpt-audio
     provider: openai
     model_type: tts
-    updated_at: "2026-03-05"
+    updated_at: 2026-03-05
     capabilities:
       - tts
       - llm.speech.synthesize
     pricing:
       unit: token
-      input: "unknown"
-      output: "unknown"
+      input: unknown
+      output: unknown
       currency: USD
-      as_of: "2026-03-05"
-      notes: Official pricing differs by tier/model revision.
-    voice_set_id: openai:default-tts-v1
+      as_of: 2026-03-05
+      notes: Official pricing differs by tier and model revision.
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: "2026-03-05"
-      note: OpenAI text-to-speech documentation
+      retrieved_at: 2026-03-05
+      note: OpenAI text-to-speech documentation.
+    voice_set_id: openai:default-tts-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
   - model_id: gpt-audio-mini
     provider: openai
     model_type: tts
-    updated_at: "2026-03-05"
+    updated_at: 2026-03-05
     capabilities:
       - tts
       - llm.speech.synthesize
     pricing:
       unit: token
-      input: "unknown"
-      output: "unknown"
+      input: unknown
+      output: unknown
       currency: USD
-      as_of: "2026-03-05"
-      notes: Official pricing differs by tier/model revision.
-    voice_set_id: openai:default-tts-v1
+      as_of: 2026-03-05
+      notes: Official pricing differs by tier and model revision.
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: "2026-03-05"
-      note: OpenAI text-to-speech documentation
+      retrieved_at: 2026-03-05
+      note: OpenAI text-to-speech documentation.
+    voice_set_id: openai:default-tts-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
   - model_id: tts-1
     provider: openai
     model_type: tts
-    updated_at: "2026-03-05"
+    updated_at: 2026-03-05
     capabilities:
       - tts
       - llm.speech.synthesize
     pricing:
       unit: token
-      input: "unknown"
-      output: "unknown"
+      input: unknown
+      output: unknown
       currency: USD
-      as_of: "2026-03-05"
+      as_of: 2026-03-05
       notes: Legacy TTS model retained for compatibility.
-    voice_set_id: openai:default-tts-v1
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: "2026-03-05"
-      note: OpenAI text-to-speech documentation
+      retrieved_at: 2026-03-05
+      note: OpenAI text-to-speech documentation.
+    voice_set_id: openai:default-tts-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: gpt-5.2
+    provider: openai
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by tier and model revision.
+    source_ref:
+      url: https://platform.openai.com/docs/models/gpt-5.2
+      retrieved_at: 2026-03-05
+      note: OpenAI GPT-5.2 model card.
+  - model_id: gpt-5.2-2025-12-11
+    provider: openai
+    model_type: chat
+    updated_at: 2025-12-11
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by tier and model revision.
+    source_ref:
+      url: https://platform.openai.com/docs/models/gpt-5.2
+      retrieved_at: 2026-03-05
+      note: OpenAI GPT-5.2 model card.
+  - model_id: text-embedding-3-large
+    provider: openai
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding token pricing varies by tier and contract.
+    source_ref:
+      url: https://platform.openai.com/docs/models/text-embedding-3-large
+      retrieved_at: 2026-03-05
+      note: OpenAI text-embedding-3-large model card.
+  - model_id: gpt-image-1.5
+    provider: openai
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities:
+      - image
+      - image.generate
+      - llm.image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Image pricing varies by quality and deployment tier.
+    source_ref:
+      url: https://platform.openai.com/docs/models/gpt-image-1.5
+      retrieved_at: 2026-03-05
+      note: OpenAI gpt-image-1.5 model card.
+  - model_id: gpt-image-1.5-2025-04-14
+    provider: openai
+    model_type: image
+    updated_at: 2025-04-14
+    capabilities:
+      - image
+      - image.generate
+      - llm.image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Image pricing varies by quality and deployment tier.
+    source_ref:
+      url: https://platform.openai.com/docs/models/gpt-image-1.5
+      retrieved_at: 2026-03-05
+      note: OpenAI gpt-image-1.5 model card.
 voices:
   - voice_id: alloy
     voice_set_id: openai:default-tts-v1
@@ -78,8 +185,8 @@ voices:
       - tts-1
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: "2026-03-05"
-      note: OpenAI text-to-speech documentation
+      retrieved_at: 2026-03-05
+      note: OpenAI text-to-speech documentation.
   - voice_id: nova
     voice_set_id: openai:default-tts-v1
     provider: openai
@@ -98,8 +205,8 @@ voices:
       - tts-1
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: "2026-03-05"
-      note: OpenAI text-to-speech documentation
+      retrieved_at: 2026-03-05
+      note: OpenAI text-to-speech documentation.
   - voice_id: shimmer
     voice_set_id: openai:default-tts-v1
     provider: openai
@@ -118,5 +225,5 @@ voices:
       - tts-1
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
-      retrieved_at: "2026-03-05"
-      note: OpenAI text-to-speech documentation
+      retrieved_at: 2026-03-05
+      note: OpenAI text-to-speech documentation.

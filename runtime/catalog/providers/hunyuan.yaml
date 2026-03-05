@@ -1,0 +1,43 @@
+version: 1
+provider: hunyuan
+catalog_version: 2026-03-05-hunyuan-v1
+models:
+  - model_id: hunyuan-turbo
+    provider: hunyuan
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by region and contract plan.
+    source_ref:
+      url: https://cloud.tencent.com/document/product/1729/97731
+      retrieved_at: 2026-03-05
+      note: Tencent Hunyuan model overview.
+  - model_id: hunyuan-embedding
+    provider: hunyuan
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and contract tier.
+    source_ref:
+      url: https://cloud.tencent.com/document/product/1729/102832
+      retrieved_at: 2026-03-05
+      note: Tencent Hunyuan embedding update notes.
+voices: []

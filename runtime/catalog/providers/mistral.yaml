@@ -1,0 +1,43 @@
+version: 1
+provider: mistral
+catalog_version: 2026-03-05-mistral-v1
+models:
+  - model_id: mistral-large-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model generation and account tier.
+    source_ref:
+      url: https://docs.mistral.ai/getting-started/models/
+      retrieved_at: 2026-03-05
+      note: Mistral model catalog and lifecycle aliases.
+  - model_id: mistral-embed
+    provider: mistral
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and SLA tier.
+    source_ref:
+      url: https://docs.mistral.ai/capabilities/embeddings/text_embeddings
+      retrieved_at: 2026-03-05
+      note: Mistral embeddings capability documentation.
+voices: []

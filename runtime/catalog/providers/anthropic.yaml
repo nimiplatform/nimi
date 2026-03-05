@@ -1,0 +1,24 @@
+version: 1
+provider: anthropic
+catalog_version: 2026-03-05-anthropic-v1
+models:
+  - model_id: claude-sonnet-4-6
+    provider: anthropic
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model class and prompt caching mode.
+    source_ref:
+      url: https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-6
+      retrieved_at: 2026-03-05
+      note: Claude 4.6 release notes and model identifiers.
+voices: []

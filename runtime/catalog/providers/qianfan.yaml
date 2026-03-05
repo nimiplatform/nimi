@@ -1,0 +1,43 @@
+version: 1
+provider: qianfan
+catalog_version: 2026-03-05-qianfan-v1
+models:
+  - model_id: ernie-4.5-turbo-128k
+    provider: qianfan
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by context window and billing plan.
+    source_ref:
+      url: https://qianfan.cloud.baidu.com/qianfandev/model/4
+      retrieved_at: 2026-03-05
+      note: Qianfan ERNIE model page.
+  - model_id: embedding-v1
+    provider: qianfan
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and service tier.
+    source_ref:
+      url: https://qianfan.cloud.baidu.com/qianfandev/model/33
+      retrieved_at: 2026-03-05
+      note: Qianfan Embedding-V1 model page.
+voices: []

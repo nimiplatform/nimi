@@ -1,0 +1,93 @@
+version: 1
+provider: local
+catalog_version: 2026-03-05-local-v1
+models:
+  - model_id: qwen3-tts-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    voice_set_id: local:qwen3-tts-local-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: &a1
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: qwen3-tts
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    voice_set_id: local:qwen3-tts-local-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: *a1
+  - model_id: Qwen/Qwen3-TTS-8B
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    voice_set_id: local:qwen3-tts-local-dynamic
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: *a1
+voices:
+  - voice_id: user-custom
+    voice_set_id: local:qwen3-tts-local-dynamic
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - qwen3-tts-local
+      - qwen3-tts
+      - Qwen/Qwen3-TTS-8B
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.

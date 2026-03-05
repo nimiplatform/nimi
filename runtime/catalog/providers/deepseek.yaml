@@ -1,0 +1,62 @@
+version: 1
+provider: deepseek
+catalog_version: 2026-03-05-deepseek-v1
+models:
+  - model_id: deepseek-chat
+    provider: deepseek
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by context caching and request mode.
+    source_ref:
+      url: https://api-docs.deepseek.com/
+      retrieved_at: 2026-03-05
+      note: DeepSeek API documentation home and model matrix.
+  - model_id: deepseek-coder
+    provider: deepseek
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by context caching and request mode.
+    source_ref:
+      url: https://api-docs.deepseek.com/
+      retrieved_at: 2026-03-05
+      note: DeepSeek API documentation home and model matrix.
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by request mode and output length.
+    source_ref:
+      url: https://api-docs.deepseek.com/
+      retrieved_at: 2026-03-05
+      note: DeepSeek API documentation home and model matrix.
+voices: []

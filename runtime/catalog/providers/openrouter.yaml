@@ -1,0 +1,24 @@
+version: 1
+provider: openrouter
+catalog_version: 2026-03-05-openrouter-v1
+models:
+  - model_id: openrouter/auto
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Pricing depends on the final routed model selected by OpenRouter.
+    source_ref:
+      url: https://openrouter.ai/docs/docs/routing/auto-model-selection
+      retrieved_at: 2026-03-05
+      note: OpenRouter Auto Router model ID and routing behavior.
+voices: []

@@ -1,26 +1,229 @@
 version: 1
 provider: volcengine
-catalog_version: 2026-03-05-volcengine-v1
+catalog_version: 2026-03-05-volcengine-v2
 models:
   - model_id: doubao-tts
     provider: volcengine
     model_type: tts
-    updated_at: "2026-03-05"
+    updated_at: 2026-03-05
     capabilities:
       - tts
       - llm.speech.synthesize
     pricing:
       unit: char
-      input: "unknown"
-      output: "unknown"
+      input: unknown
+      output: unknown
       currency: CNY
-      as_of: "2026-03-05"
+      as_of: 2026-03-05
       notes: Pricing differs by account tier and product line.
-    voice_set_id: volcengine:openspeech-streaming-v1
     source_ref:
       url: https://www.volcengine.com/docs/6561/1257584
-      retrieved_at: "2026-03-05"
-      note: Volcengine OpenSpeech documentation
+      retrieved_at: 2026-03-05
+      note: Volcengine OpenSpeech TTS documentation.
+    voice_set_id: volcengine:openspeech-streaming-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: seedance-1-5-pro
+    provider: volcengine
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Volcengine public pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/82379/1366799?lang=zh
+      retrieved_at: 2026-03-05
+      note: Volcengine Seedance video generation overview (t2v and i2v).
+    video_generation: &a1
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+      limits:
+        reference_images:
+          min: 1
+          max: 4
+        seed:
+          min: -1
+          max: 4294967295
+        duration_sec:
+          min: 1
+          max: 10
+        fps:
+          min: 1
+          max: 60
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - frames
+          - fps
+          - seed
+          - camera_fixed
+          - watermark
+          - generate_audio
+          - draft
+          - service_tier
+          - execution_expires_after_sec
+          - return_last_frame
+        constraints:
+          frames_overrides_duration: true
+          camera_fixed_disallowed_in_i2v_reference: true
+      outputs:
+        video_url: true
+        last_frame_url: true
+  - model_id: seedance-1.5-pro
+    provider: volcengine
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Volcengine public pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/82379/1366799?lang=zh
+      retrieved_at: 2026-03-05
+      note: Volcengine Seedance video generation overview (t2v and i2v).
+    video_generation: *a1
+  - model_id: seedance_v1_5_pro
+    provider: volcengine
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Volcengine public pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/82379/1366799?lang=zh
+      retrieved_at: 2026-03-05
+      note: Volcengine Seedance video generation overview (t2v and i2v).
+    video_generation: *a1
+  - model_id: doubao-seed-1-6-251015
+    provider: volcengine
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/6489/1331021
+      retrieved_at: 2026-03-05
+      note: Volcengine OpenAI-compatible SDK documentation and model examples.
+  - model_id: doubao-embedding
+    provider: volcengine
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding token pricing varies by account plan and dimension tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/84716/1288890
+      retrieved_at: 2026-03-05
+      note: Volcengine embedding model documentation.
+  - model_id: doubao-embedding-250615
+    provider: volcengine
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding token pricing varies by account plan and dimension tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/84716/1288890
+      retrieved_at: 2026-03-05
+      note: Volcengine embedding model documentation.
+  - model_id: doubao-seedream-4-5-251128
+    provider: volcengine
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities:
+      - image
+      - image.generate
+      - llm.image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by quality profile and account tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/6492/2172373
+      retrieved_at: 2026-03-05
+      note: Volcengine Seedream image generation documentation.
 voices:
   - voice_id: BV001_streaming
     voice_set_id: volcengine:openspeech-streaming-v1
@@ -28,21 +231,23 @@ voices:
     name: BV001
     langs:
       - zh
+      - en
     model_ids:
       - doubao-tts
     source_ref:
       url: https://www.volcengine.com/docs/6561/1257584
-      retrieved_at: "2026-03-05"
-      note: Volcengine OpenSpeech documentation
+      retrieved_at: 2026-03-05
+      note: Volcengine OpenSpeech TTS documentation.
   - voice_id: BV002_streaming
     voice_set_id: volcengine:openspeech-streaming-v1
     provider: volcengine
     name: BV002
     langs:
       - zh
+      - en
     model_ids:
       - doubao-tts
     source_ref:
       url: https://www.volcengine.com/docs/6561/1257584
-      retrieved_at: "2026-03-05"
-      note: Volcengine OpenSpeech documentation
+      retrieved_at: 2026-03-05
+      note: Volcengine OpenSpeech TTS documentation.

@@ -1,0 +1,24 @@
+version: 1
+provider: xai
+catalog_version: 2026-03-05-xai-v1
+models:
+  - model_id: grok-3-mini
+    provider: xai
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model class and usage tier.
+    source_ref:
+      url: https://docs.x.ai/docs/models
+      retrieved_at: 2026-03-05
+      note: xAI official models documentation.
+voices: []
