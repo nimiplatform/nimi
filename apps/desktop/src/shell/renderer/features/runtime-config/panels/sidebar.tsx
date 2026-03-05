@@ -91,9 +91,9 @@ const SIDEBAR_ITEMS: Array<{
   },
   {
     id: 'catalog',
+    section: 'Connectors',
     label: 'Catalog',
-    description: 'Provider yaml management',
-    icon: '☰',
+    icon: ICON_CLOUD,
   },
   {
     id: 'runtime',

@@ -49,7 +49,7 @@ export interface LlmImageInput {
   referenceImages?: string[];
   mask?: string;
   responseFormat?: 'url' | 'base64';
-  providerOptions?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
@@ -60,9 +60,37 @@ export interface LlmVideoInput {
   modId: string;
   sourceType?: HookSourceType;
   provider: string;
-  prompt: string;
+  mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
+  prompt?: string;
+  negativePrompt?: string;
   model?: string;
-  durationSeconds?: number;
+  content: Array<
+    | {
+      type: 'text';
+      role?: 'prompt';
+      text: string;
+    }
+    | {
+      type: 'image_url';
+      role: 'first_frame' | 'last_frame' | 'reference_image';
+      imageUrl: string;
+    }
+  >;
+  options?: {
+    resolution?: string;
+    ratio?: string;
+    durationSec?: number;
+    frames?: number;
+    fps?: number;
+    seed?: number;
+    cameraFixed?: boolean;
+    watermark?: boolean;
+    generateAudio?: boolean;
+    draft?: boolean;
+    serviceTier?: string;
+    executionExpiresAfterSec?: number;
+    returnLastFrame?: boolean;
+  };
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
@@ -261,7 +289,7 @@ export class HookRuntimeLlmService {
       referenceImages: input.referenceImages,
       mask: input.mask,
       responseFormat: input.responseFormat,
-      providerOptions: input.providerOptions,
+      extensions: input.extensions,
       abortSignal: undefined,
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,
@@ -293,9 +321,12 @@ export class HookRuntimeLlmService {
     const result = await invokeModVideo({
       modId: input.modId,
       provider: input.provider,
+      mode: input.mode,
       prompt: input.prompt,
+      negativePrompt: input.negativePrompt,
       model: input.model || input.localProviderModel,
-      durationSeconds: input.durationSeconds,
+      content: input.content,
+      options: input.options,
       abortSignal: undefined,
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,

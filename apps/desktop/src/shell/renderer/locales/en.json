@@ -619,6 +619,7 @@
     "moreTools": "More tools",
     "send": "Send",
     "uploadFile": "Upload file",
+    "removeAttachment": "Remove attachment",
     "uploadFailed": "Upload failed",
     "unsupportedFileType": "Unsupported file type, please upload an image or video"
   },
@@ -645,6 +646,7 @@
     "offline": "Offline",
     "agent": "Agent",
     "human": "Human",
+    "resizeInputArea": "Resize input area",
     "statusPrefix": "Status",
     "joinedAtPrefix": "Joined",
     "turnAuditLabel": "turnAudit"

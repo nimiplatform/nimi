@@ -88,24 +88,34 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
 }
 
 async function invokeGenerateWithoutSubject(): Promise<void> {
-  await getPlatformClient().runtime.ai.generate({
-    appId: getPlatformClient().runtime.appId,
-    modelId: 'cloud/default',
-    modal: 1,
-    input: [{
-      role: 'user',
-      content: 'hello',
-      name: '',
-    }],
-    systemPrompt: '',
-    tools: [],
-    temperature: 0,
-    topP: 0,
-    maxTokens: 32,
-    routePolicy: 2,
-    fallback: 1,
-    timeoutMs: 1000,
-    connectorId: '',
+  await getPlatformClient().runtime.ai.executeScenario({
+    head: {
+      appId: getPlatformClient().runtime.appId,
+      modelId: 'cloud/default',
+      routePolicy: 2,
+      fallback: 1,
+      timeoutMs: 1000,
+      connectorId: '',
+    },
+    scenarioType: 1,
+    executionMode: 1,
+    spec: {
+      spec: {
+        oneofKind: 'textGenerate',
+        textGenerate: {
+          input: [{
+            role: 'user',
+            content: 'hello',
+            name: '',
+          }],
+          systemPrompt: '',
+          tools: [],
+          temperature: 0,
+          topP: 0,
+          maxTokens: 32,
+        },
+      },
+    },
   });
 }
 

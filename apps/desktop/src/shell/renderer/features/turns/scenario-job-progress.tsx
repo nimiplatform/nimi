@@ -1,12 +1,12 @@
-type MediaJobStatus = 'SUBMITTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+type ScenarioJobStatus = 'SUBMITTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
-type MediaJobProgressProps = {
-  status: MediaJobStatus;
+type ScenarioJobProgressProps = {
+  status: ScenarioJobStatus;
   progress?: number;
   errorMessage?: string;
 };
 
-function statusLabel(status: MediaJobStatus): string {
+function statusLabel(status: ScenarioJobStatus): string {
   switch (status) {
     case 'SUBMITTED': return 'Submitted';
     case 'QUEUED': return 'Queued';
@@ -19,7 +19,7 @@ function statusLabel(status: MediaJobStatus): string {
   }
 }
 
-function statusColor(status: MediaJobStatus): string {
+function statusColor(status: ScenarioJobStatus): string {
   switch (status) {
     case 'SUBMITTED':
     case 'QUEUED':
@@ -38,11 +38,11 @@ function statusColor(status: MediaJobStatus): string {
   }
 }
 
-function isTerminal(status: MediaJobStatus): boolean {
+function isTerminal(status: ScenarioJobStatus): boolean {
   return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED';
 }
 
-export function MediaJobProgress({ status, progress, errorMessage }: MediaJobProgressProps) {
+export function ScenarioJobProgress({ status, progress, errorMessage }: ScenarioJobProgressProps) {
   const terminal = isTerminal(status);
   const showProgress = status === 'RUNNING' && typeof progress === 'number' && progress >= 0;
 

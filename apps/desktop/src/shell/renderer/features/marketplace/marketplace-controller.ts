@@ -154,14 +154,14 @@ export function useMarketplacePageModel(): MarketplacePageModel {
 
   const filteredMods = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    let mods = query
+    const mods = (query
       ? sourceMods.filter(
           (mod) =>
             mod.name.toLowerCase().includes(query) ||
             mod.description.toLowerCase().includes(query) ||
             mod.author.toLowerCase().includes(query),
         )
-      : sourceMods;
+      : sourceMods).slice();
     // Sort: enabled (can open) > installed but disabled > not installed
     return mods.sort((a, b) => {
       const aScore = a.isInstalled ? (a.isEnabled ? 2 : 1) : 0;

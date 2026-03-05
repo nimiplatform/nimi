@@ -280,7 +280,7 @@ mod tests {
             &mut request,
             None,
             None,
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect("apply metadata defaults");
 
@@ -334,7 +334,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             Some("Bearer top-level-token"),
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect("apply metadata with explicit values");
 
@@ -412,7 +412,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             None,
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("unsupported protocol version should fail");
 
@@ -434,7 +434,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             None,
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("metadata with invalid header value should fail");
 
@@ -456,7 +456,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             None,
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("reserved metadata key override should fail");
 

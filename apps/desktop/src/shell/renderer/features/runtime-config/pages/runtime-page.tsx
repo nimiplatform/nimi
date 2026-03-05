@@ -23,14 +23,6 @@ function SurfaceCard({ children, className = '' }: { children: React.ReactNode; 
   return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
 }
 
-function ProgressBar({ percent, color }: { percent: number; color: string }) {
-  return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-      <div className={`h-full transition-all ${color}`} style={{ width: `${Math.max(0, Math.min(100, percent))}%` }} />
-    </div>
-  );
-}
-
 export function RuntimePage({ model, state }: RuntimePageProps) {
   const auditData = useGlobalAuditData(true);
   const [nodeMatrixExpanded, setNodeMatrixExpanded] = useState(false);

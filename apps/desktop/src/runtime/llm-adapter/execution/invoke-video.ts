@@ -33,6 +33,22 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
   let runtimeTraceId = '';
   try {
     const runtime = getRuntimeClient();
+    const prompt = String(input.prompt || '').trim();
+    const content = Array.isArray(input.content) ? input.content : [];
+    if (!prompt && content.length === 0) {
+      throw createNimiError({
+        message: 'video prompt or content required',
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'set_video_prompt_or_content',
+        traceId: runtimeTraceId,
+        source: 'runtime',
+      });
+    }
+    const scenarioContent = content.length > 0 ? content : [{
+      type: 'text' as const,
+      role: 'prompt' as const,
+      text: prompt,
+    }];
     const metadata = await buildRuntimeRequestMetadata({
       source: resolved.source,
       connectorId: input.connectorId,
@@ -52,12 +68,15 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
       traceId: runtimeTraceId,
     });
     const generated = await runtime.media.video.generate({
+      mode: input.mode,
       model: resolved.modelId,
-      prompt: String(input.prompt || '').trim(),
+      prompt: prompt || undefined,
+      negativePrompt: String(input.negativePrompt || '').trim() || undefined,
+      content: scenarioContent,
+      options: input.options,
       route: resolved.source,
       connectorId: String(input.connectorId || '').trim() || undefined,
       fallback: 'deny',
-      durationSec: typeof input.durationSeconds === 'number' ? input.durationSeconds : undefined,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata,
       signal: input.abortSignal,

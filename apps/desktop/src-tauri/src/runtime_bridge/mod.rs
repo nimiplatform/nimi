@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn stream_methods_are_allowlisted() {
-        let stream_method = "/nimi.runtime.v1.RuntimeAiService/StreamGenerate";
+        let stream_method = "/nimi.runtime.v1.RuntimeAiService/StreamScenario";
         assert!(is_stream_method(stream_method));
         assert!(is_allowlisted_method(stream_method));
     }

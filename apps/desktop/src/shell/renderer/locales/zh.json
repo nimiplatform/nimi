@@ -619,6 +619,7 @@
     "moreTools": "更多工具",
     "send": "发送",
     "uploadFile": "上传文件",
+    "removeAttachment": "移除附件",
     "uploadFailed": "上传失败",
     "unsupportedFileType": "不支持的文件类型，请上传图片或视频"
   },
@@ -645,6 +646,7 @@
     "offline": "离线",
     "agent": "Agent",
     "human": "Human",
+    "resizeInputArea": "调整输入区域大小",
     "statusPrefix": "状态",
     "joinedAtPrefix": "加入时间",
     "turnAuditLabel": "turnAudit"

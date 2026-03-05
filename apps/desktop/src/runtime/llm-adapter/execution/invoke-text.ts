@@ -7,7 +7,6 @@ import {
   extractTextFromGenerateOutput,
   getRuntimeClient,
   resolveSourceAndModel,
-  RUNTIME_MODAL_TEXT,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from './types';
@@ -16,6 +15,9 @@ import { buildLocalId } from './utils';
 import { emitRuntimeLog } from '../../telemetry/logger';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+
+const SCENARIO_TYPE_TEXT_GENERATE = 1;
+const EXECUTION_MODE_SYNC = 1;
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -71,24 +73,35 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       endpoint: resolved.endpoint,
       traceId: runtimeTraceId,
     });
-    const response = await runtime.ai.generate({
-      appId: runtime.appId,
-      modelId: resolved.modelId,
-      modal: RUNTIME_MODAL_TEXT,
-      input: [{
-        role: 'user',
-        content: String(input.prompt || '').trim(),
-        name: '',
-      }],
-      systemPrompt: String(input.systemPrompt || ''),
-      tools: [],
-      temperature: typeof input.temperature === 'number' ? input.temperature : 0,
-      topP: 0,
-      maxTokens: input.maxTokens ?? 0,
-      routePolicy: resolved.routePolicy,
-      fallback: resolved.fallbackPolicy,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      connectorId: String(input.connectorId || ''),
+    const response = await runtime.ai.executeScenario({
+      head: {
+        appId: runtime.appId,
+        modelId: resolved.modelId,
+        routePolicy: resolved.routePolicy,
+        fallback: resolved.fallbackPolicy,
+        timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+        connectorId: String(input.connectorId || ''),
+      },
+      scenarioType: SCENARIO_TYPE_TEXT_GENERATE,
+      executionMode: EXECUTION_MODE_SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate',
+          textGenerate: {
+            input: [{
+              role: 'user',
+              content: String(input.prompt || '').trim(),
+              name: '',
+            }],
+            systemPrompt: String(input.systemPrompt || ''),
+            tools: [],
+            temperature: typeof input.temperature === 'number' ? input.temperature : 0,
+            topP: 0,
+            maxTokens: input.maxTokens ?? 0,
+          },
+        },
+      },
+      extensions: [],
     }, callOptions);
 
     const responseRecord = asRecord(response);

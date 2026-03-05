@@ -791,7 +791,7 @@ export function MessageTimeline() {
         <div
           role="separator"
           aria-orientation="horizontal"
-          aria-label="Resize input area"
+          aria-label={t('ChatTimeline.resizeInputArea')}
           onMouseDown={startComposerResize}
           className="relative h-2 shrink-0 cursor-row-resize bg-transparent"
         >

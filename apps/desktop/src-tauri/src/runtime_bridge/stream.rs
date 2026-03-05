@@ -269,7 +269,7 @@ mod tests {
 
     #[test]
     fn validate_stream_method_rejects_unary_method() {
-        let result = validate_stream_method("/nimi.runtime.v1.RuntimeAiService/Generate");
+        let result = validate_stream_method("/nimi.runtime.v1.RuntimeAiService/ExecuteScenario");
         assert!(result
             .err()
             .unwrap_or_default()
@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn decode_request_bytes_rejects_invalid_base64() {
         let result = decode_request_bytes(&payload(
-            "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
+            "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
             "!!!",
         ));
         assert!(result

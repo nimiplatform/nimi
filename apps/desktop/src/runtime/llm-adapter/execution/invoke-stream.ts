@@ -6,7 +6,6 @@ import {
   buildRuntimeStreamOptions,
   getRuntimeClient,
   resolveSourceAndModel,
-  RUNTIME_MODAL_TEXT,
   toLocalAiReasonCode,
 } from './runtime-ai-bridge';
 import type { InvokeModLlmInput, InvokeModLlmStreamEvent } from './types';
@@ -14,6 +13,9 @@ import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { createScopedAbortSignal } from './utils';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+
+const SCENARIO_TYPE_TEXT_GENERATE = 1;
+const EXECUTION_MODE_STREAM = 2;
 
 export async function* invokeModLlmStream(
   input: InvokeModLlmInput,
@@ -70,24 +72,35 @@ export async function* invokeModLlmStream(
       providerEndpoint: resolved.endpoint,
     });
     runtimeTraceId = streamOptions.metadata.traceId;
-    const stream = await runtime.ai.streamGenerate({
-      appId: runtime.appId,
-      modelId: resolved.modelId,
-      modal: RUNTIME_MODAL_TEXT,
-      input: [{
-        role: 'user',
-        content: prompt,
-        name: '',
-      }],
-      systemPrompt: String(input.systemPrompt || ''),
-      tools: [],
-      temperature: typeof input.temperature === 'number' ? input.temperature : 0,
-      topP: 0,
-      maxTokens: input.maxTokens ?? 0,
-      routePolicy: resolved.routePolicy,
-      fallback: resolved.fallbackPolicy,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      connectorId: String(input.connectorId || ''),
+    const stream = await runtime.ai.streamScenario({
+      head: {
+        appId: runtime.appId,
+        modelId: resolved.modelId,
+        routePolicy: resolved.routePolicy,
+        fallback: resolved.fallbackPolicy,
+        timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+        connectorId: String(input.connectorId || ''),
+      },
+      scenarioType: SCENARIO_TYPE_TEXT_GENERATE,
+      executionMode: EXECUTION_MODE_STREAM,
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate',
+          textGenerate: {
+            input: [{
+              role: 'user',
+              content: prompt,
+              name: '',
+            }],
+            systemPrompt: String(input.systemPrompt || ''),
+            tools: [],
+            temperature: typeof input.temperature === 'number' ? input.temperature : 0,
+            topP: 0,
+            maxTokens: input.maxTokens ?? 0,
+          },
+        },
+      },
+      extensions: [],
     }, streamOptions);
 
     for await (const event of stream as AsyncIterable<{

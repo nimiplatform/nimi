@@ -2,16 +2,18 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
-    "/nimi.runtime.v1.RuntimeAiService/CancelMediaJob",
-    "/nimi.runtime.v1.RuntimeAiService/Embed",
-    "/nimi.runtime.v1.RuntimeAiService/Generate",
-    "/nimi.runtime.v1.RuntimeAiService/GetMediaArtifacts",
-    "/nimi.runtime.v1.RuntimeAiService/GetMediaJob",
-    "/nimi.runtime.v1.RuntimeAiService/GetSpeechVoices",
-    "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
-    "/nimi.runtime.v1.RuntimeAiService/StreamSpeechSynthesis",
-    "/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob",
-    "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents",
+    "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
+    "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+    "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+    "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
+    "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
+    "/nimi.runtime.v1.RuntimeAiService/GetVoiceAsset",
+    "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
+    "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
+    "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
+    "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+    "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+    "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
@@ -83,9 +85,8 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 ];
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
-    "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
-    "/nimi.runtime.v1.RuntimeAiService/StreamSpeechSynthesis",
-    "/nimi.runtime.v1.RuntimeAiService/SubscribeMediaJobEvents",
+    "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+    "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",

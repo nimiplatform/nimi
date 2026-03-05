@@ -35,7 +35,7 @@ export async function openSpeechStream(input: {
       providerEndpoint: input.providerEndpoint,
     });
 
-    const stream = await runtime.media.tts.streamSynthesis({
+    const stream = await runtime.media.tts.stream({
       model: input.model,
       text: input.request.text,
       voice: input.request.voice,
@@ -45,7 +45,7 @@ export async function openSpeechStream(input: {
       fallback: 'deny',
       connectorId: input.connectorId,
       metadata,
-      providerOptions: input.request.providerParams,
+      extensions: input.request.providerParams,
     });
 
     const chunks = (async function* (): AsyncIterable<Uint8Array> {

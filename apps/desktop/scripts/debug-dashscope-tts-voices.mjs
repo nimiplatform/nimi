@@ -1,3 +1,5 @@
+/* global console, process, setTimeout, URL */
+
 import net from 'node:net';
 import { once } from 'node:events';
 import { spawn } from 'node:child_process';
@@ -64,10 +66,14 @@ async function terminateDaemon(daemon) {
     }
     try {
       process.kill(-daemon.pid, signal);
-    } catch {}
+    } catch {
+      // Ignore when process group is already gone.
+    }
     try {
       process.kill(daemon.pid, signal);
-    } catch {}
+    } catch {
+      // Ignore when process is already gone.
+    }
   };
 
   killGroup('SIGTERM');

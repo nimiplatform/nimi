@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn validate_unary_method_rejects_stream_method() {
-        let result = validate_unary_method("/nimi.runtime.v1.RuntimeAiService/StreamGenerate");
+        let result = validate_unary_method("/nimi.runtime.v1.RuntimeAiService/StreamScenario");
         assert!(result
             .err()
             .unwrap_or_default()
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn decode_request_bytes_rejects_invalid_base64() {
         let result = decode_request_bytes(&payload(
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
             "!!!",
         ));
         assert!(result
@@ -152,7 +152,7 @@ mod tests {
     #[tokio::test]
     async fn invoke_unary_rejects_invalid_base64_before_network() {
         let result = invoke_unary(&payload(
-            "/nimi.runtime.v1.RuntimeAiService/Generate",
+            "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
             "!!!",
         ))
         .await;

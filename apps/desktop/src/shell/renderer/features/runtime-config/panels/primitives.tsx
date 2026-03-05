@@ -189,11 +189,11 @@ export function RuntimeSelect({
 }
 
 // Status indicator with dot - using semi-transparent backgrounds
-function StatusIndicator({ 
-  status, 
-  text, 
-  variant 
-}: { 
+function StatusIndicator({
+  status,
+  text,
+  variant: _variant,
+}: {
   status: 'healthy' | 'idle' | 'unreachable' | 'unsupported' | 'degraded' | 'running' | 'stopped';
   text: string;
   variant?: 'daemon' | 'provider';

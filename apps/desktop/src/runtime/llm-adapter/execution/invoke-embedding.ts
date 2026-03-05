@@ -4,7 +4,6 @@ import {
   createRuntimeTraceId,
   extractRuntimeReasonCode,
   buildRuntimeCallOptions,
-  extractEmbeddings,
   getRuntimeClient,
   resolveSourceAndModel,
   toLocalAiReasonCode,
@@ -13,6 +12,9 @@ import type { InvokeModEmbeddingInput, InvokeModEmbeddingOutput } from './types'
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+
+const SCENARIO_TYPE_TEXT_EMBED = 2;
+const EXECUTION_MODE_SYNC = 1;
 
 function normalizeEmbeddingInputs(input: string | string[]): string[] {
   const raw = Array.isArray(input) ? input : [input];
@@ -74,17 +76,29 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
       providerEndpoint: resolved.endpoint,
     });
     runtimeTraceId = String(callOptions.metadata.traceId || '').trim() || runtimeTraceId;
-    const response = await runtime.ai.embed({
-      appId: runtime.appId,
-      modelId: resolved.modelId,
-      inputs,
-      routePolicy: resolved.routePolicy,
-      fallback: resolved.fallbackPolicy,
-      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
-      connectorId: String(input.connectorId || ''),
+    const response = await runtime.ai.executeScenario({
+      head: {
+        appId: runtime.appId,
+        modelId: resolved.modelId,
+        routePolicy: resolved.routePolicy,
+        fallback: resolved.fallbackPolicy,
+        timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+        connectorId: String(input.connectorId || ''),
+      },
+      scenarioType: SCENARIO_TYPE_TEXT_EMBED,
+      executionMode: EXECUTION_MODE_SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textEmbed',
+          textEmbed: {
+            inputs,
+          },
+        },
+      },
+      extensions: [],
     }, callOptions);
     return {
-      embeddings: extractEmbeddings((response as { vectors?: unknown }).vectors),
+      embeddings: extractEmbeddingsFromScenario((response as { output?: unknown }).output),
       traceId: runtimeTraceId || createRuntimeTraceId('mod-embedding'),
     };
   } catch (error) {
@@ -110,4 +124,28 @@ export async function invokeModEmbedding(input: InvokeModEmbeddingInput): Promis
     });
     throw normalizedError;
   }
+}
+
+function extractEmbeddingsFromScenario(output: unknown): number[][] {
+  const fields = (output && typeof output === 'object')
+    ? (output as { fields?: Record<string, unknown> }).fields || {}
+    : {};
+  const vectors = fields.vectors as { kind?: { oneofKind?: string; listValue?: { values?: unknown[] } } } | undefined;
+  const vectorValues = vectors?.kind?.oneofKind === 'listValue'
+    ? vectors.kind.listValue?.values || []
+    : [];
+  return vectorValues.map((entry) => {
+    const row = entry as { kind?: { oneofKind?: string; listValue?: { values?: unknown[] } } };
+    const values = row?.kind?.oneofKind === 'listValue'
+      ? row.kind.listValue?.values || []
+      : [];
+    return values.map((item) => {
+      const value = item as { kind?: { oneofKind?: string; numberValue?: unknown } };
+      if (value?.kind?.oneofKind !== 'numberValue') {
+        return null;
+      }
+      const parsed = Number(value.kind.numberValue);
+      return Number.isFinite(parsed) ? parsed : null;
+    }).filter((item): item is number => item !== null);
+  });
 }

@@ -471,8 +471,8 @@ export function TurnInput(props: TurnInputProps = {}) {
                 type="button"
                 onClick={clearPastedImage}
                 className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/80"
-                aria-label="Remove attachment"
-                title="Remove attachment"
+                aria-label={t('TurnInput.removeAttachment')}
+                title={t('TurnInput.removeAttachment')}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />

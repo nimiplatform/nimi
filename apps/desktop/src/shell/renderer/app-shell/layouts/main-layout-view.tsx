@@ -287,7 +287,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
-  const [createPostRequestKey, setCreatePostRequestKey] = useState(0);
+  const [createPostRequestKey] = useState(0);
   const [collapsedSettingsMenuPosition, setCollapsedSettingsMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -467,11 +467,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
   const openNotificationsFromTitlebar = () => {
     props.onNav('notification');
-  };
-  const openCreatePostFromTitlebar = () => {
-    setSettingsMenuOpen(false);
-    props.onNav('home');
-    setCreatePostRequestKey((value) => value + 1);
   };
   const toggleSettingsMenuFromTitlebar = () => {
     setSettingsMenuOpen((value) => !value);

@@ -74,10 +74,10 @@ export function MarketplaceRow({
   isSelected,
   onOpenMod,
   onInstallMod,
-  onUninstallMod,
+  onUninstallMod: _onUninstallMod,
   onEnableMod,
-  onDisableMod,
-  onOpenModSettings,
+  onDisableMod: _onDisableMod,
+  onOpenModSettings: _onOpenModSettings,
   onSelectMod,
 }: {
   mod: MarketplaceMod;

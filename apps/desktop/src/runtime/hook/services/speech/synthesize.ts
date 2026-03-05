@@ -104,7 +104,7 @@ export async function synthesizeModSpeech(
       timeoutMs: 60000,
       connectorId,
       metadata,
-      providerOptions: providerParams,
+      extensions: providerParams,
     });
 
     if (!generated) {

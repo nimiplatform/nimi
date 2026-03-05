@@ -74,7 +74,7 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
         : undefined,
       mask: String(input.mask || '').trim() || undefined,
       responseFormat: input.responseFormat,
-      providerOptions: input.providerOptions,
+      extensions: input.extensions,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata,
       signal: input.abortSignal,
