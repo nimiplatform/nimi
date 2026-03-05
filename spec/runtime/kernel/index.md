@@ -22,7 +22,7 @@
   - `RPC` `AUTH` `AUTHN` `AUTHSVC` `GRANT` `KEYSRC` `JOB`
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `SCRIPT`
-  - `CFG` `CONN` `NIMI` `MMPROV` `GATE` `PROTO`
+  - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `GATE` `PROTO`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -54,6 +54,7 @@
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
+| `model-catalog-contract.md` | `K-MCAT-*` | 模型/voice catalog SSOT、远程覆写与 fail-close 语义 |
 | `multimodal-provider-contract.md` | `K-MMPROV-*` | canonical 输入、artifact、adapter 与路由约束 |
 | `delivery-gates-contract.md` | `K-GATE-*` | 交付门定义与证据路由 |
 | `proto-governance-contract.md` | `K-PROTO-*` | proto 治理、兼容策略、发布门禁 |
@@ -85,6 +86,10 @@
 - `tables/multimodal-artifact-fields.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
+
+Runtime provider model/voice default data is maintained outside `spec/` at:
+
+- `runtime/catalog/providers/*.yaml`
 
 ## 6. Kernel Companion 约束
 

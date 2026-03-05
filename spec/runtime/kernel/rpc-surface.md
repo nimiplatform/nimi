@@ -50,6 +50,9 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 6. `TestConnector`
 7. `ListConnectorModels`
 8. `ListProviderCatalog`
+9. `ListModelCatalogProviders`
+10. `UpsertModelCatalogProvider`
+11. `DeleteModelCatalogProvider`
 
 ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
 
@@ -172,14 +175,19 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | `app_id` | string | 是 | 应用标识 |
-| `provider` | string | 否 | 按 provider 过滤 |
-| `language` | string | 否 | 按语言过滤（BCP-47 格式，如 `en-US`、`zh-CN`） |
+| `subject_user_id` | string | 是 | 鉴权主体用户 ID |
+| `model_id` | string | 是 | 待查询模型（例如 `cloud/qwen3-tts-instruct-flash-2026-01-26`） |
+| `route_policy` | enum | 是 | 路由策略（`local-runtime`/`token-api`） |
+| `fallback` | enum | 是 | fallback 策略 |
+| `connector_id` | string | 否 | key-source 托管 connector（`managed` 路径） |
 
 **响应字段**：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `voices` | repeated SpeechVoiceDescriptor | 可用声音列表 |
+| `model_resolved` | string | 路由后模型 ID |
+| `trace_id` | string | 请求追踪 ID |
 
 **SpeechVoiceDescriptor 字段**：
 
@@ -187,13 +195,12 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 |---|---|---|
 | `voice_id` | string | 声音唯一标识 |
 | `name` | string | 声音显示名称 |
-| `language` | string | 语言代码（BCP-47） |
-| `gender` | string | 性别（`male`/`female`/`neutral`） |
-| `provider` | string | 来源 provider |
-| `preview_url` | string | 预览音频 URL（可选，可为空） |
+| `lang` | string | 默认语言标签 |
+| `supported_langs` | repeated string | 支持语言列表 |
 
 **约束**：
 
 - 结果为有界小集合，不分页（无 `page_size`/`page_token`）。
-- 不需要 key-source 评估（声音目录为公共元数据）。
-- `provider`/`language` 过滤为客户端便利性设计，服务端做精确匹配（`language` 按 BCP-47 primary tag 匹配，如 `en` 匹配 `en-US`）。
+- 请求必须经过 key-source 解析（`K-KEYSRC-*`），`connector_id` 语义与其他 AI RPC 一致。
+- DashScope TTS voice 来源遵循 `K-MCAT-*` catalog 主路径；兼容模式 voice endpoint 探测不作为主路径。
+- `catalog_source` 属于运行时诊断语义：必须在 runtime 诊断日志与错误 metadata（如 `voice_catalog_source`）可观测；Phase 1 不要求 proto 字段变更。

@@ -42,6 +42,12 @@ services:
         type: unary
       - name: ListProviderCatalog
         type: unary
+      - name: ListModelCatalogProviders
+        type: unary
+      - name: UpsertModelCatalogProvider
+        type: unary
+      - name: DeleteModelCatalogProvider
+        type: unary
   - name: RuntimeLocalRuntimeService
     source: K-RPC-004
     methods:

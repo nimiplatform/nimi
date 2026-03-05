@@ -331,6 +331,80 @@ function renderProviderCapabilities(doc, sourceName) {
   return normalizeMarkdown(out);
 }
 
+function renderProviderModelCatalog(doc, sourceName) {
+  const models = Array.isArray(doc?.models) ? doc.models : [];
+  const catalogVersion = String(doc?.catalog_version || '').trim() || '—';
+  let out = header('Generated Provider Model Catalog', sourceName);
+
+  out += `Catalog Version: \`${catalogVersion}\`\n\n`;
+  out += '| Provider | Model ID | Model Type | Updated At | Capabilities | Pricing (unit/input/output/currency/as_of) | Voice Set ID | Source Ref |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const item of models) {
+    const provider = String(item?.provider || '').trim();
+    const modelID = String(item?.model_id || '').trim();
+    if (!provider || !modelID) continue;
+
+    const modelType = String(item?.model_type || '').trim() || '—';
+    const updatedAt = String(item?.updated_at || '').trim() || '—';
+    const capabilities = Array.isArray(item?.capabilities)
+      ? item.capabilities.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const pricing = item?.pricing || {};
+    const pricingSummary = [
+      String(pricing?.unit || '').trim() || '—',
+      String(pricing?.input || '').trim() || '—',
+      String(pricing?.output || '').trim() || '—',
+      String(pricing?.currency || '').trim() || '—',
+      String(pricing?.as_of || '').trim() || '—',
+    ].map((v) => `\`${v}\``).join(' / ');
+    const voiceSetID = String(item?.voice_set_id || '').trim() || '—';
+    const sourceRef = item?.source_ref || {};
+    const sourceSummary = [
+      String(sourceRef?.url || '').trim() || '—',
+      String(sourceRef?.retrieved_at || '').trim() || '—',
+    ].map((v) => `\`${v}\``).join(' @ ');
+
+    out += `| \`${provider}\` | \`${modelID}\` | \`${modelType}\` | \`${updatedAt}\` | ${capabilities || '—'} | ${pricingSummary} | \`${voiceSetID}\` | ${sourceSummary} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderProviderVoiceCatalog(doc, sourceName) {
+  const voices = Array.isArray(doc?.voices) ? doc.voices : [];
+  const catalogVersion = String(doc?.catalog_version || '').trim() || '—';
+  let out = header('Generated Provider Voice Catalog', sourceName);
+
+  out += `Catalog Version: \`${catalogVersion}\`\n\n`;
+  out += '| Voice Set ID | Provider | Voice ID | Name | Langs | Model IDs | Source Ref |\n';
+  out += '|---|---|---|---|---|---|---|\n';
+  for (const item of voices) {
+    const voiceSetID = String(item?.voice_set_id || '').trim();
+    const provider = String(item?.provider || '').trim();
+    const voiceID = String(item?.voice_id || '').trim();
+    if (!voiceSetID || !provider || !voiceID) continue;
+
+    const name = String(item?.name || '').trim() || '—';
+    const langs = Array.isArray(item?.langs)
+      ? item.langs.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const modelIDs = Array.isArray(item?.model_ids)
+      ? item.model_ids.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const sourceRef = item?.source_ref || {};
+    const sourceSummary = [
+      String(sourceRef?.url || '').trim() || '—',
+      String(sourceRef?.retrieved_at || '').trim() || '—',
+    ].map((v) => `\`${v}\``).join(' @ ');
+
+    out += `| \`${voiceSetID}\` | \`${provider}\` | \`${voiceID}\` | \`${name}\` | ${langs || '—'} | ${modelIDs || '—'} | ${sourceSummary} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
 function renderConnectorRpcFieldRules(doc, sourceName) {
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
   let out = header('Generated Connector RPC Field Rules', sourceName);

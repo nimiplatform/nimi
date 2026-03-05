@@ -7,6 +7,21 @@
 | `common` | `app_id` | `true` | caller application identity | `K-MMPROV-001` |
 | `common` | `model_id` | `true` | model selector | `K-MMPROV-001` |
 | `image` | `prompt` | `true` | image prompt text | `K-MMPROV-002` |
+| `image` | `negative_prompt` | `false` | optional negative prompt text | `K-MMPROV-002` |
+| `image` | `reference_images` | `false` | optional i2i reference image inputs | `K-MMPROV-016` |
+| `image` | `mask` | `false` | optional inpaint mask source | `K-MMPROV-002` |
+| `image` | `provider_options.step` | `false` | LocalAI preferred sampling step count | `K-MMPROV-017` |
+| `image` | `provider_options.steps` | `false` | Nexa compatibility key mapped to step when step is absent | `K-MMPROV-017` |
+| `image` | `provider_options.mode` | `false` | LocalAI preferred generation mode | `K-MMPROV-017` |
+| `image` | `provider_options.method` | `false` | Nexa compatibility key mapped to mode when mode is absent | `K-MMPROV-017` |
+| `image` | `provider_options.guidance_scale` | `false` | currently ignored in LocalAI image path and reported in compat.ignored_options | `K-MMPROV-017` |
+| `image` | `provider_options.eta` | `false` | currently ignored in LocalAI image path and reported in compat.ignored_options | `K-MMPROV-017` |
+| `image` | `provider_options.strength` | `false` | currently ignored in LocalAI image path and reported in compat.ignored_options | `K-MMPROV-017` |
+| `image` | `provider_raw.localai_prompt` | `false` | effective LocalAI prompt after positive/negative composition | `K-MMPROV-017` |
+| `image` | `provider_raw.source_image` | `false` | i2i source image mapped to LocalAI file field | `K-MMPROV-017` |
+| `image` | `provider_raw.ref_images_count` | `false` | number of additional LocalAI ref_images entries | `K-MMPROV-017` |
+| `image` | `provider_raw.compat.applied_options` | `false` | compatibility options successfully mapped to LocalAI request | `K-MMPROV-017` |
+| `image` | `provider_raw.compat.ignored_options` | `false` | compatibility options ignored without fail-close | `K-MMPROV-017` |
 | `video` | `duration_sec` | `false` | requested video duration | `K-MMPROV-003` |
 | `tts` | `voice` | `true` | synthesis voice id | `K-MMPROV-004` |
 | `stt` | `audio_source` | `true` | transcription audio input | `K-MMPROV-005` |

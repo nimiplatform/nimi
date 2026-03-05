@@ -33,6 +33,9 @@ Source: `K-RPC-003`
 | `TestConnector` | `unary` |
 | `ListConnectorModels` | `unary` |
 | `ListProviderCatalog` | `unary` |
+| `ListModelCatalogProviders` | `unary` |
+| `UpsertModelCatalogProvider` | `unary` |
+| `DeleteModelCatalogProvider` | `unary` |
 
 ## RuntimeLocalRuntimeService
 

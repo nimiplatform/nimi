@@ -7,6 +7,8 @@ const cwd = process.cwd();
 const runtimeRoot = path.join(cwd, 'spec/runtime');
 const sdkRoot = path.join(cwd, 'spec/sdk');
 const protoRoot = path.join(cwd, 'proto/runtime/v1');
+const runtimeCatalogProvidersDir = path.join(cwd, 'runtime/catalog/providers');
+const requiredCatalogProviders = ['dashscope', 'openai', 'volcengine'];
 
 const kernelFiles = [
   'spec/runtime/kernel/index.md',
@@ -56,6 +58,7 @@ const kernelFiles = [
   'spec/runtime/kernel/config-contract.md',
   'spec/runtime/kernel/connector-contract.md',
   'spec/runtime/kernel/nimillm-contract.md',
+  'spec/runtime/kernel/model-catalog-contract.md',
   'spec/runtime/kernel/multimodal-provider-contract.md',
   'spec/runtime/kernel/delivery-gates-contract.md',
   'spec/runtime/kernel/proto-governance-contract.md',
@@ -123,6 +126,7 @@ checkLegacyDesignReferenceDrift();
 checkReasonCodeNumericAssignments();
 checkBannedExternalRpcNames();
 checkProviderTableParity();
+checkModelCatalogTables();
 checkConnectorRpcFieldRulesCoverage();
 checkStateTransitionCoverage(kernelRuleDefinitions);
 checkDomainProviderTableAnchors();
@@ -257,6 +261,224 @@ function checkProviderTableParity() {
     }
     if (!explicitRequired && endpointRequirement === 'explicit_required') {
       fail(`provider-capabilities ${provider} endpoint_requirement conflicts with provider-catalog default endpoint`);
+    }
+  }
+}
+
+function checkModelCatalogTables() {
+  if (!fs.existsSync(runtimeCatalogProvidersDir)) {
+    fail(`runtime catalog provider directory is missing: ${path.relative(cwd, runtimeCatalogProvidersDir)}`);
+    return;
+  }
+
+  const providerFiles = fs.readdirSync(runtimeCatalogProvidersDir)
+    .filter((name) => /\.(yaml|yml)$/iu.test(name))
+    .sort((a, b) => a.localeCompare(b));
+  if (providerFiles.length === 0) {
+    fail('runtime/catalog/providers must include at least one provider yaml');
+    return;
+  }
+
+  const allowedPricingUnits = new Set(['token', 'char', 'second', 'request']);
+  const seenProviders = new Set();
+  const dashscopeModelVoices = new Map();
+
+  for (const fileName of providerFiles) {
+    const absPath = path.join(runtimeCatalogProvidersDir, fileName);
+    const parsed = YAML.parse(fs.readFileSync(absPath, 'utf8'));
+    const provider = normalizeProviderName(parsed?.provider || fileName.replace(/\.(yaml|yml)$/iu, ''));
+    if (!provider) {
+      fail(`${path.relative(cwd, absPath)} must include provider`);
+      continue;
+    }
+    if (!requiredCatalogProviders.includes(provider)) {
+      fail(`${path.relative(cwd, absPath)} has unsupported provider: ${provider}`);
+      continue;
+    }
+    if (seenProviders.has(provider)) {
+      fail(`runtime/catalog/providers has duplicate provider entry: ${provider}`);
+      continue;
+    }
+    seenProviders.add(provider);
+
+    const version = Number(parsed?.version);
+    if (Number.isNaN(version) || version <= 0) {
+      fail(`${path.relative(cwd, absPath)} must include positive version`);
+    }
+    if (!String(parsed?.catalog_version || '').trim()) {
+      fail(`${path.relative(cwd, absPath)} must include catalog_version`);
+    }
+
+    const models = Array.isArray(parsed?.models) ? parsed.models : [];
+    const voices = Array.isArray(parsed?.voices) ? parsed.voices : [];
+    if (models.length === 0) {
+      fail(`${path.relative(cwd, absPath)} must include at least one model`);
+      continue;
+    }
+    if (voices.length === 0) {
+      fail(`${path.relative(cwd, absPath)} must include at least one voice`);
+      continue;
+    }
+
+    const modelKeySet = new Set();
+    const modelToVoiceSet = new Map();
+    const modelToVoices = new Map();
+    const validVoiceSets = new Set();
+
+    for (const model of models) {
+      const modelProvider = normalizeProviderName(model?.provider || provider);
+      const modelID = String(model?.model_id || '').trim();
+      const modelType = String(model?.model_type || '').trim();
+      const updatedAt = String(model?.updated_at || '').trim();
+      const voiceSetID = String(model?.voice_set_id || '').trim();
+      if (modelProvider !== provider) {
+        fail(`${path.relative(cwd, absPath)} model ${modelID || '<unknown>'} provider mismatch: ${modelProvider}`);
+      }
+      if (!modelID || !modelType || !updatedAt || !voiceSetID) {
+        fail(`${path.relative(cwd, absPath)} model entry must include model_id/model_type/updated_at/voice_set_id`);
+        continue;
+      }
+
+      const modelKey = `${provider}:${modelID}`;
+      if (modelKeySet.has(modelKey)) {
+        fail(`${path.relative(cwd, absPath)} has duplicate model entry: ${modelKey}`);
+        continue;
+      }
+      modelKeySet.add(modelKey);
+      modelToVoiceSet.set(modelKey, voiceSetID);
+      validVoiceSets.add(`${provider}:${voiceSetID}`);
+
+      const capabilities = Array.isArray(model?.capabilities) ? model.capabilities : [];
+      if (capabilities.length === 0) {
+        fail(`${path.relative(cwd, absPath)} model ${modelKey} must include capabilities`);
+      }
+
+      const pricing = model?.pricing || {};
+      const unit = String(pricing?.unit || '').trim();
+      if (!allowedPricingUnits.has(unit)) {
+        fail(`${path.relative(cwd, absPath)} model ${modelKey} has invalid pricing.unit: ${unit}`);
+      }
+      for (const field of ['input', 'output', 'currency', 'as_of', 'notes']) {
+        if (!String(pricing?.[field] || '').trim()) {
+          fail(`${path.relative(cwd, absPath)} model ${modelKey} missing pricing.${field}`);
+        }
+      }
+
+      const sourceRef = model?.source_ref || {};
+      if (!String(sourceRef?.url || '').trim()) {
+        fail(`${path.relative(cwd, absPath)} model ${modelKey} missing source_ref.url`);
+      }
+      if (!String(sourceRef?.retrieved_at || '').trim()) {
+        fail(`${path.relative(cwd, absPath)} model ${modelKey} missing source_ref.retrieved_at`);
+      }
+    }
+
+    const voiceSetToVoiceIDs = new Map();
+    for (const voice of voices) {
+      const voiceSetID = String(voice?.voice_set_id || '').trim();
+      const voiceProvider = normalizeProviderName(voice?.provider || provider);
+      const voiceID = String(voice?.voice_id || '').trim();
+      const voiceName = String(voice?.name || '').trim();
+      if (voiceProvider !== provider) {
+        fail(`${path.relative(cwd, absPath)} voice ${voiceID || '<unknown>'} provider mismatch: ${voiceProvider}`);
+      }
+      if (!voiceSetID || !voiceID || !voiceName) {
+        fail(`${path.relative(cwd, absPath)} voice entry must include voice_set_id/voice_id/name`);
+        continue;
+      }
+
+      const voiceSetKey = `${provider}:${voiceSetID}`;
+      if (!validVoiceSets.has(voiceSetKey)) {
+        fail(`${path.relative(cwd, absPath)} voice ${voiceID} references undefined voice set: ${voiceSetKey}`);
+      }
+
+      const voicesInSet = voiceSetToVoiceIDs.get(voiceSetKey) || new Set();
+      const normalizedVoiceID = voiceID.toLowerCase();
+      if (voicesInSet.has(normalizedVoiceID)) {
+        fail(`${path.relative(cwd, absPath)} has duplicate voice_id under ${voiceSetKey}: ${voiceID}`);
+      }
+      voicesInSet.add(normalizedVoiceID);
+      voiceSetToVoiceIDs.set(voiceSetKey, voicesInSet);
+
+      const langs = Array.isArray(voice?.langs) ? voice.langs : [];
+      if (langs.length === 0) {
+        fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} must include langs`);
+      }
+
+      const modelIDs = Array.isArray(voice?.model_ids) ? voice.model_ids : [];
+      if (modelIDs.length === 0) {
+        fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} must include model_ids`);
+      }
+      for (const modelIDRaw of modelIDs) {
+        const modelID = String(modelIDRaw || '').trim();
+        if (!modelID) {
+          fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} contains empty model_id`);
+          continue;
+        }
+        const modelKey = `${provider}:${modelID}`;
+        if (!modelKeySet.has(modelKey)) {
+          fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} references unknown model_id: ${modelKey}`);
+          continue;
+        }
+        const expectedVoiceSet = modelToVoiceSet.get(modelKey);
+        if (expectedVoiceSet && expectedVoiceSet !== voiceSetID) {
+          fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} mismatches model voice_set_id for ${modelKey}`);
+        }
+        const modelVoiceSet = modelToVoices.get(modelKey) || new Set();
+        modelVoiceSet.add(voiceID);
+        modelToVoices.set(modelKey, modelVoiceSet);
+      }
+
+      const sourceRef = voice?.source_ref || {};
+      if (!String(sourceRef?.url || '').trim()) {
+        fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} missing source_ref.url`);
+      }
+      if (!String(sourceRef?.retrieved_at || '').trim()) {
+        fail(`${path.relative(cwd, absPath)} voice ${voiceSetKey}:${voiceID} missing source_ref.retrieved_at`);
+      }
+    }
+
+    for (const modelKey of modelKeySet) {
+      if (!modelToVoices.has(modelKey)) {
+        fail(`${path.relative(cwd, absPath)} model ${modelKey} has no voice mapping`);
+      }
+    }
+
+    if (provider === 'dashscope') {
+      const requiredDashScopeModels = [
+        'qwen3-tts-instruct-flash',
+        'qwen3-tts-instruct-flash-2026-01-26',
+        'qwen3-tts-flash',
+      ];
+      for (const modelID of requiredDashScopeModels) {
+        const key = `dashscope:${modelID}`;
+        if (!modelKeySet.has(key)) {
+          fail(`${path.relative(cwd, absPath)} missing required dashscope model: ${modelID}`);
+        }
+      }
+      const qwenVersionKey = 'dashscope:qwen3-tts-instruct-flash-2026-01-26';
+      dashscopeModelVoices.set(qwenVersionKey, modelToVoices.get(qwenVersionKey) || new Set());
+    }
+  }
+
+  for (const provider of requiredCatalogProviders) {
+    if (!seenProviders.has(provider)) {
+      fail(`runtime/catalog/providers missing required provider file: ${provider}.yaml`);
+    }
+  }
+
+  const qwenVersionKey = 'dashscope:qwen3-tts-instruct-flash-2026-01-26';
+  const qwenVoices = dashscopeModelVoices.get(qwenVersionKey);
+  if (!qwenVoices || qwenVoices.size === 0) {
+    fail(`runtime/catalog/providers missing voices for ${qwenVersionKey}`);
+    return;
+  }
+  if (qwenVoices.has('Haruto')) {
+    fail(`runtime/catalog/providers must not include Haruto for ${qwenVersionKey}`);
+  }
+  for (const requiredVoice of ['Cherry', 'Serena']) {
+    if (!qwenVoices.has(requiredVoice)) {
+      fail(`runtime/catalog/providers missing required DashScope voice ${requiredVoice} for ${qwenVersionKey}`);
     }
   }
 }
@@ -1047,6 +1269,10 @@ function loadReasonCodeSet() {
       .map((item) => String(item?.name || '').trim())
       .filter(Boolean),
   );
+}
+
+function normalizeProviderName(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 function isSpecDocFile(file) {
