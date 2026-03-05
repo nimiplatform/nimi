@@ -169,20 +169,22 @@ func (WorkflowEventType) EnumDescriptor() ([]byte, []int) {
 type WorkflowNodeType int32
 
 const (
-	WorkflowNodeType_WORKFLOW_NODE_TYPE_UNSPECIFIED   WorkflowNodeType = 0
-	WorkflowNodeType_WORKFLOW_NODE_AI_GENERATE        WorkflowNodeType = 1
-	WorkflowNodeType_WORKFLOW_NODE_AI_STREAM          WorkflowNodeType = 2
-	WorkflowNodeType_WORKFLOW_NODE_AI_EMBED           WorkflowNodeType = 3
-	WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE           WorkflowNodeType = 4
-	WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO           WorkflowNodeType = 5
-	WorkflowNodeType_WORKFLOW_NODE_AI_TTS             WorkflowNodeType = 6
-	WorkflowNodeType_WORKFLOW_NODE_AI_STT             WorkflowNodeType = 7
-	WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_EXTRACT  WorkflowNodeType = 20
-	WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE WorkflowNodeType = 21
-	WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_SCRIPT   WorkflowNodeType = 22
-	WorkflowNodeType_WORKFLOW_NODE_CONTROL_BRANCH     WorkflowNodeType = 40
-	WorkflowNodeType_WORKFLOW_NODE_CONTROL_MERGE      WorkflowNodeType = 41
-	WorkflowNodeType_WORKFLOW_NODE_CONTROL_NOOP       WorkflowNodeType = 42
+	WorkflowNodeType_WORKFLOW_NODE_TYPE_UNSPECIFIED    WorkflowNodeType = 0
+	WorkflowNodeType_WORKFLOW_NODE_AI_GENERATE         WorkflowNodeType = 1
+	WorkflowNodeType_WORKFLOW_NODE_AI_STREAM           WorkflowNodeType = 2
+	WorkflowNodeType_WORKFLOW_NODE_AI_EMBED            WorkflowNodeType = 3
+	WorkflowNodeType_WORKFLOW_NODE_AI_IMAGE            WorkflowNodeType = 4
+	WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO            WorkflowNodeType = 5
+	WorkflowNodeType_WORKFLOW_NODE_AI_TTS              WorkflowNodeType = 6
+	WorkflowNodeType_WORKFLOW_NODE_AI_STT              WorkflowNodeType = 7
+	WorkflowNodeType_WORKFLOW_NODE_AI_TTS_CREATE_VOICE WorkflowNodeType = 8
+	WorkflowNodeType_WORKFLOW_NODE_AI_TTS_SYNTHESIZE   WorkflowNodeType = 9
+	WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_EXTRACT   WorkflowNodeType = 20
+	WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE  WorkflowNodeType = 21
+	WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_SCRIPT    WorkflowNodeType = 22
+	WorkflowNodeType_WORKFLOW_NODE_CONTROL_BRANCH      WorkflowNodeType = 40
+	WorkflowNodeType_WORKFLOW_NODE_CONTROL_MERGE       WorkflowNodeType = 41
+	WorkflowNodeType_WORKFLOW_NODE_CONTROL_NOOP        WorkflowNodeType = 42
 )
 
 // Enum value maps for WorkflowNodeType.
@@ -196,6 +198,8 @@ var (
 		5:  "WORKFLOW_NODE_AI_VIDEO",
 		6:  "WORKFLOW_NODE_AI_TTS",
 		7:  "WORKFLOW_NODE_AI_STT",
+		8:  "WORKFLOW_NODE_AI_TTS_CREATE_VOICE",
+		9:  "WORKFLOW_NODE_AI_TTS_SYNTHESIZE",
 		20: "WORKFLOW_NODE_TRANSFORM_EXTRACT",
 		21: "WORKFLOW_NODE_TRANSFORM_TEMPLATE",
 		22: "WORKFLOW_NODE_TRANSFORM_SCRIPT",
@@ -204,20 +208,22 @@ var (
 		42: "WORKFLOW_NODE_CONTROL_NOOP",
 	}
 	WorkflowNodeType_value = map[string]int32{
-		"WORKFLOW_NODE_TYPE_UNSPECIFIED":   0,
-		"WORKFLOW_NODE_AI_GENERATE":        1,
-		"WORKFLOW_NODE_AI_STREAM":          2,
-		"WORKFLOW_NODE_AI_EMBED":           3,
-		"WORKFLOW_NODE_AI_IMAGE":           4,
-		"WORKFLOW_NODE_AI_VIDEO":           5,
-		"WORKFLOW_NODE_AI_TTS":             6,
-		"WORKFLOW_NODE_AI_STT":             7,
-		"WORKFLOW_NODE_TRANSFORM_EXTRACT":  20,
-		"WORKFLOW_NODE_TRANSFORM_TEMPLATE": 21,
-		"WORKFLOW_NODE_TRANSFORM_SCRIPT":   22,
-		"WORKFLOW_NODE_CONTROL_BRANCH":     40,
-		"WORKFLOW_NODE_CONTROL_MERGE":      41,
-		"WORKFLOW_NODE_CONTROL_NOOP":       42,
+		"WORKFLOW_NODE_TYPE_UNSPECIFIED":    0,
+		"WORKFLOW_NODE_AI_GENERATE":         1,
+		"WORKFLOW_NODE_AI_STREAM":           2,
+		"WORKFLOW_NODE_AI_EMBED":            3,
+		"WORKFLOW_NODE_AI_IMAGE":            4,
+		"WORKFLOW_NODE_AI_VIDEO":            5,
+		"WORKFLOW_NODE_AI_TTS":              6,
+		"WORKFLOW_NODE_AI_STT":              7,
+		"WORKFLOW_NODE_AI_TTS_CREATE_VOICE": 8,
+		"WORKFLOW_NODE_AI_TTS_SYNTHESIZE":   9,
+		"WORKFLOW_NODE_TRANSFORM_EXTRACT":   20,
+		"WORKFLOW_NODE_TRANSFORM_TEMPLATE":  21,
+		"WORKFLOW_NODE_TRANSFORM_SCRIPT":    22,
+		"WORKFLOW_NODE_CONTROL_BRANCH":      40,
+		"WORKFLOW_NODE_CONTROL_MERGE":       41,
+		"WORKFLOW_NODE_CONTROL_NOOP":        42,
 	}
 )
 
@@ -1102,6 +1108,278 @@ func (x *AiSttNodeConfig) GetAudioBytes() []byte {
 	return nil
 }
 
+type AiTtsCreateVoiceNodeConfig struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	ModelId            string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	TargetModelId      string                 `protobuf:"bytes,2,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
+	WorkflowType       VoiceWorkflowType      `protobuf:"varint,3,opt,name=workflow_type,json=workflowType,proto3,enum=nimi.runtime.v1.VoiceWorkflowType" json:"workflow_type,omitempty"`
+	ConnectorId        string                 `protobuf:"bytes,4,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	TimeoutMs          int32                  `protobuf:"varint,5,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	PreferredName      string                 `protobuf:"bytes,6,opt,name=preferred_name,json=preferredName,proto3" json:"preferred_name,omitempty"`
+	ReferenceAudioUri  string                 `protobuf:"bytes,7,opt,name=reference_audio_uri,json=referenceAudioUri,proto3" json:"reference_audio_uri,omitempty"`
+	ReferenceAudioMime string                 `protobuf:"bytes,8,opt,name=reference_audio_mime,json=referenceAudioMime,proto3" json:"reference_audio_mime,omitempty"`
+	InstructionText    string                 `protobuf:"bytes,9,opt,name=instruction_text,json=instructionText,proto3" json:"instruction_text,omitempty"`
+	PreviewText        string                 `protobuf:"bytes,10,opt,name=preview_text,json=previewText,proto3" json:"preview_text,omitempty"`
+	Language           string                 `protobuf:"bytes,11,opt,name=language,proto3" json:"language,omitempty"`
+	ProviderOptions    *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) Reset() {
+	*x = AiTtsCreateVoiceNodeConfig{}
+	mi := &file_runtime_v1_workflow_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiTtsCreateVoiceNodeConfig) ProtoMessage() {}
+
+func (x *AiTtsCreateVoiceNodeConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_workflow_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiTtsCreateVoiceNodeConfig.ProtoReflect.Descriptor instead.
+func (*AiTtsCreateVoiceNodeConfig) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetTargetModelId() string {
+	if x != nil {
+		return x.TargetModelId
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetWorkflowType() VoiceWorkflowType {
+	if x != nil {
+		return x.WorkflowType
+	}
+	return VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetTimeoutMs() int32 {
+	if x != nil {
+		return x.TimeoutMs
+	}
+	return 0
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetPreferredName() string {
+	if x != nil {
+		return x.PreferredName
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetReferenceAudioUri() string {
+	if x != nil {
+		return x.ReferenceAudioUri
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetReferenceAudioMime() string {
+	if x != nil {
+		return x.ReferenceAudioMime
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetInstructionText() string {
+	if x != nil {
+		return x.InstructionText
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetPreviewText() string {
+	if x != nil {
+		return x.PreviewText
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
+func (x *AiTtsCreateVoiceNodeConfig) GetProviderOptions() *structpb.Struct {
+	if x != nil {
+		return x.ProviderOptions
+	}
+	return nil
+}
+
+type AiTtsSynthesizeNodeConfig struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ModelId         string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	TargetModelId   string                 `protobuf:"bytes,2,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
+	Text            string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	VoiceRef        *VoiceReference        `protobuf:"bytes,4,opt,name=voice_ref,json=voiceRef,proto3" json:"voice_ref,omitempty"`
+	ConnectorId     string                 `protobuf:"bytes,5,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	TimeoutMs       int32                  `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	AudioFormat     string                 `protobuf:"bytes,7,opt,name=audio_format,json=audioFormat,proto3" json:"audio_format,omitempty"`
+	SampleRateHz    int32                  `protobuf:"varint,8,opt,name=sample_rate_hz,json=sampleRateHz,proto3" json:"sample_rate_hz,omitempty"`
+	Speed           float32                `protobuf:"fixed32,9,opt,name=speed,proto3" json:"speed,omitempty"`
+	Pitch           float32                `protobuf:"fixed32,10,opt,name=pitch,proto3" json:"pitch,omitempty"`
+	Volume          float32                `protobuf:"fixed32,11,opt,name=volume,proto3" json:"volume,omitempty"`
+	Emotion         string                 `protobuf:"bytes,12,opt,name=emotion,proto3" json:"emotion,omitempty"`
+	ProviderOptions *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AiTtsSynthesizeNodeConfig) Reset() {
+	*x = AiTtsSynthesizeNodeConfig{}
+	mi := &file_runtime_v1_workflow_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AiTtsSynthesizeNodeConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AiTtsSynthesizeNodeConfig) ProtoMessage() {}
+
+func (x *AiTtsSynthesizeNodeConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_workflow_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AiTtsSynthesizeNodeConfig.ProtoReflect.Descriptor instead.
+func (*AiTtsSynthesizeNodeConfig) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetTargetModelId() string {
+	if x != nil {
+		return x.TargetModelId
+	}
+	return ""
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetVoiceRef() *VoiceReference {
+	if x != nil {
+		return x.VoiceRef
+	}
+	return nil
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetConnectorId() string {
+	if x != nil {
+		return x.ConnectorId
+	}
+	return ""
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetTimeoutMs() int32 {
+	if x != nil {
+		return x.TimeoutMs
+	}
+	return 0
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetAudioFormat() string {
+	if x != nil {
+		return x.AudioFormat
+	}
+	return ""
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetSampleRateHz() int32 {
+	if x != nil {
+		return x.SampleRateHz
+	}
+	return 0
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetSpeed() float32 {
+	if x != nil {
+		return x.Speed
+	}
+	return 0
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetPitch() float32 {
+	if x != nil {
+		return x.Pitch
+	}
+	return 0
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetVolume() float32 {
+	if x != nil {
+		return x.Volume
+	}
+	return 0
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetEmotion() string {
+	if x != nil {
+		return x.Emotion
+	}
+	return ""
+}
+
+func (x *AiTtsSynthesizeNodeConfig) GetProviderOptions() *structpb.Struct {
+	if x != nil {
+		return x.ProviderOptions
+	}
+	return nil
+}
+
 type ExtractNodeConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	JsonPath      string                 `protobuf:"bytes,1,opt,name=json_path,json=jsonPath,proto3" json:"json_path,omitempty"`
@@ -1112,7 +1390,7 @@ type ExtractNodeConfig struct {
 
 func (x *ExtractNodeConfig) Reset() {
 	*x = ExtractNodeConfig{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[8]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1124,7 +1402,7 @@ func (x *ExtractNodeConfig) String() string {
 func (*ExtractNodeConfig) ProtoMessage() {}
 
 func (x *ExtractNodeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[8]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1137,7 +1415,7 @@ func (x *ExtractNodeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtractNodeConfig.ProtoReflect.Descriptor instead.
 func (*ExtractNodeConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{8}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ExtractNodeConfig) GetJsonPath() string {
@@ -1164,7 +1442,7 @@ type TemplateNodeConfig struct {
 
 func (x *TemplateNodeConfig) Reset() {
 	*x = TemplateNodeConfig{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[9]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1176,7 +1454,7 @@ func (x *TemplateNodeConfig) String() string {
 func (*TemplateNodeConfig) ProtoMessage() {}
 
 func (x *TemplateNodeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[9]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1189,7 +1467,7 @@ func (x *TemplateNodeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TemplateNodeConfig.ProtoReflect.Descriptor instead.
 func (*TemplateNodeConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{9}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *TemplateNodeConfig) GetTemplate() string {
@@ -1218,7 +1496,7 @@ type ScriptNodeConfig struct {
 
 func (x *ScriptNodeConfig) Reset() {
 	*x = ScriptNodeConfig{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[10]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1230,7 +1508,7 @@ func (x *ScriptNodeConfig) String() string {
 func (*ScriptNodeConfig) ProtoMessage() {}
 
 func (x *ScriptNodeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[10]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1243,7 +1521,7 @@ func (x *ScriptNodeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScriptNodeConfig.ProtoReflect.Descriptor instead.
 func (*ScriptNodeConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{10}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ScriptNodeConfig) GetRuntime() string {
@@ -1285,7 +1563,7 @@ type BranchNodeConfig struct {
 
 func (x *BranchNodeConfig) Reset() {
 	*x = BranchNodeConfig{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[11]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1297,7 +1575,7 @@ func (x *BranchNodeConfig) String() string {
 func (*BranchNodeConfig) ProtoMessage() {}
 
 func (x *BranchNodeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[11]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1310,7 +1588,7 @@ func (x *BranchNodeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BranchNodeConfig.ProtoReflect.Descriptor instead.
 func (*BranchNodeConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{11}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *BranchNodeConfig) GetCondition() string {
@@ -1344,7 +1622,7 @@ type MergeNodeConfig struct {
 
 func (x *MergeNodeConfig) Reset() {
 	*x = MergeNodeConfig{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[12]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1356,7 +1634,7 @@ func (x *MergeNodeConfig) String() string {
 func (*MergeNodeConfig) ProtoMessage() {}
 
 func (x *MergeNodeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[12]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1369,7 +1647,7 @@ func (x *MergeNodeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergeNodeConfig.ProtoReflect.Descriptor instead.
 func (*MergeNodeConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{12}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *MergeNodeConfig) GetStrategy() MergeStrategy {
@@ -1394,7 +1672,7 @@ type NoopNodeConfig struct {
 
 func (x *NoopNodeConfig) Reset() {
 	*x = NoopNodeConfig{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[13]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1406,7 +1684,7 @@ func (x *NoopNodeConfig) String() string {
 func (*NoopNodeConfig) ProtoMessage() {}
 
 func (x *NoopNodeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[13]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1419,7 +1697,7 @@ func (x *NoopNodeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NoopNodeConfig.ProtoReflect.Descriptor instead.
 func (*NoopNodeConfig) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{15}
 }
 
 type WorkflowNode struct {
@@ -1436,6 +1714,8 @@ type WorkflowNode struct {
 	//	*WorkflowNode_AiVideoConfig
 	//	*WorkflowNode_AiTtsConfig
 	//	*WorkflowNode_AiSttConfig
+	//	*WorkflowNode_AiTtsCreateVoiceConfig
+	//	*WorkflowNode_AiTtsSynthesizeConfig
 	//	*WorkflowNode_ExtractConfig
 	//	*WorkflowNode_TemplateConfig
 	//	*WorkflowNode_ScriptConfig
@@ -1454,7 +1734,7 @@ type WorkflowNode struct {
 
 func (x *WorkflowNode) Reset() {
 	*x = WorkflowNode{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[14]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1466,7 +1746,7 @@ func (x *WorkflowNode) String() string {
 func (*WorkflowNode) ProtoMessage() {}
 
 func (x *WorkflowNode) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[14]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1479,7 +1759,7 @@ func (x *WorkflowNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowNode.ProtoReflect.Descriptor instead.
 func (*WorkflowNode) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *WorkflowNode) GetNodeId() string {
@@ -1568,6 +1848,24 @@ func (x *WorkflowNode) GetAiSttConfig() *AiSttNodeConfig {
 	if x != nil {
 		if x, ok := x.TypeConfig.(*WorkflowNode_AiSttConfig); ok {
 			return x.AiSttConfig
+		}
+	}
+	return nil
+}
+
+func (x *WorkflowNode) GetAiTtsCreateVoiceConfig() *AiTtsCreateVoiceNodeConfig {
+	if x != nil {
+		if x, ok := x.TypeConfig.(*WorkflowNode_AiTtsCreateVoiceConfig); ok {
+			return x.AiTtsCreateVoiceConfig
+		}
+	}
+	return nil
+}
+
+func (x *WorkflowNode) GetAiTtsSynthesizeConfig() *AiTtsSynthesizeNodeConfig {
+	if x != nil {
+		if x, ok := x.TypeConfig.(*WorkflowNode_AiTtsSynthesizeConfig); ok {
+			return x.AiTtsSynthesizeConfig
 		}
 	}
 	return nil
@@ -1694,6 +1992,14 @@ type WorkflowNode_AiSttConfig struct {
 	AiSttConfig *AiSttNodeConfig `protobuf:"bytes,16,opt,name=ai_stt_config,json=aiSttConfig,proto3,oneof"`
 }
 
+type WorkflowNode_AiTtsCreateVoiceConfig struct {
+	AiTtsCreateVoiceConfig *AiTtsCreateVoiceNodeConfig `protobuf:"bytes,17,opt,name=ai_tts_create_voice_config,json=aiTtsCreateVoiceConfig,proto3,oneof"`
+}
+
+type WorkflowNode_AiTtsSynthesizeConfig struct {
+	AiTtsSynthesizeConfig *AiTtsSynthesizeNodeConfig `protobuf:"bytes,18,opt,name=ai_tts_synthesize_config,json=aiTtsSynthesizeConfig,proto3,oneof"`
+}
+
 type WorkflowNode_ExtractConfig struct {
 	ExtractConfig *ExtractNodeConfig `protobuf:"bytes,20,opt,name=extract_config,json=extractConfig,proto3,oneof"`
 }
@@ -1732,6 +2038,10 @@ func (*WorkflowNode_AiTtsConfig) isWorkflowNode_TypeConfig() {}
 
 func (*WorkflowNode_AiSttConfig) isWorkflowNode_TypeConfig() {}
 
+func (*WorkflowNode_AiTtsCreateVoiceConfig) isWorkflowNode_TypeConfig() {}
+
+func (*WorkflowNode_AiTtsSynthesizeConfig) isWorkflowNode_TypeConfig() {}
+
 func (*WorkflowNode_ExtractConfig) isWorkflowNode_TypeConfig() {}
 
 func (*WorkflowNode_TemplateConfig) isWorkflowNode_TypeConfig() {}
@@ -1755,7 +2065,7 @@ type WorkflowDefinition struct {
 
 func (x *WorkflowDefinition) Reset() {
 	*x = WorkflowDefinition{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[15]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1767,7 +2077,7 @@ func (x *WorkflowDefinition) String() string {
 func (*WorkflowDefinition) ProtoMessage() {}
 
 func (x *WorkflowDefinition) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[15]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1780,7 +2090,7 @@ func (x *WorkflowDefinition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowDefinition.ProtoReflect.Descriptor instead.
 func (*WorkflowDefinition) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *WorkflowDefinition) GetWorkflowType() string {
@@ -1816,7 +2126,7 @@ type SubmitWorkflowRequest struct {
 
 func (x *SubmitWorkflowRequest) Reset() {
 	*x = SubmitWorkflowRequest{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[16]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1828,7 +2138,7 @@ func (x *SubmitWorkflowRequest) String() string {
 func (*SubmitWorkflowRequest) ProtoMessage() {}
 
 func (x *SubmitWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[16]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1841,7 +2151,7 @@ func (x *SubmitWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*SubmitWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SubmitWorkflowRequest) GetAppId() string {
@@ -1883,7 +2193,7 @@ type SubmitWorkflowResponse struct {
 
 func (x *SubmitWorkflowResponse) Reset() {
 	*x = SubmitWorkflowResponse{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[17]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1895,7 +2205,7 @@ func (x *SubmitWorkflowResponse) String() string {
 func (*SubmitWorkflowResponse) ProtoMessage() {}
 
 func (x *SubmitWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[17]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1908,7 +2218,7 @@ func (x *SubmitWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*SubmitWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SubmitWorkflowResponse) GetTaskId() string {
@@ -1941,7 +2251,7 @@ type GetWorkflowRequest struct {
 
 func (x *GetWorkflowRequest) Reset() {
 	*x = GetWorkflowRequest{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[18]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1953,7 +2263,7 @@ func (x *GetWorkflowRequest) String() string {
 func (*GetWorkflowRequest) ProtoMessage() {}
 
 func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[18]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1966,7 +2276,7 @@ func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*GetWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetWorkflowRequest) GetTaskId() string {
@@ -1992,7 +2302,7 @@ type WorkflowNodeStatus struct {
 
 func (x *WorkflowNodeStatus) Reset() {
 	*x = WorkflowNodeStatus{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[19]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2004,7 +2314,7 @@ func (x *WorkflowNodeStatus) String() string {
 func (*WorkflowNodeStatus) ProtoMessage() {}
 
 func (x *WorkflowNodeStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[19]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2017,7 +2327,7 @@ func (x *WorkflowNodeStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowNodeStatus.ProtoReflect.Descriptor instead.
 func (*WorkflowNodeStatus) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *WorkflowNodeStatus) GetNodeId() string {
@@ -2089,7 +2399,7 @@ type GetWorkflowResponse struct {
 
 func (x *GetWorkflowResponse) Reset() {
 	*x = GetWorkflowResponse{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[20]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2101,7 +2411,7 @@ func (x *GetWorkflowResponse) String() string {
 func (*GetWorkflowResponse) ProtoMessage() {}
 
 func (x *GetWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[20]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2114,7 +2424,7 @@ func (x *GetWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*GetWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetWorkflowResponse) GetTaskId() string {
@@ -2161,7 +2471,7 @@ type CancelWorkflowRequest struct {
 
 func (x *CancelWorkflowRequest) Reset() {
 	*x = CancelWorkflowRequest{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[21]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2173,7 +2483,7 @@ func (x *CancelWorkflowRequest) String() string {
 func (*CancelWorkflowRequest) ProtoMessage() {}
 
 func (x *CancelWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[21]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2186,7 +2496,7 @@ func (x *CancelWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*CancelWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CancelWorkflowRequest) GetTaskId() string {
@@ -2213,7 +2523,7 @@ type WorkflowEvent struct {
 
 func (x *WorkflowEvent) Reset() {
 	*x = WorkflowEvent{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[22]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2225,7 +2535,7 @@ func (x *WorkflowEvent) String() string {
 func (*WorkflowEvent) ProtoMessage() {}
 
 func (x *WorkflowEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[22]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2238,7 +2548,7 @@ func (x *WorkflowEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowEvent.ProtoReflect.Descriptor instead.
 func (*WorkflowEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *WorkflowEvent) GetEventType() WorkflowEventType {
@@ -2313,7 +2623,7 @@ type SubscribeWorkflowEventsRequest struct {
 
 func (x *SubscribeWorkflowEventsRequest) Reset() {
 	*x = SubscribeWorkflowEventsRequest{}
-	mi := &file_runtime_v1_workflow_proto_msgTypes[23]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2325,7 +2635,7 @@ func (x *SubscribeWorkflowEventsRequest) String() string {
 func (*SubscribeWorkflowEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeWorkflowEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_workflow_proto_msgTypes[23]
+	mi := &file_runtime_v1_workflow_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2338,7 +2648,7 @@ func (x *SubscribeWorkflowEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeWorkflowEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeWorkflowEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_workflow_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SubscribeWorkflowEventsRequest) GetTaskId() string {
@@ -2352,7 +2662,7 @@ var File_runtime_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"\x19runtime/v1/workflow.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13runtime/v1/ai.proto\x1a\x17runtime/v1/common.proto\"\x8a\x01\n" +
+	"\x19runtime/v1/workflow.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x13runtime/v1/ai.proto\x1a\x17runtime/v1/common.proto\x1a\x16runtime/v1/voice.proto\"\x8a\x01\n" +
 	"\fWorkflowEdge\x12 \n" +
 	"\ffrom_node_id\x18\x01 \x01(\tR\n" +
 	"fromNodeId\x12\x1f\n" +
@@ -2427,7 +2737,38 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\n" +
 	"timeout_ms\x18\x05 \x01(\x05R\ttimeoutMs\x12\x1f\n" +
 	"\vaudio_bytes\x18\x06 \x01(\fR\n" +
-	"audioBytes\"S\n" +
+	"audioBytes\"\xa1\x04\n" +
+	"\x1aAiTtsCreateVoiceNodeConfig\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12&\n" +
+	"\x0ftarget_model_id\x18\x02 \x01(\tR\rtargetModelId\x12G\n" +
+	"\rworkflow_type\x18\x03 \x01(\x0e2\".nimi.runtime.v1.VoiceWorkflowTypeR\fworkflowType\x12!\n" +
+	"\fconnector_id\x18\x04 \x01(\tR\vconnectorId\x12\x1d\n" +
+	"\n" +
+	"timeout_ms\x18\x05 \x01(\x05R\ttimeoutMs\x12%\n" +
+	"\x0epreferred_name\x18\x06 \x01(\tR\rpreferredName\x12.\n" +
+	"\x13reference_audio_uri\x18\a \x01(\tR\x11referenceAudioUri\x120\n" +
+	"\x14reference_audio_mime\x18\b \x01(\tR\x12referenceAudioMime\x12)\n" +
+	"\x10instruction_text\x18\t \x01(\tR\x0finstructionText\x12!\n" +
+	"\fpreview_text\x18\n" +
+	" \x01(\tR\vpreviewText\x12\x1a\n" +
+	"\blanguage\x18\v \x01(\tR\blanguage\x12B\n" +
+	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xdd\x03\n" +
+	"\x19AiTtsSynthesizeNodeConfig\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12&\n" +
+	"\x0ftarget_model_id\x18\x02 \x01(\tR\rtargetModelId\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12<\n" +
+	"\tvoice_ref\x18\x04 \x01(\v2\x1f.nimi.runtime.v1.VoiceReferenceR\bvoiceRef\x12!\n" +
+	"\fconnector_id\x18\x05 \x01(\tR\vconnectorId\x12\x1d\n" +
+	"\n" +
+	"timeout_ms\x18\x06 \x01(\x05R\ttimeoutMs\x12!\n" +
+	"\faudio_format\x18\a \x01(\tR\vaudioFormat\x12$\n" +
+	"\x0esample_rate_hz\x18\b \x01(\x05R\fsampleRateHz\x12\x14\n" +
+	"\x05speed\x18\t \x01(\x02R\x05speed\x12\x14\n" +
+	"\x05pitch\x18\n" +
+	" \x01(\x02R\x05pitch\x12\x16\n" +
+	"\x06volume\x18\v \x01(\x02R\x06volume\x12\x18\n" +
+	"\aemotion\x18\f \x01(\tR\aemotion\x12B\n" +
+	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"S\n" +
 	"\x11ExtractNodeConfig\x12\x1b\n" +
 	"\tjson_path\x18\x01 \x01(\tR\bjsonPath\x12!\n" +
 	"\fsource_input\x18\x02 \x01(\tR\vsourceInput\"Z\n" +
@@ -2448,7 +2789,7 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\x0fMergeNodeConfig\x12:\n" +
 	"\bstrategy\x18\x01 \x01(\x0e2\x1e.nimi.runtime.v1.MergeStrategyR\bstrategy\x12#\n" +
 	"\rmin_completed\x18\x02 \x01(\x05R\fminCompleted\"\x10\n" +
-	"\x0eNoopNodeConfig\"\x8a\v\n" +
+	"\x0eNoopNodeConfig\"\xdc\f\n" +
 	"\fWorkflowNode\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12>\n" +
 	"\tnode_type\x18\x02 \x01(\x0e2!.nimi.runtime.v1.WorkflowNodeTypeR\bnodeType\x12\x1d\n" +
@@ -2461,7 +2802,9 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\x0fai_image_config\x18\r \x01(\v2\".nimi.runtime.v1.AiImageNodeConfigH\x00R\raiImageConfig\x12L\n" +
 	"\x0fai_video_config\x18\x0e \x01(\v2\".nimi.runtime.v1.AiVideoNodeConfigH\x00R\raiVideoConfig\x12F\n" +
 	"\rai_tts_config\x18\x0f \x01(\v2 .nimi.runtime.v1.AiTtsNodeConfigH\x00R\vaiTtsConfig\x12F\n" +
-	"\rai_stt_config\x18\x10 \x01(\v2 .nimi.runtime.v1.AiSttNodeConfigH\x00R\vaiSttConfig\x12K\n" +
+	"\rai_stt_config\x18\x10 \x01(\v2 .nimi.runtime.v1.AiSttNodeConfigH\x00R\vaiSttConfig\x12i\n" +
+	"\x1aai_tts_create_voice_config\x18\x11 \x01(\v2+.nimi.runtime.v1.AiTtsCreateVoiceNodeConfigH\x00R\x16aiTtsCreateVoiceConfig\x12e\n" +
+	"\x18ai_tts_synthesize_config\x18\x12 \x01(\v2*.nimi.runtime.v1.AiTtsSynthesizeNodeConfigH\x00R\x15aiTtsSynthesizeConfig\x12K\n" +
 	"\x0eextract_config\x18\x14 \x01(\v2\".nimi.runtime.v1.ExtractNodeConfigH\x00R\rextractConfig\x12N\n" +
 	"\x0ftemplate_config\x18\x15 \x01(\v2#.nimi.runtime.v1.TemplateNodeConfigH\x00R\x0etemplateConfig\x12H\n" +
 	"\rscript_config\x18\x16 \x01(\v2!.nimi.runtime.v1.ScriptNodeConfigH\x00R\fscriptConfig\x12H\n" +
@@ -2552,7 +2895,7 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"$WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING\x10\n" +
 	"\x12*\n" +
 	"&WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED\x10\v\x12'\n" +
-	"#WORKFLOW_EVENT_NODE_EXTERNAL_FAILED\x10\f*\xcc\x03\n" +
+	"#WORKFLOW_EVENT_NODE_EXTERNAL_FAILED\x10\f*\x98\x04\n" +
 	"\x10WorkflowNodeType\x12\"\n" +
 	"\x1eWORKFLOW_NODE_TYPE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19WORKFLOW_NODE_AI_GENERATE\x10\x01\x12\x1b\n" +
@@ -2561,7 +2904,9 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\x16WORKFLOW_NODE_AI_IMAGE\x10\x04\x12\x1a\n" +
 	"\x16WORKFLOW_NODE_AI_VIDEO\x10\x05\x12\x18\n" +
 	"\x14WORKFLOW_NODE_AI_TTS\x10\x06\x12\x18\n" +
-	"\x14WORKFLOW_NODE_AI_STT\x10\a\x12#\n" +
+	"\x14WORKFLOW_NODE_AI_STT\x10\a\x12%\n" +
+	"!WORKFLOW_NODE_AI_TTS_CREATE_VOICE\x10\b\x12#\n" +
+	"\x1fWORKFLOW_NODE_AI_TTS_SYNTHESIZE\x10\t\x12#\n" +
 	"\x1fWORKFLOW_NODE_TRANSFORM_EXTRACT\x10\x14\x12$\n" +
 	" WORKFLOW_NODE_TRANSFORM_TEMPLATE\x10\x15\x12\"\n" +
 	"\x1eWORKFLOW_NODE_TRANSFORM_SCRIPT\x10\x16\x12 \n" +
@@ -2600,7 +2945,7 @@ func file_runtime_v1_workflow_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_workflow_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_runtime_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_runtime_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_runtime_v1_workflow_proto_goTypes = []any{
 	(WorkflowStatus)(0),                    // 0: nimi.runtime.v1.WorkflowStatus
 	(WorkflowEventType)(0),                 // 1: nimi.runtime.v1.WorkflowEventType
@@ -2616,94 +2961,104 @@ var file_runtime_v1_workflow_proto_goTypes = []any{
 	(*AiVideoNodeConfig)(nil),              // 11: nimi.runtime.v1.AiVideoNodeConfig
 	(*AiTtsNodeConfig)(nil),                // 12: nimi.runtime.v1.AiTtsNodeConfig
 	(*AiSttNodeConfig)(nil),                // 13: nimi.runtime.v1.AiSttNodeConfig
-	(*ExtractNodeConfig)(nil),              // 14: nimi.runtime.v1.ExtractNodeConfig
-	(*TemplateNodeConfig)(nil),             // 15: nimi.runtime.v1.TemplateNodeConfig
-	(*ScriptNodeConfig)(nil),               // 16: nimi.runtime.v1.ScriptNodeConfig
-	(*BranchNodeConfig)(nil),               // 17: nimi.runtime.v1.BranchNodeConfig
-	(*MergeNodeConfig)(nil),                // 18: nimi.runtime.v1.MergeNodeConfig
-	(*NoopNodeConfig)(nil),                 // 19: nimi.runtime.v1.NoopNodeConfig
-	(*WorkflowNode)(nil),                   // 20: nimi.runtime.v1.WorkflowNode
-	(*WorkflowDefinition)(nil),             // 21: nimi.runtime.v1.WorkflowDefinition
-	(*SubmitWorkflowRequest)(nil),          // 22: nimi.runtime.v1.SubmitWorkflowRequest
-	(*SubmitWorkflowResponse)(nil),         // 23: nimi.runtime.v1.SubmitWorkflowResponse
-	(*GetWorkflowRequest)(nil),             // 24: nimi.runtime.v1.GetWorkflowRequest
-	(*WorkflowNodeStatus)(nil),             // 25: nimi.runtime.v1.WorkflowNodeStatus
-	(*GetWorkflowResponse)(nil),            // 26: nimi.runtime.v1.GetWorkflowResponse
-	(*CancelWorkflowRequest)(nil),          // 27: nimi.runtime.v1.CancelWorkflowRequest
-	(*WorkflowEvent)(nil),                  // 28: nimi.runtime.v1.WorkflowEvent
-	(*SubscribeWorkflowEventsRequest)(nil), // 29: nimi.runtime.v1.SubscribeWorkflowEventsRequest
-	(Modal)(0),                             // 30: nimi.runtime.v1.Modal
-	(*ToolSpec)(nil),                       // 31: nimi.runtime.v1.ToolSpec
-	(RoutePolicy)(0),                       // 32: nimi.runtime.v1.RoutePolicy
-	(FallbackPolicy)(0),                    // 33: nimi.runtime.v1.FallbackPolicy
-	(ReasonCode)(0),                        // 34: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),          // 35: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),                // 36: google.protobuf.Struct
-	(*Ack)(nil),                            // 37: nimi.runtime.v1.Ack
+	(*AiTtsCreateVoiceNodeConfig)(nil),     // 14: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig
+	(*AiTtsSynthesizeNodeConfig)(nil),      // 15: nimi.runtime.v1.AiTtsSynthesizeNodeConfig
+	(*ExtractNodeConfig)(nil),              // 16: nimi.runtime.v1.ExtractNodeConfig
+	(*TemplateNodeConfig)(nil),             // 17: nimi.runtime.v1.TemplateNodeConfig
+	(*ScriptNodeConfig)(nil),               // 18: nimi.runtime.v1.ScriptNodeConfig
+	(*BranchNodeConfig)(nil),               // 19: nimi.runtime.v1.BranchNodeConfig
+	(*MergeNodeConfig)(nil),                // 20: nimi.runtime.v1.MergeNodeConfig
+	(*NoopNodeConfig)(nil),                 // 21: nimi.runtime.v1.NoopNodeConfig
+	(*WorkflowNode)(nil),                   // 22: nimi.runtime.v1.WorkflowNode
+	(*WorkflowDefinition)(nil),             // 23: nimi.runtime.v1.WorkflowDefinition
+	(*SubmitWorkflowRequest)(nil),          // 24: nimi.runtime.v1.SubmitWorkflowRequest
+	(*SubmitWorkflowResponse)(nil),         // 25: nimi.runtime.v1.SubmitWorkflowResponse
+	(*GetWorkflowRequest)(nil),             // 26: nimi.runtime.v1.GetWorkflowRequest
+	(*WorkflowNodeStatus)(nil),             // 27: nimi.runtime.v1.WorkflowNodeStatus
+	(*GetWorkflowResponse)(nil),            // 28: nimi.runtime.v1.GetWorkflowResponse
+	(*CancelWorkflowRequest)(nil),          // 29: nimi.runtime.v1.CancelWorkflowRequest
+	(*WorkflowEvent)(nil),                  // 30: nimi.runtime.v1.WorkflowEvent
+	(*SubscribeWorkflowEventsRequest)(nil), // 31: nimi.runtime.v1.SubscribeWorkflowEventsRequest
+	(Modal)(0),                             // 32: nimi.runtime.v1.Modal
+	(*ToolSpec)(nil),                       // 33: nimi.runtime.v1.ToolSpec
+	(RoutePolicy)(0),                       // 34: nimi.runtime.v1.RoutePolicy
+	(FallbackPolicy)(0),                    // 35: nimi.runtime.v1.FallbackPolicy
+	(VoiceWorkflowType)(0),                 // 36: nimi.runtime.v1.VoiceWorkflowType
+	(*structpb.Struct)(nil),                // 37: google.protobuf.Struct
+	(*VoiceReference)(nil),                 // 38: nimi.runtime.v1.VoiceReference
+	(ReasonCode)(0),                        // 39: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),          // 40: google.protobuf.Timestamp
+	(*Ack)(nil),                            // 41: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_workflow_proto_depIdxs = []int32{
-	30, // 0: nimi.runtime.v1.AiGenerateNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
-	31, // 1: nimi.runtime.v1.AiGenerateNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
-	32, // 2: nimi.runtime.v1.AiGenerateNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 3: nimi.runtime.v1.AiGenerateNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	30, // 4: nimi.runtime.v1.AiStreamNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
-	31, // 5: nimi.runtime.v1.AiStreamNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
-	32, // 6: nimi.runtime.v1.AiStreamNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 7: nimi.runtime.v1.AiStreamNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	32, // 8: nimi.runtime.v1.AiEmbedNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 9: nimi.runtime.v1.AiEmbedNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	32, // 10: nimi.runtime.v1.AiImageNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 11: nimi.runtime.v1.AiImageNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	32, // 12: nimi.runtime.v1.AiVideoNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 13: nimi.runtime.v1.AiVideoNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	32, // 14: nimi.runtime.v1.AiTtsNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 15: nimi.runtime.v1.AiTtsNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	32, // 16: nimi.runtime.v1.AiSttNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
-	33, // 17: nimi.runtime.v1.AiSttNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	3,  // 18: nimi.runtime.v1.MergeNodeConfig.strategy:type_name -> nimi.runtime.v1.MergeStrategy
-	2,  // 19: nimi.runtime.v1.WorkflowNode.node_type:type_name -> nimi.runtime.v1.WorkflowNodeType
-	7,  // 20: nimi.runtime.v1.WorkflowNode.ai_generate_config:type_name -> nimi.runtime.v1.AiGenerateNodeConfig
-	8,  // 21: nimi.runtime.v1.WorkflowNode.ai_stream_config:type_name -> nimi.runtime.v1.AiStreamNodeConfig
-	9,  // 22: nimi.runtime.v1.WorkflowNode.ai_embed_config:type_name -> nimi.runtime.v1.AiEmbedNodeConfig
-	10, // 23: nimi.runtime.v1.WorkflowNode.ai_image_config:type_name -> nimi.runtime.v1.AiImageNodeConfig
-	11, // 24: nimi.runtime.v1.WorkflowNode.ai_video_config:type_name -> nimi.runtime.v1.AiVideoNodeConfig
-	12, // 25: nimi.runtime.v1.WorkflowNode.ai_tts_config:type_name -> nimi.runtime.v1.AiTtsNodeConfig
-	13, // 26: nimi.runtime.v1.WorkflowNode.ai_stt_config:type_name -> nimi.runtime.v1.AiSttNodeConfig
-	14, // 27: nimi.runtime.v1.WorkflowNode.extract_config:type_name -> nimi.runtime.v1.ExtractNodeConfig
-	15, // 28: nimi.runtime.v1.WorkflowNode.template_config:type_name -> nimi.runtime.v1.TemplateNodeConfig
-	16, // 29: nimi.runtime.v1.WorkflowNode.script_config:type_name -> nimi.runtime.v1.ScriptNodeConfig
-	17, // 30: nimi.runtime.v1.WorkflowNode.branch_config:type_name -> nimi.runtime.v1.BranchNodeConfig
-	18, // 31: nimi.runtime.v1.WorkflowNode.merge_config:type_name -> nimi.runtime.v1.MergeNodeConfig
-	19, // 32: nimi.runtime.v1.WorkflowNode.noop_config:type_name -> nimi.runtime.v1.NoopNodeConfig
-	4,  // 33: nimi.runtime.v1.WorkflowNode.execution_mode:type_name -> nimi.runtime.v1.WorkflowExecutionMode
-	5,  // 34: nimi.runtime.v1.WorkflowNode.resume_strategy:type_name -> nimi.runtime.v1.WorkflowResumeStrategy
-	20, // 35: nimi.runtime.v1.WorkflowDefinition.nodes:type_name -> nimi.runtime.v1.WorkflowNode
-	6,  // 36: nimi.runtime.v1.WorkflowDefinition.edges:type_name -> nimi.runtime.v1.WorkflowEdge
-	21, // 37: nimi.runtime.v1.SubmitWorkflowRequest.definition:type_name -> nimi.runtime.v1.WorkflowDefinition
-	34, // 38: nimi.runtime.v1.SubmitWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0,  // 39: nimi.runtime.v1.WorkflowNodeStatus.status:type_name -> nimi.runtime.v1.WorkflowStatus
-	35, // 40: nimi.runtime.v1.WorkflowNodeStatus.next_poll_at:type_name -> google.protobuf.Timestamp
-	0,  // 41: nimi.runtime.v1.GetWorkflowResponse.status:type_name -> nimi.runtime.v1.WorkflowStatus
-	25, // 42: nimi.runtime.v1.GetWorkflowResponse.nodes:type_name -> nimi.runtime.v1.WorkflowNodeStatus
-	36, // 43: nimi.runtime.v1.GetWorkflowResponse.output:type_name -> google.protobuf.Struct
-	34, // 44: nimi.runtime.v1.GetWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	1,  // 45: nimi.runtime.v1.WorkflowEvent.event_type:type_name -> nimi.runtime.v1.WorkflowEventType
-	35, // 46: nimi.runtime.v1.WorkflowEvent.timestamp:type_name -> google.protobuf.Timestamp
-	34, // 47: nimi.runtime.v1.WorkflowEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	36, // 48: nimi.runtime.v1.WorkflowEvent.payload:type_name -> google.protobuf.Struct
-	22, // 49: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:input_type -> nimi.runtime.v1.SubmitWorkflowRequest
-	24, // 50: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:input_type -> nimi.runtime.v1.GetWorkflowRequest
-	27, // 51: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:input_type -> nimi.runtime.v1.CancelWorkflowRequest
-	29, // 52: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:input_type -> nimi.runtime.v1.SubscribeWorkflowEventsRequest
-	23, // 53: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:output_type -> nimi.runtime.v1.SubmitWorkflowResponse
-	26, // 54: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:output_type -> nimi.runtime.v1.GetWorkflowResponse
-	37, // 55: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:output_type -> nimi.runtime.v1.Ack
-	28, // 56: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:output_type -> nimi.runtime.v1.WorkflowEvent
-	53, // [53:57] is the sub-list for method output_type
-	49, // [49:53] is the sub-list for method input_type
-	49, // [49:49] is the sub-list for extension type_name
-	49, // [49:49] is the sub-list for extension extendee
-	0,  // [0:49] is the sub-list for field type_name
+	32, // 0: nimi.runtime.v1.AiGenerateNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
+	33, // 1: nimi.runtime.v1.AiGenerateNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
+	34, // 2: nimi.runtime.v1.AiGenerateNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 3: nimi.runtime.v1.AiGenerateNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	32, // 4: nimi.runtime.v1.AiStreamNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
+	33, // 5: nimi.runtime.v1.AiStreamNodeConfig.tools:type_name -> nimi.runtime.v1.ToolSpec
+	34, // 6: nimi.runtime.v1.AiStreamNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 7: nimi.runtime.v1.AiStreamNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	34, // 8: nimi.runtime.v1.AiEmbedNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 9: nimi.runtime.v1.AiEmbedNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	34, // 10: nimi.runtime.v1.AiImageNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 11: nimi.runtime.v1.AiImageNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	34, // 12: nimi.runtime.v1.AiVideoNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 13: nimi.runtime.v1.AiVideoNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	34, // 14: nimi.runtime.v1.AiTtsNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 15: nimi.runtime.v1.AiTtsNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	34, // 16: nimi.runtime.v1.AiSttNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
+	35, // 17: nimi.runtime.v1.AiSttNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
+	36, // 18: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
+	37, // 19: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig.provider_options:type_name -> google.protobuf.Struct
+	38, // 20: nimi.runtime.v1.AiTtsSynthesizeNodeConfig.voice_ref:type_name -> nimi.runtime.v1.VoiceReference
+	37, // 21: nimi.runtime.v1.AiTtsSynthesizeNodeConfig.provider_options:type_name -> google.protobuf.Struct
+	3,  // 22: nimi.runtime.v1.MergeNodeConfig.strategy:type_name -> nimi.runtime.v1.MergeStrategy
+	2,  // 23: nimi.runtime.v1.WorkflowNode.node_type:type_name -> nimi.runtime.v1.WorkflowNodeType
+	7,  // 24: nimi.runtime.v1.WorkflowNode.ai_generate_config:type_name -> nimi.runtime.v1.AiGenerateNodeConfig
+	8,  // 25: nimi.runtime.v1.WorkflowNode.ai_stream_config:type_name -> nimi.runtime.v1.AiStreamNodeConfig
+	9,  // 26: nimi.runtime.v1.WorkflowNode.ai_embed_config:type_name -> nimi.runtime.v1.AiEmbedNodeConfig
+	10, // 27: nimi.runtime.v1.WorkflowNode.ai_image_config:type_name -> nimi.runtime.v1.AiImageNodeConfig
+	11, // 28: nimi.runtime.v1.WorkflowNode.ai_video_config:type_name -> nimi.runtime.v1.AiVideoNodeConfig
+	12, // 29: nimi.runtime.v1.WorkflowNode.ai_tts_config:type_name -> nimi.runtime.v1.AiTtsNodeConfig
+	13, // 30: nimi.runtime.v1.WorkflowNode.ai_stt_config:type_name -> nimi.runtime.v1.AiSttNodeConfig
+	14, // 31: nimi.runtime.v1.WorkflowNode.ai_tts_create_voice_config:type_name -> nimi.runtime.v1.AiTtsCreateVoiceNodeConfig
+	15, // 32: nimi.runtime.v1.WorkflowNode.ai_tts_synthesize_config:type_name -> nimi.runtime.v1.AiTtsSynthesizeNodeConfig
+	16, // 33: nimi.runtime.v1.WorkflowNode.extract_config:type_name -> nimi.runtime.v1.ExtractNodeConfig
+	17, // 34: nimi.runtime.v1.WorkflowNode.template_config:type_name -> nimi.runtime.v1.TemplateNodeConfig
+	18, // 35: nimi.runtime.v1.WorkflowNode.script_config:type_name -> nimi.runtime.v1.ScriptNodeConfig
+	19, // 36: nimi.runtime.v1.WorkflowNode.branch_config:type_name -> nimi.runtime.v1.BranchNodeConfig
+	20, // 37: nimi.runtime.v1.WorkflowNode.merge_config:type_name -> nimi.runtime.v1.MergeNodeConfig
+	21, // 38: nimi.runtime.v1.WorkflowNode.noop_config:type_name -> nimi.runtime.v1.NoopNodeConfig
+	4,  // 39: nimi.runtime.v1.WorkflowNode.execution_mode:type_name -> nimi.runtime.v1.WorkflowExecutionMode
+	5,  // 40: nimi.runtime.v1.WorkflowNode.resume_strategy:type_name -> nimi.runtime.v1.WorkflowResumeStrategy
+	22, // 41: nimi.runtime.v1.WorkflowDefinition.nodes:type_name -> nimi.runtime.v1.WorkflowNode
+	6,  // 42: nimi.runtime.v1.WorkflowDefinition.edges:type_name -> nimi.runtime.v1.WorkflowEdge
+	23, // 43: nimi.runtime.v1.SubmitWorkflowRequest.definition:type_name -> nimi.runtime.v1.WorkflowDefinition
+	39, // 44: nimi.runtime.v1.SubmitWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	0,  // 45: nimi.runtime.v1.WorkflowNodeStatus.status:type_name -> nimi.runtime.v1.WorkflowStatus
+	40, // 46: nimi.runtime.v1.WorkflowNodeStatus.next_poll_at:type_name -> google.protobuf.Timestamp
+	0,  // 47: nimi.runtime.v1.GetWorkflowResponse.status:type_name -> nimi.runtime.v1.WorkflowStatus
+	27, // 48: nimi.runtime.v1.GetWorkflowResponse.nodes:type_name -> nimi.runtime.v1.WorkflowNodeStatus
+	37, // 49: nimi.runtime.v1.GetWorkflowResponse.output:type_name -> google.protobuf.Struct
+	39, // 50: nimi.runtime.v1.GetWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	1,  // 51: nimi.runtime.v1.WorkflowEvent.event_type:type_name -> nimi.runtime.v1.WorkflowEventType
+	40, // 52: nimi.runtime.v1.WorkflowEvent.timestamp:type_name -> google.protobuf.Timestamp
+	39, // 53: nimi.runtime.v1.WorkflowEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	37, // 54: nimi.runtime.v1.WorkflowEvent.payload:type_name -> google.protobuf.Struct
+	24, // 55: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:input_type -> nimi.runtime.v1.SubmitWorkflowRequest
+	26, // 56: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:input_type -> nimi.runtime.v1.GetWorkflowRequest
+	29, // 57: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:input_type -> nimi.runtime.v1.CancelWorkflowRequest
+	31, // 58: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:input_type -> nimi.runtime.v1.SubscribeWorkflowEventsRequest
+	25, // 59: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:output_type -> nimi.runtime.v1.SubmitWorkflowResponse
+	28, // 60: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:output_type -> nimi.runtime.v1.GetWorkflowResponse
+	41, // 61: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:output_type -> nimi.runtime.v1.Ack
+	30, // 62: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:output_type -> nimi.runtime.v1.WorkflowEvent
+	59, // [59:63] is the sub-list for method output_type
+	55, // [55:59] is the sub-list for method input_type
+	55, // [55:55] is the sub-list for extension type_name
+	55, // [55:55] is the sub-list for extension extendee
+	0,  // [0:55] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_workflow_proto_init() }
@@ -2713,7 +3068,8 @@ func file_runtime_v1_workflow_proto_init() {
 	}
 	file_runtime_v1_ai_proto_init()
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_workflow_proto_msgTypes[14].OneofWrappers = []any{
+	file_runtime_v1_voice_proto_init()
+	file_runtime_v1_workflow_proto_msgTypes[16].OneofWrappers = []any{
 		(*WorkflowNode_AiGenerateConfig)(nil),
 		(*WorkflowNode_AiStreamConfig)(nil),
 		(*WorkflowNode_AiEmbedConfig)(nil),
@@ -2721,6 +3077,8 @@ func file_runtime_v1_workflow_proto_init() {
 		(*WorkflowNode_AiVideoConfig)(nil),
 		(*WorkflowNode_AiTtsConfig)(nil),
 		(*WorkflowNode_AiSttConfig)(nil),
+		(*WorkflowNode_AiTtsCreateVoiceConfig)(nil),
+		(*WorkflowNode_AiTtsSynthesizeConfig)(nil),
 		(*WorkflowNode_ExtractConfig)(nil),
 		(*WorkflowNode_TemplateConfig)(nil),
 		(*WorkflowNode_ScriptConfig)(nil),
@@ -2734,7 +3092,7 @@ func file_runtime_v1_workflow_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_workflow_proto_rawDesc), len(file_runtime_v1_workflow_proto_rawDesc)),
 			NumEnums:      6,
-			NumMessages:   24,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

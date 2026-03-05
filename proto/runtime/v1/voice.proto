@@ -1,0 +1,238 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum VoiceWorkflowType {
+  VOICE_WORKFLOW_TYPE_UNSPECIFIED = 0;
+  VOICE_WORKFLOW_TYPE_TTS_V2V = 1;
+  VOICE_WORKFLOW_TYPE_TTS_T2V = 2;
+}
+
+enum VoiceReferenceKind {
+  VOICE_REFERENCE_KIND_UNSPECIFIED = 0;
+  VOICE_REFERENCE_KIND_PRESET = 1;
+  VOICE_REFERENCE_KIND_VOICE_ASSET = 2;
+  VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF = 3;
+}
+
+enum VoiceAssetPersistence {
+  VOICE_ASSET_PERSISTENCE_UNSPECIFIED = 0;
+  VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT = 1;
+  VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL = 2;
+}
+
+enum VoiceJobStatus {
+  VOICE_JOB_STATUS_UNSPECIFIED = 0;
+  VOICE_JOB_STATUS_SUBMITTED = 1;
+  VOICE_JOB_STATUS_QUEUED = 2;
+  VOICE_JOB_STATUS_RUNNING = 3;
+  VOICE_JOB_STATUS_COMPLETED = 4;
+  VOICE_JOB_STATUS_FAILED = 5;
+  VOICE_JOB_STATUS_CANCELED = 6;
+  VOICE_JOB_STATUS_TIMEOUT = 7;
+}
+
+enum VoiceAssetStatus {
+  VOICE_ASSET_STATUS_UNSPECIFIED = 0;
+  VOICE_ASSET_STATUS_ACTIVE = 1;
+  VOICE_ASSET_STATUS_EXPIRED = 2;
+  VOICE_ASSET_STATUS_DELETED = 3;
+  VOICE_ASSET_STATUS_FAILED = 4;
+}
+
+enum VoiceJobEventType {
+  VOICE_JOB_EVENT_TYPE_UNSPECIFIED = 0;
+  VOICE_JOB_EVENT_SUBMITTED = 1;
+  VOICE_JOB_EVENT_QUEUED = 2;
+  VOICE_JOB_EVENT_RUNNING = 3;
+  VOICE_JOB_EVENT_COMPLETED = 4;
+  VOICE_JOB_EVENT_FAILED = 5;
+  VOICE_JOB_EVENT_CANCELED = 6;
+  VOICE_JOB_EVENT_TIMEOUT = 7;
+}
+
+message VoiceReference {
+  VoiceReferenceKind kind = 1;
+  oneof reference {
+    string preset_voice_id = 2;
+    string voice_asset_id = 3;
+    string provider_voice_ref = 4;
+  }
+}
+
+message VoicePresetDescriptor {
+  string voice_id = 1;
+  string name = 2;
+  string lang = 3;
+  repeated string supported_langs = 4;
+  map<string, string> labels = 5;
+  string category = 6;
+  string preview_audio_uri = 7;
+}
+
+message VoiceAsset {
+  string voice_asset_id = 1;
+  string app_id = 2;
+  string subject_user_id = 3;
+  VoiceWorkflowType workflow_type = 4;
+  string provider = 5;
+  string model_id = 6;
+  string target_model_id = 7;
+  string provider_voice_ref = 8;
+  VoiceAssetPersistence persistence = 9;
+  VoiceAssetStatus status = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  google.protobuf.Timestamp expires_at = 13;
+  google.protobuf.Struct metadata = 14;
+}
+
+message VoiceJob {
+  string job_id = 1;
+  string app_id = 2;
+  string subject_user_id = 3;
+  string model_id = 4;
+  string target_model_id = 5;
+  VoiceWorkflowType workflow_type = 6;
+  VoiceJobStatus status = 7;
+  ReasonCode reason_code = 8;
+  string reason_detail = 9;
+  int32 retry_count = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  google.protobuf.Timestamp next_poll_at = 13;
+  string voice_asset_id = 14;
+  string trace_id = 15;
+}
+
+message VoiceV2VInput {
+  bytes reference_audio_bytes = 1;
+  string reference_audio_uri = 2;
+  string reference_audio_mime = 3;
+  repeated string language_hints = 4;
+  string preferred_name = 5;
+  google.protobuf.Struct provider_options = 20;
+}
+
+message VoiceT2VInput {
+  string instruction_text = 1;
+  string preview_text = 2;
+  string language = 3;
+  string preferred_name = 4;
+  google.protobuf.Struct provider_options = 20;
+}
+
+message SubmitVoiceJobRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string target_model_id = 4;
+  VoiceWorkflowType workflow_type = 5;
+  int32 timeout_ms = 6;
+  string request_id = 7;
+  string idempotency_key = 8;
+  map<string, string> labels = 9;
+  string connector_id = 10;
+  oneof input {
+    VoiceV2VInput v2v_input = 20;
+    VoiceT2VInput t2v_input = 21;
+  }
+}
+
+message SubmitVoiceJobResponse {
+  VoiceJob job = 1;
+  VoiceAsset asset = 2;
+}
+
+message GetVoiceJobRequest {
+  string job_id = 1;
+}
+
+message GetVoiceJobResponse {
+  VoiceJob job = 1;
+}
+
+message CancelVoiceJobRequest {
+  string job_id = 1;
+  string reason = 2;
+}
+
+message CancelVoiceJobResponse {
+  VoiceJob job = 1;
+}
+
+message VoiceJobEvent {
+  VoiceJobEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  VoiceJob job = 5;
+}
+
+message SubscribeVoiceJobEventsRequest {
+  string job_id = 1;
+}
+
+message GetVoiceAssetRequest {
+  string voice_asset_id = 1;
+}
+
+message GetVoiceAssetResponse {
+  VoiceAsset asset = 1;
+}
+
+message ListVoiceAssetsRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string target_model_id = 4;
+  VoiceWorkflowType workflow_type = 5;
+  VoiceAssetStatus status = 6;
+  int32 page_size = 7;
+  string page_token = 8;
+  string connector_id = 9;
+}
+
+message ListVoiceAssetsResponse {
+  repeated VoiceAsset assets = 1;
+  string next_page_token = 2;
+}
+
+message DeleteVoiceAssetRequest {
+  string voice_asset_id = 1;
+}
+
+message DeleteVoiceAssetResponse {
+  Ack ack = 1;
+}
+
+message ListPresetVoicesRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string target_model_id = 4;
+  string connector_id = 5;
+}
+
+message ListPresetVoicesResponse {
+  repeated VoicePresetDescriptor voices = 1;
+  string model_resolved = 2;
+  string trace_id = 3;
+}
+
+service RuntimeVoiceService {
+  rpc SubmitVoiceJob(SubmitVoiceJobRequest) returns (SubmitVoiceJobResponse);
+  rpc GetVoiceJob(GetVoiceJobRequest) returns (GetVoiceJobResponse);
+  rpc CancelVoiceJob(CancelVoiceJobRequest) returns (CancelVoiceJobResponse);
+  rpc SubscribeVoiceJobEvents(SubscribeVoiceJobEventsRequest) returns (stream VoiceJobEvent);
+  rpc GetVoiceAsset(GetVoiceAssetRequest) returns (GetVoiceAssetResponse);
+  rpc ListVoiceAssets(ListVoiceAssetsRequest) returns (ListVoiceAssetsResponse);
+  rpc DeleteVoiceAsset(DeleteVoiceAssetRequest) returns (DeleteVoiceAssetResponse);
+  rpc ListPresetVoices(ListPresetVoicesRequest) returns (ListPresetVoicesResponse);
+}

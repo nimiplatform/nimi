@@ -8,6 +8,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/ai.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/voice.proto";
 
 enum WorkflowStatus {
   WORKFLOW_STATUS_UNSPECIFIED = 0;
@@ -46,6 +47,8 @@ enum WorkflowNodeType {
   WORKFLOW_NODE_AI_VIDEO = 5;
   WORKFLOW_NODE_AI_TTS = 6;
   WORKFLOW_NODE_AI_STT = 7;
+  WORKFLOW_NODE_AI_TTS_CREATE_VOICE = 8;
+  WORKFLOW_NODE_AI_TTS_SYNTHESIZE = 9;
 
   WORKFLOW_NODE_TRANSFORM_EXTRACT = 20;
   WORKFLOW_NODE_TRANSFORM_TEMPLATE = 21;
@@ -151,6 +154,37 @@ message AiSttNodeConfig {
   bytes audio_bytes = 6;
 }
 
+message AiTtsCreateVoiceNodeConfig {
+  string model_id = 1;
+  string target_model_id = 2;
+  VoiceWorkflowType workflow_type = 3;
+  string connector_id = 4;
+  int32 timeout_ms = 5;
+  string preferred_name = 6;
+  string reference_audio_uri = 7;
+  string reference_audio_mime = 8;
+  string instruction_text = 9;
+  string preview_text = 10;
+  string language = 11;
+  google.protobuf.Struct provider_options = 20;
+}
+
+message AiTtsSynthesizeNodeConfig {
+  string model_id = 1;
+  string target_model_id = 2;
+  string text = 3;
+  VoiceReference voice_ref = 4;
+  string connector_id = 5;
+  int32 timeout_ms = 6;
+  string audio_format = 7;
+  int32 sample_rate_hz = 8;
+  float speed = 9;
+  float pitch = 10;
+  float volume = 11;
+  string emotion = 12;
+  google.protobuf.Struct provider_options = 20;
+}
+
 message ExtractNodeConfig {
   string json_path = 1;
   string source_input = 2;
@@ -193,6 +227,8 @@ message WorkflowNode {
     AiVideoNodeConfig ai_video_config = 14;
     AiTtsNodeConfig ai_tts_config = 15;
     AiSttNodeConfig ai_stt_config = 16;
+    AiTtsCreateVoiceNodeConfig ai_tts_create_voice_config = 17;
+    AiTtsSynthesizeNodeConfig ai_tts_synthesize_config = 18;
 
     ExtractNodeConfig extract_config = 20;
     TemplateNodeConfig template_config = 21;

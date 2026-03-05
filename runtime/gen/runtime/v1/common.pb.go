@@ -116,6 +116,15 @@ const (
 	ReasonCode_AI_MEDIA_JOB_NOT_FOUND        ReasonCode = 412
 	ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE  ReasonCode = 413
 	ReasonCode_AI_MEDIA_IDEMPOTENCY_CONFLICT ReasonCode = 414
+	// VOICE family (420+)
+	ReasonCode_AI_VOICE_INPUT_INVALID         ReasonCode = 420
+	ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED  ReasonCode = 421
+	ReasonCode_AI_VOICE_ASSET_NOT_FOUND       ReasonCode = 422
+	ReasonCode_AI_VOICE_ASSET_EXPIRED         ReasonCode = 423
+	ReasonCode_AI_VOICE_ASSET_SCOPE_FORBIDDEN ReasonCode = 424
+	ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH ReasonCode = 425
+	ReasonCode_AI_VOICE_JOB_NOT_FOUND         ReasonCode = 426
+	ReasonCode_AI_VOICE_JOB_NOT_CANCELLABLE   ReasonCode = 427
 	// MODULE family (430+)
 	ReasonCode_AI_MODULE_CONFIG_INVALID ReasonCode = 430
 	// WORKFLOW family (440+)
@@ -215,6 +224,14 @@ var (
 		412: "AI_MEDIA_JOB_NOT_FOUND",
 		413: "AI_MEDIA_JOB_NOT_CANCELLABLE",
 		414: "AI_MEDIA_IDEMPOTENCY_CONFLICT",
+		420: "AI_VOICE_INPUT_INVALID",
+		421: "AI_VOICE_WORKFLOW_UNSUPPORTED",
+		422: "AI_VOICE_ASSET_NOT_FOUND",
+		423: "AI_VOICE_ASSET_EXPIRED",
+		424: "AI_VOICE_ASSET_SCOPE_FORBIDDEN",
+		425: "AI_VOICE_TARGET_MODEL_MISMATCH",
+		426: "AI_VOICE_JOB_NOT_FOUND",
+		427: "AI_VOICE_JOB_NOT_CANCELLABLE",
 		430: "AI_MODULE_CONFIG_INVALID",
 		440: "WF_DAG_INVALID",
 		441: "WF_NODE_CONFIG_MISMATCH",
@@ -306,6 +323,14 @@ var (
 		"AI_MEDIA_JOB_NOT_FOUND":                412,
 		"AI_MEDIA_JOB_NOT_CANCELLABLE":          413,
 		"AI_MEDIA_IDEMPOTENCY_CONFLICT":         414,
+		"AI_VOICE_INPUT_INVALID":                420,
+		"AI_VOICE_WORKFLOW_UNSUPPORTED":         421,
+		"AI_VOICE_ASSET_NOT_FOUND":              422,
+		"AI_VOICE_ASSET_EXPIRED":                423,
+		"AI_VOICE_ASSET_SCOPE_FORBIDDEN":        424,
+		"AI_VOICE_TARGET_MODEL_MISMATCH":        425,
+		"AI_VOICE_JOB_NOT_FOUND":                426,
+		"AI_VOICE_JOB_NOT_CANCELLABLE":          427,
 		"AI_MODULE_CONFIG_INVALID":              430,
 		"WF_DAG_INVALID":                        440,
 		"WF_NODE_CONFIG_MISMATCH":               441,
@@ -802,7 +827,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xe2\x15\n" +
+	"actionHint*\xe9\x17\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -880,7 +905,15 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1bAI_MEDIA_OPTION_UNSUPPORTED\x10\x9b\x03\x12\x1b\n" +
 	"\x16AI_MEDIA_JOB_NOT_FOUND\x10\x9c\x03\x12!\n" +
 	"\x1cAI_MEDIA_JOB_NOT_CANCELLABLE\x10\x9d\x03\x12\"\n" +
-	"\x1dAI_MEDIA_IDEMPOTENCY_CONFLICT\x10\x9e\x03\x12\x1d\n" +
+	"\x1dAI_MEDIA_IDEMPOTENCY_CONFLICT\x10\x9e\x03\x12\x1b\n" +
+	"\x16AI_VOICE_INPUT_INVALID\x10\xa4\x03\x12\"\n" +
+	"\x1dAI_VOICE_WORKFLOW_UNSUPPORTED\x10\xa5\x03\x12\x1d\n" +
+	"\x18AI_VOICE_ASSET_NOT_FOUND\x10\xa6\x03\x12\x1b\n" +
+	"\x16AI_VOICE_ASSET_EXPIRED\x10\xa7\x03\x12#\n" +
+	"\x1eAI_VOICE_ASSET_SCOPE_FORBIDDEN\x10\xa8\x03\x12#\n" +
+	"\x1eAI_VOICE_TARGET_MODEL_MISMATCH\x10\xa9\x03\x12\x1b\n" +
+	"\x16AI_VOICE_JOB_NOT_FOUND\x10\xaa\x03\x12!\n" +
+	"\x1cAI_VOICE_JOB_NOT_CANCELLABLE\x10\xab\x03\x12\x1d\n" +
 	"\x18AI_MODULE_CONFIG_INVALID\x10\xae\x03\x12\x13\n" +
 	"\x0eWF_DAG_INVALID\x10\xb8\x03\x12\x1c\n" +
 	"\x17WF_NODE_CONFIG_MISMATCH\x10\xb9\x03\x12\x0f\n" +

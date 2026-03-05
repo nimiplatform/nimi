@@ -12,6 +12,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { VoiceReference } from "./voice";
 import { ListValue } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
@@ -473,41 +474,104 @@ export interface VideoGenerationSpec {
      */
     negativePrompt: string;
     /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoMode mode = 3
+     */
+    mode: VideoMode;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.VideoContentItem content = 4
+     */
+    content: VideoContentItem[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoGenerationOptions options = 5
+     */
+    options?: VideoGenerationOptions;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoContentImageURL
+ */
+export interface VideoContentImageURL {
+    /**
+     * @generated from protobuf field: string url = 1
+     */
+    url: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoContentItem
+ */
+export interface VideoContentItem {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoContentType type = 1
+     */
+    type: VideoContentType;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoContentRole role = 2
+     */
+    role: VideoContentRole;
+    /**
+     * @generated from protobuf field: string text = 3
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoContentImageURL image_url = 4
+     */
+    imageUrl?: VideoContentImageURL;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoGenerationOptions
+ */
+export interface VideoGenerationOptions {
+    /**
+     * @generated from protobuf field: string resolution = 1
+     */
+    resolution: string;
+    /**
+     * @generated from protobuf field: string ratio = 2
+     */
+    ratio: string;
+    /**
      * @generated from protobuf field: int32 duration_sec = 3
      */
     durationSec: number;
     /**
-     * @generated from protobuf field: int32 fps = 4
+     * @generated from protobuf field: int32 frames = 4
+     */
+    frames: number;
+    /**
+     * @generated from protobuf field: int32 fps = 5
      */
     fps: number;
     /**
-     * @generated from protobuf field: string resolution = 5
-     */
-    resolution: string;
-    /**
-     * @generated from protobuf field: string aspect_ratio = 6
-     */
-    aspectRatio: string;
-    /**
-     * @generated from protobuf field: int64 seed = 7
+     * @generated from protobuf field: int64 seed = 6
      */
     seed: string;
     /**
-     * @generated from protobuf field: string first_frame_uri = 8
+     * @generated from protobuf field: bool camera_fixed = 7
      */
-    firstFrameUri: string;
+    cameraFixed: boolean;
     /**
-     * @generated from protobuf field: string last_frame_uri = 9
+     * @generated from protobuf field: bool watermark = 8
      */
-    lastFrameUri: string;
+    watermark: boolean;
     /**
-     * @generated from protobuf field: string camera_motion = 10
+     * @generated from protobuf field: bool generate_audio = 9
      */
-    cameraMotion: string;
+    generateAudio: boolean;
     /**
-     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     * @generated from protobuf field: bool draft = 10
      */
-    providerOptions?: Struct;
+    draft: boolean;
+    /**
+     * @generated from protobuf field: string service_tier = 11
+     */
+    serviceTier: string;
+    /**
+     * @generated from protobuf field: int32 execution_expires_after_sec = 12
+     */
+    executionExpiresAfterSec: number;
+    /**
+     * @generated from protobuf field: bool return_last_frame = 13
+     */
+    returnLastFrame: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SpeechSynthesisSpec
@@ -518,7 +582,8 @@ export interface SpeechSynthesisSpec {
      */
     text: string;
     /**
-     * @generated from protobuf field: string voice = 2
+     * @deprecated
+     * @generated from protobuf field: string voice = 2 [deprecated = true]
      */
     voice: string;
     /**
@@ -550,9 +615,46 @@ export interface SpeechSynthesisSpec {
      */
     emotion: string;
     /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_ref = 10
+     */
+    voiceRef?: VoiceReference;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTimingMode timing_mode = 11
+     */
+    timingMode: SpeechTimingMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceRenderHints voice_render_hints = 12
+     */
+    voiceRenderHints?: VoiceRenderHints;
+    /**
      * @generated from protobuf field: google.protobuf.Struct provider_options = 20
      */
     providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VoiceRenderHints
+ */
+export interface VoiceRenderHints {
+    /**
+     * @generated from protobuf field: float stability = 1
+     */
+    stability: number;
+    /**
+     * @generated from protobuf field: float similarity_boost = 2
+     */
+    similarityBoost: number;
+    /**
+     * @generated from protobuf field: float style = 3
+     */
+    style: number;
+    /**
+     * @generated from protobuf field: bool use_speaker_boost = 4
+     */
+    useSpeakerBoost: boolean;
+    /**
+     * @generated from protobuf field: float speed = 5
+     */
+    speed: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AudioChunks
@@ -644,6 +746,36 @@ export interface SpeechTranscriptionSpec {
     providerOptions?: Struct;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SpeechAlignmentToken
+ */
+export interface SpeechAlignmentToken {
+    /**
+     * @generated from protobuf field: string token = 1
+     */
+    token: string;
+    /**
+     * @generated from protobuf field: int64 start_ms = 2
+     */
+    startMs: string;
+    /**
+     * @generated from protobuf field: int64 end_ms = 3
+     */
+    endMs: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechAlignment
+ */
+export interface SpeechAlignment {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechAlignmentUnit unit = 1
+     */
+    unit: SpeechAlignmentUnit;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.SpeechAlignmentToken tokens = 2
+     */
+    tokens: SpeechAlignmentToken[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.MediaArtifact
  */
 export interface MediaArtifact {
@@ -699,6 +831,10 @@ export interface MediaArtifact {
      * @generated from protobuf field: google.protobuf.Struct provider_raw = 13
      */
     providerRaw?: Struct;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechAlignment speech_alignment = 14
+     */
+    speechAlignment?: SpeechAlignment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MediaJob
@@ -1355,6 +1491,111 @@ export enum MediaJobEventType {
      * @generated from protobuf enum value: MEDIA_JOB_EVENT_TIMEOUT = 7;
      */
     MEDIA_JOB_EVENT_TIMEOUT = 7
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.VideoMode
+ */
+export enum VideoMode {
+    /**
+     * @generated from protobuf enum value: VIDEO_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: VIDEO_MODE_T2V = 1;
+     */
+    T2V = 1,
+    /**
+     * @generated from protobuf enum value: VIDEO_MODE_I2V_FIRST_FRAME = 2;
+     */
+    I2V_FIRST_FRAME = 2,
+    /**
+     * @generated from protobuf enum value: VIDEO_MODE_I2V_FIRST_LAST = 3;
+     */
+    I2V_FIRST_LAST = 3,
+    /**
+     * @generated from protobuf enum value: VIDEO_MODE_I2V_REFERENCE = 4;
+     */
+    I2V_REFERENCE = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.VideoContentType
+ */
+export enum VideoContentType {
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_TEXT = 1;
+     */
+    TEXT = 1,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_IMAGE_URL = 2;
+     */
+    IMAGE_URL = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.VideoContentRole
+ */
+export enum VideoContentRole {
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_PROMPT = 1;
+     */
+    PROMPT = 1,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_FIRST_FRAME = 2;
+     */
+    FIRST_FRAME = 2,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_LAST_FRAME = 3;
+     */
+    LAST_FRAME = 3,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_REFERENCE_IMAGE = 4;
+     */
+    REFERENCE_IMAGE = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.SpeechTimingMode
+ */
+export enum SpeechTimingMode {
+    /**
+     * @generated from protobuf enum value: SPEECH_TIMING_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SPEECH_TIMING_MODE_NONE = 1;
+     */
+    NONE = 1,
+    /**
+     * @generated from protobuf enum value: SPEECH_TIMING_MODE_WORD = 2;
+     */
+    WORD = 2,
+    /**
+     * @generated from protobuf enum value: SPEECH_TIMING_MODE_CHAR = 3;
+     */
+    CHAR = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.SpeechAlignmentUnit
+ */
+export enum SpeechAlignmentUnit {
+    /**
+     * @generated from protobuf enum value: SPEECH_ALIGNMENT_UNIT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SPEECH_ALIGNMENT_UNIT_WORD = 1;
+     */
+    WORD = 1,
+    /**
+     * @generated from protobuf enum value: SPEECH_ALIGNMENT_UNIT_CHAR = 2;
+     */
+    CHAR = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ChatMessage$Type extends MessageType<ChatMessage> {
@@ -2649,29 +2890,17 @@ class VideoGenerationSpec$Type extends MessageType<VideoGenerationSpec> {
         super("nimi.runtime.v1.VideoGenerationSpec", [
             { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "negative_prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "duration_sec", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 4, name: "fps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 5, name: "resolution", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "aspect_ratio", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 8, name: "first_frame_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "last_frame_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "camera_motion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+            { no: 3, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.VideoMode", VideoMode, "VIDEO_MODE_"] },
+            { no: 4, name: "content", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => VideoContentItem },
+            { no: 5, name: "options", kind: "message", T: () => VideoGenerationOptions }
         ]);
     }
     create(value?: PartialMessage<VideoGenerationSpec>): VideoGenerationSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.prompt = "";
         message.negativePrompt = "";
-        message.durationSec = 0;
-        message.fps = 0;
-        message.resolution = "";
-        message.aspectRatio = "";
-        message.seed = "0";
-        message.firstFrameUri = "";
-        message.lastFrameUri = "";
-        message.cameraMotion = "";
+        message.mode = 0;
+        message.content = [];
         if (value !== undefined)
             reflectionMergePartial<VideoGenerationSpec>(this, message, value);
         return message;
@@ -2687,32 +2916,14 @@ class VideoGenerationSpec$Type extends MessageType<VideoGenerationSpec> {
                 case /* string negative_prompt */ 2:
                     message.negativePrompt = reader.string();
                     break;
-                case /* int32 duration_sec */ 3:
-                    message.durationSec = reader.int32();
+                case /* nimi.runtime.v1.VideoMode mode */ 3:
+                    message.mode = reader.int32();
                     break;
-                case /* int32 fps */ 4:
-                    message.fps = reader.int32();
+                case /* repeated nimi.runtime.v1.VideoContentItem content */ 4:
+                    message.content.push(VideoContentItem.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* string resolution */ 5:
-                    message.resolution = reader.string();
-                    break;
-                case /* string aspect_ratio */ 6:
-                    message.aspectRatio = reader.string();
-                    break;
-                case /* int64 seed */ 7:
-                    message.seed = reader.int64().toString();
-                    break;
-                case /* string first_frame_uri */ 8:
-                    message.firstFrameUri = reader.string();
-                    break;
-                case /* string last_frame_uri */ 9:
-                    message.lastFrameUri = reader.string();
-                    break;
-                case /* string camera_motion */ 10:
-                    message.cameraMotion = reader.string();
-                    break;
-                case /* google.protobuf.Struct provider_options */ 20:
-                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                case /* nimi.runtime.v1.VideoGenerationOptions options */ 5:
+                    message.options = VideoGenerationOptions.internalBinaryRead(reader, reader.uint32(), options, message.options);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2732,33 +2943,15 @@ class VideoGenerationSpec$Type extends MessageType<VideoGenerationSpec> {
         /* string negative_prompt = 2; */
         if (message.negativePrompt !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.negativePrompt);
-        /* int32 duration_sec = 3; */
-        if (message.durationSec !== 0)
-            writer.tag(3, WireType.Varint).int32(message.durationSec);
-        /* int32 fps = 4; */
-        if (message.fps !== 0)
-            writer.tag(4, WireType.Varint).int32(message.fps);
-        /* string resolution = 5; */
-        if (message.resolution !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.resolution);
-        /* string aspect_ratio = 6; */
-        if (message.aspectRatio !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.aspectRatio);
-        /* int64 seed = 7; */
-        if (message.seed !== "0")
-            writer.tag(7, WireType.Varint).int64(message.seed);
-        /* string first_frame_uri = 8; */
-        if (message.firstFrameUri !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.firstFrameUri);
-        /* string last_frame_uri = 9; */
-        if (message.lastFrameUri !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.lastFrameUri);
-        /* string camera_motion = 10; */
-        if (message.cameraMotion !== "")
-            writer.tag(10, WireType.LengthDelimited).string(message.cameraMotion);
-        /* google.protobuf.Struct provider_options = 20; */
-        if (message.providerOptions)
-            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoMode mode = 3; */
+        if (message.mode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.mode);
+        /* repeated nimi.runtime.v1.VideoContentItem content = 4; */
+        for (let i = 0; i < message.content.length; i++)
+            VideoContentItem.internalBinaryWrite(message.content[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoGenerationOptions options = 5; */
+        if (message.options)
+            VideoGenerationOptions.internalBinaryWrite(message.options, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2769,6 +2962,266 @@ class VideoGenerationSpec$Type extends MessageType<VideoGenerationSpec> {
  * @generated MessageType for protobuf message nimi.runtime.v1.VideoGenerationSpec
  */
 export const VideoGenerationSpec = new VideoGenerationSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoContentImageURL$Type extends MessageType<VideoContentImageURL> {
+    constructor() {
+        super("nimi.runtime.v1.VideoContentImageURL", [
+            { no: 1, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VideoContentImageURL>): VideoContentImageURL {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.url = "";
+        if (value !== undefined)
+            reflectionMergePartial<VideoContentImageURL>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoContentImageURL): VideoContentImageURL {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string url */ 1:
+                    message.url = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoContentImageURL, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string url = 1; */
+        if (message.url !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.url);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoContentImageURL
+ */
+export const VideoContentImageURL = new VideoContentImageURL$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoContentItem$Type extends MessageType<VideoContentItem> {
+    constructor() {
+        super("nimi.runtime.v1.VideoContentItem", [
+            { no: 1, name: "type", kind: "enum", T: () => ["nimi.runtime.v1.VideoContentType", VideoContentType, "VIDEO_CONTENT_TYPE_"] },
+            { no: 2, name: "role", kind: "enum", T: () => ["nimi.runtime.v1.VideoContentRole", VideoContentRole, "VIDEO_CONTENT_ROLE_"] },
+            { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "image_url", kind: "message", T: () => VideoContentImageURL }
+        ]);
+    }
+    create(value?: PartialMessage<VideoContentItem>): VideoContentItem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.type = 0;
+        message.role = 0;
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<VideoContentItem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoContentItem): VideoContentItem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.VideoContentType type */ 1:
+                    message.type = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.VideoContentRole role */ 2:
+                    message.role = reader.int32();
+                    break;
+                case /* string text */ 3:
+                    message.text = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VideoContentImageURL image_url */ 4:
+                    message.imageUrl = VideoContentImageURL.internalBinaryRead(reader, reader.uint32(), options, message.imageUrl);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoContentItem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.VideoContentType type = 1; */
+        if (message.type !== 0)
+            writer.tag(1, WireType.Varint).int32(message.type);
+        /* nimi.runtime.v1.VideoContentRole role = 2; */
+        if (message.role !== 0)
+            writer.tag(2, WireType.Varint).int32(message.role);
+        /* string text = 3; */
+        if (message.text !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.text);
+        /* nimi.runtime.v1.VideoContentImageURL image_url = 4; */
+        if (message.imageUrl)
+            VideoContentImageURL.internalBinaryWrite(message.imageUrl, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoContentItem
+ */
+export const VideoContentItem = new VideoContentItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoGenerationOptions$Type extends MessageType<VideoGenerationOptions> {
+    constructor() {
+        super("nimi.runtime.v1.VideoGenerationOptions", [
+            { no: 1, name: "resolution", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "ratio", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "duration_sec", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 4, name: "frames", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "fps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "seed", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 7, name: "camera_fixed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "watermark", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "generate_audio", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 10, name: "draft", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 11, name: "service_tier", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "execution_expires_after_sec", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 13, name: "return_last_frame", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VideoGenerationOptions>): VideoGenerationOptions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.resolution = "";
+        message.ratio = "";
+        message.durationSec = 0;
+        message.frames = 0;
+        message.fps = 0;
+        message.seed = "0";
+        message.cameraFixed = false;
+        message.watermark = false;
+        message.generateAudio = false;
+        message.draft = false;
+        message.serviceTier = "";
+        message.executionExpiresAfterSec = 0;
+        message.returnLastFrame = false;
+        if (value !== undefined)
+            reflectionMergePartial<VideoGenerationOptions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoGenerationOptions): VideoGenerationOptions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string resolution */ 1:
+                    message.resolution = reader.string();
+                    break;
+                case /* string ratio */ 2:
+                    message.ratio = reader.string();
+                    break;
+                case /* int32 duration_sec */ 3:
+                    message.durationSec = reader.int32();
+                    break;
+                case /* int32 frames */ 4:
+                    message.frames = reader.int32();
+                    break;
+                case /* int32 fps */ 5:
+                    message.fps = reader.int32();
+                    break;
+                case /* int64 seed */ 6:
+                    message.seed = reader.int64().toString();
+                    break;
+                case /* bool camera_fixed */ 7:
+                    message.cameraFixed = reader.bool();
+                    break;
+                case /* bool watermark */ 8:
+                    message.watermark = reader.bool();
+                    break;
+                case /* bool generate_audio */ 9:
+                    message.generateAudio = reader.bool();
+                    break;
+                case /* bool draft */ 10:
+                    message.draft = reader.bool();
+                    break;
+                case /* string service_tier */ 11:
+                    message.serviceTier = reader.string();
+                    break;
+                case /* int32 execution_expires_after_sec */ 12:
+                    message.executionExpiresAfterSec = reader.int32();
+                    break;
+                case /* bool return_last_frame */ 13:
+                    message.returnLastFrame = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoGenerationOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string resolution = 1; */
+        if (message.resolution !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.resolution);
+        /* string ratio = 2; */
+        if (message.ratio !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.ratio);
+        /* int32 duration_sec = 3; */
+        if (message.durationSec !== 0)
+            writer.tag(3, WireType.Varint).int32(message.durationSec);
+        /* int32 frames = 4; */
+        if (message.frames !== 0)
+            writer.tag(4, WireType.Varint).int32(message.frames);
+        /* int32 fps = 5; */
+        if (message.fps !== 0)
+            writer.tag(5, WireType.Varint).int32(message.fps);
+        /* int64 seed = 6; */
+        if (message.seed !== "0")
+            writer.tag(6, WireType.Varint).int64(message.seed);
+        /* bool camera_fixed = 7; */
+        if (message.cameraFixed !== false)
+            writer.tag(7, WireType.Varint).bool(message.cameraFixed);
+        /* bool watermark = 8; */
+        if (message.watermark !== false)
+            writer.tag(8, WireType.Varint).bool(message.watermark);
+        /* bool generate_audio = 9; */
+        if (message.generateAudio !== false)
+            writer.tag(9, WireType.Varint).bool(message.generateAudio);
+        /* bool draft = 10; */
+        if (message.draft !== false)
+            writer.tag(10, WireType.Varint).bool(message.draft);
+        /* string service_tier = 11; */
+        if (message.serviceTier !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.serviceTier);
+        /* int32 execution_expires_after_sec = 12; */
+        if (message.executionExpiresAfterSec !== 0)
+            writer.tag(12, WireType.Varint).int32(message.executionExpiresAfterSec);
+        /* bool return_last_frame = 13; */
+        if (message.returnLastFrame !== false)
+            writer.tag(13, WireType.Varint).bool(message.returnLastFrame);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoGenerationOptions
+ */
+export const VideoGenerationOptions = new VideoGenerationOptions$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
     constructor() {
@@ -2782,6 +3235,9 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
             { no: 7, name: "pitch", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 8, name: "volume", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 9, name: "emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "voice_ref", kind: "message", T: () => VoiceReference },
+            { no: 11, name: "timing_mode", kind: "enum", T: () => ["nimi.runtime.v1.SpeechTimingMode", SpeechTimingMode, "SPEECH_TIMING_MODE_"] },
+            { no: 12, name: "voice_render_hints", kind: "message", T: () => VoiceRenderHints },
             { no: 20, name: "provider_options", kind: "message", T: () => Struct }
         ]);
     }
@@ -2796,6 +3252,7 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
         message.pitch = 0;
         message.volume = 0;
         message.emotion = "";
+        message.timingMode = 0;
         if (value !== undefined)
             reflectionMergePartial<SpeechSynthesisSpec>(this, message, value);
         return message;
@@ -2808,7 +3265,7 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
                 case /* string text */ 1:
                     message.text = reader.string();
                     break;
-                case /* string voice */ 2:
+                case /* string voice = 2 [deprecated = true] */ 2:
                     message.voice = reader.string();
                     break;
                 case /* string language */ 3:
@@ -2832,6 +3289,15 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
                 case /* string emotion */ 9:
                     message.emotion = reader.string();
                     break;
+                case /* nimi.runtime.v1.VoiceReference voice_ref */ 10:
+                    message.voiceRef = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceRef);
+                    break;
+                case /* nimi.runtime.v1.SpeechTimingMode timing_mode */ 11:
+                    message.timingMode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.VoiceRenderHints voice_render_hints */ 12:
+                    message.voiceRenderHints = VoiceRenderHints.internalBinaryRead(reader, reader.uint32(), options, message.voiceRenderHints);
+                    break;
                 case /* google.protobuf.Struct provider_options */ 20:
                     message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
                     break;
@@ -2850,7 +3316,7 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
         /* string text = 1; */
         if (message.text !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.text);
-        /* string voice = 2; */
+        /* string voice = 2 [deprecated = true]; */
         if (message.voice !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.voice);
         /* string language = 3; */
@@ -2874,6 +3340,15 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
         /* string emotion = 9; */
         if (message.emotion !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.emotion);
+        /* nimi.runtime.v1.VoiceReference voice_ref = 10; */
+        if (message.voiceRef)
+            VoiceReference.internalBinaryWrite(message.voiceRef, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechTimingMode timing_mode = 11; */
+        if (message.timingMode !== 0)
+            writer.tag(11, WireType.Varint).int32(message.timingMode);
+        /* nimi.runtime.v1.VoiceRenderHints voice_render_hints = 12; */
+        if (message.voiceRenderHints)
+            VoiceRenderHints.internalBinaryWrite(message.voiceRenderHints, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         /* google.protobuf.Struct provider_options = 20; */
         if (message.providerOptions)
             Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
@@ -2887,6 +3362,85 @@ class SpeechSynthesisSpec$Type extends MessageType<SpeechSynthesisSpec> {
  * @generated MessageType for protobuf message nimi.runtime.v1.SpeechSynthesisSpec
  */
 export const SpeechSynthesisSpec = new SpeechSynthesisSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VoiceRenderHints$Type extends MessageType<VoiceRenderHints> {
+    constructor() {
+        super("nimi.runtime.v1.VoiceRenderHints", [
+            { no: 1, name: "stability", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 2, name: "similarity_boost", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 3, name: "style", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 4, name: "use_speaker_boost", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "speed", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VoiceRenderHints>): VoiceRenderHints {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.stability = 0;
+        message.similarityBoost = 0;
+        message.style = 0;
+        message.useSpeakerBoost = false;
+        message.speed = 0;
+        if (value !== undefined)
+            reflectionMergePartial<VoiceRenderHints>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VoiceRenderHints): VoiceRenderHints {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* float stability */ 1:
+                    message.stability = reader.float();
+                    break;
+                case /* float similarity_boost */ 2:
+                    message.similarityBoost = reader.float();
+                    break;
+                case /* float style */ 3:
+                    message.style = reader.float();
+                    break;
+                case /* bool use_speaker_boost */ 4:
+                    message.useSpeakerBoost = reader.bool();
+                    break;
+                case /* float speed */ 5:
+                    message.speed = reader.float();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VoiceRenderHints, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* float stability = 1; */
+        if (message.stability !== 0)
+            writer.tag(1, WireType.Bit32).float(message.stability);
+        /* float similarity_boost = 2; */
+        if (message.similarityBoost !== 0)
+            writer.tag(2, WireType.Bit32).float(message.similarityBoost);
+        /* float style = 3; */
+        if (message.style !== 0)
+            writer.tag(3, WireType.Bit32).float(message.style);
+        /* bool use_speaker_boost = 4; */
+        if (message.useSpeakerBoost !== false)
+            writer.tag(4, WireType.Varint).bool(message.useSpeakerBoost);
+        /* float speed = 5; */
+        if (message.speed !== 0)
+            writer.tag(5, WireType.Bit32).float(message.speed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VoiceRenderHints
+ */
+export const VoiceRenderHints = new VoiceRenderHints$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AudioChunks$Type extends MessageType<AudioChunks> {
     constructor() {
@@ -3130,6 +3684,124 @@ class SpeechTranscriptionSpec$Type extends MessageType<SpeechTranscriptionSpec> 
  */
 export const SpeechTranscriptionSpec = new SpeechTranscriptionSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SpeechAlignmentToken$Type extends MessageType<SpeechAlignmentToken> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechAlignmentToken", [
+            { no: 1, name: "token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "end_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechAlignmentToken>): SpeechAlignmentToken {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.token = "";
+        message.startMs = "0";
+        message.endMs = "0";
+        if (value !== undefined)
+            reflectionMergePartial<SpeechAlignmentToken>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechAlignmentToken): SpeechAlignmentToken {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string token */ 1:
+                    message.token = reader.string();
+                    break;
+                case /* int64 start_ms */ 2:
+                    message.startMs = reader.int64().toString();
+                    break;
+                case /* int64 end_ms */ 3:
+                    message.endMs = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechAlignmentToken, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string token = 1; */
+        if (message.token !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.token);
+        /* int64 start_ms = 2; */
+        if (message.startMs !== "0")
+            writer.tag(2, WireType.Varint).int64(message.startMs);
+        /* int64 end_ms = 3; */
+        if (message.endMs !== "0")
+            writer.tag(3, WireType.Varint).int64(message.endMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechAlignmentToken
+ */
+export const SpeechAlignmentToken = new SpeechAlignmentToken$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechAlignment$Type extends MessageType<SpeechAlignment> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechAlignment", [
+            { no: 1, name: "unit", kind: "enum", T: () => ["nimi.runtime.v1.SpeechAlignmentUnit", SpeechAlignmentUnit, "SPEECH_ALIGNMENT_UNIT_"] },
+            { no: 2, name: "tokens", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SpeechAlignmentToken }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechAlignment>): SpeechAlignment {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.unit = 0;
+        message.tokens = [];
+        if (value !== undefined)
+            reflectionMergePartial<SpeechAlignment>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechAlignment): SpeechAlignment {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.SpeechAlignmentUnit unit */ 1:
+                    message.unit = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.SpeechAlignmentToken tokens */ 2:
+                    message.tokens.push(SpeechAlignmentToken.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechAlignment, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.SpeechAlignmentUnit unit = 1; */
+        if (message.unit !== 0)
+            writer.tag(1, WireType.Varint).int32(message.unit);
+        /* repeated nimi.runtime.v1.SpeechAlignmentToken tokens = 2; */
+        for (let i = 0; i < message.tokens.length; i++)
+            SpeechAlignmentToken.internalBinaryWrite(message.tokens[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechAlignment
+ */
+export const SpeechAlignment = new SpeechAlignment$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class MediaArtifact$Type extends MessageType<MediaArtifact> {
     constructor() {
         super("nimi.runtime.v1.MediaArtifact", [
@@ -3145,7 +3817,8 @@ class MediaArtifact$Type extends MessageType<MediaArtifact> {
             { no: 10, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 11, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 12, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 13, name: "provider_raw", kind: "message", T: () => Struct }
+            { no: 13, name: "provider_raw", kind: "message", T: () => Struct },
+            { no: 14, name: "speech_alignment", kind: "message", T: () => SpeechAlignment }
         ]);
     }
     create(value?: PartialMessage<MediaArtifact>): MediaArtifact {
@@ -3210,6 +3883,9 @@ class MediaArtifact$Type extends MessageType<MediaArtifact> {
                 case /* google.protobuf.Struct provider_raw */ 13:
                     message.providerRaw = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerRaw);
                     break;
+                case /* nimi.runtime.v1.SpeechAlignment speech_alignment */ 14:
+                    message.speechAlignment = SpeechAlignment.internalBinaryRead(reader, reader.uint32(), options, message.speechAlignment);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3261,6 +3937,9 @@ class MediaArtifact$Type extends MessageType<MediaArtifact> {
         /* google.protobuf.Struct provider_raw = 13; */
         if (message.providerRaw)
             Struct.internalBinaryWrite(message.providerRaw, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechAlignment speech_alignment = 14; */
+        if (message.speechAlignment)
+            SpeechAlignment.internalBinaryWrite(message.speechAlignment, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

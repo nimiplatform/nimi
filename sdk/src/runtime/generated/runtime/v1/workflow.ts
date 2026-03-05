@@ -13,9 +13,11 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
+import { VoiceReference } from "./voice";
+import { Struct } from "../../google/protobuf/struct";
+import { VoiceWorkflowType } from "./voice";
 import { FallbackPolicy } from "./ai";
 import { RoutePolicy } from "./ai";
 import { ToolSpec } from "./ai";
@@ -269,6 +271,116 @@ export interface AiSttNodeConfig {
     audioBytes: Uint8Array;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AiTtsCreateVoiceNodeConfig
+ */
+export interface AiTtsCreateVoiceNodeConfig {
+    /**
+     * @generated from protobuf field: string model_id = 1
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string target_model_id = 2
+     */
+    targetModelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceWorkflowType workflow_type = 3
+     */
+    workflowType: VoiceWorkflowType;
+    /**
+     * @generated from protobuf field: string connector_id = 4
+     */
+    connectorId: string;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 5
+     */
+    timeoutMs: number;
+    /**
+     * @generated from protobuf field: string preferred_name = 6
+     */
+    preferredName: string;
+    /**
+     * @generated from protobuf field: string reference_audio_uri = 7
+     */
+    referenceAudioUri: string;
+    /**
+     * @generated from protobuf field: string reference_audio_mime = 8
+     */
+    referenceAudioMime: string;
+    /**
+     * @generated from protobuf field: string instruction_text = 9
+     */
+    instructionText: string;
+    /**
+     * @generated from protobuf field: string preview_text = 10
+     */
+    previewText: string;
+    /**
+     * @generated from protobuf field: string language = 11
+     */
+    language: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     */
+    providerOptions?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiTtsSynthesizeNodeConfig
+ */
+export interface AiTtsSynthesizeNodeConfig {
+    /**
+     * @generated from protobuf field: string model_id = 1
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string target_model_id = 2
+     */
+    targetModelId: string;
+    /**
+     * @generated from protobuf field: string text = 3
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_ref = 4
+     */
+    voiceRef?: VoiceReference;
+    /**
+     * @generated from protobuf field: string connector_id = 5
+     */
+    connectorId: string;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 6
+     */
+    timeoutMs: number;
+    /**
+     * @generated from protobuf field: string audio_format = 7
+     */
+    audioFormat: string;
+    /**
+     * @generated from protobuf field: int32 sample_rate_hz = 8
+     */
+    sampleRateHz: number;
+    /**
+     * @generated from protobuf field: float speed = 9
+     */
+    speed: number;
+    /**
+     * @generated from protobuf field: float pitch = 10
+     */
+    pitch: number;
+    /**
+     * @generated from protobuf field: float volume = 11
+     */
+    volume: number;
+    /**
+     * @generated from protobuf field: string emotion = 12
+     */
+    emotion: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     */
+    providerOptions?: Struct;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ExtractNodeConfig
  */
 export interface ExtractNodeConfig {
@@ -411,6 +523,18 @@ export interface WorkflowNode {
          * @generated from protobuf field: nimi.runtime.v1.AiSttNodeConfig ai_stt_config = 16
          */
         aiSttConfig: AiSttNodeConfig;
+    } | {
+        oneofKind: "aiTtsCreateVoiceConfig";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig ai_tts_create_voice_config = 17
+         */
+        aiTtsCreateVoiceConfig: AiTtsCreateVoiceNodeConfig;
+    } | {
+        oneofKind: "aiTtsSynthesizeConfig";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiTtsSynthesizeNodeConfig ai_tts_synthesize_config = 18
+         */
+        aiTtsSynthesizeConfig: AiTtsSynthesizeNodeConfig;
     } | {
         oneofKind: "extractConfig";
         /**
@@ -786,6 +910,14 @@ export enum WorkflowNodeType {
      * @generated from protobuf enum value: WORKFLOW_NODE_AI_STT = 7;
      */
     WORKFLOW_NODE_AI_STT = 7,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_NODE_AI_TTS_CREATE_VOICE = 8;
+     */
+    WORKFLOW_NODE_AI_TTS_CREATE_VOICE = 8,
+    /**
+     * @generated from protobuf enum value: WORKFLOW_NODE_AI_TTS_SYNTHESIZE = 9;
+     */
+    WORKFLOW_NODE_AI_TTS_SYNTHESIZE = 9,
     /**
      * @generated from protobuf enum value: WORKFLOW_NODE_TRANSFORM_EXTRACT = 20;
      */
@@ -1595,6 +1727,281 @@ class AiSttNodeConfig$Type extends MessageType<AiSttNodeConfig> {
  */
 export const AiSttNodeConfig = new AiSttNodeConfig$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeConfig> {
+    constructor() {
+        super("nimi.runtime.v1.AiTtsCreateVoiceNodeConfig", [
+            { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "workflow_type", kind: "enum", T: () => ["nimi.runtime.v1.VoiceWorkflowType", VoiceWorkflowType, "VOICE_WORKFLOW_TYPE_"] },
+            { no: 4, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "preferred_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "reference_audio_uri", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "reference_audio_mime", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "instruction_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "preview_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<AiTtsCreateVoiceNodeConfig>): AiTtsCreateVoiceNodeConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.modelId = "";
+        message.targetModelId = "";
+        message.workflowType = 0;
+        message.connectorId = "";
+        message.timeoutMs = 0;
+        message.preferredName = "";
+        message.referenceAudioUri = "";
+        message.referenceAudioMime = "";
+        message.instructionText = "";
+        message.previewText = "";
+        message.language = "";
+        if (value !== undefined)
+            reflectionMergePartial<AiTtsCreateVoiceNodeConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiTtsCreateVoiceNodeConfig): AiTtsCreateVoiceNodeConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string model_id */ 1:
+                    message.modelId = reader.string();
+                    break;
+                case /* string target_model_id */ 2:
+                    message.targetModelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VoiceWorkflowType workflow_type */ 3:
+                    message.workflowType = reader.int32();
+                    break;
+                case /* string connector_id */ 4:
+                    message.connectorId = reader.string();
+                    break;
+                case /* int32 timeout_ms */ 5:
+                    message.timeoutMs = reader.int32();
+                    break;
+                case /* string preferred_name */ 6:
+                    message.preferredName = reader.string();
+                    break;
+                case /* string reference_audio_uri */ 7:
+                    message.referenceAudioUri = reader.string();
+                    break;
+                case /* string reference_audio_mime */ 8:
+                    message.referenceAudioMime = reader.string();
+                    break;
+                case /* string instruction_text */ 9:
+                    message.instructionText = reader.string();
+                    break;
+                case /* string preview_text */ 10:
+                    message.previewText = reader.string();
+                    break;
+                case /* string language */ 11:
+                    message.language = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_options */ 20:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiTtsCreateVoiceNodeConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model_id = 1; */
+        if (message.modelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelId);
+        /* string target_model_id = 2; */
+        if (message.targetModelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetModelId);
+        /* nimi.runtime.v1.VoiceWorkflowType workflow_type = 3; */
+        if (message.workflowType !== 0)
+            writer.tag(3, WireType.Varint).int32(message.workflowType);
+        /* string connector_id = 4; */
+        if (message.connectorId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.connectorId);
+        /* int32 timeout_ms = 5; */
+        if (message.timeoutMs !== 0)
+            writer.tag(5, WireType.Varint).int32(message.timeoutMs);
+        /* string preferred_name = 6; */
+        if (message.preferredName !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.preferredName);
+        /* string reference_audio_uri = 7; */
+        if (message.referenceAudioUri !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.referenceAudioUri);
+        /* string reference_audio_mime = 8; */
+        if (message.referenceAudioMime !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.referenceAudioMime);
+        /* string instruction_text = 9; */
+        if (message.instructionText !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.instructionText);
+        /* string preview_text = 10; */
+        if (message.previewText !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.previewText);
+        /* string language = 11; */
+        if (message.language !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.language);
+        /* google.protobuf.Struct provider_options = 20; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiTtsCreateVoiceNodeConfig
+ */
+export const AiTtsCreateVoiceNodeConfig = new AiTtsCreateVoiceNodeConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiTtsSynthesizeNodeConfig$Type extends MessageType<AiTtsSynthesizeNodeConfig> {
+    constructor() {
+        super("nimi.runtime.v1.AiTtsSynthesizeNodeConfig", [
+            { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "voice_ref", kind: "message", T: () => VoiceReference },
+            { no: 5, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "audio_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 9, name: "speed", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 10, name: "pitch", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 11, name: "volume", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 12, name: "emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<AiTtsSynthesizeNodeConfig>): AiTtsSynthesizeNodeConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.modelId = "";
+        message.targetModelId = "";
+        message.text = "";
+        message.connectorId = "";
+        message.timeoutMs = 0;
+        message.audioFormat = "";
+        message.sampleRateHz = 0;
+        message.speed = 0;
+        message.pitch = 0;
+        message.volume = 0;
+        message.emotion = "";
+        if (value !== undefined)
+            reflectionMergePartial<AiTtsSynthesizeNodeConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiTtsSynthesizeNodeConfig): AiTtsSynthesizeNodeConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string model_id */ 1:
+                    message.modelId = reader.string();
+                    break;
+                case /* string target_model_id */ 2:
+                    message.targetModelId = reader.string();
+                    break;
+                case /* string text */ 3:
+                    message.text = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VoiceReference voice_ref */ 4:
+                    message.voiceRef = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceRef);
+                    break;
+                case /* string connector_id */ 5:
+                    message.connectorId = reader.string();
+                    break;
+                case /* int32 timeout_ms */ 6:
+                    message.timeoutMs = reader.int32();
+                    break;
+                case /* string audio_format */ 7:
+                    message.audioFormat = reader.string();
+                    break;
+                case /* int32 sample_rate_hz */ 8:
+                    message.sampleRateHz = reader.int32();
+                    break;
+                case /* float speed */ 9:
+                    message.speed = reader.float();
+                    break;
+                case /* float pitch */ 10:
+                    message.pitch = reader.float();
+                    break;
+                case /* float volume */ 11:
+                    message.volume = reader.float();
+                    break;
+                case /* string emotion */ 12:
+                    message.emotion = reader.string();
+                    break;
+                case /* google.protobuf.Struct provider_options */ 20:
+                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiTtsSynthesizeNodeConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model_id = 1; */
+        if (message.modelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelId);
+        /* string target_model_id = 2; */
+        if (message.targetModelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetModelId);
+        /* string text = 3; */
+        if (message.text !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.text);
+        /* nimi.runtime.v1.VoiceReference voice_ref = 4; */
+        if (message.voiceRef)
+            VoiceReference.internalBinaryWrite(message.voiceRef, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string connector_id = 5; */
+        if (message.connectorId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.connectorId);
+        /* int32 timeout_ms = 6; */
+        if (message.timeoutMs !== 0)
+            writer.tag(6, WireType.Varint).int32(message.timeoutMs);
+        /* string audio_format = 7; */
+        if (message.audioFormat !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.audioFormat);
+        /* int32 sample_rate_hz = 8; */
+        if (message.sampleRateHz !== 0)
+            writer.tag(8, WireType.Varint).int32(message.sampleRateHz);
+        /* float speed = 9; */
+        if (message.speed !== 0)
+            writer.tag(9, WireType.Bit32).float(message.speed);
+        /* float pitch = 10; */
+        if (message.pitch !== 0)
+            writer.tag(10, WireType.Bit32).float(message.pitch);
+        /* float volume = 11; */
+        if (message.volume !== 0)
+            writer.tag(11, WireType.Bit32).float(message.volume);
+        /* string emotion = 12; */
+        if (message.emotion !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.emotion);
+        /* google.protobuf.Struct provider_options = 20; */
+        if (message.providerOptions)
+            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiTtsSynthesizeNodeConfig
+ */
+export const AiTtsSynthesizeNodeConfig = new AiTtsSynthesizeNodeConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ExtractNodeConfig$Type extends MessageType<ExtractNodeConfig> {
     constructor() {
         super("nimi.runtime.v1.ExtractNodeConfig", [
@@ -1945,6 +2352,8 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
             { no: 14, name: "ai_video_config", kind: "message", oneof: "typeConfig", T: () => AiVideoNodeConfig },
             { no: 15, name: "ai_tts_config", kind: "message", oneof: "typeConfig", T: () => AiTtsNodeConfig },
             { no: 16, name: "ai_stt_config", kind: "message", oneof: "typeConfig", T: () => AiSttNodeConfig },
+            { no: 17, name: "ai_tts_create_voice_config", kind: "message", oneof: "typeConfig", T: () => AiTtsCreateVoiceNodeConfig },
+            { no: 18, name: "ai_tts_synthesize_config", kind: "message", oneof: "typeConfig", T: () => AiTtsSynthesizeNodeConfig },
             { no: 20, name: "extract_config", kind: "message", oneof: "typeConfig", T: () => ExtractNodeConfig },
             { no: 21, name: "template_config", kind: "message", oneof: "typeConfig", T: () => TemplateNodeConfig },
             { no: 22, name: "script_config", kind: "message", oneof: "typeConfig", T: () => ScriptNodeConfig },
@@ -2027,6 +2436,18 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
                     message.typeConfig = {
                         oneofKind: "aiSttConfig",
                         aiSttConfig: AiSttNodeConfig.internalBinaryRead(reader, reader.uint32(), options, (message.typeConfig as any).aiSttConfig)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AiTtsCreateVoiceNodeConfig ai_tts_create_voice_config */ 17:
+                    message.typeConfig = {
+                        oneofKind: "aiTtsCreateVoiceConfig",
+                        aiTtsCreateVoiceConfig: AiTtsCreateVoiceNodeConfig.internalBinaryRead(reader, reader.uint32(), options, (message.typeConfig as any).aiTtsCreateVoiceConfig)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AiTtsSynthesizeNodeConfig ai_tts_synthesize_config */ 18:
+                    message.typeConfig = {
+                        oneofKind: "aiTtsSynthesizeConfig",
+                        aiTtsSynthesizeConfig: AiTtsSynthesizeNodeConfig.internalBinaryRead(reader, reader.uint32(), options, (message.typeConfig as any).aiTtsSynthesizeConfig)
                     };
                     break;
                 case /* nimi.runtime.v1.ExtractNodeConfig extract_config */ 20:
@@ -2137,6 +2558,12 @@ class WorkflowNode$Type extends MessageType<WorkflowNode> {
         /* nimi.runtime.v1.AiSttNodeConfig ai_stt_config = 16; */
         if (message.typeConfig.oneofKind === "aiSttConfig")
             AiSttNodeConfig.internalBinaryWrite(message.typeConfig.aiSttConfig, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiTtsCreateVoiceNodeConfig ai_tts_create_voice_config = 17; */
+        if (message.typeConfig.oneofKind === "aiTtsCreateVoiceConfig")
+            AiTtsCreateVoiceNodeConfig.internalBinaryWrite(message.typeConfig.aiTtsCreateVoiceConfig, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiTtsSynthesizeNodeConfig ai_tts_synthesize_config = 18; */
+        if (message.typeConfig.oneofKind === "aiTtsSynthesizeConfig")
+            AiTtsSynthesizeNodeConfig.internalBinaryWrite(message.typeConfig.aiTtsSynthesizeConfig, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.ExtractNodeConfig extract_config = 20; */
         if (message.typeConfig.oneofKind === "extractConfig")
             ExtractNodeConfig.internalBinaryWrite(message.typeConfig.extractConfig, writer.tag(20, WireType.LengthDelimited).fork(), options).join();

@@ -7,6 +7,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/voice.proto";
 
 enum Modal {
   MODAL_UNSPECIFIED = 0;
@@ -79,6 +80,41 @@ enum MediaJobEventType {
   MEDIA_JOB_EVENT_FAILED = 5;
   MEDIA_JOB_EVENT_CANCELED = 6;
   MEDIA_JOB_EVENT_TIMEOUT = 7;
+}
+
+enum VideoMode {
+  VIDEO_MODE_UNSPECIFIED = 0;
+  VIDEO_MODE_T2V = 1;
+  VIDEO_MODE_I2V_FIRST_FRAME = 2;
+  VIDEO_MODE_I2V_FIRST_LAST = 3;
+  VIDEO_MODE_I2V_REFERENCE = 4;
+}
+
+enum VideoContentType {
+  VIDEO_CONTENT_TYPE_UNSPECIFIED = 0;
+  VIDEO_CONTENT_TYPE_TEXT = 1;
+  VIDEO_CONTENT_TYPE_IMAGE_URL = 2;
+}
+
+enum VideoContentRole {
+  VIDEO_CONTENT_ROLE_UNSPECIFIED = 0;
+  VIDEO_CONTENT_ROLE_PROMPT = 1;
+  VIDEO_CONTENT_ROLE_FIRST_FRAME = 2;
+  VIDEO_CONTENT_ROLE_LAST_FRAME = 3;
+  VIDEO_CONTENT_ROLE_REFERENCE_IMAGE = 4;
+}
+
+enum SpeechTimingMode {
+  SPEECH_TIMING_MODE_UNSPECIFIED = 0;
+  SPEECH_TIMING_MODE_NONE = 1;
+  SPEECH_TIMING_MODE_WORD = 2;
+  SPEECH_TIMING_MODE_CHAR = 3;
+}
+
+enum SpeechAlignmentUnit {
+  SPEECH_ALIGNMENT_UNIT_UNSPECIFIED = 0;
+  SPEECH_ALIGNMENT_UNIT_WORD = 1;
+  SPEECH_ALIGNMENT_UNIT_CHAR = 2;
 }
 
 message ChatMessage {
@@ -218,20 +254,43 @@ message ImageGenerationSpec {
 message VideoGenerationSpec {
   string prompt = 1;
   string negative_prompt = 2;
+  VideoMode mode = 3;
+  repeated VideoContentItem content = 4;
+  VideoGenerationOptions options = 5;
+
+  reserved 6 to 20;
+}
+
+message VideoContentImageURL {
+  string url = 1;
+}
+
+message VideoContentItem {
+  VideoContentType type = 1;
+  VideoContentRole role = 2;
+  string text = 3;
+  VideoContentImageURL image_url = 4;
+}
+
+message VideoGenerationOptions {
+  string resolution = 1;
+  string ratio = 2;
   int32 duration_sec = 3;
-  int32 fps = 4;
-  string resolution = 5;
-  string aspect_ratio = 6;
-  int64 seed = 7;
-  string first_frame_uri = 8;
-  string last_frame_uri = 9;
-  string camera_motion = 10;
-  google.protobuf.Struct provider_options = 20;
+  int32 frames = 4;
+  int32 fps = 5;
+  int64 seed = 6;
+  bool camera_fixed = 7;
+  bool watermark = 8;
+  bool generate_audio = 9;
+  bool draft = 10;
+  string service_tier = 11;
+  int32 execution_expires_after_sec = 12;
+  bool return_last_frame = 13;
 }
 
 message SpeechSynthesisSpec {
   string text = 1;
-  string voice = 2;
+  string voice = 2 [deprecated = true];
   string language = 3;
   string audio_format = 4;
   int32 sample_rate_hz = 5;
@@ -239,7 +298,18 @@ message SpeechSynthesisSpec {
   float pitch = 7;
   float volume = 8;
   string emotion = 9;
+  VoiceReference voice_ref = 10;
+  SpeechTimingMode timing_mode = 11;
+  VoiceRenderHints voice_render_hints = 12;
   google.protobuf.Struct provider_options = 20;
+}
+
+message VoiceRenderHints {
+  float stability = 1;
+  float similarity_boost = 2;
+  float style = 3;
+  bool use_speaker_boost = 4;
+  float speed = 5;
 }
 
 message AudioChunks {
@@ -268,6 +338,17 @@ message SpeechTranscriptionSpec {
   google.protobuf.Struct provider_options = 20;
 }
 
+message SpeechAlignmentToken {
+  string token = 1;
+  int64 start_ms = 2;
+  int64 end_ms = 3;
+}
+
+message SpeechAlignment {
+  SpeechAlignmentUnit unit = 1;
+  repeated SpeechAlignmentToken tokens = 2;
+}
+
 message MediaArtifact {
   string artifact_id = 1;
   string mime_type = 2;
@@ -282,6 +363,7 @@ message MediaArtifact {
   int32 sample_rate_hz = 11;
   int32 channels = 12;
   google.protobuf.Struct provider_raw = 13;
+  SpeechAlignment speech_alignment = 14;
 }
 
 message MediaJob {

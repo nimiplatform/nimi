@@ -443,6 +443,40 @@ export enum ReasonCode {
      */
     AI_MEDIA_IDEMPOTENCY_CONFLICT = 414,
     /**
+     * VOICE family (420+)
+     *
+     * @generated from protobuf enum value: AI_VOICE_INPUT_INVALID = 420;
+     */
+    AI_VOICE_INPUT_INVALID = 420,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_WORKFLOW_UNSUPPORTED = 421;
+     */
+    AI_VOICE_WORKFLOW_UNSUPPORTED = 421,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_ASSET_NOT_FOUND = 422;
+     */
+    AI_VOICE_ASSET_NOT_FOUND = 422,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_ASSET_EXPIRED = 423;
+     */
+    AI_VOICE_ASSET_EXPIRED = 423,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_ASSET_SCOPE_FORBIDDEN = 424;
+     */
+    AI_VOICE_ASSET_SCOPE_FORBIDDEN = 424,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_TARGET_MODEL_MISMATCH = 425;
+     */
+    AI_VOICE_TARGET_MODEL_MISMATCH = 425,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_JOB_NOT_FOUND = 426;
+     */
+    AI_VOICE_JOB_NOT_FOUND = 426,
+    /**
+     * @generated from protobuf enum value: AI_VOICE_JOB_NOT_CANCELLABLE = 427;
+     */
+    AI_VOICE_JOB_NOT_CANCELLABLE = 427,
+    /**
      * MODULE family (430+)
      *
      * @generated from protobuf enum value: AI_MODULE_CONFIG_INVALID = 430;
