@@ -47,17 +47,32 @@ func ExecuteGLMTask(
 	}
 
 	submitPath, queryPrefix := resolveGLMTaskPaths(baseURL)
+	contentPayload := VideoContentPayload(spec)
+	if len(contentPayload) == 0 {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	submitPayload := map[string]any{
 		"model":           modelResolved,
-		"prompt":          spec.GetPrompt(),
-		"negative_prompt": spec.GetNegativePrompt(),
-		"duration_sec":    spec.GetDurationSec(),
-		"fps":             spec.GetFps(),
-		"resolution":      spec.GetResolution(),
-		"aspect_ratio":    spec.GetAspectRatio(),
-		"first_frame_uri": spec.GetFirstFrameUri(),
-		"last_frame_uri":  spec.GetLastFrameUri(),
-		"camera_motion":   spec.GetCameraMotion(),
+		"mode":            strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_")),
+		"prompt":          VideoPrompt(spec),
+		"negative_prompt": VideoNegativePrompt(spec),
+		"content":         contentPayload,
+		"duration_sec":    VideoDurationSec(spec),
+		"frames":          VideoFrames(spec),
+		"fps":             VideoFPS(spec),
+		"resolution":      VideoResolution(spec),
+		"aspect_ratio":    VideoRatio(spec),
+		"seed":            VideoSeed(spec),
+		"first_frame_uri": VideoFirstFrameURI(spec),
+		"last_frame_uri":  VideoLastFrameURI(spec),
+		"reference_images": VideoReferenceImageURIs(spec),
+		"camera_fixed":     VideoCameraFixed(spec),
+		"watermark":        VideoWatermark(spec),
+		"generate_audio":   VideoGenerateAudio(spec),
+		"draft":            VideoDraft(spec),
+		"service_tier":     VideoServiceTier(spec),
+		"execution_expires_after_sec": VideoExecutionExpiresAfterSec(spec),
+		"return_last_frame":           VideoReturnLastFrame(spec),
 	}
 	if opts := StructToMap(extractProviderOptions(req)); len(opts) > 0 {
 		submitPayload["provider_options"] = opts
@@ -121,7 +136,7 @@ func ExecuteGLMTask(
 		artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
 		ApplyVideoSpecMetadata(artifact, spec)
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 420), providerJobID, nil
+		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), providerJobID, nil
 	}
 }
 

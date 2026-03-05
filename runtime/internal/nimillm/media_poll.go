@@ -49,6 +49,14 @@ func PollProviderTaskForArtifact(
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
+		if IsAsyncTaskCanceledStatus(statusText) {
+			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
+			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED)
+		}
+		if IsAsyncTaskExpiredStatus(statusText) {
+			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
+			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		}
 		if IsAsyncTaskFailedStatus(statusText) {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

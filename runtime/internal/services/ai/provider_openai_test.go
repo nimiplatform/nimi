@@ -136,9 +136,7 @@ func TestOpenAIBackendVideoFallbackPath(t *testing.T) {
 		t.Fatalf("backend must not be nil")
 	}
 
-	gotVideo, usage, err := backend.GenerateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
-		Prompt: "drive on mars",
-	})
+	gotVideo, usage, err := backend.GenerateVideo(context.Background(), "vid-model", testVideoT2VSpec("drive on mars", 0))
 	if err != nil {
 		t.Fatalf("generate video: %v", err)
 	}
@@ -161,9 +159,7 @@ func TestOpenAIBackendVideoUnsupported(t *testing.T) {
 		t.Fatalf("backend must not be nil")
 	}
 
-	_, _, err := backend.GenerateVideo(context.Background(), "vid-model", &runtimev1.VideoGenerationSpec{
-		Prompt: "prompt",
-	})
+	_, _, err := backend.GenerateVideo(context.Background(), "vid-model", testVideoT2VSpec("prompt", 0))
 	if err == nil {
 		t.Fatalf("expected error for unsupported video endpoint")
 	}

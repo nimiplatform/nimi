@@ -99,31 +99,51 @@ func ExecuteBytedanceARKTask(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		providerOptions := StructToMap(spec.GetProviderOptions())
-		submitPath := resolveBytedanceARKVideoSubmitPath(spec)
-		queryPathTemplate := resolveBytedanceARKVideoQueryPathTemplate(spec)
+		submitPath := resolveBytedanceARKVideoSubmitPath()
+		queryPathTemplate := resolveBytedanceARKVideoQueryPathTemplate()
+		contentPayload := VideoContentPayload(spec)
+		if len(contentPayload) == 0 {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
 		submitPayload := map[string]any{
-			"model":           modelResolved,
-			"prompt":          spec.GetPrompt(),
-			"negative_prompt": spec.GetNegativePrompt(),
-			"duration_sec":    spec.GetDurationSec(),
-			"fps":             spec.GetFps(),
-			"resolution":      spec.GetResolution(),
-			"aspect_ratio":    spec.GetAspectRatio(),
-			"first_frame_uri": spec.GetFirstFrameUri(),
-			"last_frame_uri":  spec.GetLastFrameUri(),
-			"camera_motion":   spec.GetCameraMotion(),
+			"model":   modelResolved,
+			"content": contentPayload,
 		}
-		if spec.GetSeed() != 0 {
-			submitPayload["seed"] = spec.GetSeed()
+		if prompt := VideoPrompt(spec); prompt != "" {
+			submitPayload["prompt"] = prompt
 		}
-		submitPayload["input"] = map[string]any{
-			"prompt":          spec.GetPrompt(),
-			"negative_prompt": spec.GetNegativePrompt(),
+		if negativePrompt := VideoNegativePrompt(spec); negativePrompt != "" {
+			submitPayload["negative_prompt"] = negativePrompt
 		}
-		if len(providerOptions) > 0 {
-			submitPayload["provider_options"] = providerOptions
+		if resolution := VideoResolution(spec); resolution != "" {
+			submitPayload["resolution"] = resolution
 		}
+		if ratio := VideoRatio(spec); ratio != "" {
+			submitPayload["ratio"] = ratio
+		}
+		if durationSec := VideoDurationSec(spec); durationSec > 0 {
+			submitPayload["duration"] = durationSec
+		}
+		if frames := VideoFrames(spec); frames > 0 {
+			submitPayload["frames"] = frames
+		}
+		if fps := VideoFPS(spec); fps > 0 {
+			submitPayload["framespersecond"] = fps
+		}
+		if seed := VideoSeed(spec); seed != 0 {
+			submitPayload["seed"] = seed
+		}
+		submitPayload["camera_fixed"] = VideoCameraFixed(spec)
+		submitPayload["watermark"] = VideoWatermark(spec)
+		submitPayload["generate_audio"] = VideoGenerateAudio(spec)
+		submitPayload["draft"] = VideoDraft(spec)
+		if serviceTier := VideoServiceTier(spec); serviceTier != "" {
+			submitPayload["service_tier"] = serviceTier
+		}
+		if expiresAfter := VideoExecutionExpiresAfterSec(spec); expiresAfter > 0 {
+			submitPayload["execution_expires_after"] = expiresAfter
+		}
+		submitPayload["return_last_frame"] = VideoReturnLastFrame(spec)
 
 		submitResp := map[string]any{}
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
@@ -153,11 +173,14 @@ func ExecuteBytedanceARKTask(
 		return PollProviderTaskForArtifact(
 			ctx, updater, jobID, baseURL, apiKey,
 			AdapterBytedanceARKTask, providerJobID, submitPath, queryPathTemplate,
-			"video/mp4", 420, spec.GetPrompt(),
+			"video/mp4", 420, VideoPrompt(spec),
 			func(artifact *runtimev1.MediaArtifact) {
 				ApplyVideoSpecMetadata(artifact, spec)
 			},
-			map[string]any{"provider_options": providerOptions},
+			map[string]any{
+				"mode":              spec.GetMode().String(),
+				"content_item_count": len(contentPayload),
+			},
 		)
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -179,26 +202,18 @@ func resolveBytedanceARKImagePath(spec *runtimev1.ImageGenerationSpec) string {
 	)
 }
 
-func resolveBytedanceARKVideoSubmitPath(spec *runtimev1.VideoGenerationSpec) string {
-	providerOptions := map[string]any{}
-	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
-	}
+func resolveBytedanceARKVideoSubmitPath() string {
 	return FirstProviderEndpointPath(
-		providerOptions,
+		nil,
 		[]string{"video_path", "video_submit_path", "task_submit_path"},
 		[]string{"video_paths", "video_submit_paths", "task_submit_paths"},
 		[]string{"/api/v3/contents/generations/tasks"},
 	)
 }
 
-func resolveBytedanceARKVideoQueryPathTemplate(spec *runtimev1.VideoGenerationSpec) string {
-	providerOptions := map[string]any{}
-	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
-	}
+func resolveBytedanceARKVideoQueryPathTemplate() string {
 	return ResolveTaskQueryPathTemplate(
-		providerOptions,
+		nil,
 		[]string{"video_query_path", "video_query_path_template", "task_query_path"},
 		[]string{"video_query_paths", "video_query_path_templates", "task_query_paths"},
 		[]string{"/api/v3/contents/generations/tasks/{task_id}"},

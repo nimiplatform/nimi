@@ -395,17 +395,24 @@ func executeBackendSyncMedia(
 			return nil, nil, "", err
 		}
 		providerRaw := map[string]any{
-			"adapter":          adapterName,
-			"prompt":           strings.TrimSpace(spec.GetPrompt()),
-			"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
-			"duration_sec":     spec.GetDurationSec(),
-			"fps":              spec.GetFps(),
-			"resolution":       strings.TrimSpace(spec.GetResolution()),
-			"aspect_ratio":     strings.TrimSpace(spec.GetAspectRatio()),
-			"first_frame_uri":  strings.TrimSpace(spec.GetFirstFrameUri()),
-			"last_frame_uri":   strings.TrimSpace(spec.GetLastFrameUri()),
-			"camera_motion":    strings.TrimSpace(spec.GetCameraMotion()),
-			"provider_options": nimillm.StructToMap(spec.GetProviderOptions()),
+			"adapter":                     adapterName,
+			"prompt":                      nimillm.VideoPrompt(spec),
+			"negative_prompt":             nimillm.VideoNegativePrompt(spec),
+			"mode":                        spec.GetMode().String(),
+			"content":                     nimillm.VideoContentPayload(spec),
+			"duration_sec":                nimillm.VideoDurationSec(spec),
+			"frames":                      nimillm.VideoFrames(spec),
+			"fps":                         nimillm.VideoFPS(spec),
+			"resolution":                  nimillm.VideoResolution(spec),
+			"aspect_ratio":                nimillm.VideoRatio(spec),
+			"seed":                        nimillm.VideoSeed(spec),
+			"camera_fixed":                nimillm.VideoCameraFixed(spec),
+			"watermark":                   nimillm.VideoWatermark(spec),
+			"generate_audio":              nimillm.VideoGenerateAudio(spec),
+			"draft":                       nimillm.VideoDraft(spec),
+			"service_tier":                nimillm.VideoServiceTier(spec),
+			"execution_expires_after_sec": nimillm.VideoExecutionExpiresAfterSec(spec),
+			"return_last_frame":           nimillm.VideoReturnLastFrame(spec),
 		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveVideoArtifactMIME(spec, payload), payload, providerRaw)
 		nimillm.ApplyVideoSpecMetadata(artifact, spec)
@@ -803,14 +810,11 @@ func validateSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) error {
 		}
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := req.GetVideoSpec()
-		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {
+		if spec == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
-		if spec.GetDurationSec() < 0 || spec.GetDurationSec() > 600 {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-		}
-		if spec.GetFps() < 0 || spec.GetFps() > 120 {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		if err := validateVideoGenerationSpec(spec); err != nil {
+			return err
 		}
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
@@ -839,6 +843,110 @@ func validateSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) error {
 		}
 	default:
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+	return nil
+}
+
+func validateVideoGenerationSpec(spec *runtimev1.VideoGenerationSpec) error {
+	if spec == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	mode := spec.GetMode()
+	if mode == runtimev1.VideoMode_VIDEO_MODE_UNSPECIFIED {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	content := spec.GetContent()
+	if len(content) == 0 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+
+	textCount := 0
+	firstFrameCount := 0
+	lastFrameCount := 0
+	referenceImageCount := 0
+	for _, item := range content {
+		if item == nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		switch item.GetType() {
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT:
+			if strings.TrimSpace(item.GetText()) == "" {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+			textCount++
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL:
+			if strings.TrimSpace(item.GetImageUrl().GetUrl()) == "" {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+			switch item.GetRole() {
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME:
+				firstFrameCount++
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_LAST_FRAME:
+				lastFrameCount++
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
+				referenceImageCount++
+			default:
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+		default:
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	}
+
+	switch mode {
+	case runtimev1.VideoMode_VIDEO_MODE_T2V:
+		if textCount == 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		if firstFrameCount > 0 || lastFrameCount > 0 || referenceImageCount > 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME:
+		if firstFrameCount != 1 || lastFrameCount != 0 || referenceImageCount != 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST:
+		if firstFrameCount != 1 || lastFrameCount != 1 || referenceImageCount != 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE:
+		if referenceImageCount < 1 || referenceImageCount > 4 || firstFrameCount != 0 || lastFrameCount != 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+	default:
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+
+	options := spec.GetOptions()
+	if options == nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	}
+	if options.GetDurationSec() < 0 || options.GetDurationSec() > 600 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if options.GetFrames() < 0 || options.GetFrames() > 1200 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if options.GetDurationSec() > 0 && options.GetFrames() > 0 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if options.GetFps() < 0 || options.GetFps() > 120 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if options.GetSeed() < -1 || options.GetSeed() > 4294967295 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+
+	ratio := strings.TrimSpace(options.GetRatio())
+	if ratio != "" {
+		switch ratio {
+		case "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive":
+		default:
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
+	if mode == runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE && options.GetCameraFixed() {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return nil
 }
@@ -924,7 +1032,7 @@ func extractProviderOptions(req *runtimev1.SubmitMediaJobRequest) *structpb.Stru
 		return spec.GetProviderOptions()
 	}
 	if spec := req.GetVideoSpec(); spec != nil {
-		return spec.GetProviderOptions()
+		return nil
 	}
 	if spec := req.GetSpeechSpec(); spec != nil {
 		return spec.GetProviderOptions()

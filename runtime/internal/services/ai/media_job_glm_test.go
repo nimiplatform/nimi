@@ -62,10 +62,7 @@ func TestSubmitMediaJobGLMVideoTask(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt:      "city flyover",
-				DurationSec: 6,
-			},
+			VideoSpec: testVideoT2VSpec("city flyover", 6),
 		},
 	})
 	if err != nil {

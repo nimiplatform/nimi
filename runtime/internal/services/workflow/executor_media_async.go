@@ -235,6 +235,15 @@ func buildSubmitMediaJobRequest(
 		req.Spec = &runtimev1.SubmitMediaJobRequest_VideoSpec{
 			VideoSpec: &runtimev1.VideoGenerationSpec{
 				Prompt: prompt,
+				Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
+				Content: []*runtimev1.VideoContentItem{
+					{
+						Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+						Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+						Text: prompt,
+					},
+				},
+				Options: &runtimev1.VideoGenerationOptions{},
 			},
 		}
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS:

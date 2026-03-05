@@ -58,9 +58,7 @@ func TestSubmitMediaJobLocalAIModalities(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "local video",
-			},
+			VideoSpec: testVideoT2VSpec("local video", 0),
 		},
 	})
 	if err != nil {
@@ -200,9 +198,7 @@ func TestSubmitMediaJobNimiLLMModalities(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "nimillm video",
-			},
+			VideoSpec: testVideoT2VSpec("nimillm video", 0),
 		},
 	})
 	if err != nil {
@@ -465,9 +461,7 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "nexa video unsupported",
-			},
+			VideoSpec: testVideoT2VSpec("nexa video unsupported", 0),
 		},
 	})
 	if err != nil {

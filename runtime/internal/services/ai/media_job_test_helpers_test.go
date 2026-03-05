@@ -156,6 +156,100 @@ func structToMapPB(t *testing.T, input map[string]any) *structpb.Struct {
 	return value
 }
 
+func testVideoT2VSpec(prompt string, durationSec int32) *runtimev1.VideoGenerationSpec {
+	options := &runtimev1.VideoGenerationOptions{}
+	if durationSec > 0 {
+		options.DurationSec = durationSec
+	}
+	return &runtimev1.VideoGenerationSpec{
+		Prompt: prompt,
+		Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
+		Content: []*runtimev1.VideoContentItem{
+			{
+				Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+				Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+				Text: prompt,
+			},
+		},
+		Options: options,
+	}
+}
+
+func testVideoI2VFirstFrameSpec(prompt, firstFrameURI string) *runtimev1.VideoGenerationSpec {
+	content := []*runtimev1.VideoContentItem{
+		{
+			Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+			Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME,
+			ImageUrl: &runtimev1.VideoContentImageURL{Url: firstFrameURI},
+		},
+	}
+	if prompt != "" {
+		content = append(content, &runtimev1.VideoContentItem{
+			Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+			Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+			Text: prompt,
+		})
+	}
+	return &runtimev1.VideoGenerationSpec{
+		Prompt:  prompt,
+		Mode:    runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME,
+		Content: content,
+		Options: &runtimev1.VideoGenerationOptions{},
+	}
+}
+
+func testVideoI2VFirstLastSpec(prompt, firstFrameURI, lastFrameURI string) *runtimev1.VideoGenerationSpec {
+	content := []*runtimev1.VideoContentItem{
+		{
+			Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+			Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME,
+			ImageUrl: &runtimev1.VideoContentImageURL{Url: firstFrameURI},
+		},
+		{
+			Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+			Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_LAST_FRAME,
+			ImageUrl: &runtimev1.VideoContentImageURL{Url: lastFrameURI},
+		},
+	}
+	if prompt != "" {
+		content = append(content, &runtimev1.VideoContentItem{
+			Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+			Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+			Text: prompt,
+		})
+	}
+	return &runtimev1.VideoGenerationSpec{
+		Prompt:  prompt,
+		Mode:    runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST,
+		Content: content,
+		Options: &runtimev1.VideoGenerationOptions{},
+	}
+}
+
+func testVideoI2VReferenceSpec(prompt string, referenceImageURIs []string) *runtimev1.VideoGenerationSpec {
+	content := make([]*runtimev1.VideoContentItem, 0, len(referenceImageURIs)+1)
+	for _, uri := range referenceImageURIs {
+		content = append(content, &runtimev1.VideoContentItem{
+			Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+			Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE,
+			ImageUrl: &runtimev1.VideoContentImageURL{Url: uri},
+		})
+	}
+	if prompt != "" {
+		content = append(content, &runtimev1.VideoContentItem{
+			Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+			Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+			Text: prompt,
+		})
+	}
+	return &runtimev1.VideoGenerationSpec{
+		Prompt:  prompt,
+		Mode:    runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE,
+		Content: content,
+		Options: &runtimev1.VideoGenerationOptions{},
+	}
+}
+
 type mediaJobEventCollector struct {
 	mu     sync.Mutex
 	ctx    context.Context

@@ -206,7 +206,7 @@ func ExecuteMiniMaxTask(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		prompt = spec.GetPrompt()
+		prompt = VideoPrompt(spec)
 	}
 
 	submitPayload := map[string]any{
@@ -222,14 +222,25 @@ func ExecuteMiniMaxTask(
 		submitPayload["response_format"] = imageSpec.GetResponseFormat()
 	}
 	if videoSpec := req.GetVideoSpec(); videoSpec != nil {
-		submitPayload["negative_prompt"] = videoSpec.GetNegativePrompt()
-		submitPayload["duration_sec"] = videoSpec.GetDurationSec()
-		submitPayload["fps"] = videoSpec.GetFps()
-		submitPayload["resolution"] = videoSpec.GetResolution()
-		submitPayload["aspect_ratio"] = videoSpec.GetAspectRatio()
-		submitPayload["first_frame_uri"] = videoSpec.GetFirstFrameUri()
-		submitPayload["last_frame_uri"] = videoSpec.GetLastFrameUri()
-		submitPayload["camera_motion"] = videoSpec.GetCameraMotion()
+		submitPayload["mode"] = strings.ToLower(strings.TrimPrefix(videoSpec.GetMode().String(), "VIDEO_MODE_"))
+		submitPayload["negative_prompt"] = VideoNegativePrompt(videoSpec)
+		submitPayload["content"] = VideoContentPayload(videoSpec)
+		submitPayload["duration_sec"] = VideoDurationSec(videoSpec)
+		submitPayload["frames"] = VideoFrames(videoSpec)
+		submitPayload["fps"] = VideoFPS(videoSpec)
+		submitPayload["resolution"] = VideoResolution(videoSpec)
+		submitPayload["aspect_ratio"] = VideoRatio(videoSpec)
+		submitPayload["seed"] = VideoSeed(videoSpec)
+		submitPayload["first_frame_uri"] = VideoFirstFrameURI(videoSpec)
+		submitPayload["last_frame_uri"] = VideoLastFrameURI(videoSpec)
+		submitPayload["reference_images"] = VideoReferenceImageURIs(videoSpec)
+		submitPayload["camera_fixed"] = VideoCameraFixed(videoSpec)
+		submitPayload["watermark"] = VideoWatermark(videoSpec)
+		submitPayload["generate_audio"] = VideoGenerateAudio(videoSpec)
+		submitPayload["draft"] = VideoDraft(videoSpec)
+		submitPayload["service_tier"] = VideoServiceTier(videoSpec)
+		submitPayload["execution_expires_after_sec"] = VideoExecutionExpiresAfterSec(videoSpec)
+		submitPayload["return_last_frame"] = VideoReturnLastFrame(videoSpec)
 	}
 	if opts := StructToMap(extractProviderOptions(req)); len(opts) > 0 {
 		submitPayload["provider_options"] = opts

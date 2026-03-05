@@ -129,10 +129,7 @@ func TestLiveSmokeLocalSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi live smoke short video: ocean waves with stable camera",
-					DurationSec: 4,
-				},
+				VideoSpec: testVideoT2VSpec("Nimi live smoke short video: ocean waves with stable camera", 4),
 			},
 		})
 		assertLiveMediaJobCompleted(t, job)
@@ -227,10 +224,7 @@ func TestLiveSmokeNimiLLMSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi NimiLLM live smoke short video: city lights with gentle pan",
-					DurationSec: 4,
-				},
+				VideoSpec: testVideoT2VSpec("Nimi NimiLLM live smoke short video: city lights with gentle pan", 4),
 			},
 		})
 		assertLiveMediaJobCompleted(t, job)
@@ -334,9 +328,44 @@ func TestLiveSmokeBytedanceSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+				VideoSpec: testVideoT2VSpec("Nimi Bytedance live smoke short video: calm forest with cinematic motion", 4),
+			},
+		})
+		assertLiveMediaJobCompleted(t, job)
+	})
+
+	t.Run("video-i2v-first-frame", func(t *testing.T) {
+		modelID := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_VIDEO_MODEL_ID")
+		firstFrameURI := requiredLiveEnv(t, "NIMI_LIVE_BYTEDANCE_I2V_FIRST_FRAME_URI")
+		job := runLiveSmokeMediaJob(t, svc, &runtimev1.SubmitMediaJobRequest{
+			AppId:         "nimi.live-smoke",
+			SubjectUserId: "smoke-user",
+			ModelId:       modelID,
+			Modal:         runtimev1.Modal_MODAL_VIDEO,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     300_000,
+			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
 				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi Bytedance live smoke short video: calm forest with cinematic motion",
-					DurationSec: 4,
+					Prompt: "Nimi Bytedance live smoke i2v first-frame scene",
+					Mode:   runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME,
+					Content: []*runtimev1.VideoContentItem{
+						{
+							Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+							Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+							Text: "Nimi Bytedance live smoke i2v first-frame scene",
+						},
+						{
+							Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+							Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME,
+							ImageUrl: &runtimev1.VideoContentImageURL{
+								Url: firstFrameURI,
+							},
+						},
+					},
+					Options: &runtimev1.VideoGenerationOptions{
+						DurationSec: 4,
+					},
 				},
 			},
 		})
@@ -432,10 +461,7 @@ func TestLiveSmokeAlibabaSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi Alibaba live smoke short video: river scene with subtle camera movement",
-					DurationSec: 4,
-				},
+				VideoSpec: testVideoT2VSpec("Nimi Alibaba live smoke short video: river scene with subtle camera movement", 4),
 			},
 		})
 		assertLiveMediaJobCompleted(t, job)
@@ -530,10 +556,7 @@ func TestLiveSmokeGeminiSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi Gemini live smoke short video: morning city timelapse",
-					DurationSec: 4,
-				},
+				VideoSpec: testVideoT2VSpec("Nimi Gemini live smoke short video: morning city timelapse", 4),
 			},
 		})
 		assertLiveMediaJobCompleted(t, job)
@@ -628,10 +651,7 @@ func TestLiveSmokeMiniMaxSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi MiniMax live smoke short video: snow mountain drone shot",
-					DurationSec: 4,
-				},
+				VideoSpec: testVideoT2VSpec("Nimi MiniMax live smoke short video: snow mountain drone shot", 4),
 			},
 		})
 		assertLiveMediaJobCompleted(t, job)
@@ -804,10 +824,7 @@ func TestLiveSmokeGLMSubmitMediaJobModalities(t *testing.T) {
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     300_000,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{
-					Prompt:      "Nimi GLM live smoke short video: desert sunrise with smooth movement",
-					DurationSec: 4,
-				},
+				VideoSpec: testVideoT2VSpec("Nimi GLM live smoke short video: desert sunrise with smooth movement", 4),
 			},
 		})
 		assertLiveMediaJobCompleted(t, job)

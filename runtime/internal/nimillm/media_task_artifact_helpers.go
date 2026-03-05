@@ -67,7 +67,29 @@ func IsAsyncTaskPendingStatus(statusText string) bool {
 // has failed.
 func IsAsyncTaskFailedStatus(statusText string) bool {
 	switch strings.ToLower(strings.TrimSpace(statusText)) {
-	case "failed", "error", "canceled", "cancelled":
+	case "failed", "error":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsAsyncTaskCanceledStatus returns true if the status text indicates the task
+// was canceled before completion.
+func IsAsyncTaskCanceledStatus(statusText string) bool {
+	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	case "canceled", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsAsyncTaskExpiredStatus returns true if the status text indicates the task
+// expired before completion.
+func IsAsyncTaskExpiredStatus(statusText string) bool {
+	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	case "expired":
 		return true
 	default:
 		return false

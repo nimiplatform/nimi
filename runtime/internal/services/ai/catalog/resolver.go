@@ -32,12 +32,12 @@ type Resolver struct {
 
 	logger *slog.Logger
 
-	snapshot         *indexedSnapshot
-	source           CatalogSource
-	builtInProviders map[string]ProviderDocument
-	customProviders  map[string]ProviderDocument
-	remoteProviders  map[string]ProviderDocument
-	effective        map[string]ProviderDocument
+	snapshot          *indexedSnapshot
+	source            CatalogSource
+	builtInProviders  map[string]ProviderDocument
+	customProviders   map[string]ProviderDocument
+	remoteProviders   map[string]ProviderDocument
+	effective         map[string]ProviderDocument
 	sourcesByProvider map[string]ProviderSource
 
 	customDir string
@@ -431,6 +431,10 @@ func modelIDBase(value string) string {
 func inferProviderFromModel(modelID string) string {
 	normalized := strings.TrimSpace(strings.ToLower(modelID))
 	switch {
+	case strings.HasPrefix(normalized, "local/"):
+		return "local"
+	case normalized == "qwen3-tts-local", normalized == "qwen3-tts", strings.Contains(normalized, "qwen/qwen3-tts-8b"):
+		return "local"
 	case strings.HasPrefix(normalized, "dashscope/"):
 		return "dashscope"
 	case strings.Contains(normalized, "qwen3-tts"), strings.Contains(normalized, "qwen-tts"):
@@ -443,6 +447,10 @@ func inferProviderFromModel(modelID string) string {
 		return "volcengine"
 	case strings.Contains(normalized, "doubao-tts"), strings.Contains(normalized, "bv001_streaming"), strings.Contains(normalized, "bv002_streaming"):
 		return "volcengine"
+	case strings.HasPrefix(normalized, "elevenlabs/"):
+		return "elevenlabs"
+	case strings.HasPrefix(normalized, "eleven_"), strings.HasPrefix(normalized, "eleven-"):
+		return "elevenlabs"
 	default:
 		return ""
 	}

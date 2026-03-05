@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -355,9 +356,7 @@ func TestSubmitMediaJobBytedanceARKVideoTask(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "bytedance video prompt",
-			},
+			VideoSpec: testVideoT2VSpec("bytedance video prompt", 0),
 		},
 	})
 	if err != nil {
@@ -416,16 +415,18 @@ func TestSubmitMediaJobBytedanceARKImage(t *testing.T) {
 	}
 }
 
-func TestSubmitMediaJobBytedanceARKVideoTaskCustomPaths(t *testing.T) {
+func TestSubmitMediaJobBytedanceARKVideoTaskSeedanceContract(t *testing.T) {
 	videoPayload := []byte("bytedance-custom-video-bytes")
 	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	var capturedSubmitPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/custom/tasks":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v3/contents/generations/tasks":
+			_ = json.NewDecoder(r.Body).Decode(&capturedSubmitPayload)
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"task_id":"ark-custom-task-1"}`))
 			return
-		case r.Method == http.MethodGet && r.URL.Path == "/custom/tasks/ark-custom-task-1":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v3/contents/generations/tasks/ark-custom-task-1":
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_mp4":"` + videoB64 + `","mime_type":"video/mp4"}}`))
 			return
@@ -446,13 +447,7 @@ func TestSubmitMediaJobBytedanceARKVideoTaskCustomPaths(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "custom path video",
-				ProviderOptions: structToMapPB(t, map[string]any{
-					"video_submit_path":         "/custom/tasks",
-					"video_query_path_template": "/custom/tasks/{task_id}",
-				}),
-			},
+			VideoSpec: testVideoT2VSpec("custom path video", 0),
 		},
 	})
 	if err != nil {
@@ -467,6 +462,135 @@ func TestSubmitMediaJobBytedanceARKVideoTaskCustomPaths(t *testing.T) {
 	}
 	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(videoPayload) {
 		t.Fatalf("video bytes mismatch: got=%q want=%q", got, string(videoPayload))
+	}
+	content, ok := capturedSubmitPayload["content"].([]any)
+	if !ok || len(content) == 0 {
+		t.Fatalf("seedance payload content not forwarded: %#v", capturedSubmitPayload)
+	}
+}
+
+func TestSubmitMediaJobBytedanceARKVideoTaskSeedanceModePayloads(t *testing.T) {
+	videoPayload := []byte("bytedance-mode-video-bytes")
+	videoB64 := base64.StdEncoding.EncodeToString(videoPayload)
+	cases := []struct {
+		name          string
+		spec          *runtimev1.VideoGenerationSpec
+		wantRoles     []string
+		wantTextCount int
+	}{
+		{
+			name:          "t2v",
+			spec:          testVideoT2VSpec("ocean at sunrise", 0),
+			wantRoles:     []string{"prompt"},
+			wantTextCount: 1,
+		},
+		{
+			name: "i2v_first_frame",
+			spec: testVideoI2VFirstFrameSpec("camera move", "https://example.com/first.png"),
+			wantRoles: []string{
+				"first_frame",
+				"prompt",
+			},
+			wantTextCount: 1,
+		},
+		{
+			name: "i2v_first_last",
+			spec: testVideoI2VFirstLastSpec(
+				"day to night",
+				"https://example.com/first.png",
+				"https://example.com/last.png",
+			),
+			wantRoles: []string{
+				"first_frame",
+				"last_frame",
+				"prompt",
+			},
+			wantTextCount: 1,
+		},
+		{
+			name: "i2v_reference",
+			spec: testVideoI2VReferenceSpec("anime style", []string{
+				"https://example.com/ref1.png",
+				"https://example.com/ref2.png",
+			}),
+			wantRoles: []string{
+				"reference_image",
+				"reference_image",
+				"prompt",
+			},
+			wantTextCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var capturedSubmitPayload map[string]any
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodPost && r.URL.Path == "/api/v3/contents/generations/tasks":
+					_ = json.NewDecoder(r.Body).Decode(&capturedSubmitPayload)
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"task_id":"ark-mode-task-1"}`))
+					return
+				case r.Method == http.MethodGet && r.URL.Path == "/api/v3/contents/generations/tasks/ark-mode-task-1":
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"status":"succeeded","output":{"b64_mp4":"` + videoB64 + `","mime_type":"video/mp4"}}`))
+					return
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer server.Close()
+
+			svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+				CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
+			})
+			resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+				AppId:         "nimi.desktop",
+				SubjectUserId: "user-001",
+				ModelId:       "volcengine/seedance-1-5-pro",
+				Modal:         runtimev1.Modal_MODAL_VIDEO,
+				RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+				Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+				Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+					VideoSpec: tc.spec,
+				},
+			})
+			if err != nil {
+				t.Fatalf("submit bytedance mode video job: %v", err)
+			}
+			job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+			if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+				t.Fatalf("job status mismatch: %v", job.GetStatus())
+			}
+			content, ok := capturedSubmitPayload["content"].([]any)
+			if !ok {
+				t.Fatalf("content payload missing: %#v", capturedSubmitPayload)
+			}
+			if len(content) != len(tc.wantRoles) {
+				t.Fatalf("content item count mismatch: got=%d want=%d payload=%#v", len(content), len(tc.wantRoles), capturedSubmitPayload)
+			}
+			roles := make([]string, 0, len(content))
+			textCount := 0
+			for _, item := range content {
+				itemMap, castOK := item.(map[string]any)
+				if !castOK {
+					t.Fatalf("content item type mismatch: %#v", item)
+				}
+				roles = append(roles, strings.TrimSpace(nimillm.ValueAsString(itemMap["role"])))
+				if strings.EqualFold(strings.TrimSpace(nimillm.ValueAsString(itemMap["type"])), "text") {
+					textCount++
+				}
+			}
+			for idx, role := range tc.wantRoles {
+				if roles[idx] != role {
+					t.Fatalf("role mismatch at %d: got=%s want=%s roles=%v", idx, roles[idx], role, roles)
+				}
+			}
+			if textCount != tc.wantTextCount {
+				t.Fatalf("text content count mismatch: got=%d want=%d", textCount, tc.wantTextCount)
+			}
+		})
 	}
 }
 
@@ -498,9 +622,7 @@ func TestSubmitMediaJobBytedanceARKVideoTaskFailedMapsUnavailable(t *testing.T) 
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "failed video",
-			},
+			VideoSpec: testVideoT2VSpec("failed video", 0),
 		},
 	})
 	if err != nil {
@@ -512,5 +634,91 @@ func TestSubmitMediaJobBytedanceARKVideoTaskFailedMapsUnavailable(t *testing.T) 
 	}
 	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
 		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+}
+
+func TestSubmitMediaJobBytedanceARKVideoTaskCancelledMapsCanceled(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v3/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ark-cancelled-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v3/contents/generations/tasks/ark-cancelled-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"cancelled"}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "volcengine/video-cancelled-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: testVideoT2VSpec("cancelled video", 0),
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance cancelled video job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_CANCELED {
+		t.Fatalf("job status mismatch: got=%v want=%v", job.GetStatus(), runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_CANCELED)
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_ACTION_EXECUTED)
+	}
+}
+
+func TestSubmitMediaJobBytedanceARKVideoTaskExpiredMapsTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v3/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"task_id":"ark-expired-task-1"}`))
+			return
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v3/contents/generations/tasks/ark-expired-task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"expired"}`))
+			return
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: server.URL}},
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "volcengine/video-expired-1",
+		Modal:         runtimev1.Modal_MODAL_VIDEO,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
+			VideoSpec: testVideoT2VSpec("expired video", 0),
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit bytedance expired video job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT {
+		t.Fatalf("job status mismatch: got=%v want=%v", job.GetStatus(), runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_TIMEOUT)
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 	}
 }

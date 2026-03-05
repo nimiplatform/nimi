@@ -119,9 +119,7 @@ func TestSubmitMediaJobMiniMaxVideoTask(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "sea sunset",
-			},
+			VideoSpec: testVideoT2VSpec("sea sunset", 0),
 		},
 	})
 	if err != nil {

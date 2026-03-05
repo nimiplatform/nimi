@@ -41,6 +41,67 @@ func TestResolveVoicesDashScopeModel(t *testing.T) {
 	}
 }
 
+func TestResolveVoicesLocalModel(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	result, err := resolver.ResolveVoices("local", "qwen3-tts-local")
+	if err != nil {
+		t.Fatalf("ResolveVoices: %v", err)
+	}
+	if result.Source != SourceBuiltinSnapshot {
+		t.Fatalf("unexpected source: %s", result.Source)
+	}
+	if len(result.Voices) == 0 {
+		t.Fatalf("expected non-empty local voices")
+	}
+	if result.Voices[0].VoiceID != "user-custom" {
+		t.Fatalf("unexpected local voice id: %s", result.Voices[0].VoiceID)
+	}
+}
+
+func TestResolveVoicesElevenLabsModel(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	result, err := resolver.ResolveVoices("elevenlabs", "eleven_multilingual_v2")
+	if err != nil {
+		t.Fatalf("ResolveVoices: %v", err)
+	}
+	if result.Source != SourceBuiltinSnapshot {
+		t.Fatalf("unexpected source: %s", result.Source)
+	}
+	if len(result.Voices) == 0 {
+		t.Fatalf("expected non-empty elevenlabs voices")
+	}
+	if result.Voices[0].VoiceID != "preset-dynamic" {
+		t.Fatalf("unexpected elevenlabs voice id: %s", result.Voices[0].VoiceID)
+	}
+}
+
+func TestInferProviderFromModelLocalAndDashScope(t *testing.T) {
+	cases := []struct {
+		modelID  string
+		expected string
+	}{
+		{modelID: "local/qwen3-tts-local", expected: "local"},
+		{modelID: "qwen3-tts-local", expected: "local"},
+		{modelID: "Qwen/Qwen3-TTS-8B", expected: "local"},
+		{modelID: "qwen3-tts-instruct-flash", expected: "dashscope"},
+		{modelID: "elevenlabs/eleven_multilingual_v2", expected: "elevenlabs"},
+		{modelID: "eleven_flash_v2_5", expected: "elevenlabs"},
+	}
+	for _, c := range cases {
+		if got := inferProviderFromModel(c.modelID); got != c.expected {
+			t.Fatalf("inferProviderFromModel(%q)=%q, want=%q", c.modelID, got, c.expected)
+		}
+	}
+}
+
 func TestResolveVoicesMissingModelReturnsErrModelNotFound(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

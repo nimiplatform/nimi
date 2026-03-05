@@ -113,13 +113,13 @@ func ApplyVideoSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.V
 	if artifact == nil || spec == nil {
 		return
 	}
-	if spec.GetDurationSec() > 0 {
-		artifact.DurationMs = int64(spec.GetDurationSec()) * 1000
+	if durationSec := VideoDurationSec(spec); durationSec > 0 {
+		artifact.DurationMs = int64(durationSec) * 1000
 	}
-	if spec.GetFps() > 0 {
-		artifact.Fps = spec.GetFps()
+	if fps := VideoFPS(spec); fps > 0 {
+		artifact.Fps = fps
 	}
-	if width, height := ParseDimensionPair(spec.GetResolution()); width > 0 && height > 0 {
+	if width, height := ParseDimensionPair(VideoResolution(spec)); width > 0 && height > 0 {
 		artifact.Width = width
 		artifact.Height = height
 	}

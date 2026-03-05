@@ -268,7 +268,15 @@ func TestSubmitMediaJobRangeValidation(t *testing.T) {
 				Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
 					VideoSpec: &runtimev1.VideoGenerationSpec{
 						Prompt: "test",
-						Fps:    121,
+						Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
+						Content: []*runtimev1.VideoContentItem{
+							{
+								Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+								Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+								Text: "test",
+							},
+						},
+						Options: &runtimev1.VideoGenerationOptions{Fps: 121},
 					},
 				},
 			},
@@ -605,7 +613,18 @@ func TestMediaJobReasonCodeClassification(t *testing.T) {
 			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-				VideoSpec: &runtimev1.VideoGenerationSpec{Prompt: "test", Fps: 121},
+				VideoSpec: &runtimev1.VideoGenerationSpec{
+					Prompt: "test",
+					Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
+					Content: []*runtimev1.VideoContentItem{
+						{
+							Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+							Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+							Text: "test",
+						},
+					},
+					Options: &runtimev1.VideoGenerationOptions{Fps: 121},
+				},
 			},
 		})
 		reason, ok := grpcerr.ExtractReasonCode(err)
@@ -647,6 +666,122 @@ func TestMediaJobReasonCodeClassification(t *testing.T) {
 		reason, ok := grpcerr.ExtractReasonCode(err)
 		if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got %v (ok=%v)", reason, ok)
+		}
+	})
+}
+
+func TestValidateVideoGenerationSpecRules(t *testing.T) {
+	t.Run("t2v requires prompt text content", func(t *testing.T) {
+		err := validateVideoGenerationSpec(&runtimev1.VideoGenerationSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/first.png"},
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID {
+			t.Fatalf("expected AI_MEDIA_SPEC_INVALID, got=%v ok=%v", reason, ok)
+		}
+	})
+
+	t.Run("i2v first frame requires exactly one first frame", func(t *testing.T) {
+		err := validateVideoGenerationSpec(&runtimev1.VideoGenerationSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/first.png"},
+				},
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_LAST_FRAME,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/last.png"},
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID {
+			t.Fatalf("expected AI_MEDIA_SPEC_INVALID, got=%v ok=%v", reason, ok)
+		}
+	})
+
+	t.Run("i2v first-last requires first+last pair", func(t *testing.T) {
+		err := validateVideoGenerationSpec(&runtimev1.VideoGenerationSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/first.png"},
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID {
+			t.Fatalf("expected AI_MEDIA_SPEC_INVALID, got=%v ok=%v", reason, ok)
+		}
+	})
+
+	t.Run("i2v reference disallows camera fixed", func(t *testing.T) {
+		err := validateVideoGenerationSpec(&runtimev1.VideoGenerationSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/ref1.png"},
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{
+				CameraFixed: true,
+			},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got=%v ok=%v", reason, ok)
+		}
+	})
+
+	t.Run("frames and duration are mutually exclusive", func(t *testing.T) {
+		err := validateVideoGenerationSpec(&runtimev1.VideoGenerationSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+					Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+					Text: "ocean scene",
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{
+				DurationSec: 6,
+				Frames:      120,
+			},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got=%v ok=%v", reason, ok)
+		}
+	})
+
+	t.Run("seed range is enforced", func(t *testing.T) {
+		err := validateVideoGenerationSpec(&runtimev1.VideoGenerationSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+					Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+					Text: "ocean scene",
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{
+				Seed: 4294967296,
+			},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got=%v ok=%v", reason, ok)
 		}
 	})
 }

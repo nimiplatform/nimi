@@ -45,14 +45,15 @@ type SourceRef struct {
 }
 
 type ModelEntry struct {
-	Provider     string    `yaml:"provider" json:"provider"`
-	ModelID      string    `yaml:"model_id" json:"model_id"`
-	ModelType    string    `yaml:"model_type" json:"model_type"`
-	UpdatedAt    string    `yaml:"updated_at" json:"updated_at"`
-	Capabilities []string  `yaml:"capabilities" json:"capabilities"`
-	Pricing      Pricing   `yaml:"pricing" json:"pricing"`
-	VoiceSetID   string    `yaml:"voice_set_id" json:"voice_set_id"`
-	SourceRef    SourceRef `yaml:"source_ref" json:"source_ref"`
+	Provider        string         `yaml:"provider" json:"provider"`
+	ModelID         string         `yaml:"model_id" json:"model_id"`
+	ModelType       string         `yaml:"model_type" json:"model_type"`
+	UpdatedAt       string         `yaml:"updated_at" json:"updated_at"`
+	Capabilities    []string       `yaml:"capabilities" json:"capabilities"`
+	Pricing         Pricing        `yaml:"pricing" json:"pricing"`
+	VoiceSetID      string         `yaml:"voice_set_id,omitempty" json:"voice_set_id,omitempty"`
+	VideoGeneration map[string]any `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
+	SourceRef       SourceRef      `yaml:"source_ref" json:"source_ref"`
 }
 
 type VoiceEntry struct {
@@ -70,7 +71,7 @@ type ProviderDocument struct {
 	Provider       string       `yaml:"provider" json:"provider"`
 	CatalogVersion string       `yaml:"catalog_version" json:"catalog_version"`
 	Models         []ModelEntry `yaml:"models" json:"models"`
-	Voices         []VoiceEntry `yaml:"voices" json:"voices"`
+	Voices         []VoiceEntry `yaml:"voices,omitempty" json:"voices,omitempty"`
 
 	RawYAML string `yaml:"-" json:"raw_yaml"`
 }

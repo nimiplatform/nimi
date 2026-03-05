@@ -130,30 +130,37 @@ func ExecuteAlibabaNative(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		providerOptions := StructToMap(spec.GetProviderOptions())
-		submitPath := resolveAlibabaVideoSubmitPath(spec)
-		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(providerOptions)
+		submitPath := resolveAlibabaVideoSubmitPath()
+		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(nil)
 		submitPayload := map[string]any{
 			"model":           modelResolved,
-			"prompt":          spec.GetPrompt(),
-			"negative_prompt": spec.GetNegativePrompt(),
+			"prompt":          VideoPrompt(spec),
+			"negative_prompt": VideoNegativePrompt(spec),
 			"input": map[string]any{
-				"prompt":          spec.GetPrompt(),
-				"negative_prompt": spec.GetNegativePrompt(),
+				"prompt":          VideoPrompt(spec),
+				"negative_prompt": VideoNegativePrompt(spec),
 			},
 			"parameters": map[string]any{
-				"duration_sec":    spec.GetDurationSec(),
-				"fps":             spec.GetFps(),
-				"resolution":      spec.GetResolution(),
-				"aspect_ratio":    spec.GetAspectRatio(),
-				"seed":            spec.GetSeed(),
-				"first_frame_uri": spec.GetFirstFrameUri(),
-				"last_frame_uri":  spec.GetLastFrameUri(),
-				"camera_motion":   spec.GetCameraMotion(),
+				"duration_sec":          VideoDurationSec(spec),
+				"frames":                VideoFrames(spec),
+				"fps":                   VideoFPS(spec),
+				"resolution":            VideoResolution(spec),
+				"aspect_ratio":          VideoRatio(spec),
+				"seed":                  VideoSeed(spec),
+				"first_frame_uri":       VideoFirstFrameURI(spec),
+				"last_frame_uri":        VideoLastFrameURI(spec),
+				"reference_images":      VideoReferenceImageURIs(spec),
+				"camera_fixed":          VideoCameraFixed(spec),
+				"watermark":             VideoWatermark(spec),
+				"generate_audio":        VideoGenerateAudio(spec),
+				"draft":                 VideoDraft(spec),
+				"service_tier":          VideoServiceTier(spec),
+				"execution_expires_sec": VideoExecutionExpiresAfterSec(spec),
+				"return_last_frame":     VideoReturnLastFrame(spec),
 			},
 		}
-		if len(providerOptions) > 0 {
-			submitPayload["provider_options"] = providerOptions
+		if content := VideoContentPayload(spec); len(content) > 0 {
+			submitPayload["content"] = content
 		}
 		submitResp := map[string]any{}
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
@@ -169,17 +176,16 @@ func ExecuteAlibabaNative(
 				mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
 			}
 			providerRaw := map[string]any{
-				"adapter":          AdapterAlibabaNative,
-				"submit_endpoint":  submitPath,
-				"response":         submitResp,
-				"provider_options": providerOptions,
+				"adapter":         AdapterAlibabaNative,
+				"submit_endpoint": submitPath,
+				"response":        submitResp,
 			}
 			if artifactURI != "" {
 				providerRaw["uri"] = artifactURI
 			}
 			artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
 			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 420), "", nil
+			return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), "", nil
 		}
 		return PollProviderTaskForArtifact(
 			ctx,
@@ -193,13 +199,11 @@ func ExecuteAlibabaNative(
 			queryPathTemplate,
 			"video/mp4",
 			420,
-			spec.GetPrompt(),
+			VideoPrompt(spec),
 			func(artifact *runtimev1.MediaArtifact) {
 				ApplyVideoSpecMetadata(artifact, spec)
 			},
-			map[string]any{
-				"provider_options": providerOptions,
-			},
+			map[string]any{"mode": spec.GetMode().String()},
 		)
 	case runtimev1.Modal_MODAL_TTS:
 		spec := req.GetSpeechSpec()
@@ -309,13 +313,9 @@ func resolveAlibabaImageSubmitPath(spec *runtimev1.ImageGenerationSpec) string {
 	)
 }
 
-func resolveAlibabaVideoSubmitPath(spec *runtimev1.VideoGenerationSpec) string {
-	providerOptions := map[string]any{}
-	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
-	}
+func resolveAlibabaVideoSubmitPath() string {
 	return FirstProviderEndpointPath(
-		providerOptions,
+		nil,
 		[]string{"video_path", "video_submit_path"},
 		[]string{"video_paths", "video_submit_paths"},
 		[]string{"/api/v1/services/aigc/video-generation/video-synthesis"},

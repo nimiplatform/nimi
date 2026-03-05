@@ -422,18 +422,24 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 // GenerateVideo sends a video generation request.
 func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type videoRequest struct {
-		Model           string         `json:"model"`
-		Prompt          string         `json:"prompt"`
-		NegativePrompt  string         `json:"negative_prompt,omitempty"`
-		DurationSec     int32          `json:"duration_sec,omitempty"`
-		Fps             int32          `json:"fps,omitempty"`
-		Resolution      string         `json:"resolution,omitempty"`
-		AspectRatio     string         `json:"aspect_ratio,omitempty"`
-		Seed            int64          `json:"seed,omitempty"`
-		FirstFrameURI   string         `json:"first_frame_uri,omitempty"`
-		LastFrameURI    string         `json:"last_frame_uri,omitempty"`
-		CameraMotion    string         `json:"camera_motion,omitempty"`
-		ProviderOptions map[string]any `json:"provider_options,omitempty"`
+		Model                    string           `json:"model"`
+		Prompt                   string           `json:"prompt"`
+		NegativePrompt           string           `json:"negative_prompt,omitempty"`
+		Mode                     string           `json:"mode,omitempty"`
+		Content                  []map[string]any `json:"content,omitempty"`
+		DurationSec              int32            `json:"duration_sec,omitempty"`
+		Frames                   int32            `json:"frames,omitempty"`
+		Fps                      int32            `json:"fps,omitempty"`
+		Resolution               string           `json:"resolution,omitempty"`
+		AspectRatio              string           `json:"aspect_ratio,omitempty"`
+		Seed                     int64            `json:"seed,omitempty"`
+		CameraFixed              bool             `json:"camera_fixed,omitempty"`
+		Watermark                bool             `json:"watermark,omitempty"`
+		GenerateAudio            bool             `json:"generate_audio,omitempty"`
+		Draft                    bool             `json:"draft,omitempty"`
+		ServiceTier              string           `json:"service_tier,omitempty"`
+		ExecutionExpiresAfterSec int32            `json:"execution_expires_after_sec,omitempty"`
+		ReturnLastFrame          bool             `json:"return_last_frame,omitempty"`
 	}
 	type videoResponse struct {
 		Data []struct {
@@ -447,28 +453,36 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 		} `json:"output"`
 	}
 
-	prompt := ""
+	prompt := VideoPrompt(spec)
+	mode := ""
 	if spec != nil {
-		prompt = strings.TrimSpace(spec.GetPrompt())
+		mode = strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_"))
 	}
+	content := VideoContentPayload(spec)
 
 	paths := []string{"/v1/video/generations", "/v1/videos/generations"}
 	var respBody videoResponse
 	var err error
 	for _, path := range paths {
 		err = b.postJSON(ctx, path, videoRequest{
-			Model:           modelID,
-			Prompt:          prompt,
-			NegativePrompt:  strings.TrimSpace(spec.GetNegativePrompt()),
-			DurationSec:     spec.GetDurationSec(),
-			Fps:             spec.GetFps(),
-			Resolution:      strings.TrimSpace(spec.GetResolution()),
-			AspectRatio:     strings.TrimSpace(spec.GetAspectRatio()),
-			Seed:            spec.GetSeed(),
-			FirstFrameURI:   strings.TrimSpace(spec.GetFirstFrameUri()),
-			LastFrameURI:    strings.TrimSpace(spec.GetLastFrameUri()),
-			CameraMotion:    strings.TrimSpace(spec.GetCameraMotion()),
-			ProviderOptions: StructToMap(spec.GetProviderOptions()),
+			Model:                    modelID,
+			Prompt:                   prompt,
+			NegativePrompt:           VideoNegativePrompt(spec),
+			Mode:                     mode,
+			Content:                  content,
+			DurationSec:              VideoDurationSec(spec),
+			Frames:                   VideoFrames(spec),
+			Fps:                      VideoFPS(spec),
+			Resolution:               VideoResolution(spec),
+			AspectRatio:              VideoRatio(spec),
+			Seed:                     VideoSeed(spec),
+			CameraFixed:              VideoCameraFixed(spec),
+			Watermark:                VideoWatermark(spec),
+			GenerateAudio:            VideoGenerateAudio(spec),
+			Draft:                    VideoDraft(spec),
+			ServiceTier:              VideoServiceTier(spec),
+			ExecutionExpiresAfterSec: VideoExecutionExpiresAfterSec(spec),
+			ReturnLastFrame:          VideoReturnLastFrame(spec),
 		}, &respBody)
 		if err == nil {
 			break

@@ -100,9 +100,7 @@ func TestSubmitMediaJobAlibabaNativeModalities(t *testing.T) {
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "alibaba video prompt",
-			},
+			VideoSpec: testVideoT2VSpec("alibaba video prompt", 0),
 		},
 	})
 	if err != nil {
@@ -251,9 +249,7 @@ func TestSubmitMediaJobAlibabaNativeVideoTaskFailedMapsUnavailable(t *testing.T)
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "failed alibaba video",
-			},
+			VideoSpec: testVideoT2VSpec("failed alibaba video", 0),
 		},
 	})
 	if err != nil {
@@ -319,11 +315,18 @@ func TestSubmitMediaJobGeminiOperation(t *testing.T) {
 			VideoSpec: &runtimev1.VideoGenerationSpec{
 				Prompt:         "city at dawn",
 				NegativePrompt: "rain",
-				DurationSec:    8,
-				Fps:            24,
-				ProviderOptions: structToMapPB(t, map[string]any{
-					"stabilization": true,
-				}),
+				Mode:           runtimev1.VideoMode_VIDEO_MODE_T2V,
+				Content: []*runtimev1.VideoContentItem{
+					{
+						Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+						Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+						Text: "city at dawn",
+					},
+				},
+				Options: &runtimev1.VideoGenerationOptions{
+					DurationSec: 8,
+					Fps:         24,
+				},
 			},
 		},
 	})
@@ -349,8 +352,8 @@ func TestSubmitMediaJobGeminiOperation(t *testing.T) {
 	if intValue, ok := capturedSubmitPayload["duration_sec"].(float64); !ok || int(intValue) != 8 {
 		t.Fatalf("gemini canonical duration_sec not forwarded: %#v", capturedSubmitPayload)
 	}
-	if _, ok := capturedSubmitPayload["provider_options"]; !ok {
-		t.Fatalf("gemini provider_options not forwarded: %#v", capturedSubmitPayload)
+	if _, ok := capturedSubmitPayload["content"]; !ok {
+		t.Fatalf("gemini content not forwarded: %#v", capturedSubmitPayload)
 	}
 }
 
@@ -627,9 +630,7 @@ func TestSubmitMediaJobGeminiOperationTimeoutMapsProviderTimeout(t *testing.T) {
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		TimeoutMs:     80,
 		Spec: &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: "timeout test",
-			},
+			VideoSpec: testVideoT2VSpec("timeout test", 0),
 		},
 	})
 	if err != nil {
