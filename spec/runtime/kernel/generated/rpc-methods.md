@@ -110,6 +110,21 @@ Source: `K-WF-003`
 | `CancelWorkflow` | `unary` |
 | `SubscribeWorkflowEvents` | `server_stream` |
 
+## VoiceService
+
+Source: `K-RPC-014`
+
+| Method | Type |
+|---|---|
+| `SubmitVoiceJob` | `unary` |
+| `GetVoiceJob` | `unary` |
+| `CancelVoiceJob` | `unary` |
+| `SubscribeVoiceJobEvents` | `server_stream` |
+| `GetVoiceAsset` | `unary` |
+| `ListVoiceAssets` | `unary` |
+| `DeleteVoiceAsset` | `unary` |
+| `ListPresetVoices` | `unary` |
+
 ## RuntimeAuditService
 
 Source: `K-AUDIT-013`

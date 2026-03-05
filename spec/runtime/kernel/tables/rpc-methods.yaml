@@ -150,6 +150,25 @@ services:
         type: unary
       - name: SubscribeWorkflowEvents
         type: server_stream
+  - name: VoiceService
+    source: K-RPC-014
+    methods:
+      - name: SubmitVoiceJob
+        type: unary
+      - name: GetVoiceJob
+        type: unary
+      - name: CancelVoiceJob
+        type: unary
+      - name: SubscribeVoiceJobEvents
+        type: server_stream
+      - name: GetVoiceAsset
+        type: unary
+      - name: ListVoiceAssets
+        type: unary
+      - name: DeleteVoiceAsset
+        type: unary
+      - name: ListPresetVoices
+        type: unary
   - name: RuntimeAuditService
     source: K-AUDIT-013
     methods:

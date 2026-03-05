@@ -8,7 +8,7 @@ const runtimeRoot = path.join(cwd, 'spec/runtime');
 const sdkRoot = path.join(cwd, 'spec/sdk');
 const protoRoot = path.join(cwd, 'proto/runtime/v1');
 const runtimeCatalogProvidersDir = path.join(cwd, 'runtime/catalog/providers');
-const requiredCatalogProviders = ['dashscope', 'openai', 'volcengine'];
+const requiredCatalogProviders = ['dashscope', 'elevenlabs', 'local', 'openai', 'volcengine'];
 
 const kernelFiles = [
   'spec/runtime/kernel/index.md',
@@ -44,6 +44,7 @@ const kernelFiles = [
   'spec/runtime/kernel/daemon-lifecycle.md',
   'spec/runtime/kernel/provider-health-contract.md',
   'spec/runtime/kernel/workflow-contract.md',
+  'spec/runtime/kernel/voice-contract.md',
   'spec/runtime/kernel/model-service-contract.md',
   'spec/runtime/kernel/knowledge-contract.md',
   'spec/runtime/kernel/app-messaging-contract.md',
@@ -54,6 +55,11 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/provider-probe-targets.yaml',
   'spec/runtime/kernel/tables/workflow-node-types.yaml',
   'spec/runtime/kernel/tables/workflow-states.yaml',
+  'spec/runtime/kernel/tables/voice-workflow-types.yaml',
+  'spec/runtime/kernel/tables/voice-reference-kinds.yaml',
+  'spec/runtime/kernel/tables/voice-persistence-types.yaml',
+  'spec/runtime/kernel/tables/voice-asset-statuses.yaml',
+  'spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml',
   // Dedicated families migrated from domain-local IDs
   'spec/runtime/kernel/config-contract.md',
   'spec/runtime/kernel/connector-contract.md',
@@ -127,6 +133,8 @@ checkReasonCodeNumericAssignments();
 checkBannedExternalRpcNames();
 checkProviderTableParity();
 checkModelCatalogTables();
+checkTtsProviderCapabilityMatrix(kernelRuleDefinitions);
+checkRuntimeCatalogLoaderIsolation();
 checkConnectorRpcFieldRulesCoverage();
 checkStateTransitionCoverage(kernelRuleDefinitions);
 checkDomainProviderTableAnchors();
@@ -291,10 +299,6 @@ function checkModelCatalogTables() {
       fail(`${path.relative(cwd, absPath)} must include provider`);
       continue;
     }
-    if (!requiredCatalogProviders.includes(provider)) {
-      fail(`${path.relative(cwd, absPath)} has unsupported provider: ${provider}`);
-      continue;
-    }
     if (seenProviders.has(provider)) {
       fail(`runtime/catalog/providers has duplicate provider entry: ${provider}`);
       continue;
@@ -315,15 +319,12 @@ function checkModelCatalogTables() {
       fail(`${path.relative(cwd, absPath)} must include at least one model`);
       continue;
     }
-    if (voices.length === 0) {
-      fail(`${path.relative(cwd, absPath)} must include at least one voice`);
-      continue;
-    }
 
     const modelKeySet = new Set();
     const modelToVoiceSet = new Map();
     const modelToVoices = new Map();
     const validVoiceSets = new Set();
+    const requiredVoiceModels = new Set();
 
     for (const model of models) {
       const modelProvider = normalizeProviderName(model?.provider || provider);
@@ -331,12 +332,51 @@ function checkModelCatalogTables() {
       const modelType = String(model?.model_type || '').trim();
       const updatedAt = String(model?.updated_at || '').trim();
       const voiceSetID = String(model?.voice_set_id || '').trim();
+      const voiceDiscoveryMode = String(model?.voice_discovery_mode || '').trim();
+      const voiceRefKinds = Array.isArray(model?.voice_ref_kinds)
+        ? model.voice_ref_kinds.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      const capabilities = Array.isArray(model?.capabilities) ? model.capabilities : [];
+      const requiresVoice = voiceSetID
+        || capabilities.some((capability) => {
+          const normalized = String(capability || '').trim().toLowerCase();
+          return normalized === 'tts' || normalized === 'llm.speech.synthesize';
+        });
       if (modelProvider !== provider) {
         fail(`${path.relative(cwd, absPath)} model ${modelID || '<unknown>'} provider mismatch: ${modelProvider}`);
       }
-      if (!modelID || !modelType || !updatedAt || !voiceSetID) {
-        fail(`${path.relative(cwd, absPath)} model entry must include model_id/model_type/updated_at/voice_set_id`);
+      if (!modelID || !modelType || !updatedAt) {
+        fail(`${path.relative(cwd, absPath)} model entry must include model_id/model_type/updated_at`);
         continue;
+      }
+      if (requiresVoice && !voiceSetID) {
+        fail(`${path.relative(cwd, absPath)} model entry must include voice_set_id when tts capability is present`);
+      }
+      if (requiresVoice && !voiceDiscoveryMode) {
+        fail(`${path.relative(cwd, absPath)} model entry must include voice_discovery_mode when tts capability is present`);
+      }
+      if (voiceDiscoveryMode) {
+        const allowedVoiceDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'dynamic_global']);
+        if (!allowedVoiceDiscoveryModes.has(voiceDiscoveryMode)) {
+          fail(`${path.relative(cwd, absPath)} model ${modelID} has invalid voice_discovery_mode: ${voiceDiscoveryMode}`);
+        }
+      }
+      if (requiresVoice && voiceDiscoveryMode === 'static_catalog' && !voiceSetID) {
+        fail(`${path.relative(cwd, absPath)} model ${modelID} static_catalog requires voice_set_id`);
+      }
+      if (requiresVoice && voiceRefKinds.length === 0) {
+        fail(`${path.relative(cwd, absPath)} model ${modelID} must include voice_ref_kinds when tts capability is present`);
+      }
+      if (voiceDiscoveryMode === 'dynamic_user_scoped' && !voiceRefKinds.includes('voice_asset_id')) {
+        fail(`${path.relative(cwd, absPath)} model ${modelID} dynamic_user_scoped must include voice_ref_kinds.voice_asset_id`);
+      }
+      if (voiceDiscoveryMode === 'dynamic_global') {
+        if (!voiceRefKinds.includes('preset_voice_id')) {
+          fail(`${path.relative(cwd, absPath)} model ${modelID} dynamic_global must include voice_ref_kinds.preset_voice_id`);
+        }
+        if (!voiceRefKinds.includes('provider_voice_ref')) {
+          fail(`${path.relative(cwd, absPath)} model ${modelID} dynamic_global must include voice_ref_kinds.provider_voice_ref`);
+        }
       }
 
       const modelKey = `${provider}:${modelID}`;
@@ -345,12 +385,47 @@ function checkModelCatalogTables() {
         continue;
       }
       modelKeySet.add(modelKey);
-      modelToVoiceSet.set(modelKey, voiceSetID);
-      validVoiceSets.add(`${provider}:${voiceSetID}`);
+      if (voiceSetID) {
+        modelToVoiceSet.set(modelKey, voiceSetID);
+        validVoiceSets.add(`${provider}:${voiceSetID}`);
+      }
+      if (requiresVoice) {
+        requiredVoiceModels.add(modelKey);
+      }
 
-      const capabilities = Array.isArray(model?.capabilities) ? model.capabilities : [];
       if (capabilities.length === 0) {
         fail(`${path.relative(cwd, absPath)} model ${modelKey} must include capabilities`);
+      }
+      const hasVideoCapability = capabilities.some((capability) => {
+        const normalized = String(capability || '').trim().toLowerCase();
+        return normalized === 'video_generation' || normalized === 'llm.video.generate' || normalized === 'video';
+      });
+      if (hasVideoCapability) {
+        const videoGeneration = model?.video_generation;
+        if (!videoGeneration || typeof videoGeneration !== 'object') {
+          fail(`${path.relative(cwd, absPath)} model ${modelKey} must include video_generation for video capability`);
+        } else {
+          const modes = Array.isArray(videoGeneration?.modes) ? videoGeneration.modes : [];
+          if (modes.length === 0) {
+            fail(`${path.relative(cwd, absPath)} model ${modelKey} video_generation.modes must not be empty`);
+          }
+          const inputRoles = videoGeneration?.input_roles;
+          if (!inputRoles || typeof inputRoles !== 'object' || Object.keys(inputRoles).length === 0) {
+            fail(`${path.relative(cwd, absPath)} model ${modelKey} video_generation.input_roles must not be empty`);
+          }
+          const limits = videoGeneration?.limits;
+          if (!limits || typeof limits !== 'object' || Object.keys(limits).length === 0) {
+            fail(`${path.relative(cwd, absPath)} model ${modelKey} video_generation.limits must not be empty`);
+          }
+          const options = videoGeneration?.options;
+          if (!options || typeof options !== 'object' || Object.keys(options).length === 0) {
+            fail(`${path.relative(cwd, absPath)} model ${modelKey} video_generation.options must not be empty`);
+          }
+          const outputs = videoGeneration?.outputs;
+          if (!outputs || typeof outputs !== 'object' || Object.keys(outputs).length === 0) {
+            fail(`${path.relative(cwd, absPath)} model ${modelKey} video_generation.outputs must not be empty`);
+          }
+        }
       }
 
       const pricing = model?.pricing || {};
@@ -371,6 +446,10 @@ function checkModelCatalogTables() {
       if (!String(sourceRef?.retrieved_at || '').trim()) {
         fail(`${path.relative(cwd, absPath)} model ${modelKey} missing source_ref.retrieved_at`);
       }
+    }
+
+    if (requiredVoiceModels.size > 0 && voices.length === 0) {
+      fail(`${path.relative(cwd, absPath)} must include voices when tts models exist`);
     }
 
     const voiceSetToVoiceIDs = new Map();
@@ -438,7 +517,7 @@ function checkModelCatalogTables() {
       }
     }
 
-    for (const modelKey of modelKeySet) {
+    for (const modelKey of requiredVoiceModels) {
       if (!modelToVoices.has(modelKey)) {
         fail(`${path.relative(cwd, absPath)} model ${modelKey} has no voice mapping`);
       }
@@ -480,6 +559,180 @@ function checkModelCatalogTables() {
     if (!qwenVoices.has(requiredVoice)) {
       fail(`runtime/catalog/providers missing required DashScope voice ${requiredVoice} for ${qwenVersionKey}`);
     }
+  }
+}
+
+function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
+  const tablePath = 'spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml';
+  const table = readYaml(tablePath);
+  const entries = Array.isArray(table?.entries) ? table.entries : [];
+  if (entries.length === 0) {
+    fail(`${tablePath} must include at least one entry`);
+    return;
+  }
+
+  const allowedRuntimePlanes = new Set(['remote', 'local']);
+  const allowedActivationStates = new Set(['active']);
+  const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'dynamic_global', 'mixed']);
+  const seenProviderIDs = new Set();
+  const activeProviders = new Set();
+
+  for (const entry of entries) {
+    const providerID = String(entry?.provider_id || '').trim();
+    if (!providerID) {
+      fail(`${tablePath} entry is missing provider_id`);
+      continue;
+    }
+    if (seenProviderIDs.has(providerID)) {
+      fail(`${tablePath} has duplicate provider_id: ${providerID}`);
+      continue;
+    }
+    seenProviderIDs.add(providerID);
+
+    const runtimePlane = String(entry?.runtime_plane || '').trim();
+    if (!allowedRuntimePlanes.has(runtimePlane)) {
+      fail(`${tablePath} provider ${providerID} has invalid runtime_plane: ${runtimePlane}`);
+    }
+
+    const activationState = String(entry?.activation_state || '').trim();
+    if (!allowedActivationStates.has(activationState)) {
+      fail(`${tablePath} provider ${providerID} has invalid activation_state: ${activationState}`);
+    } else if (activationState === 'active') {
+      activeProviders.add(providerID);
+    }
+
+    const discoveryMode = String(entry?.voice_discovery_mode || '').trim();
+    if (!allowedDiscoveryModes.has(discoveryMode)) {
+      fail(`${tablePath} provider ${providerID} has invalid voice_discovery_mode: ${discoveryMode}`);
+    }
+
+    for (const field of [
+      'supports_tts_synthesize',
+      'supports_tts_v2v',
+      'supports_tts_t2v',
+      'supports_timing_alignment',
+    ]) {
+      if (typeof entry?.[field] !== 'boolean') {
+        fail(`${tablePath} provider ${providerID} must use boolean ${field}`);
+      }
+    }
+
+    if (entry?.supports_tts_synthesize !== true) {
+      fail(`${tablePath} provider ${providerID} must set supports_tts_synthesize=true`);
+    }
+
+    const sourceRule = String(entry?.source_rule || '').trim();
+    if (!sourceRule) {
+      fail(`${tablePath} provider ${providerID} must include source_rule`);
+      continue;
+    }
+    if (!/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
+      fail(`${tablePath} provider ${providerID} has invalid source_rule format: ${sourceRule}`);
+      continue;
+    }
+    if (!kernelRuleSet.has(sourceRule)) {
+      fail(`${tablePath} provider ${providerID} references undefined source_rule: ${sourceRule}`);
+    }
+
+    const expectedActiveSnapshot = path.join(runtimeCatalogProvidersDir, `${providerID}.yaml`);
+    if (!fs.existsSync(expectedActiveSnapshot)) {
+      fail(`${tablePath} active provider ${providerID} missing runtime/catalog/providers/${providerID}.yaml`);
+    }
+
+    const sourceDir = path.join(cwd, 'runtime/catalog/source/providers');
+    const snapshotDir = runtimeCatalogProvidersDir;
+    const sourcePath = path.join(sourceDir, `${providerID}.source.yaml`);
+    const snapshotPath = path.join(snapshotDir, `${providerID}.yaml`);
+
+    if (!fs.existsSync(sourcePath)) {
+      fail(`${tablePath} provider ${providerID} missing source file: ${path.relative(cwd, sourcePath)}`);
+      continue;
+    }
+    if (!fs.existsSync(snapshotPath)) {
+      fail(`${tablePath} provider ${providerID} missing snapshot file: ${path.relative(cwd, snapshotPath)}`);
+      continue;
+    }
+
+    const sourceDoc = YAML.parse(fs.readFileSync(sourcePath, 'utf8'));
+    const snapshotDoc = YAML.parse(fs.readFileSync(snapshotPath, 'utf8'));
+
+    const sourceProvider = normalizeProviderName(sourceDoc?.provider);
+    const inferredRuntimePlane = sourceProvider === 'local' || sourceProvider === 'local-next' ? 'local' : 'remote';
+    if (runtimePlane !== inferredRuntimePlane) {
+      fail(`${tablePath} provider ${providerID} runtime_plane mismatch (matrix=${runtimePlane}, inferred=${inferredRuntimePlane})`);
+    }
+
+    const workflowModels = Array.isArray(sourceDoc?.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
+    const inferredSupportsV2V = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'tts_v2v');
+    const inferredSupportsT2V = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'tts_t2v');
+    if (Boolean(entry?.supports_tts_v2v) !== inferredSupportsV2V) {
+      fail(`${tablePath} provider ${providerID} supports_tts_v2v mismatch (matrix=${Boolean(entry?.supports_tts_v2v)}, inferred=${inferredSupportsV2V})`);
+    }
+    if (Boolean(entry?.supports_tts_t2v) !== inferredSupportsT2V) {
+      fail(`${tablePath} provider ${providerID} supports_tts_t2v mismatch (matrix=${Boolean(entry?.supports_tts_t2v)}, inferred=${inferredSupportsT2V})`);
+    }
+
+    const snapshotModels = Array.isArray(snapshotDoc?.models) ? snapshotDoc.models : [];
+    const ttsModels = snapshotModels.filter((model) => {
+      const capabilities = Array.isArray(model?.capabilities) ? model.capabilities : [];
+      return capabilities.some((capability) => {
+        const normalized = String(capability || '').trim().toLowerCase();
+        return normalized === 'tts' || normalized === 'llm.speech.synthesize';
+      });
+    });
+    const inferredSupportsSynthesize = ttsModels.length > 0;
+    if (Boolean(entry?.supports_tts_synthesize) !== inferredSupportsSynthesize) {
+      fail(`${tablePath} provider ${providerID} supports_tts_synthesize mismatch (matrix=${Boolean(entry?.supports_tts_synthesize)}, inferred=${inferredSupportsSynthesize})`);
+    }
+
+    const discoverySet = new Set(
+      ttsModels.map((model) => String(model?.voice_discovery_mode || '').trim()).filter(Boolean),
+    );
+    if (inferredSupportsSynthesize && discoverySet.size === 0) {
+      fail(`${tablePath} provider ${providerID} tts models must include voice_discovery_mode`);
+    } else if (discoverySet.size > 0) {
+      const inferredDiscoveryMode = discoverySet.size === 1 ? [...discoverySet][0] : 'mixed';
+      if (discoveryMode !== inferredDiscoveryMode) {
+        fail(`${tablePath} provider ${providerID} voice_discovery_mode mismatch (matrix=${discoveryMode}, inferred=${inferredDiscoveryMode})`);
+      }
+    }
+
+    for (const model of ttsModels) {
+      const modelID = String(model?.model_id || '').trim() || '<unknown>';
+      const modelDiscovery = String(model?.voice_discovery_mode || '').trim();
+      const modelVoiceKinds = Array.isArray(model?.voice_ref_kinds)
+        ? model.voice_ref_kinds.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      if (modelDiscovery === 'dynamic_user_scoped' && !modelVoiceKinds.includes('voice_asset_id')) {
+        fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_user_scoped must include voice_ref_kinds.voice_asset_id`);
+      }
+      if (modelDiscovery === 'dynamic_global') {
+        if (!modelVoiceKinds.includes('preset_voice_id')) {
+          fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_global must include voice_ref_kinds.preset_voice_id`);
+        }
+        if (!modelVoiceKinds.includes('provider_voice_ref')) {
+          fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_global must include voice_ref_kinds.provider_voice_ref`);
+        }
+      }
+    }
+  }
+
+  for (const providerID of requiredCatalogProviders) {
+    if (!activeProviders.has(providerID)) {
+      fail(`${tablePath} missing active provider entry: ${providerID}`);
+    }
+  }
+}
+
+function checkRuntimeCatalogLoaderIsolation() {
+  const loaderFile = 'runtime/internal/services/ai/catalog/loader.go';
+  const content = read(loaderFile);
+
+  if (/providers-draft/iu.test(content)) {
+    fail(`${loaderFile} must not read runtime/catalog/providers-draft`);
+  }
+  if (!/ReadDir\(runtimecatalog\.DefaultProvidersFS,\s*"providers"\)/u.test(content)) {
+    fail(`${loaderFile} must load built-in active providers directory only`);
   }
 }
 

@@ -35,6 +35,8 @@ Validation scripts run in CI. Each enforces a specific invariant.
 | `check-runtime-ai-media-coverage.mjs` | Runtime | AI media capability coverage |
 | `check-runtime-go-coverage.mjs` | Runtime | Go test coverage threshold |
 | `check-runtime-spec-kernel-consistency.mjs` | Spec | Runtime spec YAML ↔ markdown consistency |
+| `check-runtime-catalog-drift.mjs` | Runtime | Runtime catalog source→snapshot drift detection |
+| `check-runtime-catalog-drift-draft.mjs` | Runtime | Runtime draft catalog source→snapshot drift detection |
 | `check-live-provider-invariants.mjs` | Cross-layer | provider.go/env/template/live-smoke coverage invariants |
 | `check-live-smoke-gate.mjs` | Cross-layer | baseline + changed-provider live gate evaluation |
 | `check-scope-catalog-drift.mjs` | SDK | Scope catalog drift detection |
@@ -57,6 +59,7 @@ Scripts that produce derived artifacts from source-of-truth inputs.
 |--------|-------|--------|
 | `generate-realm-sdk.mjs` | OpenAPI spec | `sdk/src/realm/generated/` |
 | `generate-runtime-bridge-methods.mjs` | Runtime proto | Runtime bridge method types |
+| `generate-runtime-catalog.mjs` | `runtime/catalog/source/providers/*.source.yaml` | `runtime/catalog/providers/*.yaml` |
 | `generate-scope-catalog.mjs` | Scope definitions | Scope catalog artifacts |
 | `generate-runtime-spec-kernel-docs.mjs` | `spec/runtime/kernel/tables/*.yaml` | `spec/runtime/kernel/generated/*.md` |
 | `generate-sdk-spec-kernel-docs.mjs` | `spec/sdk/kernel/tables/*.yaml` | `spec/sdk/kernel/generated/*.md` |

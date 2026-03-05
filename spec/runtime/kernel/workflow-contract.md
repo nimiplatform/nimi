@@ -16,7 +16,7 @@
 
 ## K-WF-002 WorkflowNode 类型（事实源：`tables/workflow-node-types.yaml`）
 
-节点类型固定 13 种，分三类：
+节点类型固定 15 种，分三类：
 
 **AI 节点（执行 AI 推理）：**
 
@@ -29,6 +29,8 @@
 | `AI_VIDEO` | 5 | `AiVideoNodeConfig` | model_id, route_policy, fallback, timeout_ms, prompt |
 | `AI_TTS` | 6 | `AiTtsNodeConfig` | model_id, route_policy, fallback, timeout_ms, text |
 | `AI_STT` | 7 | `AiSttNodeConfig` | model_id, mime_type, route_policy, fallback, timeout_ms, audio_bytes |
+| `TTS_CREATE_VOICE` | 8 | `AiTtsCreateVoiceNodeConfig` | model_id, target_model_id, workflow_type, connector_id, timeout_ms, input(source text/audio) |
+| `TTS_SYNTHESIZE` | 9 | `AiTtsSynthesizeNodeConfig` | model_id, target_model_id, text, voice_ref, connector_id, timeout_ms, audio options |
 
 **Transform 节点（数据变换）：**
 
@@ -94,6 +96,7 @@ WorkflowEventType 枚举（12 种）：
 12. `NODE_EXTERNAL_FAILED` — 外部节点失败
 
 终态事件后 server 正常关闭流（K-STREAM-008 模式 B）。
+若节点为 `TTS_CREATE_VOICE`，`NODE_COMPLETED` payload 必须可携带 `voice_asset_id` 供后续节点消费。
 
 ## K-WF-005 执行模式
 

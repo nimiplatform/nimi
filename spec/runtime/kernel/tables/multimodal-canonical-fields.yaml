@@ -90,15 +90,180 @@ fields:
     description: compatibility options ignored without fail-close
     source_rule: K-MMPROV-017
   - modality: video
-    field: duration_sec
+    field: mode
+    required: true
+    description: video generation mode selector (t2v or i2v variants)
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: content[].type
+    required: true
+    description: content item type (text or image_url)
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: content[].role
+    required: true
+    description: content role (prompt/first_frame/last_frame/reference_image) constrained by mode
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: content[].text
+    required: false
+    description: prompt text content when type=text
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: content[].image_url
+    required: false
+    description: image URL payload when type=image_url
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: options.resolution
+    required: false
+    description: requested output resolution constrained by model capability matrix
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.ratio
+    required: false
+    description: requested output ratio constrained by model capability matrix
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.duration_sec
     required: false
     description: requested video duration
-    source_rule: K-MMPROV-003
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.frames
+    required: false
+    description: requested output frame count (mutually exclusive with duration_sec)
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.fps
+    required: false
+    description: requested frame rate
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.seed
+    required: false
+    description: deterministic seed in range [-1, 4294967295]
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.camera_fixed
+    required: false
+    description: fixed-camera toggle (forbidden in i2v_reference mode)
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.watermark
+    required: false
+    description: watermark toggle
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.generate_audio
+    required: false
+    description: generate synchronized audio when provider supports it
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.draft
+    required: false
+    description: provider-specific draft/fast generation switch
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.service_tier
+    required: false
+    description: provider service tier selector
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.execution_expires_after_sec
+    required: false
+    description: max execution age before provider auto-expire
+    source_rule: K-MMPROV-025
+  - modality: video
+    field: options.return_last_frame
+    required: false
+    description: request final frame output alongside video artifact
+    source_rule: K-MMPROV-025
+  - modality: tts
+    field: voice_ref
+    required: true
+    description: strongly-typed synthesis voice reference
+    source_rule: K-MMPROV-018
   - modality: tts
     field: voice
+    required: false
+    description: legacy synthesis voice id string
+    source_rule: K-MMPROV-018
+  - modality: tts
+    field: target_model_id
+    required: false
+    description: explicit target model binding for voice asset synthesis
+    source_rule: K-MMPROV-019
+  - modality: tts
+    field: timing_mode
+    required: false
+    description: synthesis alignment mode hint (none|word|char)
+    source_rule: K-MMPROV-021
+  - modality: tts
+    field: voice_render_hints.stability
+    required: false
+    description: optional voice render stability hint
+    source_rule: K-MMPROV-021
+  - modality: tts
+    field: voice_render_hints.similarity_boost
+    required: false
+    description: optional voice render similarity boost hint
+    source_rule: K-MMPROV-021
+  - modality: tts
+    field: voice_render_hints.style
+    required: false
+    description: optional voice render style hint
+    source_rule: K-MMPROV-021
+  - modality: tts
+    field: voice_render_hints.use_speaker_boost
+    required: false
+    description: optional voice render speaker boost toggle
+    source_rule: K-MMPROV-021
+  - modality: tts
+    field: voice_render_hints.speed
+    required: false
+    description: optional provider-side render speed hint
+    source_rule: K-MMPROV-021
+  - modality: voice
+    field: workflow_type
     required: true
-    description: synthesis voice id
-    source_rule: K-MMPROV-004
+    description: voice workflow selector (tts_v2v or tts_t2v)
+    source_rule: K-VOICE-002
+  - modality: voice
+    field: target_model_id
+    required: true
+    description: synthesis target model to bind created voice asset
+    source_rule: K-VOICE-007
+  - modality: voice
+    field: v2v.reference_audio_uri
+    required: false
+    description: optional remote audio input for tts_v2v create voice
+    source_rule: K-MMPROV-019
+  - modality: voice
+    field: v2v.reference_audio_bytes
+    required: false
+    description: optional inline audio input for tts_v2v create voice
+    source_rule: K-MMPROV-019
+  - modality: voice
+    field: v2v.reference_audio_mime
+    required: false
+    description: reference audio mime type for tts_v2v
+    source_rule: K-MMPROV-019
+  - modality: voice
+    field: t2v.instruction_text
+    required: false
+    description: voice design instruction text for tts_t2v
+    source_rule: K-MMPROV-019
+  - modality: voice
+    field: t2v.preview_text
+    required: false
+    description: optional preview synthesis text for tts_t2v
+    source_rule: K-MMPROV-019
+  - modality: voice
+    field: t2v.language
+    required: false
+    description: optional language hint for tts_t2v design
+    source_rule: K-MMPROV-019
   - modality: stt
     field: audio_source
     required: true

@@ -17,6 +17,7 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 **Phase 2（完整 Runtime 服务）：**
 
 - `RuntimeWorkflowService`（`K-WF-*`）
+- `VoiceService`（design 名称，映射到 proto `RuntimeVoiceService`）
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeKnowledgeService`（`K-KNOW-*`）
@@ -204,3 +205,16 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - 请求必须经过 key-source 解析（`K-KEYSRC-*`），`connector_id` 语义与其他 AI RPC 一致。
 - DashScope TTS voice 来源遵循 `K-MCAT-*` catalog 主路径；兼容模式 voice endpoint 探测不作为主路径。
 - `catalog_source` 属于运行时诊断语义：必须在 runtime 诊断日志与错误 metadata（如 `voice_catalog_source`）可观测；Phase 1 不要求 proto 字段变更。
+
+## K-RPC-014 VoiceService 方法集合（design 权威）
+
+`VoiceService` 方法固定为：
+
+1. `SubmitVoiceJob`
+2. `GetVoiceJob`
+3. `CancelVoiceJob`
+4. `SubscribeVoiceJobEvents`
+5. `GetVoiceAsset`
+6. `ListVoiceAssets`
+7. `DeleteVoiceAsset`
+8. `ListPresetVoices`

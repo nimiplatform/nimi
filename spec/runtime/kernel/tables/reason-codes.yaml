@@ -6,7 +6,7 @@ numbering_note: |
   AI_REQUEST_CREDENTIAL_INVALID=212）。新增码使用族对齐范围：
   300+ AUTH, 310+ CONNECTOR, 330+ REQUEST_CREDENTIAL, 340+ APP,
   350+ MODEL, 370+ FINISH, 380+ MODEL_ROUTE, 390+ PROVIDER,
-  410+ MEDIA, 430+ MODULE, 500+ APP_AUTH, 510+ GRANT, 520+ PAGE。
+  410+ MEDIA, 420+ VOICE, 430+ MODULE, 500+ APP_AUTH, 510+ GRANT, 520+ PAGE。
   遗留值冻结以保持线格式兼容性，不再分配 200-299 范围的新值。
   消费端指导：客户端应按 reason_code 名称（string）匹配，
   而非按数值比较。遗留编号与新编号语义等价，消费端统一处理即可。
@@ -195,6 +195,38 @@ codes:
     value: 414
     family: MEDIA
     source: K-ERR-007
+  - name: AI_VOICE_INPUT_INVALID
+    value: 420
+    family: VOICE
+    source: K-VOICE-010
+  - name: AI_VOICE_WORKFLOW_UNSUPPORTED
+    value: 421
+    family: VOICE
+    source: K-VOICE-010
+  - name: AI_VOICE_ASSET_NOT_FOUND
+    value: 422
+    family: VOICE
+    source: K-VOICE-010
+  - name: AI_VOICE_ASSET_EXPIRED
+    value: 423
+    family: VOICE
+    source: K-VOICE-010
+  - name: AI_VOICE_ASSET_SCOPE_FORBIDDEN
+    value: 424
+    family: VOICE
+    source: K-VOICE-006
+  - name: AI_VOICE_TARGET_MODEL_MISMATCH
+    value: 425
+    family: VOICE
+    source: K-VOICE-007
+  - name: AI_VOICE_JOB_NOT_FOUND
+    value: 426
+    family: VOICE
+    source: K-VOICE-005
+  - name: AI_VOICE_JOB_NOT_CANCELLABLE
+    value: 427
+    family: VOICE
+    source: K-VOICE-005
   - name: AI_MODULE_CONFIG_INVALID
     value: 430
     family: MODULE

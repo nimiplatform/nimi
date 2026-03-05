@@ -1,0 +1,12 @@
+version: 1
+types:
+  - workflow_type: tts_v2v
+    enum_name: VOICE_WORKFLOW_TYPE_TTS_V2V
+    enum_value: 1
+    description: create voice asset from reference voice/audio input
+    source: K-VOICE-002
+  - workflow_type: tts_t2v
+    enum_name: VOICE_WORKFLOW_TYPE_TTS_T2V
+    enum_value: 2
+    description: create voice asset from text instruction
+    source: K-VOICE-002

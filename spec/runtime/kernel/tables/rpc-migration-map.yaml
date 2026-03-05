@@ -30,6 +30,11 @@ service_mappings:
     mapping_status: aligned
     phase: phase2
     source: K-WF-003
+  - design_service: VoiceService
+    proto_service: RuntimeVoiceService
+    mapping_status: renamed_service
+    phase: phase2
+    source: K-RPC-005
   - design_service: RuntimeAuditService
     proto_service: RuntimeAuditService
     mapping_status: aligned
@@ -391,6 +396,47 @@ method_mappings:
     design_method: SubscribeWorkflowEvents
     proto_service: RuntimeWorkflowService
     proto_method: SubscribeWorkflowEvents
+    mapping_status: aligned
+
+  - design_service: VoiceService
+    design_method: SubmitVoiceJob
+    proto_service: RuntimeVoiceService
+    proto_method: SubmitVoiceJob
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: GetVoiceJob
+    proto_service: RuntimeVoiceService
+    proto_method: GetVoiceJob
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: CancelVoiceJob
+    proto_service: RuntimeVoiceService
+    proto_method: CancelVoiceJob
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: SubscribeVoiceJobEvents
+    proto_service: RuntimeVoiceService
+    proto_method: SubscribeVoiceJobEvents
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: GetVoiceAsset
+    proto_service: RuntimeVoiceService
+    proto_method: GetVoiceAsset
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: ListVoiceAssets
+    proto_service: RuntimeVoiceService
+    proto_method: ListVoiceAssets
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: DeleteVoiceAsset
+    proto_service: RuntimeVoiceService
+    proto_method: DeleteVoiceAsset
+    mapping_status: aligned
+  - design_service: VoiceService
+    design_method: ListPresetVoices
+    proto_service: RuntimeVoiceService
+    proto_method: ListPresetVoices
     mapping_status: aligned
 
   - design_service: RuntimeAuditService

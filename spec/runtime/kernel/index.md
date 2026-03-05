@@ -2,7 +2,7 @@
 
 > Status: Phase 1 Normative — FROZEN (2026-03-01) · Phase 2 — Draft
 > Date: 2026-03-03
-> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Audit / Model / Knowledge / App / ScriptWorker / Daemon / Config / Connector / Multimodal / Proto Governance）。
+> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / App / ScriptWorker / Daemon / Config / Connector / Multimodal / Proto Governance）。
 
 ## 1. 目标
 
@@ -22,7 +22,7 @@
   - `RPC` `AUTH` `AUTHN` `AUTHSVC` `GRANT` `KEYSRC` `JOB`
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `SCRIPT`
-  - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `GATE` `PROTO`
+  - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -47,6 +47,7 @@
 | `daemon-lifecycle.md` | `K-DAEMON-*` | 健康状态机、启动序列、优雅停机 |
 | `provider-health-contract.md` | `K-PROV-*` | Provider 探测、状态机、名称归一化 |
 | `workflow-contract.md` | `K-WF-*` | Workflow DAG、节点类型、状态机、事件流 |
+| `voice-contract.md` | `K-VOICE-*` | Voice 工作流、VoiceAsset 生命周期与引用契约 |
 | `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
 | `knowledge-contract.md` | `K-KNOW-*` | 索引构建、搜索、生命周期 |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
@@ -82,6 +83,11 @@
 - `tables/provider-probe-targets.yaml`
 - `tables/workflow-node-types.yaml`
 - `tables/workflow-states.yaml`
+- `tables/voice-workflow-types.yaml`
+- `tables/voice-reference-kinds.yaml`
+- `tables/voice-persistence-types.yaml`
+- `tables/voice-asset-statuses.yaml`
+- `tables/tts-provider-capability-matrix.yaml`
 - `tables/multimodal-canonical-fields.yaml`
 - `tables/multimodal-artifact-fields.yaml`
 - `tables/runtime-delivery-gates.yaml`

@@ -11,6 +11,8 @@
 | `AI_VIDEO` | 5 | `ai` | `AiVideoNodeConfig` | `K-WF-002` |
 | `AI_TTS` | 6 | `ai` | `AiTtsNodeConfig` | `K-WF-002` |
 | `AI_STT` | 7 | `ai` | `AiSttNodeConfig` | `K-WF-002` |
+| `AI_TTS_CREATE_VOICE` | 8 | `ai` | `AiTtsCreateVoiceNodeConfig` | `K-WF-002` |
+| `AI_TTS_SYNTHESIZE` | 9 | `ai` | `AiTtsSynthesizeNodeConfig` | `K-WF-002` |
 | `TRANSFORM_EXTRACT` | 20 | `transform` | `ExtractNodeConfig` | `K-WF-002` |
 | `TRANSFORM_TEMPLATE` | 21 | `transform` | `TemplateNodeConfig` | `K-WF-002` |
 | `TRANSFORM_SCRIPT` | 22 | `transform` | `ScriptNodeConfig` | `K-WF-002` |

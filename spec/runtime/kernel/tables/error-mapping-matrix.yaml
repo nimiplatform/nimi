@@ -162,6 +162,46 @@ mappings:
     surface: submit_media_job
     exit_shape: grpc_status
     source: K-ERR-007
+  - reason_code: AI_VOICE_INPUT_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: submit_voice_job
+    exit_shape: grpc_status
+    source: K-VOICE-010
+  - reason_code: AI_VOICE_WORKFLOW_UNSUPPORTED
+    grpc_code: FAILED_PRECONDITION
+    surface: submit_voice_job
+    exit_shape: grpc_status
+    source: K-VOICE-010
+  - reason_code: AI_VOICE_ASSET_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: voice_asset_query_or_delete
+    exit_shape: grpc_status
+    source: K-VOICE-010
+  - reason_code: AI_VOICE_ASSET_EXPIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: tts_synthesize_voice_asset
+    exit_shape: grpc_status
+    source: K-VOICE-010
+  - reason_code: AI_VOICE_ASSET_SCOPE_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: cross_tenant_voice_asset_access
+    exit_shape: grpc_status
+    source: K-VOICE-006
+  - reason_code: AI_VOICE_TARGET_MODEL_MISMATCH
+    grpc_code: INVALID_ARGUMENT
+    surface: tts_synthesize_voice_asset
+    exit_shape: grpc_status
+    source: K-VOICE-007
+  - reason_code: AI_VOICE_JOB_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: voice_job_query_or_cancel
+    exit_shape: grpc_status
+    source: K-VOICE-005
+  - reason_code: AI_VOICE_JOB_NOT_CANCELLABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: cancel_voice_job
+    exit_shape: grpc_status
+    source: K-VOICE-005
   - reason_code: AI_FINISH_LENGTH
     grpc_code: OK
     surface: generate_or_stream_terminal_reason

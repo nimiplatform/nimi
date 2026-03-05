@@ -10,3 +10,13 @@
 | `width` | `false` | image/video width | `K-MMPROV-007` |
 | `height` | `false` | image/video height | `K-MMPROV-007` |
 | `duration_ms` | `false` | audio/video duration | `K-MMPROV-007` |
+| `provider_raw.video_url` | `false` | provider-hosted video URL when available (for async task providers like Seedance) | `K-MMPROV-026` |
+| `provider_raw.last_frame_url` | `false` | provider-hosted last-frame URL when return_last_frame is enabled and supported | `K-MMPROV-026` |
+| `provider_raw.task_status` | `false` | normalized provider async task status (queued/running/cancelled/succeeded/failed/expired) | `K-MMPROV-027` |
+| `speech_alignment.unit` | `false` | alignment granularity unit (word or char) | `K-MMPROV-021` |
+| `speech_alignment.tokens[].token` | `false` | aligned token text emitted by provider | `K-MMPROV-021` |
+| `speech_alignment.tokens[].start_ms` | `false` | token start offset in milliseconds | `K-MMPROV-021` |
+| `speech_alignment.tokens[].end_ms` | `false` | token end offset in milliseconds | `K-MMPROV-021` |
+| `provider_raw.voice_asset_id` | `false` | linked voice asset id when artifact is synthesized from a custom voice | `K-MMPROV-019` |
+| `provider_raw.voice_provider_ref` | `false` | provider-native voice reference used for synthesis | `K-MMPROV-019` |
+| `provider_raw.voice_workflow_type` | `false` | originating voice workflow type (tts_v2v or tts_t2v) | `K-MMPROV-019` |

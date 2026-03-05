@@ -23,3 +23,43 @@ fields:
     required: false
     description: audio/video duration
     source_rule: K-MMPROV-007
+  - field: provider_raw.video_url
+    required: false
+    description: provider-hosted video URL when available (for async task providers like Seedance)
+    source_rule: K-MMPROV-026
+  - field: provider_raw.last_frame_url
+    required: false
+    description: provider-hosted last-frame URL when return_last_frame is enabled and supported
+    source_rule: K-MMPROV-026
+  - field: provider_raw.task_status
+    required: false
+    description: normalized provider async task status (queued/running/cancelled/succeeded/failed/expired)
+    source_rule: K-MMPROV-027
+  - field: speech_alignment.unit
+    required: false
+    description: alignment granularity unit (word or char)
+    source_rule: K-MMPROV-021
+  - field: speech_alignment.tokens[].token
+    required: false
+    description: aligned token text emitted by provider
+    source_rule: K-MMPROV-021
+  - field: speech_alignment.tokens[].start_ms
+    required: false
+    description: token start offset in milliseconds
+    source_rule: K-MMPROV-021
+  - field: speech_alignment.tokens[].end_ms
+    required: false
+    description: token end offset in milliseconds
+    source_rule: K-MMPROV-021
+  - field: provider_raw.voice_asset_id
+    required: false
+    description: linked voice asset id when artifact is synthesized from a custom voice
+    source_rule: K-MMPROV-019
+  - field: provider_raw.voice_provider_ref
+    required: false
+    description: provider-native voice reference used for synthesis
+    source_rule: K-MMPROV-019
+  - field: provider_raw.voice_workflow_type
+    required: false
+    description: originating voice workflow type (tts_v2v or tts_t2v)
+    source_rule: K-MMPROV-019

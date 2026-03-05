@@ -12,6 +12,7 @@
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
 | `RuntimeGrantService` | `RuntimeGrantService` | `aligned` | `phase1` | `K-GRANT-002` |
 | `RuntimeWorkflowService` | `RuntimeWorkflowService` | `aligned` | `phase2` | `K-WF-003` |
+| `VoiceService` | `RuntimeVoiceService` | `renamed_service` | `phase2` | `K-RPC-005` |
 | `RuntimeAuditService` | `RuntimeAuditService` | `aligned` | `phase2` | `K-AUDIT-013` |
 | `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |
 | `RuntimeKnowledgeService` | `RuntimeKnowledgeService` | `aligned` | `phase2` | `K-KNOW-001` |
@@ -88,6 +89,14 @@
 | `RuntimeWorkflowService` | `GetWorkflow` | `RuntimeWorkflowService` | `GetWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `CancelWorkflow` | `RuntimeWorkflowService` | `CancelWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `SubscribeWorkflowEvents` | `RuntimeWorkflowService` | `SubscribeWorkflowEvents` | `aligned` |
+| `VoiceService` | `SubmitVoiceJob` | `RuntimeVoiceService` | `SubmitVoiceJob` | `aligned` |
+| `VoiceService` | `GetVoiceJob` | `RuntimeVoiceService` | `GetVoiceJob` | `aligned` |
+| `VoiceService` | `CancelVoiceJob` | `RuntimeVoiceService` | `CancelVoiceJob` | `aligned` |
+| `VoiceService` | `SubscribeVoiceJobEvents` | `RuntimeVoiceService` | `SubscribeVoiceJobEvents` | `aligned` |
+| `VoiceService` | `GetVoiceAsset` | `RuntimeVoiceService` | `GetVoiceAsset` | `aligned` |
+| `VoiceService` | `ListVoiceAssets` | `RuntimeVoiceService` | `ListVoiceAssets` | `aligned` |
+| `VoiceService` | `DeleteVoiceAsset` | `RuntimeVoiceService` | `DeleteVoiceAsset` | `aligned` |
+| `VoiceService` | `ListPresetVoices` | `RuntimeVoiceService` | `ListPresetVoices` | `aligned` |
 | `RuntimeAuditService` | `ListAuditEvents` | `RuntimeAuditService` | `ListAuditEvents` | `aligned` |
 | `RuntimeAuditService` | `ExportAuditEvents` | `RuntimeAuditService` | `ExportAuditEvents` | `aligned` |
 | `RuntimeAuditService` | `ListUsageStats` | `RuntimeAuditService` | `ListUsageStats` | `aligned` |

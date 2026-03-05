@@ -108,6 +108,31 @@ const specs = [
     render: renderWorkflowStates,
   },
   {
+    input: 'voice-workflow-types.yaml',
+    output: 'voice-workflow-types.md',
+    render: renderVoiceWorkflowTypes,
+  },
+  {
+    input: 'voice-reference-kinds.yaml',
+    output: 'voice-reference-kinds.md',
+    render: renderVoiceReferenceKinds,
+  },
+  {
+    input: 'voice-persistence-types.yaml',
+    output: 'voice-persistence-types.md',
+    render: renderVoicePersistenceTypes,
+  },
+  {
+    input: 'voice-asset-statuses.yaml',
+    output: 'voice-asset-statuses.md',
+    render: renderVoiceAssetStatuses,
+  },
+  {
+    input: 'tts-provider-capability-matrix.yaml',
+    output: 'tts-provider-capability-matrix.md',
+    render: renderTtsProviderCapabilityMatrix,
+  },
+  {
     input: 'multimodal-canonical-fields.yaml',
     output: 'multimodal-canonical-fields.md',
     render: renderMultimodalCanonicalFields,
@@ -663,6 +688,110 @@ function renderWorkflowStates(doc, sourceName) {
     }
     out += '\n';
   }
+
+  return normalizeMarkdown(out);
+}
+
+function renderVoiceWorkflowTypes(doc, sourceName) {
+  const types = Array.isArray(doc?.types) ? doc.types : [];
+  let out = header('Generated Voice Workflow Types', sourceName);
+
+  out += '| Workflow Type | Enum Name | Enum Value | Description | Source |\n';
+  out += '|---|---|---:|---|---|\n';
+  for (const item of types) {
+    const workflowType = String(item?.workflow_type || '').trim();
+    if (!workflowType) continue;
+    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumValue = Number(item?.enum_value);
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source || '').trim() || '—';
+    out += `| \`${workflowType}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderVoiceReferenceKinds(doc, sourceName) {
+  const kinds = Array.isArray(doc?.kinds) ? doc.kinds : [];
+  let out = header('Generated Voice Reference Kinds', sourceName);
+
+  out += '| Kind | Enum Name | Enum Value | Description | Source |\n';
+  out += '|---|---|---:|---|---|\n';
+  for (const item of kinds) {
+    const kind = String(item?.kind || '').trim();
+    if (!kind) continue;
+    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumValue = Number(item?.enum_value);
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source || '').trim() || '—';
+    out += `| \`${kind}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderVoicePersistenceTypes(doc, sourceName) {
+  const types = Array.isArray(doc?.types) ? doc.types : [];
+  let out = header('Generated Voice Persistence Types', sourceName);
+
+  out += '| Persistence | Enum Name | Enum Value | Description | Source |\n';
+  out += '|---|---|---:|---|---|\n';
+  for (const item of types) {
+    const persistence = String(item?.persistence || '').trim();
+    if (!persistence) continue;
+    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumValue = Number(item?.enum_value);
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source || '').trim() || '—';
+    out += `| \`${persistence}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderVoiceAssetStatuses(doc, sourceName) {
+  const statuses = Array.isArray(doc?.statuses) ? doc.statuses : [];
+  let out = header('Generated Voice Asset Statuses', sourceName);
+
+  out += '| Status | Enum Name | Enum Value | Description | Source |\n';
+  out += '|---|---|---:|---|---|\n';
+  for (const item of statuses) {
+    const status = String(item?.status || '').trim();
+    if (!status) continue;
+    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumValue = Number(item?.enum_value);
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source || '').trim() || '—';
+    out += `| \`${status}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderTtsProviderCapabilityMatrix(doc, sourceName) {
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  let out = header('Generated TTS Provider Capability Matrix', sourceName);
+
+  out += '| Provider ID | Runtime Plane | Synthesize | V2V | T2V | Timing Alignment | Voice Discovery Mode | Activation State | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|---|---|\n';
+  for (const item of entries) {
+    const providerID = String(item?.provider_id || '').trim();
+    if (!providerID) continue;
+    const runtimePlane = String(item?.runtime_plane || '').trim() || '—';
+    const supportsSynthesize = mdBool(Boolean(item?.supports_tts_synthesize));
+    const supportsV2V = mdBool(Boolean(item?.supports_tts_v2v));
+    const supportsT2V = mdBool(Boolean(item?.supports_tts_t2v));
+    const supportsTimingAlignment = mdBool(Boolean(item?.supports_timing_alignment));
+    const discoveryMode = String(item?.voice_discovery_mode || '').trim() || '—';
+    const activationState = String(item?.activation_state || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${providerID}\` | \`${runtimePlane}\` | \`${supportsSynthesize}\` | \`${supportsV2V}\` | \`${supportsT2V}\` | \`${supportsTimingAlignment}\` | \`${discoveryMode}\` | \`${activationState}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
 
   return normalizeMarkdown(out);
 }

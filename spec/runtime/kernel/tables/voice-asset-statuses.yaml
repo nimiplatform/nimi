@@ -1,0 +1,22 @@
+version: 1
+statuses:
+  - status: ACTIVE
+    enum_name: VOICE_ASSET_STATUS_ACTIVE
+    enum_value: 1
+    description: voice asset is valid and can be synthesized
+    source: K-VOICE-004
+  - status: EXPIRED
+    enum_name: VOICE_ASSET_STATUS_EXPIRED
+    enum_value: 2
+    description: asset expired by lifecycle policy
+    source: K-VOICE-004
+  - status: DELETED
+    enum_name: VOICE_ASSET_STATUS_DELETED
+    enum_value: 3
+    description: asset deleted and no longer routable
+    source: K-VOICE-004
+  - status: FAILED
+    enum_name: VOICE_ASSET_STATUS_FAILED
+    enum_value: 4
+    description: asset creation failed or became unusable
+    source: K-VOICE-004

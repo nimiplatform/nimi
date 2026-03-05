@@ -36,6 +36,14 @@
 | `AI_MEDIA_JOB_NOT_FOUND` | `NOT_FOUND` | `media_control` | `grpc_status` | `K-JOB-001` |
 | `AI_MEDIA_JOB_NOT_CANCELLABLE` | `FAILED_PRECONDITION` | `cancel_media_job` | `grpc_status` | `K-JOB-001` |
 | `AI_MEDIA_IDEMPOTENCY_CONFLICT` | `ALREADY_EXISTS` | `submit_media_job` | `grpc_status` | `K-ERR-007` |
+| `AI_VOICE_INPUT_INVALID` | `INVALID_ARGUMENT` | `submit_voice_job` | `grpc_status` | `K-VOICE-010` |
+| `AI_VOICE_WORKFLOW_UNSUPPORTED` | `FAILED_PRECONDITION` | `submit_voice_job` | `grpc_status` | `K-VOICE-010` |
+| `AI_VOICE_ASSET_NOT_FOUND` | `NOT_FOUND` | `voice_asset_query_or_delete` | `grpc_status` | `K-VOICE-010` |
+| `AI_VOICE_ASSET_EXPIRED` | `FAILED_PRECONDITION` | `tts_synthesize_voice_asset` | `grpc_status` | `K-VOICE-010` |
+| `AI_VOICE_ASSET_SCOPE_FORBIDDEN` | `PERMISSION_DENIED` | `cross_tenant_voice_asset_access` | `grpc_status` | `K-VOICE-006` |
+| `AI_VOICE_TARGET_MODEL_MISMATCH` | `INVALID_ARGUMENT` | `tts_synthesize_voice_asset` | `grpc_status` | `K-VOICE-007` |
+| `AI_VOICE_JOB_NOT_FOUND` | `NOT_FOUND` | `voice_job_query_or_cancel` | `grpc_status` | `K-VOICE-005` |
+| `AI_VOICE_JOB_NOT_CANCELLABLE` | `FAILED_PRECONDITION` | `cancel_voice_job` | `grpc_status` | `K-VOICE-005` |
 | `AI_FINISH_LENGTH` | `OK` | `generate_or_stream_terminal_reason` | `terminal_reason_non_error` | `K-ERR-006` |
 | `AI_FINISH_CONTENT_FILTER` | `OK` | `generate_or_stream_terminal_reason` | `terminal_reason_non_error` | `K-ERR-006` |
 | `AI_MODEL_PROVIDER_MISMATCH` | `INVALID_ARGUMENT` | `model_prefix_provider_mismatch` | `grpc_status` | `K-ERR-006` |

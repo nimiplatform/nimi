@@ -1,0 +1,92 @@
+version: 1
+entries:
+  - provider_id: dashscope
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: true
+    supports_tts_t2v: true
+    supports_timing_alignment: false
+    voice_discovery_mode: mixed
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: openai
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: false
+    supports_tts_t2v: false
+    supports_timing_alignment: false
+    voice_discovery_mode: static_catalog
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: volcengine
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: false
+    supports_tts_t2v: false
+    supports_timing_alignment: false
+    voice_discovery_mode: static_catalog
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: elevenlabs
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: true
+    supports_tts_t2v: true
+    supports_timing_alignment: true
+    voice_discovery_mode: dynamic_global
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: local
+    runtime_plane: local
+    supports_tts_synthesize: true
+    supports_tts_v2v: true
+    supports_tts_t2v: true
+    supports_timing_alignment: false
+    voice_discovery_mode: dynamic_user_scoped
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: azure_speech
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: false
+    supports_tts_t2v: false
+    supports_timing_alignment: true
+    voice_discovery_mode: dynamic_global
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: google_cloud_tts
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: false
+    supports_tts_t2v: false
+    supports_timing_alignment: true
+    voice_discovery_mode: dynamic_global
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: aws_polly
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: false
+    supports_tts_t2v: false
+    supports_timing_alignment: true
+    voice_discovery_mode: dynamic_global
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: playht
+    runtime_plane: remote
+    supports_tts_synthesize: true
+    supports_tts_v2v: true
+    supports_tts_t2v: false
+    supports_timing_alignment: false
+    voice_discovery_mode: dynamic_global
+    activation_state: active
+    source_rule: K-MCAT-023
+  - provider_id: local-next
+    runtime_plane: local
+    supports_tts_synthesize: true
+    supports_tts_v2v: true
+    supports_tts_t2v: false
+    supports_timing_alignment: false
+    voice_discovery_mode: mixed
+    activation_state: active
+    source_rule: K-MCAT-023

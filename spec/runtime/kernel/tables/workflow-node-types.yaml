@@ -35,6 +35,16 @@ node_types:
     category: ai
     config: AiSttNodeConfig
     source: K-WF-002
+  - type: AI_TTS_CREATE_VOICE
+    enum_value: 8
+    category: ai
+    config: AiTtsCreateVoiceNodeConfig
+    source: K-WF-002
+  - type: AI_TTS_SYNTHESIZE
+    enum_value: 9
+    category: ai
+    config: AiTtsSynthesizeNodeConfig
+    source: K-WF-002
   - type: TRANSFORM_EXTRACT
     enum_value: 20
     category: transform

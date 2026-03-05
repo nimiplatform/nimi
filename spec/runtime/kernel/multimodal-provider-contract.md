@@ -12,7 +12,8 @@
 
 ## K-MMPROV-003 Video Spec Contract
 
-视频生成字段（duration/fps/resolution 等）必须在请求前可校验。
+视频生成必须使用结构化规范 `mode + content[] + options`，并在请求前可校验。  
+Legacy 字段（`first_frame_uri` / `last_frame_uri` / `camera_motion` / `provider_options`）不得作为视频主契约输入字段。
 
 ## K-MMPROV-004 TTS Spec Contract
 
@@ -85,3 +86,106 @@ LocalAI image 路径必须提供 Nexa 常用参数的最佳努力兼容：
   - `ref_images_count`
   - `compat.applied_options`
   - `compat.ignored_options`
+
+## K-MMPROV-018 TTS VoiceReference Primary Contract
+
+TTS v2 合成请求主入口必须是强类型 `voice_ref`。`voice` 字符串字段仅可作为兼容过渡输入，不得作为长期主路径。
+
+## K-MMPROV-019 Voice Workflow Canonical Inputs
+
+Voice 工作流 canonical 输入字段（`tts_v2v` / `tts_t2v`）由 `multimodal-canonical-fields.yaml` 管理，provider 不得以隐式参数替代必填字段约束。
+
+## K-MMPROV-020 Voice Workflow Fail-Close
+
+Voice 工作流输入不完整、workflow 不支持、目标模型不匹配、资产状态非法时必须 fail-close，不得自动降级到 provider 默认 voice。
+
+## K-MMPROV-021 TTS Timing & Render Hint Canonical Fields
+
+TTS v2 在保持 provider 可扩展参数的同时，必须将跨 provider 高价值字段强类型化：
+
+- `timing_mode`（`none|word|char`）
+- `voice_render_hints.stability`
+- `voice_render_hints.similarity_boost`
+- `voice_render_hints.style`
+- `voice_render_hints.use_speaker_boost`
+- `voice_render_hints.speed`
+
+以上字段事实源由 `multimodal-canonical-fields.yaml` 管理；产物对齐字段由 `multimodal-artifact-fields.yaml` 管理。
+
+## K-MMPROV-022 Timing/Alignment Fail-Close Mapping
+
+当调用方请求 `timing_mode=word|char` 时：
+
+- provider 若支持，必须返回结构化 `speech_alignment`；
+- provider 若不支持，必须 fail-close（`AI_MEDIA_OPTION_UNSUPPORTED` 或 provider 明确错误映射），禁止静默忽略或降级为 `none`。
+
+## K-MMPROV-023 ElevenLabs Status Mapping Baseline
+
+针对 ElevenLabs（及同类 TTS provider）适配器，HTTP 状态码最小映射基线为：
+
+- `401|403` -> `AI_PROVIDER_AUTH_FAILED`
+- `429` -> `AI_PROVIDER_RATE_LIMITED`
+- `400|422` -> `AI_VOICE_INPUT_INVALID`（创建音色）或 `AI_MEDIA_OPTION_UNSUPPORTED`（合成参数）
+- 目标模型/音色不兼容 -> `AI_VOICE_TARGET_MODEL_MISMATCH`
+- 资产不可见或越权 -> `AI_VOICE_ASSET_SCOPE_FORBIDDEN`
+- `5xx` -> `AI_PROVIDER_INTERNAL`
+- 超时 -> `AI_PROVIDER_TIMEOUT`
+
+## K-MMPROV-024 Video Mode/Role Matrix
+
+Video mode 与 content role 组合必须严格匹配：
+
+- `t2v`：至少 1 条 `TEXT+PROMPT`，禁止 `FIRST_FRAME/LAST_FRAME/REFERENCE_IMAGE`。
+- `i2v_first_frame`：必须且仅 1 条 `IMAGE_URL+FIRST_FRAME`，可附文本 prompt。
+- `i2v_first_last`：必须包含 `IMAGE_URL+FIRST_FRAME` 与 `IMAGE_URL+LAST_FRAME` 各 1 条，可附文本 prompt。
+- `i2v_reference`：必须包含 1-4 条 `IMAGE_URL+REFERENCE_IMAGE`，可附文本 prompt。
+
+任一 mode/role 冲突必须 fail-close（`AI_MEDIA_SPEC_INVALID` 或 `AI_MEDIA_OPTION_UNSUPPORTED`）。
+
+## K-MMPROV-025 Video Option Guardrails
+
+Video options 最小强校验基线：
+
+- `frames` 与 `duration_sec` 互斥，冲突必须 fail-close。
+- `seed` 范围固定 `[-1, 4294967295]`。
+- `i2v_reference` 禁止 `camera_fixed=true`。
+- `ratio` / `resolution` 必须经过 provider/model 能力矩阵校验。
+
+## K-MMPROV-026 Volcengine Seedance Task Endpoints
+
+Volcengine Seedance（第一批视频 provider）固定任务接口：
+
+- submit: `POST /api/v3/contents/generations/tasks`
+- query: `GET /api/v3/contents/generations/tasks/{task_id}`
+
+adapter 请求体必须使用 `content[] + role` 语义，不得回退到 legacy 视频字段拼装。
+
+## K-MMPROV-027 Async Task Status Normalization
+
+provider 异步任务状态必须归一化到：
+
+- `queued`
+- `running`
+- `cancelled`
+- `succeeded`
+- `failed`
+- `expired`
+
+运行时语义要求：
+
+- `cancelled` -> Job `CANCELED`
+- `expired` -> Job `TIMEOUT`
+- `failed` -> Job `FAILED`
+
+## K-MMPROV-028 TTS Layered Inclusion Baseline
+
+TTS provider 纳入执行以下分层规则：
+
+- `tts_synthesize` 为基础必备能力；
+- `tts_v2v` 与 `tts_t2v` 为可选增量能力；
+- 对仅 synthesize provider，不得要求其提供 voice workflow 强行对齐。
+
+## K-MMPROV-029 Deferred Custom Voice Extension
+
+云厂训练型 Custom Voice（训练作业、审批流程或长期部署语义）在本轮必须保持 provider extension 形态。  
+在形成跨 provider 可验证强类型抽象前，不得强行映射为标准 `tts_v2v` / `tts_t2v` 成功语义。
