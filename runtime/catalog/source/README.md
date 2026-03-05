@@ -2,98 +2,159 @@
 
 ## 1. Purpose
 
-`runtime/catalog/source/` stores **human-maintained source catalogs**.
-`runtime/catalog/providers/*.yaml` stores **runtime-consumed generated snapshots**.
+`runtime/catalog/source/` stores human-maintained source catalogs.
+`runtime/catalog/providers/*.yaml` stores runtime-consumed flattened active snapshots.
 
-Source files are for maintainability.
-Generated snapshots are for strict runtime compatibility.
+Source is optimized for long-term editing.
+Provider snapshot is optimized for runtime resolver compatibility.
 
-## 2. File Roles
+## 2. Catalog Layout
 
-- `runtime/catalog/source/providers/*.source.yaml`
-  - Source of truth for editor workflows.
-  - Can use references and compact structures.
-- `runtime/catalog/providers/*.yaml`
-  - Generated, flattened provider catalogs.
-  - Runtime resolver reads this format directly.
-  - Do not hand-edit.
+- Source: `runtime/catalog/source/providers/*.source.yaml`
+- Snapshot: `runtime/catalog/providers/*.yaml`
 
-## 3. Core Contract (Current)
+Runtime only loads `runtime/catalog/providers/*.yaml`.
 
-### 3.1 Model Strategy
+## 3. Schema Versioning
 
-- Use canonical model IDs in `models`.
-- Historical/snapshot model IDs are represented by `aliases`.
-- Resolver/generator should map alias -> canonical model.
+- `schema_version: 3` is required.
+- v3 unifies model definitions for both speech and video generation.
 
-### 3.2 Voice Strategy
+## 4. v3 Core Structure
 
-- `models` reference `voice_sets` (`voice_set_ref`) by default.
-- `models` may inline a `voice_set` only when needed (one-off exceptions).
-- Avoid reverse mapping style (`voice -> model_ids`) in source files.
+Each `*.source.yaml` should contain:
 
-### 3.3 Language Strategy
+- `schema_version`
+- `provider`
+- `catalog_version`
+- `generated_target`
+- `defaults`
+- `sources`
+- `language_profiles`
+- `voice_sets` (optional)
+- `models`
+- `voice_workflow_models` (optional)
+- `model_workflow_bindings` (optional)
+- `voice_handle_policies` (optional)
 
-- `langs` belongs to `voice_set` (or inlined model voice_set), not individual voice entries.
-- `voice` entries do not define per-voice `langs`.
-- If provider data implies voice-level language divergence under the same set, treat it as unsupported complexity and fail validation/generation.
+## 5. Design Rules
 
-## 4. Schema Conventions
+### 5.1 Unified Model Table
 
-### 4.1 `voice_sets` language declaration (oneOf)
+`models` is the single source of truth for all modalities.
 
-Only one of the following is allowed:
+Required model-level fields:
 
-- `langs_ref: <lang_set_id>`
-- `langs: [zh-cn, en-us, ...]`
+- `model_id`
+- `updated_at`
+- `capabilities`
 
-Both present or both missing is invalid.
+Optional model-level capability blocks:
 
-### 4.2 `models` voice-set declaration (oneOf)
+- `voice` (for tts-capable models)
+- `video_generation` (for video-capable models)
 
-Only one of the following is allowed:
+### 5.2 Voice Capability Rule
 
-- `voice_set_ref: <voice_set_id>`
-- `voice_set: { langs_ref|langs, source_ids, voices }`
+When a model declares `tts`/`llm.speech.synthesize`, `voice` must be defined:
 
-Both present or both missing is invalid.
+- `discovery_mode` (`static_catalog|dynamic_user_scoped|dynamic_global`)
+- `voice_set_ref` (required when `static_catalog`)
+- `supports_voice_ref_kinds`
+- `langs_ref`
 
-## 5. Required Validation Rules
+### 5.3 Discovery Semantics
+
+- `static_catalog`: preset voices are fully enumerated in source and flattened snapshot.
+- `dynamic_user_scoped`: runtime `ListVoiceAssets` is authoritative for user-owned dynamic voices.
+- `dynamic_global`: runtime `ListPresetVoices` is authoritative for provider-global dynamic preset voices.
+
+### 5.4 Video Capability Rule
+
+When a model declares `video_generation`/`llm.video.generate`, `video_generation` must be defined:
+
+- `modes` (`t2v|i2v_first_frame|i2v_first_last|i2v_reference`)
+- `input_roles` (mode -> legal role combinations)
+- `limits`
+- `options`
+- `outputs`
+
+### 5.5 Voice Set Rule
+
+`voice_sets` only stores preset/system voices.
+Custom user voices are represented by `dynamic_user_scoped` and generated as synthetic placeholder rows.
+
+Provider-native multi-step create-voice flows (for example preview -> create) must be modeled as one workflow model and stay internal to provider adapter orchestration.
+
+### 5.6 Language Profile Rule
+
+`language_profiles` supports dual tracks:
+
+- region code profile (e.g. `zh-cn`)
+- short code profile (e.g. `zh`)
+
+No automatic mapping is assumed.
+
+### 5.7 Dynamic Voice Snapshot Rule
+
+For `discovery_mode=dynamic_user_scoped`:
+
+- source must not enumerate full dynamic provider voice inventory;
+- flattened snapshot should keep only minimal placeholder rows;
+- runtime `ListVoiceAssets` remains the authority for real-time user voice inventory.
+
+For `discovery_mode=dynamic_global`:
+
+- source must not enumerate full provider global voice inventory;
+- flattened snapshot should keep only minimal placeholder rows;
+- runtime `ListPresetVoices` remains the authority for real-time provider preset voice inventory.
+
+### 5.8 Voice Workflow Rule
+
+If `voice_workflow_models` is provided, each entry should define:
+
+- `workflow_model_id`
+- `workflow_type` (`tts_v2v|tts_t2v`)
+- `input_contract_ref`
+- `output_persistence`
+- `target_model_refs`
+- `langs_ref`
+
+`model_workflow_bindings` should explicitly map synthesis model ids to compatible workflow model ids.
+
+### 5.9 Latest-Only + Alias Compatibility Rule
+
+For cloud providers, source catalogs should prioritize latest canonical models:
+
+- Keep one canonical model id per actively maintained capability track.
+- Add aliases only when the alias is officially documented and verifiable.
+- Do not create speculative aliases.
+- Older model generations should only be carried forward as explicit compatibility aliases, not as separately maintained primary entries.
+
+## 6. Validation Requirements
 
 At minimum, generator/schema validation must enforce:
 
-1. Canonical `model_id` uniqueness.
-2. `alias` uniqueness across all models.
-3. Alias must not collide with canonical IDs.
-4. `voice_set_id` uniqueness.
-5. `voice` uniqueness inside each voice_set (case-insensitive recommended).
-6. All `langs_ref` and `voice_set_ref` targets must exist.
-7. `sources` references (`source_ids`) must exist.
-8. oneOf constraints in sections 4.1/4.2.
-
-## 6. DashScope Policy (Current)
-
-For `dashscope.source.yaml`:
-
-- Canonical models are:
-  - `qwen-tts`
-  - `qwen3-tts-instruct-flash`
-  - `qwen3-tts-flash`
-- Snapshot/history IDs live in each model `aliases`.
-- Three voice sets are used:
-  - `tts_voice_set`
-  - `instruct_flash_voice_set`
-  - `flash_voice_set`
+1. Canonical model id uniqueness.
+2. Alias uniqueness across all models.
+3. `source_ids` targets exist.
+4. `tts` capability models must produce valid voice mappings.
+5. `video_generation` capability models must define non-empty `modes`.
+6. `video_generation` must include `input_roles/limits/options/outputs` objects.
+7. `voice.discovery_mode` must be one of `static_catalog|dynamic_user_scoped|dynamic_global`.
 
 ## 7. Workflow
 
-1. Edit `runtime/catalog/source/providers/<provider>.source.yaml`.
-2. Run generator to produce `runtime/catalog/providers/<provider>.yaml`.
-3. Run validation (schema + semantic checks).
-4. Keep generated snapshot and source in sync.
+1. Edit source at `runtime/catalog/source/providers/<provider>.source.yaml`.
+2. Validate source schema + semantic rules.
+3. Generate snapshots: `pnpm generate:runtime-catalog`.
+4. Keep source and generated snapshots synchronized.
+
+Drift check commands:
+
+- `pnpm check:runtime-catalog-drift`
 
 ## 8. Non-goals
 
-- Do not encode provider-specific edge behavior in runtime resolver logic.
-- Do not keep duplicated editable sources (single source-of-truth per provider).
-- Do not hand-maintain snapshot files long-term.
+- Do not encode runtime fallback logic in source files.
+- Do not hand-maintain flattened snapshots long-term.

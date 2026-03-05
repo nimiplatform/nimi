@@ -1,0 +1,95 @@
+schema_version: 3
+provider: mistral
+catalog_version: 2026-03-05-mistral-v1
+generated_target: runtime/catalog/providers/mistral.yaml
+defaults:
+  provider: mistral
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Mistral pricing varies by model class, region, and account plan.
+
+sources:
+  - source_id: mistral_models_doc
+    url: https://docs.mistral.ai/getting-started/models/
+    retrieved_at: 2026-03-05
+    note: Mistral model catalog and lifecycle aliases.
+  - source_id: mistral_embeddings_doc
+    url: https://docs.mistral.ai/capabilities/embeddings/text_embeddings
+    retrieved_at: 2026-03-05
+    note: Mistral embeddings capability documentation.
+  - source_id: mistral_function_calling_doc
+    url: https://docs.mistral.ai/capabilities/function_calling/
+    retrieved_at: 2026-03-05
+    note: Mistral chat examples using mistral-large-latest.
+
+models:
+  - model_id: mistral-large-latest
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model generation and account tier.
+    source_ids: [mistral_models_doc, mistral_function_calling_doc]
+
+  - model_id: mistral-medium-latest
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model generation and account tier.
+    source_ids: [mistral_models_doc]
+
+  - model_id: mistral-small-latest
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Cost-efficient chat model pricing varies by account tier.
+    source_ids: [mistral_models_doc]
+
+  - model_id: codestral-latest
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Code-specialized model pricing varies by account tier.
+    source_ids: [mistral_models_doc]
+
+  - model_id: mistral-embed
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and SLA tier.
+    source_ids: [mistral_embeddings_doc, mistral_models_doc]

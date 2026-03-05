@@ -1,0 +1,54 @@
+schema_version: 3
+provider: spark
+catalog_version: 2026-03-05-spark-v1
+generated_target: runtime/catalog/providers/spark.yaml
+defaults:
+  provider: spark
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-03-05
+    notes: Spark pricing varies by model edition and account plan.
+
+sources:
+  - source_id: spark_api_doc
+    url: https://www.xfyun.cn/doc/spark/lite.html
+    retrieved_at: 2026-03-05
+    note: iFlytek Spark Lite API documentation.
+  - source_id: spark_x1_doc
+    url: https://www.xfyun.cn/doc/spark/x1.html
+    retrieved_at: 2026-03-05
+    note: iFlytek Spark X1 reasoning model documentation.
+
+models:
+  - model_id: spark-x1
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat pricing varies by request quota and enterprise plan.
+    source_ids: [spark_x1_doc]
+
+  - model_id: spark-lite-max
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat pricing varies by request quota and enterprise plan.
+    source_ids: [spark_api_doc]
+    aliases:
+      - lite

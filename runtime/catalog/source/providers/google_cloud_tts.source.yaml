@@ -1,0 +1,46 @@
+schema_version: 3
+provider: google_cloud_tts
+catalog_version: 2026-03-05-google-cloud-tts-v1
+generated_target: runtime/catalog/providers/google_cloud_tts.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: google_cloud_tts
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Google Cloud Text-to-Speech pricing varies by voice family and region.
+
+sources:
+  - source_id: google_tts_doc
+    url: https://cloud.google.com/text-to-speech/docs
+    retrieved_at: 2026-03-05
+    note: Google Cloud Text-to-Speech documentation.
+  - source_id: google_instant_custom_voice_doc
+    url: https://cloud.google.com/text-to-speech/docs/chirp3-instant-custom-voice
+    retrieved_at: 2026-03-05
+    note: Instant Custom Voice is tracked as deferred provider extension in this phase.
+
+language_profiles:
+  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets: []
+
+models:
+  - model_id: chirp-3-hd
+    updated_at: 2026-03-05
+    source_ids: [google_tts_doc]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: google_dynamic_global_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

@@ -1,0 +1,136 @@
+schema_version: 3
+provider: elevenlabs
+catalog_version: 2026-03-05-elevenlabs-v1
+generated_target: runtime/catalog/providers/elevenlabs.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: elevenlabs
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+
+sources:
+  - source_id: elevenlabs_api_intro
+    url: https://elevenlabs.io/docs/api-reference/introduction
+    retrieved_at: 2026-03-05
+    note: ElevenLabs API reference entrypoint.
+  - source_id: elevenlabs_models
+    url: https://elevenlabs.io/docs/api-reference/models/list
+    retrieved_at: 2026-03-05
+    note: Model listing endpoint used to discover text-to-speech capable models.
+  - source_id: elevenlabs_tts_convert
+    url: https://elevenlabs.io/docs/api-reference/text-to-speech/convert
+    retrieved_at: 2026-03-05
+    note: Core text-to-speech conversion endpoint.
+  - source_id: elevenlabs_voices
+    url: https://elevenlabs.io/docs/api-reference/voices/list
+    retrieved_at: 2026-03-05
+    note: Voice inventory and metadata endpoint.
+  - source_id: elevenlabs_voice_clone
+    url: https://elevenlabs.io/docs/api-reference/voices/add
+    retrieved_at: 2026-03-05
+    note: Voice cloning endpoint for audio-to-voice workflows.
+  - source_id: elevenlabs_voice_design
+    url: https://elevenlabs.io/docs/api-reference/text-to-voice/create-previews
+    retrieved_at: 2026-03-05
+    note: Voice design preview endpoint (paired with create-voice-from-preview).
+  - source_id: elevenlabs_voice_design_create
+    url: https://elevenlabs.io/docs/api-reference/text-to-voice/create-voice-from-preview
+    retrieved_at: 2026-03-05
+    note: Materialize voice asset from selected design preview.
+
+language_profiles:
+  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets: []
+
+models:
+  - model_id: eleven_v3
+    updated_at: 2026-03-05
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_multilingual_v1
+    source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
+  - model_id: eleven_multilingual_v2
+    updated_at: 2026-03-05
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_multilingual_v1
+    source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
+  - model_id: eleven_flash_v2_5
+    updated_at: 2026-03-05
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_multilingual_v1
+    source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
+  - model_id: eleven_turbo_v2_5
+    updated_at: 2026-03-05
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_multilingual_v1
+    source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
+
+voice_workflow_models:
+  - workflow_model_id: elevenlabs-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: elevenlabs_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - eleven_v3
+      - eleven_multilingual_v2
+      - eleven_flash_v2_5
+      - eleven_turbo_v2_5
+    langs_ref: short_multilingual_v1
+    source_ids: [elevenlabs_voice_clone]
+  - workflow_model_id: elevenlabs-voice-design
+    workflow_type: tts_t2v
+    input_contract_ref: elevenlabs_tts_t2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - eleven_v3
+      - eleven_multilingual_v2
+      - eleven_flash_v2_5
+      - eleven_turbo_v2_5
+    langs_ref: short_multilingual_v1
+    source_ids: [elevenlabs_voice_design, elevenlabs_voice_design_create]
+
+model_workflow_bindings:
+  - model_id: eleven_v3
+    workflow_model_refs: [elevenlabs-voice-clone, elevenlabs-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: eleven_multilingual_v2
+    workflow_model_refs: [elevenlabs-voice-clone, elevenlabs-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: eleven_flash_v2_5
+    workflow_model_refs: [elevenlabs-voice-clone, elevenlabs-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: eleven_turbo_v2_5
+    workflow_model_refs: [elevenlabs-voice-clone, elevenlabs-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+
+voice_handle_policies:
+  - policy_id: elevenlabs_provider_persistent_default
+    applies_to_workflow_types: [tts_v2v, tts_t2v]
+    persistence: provider_persistent
+    default_ttl: none
+    scope: user_scoped
+    source_ids: [elevenlabs_voice_clone, elevenlabs_voice_design, elevenlabs_voice_design_create]
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

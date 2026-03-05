@@ -1,0 +1,46 @@
+schema_version: 3
+provider: aws_polly
+catalog_version: 2026-03-05-aws-polly-v1
+generated_target: runtime/catalog/providers/aws_polly.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: aws_polly
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: AWS Polly pricing varies by engine type and usage tier.
+
+sources:
+  - source_id: aws_polly_api_ref
+    url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
+    retrieved_at: 2026-03-05
+    note: AWS Polly API reference root.
+  - source_id: aws_polly_synthesize
+    url: https://docs.aws.amazon.com/polly/latest/dg/API_SynthesizeSpeech.html
+    retrieved_at: 2026-03-05
+    note: Core speech synthesis API contract.
+
+language_profiles:
+  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets: []
+
+models:
+  - model_id: polly-neural-tts
+    updated_at: 2026-03-05
+    source_ids: [aws_polly_api_ref, aws_polly_synthesize]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: aws_polly_dynamic_global_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

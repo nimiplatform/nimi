@@ -1,0 +1,82 @@
+schema_version: 3
+provider: fish_audio
+catalog_version: 2026-03-05-fish-audio-v1
+generated_target: runtime/catalog/providers/fish_audio.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: fish_audio
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Fish Audio pricing varies by model and account plan.
+
+sources:
+  - source_id: fish_audio_api_doc
+    url: https://docs.fish.audio/api-reference/tts
+    retrieved_at: 2026-03-05
+    note: Fish Audio TTS API reference.
+  - source_id: fish_audio_models_doc
+    url: https://docs.fish.audio/text-to-speech/models
+    retrieved_at: 2026-03-05
+    note: Fish Audio model catalog and capabilities.
+
+language_profiles:
+  short_multilingual_v1: [en, zh, ja, ko, fr, de, es, pt, it, ru]
+
+voice_sets: []
+
+models:
+  - model_id: fish-speech-1.5
+    updated_at: 2026-03-05
+    source_ids: [fish_audio_api_doc, fish_audio_models_doc]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: fish_audio_dynamic_global_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
+      langs_ref: short_multilingual_v1
+    aliases:
+      - fish-speech
+
+  - model_id: fish-agent-v1
+    updated_at: 2026-03-05
+    source_ids: [fish_audio_api_doc, fish_audio_models_doc]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: fish_audio_dynamic_global_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
+      langs_ref: short_multilingual_v1
+
+voice_workflow_models:
+  - workflow_model_id: fish-audio-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: fish_audio_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs: [fish-speech-1.5, fish-agent-v1]
+    langs_ref: short_multilingual_v1
+    source_ids: [fish_audio_api_doc]
+
+model_workflow_bindings:
+  - model_id: fish-speech-1.5
+    workflow_model_refs: [fish-audio-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: fish-agent-v1
+    workflow_model_refs: [fish-audio-voice-clone]
+    workflow_types: [tts_v2v]
+
+voice_handle_policies:
+  - policy_id: fish_audio_provider_persistent_default
+    applies_to_workflow_types: [tts_v2v]
+    persistence: provider_persistent
+    default_ttl: none
+    scope: user_scoped
+    source_ids: [fish_audio_api_doc]
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

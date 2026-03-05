@@ -1,0 +1,65 @@
+schema_version: 3
+provider: cohere
+catalog_version: 2026-03-05-cohere-v1
+generated_target: runtime/catalog/providers/cohere.yaml
+defaults:
+  provider: cohere
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Cohere pricing varies by model family and account plan.
+
+sources:
+  - source_id: cohere_models_doc
+    url: https://docs.cohere.com/docs/models
+    retrieved_at: 2026-03-05
+    note: Cohere official model catalog.
+  - source_id: cohere_embed_doc
+    url: https://docs.cohere.com/docs/embed
+    retrieved_at: 2026-03-05
+    note: Cohere Embed v4 documentation.
+
+models:
+  - model_id: command-r-plus
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and usage tier.
+    source_ids: [cohere_models_doc]
+
+  - model_id: command-r
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and usage tier.
+    source_ids: [cohere_models_doc]
+
+  - model_id: embed-v4.0
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and account plan.
+    source_ids: [cohere_embed_doc, cohere_models_doc]

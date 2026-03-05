@@ -1,12 +1,12 @@
-schema_version: 1
+schema_version: 3
 provider: dashscope
-catalog_version: 2026-03-05-dashscope-v1
+catalog_version: 2026-03-05-dashscope-v2
 generated_target: runtime/catalog/providers/dashscope.yaml
-resolution_mode: canonical_with_aliases
+resolution_mode: model_anchor_v2
 defaults:
   provider: dashscope
   model_type: tts
-  capabilities: [tts, llm.speech.synthesize]
+  capabilities: []
   pricing:
     unit: char
     input: unknown
@@ -20,6 +20,14 @@ sources:
     url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
     retrieved_at: 2026-03-05
     note: dashscope official model documentation
+  - source_id: dashscope_models_pricing_doc
+    url: https://help.aliyun.com/zh/model-studio/getting-started/models
+    retrieved_at: 2026-03-05
+    note: DashScope model catalog and pricing overview.
+  - source_id: dashscope_embedding_doc
+    url: https://help.aliyun.com/zh/model-studio/developer-reference/qwen-long-text-embedding
+    retrieved_at: 2026-03-05
+    note: DashScope long text embedding documentation.
   - source_id: dashscope_voice_cloning_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
     retrieved_at: 2026-03-05
@@ -29,151 +37,375 @@ sources:
     retrieved_at: 2026-03-05
     note: qwen tts voice design documentation
 
-lang_sets:
-  global_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
-  global_short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+language_profiles:
+  region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
+  short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
 
-# voice_sets supports oneOf:
-# - langs_ref: <lang_set_id>
-# - langs: [zh-cn, en-us, ...]
 voice_sets:
   - voice_set_id: tts_voice_set
-    langs_ref: global_v1
+    langs_ref: region_v1
     source_ids: [dashscope_doc]
     voices:
-      - Chelsie
-      - Cherry
-      - Dylan
-      - Ethan
-      - Jada
-      - Serena
-      - Sunny
+      - voice_id: chelsie
+        name: Chelsie
+      - voice_id: cherry
+        name: Cherry
+      - voice_id: dylan
+        name: Dylan
+      - voice_id: ethan
+        name: Ethan
+      - voice_id: jada
+        name: Jada
+      - voice_id: serena
+        name: Serena
+      - voice_id: sunny
+        name: Sunny
   - voice_set_id: instruct_flash_voice_set
-    langs_ref: global_v1
+    langs_ref: region_v1
     source_ids: [dashscope_doc]
     voices:
-      - Arthur
-      - Bella
-      - Bellona
-      - Bunny
-      - Chelsie
-      - Cherry
-      - Ebona
-      - "Eldric Sage"
-      - Elias
-      - Ethan
-      - Kai
-      - Maia
-      - Mia
-      - Mochi
-      - Momo
-      - Moon
-      - Neil
-      - Nini
-      - Nofish
-      - Pip
-      - Seren
-      - Serena
-      - Stella
-      - Vincent
-      - Vivian
+      - voice_id: arthur
+        name: Arthur
+      - voice_id: bella
+        name: Bella
+      - voice_id: bellona
+        name: Bellona
+      - voice_id: bunny
+        name: Bunny
+      - voice_id: chelsie
+        name: Chelsie
+      - voice_id: cherry
+        name: Cherry
+      - voice_id: ebona
+        name: Ebona
+      - voice_id: eldric_sage
+        name: Eldric Sage
+      - voice_id: elias
+        name: Elias
+      - voice_id: ethan
+        name: Ethan
+      - voice_id: kai
+        name: Kai
+      - voice_id: maia
+        name: Maia
+      - voice_id: mia
+        name: Mia
+      - voice_id: mochi
+        name: Mochi
+      - voice_id: momo
+        name: Momo
+      - voice_id: moon
+        name: Moon
+      - voice_id: neil
+        name: Neil
+      - voice_id: nini
+        name: Nini
+      - voice_id: nofish
+        name: Nofish
+      - voice_id: pip
+        name: Pip
+      - voice_id: seren
+        name: Seren
+      - voice_id: serena
+        name: Serena
+      - voice_id: stella
+        name: Stella
+      - voice_id: vincent
+        name: Vincent
+      - voice_id: vivian
+        name: Vivian
   - voice_set_id: flash_voice_set
-    langs_ref: global_v1
+    langs_ref: region_v1
     source_ids: [dashscope_doc]
     voices:
-      - Aiden
-      - Alek
-      - Andre
-      - Arthur
-      - Bella
-      - Bellona
-      - Bodega
-      - Bunny
-      - Chelsie
-      - Cherry
-      - Dolce
-      - Dylan
-      - Ebona
-      - "Eldric Sage"
-      - Elias
-      - Emilien
-      - Eric
-      - Ethan
-      - Jada
-      - Jennifer
-      - Kai
-      - Katerina
-      - Kiki
-      - Lenn
-      - Li
-      - Maia
-      - Marcus
-      - Mia
-      - Mochi
-      - Momo
-      - Moon
-      - Neil
-      - Nini
-      - Nofish
-      - "Ono Anna"
-      - Peter
-      - Pip
-      - "Radio Gol"
-      - Rocky
-      - Roy
-      - Ryan
-      - Seren
-      - Serena
-      - Sohee
-      - Sonrisa
-      - Stella
-      - Sunny
-      - Vincent
-      - Vivian
+      - voice_id: aiden
+        name: Aiden
+      - voice_id: alek
+        name: Alek
+      - voice_id: andre
+        name: Andre
+      - voice_id: arthur
+        name: Arthur
+      - voice_id: bella
+        name: Bella
+      - voice_id: bellona
+        name: Bellona
+      - voice_id: bodega
+        name: Bodega
+      - voice_id: bunny
+        name: Bunny
+      - voice_id: chelsie
+        name: Chelsie
+      - voice_id: cherry
+        name: Cherry
+      - voice_id: dolce
+        name: Dolce
+      - voice_id: dylan
+        name: Dylan
+      - voice_id: ebona
+        name: Ebona
+      - voice_id: eldric_sage
+        name: Eldric Sage
+      - voice_id: elias
+        name: Elias
+      - voice_id: emilien
+        name: Emilien
+      - voice_id: eric
+        name: Eric
+      - voice_id: ethan
+        name: Ethan
+      - voice_id: jada
+        name: Jada
+      - voice_id: jennifer
+        name: Jennifer
+      - voice_id: kai
+        name: Kai
+      - voice_id: katerina
+        name: Katerina
+      - voice_id: kiki
+        name: Kiki
+      - voice_id: lenn
+        name: Lenn
+      - voice_id: li
+        name: Li
+      - voice_id: maia
+        name: Maia
+      - voice_id: marcus
+        name: Marcus
+      - voice_id: mia
+        name: Mia
+      - voice_id: mochi
+        name: Mochi
+      - voice_id: momo
+        name: Momo
+      - voice_id: moon
+        name: Moon
+      - voice_id: neil
+        name: Neil
+      - voice_id: nini
+        name: Nini
+      - voice_id: nofish
+        name: Nofish
+      - voice_id: ono_anna
+        name: Ono Anna
+      - voice_id: peter
+        name: Peter
+      - voice_id: pip
+        name: Pip
+      - voice_id: radio_gol
+        name: Radio Gol
+      - voice_id: rocky
+        name: Rocky
+      - voice_id: roy
+        name: Roy
+      - voice_id: ryan
+        name: Ryan
+      - voice_id: seren
+        name: Seren
+      - voice_id: serena
+        name: Serena
+      - voice_id: sohee
+        name: Sohee
+      - voice_id: sonrisa
+        name: Sonrisa
+      - voice_id: stella
+        name: Stella
+      - voice_id: sunny
+        name: Sunny
+      - voice_id: vincent
+        name: Vincent
+      - voice_id: vivian
+        name: Vivian
 
-# models supports oneOf:
-# - voice_set_ref: <voice_set_id>
-# - voice_set: { langs_ref|langs, source_ids, voices }
 models:
   - model_id: qwen-tts
     updated_at: 2025-04-10
-    voice_set_ref: tts_voice_set
+    capabilities: [tts, llm.speech.synthesize]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: tts_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: region_v1
     aliases:
       - qwen-tts-2025-04-10
       - qwen-tts-2025-05-22
       - qwen-tts-latest
   - model_id: qwen3-tts-instruct-flash
     updated_at: 2026-01-26
-    voice_set_ref: instruct_flash_voice_set
+    capabilities: [tts, llm.speech.synthesize]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: instruct_flash_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: region_v1
     aliases:
       - qwen3-tts-instruct-flash-2026-01-26
   - model_id: qwen3-tts-flash
     updated_at: 2025-11-27
-    voice_set_ref: flash_voice_set
+    capabilities: [tts, llm.speech.synthesize]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: flash_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: region_v1
     aliases:
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
+  - model_id: qwen3-tts-vc
+    updated_at: 2026-01-22
+    capabilities: [tts, llm.speech.synthesize]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - qwen3-tts-vc-2026-01-22
+  - model_id: qwen3-tts-vd
+    updated_at: 2026-01-26
+    capabilities: [tts, llm.speech.synthesize]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - qwen3-tts-vd-2026-01-26
 
-# workflow models for dynamic custom voices.
-# these entries describe how custom voice IDs are created.
-custom_voice_workflows:
-  - workflow_id: voice_cloning
-    workflow_model_id: qwen-voice-enrollment
-    mode: voice_to_voice
-    langs_ref: global_short_v1
-    source_ids: [dashscope_voice_cloning_doc]
-    target_models:
+  - model_id: qwen3-max
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: qwen3.5-plus
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: qwen3.5-flash
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: qwen-plus-latest
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ids: [dashscope_models_pricing_doc]
+    aliases:
+      - qwen-plus-2025-12-01
+
+  - model_id: qwen-vl-max-latest
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Vision-language model pricing varies by account plan and token class.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: text-embedding-v4
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token usage and account plan.
+    source_ids: [dashscope_embedding_doc]
+
+  - model_id: wan2.6-t2i
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by quality and tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+voice_workflow_models:
+  - workflow_model_id: qwen-voice-enrollment
+    workflow_type: tts_v2v
+    input_contract_ref: dashscope_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
       - qwen3-tts-vc
       - qwen3-tts-vc-2026-01-22
-  - workflow_id: voice_design
-    workflow_model_id: qwen-voice-design
-    mode: text_to_voice
-    langs_ref: global_short_v1
-    source_ids: [dashscope_voice_design_doc]
-    target_models:
+    langs_ref: short_v1
+    source_ids: [dashscope_voice_cloning_doc]
+  - workflow_model_id: qwen-voice-design
+    workflow_type: tts_t2v
+    input_contract_ref: dashscope_tts_t2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26
+    langs_ref: short_v1
+    source_ids: [dashscope_voice_design_doc]
+
+model_workflow_bindings:
+  - model_id: qwen3-tts-vc
+    workflow_model_refs: [qwen-voice-enrollment]
+    workflow_types: [tts_v2v]
+  - model_id: qwen3-tts-vc-2026-01-22
+    workflow_model_refs: [qwen-voice-enrollment]
+    workflow_types: [tts_v2v]
+  - model_id: qwen3-tts-vd
+    workflow_model_refs: [qwen-voice-design]
+    workflow_types: [tts_t2v]
+  - model_id: qwen3-tts-vd-2026-01-26
+    workflow_model_refs: [qwen-voice-design]
+    workflow_types: [tts_t2v]
+
+voice_handle_policies:
+  - policy_id: dashscope_provider_persistent_default
+    applies_to_workflow_types: [tts_v2v, tts_t2v]
+    persistence: provider_persistent
+    default_ttl: none
+    scope: user_scoped
+    source_ids: [dashscope_voice_cloning_doc, dashscope_voice_design_doc]
 
 overrides:
   models: []
   voices: []
+  voice_workflow_models: []

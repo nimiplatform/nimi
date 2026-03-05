@@ -1,0 +1,69 @@
+schema_version: 3
+provider: azure
+catalog_version: 2026-03-05-azure-v1
+generated_target: runtime/catalog/providers/azure.yaml
+defaults:
+  provider: azure
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Azure OpenAI pricing varies by region, deployment type, and enterprise contract.
+
+sources:
+  - source_id: azure_models_doc
+    url: https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models
+    retrieved_at: 2026-03-05
+    note: Azure OpenAI model availability and model/version matrix.
+  - source_id: azure_whats_new_doc
+    url: https://learn.microsoft.com/en-us/azure/foundry-classic/openai/whats-new
+    retrieved_at: 2026-03-05
+    note: Azure OpenAI release notes including GPT-image-1.5.
+  - source_id: azure_quotas_doc
+    url: https://learn.microsoft.com/en-us/azure/foundry/openai/quotas-limits
+    retrieved_at: 2026-03-05
+    note: Azure OpenAI quotas and throughput limits per model family.
+
+models:
+  - model_id: gpt-5.2
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing depends on deployment SKU and region; deployment name controls runtime invocation.
+    source_ids: [azure_models_doc, azure_quotas_doc]
+
+  - model_id: text-embedding-3-large
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding pricing depends on deployment SKU and region; deployment name controls runtime invocation.
+    source_ids: [azure_models_doc, azure_quotas_doc]
+
+  - model_id: gpt-image-1.5
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Image generation pricing depends on deployment SKU, quality profile, and region.
+    source_ids: [azure_whats_new_doc, azure_models_doc, azure_quotas_doc]

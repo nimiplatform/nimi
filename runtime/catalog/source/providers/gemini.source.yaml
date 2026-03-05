@@ -1,0 +1,158 @@
+schema_version: 3
+provider: gemini
+catalog_version: 2026-03-05-gemini-v1
+generated_target: runtime/catalog/providers/gemini.yaml
+defaults:
+  provider: gemini
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Gemini public pricing varies by model family, region, and contract tier.
+
+sources:
+  - source_id: gemini_models_doc
+    url: https://ai.google.dev/gemini-api/docs/models
+    retrieved_at: 2026-03-05
+    note: Gemini API model index and capability overview.
+  - source_id: gemini_2_5_flash_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
+    retrieved_at: 2026-03-05
+    note: Gemini 2.5 Flash model card.
+  - source_id: gemini_embedding_001_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001
+    retrieved_at: 2026-03-05
+    note: Gemini embedding model card.
+  - source_id: gemini_2_5_flash_image_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image
+    retrieved_at: 2026-03-05
+    note: Gemini 2.5 Flash Image model card.
+  - source_id: gemini_2_5_pro_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro
+    retrieved_at: 2026-03-05
+    note: Gemini 2.5 Pro model card.
+  - source_id: gemini_3_flash_preview_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3-flash-preview
+    retrieved_at: 2026-03-05
+    note: Gemini 3 Flash preview model card.
+  - source_id: gemini_3_1_pro_preview_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
+    retrieved_at: 2026-03-05
+    note: Gemini 3.1 Pro preview model card.
+  - source_id: gemini_3_1_flash_lite_preview_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview
+    retrieved_at: 2026-03-05
+    note: Gemini 3.1 Flash-Lite preview model card.
+  - source_id: gemini_3_1_flash_image_preview_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview
+    retrieved_at: 2026-03-05
+    note: Gemini 3.1 Flash Image preview model card.
+
+models:
+  - model_id: gemini-2.5-pro
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by request tier and context length.
+    source_ids: [gemini_2_5_pro_doc, gemini_models_doc]
+
+  - model_id: gemini-2.5-flash
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by request tier and context length.
+    source_ids: [gemini_2_5_flash_doc, gemini_models_doc]
+
+  - model_id: gemini-embedding-001
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and deployment terms.
+    source_ids: [gemini_embedding_001_doc, gemini_models_doc]
+
+  - model_id: gemini-2.5-flash-image
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by mode, quality, and contract tier.
+    source_ids: [gemini_2_5_flash_image_doc, gemini_models_doc]
+
+  - model_id: gemini-3.1-pro-preview
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Preview model pricing varies by request tier and context length.
+    source_ids: [gemini_3_1_pro_preview_doc, gemini_models_doc]
+
+  - model_id: gemini-3-flash-preview
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Preview model pricing varies by request tier and context length.
+    source_ids: [gemini_3_flash_preview_doc, gemini_models_doc]
+
+  - model_id: gemini-3.1-flash-lite-preview
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Cost-efficient preview model pricing varies by request tier.
+    source_ids: [gemini_3_1_flash_lite_preview_doc, gemini_models_doc]
+
+  - model_id: gemini-3.1-flash-image-preview
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by mode, quality, and contract tier.
+    source_ids: [gemini_3_1_flash_image_preview_doc, gemini_models_doc]

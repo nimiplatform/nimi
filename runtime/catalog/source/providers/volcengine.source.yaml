@@ -1,0 +1,276 @@
+schema_version: 3
+provider: volcengine
+catalog_version: 2026-03-05-volcengine-v3
+generated_target: runtime/catalog/providers/volcengine.yaml
+defaults:
+  provider: volcengine
+  model_type: video
+  capabilities: []
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-03-05
+    notes: Volcengine public pricing varies by account plan and endpoint tier.
+
+sources:
+  - source_id: volcengine_seedance_video_doc
+    url: https://www.volcengine.com/docs/82379/1366799?lang=zh
+    retrieved_at: 2026-03-05
+    note: Volcengine Seedance video generation overview (t2v and i2v).
+  - source_id: volcengine_seedance_create_task_api
+    url: https://www.volcengine.com/docs/82379/1520757?lang=zh
+    retrieved_at: 2026-03-05
+    note: Volcengine create video generation task API contract.
+  - source_id: volcengine_seedance_query_task_api
+    url: https://www.volcengine.com/docs/82379/1521309?lang=zh
+    retrieved_at: 2026-03-05
+    note: Volcengine query video generation task API contract.
+  - source_id: volcengine_openspeech_doc
+    url: https://www.volcengine.com/docs/6561/1257584
+    retrieved_at: 2026-03-05
+    note: Volcengine OpenSpeech TTS documentation.
+  - source_id: volcengine_openai_sdk_doc
+    url: https://www.volcengine.com/docs/6489/1331021
+    retrieved_at: 2026-03-05
+    note: Volcengine OpenAI-compatible SDK documentation and model examples.
+  - source_id: volcengine_embedding_doc
+    url: https://www.volcengine.com/docs/84716/1288890
+    retrieved_at: 2026-03-05
+    note: Volcengine embedding model documentation.
+  - source_id: volcengine_seedream_doc
+    url: https://www.volcengine.com/docs/6492/2172373
+    retrieved_at: 2026-03-05
+    note: Volcengine Seedream image generation documentation.
+
+language_profiles:
+  region_v1: [zh-cn, en-us]
+  short_v1: [zh, en]
+
+voice_sets:
+  - voice_set_id: openspeech-streaming-v1
+    langs_ref: short_v1
+    source_ids: [volcengine_openspeech_doc]
+    voices:
+      - voice_id: BV001_streaming
+        name: BV001
+      - voice_id: BV002_streaming
+        name: BV002
+
+models:
+  - model_id: doubao-tts
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities: [tts, llm.speech.synthesize]
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Pricing differs by account tier and product line.
+    source_ids: [volcengine_openspeech_doc]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: openspeech-streaming-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: seedance-1-5-pro
+    updated_at: 2026-03-05
+    model_type: video
+    aliases:
+      - seedance-1.5-pro
+      - seedance_v1_5_pro
+    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    source_ids: [volcengine_seedance_video_doc, volcengine_seedance_create_task_api, volcengine_seedance_query_task_api]
+    video_generation:
+      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+        i2v_reference: [prompt, reference_image]
+      limits:
+        reference_images:
+          min: 1
+          max: 4
+        seed:
+          min: -1
+          max: 4294967295
+        duration_sec:
+          min: 1
+          max: 10
+        fps:
+          min: 1
+          max: 60
+        ratio: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", adaptive]
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - frames
+          - fps
+          - seed
+          - camera_fixed
+          - watermark
+          - generate_audio
+          - draft
+          - service_tier
+          - execution_expires_after_sec
+          - return_last_frame
+        constraints:
+          frames_overrides_duration: true
+          camera_fixed_disallowed_in_i2v_reference: true
+      outputs:
+        video_url: true
+        last_frame_url: true
+
+  - model_id: doubao-seedance-2-0-260128
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    source_ids: [volcengine_seedance_video_doc, volcengine_seedance_create_task_api]
+    video_generation:
+      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+        i2v_reference: [prompt, reference_image]
+      limits:
+        ratio: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", adaptive]
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - seed
+          - generate_audio
+          - service_tier
+          - execution_expires_after_sec
+        constraints: {}
+      outputs:
+        video_url: true
+    aliases:
+      - seedance-2.0
+
+  - model_id: doubao-seed-2-0-pro-260215
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Flagship chat model pricing varies by account plan and endpoint tier.
+    source_ids: [volcengine_openai_sdk_doc]
+    aliases:
+      - doubao-seed-2.0-pro
+
+  - model_id: doubao-seed-2-0-lite-260215
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Balanced chat model pricing varies by account plan and endpoint tier.
+    source_ids: [volcengine_openai_sdk_doc]
+    aliases:
+      - doubao-seed-2.0-lite
+
+  - model_id: doubao-seed-2-0-mini-260215
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Lightweight chat model pricing varies by account plan and endpoint tier.
+    source_ids: [volcengine_openai_sdk_doc]
+    aliases:
+      - doubao-seed-2.0-mini
+
+  - model_id: doubao-seed-2-0-code-preview-260215
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Code-specialized chat model pricing varies by account plan and endpoint tier.
+    source_ids: [volcengine_openai_sdk_doc]
+    aliases:
+      - doubao-seed-2.0-code
+
+  - model_id: doubao-1.5-pro-256k
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Long-context chat model pricing varies by account plan and endpoint tier.
+    source_ids: [volcengine_openai_sdk_doc]
+    aliases:
+      - doubao-1.5-pro
+
+  - model_id: doubao-embedding
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding token pricing varies by account plan and dimension tier.
+    source_ids: [volcengine_embedding_doc]
+    aliases:
+      - doubao-embedding-250615
+
+  - model_id: doubao-seedream-5-0-260128
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by quality profile and account tier.
+    source_ids: [volcengine_seedream_doc]
+    aliases:
+      - seedream-5.0
+
+  - model_id: doubao-seedream-4-5-251128
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by quality profile and account tier.
+    source_ids: [volcengine_seedream_doc]

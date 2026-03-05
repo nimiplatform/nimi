@@ -1,0 +1,46 @@
+schema_version: 3
+provider: azure_speech
+catalog_version: 2026-03-05-azure-speech-v1
+generated_target: runtime/catalog/providers/azure_speech.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: azure_speech
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Azure Speech public pricing depends on region, tier, and commitment plan.
+
+sources:
+  - source_id: azure_tts_doc
+    url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
+    retrieved_at: 2026-03-05
+    note: Azure Speech text-to-speech baseline capability.
+  - source_id: azure_custom_voice_doc
+    url: https://learn.microsoft.com/azure/ai-services/speech-service/custom-neural-voice
+    retrieved_at: 2026-03-05
+    note: Custom Voice is tracked as deferred provider extension in this phase.
+
+language_profiles:
+  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets: []
+
+models:
+  - model_id: azure-neural-tts
+    updated_at: 2026-03-05
+    source_ids: [azure_tts_doc]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: azure_dynamic_global_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_multilingual_v1
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

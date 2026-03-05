@@ -1,0 +1,68 @@
+schema_version: 3
+provider: playht
+catalog_version: 2026-03-05-playht-v1
+generated_target: runtime/catalog/providers/playht.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: playht
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: PlayHT public pricing is plan-dependent and not stable per model ID.
+
+sources:
+  - source_id: playht_tts_stream_doc
+    url: https://docs.play.ht/reference/api-generate-tts-audio-stream
+    retrieved_at: 2026-03-05
+    note: Streaming text-to-speech endpoint.
+  - source_id: playht_voice_clone_doc
+    url: https://docs.play.ht/reference/api-clone-voice-from-a-sample
+    retrieved_at: 2026-03-05
+    note: Instant voice cloning endpoint.
+
+language_profiles:
+  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets: []
+
+models:
+  - model_id: playht-tts-2.0
+    updated_at: 2026-03-05
+    source_ids: [playht_tts_stream_doc, playht_voice_clone_doc]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: playht_dynamic_global_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
+      langs_ref: short_multilingual_v1
+
+voice_workflow_models:
+  - workflow_model_id: playht-instant-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: playht_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs: [playht-tts-2.0]
+    langs_ref: short_multilingual_v1
+    source_ids: [playht_voice_clone_doc]
+
+model_workflow_bindings:
+  - model_id: playht-tts-2.0
+    workflow_model_refs: [playht-instant-voice-clone]
+    workflow_types: [tts_v2v]
+
+voice_handle_policies:
+  - policy_id: playht_provider_persistent_default
+    applies_to_workflow_types: [tts_v2v]
+    persistence: provider_persistent
+    default_ttl: none
+    scope: user_scoped
+    source_ids: [playht_voice_clone_doc]
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

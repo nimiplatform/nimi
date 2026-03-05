@@ -1,0 +1,69 @@
+schema_version: 3
+provider: glm
+catalog_version: 2026-03-05-glm-v1
+generated_target: runtime/catalog/providers/glm.yaml
+defaults:
+  provider: glm
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-03-05
+    notes: GLM pricing varies by model family and account tier.
+
+sources:
+  - source_id: glm_chat_async_doc
+    url: https://docs.bigmodel.cn/cn/api/paas/v4/chat/completions
+    retrieved_at: 2026-03-05
+    note: GLM chat completions API documentation with current flagship model examples.
+  - source_id: glm_embedding_doc
+    url: https://docs.bigmodel.cn/cn/api/paas/v4/embeddings
+    retrieved_at: 2026-03-05
+    note: GLM embeddings API documentation.
+  - source_id: glm_image_doc
+    url: https://docs.bigmodel.cn/cn/api/paas/v4/images
+    retrieved_at: 2026-03-05
+    note: GLM image generation async API documentation.
+
+models:
+  - model_id: glm-4.7
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model edition and account plan.
+    source_ids: [glm_chat_async_doc]
+
+  - model_id: embedding-3
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities: [embedding, text.embed, llm.embed]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and service tier.
+    source_ids: [glm_embedding_doc]
+
+  - model_id: glm-image
+    model_type: image
+    updated_at: 2026-03-05
+    capabilities: [image, image.generate, llm.image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Image generation pricing varies by quality profile and account tier.
+    source_ids: [glm_image_doc]

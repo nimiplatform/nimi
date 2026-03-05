@@ -1,0 +1,39 @@
+schema_version: 3
+provider: openrouter
+catalog_version: 2026-03-05-openrouter-v1
+generated_target: runtime/catalog/providers/openrouter.yaml
+defaults:
+  provider: openrouter
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: OpenRouter pricing depends on the routed downstream model/provider.
+
+sources:
+  - source_id: openrouter_models_doc
+    url: https://openrouter.ai/docs/docs/overview/models
+    retrieved_at: 2026-03-05
+    note: OpenRouter models overview and Models API schema.
+  - source_id: openrouter_auto_router_doc
+    url: https://openrouter.ai/docs/docs/routing/auto-model-selection
+    retrieved_at: 2026-03-05
+    note: OpenRouter Auto Router model ID and routing behavior.
+
+models:
+  - model_id: openrouter/auto
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Pricing depends on the final routed model selected by OpenRouter.
+    source_ids: [openrouter_auto_router_doc, openrouter_models_doc]

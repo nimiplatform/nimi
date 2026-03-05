@@ -1,0 +1,89 @@
+schema_version: 3
+provider: local
+catalog_version: 2026-03-05-local-v1
+generated_target: runtime/catalog/providers/local.yaml
+resolution_mode: model_anchor_v2
+defaults:
+  provider: local
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: request
+    input: unknown
+    output: unknown
+    currency: none
+    as_of: 2026-03-05
+    notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+
+sources:
+  - source_id: qwen3_tts_repo
+    url: https://github.com/QwenLM/Qwen3-TTS
+    retrieved_at: 2026-03-05
+    note: Open-source Qwen3-TTS repository and examples.
+  - source_id: qwen3_tts_readme
+    url: https://github.com/QwenLM/Qwen3-TTS/blob/main/README.md
+    retrieved_at: 2026-03-05
+    note: Open-source usage examples for synthesis and voice customization workflows.
+
+language_profiles:
+  region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
+  short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets: []
+
+models:
+  - model_id: qwen3-tts-local
+    updated_at: 2026-03-05
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - qwen3-tts
+      - Qwen/Qwen3-TTS-8B
+
+voice_workflow_models:
+  - workflow_model_id: qwen3-local-voice-clone-prompt
+    workflow_type: tts_v2v
+    input_contract_ref: local_tts_v2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs:
+      - qwen3-tts-local
+      - qwen3-tts
+      - Qwen/Qwen3-TTS-8B
+    langs_ref: short_v1
+    source_ids: [qwen3_tts_readme]
+  - workflow_model_id: qwen3-local-voice-design-prompt
+    workflow_type: tts_t2v
+    input_contract_ref: local_tts_t2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs:
+      - qwen3-tts-local
+      - qwen3-tts
+      - Qwen/Qwen3-TTS-8B
+    langs_ref: short_v1
+    source_ids: [qwen3_tts_readme]
+
+model_workflow_bindings:
+  - model_id: qwen3-tts-local
+    workflow_model_refs: [qwen3-local-voice-clone-prompt, qwen3-local-voice-design-prompt]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: qwen3-tts
+    workflow_model_refs: [qwen3-local-voice-clone-prompt, qwen3-local-voice-design-prompt]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: Qwen/Qwen3-TTS-8B
+    workflow_model_refs: [qwen3-local-voice-clone-prompt, qwen3-local-voice-design-prompt]
+    workflow_types: [tts_v2v, tts_t2v]
+
+voice_handle_policies:
+  - policy_id: local_session_ephemeral_default
+    applies_to_workflow_types: [tts_v2v, tts_t2v]
+    persistence: session_ephemeral
+    default_ttl: session
+    scope: user_scoped
+    source_ids: [qwen3_tts_readme]
+
+overrides:
+  models: []
+  voices: []
+  voice_workflow_models: []

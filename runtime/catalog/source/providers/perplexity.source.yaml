@@ -1,0 +1,74 @@
+schema_version: 3
+provider: perplexity
+catalog_version: 2026-03-05-perplexity-v1
+generated_target: runtime/catalog/providers/perplexity.yaml
+defaults:
+  provider: perplexity
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Perplexity pricing varies by model and account plan.
+
+sources:
+  - source_id: perplexity_models_doc
+    url: https://docs.perplexity.ai/guides/model-cards
+    retrieved_at: 2026-03-05
+    note: Perplexity AI model cards documentation.
+
+models:
+  - model_id: sonar-pro
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Search-augmented chat pricing varies by usage tier.
+    source_ids: [perplexity_models_doc]
+
+  - model_id: sonar
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Search-augmented chat pricing varies by usage tier.
+    source_ids: [perplexity_models_doc]
+
+  - model_id: sonar-reasoning-pro
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by usage tier.
+    source_ids: [perplexity_models_doc]
+
+  - model_id: sonar-reasoning
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by usage tier.
+    source_ids: [perplexity_models_doc]

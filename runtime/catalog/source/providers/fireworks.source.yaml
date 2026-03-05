@@ -1,0 +1,82 @@
+schema_version: 3
+provider: fireworks
+catalog_version: 2026-03-05-fireworks-v1
+generated_target: runtime/catalog/providers/fireworks.yaml
+defaults:
+  provider: fireworks
+  model_type: chat
+  capabilities: []
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: USD
+    as_of: 2026-03-05
+    notes: Fireworks AI pricing varies by model size and account plan.
+
+sources:
+  - source_id: fireworks_models_doc
+    url: https://fireworks.ai/models
+    retrieved_at: 2026-03-05
+    note: Fireworks AI model catalog.
+
+models:
+  - model_id: accounts/fireworks/models/llama4-maverick-instruct-basic
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ids: [fireworks_models_doc]
+    aliases:
+      - llama-4-maverick
+
+  - model_id: accounts/fireworks/models/llama4-scout-instruct-basic
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ids: [fireworks_models_doc]
+    aliases:
+      - llama-4-scout
+
+  - model_id: accounts/fireworks/models/deepseek-r1
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ids: [fireworks_models_doc]
+    aliases:
+      - deepseek-r1
+
+  - model_id: accounts/fireworks/models/qwen3-235b-a22b
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities: [chat, text.generate, llm.text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ids: [fireworks_models_doc]
+    aliases:
+      - qwen3-235b
