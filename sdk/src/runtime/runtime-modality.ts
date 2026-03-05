@@ -1,14 +1,14 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from './errors.js';
 import {
+  ExecutionMode,
   RoutePolicy,
+  ScenarioType,
   SpeechTimingMode,
   type ArtifactChunk,
-  type GetSpeechVoicesRequest,
-  type MediaJob,
-  type SpeechVoiceDescriptor,
-  type StreamSpeechSynthesisRequest,
+  type ScenarioJob,
 } from './generated/runtime/v1/ai';
+import type { ListPresetVoicesRequest, VoicePresetDescriptor } from './generated/runtime/v1/voice';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type {
   ImageGenerateInput,
@@ -16,7 +16,6 @@ import type {
   NimiTraceInfo,
   SpeechListVoicesInput,
   SpeechListVoicesOutput,
-  SpeechStreamSynthesisInput,
   SpeechSynthesizeInput,
   SpeechSynthesizeOutput,
   SpeechTranscribeInput,
@@ -29,30 +28,29 @@ import {
   ensureText,
   normalizeText,
   toFallbackPolicy,
-  toProtoStruct,
   toRoutePolicy,
   toTraceInfo,
 } from './helpers.js';
 import {
-  runtimeGetMediaArtifacts,
-  runtimeSubmitMediaJob,
-  runtimeWaitForMediaJobCompletion,
+  runtimeGetScenarioArtifactsForMedia,
+  runtimeSubmitScenarioJobForMedia,
+  runtimeWaitForScenarioJobCompletion,
 } from './runtime-media.js';
 
 export async function runtimeGenerateImage(
   ctx: RuntimeInternalContext,
   input: ImageGenerateInput,
 ): Promise<ImageGenerateOutput> {
-  const submitted = await runtimeSubmitMediaJob(ctx, {
+  const submitted = await runtimeSubmitScenarioJobForMedia(ctx, {
     modal: 'image',
     input,
   });
 
-  const job = await runtimeWaitForMediaJobCompletion(ctx, submitted.jobId, {
+  const job = await runtimeWaitForScenarioJobCompletion(ctx, submitted.jobId, {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
   });
-  const artifacts = await runtimeGetMediaArtifacts(ctx, job.jobId);
+  const artifacts = await runtimeGetScenarioArtifactsForMedia(ctx, job.jobId);
 
   const trace = toTraceInfo({
     traceId: artifacts.traceId || job.traceId,
@@ -71,16 +69,16 @@ export async function runtimeGenerateVideo(
   ctx: RuntimeInternalContext,
   input: VideoGenerateInput,
 ): Promise<VideoGenerateOutput> {
-  const submitted = await runtimeSubmitMediaJob(ctx, {
+  const submitted = await runtimeSubmitScenarioJobForMedia(ctx, {
     modal: 'video',
     input,
   });
 
-  const job = await runtimeWaitForMediaJobCompletion(ctx, submitted.jobId, {
+  const job = await runtimeWaitForScenarioJobCompletion(ctx, submitted.jobId, {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
   });
-  const artifacts = await runtimeGetMediaArtifacts(ctx, job.jobId);
+  const artifacts = await runtimeGetScenarioArtifactsForMedia(ctx, job.jobId);
 
   const trace = toTraceInfo({
     traceId: artifacts.traceId || job.traceId,
@@ -99,16 +97,16 @@ export async function runtimeSynthesizeSpeech(
   ctx: RuntimeInternalContext,
   input: SpeechSynthesizeInput,
 ): Promise<SpeechSynthesizeOutput> {
-  const submitted = await runtimeSubmitMediaJob(ctx, {
+  const submitted = await runtimeSubmitScenarioJobForMedia(ctx, {
     modal: 'tts',
     input,
   });
 
-  const job = await runtimeWaitForMediaJobCompletion(ctx, submitted.jobId, {
+  const job = await runtimeWaitForScenarioJobCompletion(ctx, submitted.jobId, {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
   });
-  const artifacts = await runtimeGetMediaArtifacts(ctx, job.jobId);
+  const artifacts = await runtimeGetScenarioArtifactsForMedia(ctx, job.jobId);
 
   const trace = toTraceInfo({
     traceId: artifacts.traceId || job.traceId,
@@ -127,17 +125,17 @@ export async function runtimeTranscribeSpeech(
   ctx: RuntimeInternalContext,
   input: SpeechTranscribeInput,
 ): Promise<SpeechTranscribeOutput> {
-  const submitted = await runtimeSubmitMediaJob(ctx, {
+  const submitted = await runtimeSubmitScenarioJobForMedia(ctx, {
     modal: 'stt',
     input,
   });
 
-  const job = await runtimeWaitForMediaJobCompletion(ctx, submitted.jobId, {
+  const job = await runtimeWaitForScenarioJobCompletion(ctx, submitted.jobId, {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
   });
 
-  const artifacts = await runtimeGetMediaArtifacts(ctx, job.jobId);
+  const artifacts = await runtimeGetScenarioArtifactsForMedia(ctx, job.jobId);
   const first = artifacts.artifacts[0];
   const text = first ? decodeUtf8(first.bytes) : '';
 
@@ -174,8 +172,7 @@ export async function runtimeStreamSpeech(
   ctx: RuntimeInternalContext,
   input: SpeechSynthesizeInput,
 ): Promise<AsyncIterable<ArtifactChunk>> {
-  const output = await runtimeSynthesizeSpeech(ctx, input);
-  return streamArtifactsFromMediaOutput(output);
+  return runtimeStreamSpeechSynthesis(ctx, input);
 }
 
 export async function runtimeListSpeechVoices(
@@ -184,16 +181,15 @@ export async function runtimeListSpeechVoices(
 ): Promise<SpeechListVoicesOutput> {
   const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
   const responseMetadata: Record<string, string> = {};
-  const request: GetSpeechVoicesRequest = {
+  const request: ListPresetVoicesRequest = {
     appId: ctx.appId,
     subjectUserId,
     modelId: ensureText(input.model, 'model'),
-    routePolicy: toRoutePolicy(input.route),
-    fallback: toFallbackPolicy(input.fallback),
+    targetModelId: '',
     connectorId: normalizeText(input.connectorId),
   };
 
-  const response = await ctx.invokeWithClient(async (client) => client.ai.getSpeechVoices(
+  const response = await ctx.invokeWithClient(async (client) => client.ai.listPresetVoices(
     request,
     ctx.resolveRuntimeCallOptions({
       metadata: input.metadata,
@@ -208,7 +204,7 @@ export async function runtimeListSpeechVoices(
   const voiceCount = Number.isFinite(voiceCountRaw) ? voiceCountRaw : undefined;
 
   return {
-    voices: (response.voices || []).map((v: SpeechVoiceDescriptor) => ({
+    voices: (response.voices || []).map((v: VoicePresetDescriptor) => ({
       voiceId: normalizeText(v.voiceId),
       name: normalizeText(v.name),
       lang: normalizeText(v.lang),
@@ -224,48 +220,128 @@ export async function runtimeListSpeechVoices(
 
 export async function runtimeStreamSpeechSynthesis(
   ctx: RuntimeInternalContext,
-  input: SpeechStreamSynthesisInput,
+  input: SpeechSynthesizeInput,
 ): Promise<AsyncIterable<ArtifactChunk>> {
   const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
-  const request: StreamSpeechSynthesisRequest = {
-    appId: ctx.appId,
-    subjectUserId,
-    modelId: ensureText(input.model, 'model'),
-    speechSpec: {
-      text: normalizeText(input.text),
-      voice: normalizeText(input.voice),
-      language: normalizeText(input.language),
-      audioFormat: normalizeText(input.audioFormat),
-      sampleRateHz: Number(input.sampleRateHz || 0),
-      speed: Number(input.speed || 0),
-      pitch: Number(input.pitch || 0),
-      volume: Number(input.volume || 0),
-      emotion: normalizeText(input.emotion),
-      timingMode: toSpeechTimingMode(input.timingMode),
-      voiceRenderHints: input.voiceRenderHints
-        ? {
-          stability: Number(input.voiceRenderHints.stability || 0),
-          similarityBoost: Number(input.voiceRenderHints.similarityBoost || 0),
-          style: Number(input.voiceRenderHints.style || 0),
-          useSpeakerBoost: Boolean(input.voiceRenderHints.useSpeakerBoost),
-          speed: Number(input.voiceRenderHints.speed || 0),
-        }
-        : undefined,
-      providerOptions: toProtoStruct(input.providerOptions),
+  const request = {
+    head: {
+      appId: ctx.appId,
+      subjectUserId,
+      modelId: ensureText(input.model, 'model'),
+      routePolicy: toRoutePolicy(input.route),
+      fallback: toFallbackPolicy(input.fallback),
+      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+      connectorId: normalizeText(input.connectorId),
     },
-    routePolicy: toRoutePolicy(input.route),
-    fallback: toFallbackPolicy(input.fallback),
-    timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-    connectorId: normalizeText(input.connectorId),
+    scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+    executionMode: ExecutionMode.STREAM,
+    spec: {
+      spec: {
+        oneofKind: 'speechSynthesize' as const,
+        speechSynthesize: {
+          text: normalizeText(input.text),
+          language: normalizeText(input.language),
+          audioFormat: normalizeText(input.audioFormat),
+          sampleRateHz: Number(input.sampleRateHz || 0),
+          speed: Number(input.speed || 0),
+          pitch: Number(input.pitch || 0),
+          volume: Number(input.volume || 0),
+          emotion: normalizeText(input.emotion),
+          voiceRef: normalizeText(input.voice)
+            ? {
+              kind: 3,
+              reference: {
+                oneofKind: 'providerVoiceRef' as const,
+                providerVoiceRef: normalizeText(input.voice),
+              },
+            }
+            : undefined,
+          timingMode: toSpeechTimingMode(input.timingMode),
+          voiceRenderHints: input.voiceRenderHints
+            ? {
+              stability: Number(input.voiceRenderHints.stability || 0),
+              similarityBoost: Number(input.voiceRenderHints.similarityBoost || 0),
+              style: Number(input.voiceRenderHints.style || 0),
+              useSpeakerBoost: Boolean(input.voiceRenderHints.useSpeakerBoost),
+              speed: Number(input.voiceRenderHints.speed || 0),
+            }
+            : undefined,
+        },
+      },
+    },
+    extensions: [],
   };
 
-  return ctx.invokeWithClient(async (client) => client.ai.synthesizeSpeechStream(
+  const stream = await ctx.invokeWithClient(async (client) => client.ai.streamScenario(
     request,
     ctx.resolveRuntimeStreamOptions({
       timeoutMs: input.timeoutMs,
       metadata: input.metadata,
     }),
   ));
+
+  const fallbackMimeType = normalizeText(input.audioFormat) || 'audio/wav';
+  const fallbackModel = ensureText(input.model, 'model');
+  return {
+    async *[Symbol.asyncIterator](): AsyncIterator<ArtifactChunk> {
+      let streamModelResolved = fallbackModel;
+      let streamRouteDecision = request.head.routePolicy || RoutePolicy.UNSPECIFIED;
+      for await (const event of stream) {
+        const payload = (event.payload || { oneofKind: undefined }) as { oneofKind?: string };
+        if (payload.oneofKind === 'started') {
+          const started = (event.payload as { started?: { modelResolved?: string; routeDecision?: RoutePolicy } }).started || {};
+          streamModelResolved = normalizeText(started.modelResolved) || fallbackModel;
+          streamRouteDecision = started.routeDecision || request.head.routePolicy || RoutePolicy.UNSPECIFIED;
+          continue;
+        }
+
+        if (payload.oneofKind === 'delta') {
+          const delta = (event.payload as { delta?: { chunk?: Uint8Array; text?: string; mimeType?: string } }).delta || {};
+          const chunk = delta.chunk || new Uint8Array(0);
+          if (chunk.length === 0) {
+            continue;
+          }
+          yield {
+            artifactId: 'speech-stream-artifact',
+            mimeType: normalizeText(delta.mimeType) || fallbackMimeType,
+            sequence: String(event.sequence || 0),
+            chunk,
+            eof: false,
+            routeDecision: streamRouteDecision,
+            modelResolved: streamModelResolved,
+            traceId: normalizeText(event.traceId),
+          };
+          continue;
+        }
+
+        if (payload.oneofKind === 'completed') {
+          const completed = (event.payload as { completed?: { usage?: ArtifactChunk['usage'] } }).completed || {};
+          yield {
+            artifactId: 'speech-stream-artifact',
+            mimeType: fallbackMimeType,
+            sequence: String(event.sequence || 0),
+            chunk: new Uint8Array(0),
+            eof: true,
+            usage: completed.usage,
+            routeDecision: streamRouteDecision,
+            modelResolved: streamModelResolved,
+            traceId: normalizeText(event.traceId),
+          };
+          return;
+        }
+
+        if (payload.oneofKind === 'failed') {
+          const failed = (event.payload as { failed?: { reasonCode?: string; actionHint?: string } }).failed || {};
+          throw createNimiError({
+            message: normalizeText(failed.actionHint) || 'runtime stream failed',
+            reasonCode: normalizeText(failed.reasonCode) || ReasonCode.AI_STREAM_BROKEN,
+            actionHint: 'retry_or_switch_route',
+            source: 'runtime',
+          });
+        }
+      }
+    },
+  };
 }
 
 function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechTimingMode {
@@ -283,7 +359,7 @@ function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechT
 
 export function streamArtifactsFromMediaOutput(
   output: {
-    job: MediaJob;
+    job: ScenarioJob;
     artifacts: Array<{
       artifactId: string;
       mimeType: string;

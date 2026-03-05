@@ -6,10 +6,6 @@ import { createTauriIpcTransport } from '../transports/tauri-ipc/index';
 import {
   FallbackPolicy,
   RoutePolicy,
-  type EmbedRequest,
-  type GenerateRequest,
-  type SubmitMediaJobRequest,
-  type StreamGenerateRequest,
 } from '../generated/runtime/v1/ai';
 import {
   AuthorizationPreset,
@@ -82,15 +78,20 @@ function requireNonEmptyField(
 }
 
 type RuntimeAiRouteRequest = {
-  routePolicy: RoutePolicy;
-  fallback: FallbackPolicy;
+  routePolicy?: RoutePolicy;
+  fallback?: FallbackPolicy;
+  head?: {
+    routePolicy?: RoutePolicy;
+    fallback?: FallbackPolicy;
+  };
 };
 
 function withAiRouteValidation<Request extends RuntimeAiRouteRequest>(
   methodId: string,
   request: Request,
 ): Request {
-  if (request.routePolicy === RoutePolicy.UNSPECIFIED) {
+  const routePolicy = request.routePolicy ?? request.head?.routePolicy ?? RoutePolicy.UNSPECIFIED;
+  if (routePolicy === RoutePolicy.UNSPECIFIED) {
     throwValidationError(
       'SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED',
       `${methodId} requires explicit routePolicy`,
@@ -98,10 +99,20 @@ function withAiRouteValidation<Request extends RuntimeAiRouteRequest>(
     );
   }
 
-  if (request.fallback === FallbackPolicy.UNSPECIFIED) {
+  const fallback = request.fallback ?? request.head?.fallback ?? FallbackPolicy.UNSPECIFIED;
+  if (fallback === FallbackPolicy.UNSPECIFIED) {
+    if (typeof request.routePolicy !== 'undefined') {
+      return {
+        ...request,
+        fallback: FallbackPolicy.DENY,
+      };
+    }
     return {
       ...request,
-      fallback: FallbackPolicy.DENY,
+      head: {
+        ...(request.head || {}),
+        fallback: FallbackPolicy.DENY,
+      },
     };
   }
 
@@ -124,7 +135,8 @@ function validateAiCredentialMetadata(
     );
   }
 
-  if (request.routePolicy === RoutePolicy.TOKEN_API) {
+  const routePolicy = request.routePolicy ?? request.head?.routePolicy ?? RoutePolicy.UNSPECIFIED;
+  if (routePolicy === RoutePolicy.TOKEN_API) {
     // token-api may use runtime default cloud credentials when keySource is omitted.
     // keySource is only required for explicit inline/managed override.
     if (source === 'inline' && !apiKey) {
@@ -279,10 +291,9 @@ function normalizeRequestForMethod<Request>(
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
 ): Request {
   switch (methodId) {
-    case RuntimeMethodIds.ai.generate:
-    case RuntimeMethodIds.ai.streamGenerate:
-    case RuntimeMethodIds.ai.embed:
-    case RuntimeMethodIds.ai.submitMediaJob: {
+    case RuntimeMethodIds.ai.executeScenario:
+    case RuntimeMethodIds.ai.streamScenario:
+    case RuntimeMethodIds.ai.submitScenarioJob: {
       const normalized = withAiRouteValidation(
         methodId,
         request as unknown as RuntimeAiRouteRequest,
@@ -532,16 +543,18 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       listTokenChain: unary(RuntimeMethodIds.appAuth.listTokenChain),
     },
     ai: {
-      generate: unary(RuntimeMethodIds.ai.generate),
-      streamGenerate: stream(RuntimeMethodIds.ai.streamGenerate),
-      embed: unary(RuntimeMethodIds.ai.embed),
-      submitMediaJob: unary(RuntimeMethodIds.ai.submitMediaJob),
-      getMediaJob: unary(RuntimeMethodIds.ai.getMediaJob),
-      cancelMediaJob: unary(RuntimeMethodIds.ai.cancelMediaJob),
-      subscribeMediaJobEvents: stream(RuntimeMethodIds.ai.subscribeMediaJobEvents),
-      getMediaResult: unary(RuntimeMethodIds.ai.getMediaResult),
-      getSpeechVoices: unary(RuntimeMethodIds.ai.getSpeechVoices),
-      synthesizeSpeechStream: stream(RuntimeMethodIds.ai.synthesizeSpeechStream),
+      executeScenario: unary(RuntimeMethodIds.ai.executeScenario),
+      streamScenario: stream(RuntimeMethodIds.ai.streamScenario),
+      submitScenarioJob: unary(RuntimeMethodIds.ai.submitScenarioJob),
+      getScenarioJob: unary(RuntimeMethodIds.ai.getScenarioJob),
+      cancelScenarioJob: unary(RuntimeMethodIds.ai.cancelScenarioJob),
+      subscribeScenarioJobEvents: stream(RuntimeMethodIds.ai.subscribeScenarioJobEvents),
+      getScenarioArtifacts: unary(RuntimeMethodIds.ai.getScenarioArtifacts),
+      listScenarioProfiles: unary(RuntimeMethodIds.ai.listScenarioProfiles),
+      getVoiceAsset: unary(RuntimeMethodIds.ai.getVoiceAsset),
+      listVoiceAssets: unary(RuntimeMethodIds.ai.listVoiceAssets),
+      deleteVoiceAsset: unary(RuntimeMethodIds.ai.deleteVoiceAsset),
+      listPresetVoices: unary(RuntimeMethodIds.ai.listPresetVoices),
     },
     workflow: {
       submit: unary(RuntimeMethodIds.workflow.submit),

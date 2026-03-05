@@ -102,7 +102,7 @@ export type RuntimeHookLlmFacade = {
     referenceImages?: string[];
     mask?: string;
     responseFormat?: 'url' | 'base64';
-    providerOptions?: Record<string, unknown>;
+    extensions?: Record<string, unknown>;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
@@ -260,7 +260,7 @@ export type HookLlmClient = {
       referenceImages?: string[];
       mask?: string;
       responseFormat?: 'url' | 'base64';
-      providerOptions?: Record<string, unknown>;
+      extensions?: Record<string, unknown>;
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;

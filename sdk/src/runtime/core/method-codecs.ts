@@ -26,27 +26,33 @@ import {
   ValidateAppAccessTokenResponse,
 } from '../generated/runtime/v1/grant';
 import {
-  ArtifactChunk,
-  CancelMediaJobRequest,
-  CancelMediaJobResponse,
-  EmbedRequest,
-  EmbedResponse,
-  GetMediaArtifactsRequest,
-  GetMediaArtifactsResponse,
-  GetMediaJobRequest,
-  GetMediaJobResponse,
-  GetSpeechVoicesRequest,
-  GetSpeechVoicesResponse,
-  GenerateRequest,
-  GenerateResponse,
-  MediaJobEvent,
-  StreamSpeechSynthesisRequest,
-  SubmitMediaJobRequest,
-  SubmitMediaJobResponse,
-  StreamGenerateEvent,
-  StreamGenerateRequest,
-  SubscribeMediaJobEventsRequest,
+  CancelScenarioJobRequest,
+  CancelScenarioJobResponse,
+  ExecuteScenarioRequest,
+  ExecuteScenarioResponse,
+  GetScenarioArtifactsRequest,
+  GetScenarioArtifactsResponse,
+  GetScenarioJobRequest,
+  GetScenarioJobResponse,
+  ListScenarioProfilesRequest,
+  ListScenarioProfilesResponse,
+  ScenarioJobEvent,
+  StreamScenarioEvent,
+  StreamScenarioRequest,
+  SubmitScenarioJobRequest,
+  SubmitScenarioJobResponse,
+  SubscribeScenarioJobEventsRequest,
 } from '../generated/runtime/v1/ai';
+import {
+  DeleteVoiceAssetRequest,
+  DeleteVoiceAssetResponse,
+  GetVoiceAssetRequest,
+  GetVoiceAssetResponse,
+  ListPresetVoicesRequest,
+  ListPresetVoicesResponse,
+  ListVoiceAssetsRequest,
+  ListVoiceAssetsResponse,
+} from '../generated/runtime/v1/voice';
 import {
   CancelWorkflowRequest,
   GetWorkflowRequest,
@@ -235,33 +241,45 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
     requestType: ListTokenChainRequest,
     responseType: ListTokenChainResponse,
   },
-  [RuntimeMethodIds.ai.generate]: {
-    requestType: GenerateRequest,
-    responseType: GenerateResponse,
+  [RuntimeMethodIds.ai.executeScenario]: {
+    requestType: ExecuteScenarioRequest,
+    responseType: ExecuteScenarioResponse,
   },
-  [RuntimeMethodIds.ai.embed]: {
-    requestType: EmbedRequest,
-    responseType: EmbedResponse,
+  [RuntimeMethodIds.ai.submitScenarioJob]: {
+    requestType: SubmitScenarioJobRequest,
+    responseType: SubmitScenarioJobResponse,
   },
-  [RuntimeMethodIds.ai.submitMediaJob]: {
-    requestType: SubmitMediaJobRequest,
-    responseType: SubmitMediaJobResponse,
+  [RuntimeMethodIds.ai.getScenarioJob]: {
+    requestType: GetScenarioJobRequest,
+    responseType: GetScenarioJobResponse,
   },
-  [RuntimeMethodIds.ai.getMediaJob]: {
-    requestType: GetMediaJobRequest,
-    responseType: GetMediaJobResponse,
+  [RuntimeMethodIds.ai.cancelScenarioJob]: {
+    requestType: CancelScenarioJobRequest,
+    responseType: CancelScenarioJobResponse,
   },
-  [RuntimeMethodIds.ai.cancelMediaJob]: {
-    requestType: CancelMediaJobRequest,
-    responseType: CancelMediaJobResponse,
+  [RuntimeMethodIds.ai.getScenarioArtifacts]: {
+    requestType: GetScenarioArtifactsRequest,
+    responseType: GetScenarioArtifactsResponse,
   },
-  [RuntimeMethodIds.ai.getMediaResult]: {
-    requestType: GetMediaArtifactsRequest,
-    responseType: GetMediaArtifactsResponse,
+  [RuntimeMethodIds.ai.listScenarioProfiles]: {
+    requestType: ListScenarioProfilesRequest,
+    responseType: ListScenarioProfilesResponse,
   },
-  [RuntimeMethodIds.ai.getSpeechVoices]: {
-    requestType: GetSpeechVoicesRequest,
-    responseType: GetSpeechVoicesResponse,
+  [RuntimeMethodIds.ai.getVoiceAsset]: {
+    requestType: GetVoiceAssetRequest,
+    responseType: GetVoiceAssetResponse,
+  },
+  [RuntimeMethodIds.ai.listVoiceAssets]: {
+    requestType: ListVoiceAssetsRequest,
+    responseType: ListVoiceAssetsResponse,
+  },
+  [RuntimeMethodIds.ai.deleteVoiceAsset]: {
+    requestType: DeleteVoiceAssetRequest,
+    responseType: DeleteVoiceAssetResponse,
+  },
+  [RuntimeMethodIds.ai.listPresetVoices]: {
+    requestType: ListPresetVoicesRequest,
+    responseType: ListPresetVoicesResponse,
   },
   [RuntimeMethodIds.workflow.submit]: {
     requestType: SubmitWorkflowRequest,
@@ -470,17 +488,13 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
 };
 
 export const RuntimeStreamMethodCodecs: Record<string, RuntimeStreamMethodCodec<unknown, unknown>> = {
-  [RuntimeMethodIds.ai.streamGenerate]: {
-    requestType: StreamGenerateRequest,
-    eventType: StreamGenerateEvent,
+  [RuntimeMethodIds.ai.streamScenario]: {
+    requestType: StreamScenarioRequest,
+    eventType: StreamScenarioEvent,
   },
-  [RuntimeMethodIds.ai.subscribeMediaJobEvents]: {
-    requestType: SubscribeMediaJobEventsRequest,
-    eventType: MediaJobEvent,
-  },
-  [RuntimeMethodIds.ai.synthesizeSpeechStream]: {
-    requestType: StreamSpeechSynthesisRequest,
-    eventType: ArtifactChunk,
+  [RuntimeMethodIds.ai.subscribeScenarioJobEvents]: {
+    requestType: SubscribeScenarioJobEventsRequest,
+    eventType: ScenarioJobEvent,
   },
   [RuntimeMethodIds.workflow.subscribeEvents]: {
     requestType: SubscribeWorkflowEventsRequest,

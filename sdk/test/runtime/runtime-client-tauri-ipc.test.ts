@@ -8,12 +8,11 @@ import type {
   RuntimeWireMessage,
 } from '../../src/runtime/types';
 import {
-  FallbackPolicy,
+  ExecuteScenarioResponse,
   FinishReason,
-  GenerateResponse,
   RoutePolicy,
   StreamEventType,
-  StreamGenerateEvent,
+  StreamScenarioEvent,
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs';
@@ -126,8 +125,8 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
           capturedPayload = unwrapTauriInvokePayload(payload);
           return {
             responseBytesBase64: Buffer.from(
-              GenerateResponse.toBinary(
-                GenerateResponse.create({
+              ExecuteScenarioResponse.toBinary(
+                ExecuteScenarioResponse.create({
                   finishReason: FinishReason.STOP,
                   routeDecision: RoutePolicy.LOCAL_RUNTIME,
                   modelResolved: 'llama3',
@@ -158,10 +157,10 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
       },
     });
 
-    const response = await client.ai.generate(createGenerateRequest());
+    const response = await client.ai.executeScenario(createGenerateRequest());
     assert.equal(response.traceId, 'trace-tauri-write');
     assert.ok(capturedPayload);
-    assert.equal(capturedPayload.methodId, RuntimeMethodIds.ai.generate);
+    assert.equal(capturedPayload.methodId, RuntimeMethodIds.ai.executeScenario);
 
     const metadata = (capturedPayload.metadata || {}) as Record<string, unknown>;
     assert.equal(metadata.appId, APP_ID);
@@ -398,7 +397,7 @@ test('tauri-ipc stream errors surface as NimiError and close remote stream', asy
       },
     });
 
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest());
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
     let streamError: unknown = null;
     try {
       for await (const _event of stream) {
@@ -440,8 +439,8 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
                 streamId,
                 eventType: 'next',
                 payloadBytesBase64: Buffer.from(
-                  StreamGenerateEvent.toBinary(
-                    StreamGenerateEvent.create({
+                  StreamScenarioEvent.toBinary(
+                    StreamScenarioEvent.create({
                       eventType: StreamEventType.STREAM_EVENT_DELTA,
                       sequence: '1',
                       traceId: 'trace-break',
@@ -489,7 +488,7 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
       },
     });
 
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest());
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
     const received: string[] = [];
     for await (const event of stream) {
       if (event.payload.oneofKind === 'delta') {
@@ -558,7 +557,7 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
       },
     });
 
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest());
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
     for await (const _event of stream) {
       // no-op; this stream completes without payload events
     }
@@ -612,7 +611,7 @@ test('tauri-ipc stream abort signal triggers remote close', async () => {
     });
 
     const controller = new AbortController();
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest(), {
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest(), {
       signal: controller.signal,
     });
     controller.abort();
@@ -688,7 +687,7 @@ test('tauri-ipc stream completion removes abort listener', async () => {
       },
     });
 
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest(), { signal });
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest(), { signal });
     assert.equal(abortHandlers.size, 1);
 
     for await (const _event of stream) {

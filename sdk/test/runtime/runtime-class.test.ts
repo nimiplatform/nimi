@@ -16,14 +16,15 @@ import {
   AuthorizationPreset,
 } from '../../src/runtime/generated/runtime/v1/grant';
 import {
+  ExecuteScenarioRequest,
+  ExecuteScenarioResponse,
   FinishReason,
-  GenerateRequest,
-  GenerateResponse,
-  MediaJobEventType,
-  Modal,
+  ScenarioJobEvent,
+  ScenarioJobEventType,
+  ScenarioJobStatus,
+  ScenarioType,
   RoutePolicy,
 } from '../../src/runtime/generated/runtime/v1/ai';
-import { MediaJobEvent } from '../../src/runtime/generated/runtime/v1/ai';
 import { WorkflowEvent, WorkflowEventType } from '../../src/runtime/generated/runtime/v1/workflow';
 import { Timestamp } from '../../src/runtime/generated/google/protobuf/timestamp';
 import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
@@ -39,14 +40,14 @@ function clearNodeGrpcBridge(): void {
 }
 
 test('Runtime auto mode connects lazily and injects subjectUserId from subjectContext provider', async () => {
-  let capturedGenerateRequest: GenerateRequest | null = null;
+  let capturedExecuteScenarioRequest: ExecuteScenarioRequest | null = null;
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
-        capturedGenerateRequest = GenerateRequest.fromBinary(input.request);
-        return GenerateResponse.toBinary(
-          GenerateResponse.create({
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
+        capturedExecuteScenarioRequest = ExecuteScenarioRequest.fromBinary(input.request);
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'hello from runtime class' } as never),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -82,10 +83,10 @@ test('Runtime auto mode connects lazily and injects subjectUserId from subjectCo
 
     assert.equal(output.text, 'hello from runtime class');
     assert.equal(output.trace.traceId, 'trace-runtime-class');
-    assert.ok(capturedGenerateRequest);
-    assert.equal(capturedGenerateRequest?.appId, APP_ID);
-    assert.equal(capturedGenerateRequest?.subjectUserId, 'user-from-provider');
-    assert.equal(capturedGenerateRequest?.modal, Modal.TEXT);
+    assert.ok(capturedExecuteScenarioRequest);
+    assert.equal(capturedExecuteScenarioRequest?.head?.appId, APP_ID);
+    assert.equal(capturedExecuteScenarioRequest?.head?.subjectUserId, 'user-from-provider');
+    assert.equal(capturedExecuteScenarioRequest?.scenarioType, ScenarioType.TEXT_GENERATE);
     assert.equal(runtime.state().status, 'ready');
 
     await runtime.close();
@@ -102,7 +103,7 @@ test('Runtime auto mode retries retryable runtime errors with configured backoff
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         generateCalls += 1;
 
         if (generateCalls === 1) {
@@ -114,8 +115,8 @@ test('Runtime auto mode retries retryable runtime errors with configured backoff
           };
         }
 
-        return GenerateResponse.toBinary(
-          GenerateResponse.create({
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'retry-ok' } as never),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -175,7 +176,7 @@ test('Runtime auto mode does not retry non-retryable runtime errors', async () =
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         generateCalls += 1;
         throw {
           reasonCode: ReasonCode.ACTION_INPUT_INVALID,
@@ -351,7 +352,7 @@ test('retry backoff includes jitter', async () => {
 
     installNodeGrpcBridge({
       invokeUnary: async (_config, input) => {
-        if (input.methodId === RuntimeMethodIds.ai.generate) {
+        if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
           callCount += 1;
           callTimestamps.push(Date.now());
 
@@ -364,8 +365,8 @@ test('retry backoff includes jitter', async () => {
             };
           }
 
-          return GenerateResponse.toBinary(
-            GenerateResponse.create({
+          return ExecuteScenarioResponse.toBinary(
+            ExecuteScenarioResponse.create({
               output: Struct.fromJson({ text: 'jitter-ok' } as never),
               finishReason: FinishReason.STOP,
               routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -415,7 +416,7 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         const metadataEntries = input.metadata;
         capturedMetadata = {};
         for (const [key, value] of Object.entries(metadataEntries)) {
@@ -424,8 +425,8 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
           }
         }
 
-        return GenerateResponse.toBinary(
-          GenerateResponse.create({
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'metadata-ok' } as never),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -473,15 +474,15 @@ test('Runtime ai.text.generate omits x-nimi-key-source unless explicitly provide
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         capturedMetadata = {};
         for (const [key, value] of Object.entries(input.metadata || {})) {
           if (typeof value === 'string') {
             capturedMetadata[key] = value;
           }
         }
-        return GenerateResponse.toBinary(
-          GenerateResponse.create({
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'metadata-default-ok' } as never),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.TOKEN_API,
@@ -556,9 +557,9 @@ test('RuntimeEventName does not include ai.route.decision or media.job.status (S
 test('Runtime runtimeVersion() returns null before any RPC and caches after metadata arrives', async () => {
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
-        return GenerateResponse.toBinary(
-          GenerateResponse.create({
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'version-test' } as never),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -608,7 +609,7 @@ test('Runtime retry defaults to maxAttempts=3 backoffMs=200 when retry is omitte
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         generateCalls += 1;
 
         if (generateCalls < 3) {
@@ -620,8 +621,8 @@ test('Runtime retry defaults to maxAttempts=3 backoffMs=200 when retry is omitte
           };
         }
 
-        return GenerateResponse.toBinary(
-          GenerateResponse.create({
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
             output: Struct.fromJson({ text: 'default-retry' } as never),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -668,7 +669,7 @@ test('OPERATION_ABORTED reasonCode prevents retry even when retryable is true', 
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.generate) {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         generateCalls += 1;
         throw {
           reasonCode: ReasonCode.OPERATION_ABORTED,
@@ -728,8 +729,8 @@ test('Runtime version negotiation: incompatible major version throws SDK_RUNTIME
       if (config._responseMetadataObserver) {
         config._responseMetadataObserver({ 'x-nimi-runtime-version': '1.0.0' });
       }
-      return GenerateResponse.toBinary(
-        GenerateResponse.create({
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
           output: Struct.fromJson({ text: 'never' } as never),
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -771,8 +772,8 @@ test('Runtime version negotiation: compatible version 0.x.y proceeds normally', 
       if (config._responseMetadataObserver) {
         config._responseMetadataObserver({ 'x-nimi-runtime-version': '0.2.0' });
       }
-      return GenerateResponse.toBinary(
-        GenerateResponse.create({
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
           output: Struct.fromJson({ text: 'version-ok' } as never),
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL_RUNTIME,
@@ -804,12 +805,44 @@ test('Runtime version negotiation: compatible version 0.x.y proceeds normally', 
 
 // --- S-TRANSPORT-007: Mode B Terminal State Detection ---
 
-test('Mode B: subscribeMediaJobEvents stops after terminal COMPLETED event', async () => {
-  const events: MediaJobEvent[] = [
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED, sequence: '1' }),
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_RUNNING, sequence: '2' }),
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED, sequence: '3' }),
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED, sequence: '4' }),
+test('Mode B: subscribeScenarioJobEvents stops after terminal COMPLETED event', async () => {
+  const events: ScenarioJobEvent[] = [
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED,
+      sequence: '1',
+      job: {
+        jobId: 'job-1',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.SUBMITTED,
+      },
+    }),
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
+      sequence: '2',
+      job: {
+        jobId: 'job-1',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.RUNNING,
+      },
+    }),
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+      sequence: '3',
+      job: {
+        jobId: 'job-1',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.COMPLETED,
+      },
+    }),
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED,
+      sequence: '4',
+      job: {
+        jobId: 'job-1',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.SUBMITTED,
+      },
+    }),
   ];
 
   installNodeGrpcBridge({
@@ -817,7 +850,10 @@ test('Mode B: subscribeMediaJobEvents stops after terminal COMPLETED event', asy
       throw new Error('unexpected unary call');
     },
     openStream: async (_config, input) => {
-      const wireEvents = events.map((e) => MediaJobEvent.toBinary(e));
+      if (input.methodId !== RuntimeMethodIds.ai.subscribeScenarioJobEvents) {
+        throw new Error(`unexpected stream method: ${input.methodId}`);
+      }
+      const wireEvents = events.map((e) => ScenarioJobEvent.toBinary(e));
       return (async function* () {
         for (const we of wireEvents) {
           yield we;
@@ -835,35 +871,62 @@ test('Mode B: subscribeMediaJobEvents stops after terminal COMPLETED event', asy
     });
 
     await runtime.connect();
-    const stream = await runtime.ai.subscribeMediaJobEvents({ jobId: 'job-1' });
-    const received: MediaJobEventType[] = [];
+    const stream = await runtime.media.jobs.subscribe('job-1');
+    const received: ScenarioJobEventType[] = [];
     for await (const event of stream) {
       received.push(event.eventType);
     }
 
     assert.deepEqual(received, [
-      MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED,
-      MediaJobEventType.MEDIA_JOB_EVENT_RUNNING,
-      MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED,
+      ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED,
+      ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
+      ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
     ]);
   } finally {
     clearNodeGrpcBridge();
   }
 });
 
-test('Mode B: subscribeMediaJobEvents stops after FAILED event', async () => {
-  const events: MediaJobEvent[] = [
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_RUNNING, sequence: '1' }),
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_FAILED, sequence: '2' }),
-    MediaJobEvent.create({ eventType: MediaJobEventType.MEDIA_JOB_EVENT_SUBMITTED, sequence: '3' }),
+test('Mode B: subscribeScenarioJobEvents stops after FAILED event', async () => {
+  const events: ScenarioJobEvent[] = [
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
+      sequence: '1',
+      job: {
+        jobId: 'job-2',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.RUNNING,
+      },
+    }),
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED,
+      sequence: '2',
+      job: {
+        jobId: 'job-2',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.FAILED,
+      },
+    }),
+    ScenarioJobEvent.create({
+      eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED,
+      sequence: '3',
+      job: {
+        jobId: 'job-2',
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        status: ScenarioJobStatus.SUBMITTED,
+      },
+    }),
   ];
 
   installNodeGrpcBridge({
     invokeUnary: async () => {
       throw new Error('unexpected unary call');
     },
-    openStream: async () => {
-      const wireEvents = events.map((e) => MediaJobEvent.toBinary(e));
+    openStream: async (_config, input) => {
+      if (input.methodId !== RuntimeMethodIds.ai.subscribeScenarioJobEvents) {
+        throw new Error(`unexpected stream method: ${input.methodId}`);
+      }
+      const wireEvents = events.map((e) => ScenarioJobEvent.toBinary(e));
       return (async function* () {
         for (const we of wireEvents) {
           yield we;
@@ -881,15 +944,15 @@ test('Mode B: subscribeMediaJobEvents stops after FAILED event', async () => {
     });
 
     await runtime.connect();
-    const stream = await runtime.ai.subscribeMediaJobEvents({ jobId: 'job-2' });
-    const received: MediaJobEventType[] = [];
+    const stream = await runtime.media.jobs.subscribe('job-2');
+    const received: ScenarioJobEventType[] = [];
     for await (const event of stream) {
       received.push(event.eventType);
     }
 
     assert.deepEqual(received, [
-      MediaJobEventType.MEDIA_JOB_EVENT_RUNNING,
-      MediaJobEventType.MEDIA_JOB_EVENT_FAILED,
+      ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING,
+      ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED,
     ]);
   } finally {
     clearNodeGrpcBridge();

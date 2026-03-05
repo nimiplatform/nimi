@@ -18,12 +18,13 @@ import { setNodeGrpcBridge } from '../../src/runtime/transports/node-grpc/index'
 import type { RuntimeClientConfig } from '../../src/runtime/types';
 import {
   FallbackPolicy,
+  ExecutionMode,
   FinishReason,
-  Modal,
   RoutePolicy,
+  ScenarioType,
   StreamEventType,
-  StreamGenerateEvent,
-  StreamGenerateRequest,
+  StreamScenarioEvent,
+  StreamScenarioRequest,
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { ListModelsRequest, ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 
@@ -48,15 +49,15 @@ const runtimeServiceDefinition = {
     responseDeserialize: fromBinaryBuffer,
     originalName: 'listModels',
   },
-  streamGenerate: {
-    path: RuntimeMethodIds.ai.streamGenerate,
+  streamScenario: {
+    path: RuntimeMethodIds.ai.streamScenario,
     requestStream: false,
     responseStream: true,
     requestSerialize: toBinaryBuffer,
     requestDeserialize: fromBinaryBuffer,
     responseSerialize: toBinaryBuffer,
     responseDeserialize: fromBinaryBuffer,
-    originalName: 'streamGenerate',
+    originalName: 'streamScenario',
   },
 } satisfies ServiceDefinition<UntypedServiceImplementation>;
 
@@ -65,7 +66,7 @@ type RuntimeServiceImpl = {
     call: ServerUnaryCall<Uint8Array, Uint8Array>,
     callback: sendUnaryData<Uint8Array>,
   ) => void;
-  streamGenerate: (call: ServerWritableStream<Uint8Array, Uint8Array>) => void;
+  streamScenario: (call: ServerWritableStream<Uint8Array, Uint8Array>) => void;
 };
 
 async function startRuntimeGrpcServer(impl: RuntimeServiceImpl): Promise<{
@@ -95,27 +96,39 @@ async function startRuntimeGrpcServer(impl: RuntimeServiceImpl): Promise<{
   };
 }
 
-function createStreamGenerateRequest(): StreamGenerateRequest {
+function createStreamGenerateRequest(): StreamScenarioRequest {
   return {
-    appId: APP_ID,
-    subjectUserId: 'mod:local-chat',
-    modelId: 'llama3',
-    modal: Modal.TEXT,
-    input: [
-      {
-        role: 'user',
-        content: 'hello',
-        name: '',
+    head: {
+      appId: APP_ID,
+      subjectUserId: 'mod:local-chat',
+      modelId: 'llama3',
+      routePolicy: RoutePolicy.LOCAL_RUNTIME,
+      fallback: FallbackPolicy.DENY,
+      timeoutMs: 0,
+      connectorId: '',
+    },
+    scenarioType: ScenarioType.TEXT_GENERATE,
+    executionMode: ExecutionMode.STREAM,
+    spec: {
+      spec: {
+        oneofKind: 'textGenerate',
+        textGenerate: {
+          input: [
+            {
+              role: 'user',
+              content: 'hello',
+              name: '',
+            },
+          ],
+          systemPrompt: '',
+          tools: [],
+          temperature: 0,
+          topP: 0,
+          maxTokens: 128,
+        },
       },
-    ],
-    systemPrompt: '',
-    tools: [],
-    temperature: 0,
-    topP: 0,
-    maxTokens: 128,
-    routePolicy: RoutePolicy.LOCAL_RUNTIME,
-    fallback: FallbackPolicy.DENY,
-    timeoutMs: 0,
+    },
+    extensions: [],
   };
 }
 
@@ -152,11 +165,11 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
         })),
       );
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       streamMetadata = call.metadata.getMap();
       streamIdempotencyKey = String(call.metadata.get('x-nimi-idempotency-key')[0] || '');
 
-      call.write(StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+      call.write(StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
         eventType: StreamEventType.STREAM_EVENT_DELTA,
         sequence: '1',
         traceId: 'trace-grpc',
@@ -167,7 +180,7 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
           },
         },
       })));
-      call.write(StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+      call.write(StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
         eventType: StreamEventType.STREAM_EVENT_COMPLETED,
         sequence: '2',
         traceId: 'trace-grpc',
@@ -188,8 +201,8 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
     const listModels = await client.model.list({});
     assert.equal(listModels.models.length, 1);
 
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest());
-    const events: StreamGenerateEvent[] = [];
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
+    const events: StreamScenarioEvent[] = [];
     for await (const event of stream) {
       events.push(event);
     }
@@ -222,7 +235,7 @@ test('node-grpc maps grpc status code to structured NimiError reason', async () 
       }) as grpc.ServiceError;
       callback(error, null as unknown as Uint8Array);
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -258,7 +271,7 @@ test('node-grpc maps unavailable grpc status to retryable NimiError', async () =
       }) as grpc.ServiceError;
       callback(error, null as unknown as Uint8Array);
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -294,7 +307,7 @@ test('node-grpc uses uppercase reason code from grpc details', async () => {
       }) as grpc.ServiceError;
       callback(error, null as unknown as Uint8Array);
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -330,7 +343,7 @@ test('node-grpc extracts reason code from CODE: prefixed grpc details', async ()
       }) as grpc.ServiceError;
       callback(error, null as unknown as Uint8Array);
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -370,7 +383,7 @@ test('node-grpc prefers structured reason payload from grpc details', async () =
       }) as grpc.ServiceError;
       callback(error, null as unknown as Uint8Array);
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -414,7 +427,7 @@ test('node-grpc structured grpc details can override retryable for unavailable s
       }) as grpc.ServiceError;
       callback(error, null as unknown as Uint8Array);
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -447,7 +460,7 @@ test('node-grpc stream respects AbortSignal cancellation', { timeout: 5_000 }, a
     listModels: (_call, callback) => {
       callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       const timer = setTimeout(() => {
         call.end();
       }, 200);
@@ -460,7 +473,7 @@ test('node-grpc stream respects AbortSignal cancellation', { timeout: 5_000 }, a
   try {
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     const controller = new AbortController();
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest(), {
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest(), {
       signal: controller.signal,
     });
 
@@ -480,8 +493,8 @@ test('node-grpc stream completion removes abort listener', async () => {
     listModels: (_call, callback) => {
       callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
     },
-    streamGenerate: (call) => {
-      call.write(StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+    streamScenario: (call) => {
+      call.write(StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
         eventType: StreamEventType.STREAM_EVENT_COMPLETED,
         sequence: '1',
         traceId: 'trace-stream-complete',
@@ -510,7 +523,7 @@ test('node-grpc stream completion removes abort listener', async () => {
 
   try {
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest(), { signal });
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest(), { signal });
     assert.equal(abortHandlers.size, 1);
 
     for await (const _event of stream) {
@@ -532,7 +545,7 @@ test('node-grpc metadata only forwards x-nimi extra headers', async () => {
       unaryMetadata = call.metadata.getMap();
       callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });
@@ -570,7 +583,7 @@ test('node-grpc injects authorization header from runtime auth provider', async 
       unaryMetadata = call.metadata.getMap();
       callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
     },
-    streamGenerate: (call) => {
+    streamScenario: (call) => {
       call.end();
     },
   });

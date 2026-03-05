@@ -3,23 +3,10 @@ import { createNimiError } from './errors.js';
 import {
   FallbackPolicy,
   FinishReason,
-  MediaJobEventType,
-  MediaJobStatus,
-  Modal,
+  ScenarioJobEventType,
+  ScenarioJobStatus,
   RoutePolicy,
-  type ArtifactChunk,
-  type CancelMediaJobRequest,
-  type GenerateRequest,
-  type GenerateResponse,
-  type GetMediaArtifactsResponse,
-  type GetSpeechVoicesRequest,
-  type GetSpeechVoicesResponse,
-  type MediaJob,
-  type MediaJobEvent,
-  type SpeechVoiceDescriptor,
-  type StreamGenerateEvent,
-  type StreamSpeechSynthesisRequest,
-  type SubmitMediaJobRequest,
+  type ScenarioJobEvent,
 } from './generated/runtime/v1/ai';
 import {
   WorkflowEventType,
@@ -199,7 +186,7 @@ export function toTraceInfo(input: {
   };
 }
 
-export function extractGenerateText(output: GenerateResponse['output']): string {
+export function extractGenerateText(output: unknown): string {
   const fields = asRecord(asRecord(output).fields);
   const text = asRecord(fields.text);
   const kind = asRecord(text.kind);
@@ -321,11 +308,11 @@ export function toLabels(input: unknown): Record<string, string> {
   return labels;
 }
 
-export const MEDIA_JOB_TERMINAL_EVENT_TYPES: ReadonlySet<MediaJobEventType> = new Set([
-  MediaJobEventType.MEDIA_JOB_EVENT_COMPLETED,
-  MediaJobEventType.MEDIA_JOB_EVENT_FAILED,
-  MediaJobEventType.MEDIA_JOB_EVENT_CANCELED,
-  MediaJobEventType.MEDIA_JOB_EVENT_TIMEOUT,
+export const MEDIA_JOB_TERMINAL_EVENT_TYPES: ReadonlySet<ScenarioJobEventType> = new Set([
+  ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+  ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED,
+  ScenarioJobEventType.SCENARIO_JOB_EVENT_CANCELED,
+  ScenarioJobEventType.SCENARIO_JOB_EVENT_TIMEOUT,
 ]);
 
 export const WORKFLOW_TERMINAL_EVENT_TYPES: ReadonlySet<WorkflowEventType> = new Set([
@@ -334,7 +321,7 @@ export const WORKFLOW_TERMINAL_EVENT_TYPES: ReadonlySet<WorkflowEventType> = new
   WorkflowEventType.WORKFLOW_EVENT_CANCELED,
 ]);
 
-export function wrapModeBMediaStream(source: AsyncIterable<MediaJobEvent>): AsyncIterable<MediaJobEvent> {
+export function wrapModeBMediaStream(source: AsyncIterable<ScenarioJobEvent>): AsyncIterable<ScenarioJobEvent> {
   return {
     async *[Symbol.asyncIterator]() {
       for await (const event of source) {
@@ -385,21 +372,21 @@ export function toIsoFromTimestamp(value: unknown): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-export function mediaStatusToString(status: MediaJobStatus): string {
+export function mediaStatusToString(status: ScenarioJobStatus): string {
   switch (status) {
-    case MediaJobStatus.SUBMITTED:
+    case ScenarioJobStatus.SUBMITTED:
       return 'SUBMITTED';
-    case MediaJobStatus.QUEUED:
+    case ScenarioJobStatus.QUEUED:
       return 'QUEUED';
-    case MediaJobStatus.RUNNING:
+    case ScenarioJobStatus.RUNNING:
       return 'RUNNING';
-    case MediaJobStatus.COMPLETED:
+    case ScenarioJobStatus.COMPLETED:
       return 'COMPLETED';
-    case MediaJobStatus.FAILED:
+    case ScenarioJobStatus.FAILED:
       return 'FAILED';
-    case MediaJobStatus.CANCELED:
+    case ScenarioJobStatus.CANCELED:
       return 'CANCELED';
-    case MediaJobStatus.TIMEOUT:
+    case ScenarioJobStatus.TIMEOUT:
       return 'TIMEOUT';
     default:
       return 'UNSPECIFIED';

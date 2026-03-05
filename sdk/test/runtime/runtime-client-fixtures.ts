@@ -8,10 +8,11 @@ import { ExternalPrincipalType } from '../../src/runtime/generated/runtime/v1/co
 import { Timestamp } from '../../src/runtime/generated/google/protobuf/timestamp';
 import {
   FallbackPolicy,
-  type GenerateRequest,
-  Modal,
+  type ExecuteScenarioRequest,
+  ExecutionMode,
   RoutePolicy,
-  type StreamGenerateRequest,
+  ScenarioType,
+  type StreamScenarioRequest,
 } from '../../src/runtime/generated/runtime/v1/ai';
 
 export const APP_ID = 'nimi.desktop.test';
@@ -24,33 +25,50 @@ export const runtimeConfig: RuntimeClientConfig = {
   },
 };
 
-export function createGenerateRequest(): GenerateRequest {
+export function createGenerateRequest(): ExecuteScenarioRequest {
   return {
-    appId: APP_ID,
-    subjectUserId: 'mod:local-chat',
-    modelId: 'local-model',
-    modal: Modal.TEXT,
-    input: [
-      {
-        role: 'user',
-        content: 'hello',
-        name: '',
+    head: {
+      appId: APP_ID,
+      subjectUserId: 'mod:local-chat',
+      modelId: 'local-model',
+      routePolicy: RoutePolicy.LOCAL_RUNTIME,
+      fallback: FallbackPolicy.DENY,
+      timeoutMs: 0,
+      connectorId: '',
+    },
+    scenarioType: ScenarioType.TEXT_GENERATE,
+    executionMode: ExecutionMode.SYNC,
+    spec: {
+      spec: {
+        oneofKind: 'textGenerate',
+        textGenerate: {
+          input: [
+            {
+              role: 'user',
+              content: 'hello',
+              name: '',
+            },
+          ],
+          systemPrompt: '',
+          tools: [],
+          temperature: 0,
+          topP: 0,
+          maxTokens: 128,
+        },
       },
-    ],
-    systemPrompt: '',
-    tools: [],
-    temperature: 0,
-    topP: 0,
-    maxTokens: 128,
-    routePolicy: RoutePolicy.LOCAL_RUNTIME,
-    fallback: FallbackPolicy.DENY,
-    timeoutMs: 0,
+    },
+    extensions: [],
   };
 }
 
-export function createStreamGenerateRequest(): StreamGenerateRequest {
+export function createStreamGenerateRequest(): StreamScenarioRequest {
+  const request = createGenerateRequest();
   return {
-    ...createGenerateRequest(),
+    head: request.head,
+    scenarioType: request.scenarioType,
+    executionMode: ExecutionMode.STREAM,
+    spec: request.spec,
+    extensions: request.extensions,
   };
 }
 

@@ -1,10 +1,10 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from './errors.js';
 import {
+  ExecutionMode,
   FinishReason,
-  Modal,
   RoutePolicy,
-  type GenerateRequest,
+  ScenarioType,
 } from './generated/runtime/v1/ai';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type {
@@ -21,7 +21,6 @@ import {
   extractGenerateText,
   fromRoutePolicy,
   normalizeText,
-  toEmbeddingVectors,
   toFallbackPolicy,
   toFinishReason,
   toRoutePolicy,
@@ -36,24 +35,35 @@ export async function runtimeGenerateText(
 ): Promise<TextGenerateOutput> {
   const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
-  const request: GenerateRequest = {
-    appId: ctx.appId,
-    subjectUserId,
-    modelId: ensureText(input.model, 'model'),
-    modal: Modal.TEXT,
-    input: prompt.input,
-    systemPrompt: prompt.systemPrompt,
-    tools: [],
-    temperature: Number(input.temperature || 0),
-    topP: Number(input.topP || 0),
-    maxTokens: Number(input.maxTokens || 0),
-    routePolicy: toRoutePolicy(input.route),
-    fallback: toFallbackPolicy(input.fallback),
-    timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-    connectorId: '',
+  const request = {
+    head: {
+      appId: ctx.appId,
+      subjectUserId,
+      modelId: ensureText(input.model, 'model'),
+      routePolicy: toRoutePolicy(input.route),
+      fallback: toFallbackPolicy(input.fallback),
+      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+      connectorId: '',
+    },
+    scenarioType: ScenarioType.TEXT_GENERATE,
+    executionMode: ExecutionMode.SYNC,
+    spec: {
+      spec: {
+        oneofKind: 'textGenerate' as const,
+        textGenerate: {
+          input: prompt.input,
+          systemPrompt: prompt.systemPrompt,
+          tools: [],
+          temperature: Number(input.temperature || 0),
+          topP: Number(input.topP || 0),
+          maxTokens: Number(input.maxTokens || 0),
+        },
+      },
+    },
+    extensions: [],
   };
 
-  const response = await ctx.invokeWithClient(async (client) => client.ai.generate(
+  const response = await ctx.invokeWithClient(async (client) => client.ai.executeScenario(
     request,
     ctx.resolveRuntimeCallOptions({
       timeoutMs: input.timeoutMs,
@@ -69,7 +79,7 @@ export async function runtimeGenerateText(
 
   ctx.emitTelemetry('ai.route.decision', {
     route: trace.routeDecision || 'local-runtime',
-    model: request.modelId,
+    model: request.head.modelId,
     traceId: trace.traceId,
   });
 
@@ -88,22 +98,33 @@ export async function runtimeStreamText(
   const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
 
-  const stream = await ctx.invokeWithClient(async (client) => client.ai.streamGenerate(
+  const stream = await ctx.invokeWithClient(async (client) => client.ai.streamScenario(
     {
-      appId: ctx.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      modal: Modal.TEXT,
-      input: prompt.input,
-      systemPrompt: prompt.systemPrompt,
-      tools: [],
-      temperature: Number(input.temperature || 0),
-      topP: Number(input.topP || 0),
-      maxTokens: Number(input.maxTokens || 0),
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-      connectorId: '',
+      head: {
+        appId: ctx.appId,
+        subjectUserId,
+        modelId: ensureText(input.model, 'model'),
+        routePolicy: toRoutePolicy(input.route),
+        fallback: toFallbackPolicy(input.fallback),
+        timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.STREAM,
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate' as const,
+          textGenerate: {
+            input: prompt.input,
+            systemPrompt: prompt.systemPrompt,
+            tools: [],
+            temperature: Number(input.temperature || 0),
+            topP: Number(input.topP || 0),
+            maxTokens: Number(input.maxTokens || 0),
+          },
+        },
+      },
+      extensions: [],
     },
     ctx.resolveRuntimeStreamOptions({
       timeoutMs: input.timeoutMs,
@@ -205,16 +226,28 @@ export async function runtimeGenerateEmbedding(
     });
   }
 
-  const response = await ctx.invokeWithClient(async (client) => client.ai.embed(
+  const response = await ctx.invokeWithClient(async (client) => client.ai.executeScenario(
     {
-      appId: ctx.appId,
-      subjectUserId,
-      modelId: ensureText(input.model, 'model'),
-      inputs: values,
-      routePolicy: toRoutePolicy(input.route),
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-      connectorId: '',
+      head: {
+        appId: ctx.appId,
+        subjectUserId,
+        modelId: ensureText(input.model, 'model'),
+        routePolicy: toRoutePolicy(input.route),
+        fallback: toFallbackPolicy(input.fallback),
+        timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_EMBED,
+      executionMode: ExecutionMode.SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textEmbed' as const,
+          textEmbed: {
+            inputs: values,
+          },
+        },
+      },
+      extensions: [],
     },
     ctx.resolveRuntimeCallOptions({
       timeoutMs: input.timeoutMs,
@@ -235,8 +268,34 @@ export async function runtimeGenerateEmbedding(
   });
 
   return {
-    vectors: toEmbeddingVectors(response.vectors),
+    vectors: toEmbeddingVectorsFromOutput(response.output),
     usage: toUsage(response.usage),
     trace,
   };
+}
+
+function toEmbeddingVectorsFromOutput(output: unknown): number[][] {
+  const vectors = asRecord(asRecord(output).fields).vectors;
+  const vectorKind = asRecord(asRecord(vectors).kind);
+  const values = vectorKind.oneofKind === 'listValue'
+    ? asRecord(vectorKind.listValue).values
+    : [];
+  const normalized = Array.isArray(values) ? values.map((value: unknown) => {
+    const listKind = asRecord(value).kind;
+    if (asRecord(listKind).oneofKind !== 'listValue') {
+      return { values: [] };
+    }
+    return asRecord(listKind).listValue;
+  }) : [];
+  return normalized.map((entry) => {
+    const items = Array.isArray(asRecord(entry).values) ? asRecord(entry).values as unknown[] : [];
+    return items.map((item: unknown) => {
+      const kind = asRecord(item).kind;
+      if (asRecord(kind).oneofKind === 'numberValue') {
+        const parsed = Number(asRecord(kind).numberValue);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      return null;
+    }).filter((value: number | null): value is number => value !== null);
+  });
 }

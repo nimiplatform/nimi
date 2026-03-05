@@ -1,24 +1,25 @@
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from './errors.js';
 import {
-  MediaJobStatus,
-  Modal,
+  ExecutionMode,
+  ScenarioJobStatus,
+  ScenarioType,
   SpeechTimingMode,
   VideoContentRole,
   VideoContentType,
   VideoMode,
-  type CancelMediaJobRequest,
-  type MediaJob,
-  type MediaJobEvent,
-  type SubmitMediaJobRequest,
+  type ScenarioArtifact,
+  type ScenarioExtension,
+  type ScenarioJob,
+  type ScenarioJobEvent,
+  type SubmitScenarioJobRequest,
 } from './generated/runtime/v1/ai';
-import { Struct } from './generated/google/protobuf/struct.js';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type {
   ImageGenerateInput,
-  MediaJobSubmitInput,
   NimiFallbackPolicy,
   NimiRoutePolicy,
+  ScenarioJobSubmitInput,
   SpeechSynthesizeInput,
   SpeechTranscribeInput,
   VideoGenerateInput,
@@ -38,17 +39,17 @@ import {
   wrapModeBMediaStream,
 } from './helpers.js';
 
-export async function runtimeSubmitMediaJob(
+export async function runtimeSubmitScenarioJobForMedia(
   ctx: RuntimeInternalContext,
-  input: MediaJobSubmitInput,
-): Promise<MediaJob> {
-  const request = await runtimeBuildSubmitMediaJobRequest(ctx, input);
+  input: ScenarioJobSubmitInput,
+): Promise<ScenarioJob> {
+  const request = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, input);
   const metadata = input.input.metadata;
 
-  const response = await ctx.invokeWithClient(async (client) => client.ai.submitMediaJob(
+  const response = await ctx.invokeWithClient(async (client) => client.ai.submitScenarioJob(
     request,
     ctx.resolveRuntimeCallOptions({
-      timeoutMs: request.timeoutMs,
+      timeoutMs: request.head?.timeoutMs,
       idempotencyKey: request.idempotencyKey,
       metadata,
     }),
@@ -56,33 +57,34 @@ export async function runtimeSubmitMediaJob(
 
   if (!response.job) {
     throw createNimiError({
-      message: 'submitMediaJob returned empty job',
+      message: 'submitScenarioJob returned empty job',
       reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
-      actionHint: 'retry_media_job_request',
+      actionHint: 'retry_scenario_job_request',
       source: 'runtime',
     });
   }
 
+  const job = response.job;
   ctx.emitTelemetry('media.job.status', {
-    jobId: response.job.jobId,
-    status: mediaStatusToString(response.job.status),
+    jobId: job.jobId,
+    status: mediaStatusToString(job.status),
     at: nowIso(),
   });
 
-  return response.job;
+  return job;
 }
 
-export async function runtimeGetMediaJob(
+export async function runtimeGetScenarioJobForMedia(
   ctx: RuntimeInternalContext,
   jobId: string,
-): Promise<MediaJob> {
-  const response = await ctx.invokeWithClient(async (client) => client.ai.getMediaJob({
+): Promise<ScenarioJob> {
+  const response = await ctx.invokeWithClient(async (client) => client.ai.getScenarioJob({
     jobId: ensureText(jobId, 'jobId'),
   }));
 
   if (!response.job) {
     throw createNimiError({
-      message: `media job not found: ${jobId}`,
+      message: `scenario job not found: ${jobId}`,
       reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
       actionHint: 'check_job_id_or_retry_submit',
       source: 'runtime',
@@ -92,62 +94,62 @@ export async function runtimeGetMediaJob(
   return response.job;
 }
 
-export async function runtimeCancelMediaJob(
+export async function runtimeCancelScenarioJobForMedia(
   ctx: RuntimeInternalContext,
   input: { jobId: string; reason?: string },
-): Promise<MediaJob> {
-  const request: CancelMediaJobRequest = {
+): Promise<ScenarioJob> {
+  const response = await ctx.invokeWithClient(async (client) => client.ai.cancelScenarioJob({
     jobId: ensureText(input.jobId, 'jobId'),
     reason: normalizeText(input.reason),
-  };
+  }));
 
-  const response = await ctx.invokeWithClient(async (client) => client.ai.cancelMediaJob(request));
   if (!response.job) {
     throw createNimiError({
-      message: `cancelMediaJob returned empty job: ${request.jobId}`,
+      message: `cancelScenarioJob returned empty job: ${input.jobId}`,
       reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
       actionHint: 'retry_or_check_job_status',
       source: 'runtime',
     });
   }
 
+  const job = response.job;
   ctx.emitTelemetry('media.job.status', {
-    jobId: response.job.jobId,
-    status: mediaStatusToString(response.job.status),
+    jobId: job.jobId,
+    status: mediaStatusToString(job.status),
     at: nowIso(),
   });
 
-  return response.job;
+  return job;
 }
 
-export async function runtimeSubscribeMediaJob(
+export async function runtimeSubscribeScenarioJobForMedia(
   ctx: RuntimeInternalContext,
   jobId: string,
-): Promise<AsyncIterable<MediaJobEvent>> {
-  const raw = await ctx.invokeWithClient(async (client) => client.ai.subscribeMediaJobEvents({
+): Promise<AsyncIterable<ScenarioJobEvent>> {
+  const raw = await ctx.invokeWithClient(async (client) => client.ai.subscribeScenarioJobEvents({
     jobId: ensureText(jobId, 'jobId'),
   }));
   return wrapModeBMediaStream(raw);
 }
 
-export async function runtimeGetMediaArtifacts(
+export async function runtimeGetScenarioArtifactsForMedia(
   ctx: RuntimeInternalContext,
   jobId: string,
-): Promise<{ artifacts: import('./generated/runtime/v1/ai').MediaArtifact[]; traceId?: string }> {
-  const response = await ctx.invokeWithClient(async (client) => client.ai.getMediaResult({
+): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }> {
+  const response = await ctx.invokeWithClient(async (client) => client.ai.getScenarioArtifacts({
     jobId: ensureText(jobId, 'jobId'),
   }));
 
   return {
-    artifacts: response.artifacts,
+    artifacts: response.artifacts || [],
     traceId: normalizeText(response.traceId) || undefined,
   };
 }
 
-export async function runtimeBuildSubmitMediaJobRequest(
+export async function runtimeBuildSubmitScenarioJobRequestForMedia(
   ctx: RuntimeInternalContext,
-  input: MediaJobSubmitInput,
-): Promise<SubmitMediaJobRequest> {
+  input: ScenarioJobSubmitInput,
+): Promise<SubmitScenarioJobRequest> {
   const timeoutMs = Number(
     (input.input as { timeoutMs?: unknown }).timeoutMs || ctx.options.timeoutMs || 0,
   );
@@ -158,41 +160,48 @@ export async function runtimeBuildSubmitMediaJobRequest(
     (input.input as { subjectUserId?: string }).subjectUserId,
   );
 
-  const base: SubmitMediaJobRequest = {
-    appId: ctx.appId,
-    subjectUserId,
-    modelId: ensureText((input.input as { model: string }).model, 'model'),
-    modal: Modal.UNSPECIFIED,
-    routePolicy: route,
-    fallback,
-    timeoutMs,
+  const base: SubmitScenarioJobRequest = {
+    head: {
+      appId: ctx.appId,
+      subjectUserId,
+      modelId: ensureText((input.input as { model: string }).model, 'model'),
+      routePolicy: route,
+      fallback,
+      timeoutMs,
+      connectorId: normalizeText((input.input as { connectorId?: string }).connectorId),
+    },
+    scenarioType: scenarioTypeFromModal(input.modal),
+    executionMode: ExecutionMode.ASYNC_JOB,
     requestId: normalizeText((input.input as { requestId?: string }).requestId),
     idempotencyKey: normalizeText((input.input as { idempotencyKey?: string }).idempotencyKey),
     labels: toLabels((input.input as { labels?: Record<string, string> }).labels),
-    spec: { oneofKind: undefined },
-    connectorId: normalizeText((input.input as { connectorId?: string }).connectorId),
+    spec: { spec: { oneofKind: undefined } },
+    extensions: toScenarioExtensions(
+      input.modal,
+      (input.input as { extensions?: Record<string, unknown> }).extensions,
+    ),
   };
 
   if (input.modal === 'image') {
     const value = input.input as ImageGenerateInput;
     return {
       ...base,
-      modal: Modal.IMAGE,
       spec: {
-        oneofKind: 'imageSpec',
-        imageSpec: {
-          prompt: normalizeText(value.prompt),
-          negativePrompt: normalizeText(value.negativePrompt),
-          n: Number(value.n || 0),
-          size: normalizeText(value.size),
-          aspectRatio: normalizeText(value.aspectRatio),
-          quality: normalizeText(value.quality),
-          style: normalizeText(value.style),
-          seed: String(value.seed || 0),
-          referenceImages: Array.isArray(value.referenceImages) ? value.referenceImages : [],
-          providerOptions: toProtoStruct(value.providerOptions),
-          mask: normalizeText(value.mask),
-          responseFormat: normalizeText(value.responseFormat),
+        spec: {
+          oneofKind: 'imageGenerate',
+          imageGenerate: {
+            prompt: normalizeText(value.prompt),
+            negativePrompt: normalizeText(value.negativePrompt),
+            n: Number(value.n || 0),
+            size: normalizeText(value.size),
+            aspectRatio: normalizeText(value.aspectRatio),
+            quality: normalizeText(value.quality),
+            style: normalizeText(value.style),
+            seed: String(value.seed || 0),
+            referenceImages: Array.isArray(value.referenceImages) ? value.referenceImages : [],
+            mask: normalizeText(value.mask),
+            responseFormat: normalizeText(value.responseFormat),
+          },
         },
       },
     };
@@ -219,30 +228,32 @@ export async function runtimeBuildSubmitMediaJobRequest(
         };
       })
       : [];
+
     return {
       ...base,
-      modal: Modal.VIDEO,
       spec: {
-        oneofKind: 'videoSpec',
-        videoSpec: {
-          prompt: normalizeText(value.prompt),
-          negativePrompt: normalizeText(value.negativePrompt),
-          mode: toVideoMode(value.mode),
-          content: videoContent,
-          options: {
-            resolution: normalizeText(options.resolution),
-            ratio: normalizeText(options.ratio),
-            durationSec: Number(options.durationSec || 0),
-            frames: Number(options.frames || 0),
-            fps: Number(options.fps || 0),
-            seed: String(options.seed || 0),
-            cameraFixed: Boolean(options.cameraFixed),
-            watermark: Boolean(options.watermark),
-            generateAudio: Boolean(options.generateAudio),
-            draft: Boolean(options.draft),
-            serviceTier: normalizeText(options.serviceTier),
-            executionExpiresAfterSec: Number(options.executionExpiresAfterSec || 0),
-            returnLastFrame: Boolean(options.returnLastFrame),
+        spec: {
+          oneofKind: 'videoGenerate',
+          videoGenerate: {
+            prompt: normalizeText(value.prompt),
+            negativePrompt: normalizeText(value.negativePrompt),
+            mode: toVideoMode(value.mode),
+            content: videoContent,
+            options: {
+              resolution: normalizeText(options.resolution),
+              ratio: normalizeText(options.ratio),
+              durationSec: Number(options.durationSec || 0),
+              frames: Number(options.frames || 0),
+              fps: Number(options.fps || 0),
+              seed: String(options.seed || 0),
+              cameraFixed: Boolean(options.cameraFixed),
+              watermark: Boolean(options.watermark),
+              generateAudio: Boolean(options.generateAudio),
+              draft: Boolean(options.draft),
+              serviceTier: normalizeText(options.serviceTier),
+              executionExpiresAfterSec: Number(options.executionExpiresAfterSec || 0),
+              returnLastFrame: Boolean(options.returnLastFrame),
+            },
           },
         },
       },
@@ -253,30 +264,30 @@ export async function runtimeBuildSubmitMediaJobRequest(
     const value = input.input as SpeechSynthesizeInput;
     return {
       ...base,
-      modal: Modal.TTS,
       spec: {
-        oneofKind: 'speechSpec',
-        speechSpec: {
-          text: normalizeText(value.text),
-          voice: normalizeText(value.voice),
-          language: normalizeText(value.language),
-          audioFormat: normalizeText(value.audioFormat),
-          sampleRateHz: Number(value.sampleRateHz || 0),
-          speed: Number(value.speed || 0),
-          pitch: Number(value.pitch || 0),
-          volume: Number(value.volume || 0),
-          emotion: normalizeText(value.emotion),
-          timingMode: toSpeechTimingMode(value.timingMode),
-          voiceRenderHints: value.voiceRenderHints
-            ? {
-              stability: Number(value.voiceRenderHints.stability || 0),
-              similarityBoost: Number(value.voiceRenderHints.similarityBoost || 0),
-              style: Number(value.voiceRenderHints.style || 0),
-              useSpeakerBoost: Boolean(value.voiceRenderHints.useSpeakerBoost),
-              speed: Number(value.voiceRenderHints.speed || 0),
-            }
-            : undefined,
-          providerOptions: toProtoStruct(value.providerOptions),
+        spec: {
+          oneofKind: 'speechSynthesize',
+          speechSynthesize: {
+            text: normalizeText(value.text),
+            language: normalizeText(value.language),
+            audioFormat: normalizeText(value.audioFormat),
+            sampleRateHz: Number(value.sampleRateHz || 0),
+            speed: Number(value.speed || 0),
+            pitch: Number(value.pitch || 0),
+            volume: Number(value.volume || 0),
+            emotion: normalizeText(value.emotion),
+            voiceRef: toVoiceRef(value.voice),
+            timingMode: toSpeechTimingMode(value.timingMode),
+            voiceRenderHints: value.voiceRenderHints
+              ? {
+                stability: Number(value.voiceRenderHints.stability || 0),
+                similarityBoost: Number(value.voiceRenderHints.similarityBoost || 0),
+                style: Number(value.voiceRenderHints.style || 0),
+                useSpeakerBoost: Boolean(value.voiceRenderHints.useSpeakerBoost),
+                speed: Number(value.voiceRenderHints.speed || 0),
+              }
+              : undefined,
+          },
         },
       },
     };
@@ -308,24 +319,78 @@ export async function runtimeBuildSubmitMediaJobRequest(
 
   return {
     ...base,
-    modal: Modal.STT,
     spec: {
-      oneofKind: 'transcriptionSpec',
-      transcriptionSpec: {
-        audioBytes: value.audio.kind === 'bytes' ? value.audio.bytes : new Uint8Array(0),
-        audioUri: value.audio.kind === 'url' ? normalizeText(value.audio.url) : '',
-        mimeType: normalizeText(value.mimeType || 'audio/wav'),
-        language: normalizeText(value.language),
-        timestamps: Boolean(value.timestamps),
-        diarization: Boolean(value.diarization),
-        speakerCount: Number(value.speakerCount || 0),
-        prompt: normalizeText(value.prompt),
-        audioSource,
-        responseFormat: normalizeText(value.responseFormat),
-        providerOptions: toProtoStruct(value.providerOptions),
+      spec: {
+        oneofKind: 'speechTranscribe',
+        speechTranscribe: {
+          mimeType: normalizeText(value.mimeType || 'audio/wav'),
+          language: normalizeText(value.language),
+          timestamps: Boolean(value.timestamps),
+          diarization: Boolean(value.diarization),
+          speakerCount: Number(value.speakerCount || 0),
+          prompt: normalizeText(value.prompt),
+          audioSource,
+          responseFormat: normalizeText(value.responseFormat),
+        },
       },
     },
   };
+}
+
+function toVoiceRef(voice: string | undefined): {
+  kind: number;
+  reference: { oneofKind: 'providerVoiceRef'; providerVoiceRef: string };
+} | undefined {
+  const providerVoiceRef = normalizeText(voice);
+  if (!providerVoiceRef) {
+    return undefined;
+  }
+  return {
+    kind: 3,
+    reference: {
+      oneofKind: 'providerVoiceRef',
+      providerVoiceRef,
+    },
+  };
+}
+
+function scenarioTypeFromModal(modal: ScenarioJobSubmitInput['modal']): ScenarioType {
+  switch (modal) {
+    case 'image':
+      return ScenarioType.IMAGE_GENERATE;
+    case 'video':
+      return ScenarioType.VIDEO_GENERATE;
+    case 'tts':
+      return ScenarioType.SPEECH_SYNTHESIZE;
+    case 'stt':
+      return ScenarioType.SPEECH_TRANSCRIBE;
+    default:
+      return ScenarioType.UNSPECIFIED;
+  }
+}
+
+const MODAL_EXTENSION_NAMESPACE: Record<ScenarioJobSubmitInput['modal'], string> = {
+  image: 'nimi.scenario.image.request',
+  video: 'nimi.scenario.video.request',
+  tts: 'nimi.scenario.speech_synthesize.request',
+  stt: 'nimi.scenario.speech_transcribe.request',
+};
+
+function toScenarioExtensions(
+  modal: ScenarioJobSubmitInput['modal'],
+  extensions: Record<string, unknown> | undefined,
+): ScenarioExtension[] {
+  if (!extensions || Object.keys(extensions).length === 0) {
+    return [];
+  }
+  const payload = toProtoStruct(extensions);
+  if (!payload) {
+    return [];
+  }
+  return [{
+    namespace: MODAL_EXTENSION_NAMESPACE[modal],
+    payload,
+  }];
 }
 
 function toVideoMode(value: VideoGenerateInput['mode']): VideoMode {
@@ -371,14 +436,14 @@ function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechT
   }
 }
 
-export async function runtimeWaitForMediaJobCompletion(
+export async function runtimeWaitForScenarioJobCompletion(
   ctx: RuntimeInternalContext,
   jobId: string,
   input: {
     timeoutMs?: number;
     signal?: AbortSignal;
   },
-): Promise<MediaJob> {
+): Promise<ScenarioJob> {
   const timeoutMs = Number(input.timeoutMs || ctx.options.timeoutMs || DEFAULT_MEDIA_TIMEOUT_MS)
     || DEFAULT_MEDIA_TIMEOUT_MS;
   const startedAt = Date.now();
@@ -391,7 +456,7 @@ export async function runtimeWaitForMediaJobCompletion(
     }
     cancelRequested = true;
     try {
-      await runtimeCancelMediaJob(ctx, {
+      await runtimeCancelScenarioJobForMedia(ctx, {
         jobId,
         reason,
       });
@@ -404,14 +469,14 @@ export async function runtimeWaitForMediaJobCompletion(
     if (input.signal?.aborted) {
       await cancel('aborted_by_abort_signal');
       throw createNimiError({
-        message: 'media job aborted',
+        message: 'scenario job aborted',
         reasonCode: ReasonCode.OPERATION_ABORTED,
-        actionHint: 'retry_media_job_request',
+        actionHint: 'retry_scenario_job_request',
         source: 'runtime',
       });
     }
 
-    const job = await runtimeGetMediaJob(ctx, jobId);
+    const job = await runtimeGetScenarioJobForMedia(ctx, jobId);
 
     ctx.emitTelemetry('media.job.status', {
       jobId,
@@ -419,19 +484,19 @@ export async function runtimeWaitForMediaJobCompletion(
       at: nowIso(),
     });
 
-    if (job.status === MediaJobStatus.COMPLETED) {
+    if (job.status === ScenarioJobStatus.COMPLETED) {
       return job;
     }
 
     if (
-      job.status === MediaJobStatus.FAILED
-      || job.status === MediaJobStatus.CANCELED
-      || job.status === MediaJobStatus.TIMEOUT
+      job.status === ScenarioJobStatus.FAILED
+      || job.status === ScenarioJobStatus.CANCELED
+      || job.status === ScenarioJobStatus.TIMEOUT
     ) {
       throw createNimiError({
-        message: normalizeText(job.reasonDetail) || `media job failed: ${job.reasonCode}`,
+        message: normalizeText(job.reasonDetail) || `scenario job failed: ${job.reasonCode}`,
         reasonCode: normalizeText(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE,
-        actionHint: 'retry_media_job_request',
+        actionHint: 'retry_scenario_job_request',
         source: 'runtime',
       });
     }
@@ -439,9 +504,9 @@ export async function runtimeWaitForMediaJobCompletion(
     if ((Date.now() - startedAt) > timeoutMs) {
       await cancel('aborted_by_sdk_timeout');
       throw createNimiError({
-        message: 'media job timeout',
+        message: 'scenario job timeout',
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-        actionHint: 'retry_media_job_request',
+        actionHint: 'retry_scenario_job_request',
         source: 'runtime',
       });
     }

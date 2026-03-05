@@ -16,10 +16,6 @@ import { ReasonCode, type AiFallbackPolicy, type AiRoutePolicy } from '../types/
 import {
   FALLBACK_POLICY_ALLOW,
   FALLBACK_POLICY_DENY,
-  MEDIA_JOB_STATUS_CANCELED,
-  MEDIA_JOB_STATUS_COMPLETED,
-  MEDIA_JOB_STATUS_FAILED,
-  MEDIA_JOB_STATUS_TIMEOUT,
   ROUTE_POLICY_LOCAL_RUNTIME,
   ROUTE_POLICY_TOKEN_API,
   type NimiAiProviderConfig,
@@ -27,6 +23,7 @@ import {
   type RuntimeDefaults,
   type RuntimeForAiProvider,
 } from './types.js';
+import { ExecutionMode, ScenarioJobStatus } from '../runtime/generated/runtime/v1/ai.js';
 
 export function normalizeText(value: unknown): string {
   return String(value || '').trim();
@@ -349,22 +346,29 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-type MediaJobExecution = {
+type ScenarioJobExecution = {
   artifacts: NimiArtifact[];
   traceId: string;
   routeDecision: AiRoutePolicy;
   modelResolved: string;
 };
 
-export async function executeMediaJob(
+export async function executeScenarioJob(
   runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
   request: Record<string, unknown>,
   timeoutMs: number,
   signal?: AbortSignal,
-): Promise<MediaJobExecution> {
-  const submitResponse = await runtime.ai.submitMediaJob(
-    request as never,
+): Promise<ScenarioJobExecution> {
+  const requestRecord = asRecord(request);
+  const requestHead = asRecord(requestRecord.head);
+  const submitRequest = {
+    ...requestRecord,
+    executionMode: Number(requestRecord.executionMode || ExecutionMode.ASYNC_JOB),
+    extensions: Array.isArray(requestRecord.extensions) ? requestRecord.extensions : [],
+  };
+  const submitResponse = await runtime.ai.submitScenarioJob(
+    submitRequest as never,
     toCallOptions(defaults, {
       timeoutMs,
       metadata: undefined,
@@ -381,7 +385,7 @@ export async function executeMediaJob(
     }
     cancelIssued = true;
     try {
-      await runtime.ai.cancelMediaJob(
+      await runtime.ai.cancelScenarioJob(
         {
           jobId,
           reason,
@@ -397,21 +401,21 @@ export async function executeMediaJob(
     if (signal?.aborted) {
       await cancelRemoteJob('aborted_by_abort_signal');
       throw createNimiError({
-        message: 'media job aborted',
+        message: 'scenario job aborted',
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-        actionHint: 'retry_media_job_request',
+        actionHint: 'retry_scenario_job_request',
         source: 'sdk',
       });
     }
 
-    const jobResponse = await runtime.ai.getMediaJob(
+    const jobResponse = await runtime.ai.getScenarioJob(
       { jobId } as never,
       toCallOptions(defaults, { timeoutMs }),
     );
     const job = asRecord(jobResponse.job);
     const status = Number(job.status || 0);
-    if (status === MEDIA_JOB_STATUS_COMPLETED) {
-      const artifactsResponse = await runtime.ai.getMediaResult(
+    if (status === ScenarioJobStatus.COMPLETED) {
+      const artifactsResponse = await runtime.ai.getScenarioArtifacts(
         { jobId } as never,
         toCallOptions(defaults, { timeoutMs }),
       );
@@ -420,7 +424,7 @@ export async function executeMediaJob(
         : [];
       const traceId = normalizeText(artifactsResponse.traceId) || normalizeText(job.traceId);
       const routeDecision = fromRouteDecision(job.routeDecision);
-      const modelResolved = normalizeText(job.modelResolved) || normalizeText(request.modelId);
+      const modelResolved = normalizeText(job.modelResolved) || normalizeText(requestHead.modelId);
 
       return {
         artifacts: artifacts.map((item) => {
@@ -443,24 +447,24 @@ export async function executeMediaJob(
       };
     }
     if (
-      status === MEDIA_JOB_STATUS_FAILED
-      || status === MEDIA_JOB_STATUS_CANCELED
-      || status === MEDIA_JOB_STATUS_TIMEOUT
+      status === ScenarioJobStatus.FAILED
+      || status === ScenarioJobStatus.CANCELED
+      || status === ScenarioJobStatus.TIMEOUT
     ) {
       const reasonCode = normalizeText(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE;
       throw createNimiError({
-        message: normalizeText(job.reasonDetail) || `media job failed: ${reasonCode}`,
+        message: normalizeText(job.reasonDetail) || `scenario job failed: ${reasonCode}`,
         reasonCode,
-        actionHint: 'retry_media_job_request',
+        actionHint: 'retry_scenario_job_request',
         source: 'runtime',
       });
     }
     if ((Date.now() - startedAt) > maxWaitMs) {
       await cancelRemoteJob('aborted_by_sdk_timeout');
       throw createNimiError({
-        message: 'media job timeout',
+        message: 'scenario job timeout',
         reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
-        actionHint: 'retry_media_job_request',
+        actionHint: 'retry_scenario_job_request',
         source: 'runtime',
       });
     }
@@ -634,6 +638,35 @@ export function toEmbeddingVectors(vectors: unknown): number[][] {
         return null;
       })
       .filter((value): value is number => value !== null);
+  });
+}
+
+export function toEmbeddingVectorsFromScenarioOutput(output: unknown): number[][] {
+  const fields = asRecord(asRecord(output).fields);
+  const vectors = asRecord(fields.vectors);
+  const vectorKind = asRecord(vectors.kind);
+  if (vectorKind.oneofKind !== 'listValue') {
+    return [];
+  }
+  const rows = Array.isArray(asRecord(vectorKind.listValue).values)
+    ? asRecord(vectorKind.listValue).values as unknown[]
+    : [];
+  return rows.map((row) => {
+    const rowKind = asRecord(asRecord(row).kind);
+    if (rowKind.oneofKind !== 'listValue') {
+      return [];
+    }
+    const values = Array.isArray(asRecord(rowKind.listValue).values)
+      ? asRecord(rowKind.listValue).values as unknown[]
+      : [];
+    return values.map((value) => {
+      const kind = asRecord(asRecord(value).kind);
+      if (kind.oneofKind === 'numberValue') {
+        const parsed = Number(kind.numberValue);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      return null;
+    }).filter((value): value is number => value !== null);
   });
 }
 

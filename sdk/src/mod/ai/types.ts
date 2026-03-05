@@ -50,7 +50,7 @@ export type AiGenerateImageRequest = AiRouteInput & {
   referenceImages?: string[];
   mask?: string;
   responseFormat?: 'url' | 'base64';
-  providerOptions?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
 };
 
 export type AiGenerateImageResult = {

@@ -1,16 +1,16 @@
 import type { ScopeModule } from '../scope/index.js';
-import { normalizeText, nowIso, wrapModeBMediaStream, wrapModeBWorkflowStream } from './helpers.js';
+import { normalizeText, nowIso, wrapModeBWorkflowStream } from './helpers.js';
 import {
   runtimeGenerateText,
   runtimeStreamText,
   runtimeGenerateEmbedding,
 } from './runtime-ai-text.js';
 import {
-  runtimeSubmitMediaJob,
-  runtimeGetMediaJob,
-  runtimeCancelMediaJob,
-  runtimeSubscribeMediaJob,
-  runtimeGetMediaArtifacts,
+  runtimeSubmitScenarioJobForMedia,
+  runtimeGetScenarioJobForMedia,
+  runtimeCancelScenarioJobForMedia,
+  runtimeSubscribeScenarioJobForMedia,
+  runtimeGetScenarioArtifactsForMedia,
 } from './runtime-media.js';
 import {
   runtimeGenerateImage,
@@ -21,14 +21,12 @@ import {
   runtimeStreamVideo,
   runtimeStreamSpeech,
   runtimeListSpeechVoices,
-  runtimeStreamSpeechSynthesis,
 } from './runtime-modality.js';
 import type {
   RuntimeAiModule,
-  RuntimeAiEmbedRequestInput,
-  RuntimeAiGenerateRequestInput,
-  RuntimeAiStreamGenerateRequestInput,
-  RuntimeAiSubmitMediaJobRequestInput,
+  RuntimeAiExecuteScenarioRequestInput,
+  RuntimeAiStreamScenarioRequestInput,
+  RuntimeAiSubmitScenarioJobRequestInput,
   RuntimeAppAuthClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
@@ -285,55 +283,66 @@ export function createAiModule(
   },
 ): RuntimeAiModule {
   const { invokeWithClient, ctx } = input;
-  const withSubjectUserId = async <T extends { subjectUserId?: string }>(
+  const withScenarioHeadSubjectUserId = async <T extends { head: { subjectUserId?: string } }>(
     request: T,
-  ): Promise<Omit<T, 'subjectUserId'> & { subjectUserId: string }> => {
-    const subjectUserId = await ctx.resolveSubjectUserId(request.subjectUserId);
+  ): Promise<T & { head: { subjectUserId: string } }> => {
+    const subjectUserId = await ctx.resolveSubjectUserId(request.head?.subjectUserId);
     return {
       ...request,
-      subjectUserId,
+      head: {
+        ...request.head,
+        subjectUserId,
+      },
     };
   };
 
   return {
-    generate: async (request, optionsValue) => {
-      const normalizedRequest = await withSubjectUserId(request as RuntimeAiGenerateRequestInput);
+    executeScenario: async (request, optionsValue) => {
+      const normalizedRequest = await withScenarioHeadSubjectUserId(request as RuntimeAiExecuteScenarioRequestInput);
       return invokeWithClient(
-        async (client) => client.ai.generate(normalizedRequest, optionsValue),
+        async (client) => client.ai.executeScenario(normalizedRequest, optionsValue),
       );
     },
-    streamGenerate: async (request, optionsValue) => {
-      const normalizedRequest = await withSubjectUserId(request as RuntimeAiStreamGenerateRequestInput);
+    streamScenario: async (request, optionsValue) => {
+      const normalizedRequest = await withScenarioHeadSubjectUserId(request as RuntimeAiStreamScenarioRequestInput);
       return invokeWithClient(
-        async (client) => client.ai.streamGenerate(normalizedRequest, optionsValue),
+        async (client) => client.ai.streamScenario(normalizedRequest, optionsValue),
       );
     },
-    embed: async (request, optionsValue) => {
-      const normalizedRequest = await withSubjectUserId(request as RuntimeAiEmbedRequestInput);
+    submitScenarioJob: async (request, optionsValue) => {
+      const normalizedRequest = await withScenarioHeadSubjectUserId(request as RuntimeAiSubmitScenarioJobRequestInput);
       return invokeWithClient(
-        async (client) => client.ai.embed(normalizedRequest, optionsValue),
+        async (client) => client.ai.submitScenarioJob(normalizedRequest, optionsValue),
       );
     },
-    submitMediaJob: async (request, optionsValue) => {
-      const normalizedRequest = await withSubjectUserId(request as RuntimeAiSubmitMediaJobRequestInput);
-      return invokeWithClient(
-        async (client) => client.ai.submitMediaJob(normalizedRequest, optionsValue),
-      );
-    },
-    getMediaJob: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.getMediaJob(request, optionsValue),
+    getScenarioJob: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.getScenarioJob(request, optionsValue),
     ),
-    cancelMediaJob: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.cancelMediaJob(request, optionsValue),
+    cancelScenarioJob: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.cancelScenarioJob(request, optionsValue),
     ),
-    subscribeMediaJobEvents: async (request, optionsValue) => {
-      const raw = await invokeWithClient(
-        async (client) => client.ai.subscribeMediaJobEvents(request, optionsValue),
+    subscribeScenarioJobEvents: async (request, optionsValue) => {
+      return invokeWithClient(
+        async (client) => client.ai.subscribeScenarioJobEvents(request, optionsValue),
       );
-      return wrapModeBMediaStream(raw);
     },
-    getMediaResult: async (request, optionsValue) => invokeWithClient(
-      async (client) => client.ai.getMediaResult(request, optionsValue),
+    getScenarioArtifacts: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.getScenarioArtifacts(request, optionsValue),
+    ),
+    listScenarioProfiles: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.listScenarioProfiles(request, optionsValue),
+    ),
+    getVoiceAsset: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.getVoiceAsset(request, optionsValue),
+    ),
+    listVoiceAssets: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.listVoiceAssets(request, optionsValue),
+    ),
+    deleteVoiceAsset: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.deleteVoiceAsset(request, optionsValue),
+    ),
+    listPresetVoices: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.listPresetVoices(request, optionsValue),
     ),
     text: {
       generate: async (textInput) => runtimeGenerateText(ctx, textInput),
@@ -359,17 +368,16 @@ export function createMediaModule(ctx: RuntimeInternalContext): RuntimeMediaModu
       synthesize: async (input) => runtimeSynthesizeSpeech(ctx, input),
       stream: async (input) => runtimeStreamSpeech(ctx, input),
       listVoices: async (input) => runtimeListSpeechVoices(ctx, input),
-      streamSynthesis: (input) => runtimeStreamSpeechSynthesis(ctx, input),
     },
     stt: {
       transcribe: async (input) => runtimeTranscribeSpeech(ctx, input),
     },
     jobs: {
-      submit: async (input) => runtimeSubmitMediaJob(ctx, input),
-      get: async (jobId) => runtimeGetMediaJob(ctx, jobId),
-      cancel: async (input) => runtimeCancelMediaJob(ctx, input),
-      subscribe: async (jobId) => runtimeSubscribeMediaJob(ctx, jobId),
-      getArtifacts: async (jobId) => runtimeGetMediaArtifacts(ctx, jobId),
+      submit: async (input) => runtimeSubmitScenarioJobForMedia(ctx, input),
+      get: async (jobId) => runtimeGetScenarioJobForMedia(ctx, jobId),
+      cancel: async (input) => runtimeCancelScenarioJobForMedia(ctx, input),
+      subscribe: async (jobId) => runtimeSubscribeScenarioJobForMedia(ctx, jobId),
+      getArtifacts: async (jobId) => runtimeGetScenarioArtifactsForMedia(ctx, jobId),
     },
   };
 }

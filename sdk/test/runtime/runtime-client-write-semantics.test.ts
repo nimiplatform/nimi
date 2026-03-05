@@ -12,12 +12,12 @@ import {
 } from '../../src/runtime/generated/runtime/v1/grant';
 import {
   FallbackPolicy,
+  ExecuteScenarioRequest,
+  ExecuteScenarioResponse,
   FinishReason,
-  GenerateRequest,
-  GenerateResponse,
   RoutePolicy,
   StreamEventType,
-  StreamGenerateEvent,
+  StreamScenarioEvent,
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import {
@@ -35,8 +35,8 @@ test('createRuntimeClient injects idempotency key for write unary methods', asyn
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
       captured = input;
-      return GenerateResponse.toBinary(
-        GenerateResponse.create({
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL_RUNTIME,
           modelResolved: 'local-model',
@@ -56,7 +56,7 @@ test('createRuntimeClient injects idempotency key for write unary methods', asyn
 
   try {
     const client = createRuntimeClient(runtimeConfig);
-    const response = await client.ai.generate(createGenerateRequest());
+    const response = await client.ai.executeScenario(createGenerateRequest());
     assert.equal(response.traceId, 'trace-write');
     assert.ok(captured);
     assert.equal(captured.metadata.appId, APP_ID);
@@ -73,8 +73,8 @@ test('createRuntimeClient enforces explicit ai routePolicy', async () => {
   installNodeGrpcBridge({
     invokeUnary: async () => {
       invokeCount += 1;
-      return GenerateResponse.toBinary(
-        GenerateResponse.create({
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL_RUNTIME,
           modelResolved: 'local-model',
@@ -96,9 +96,12 @@ test('createRuntimeClient enforces explicit ai routePolicy', async () => {
     const client = createRuntimeClient(runtimeConfig);
     let thrown: unknown = null;
     try {
-      await client.ai.generate({
+      await client.ai.executeScenario({
         ...createGenerateRequest(),
-        routePolicy: RoutePolicy.UNSPECIFIED,
+        head: {
+          ...createGenerateRequest().head,
+          routePolicy: RoutePolicy.UNSPECIFIED,
+        },
       });
     } catch (error) {
       thrown = error;
@@ -118,8 +121,8 @@ test('createRuntimeClient allows token-api route without explicit keySource meta
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
       captured = input;
-      return GenerateResponse.toBinary(
-        GenerateResponse.create({
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.TOKEN_API,
           modelResolved: 'gemini/gemini-3-flash-preview',
@@ -139,10 +142,13 @@ test('createRuntimeClient allows token-api route without explicit keySource meta
 
   try {
     const client = createRuntimeClient(runtimeConfig);
-    const response = await client.ai.generate({
+    const response = await client.ai.executeScenario({
       ...createGenerateRequest(),
-      modelId: 'gemini/gemini-3-flash-preview',
-      routePolicy: RoutePolicy.TOKEN_API,
+      head: {
+        ...createGenerateRequest().head,
+        modelId: 'gemini/gemini-3-flash-preview',
+        routePolicy: RoutePolicy.TOKEN_API,
+      },
     });
     assert.equal(response.traceId, 'trace-token-api-no-keysource');
     assert.ok(captured);
@@ -157,8 +163,8 @@ test('createRuntimeClient defaults ai fallback policy to deny when unspecified',
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
       captured = input;
-      return GenerateResponse.toBinary(
-        GenerateResponse.create({
+      return ExecuteScenarioResponse.toBinary(
+        ExecuteScenarioResponse.create({
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL_RUNTIME,
           modelResolved: 'local-model',
@@ -178,14 +184,17 @@ test('createRuntimeClient defaults ai fallback policy to deny when unspecified',
 
   try {
     const client = createRuntimeClient(runtimeConfig);
-    await client.ai.generate({
+    await client.ai.executeScenario({
       ...createGenerateRequest(),
-      fallback: FallbackPolicy.UNSPECIFIED,
+      head: {
+        ...createGenerateRequest().head,
+        fallback: FallbackPolicy.UNSPECIFIED,
+      },
     });
     assert.ok(captured);
 
-    const decoded = GenerateRequest.fromBinary(captured.request);
-    assert.equal(decoded.fallback, FallbackPolicy.DENY);
+    const decoded = ExecuteScenarioRequest.fromBinary(captured.request);
+    assert.equal(decoded.head?.fallback, FallbackPolicy.DENY);
   } finally {
     clearNodeGrpcBridge();
   }
@@ -302,8 +311,8 @@ test('createRuntimeClient decodes stream events and forwards closeStream', async
       openedCall = input;
       return {
         async *[Symbol.asyncIterator]() {
-          yield StreamGenerateEvent.toBinary(
-            StreamGenerateEvent.create({
+          yield StreamScenarioEvent.toBinary(
+            StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_DELTA,
               sequence: '1',
               traceId: 'trace-stream',
@@ -315,8 +324,8 @@ test('createRuntimeClient decodes stream events and forwards closeStream', async
               },
             }),
           );
-          yield StreamGenerateEvent.toBinary(
-            StreamGenerateEvent.create({
+          yield StreamScenarioEvent.toBinary(
+            StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_COMPLETED,
               sequence: '2',
               traceId: 'trace-stream',
@@ -338,8 +347,8 @@ test('createRuntimeClient decodes stream events and forwards closeStream', async
 
   try {
     const client = createRuntimeClient(runtimeConfig);
-    const stream = await client.ai.streamGenerate(createStreamGenerateRequest());
-    const events: StreamGenerateEvent[] = [];
+    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
+    const events: StreamScenarioEvent[] = [];
     for await (const event of stream) {
       events.push(event);
     }

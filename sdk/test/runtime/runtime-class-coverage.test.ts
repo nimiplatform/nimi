@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ListValue, Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
+import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 import { Timestamp } from '../../src/runtime/generated/google/protobuf/timestamp.js';
 import {
   Ack,
@@ -24,29 +24,27 @@ import {
   PolicyMode,
 } from '../../src/runtime/generated/runtime/v1/grant.js';
 import {
-  ArtifactChunk,
-  CancelMediaJobRequest,
-  CancelMediaJobResponse,
-  EmbedRequest,
-  EmbedResponse,
+  CancelScenarioJobRequest,
+  CancelScenarioJobResponse,
+  ExecuteScenarioRequest,
+  ExecuteScenarioResponse,
+  ExecutionMode,
   FallbackPolicy,
   FinishReason,
-  GenerateRequest,
-  GenerateResponse,
-  GetMediaArtifactsRequest,
-  GetMediaArtifactsResponse,
-  GetMediaJobRequest,
-  GetMediaJobResponse,
-  MediaJob,
-  MediaJobEvent,
-  MediaJobEventType,
-  MediaJobStatus,
-  Modal,
+  GetScenarioArtifactsRequest,
+  GetScenarioArtifactsResponse,
+  GetScenarioJobRequest,
+  GetScenarioJobResponse,
   RoutePolicy,
+  ScenarioJob,
+  ScenarioJobEvent,
+  ScenarioJobEventType,
+  ScenarioJobStatus,
+  ScenarioType,
   StreamEventType,
-  StreamGenerateEvent,
-  SubmitMediaJobRequest,
-  SubmitMediaJobResponse,
+  StreamScenarioEvent,
+  SubmitScenarioJobRequest,
+  SubmitScenarioJobResponse,
 } from '../../src/runtime/generated/runtime/v1/ai.js';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs.js';
 import {
@@ -79,20 +77,26 @@ function encodeUnary(methodId: string, value?: Record<string, unknown>): Uint8Ar
   return codec.responseType.toBinary(codec.responseType.create(value || {}));
 }
 
-function createMediaJob(input: {
+function createScenarioJob(input: {
   jobId: string;
-  modal: Modal;
-  status: MediaJobStatus;
+  scenarioType: ScenarioType;
+  status: ScenarioJobStatus;
   routeDecision?: RoutePolicy;
   traceId?: string;
-}): MediaJob {
-  return MediaJob.create({
+}): ScenarioJob {
+  return ScenarioJob.create({
     jobId: input.jobId,
-    appId: APP_ID,
-    subjectUserId: 'subject-1',
-    modelId: 'model-1',
-    modal: input.modal,
-    routePolicy: RoutePolicy.LOCAL_RUNTIME,
+    head: {
+      appId: APP_ID,
+      subjectUserId: 'subject-1',
+      modelId: 'model-1',
+      routePolicy: RoutePolicy.LOCAL_RUNTIME,
+      fallback: FallbackPolicy.DENY,
+      timeoutMs: 1000,
+      connectorId: '',
+    },
+    scenarioType: input.scenarioType,
+    executionMode: ExecutionMode.ASYNC_JOB,
     routeDecision: input.routeDecision ?? RoutePolicy.LOCAL_RUNTIME,
     modelResolved: 'resolved-model-1',
     status: input.status,
@@ -108,54 +112,53 @@ function createMediaJob(input: {
 }
 
 test('Runtime text and embedding helpers map requests and stream parts', async () => {
-  const capturedGenerateRequests: GenerateRequest[] = [];
-  const capturedEmbedRequests: EmbedRequest[] = [];
+  const capturedTextRequests: ExecuteScenarioRequest[] = [];
+  const capturedEmbedRequests: ExecuteScenarioRequest[] = [];
   let streamCallCount = 0;
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      switch (input.methodId) {
-        case RuntimeMethodIds.ai.generate: {
-          const request = GenerateRequest.fromBinary(input.request);
-          capturedGenerateRequests.push(request);
-          return GenerateResponse.toBinary(
-            GenerateResponse.create({
-              output: Struct.fromJson({ text: 'hello-from-runtime-generate' } as never),
-              finishReason: FinishReason.LENGTH,
-              usage: {
-                inputTokens: '2',
-                outputTokens: '3',
-                computeMs: '11',
-              },
-              routeDecision: RoutePolicy.TOKEN_API,
-              modelResolved: 'cloud/model',
-              traceId: 'trace-generate',
-            }),
-          );
-        }
-        case RuntimeMethodIds.ai.embed: {
-          const request = EmbedRequest.fromBinary(input.request);
-          capturedEmbedRequests.push(request);
-          return EmbedResponse.toBinary(
-            EmbedResponse.create({
-              vectors: [ListValue.fromJson([0.1, 0.2] as never)],
-              usage: {
-                inputTokens: '4',
-                outputTokens: '0',
-                computeMs: '7',
-              },
-              routeDecision: RoutePolicy.TOKEN_API,
-              modelResolved: 'cloud/embed-model',
-              traceId: 'trace-embed',
-            }),
-          );
-        }
-        default:
-          return encodeUnary(input.methodId);
+      if (input.methodId !== RuntimeMethodIds.ai.executeScenario) {
+        return encodeUnary(input.methodId);
       }
+      const request = ExecuteScenarioRequest.fromBinary(input.request);
+      if (request.scenarioType === ScenarioType.TEXT_GENERATE) {
+        capturedTextRequests.push(request);
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
+            output: Struct.fromJson({ text: 'hello-from-runtime-generate' } as never),
+            finishReason: FinishReason.LENGTH,
+            usage: {
+              inputTokens: '2',
+              outputTokens: '3',
+              computeMs: '11',
+            },
+            routeDecision: RoutePolicy.TOKEN_API,
+            modelResolved: 'cloud/model',
+            traceId: 'trace-generate',
+          }),
+        );
+      }
+      if (request.scenarioType === ScenarioType.TEXT_EMBED) {
+        capturedEmbedRequests.push(request);
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
+            output: Struct.fromJson({ vectors: [[0.1, 0.2]] } as never),
+            usage: {
+              inputTokens: '4',
+              outputTokens: '0',
+              computeMs: '7',
+            },
+            routeDecision: RoutePolicy.TOKEN_API,
+            modelResolved: 'cloud/embed-model',
+            traceId: 'trace-embed',
+          }),
+        );
+      }
+      return encodeUnary(input.methodId);
     },
     openStream: async (_config, input) => {
-      if (input.methodId !== RuntimeMethodIds.ai.streamGenerate) {
+      if (input.methodId !== RuntimeMethodIds.ai.streamScenario) {
         return {
           async *[Symbol.asyncIterator]() {
             // no-op
@@ -167,7 +170,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       if (streamCallCount === 1) {
         return {
           async *[Symbol.asyncIterator]() {
-            yield StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+            yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_STARTED,
               sequence: '1',
               traceId: 'trace-stream-1',
@@ -179,7 +182,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
                 },
               },
             }));
-            yield StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+            yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_DELTA,
               sequence: '2',
               traceId: 'trace-stream-1',
@@ -190,7 +193,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
                 },
               },
             }));
-            yield StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+            yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_USAGE,
               sequence: '3',
               traceId: 'trace-stream-1',
@@ -203,7 +206,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
                 },
               },
             }));
-            yield StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+            yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_COMPLETED,
               sequence: '4',
               traceId: 'trace-stream-1',
@@ -220,7 +223,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
 
       return {
         async *[Symbol.asyncIterator]() {
-          yield StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+          yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
             eventType: StreamEventType.STREAM_EVENT_FAILED,
             sequence: '5',
             traceId: 'trace-stream-2',
@@ -267,27 +270,43 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     assert.equal(textResult.finishReason, 'length');
     assert.equal(textResult.usage.totalTokens, 5);
     assert.equal(textResult.trace.routeDecision, 'token-api');
-    assert.equal(capturedGenerateRequests[0]?.subjectUserId, 'subject-from-context');
-    assert.equal(capturedGenerateRequests[0]?.routePolicy, RoutePolicy.TOKEN_API);
-    assert.equal(capturedGenerateRequests[0]?.fallback, FallbackPolicy.ALLOW);
-    assert.equal(capturedGenerateRequests[0]?.systemPrompt, 'system-one\n\nsystem-two');
+    assert.equal(capturedTextRequests[0]?.head?.subjectUserId, 'subject-from-context');
+    assert.equal(capturedTextRequests[0]?.head?.routePolicy, RoutePolicy.TOKEN_API);
+    assert.equal(capturedTextRequests[0]?.head?.fallback, FallbackPolicy.ALLOW);
+    assert.equal(
+      capturedTextRequests[0]?.spec?.spec.oneofKind === 'textGenerate'
+        ? capturedTextRequests[0]?.spec?.spec.textGenerate.systemPrompt
+        : '',
+      'system-one\n\nsystem-two',
+    );
 
-    await runtime.ai.generate({
-      appId: APP_ID,
-      modelId: 'cloud/model-low-level',
-      modal: Modal.TEXT,
-      input: [{ role: 'user', content: 'low level', name: '' }],
-      systemPrompt: '',
-      tools: [],
-      temperature: 0,
-      topP: 0,
-      maxTokens: 8,
-      routePolicy: RoutePolicy.TOKEN_API,
-      fallback: FallbackPolicy.ALLOW,
-      timeoutMs: 1000,
-      connectorId: '',
+    await runtime.ai.executeScenario({
+      head: {
+        appId: APP_ID,
+        modelId: 'cloud/model-low-level',
+        routePolicy: RoutePolicy.TOKEN_API,
+        fallback: FallbackPolicy.ALLOW,
+        timeoutMs: 1000,
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate',
+          textGenerate: {
+            input: [{ role: 'user', content: 'low level', name: '' }],
+            systemPrompt: '',
+            tools: [],
+            temperature: 0,
+            topP: 0,
+            maxTokens: 8,
+          },
+        },
+      },
+      extensions: [],
     });
-    assert.equal(capturedGenerateRequests[1]?.subjectUserId, 'subject-from-context');
+    assert.equal(capturedTextRequests[1]?.head?.subjectUserId, 'subject-from-context');
 
     const streamResult = await runtime.ai.text.stream({
       model: 'cloud/stream-model',
@@ -332,19 +351,31 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     });
     assert.equal(embeddingResult.vectors.length, 1);
     assert.equal(embeddingResult.trace.traceId, 'trace-embed');
-    assert.equal(capturedEmbedRequests[0]?.subjectUserId, 'subject-explicit');
-    assert.equal(capturedEmbedRequests[0]?.routePolicy, RoutePolicy.TOKEN_API);
+    assert.equal(capturedEmbedRequests[0]?.head?.subjectUserId, 'subject-explicit');
+    assert.equal(capturedEmbedRequests[0]?.head?.routePolicy, RoutePolicy.TOKEN_API);
 
-    await runtime.ai.embed({
-      appId: APP_ID,
-      modelId: 'cloud/embed-model',
-      inputs: ['gamma'],
-      routePolicy: RoutePolicy.TOKEN_API,
-      fallback: FallbackPolicy.ALLOW,
-      timeoutMs: 1000,
-      connectorId: '',
+    await runtime.ai.executeScenario({
+      head: {
+        appId: APP_ID,
+        modelId: 'cloud/embed-model',
+        routePolicy: RoutePolicy.TOKEN_API,
+        fallback: FallbackPolicy.ALLOW,
+        timeoutMs: 1000,
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_EMBED,
+      executionMode: ExecutionMode.SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textEmbed',
+          textEmbed: {
+            inputs: ['gamma'],
+          },
+        },
+      },
+      extensions: [],
     });
-    assert.equal(capturedEmbedRequests[1]?.subjectUserId, 'subject-from-context');
+    assert.equal(capturedEmbedRequests[1]?.head?.subjectUserId, 'subject-from-context');
 
     await assert.rejects(
       async () => runtime.ai.embedding.generate({
@@ -377,20 +408,31 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.AUTH_CONTEXT_MISSING,
     );
     await assert.rejects(
-      async () => runtimeWithoutAuthContext.ai.generate({
-        appId: APP_ID,
-        modelId: 'cloud/model',
-        modal: Modal.TEXT,
-        input: [{ role: 'user', content: 'low level requires subject', name: '' }],
-        systemPrompt: '',
-        tools: [],
-        temperature: 0,
-        topP: 0,
-        maxTokens: 8,
-        routePolicy: RoutePolicy.TOKEN_API,
-        fallback: FallbackPolicy.ALLOW,
-        timeoutMs: 1000,
-        connectorId: '',
+      async () => runtimeWithoutAuthContext.ai.executeScenario({
+        head: {
+          appId: APP_ID,
+          modelId: 'cloud/model',
+          routePolicy: RoutePolicy.TOKEN_API,
+          fallback: FallbackPolicy.ALLOW,
+          timeoutMs: 1000,
+          connectorId: '',
+        },
+        scenarioType: ScenarioType.TEXT_GENERATE,
+        executionMode: ExecutionMode.SYNC,
+        spec: {
+          spec: {
+            oneofKind: 'textGenerate',
+            textGenerate: {
+              input: [{ role: 'user', content: 'low level requires subject', name: '' }],
+              systemPrompt: '',
+              tools: [],
+              temperature: 0,
+              topP: 0,
+              maxTokens: 8,
+            },
+          },
+        },
+        extensions: [],
       }),
       (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.AUTH_CONTEXT_MISSING,
     );
@@ -400,10 +442,10 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
 });
 
 test('Runtime media helpers, raw calls and passthrough modules cover bridge paths', async () => {
-  const submitted: SubmitMediaJobRequest[] = [];
-  const cancelled: CancelMediaJobRequest[] = [];
+  const submitted: SubmitScenarioJobRequest[] = [];
+  const cancelled: CancelScenarioJobRequest[] = [];
   const closedStreamIds: string[] = [];
-  const jobs = new Map<string, MediaJob>();
+  const jobs = new Map<string, ScenarioJob>();
   let sequence = 0;
 
   installNodeGrpcBridge({
@@ -421,42 +463,55 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
             vramBytes: '1024',
             sampledAt: Timestamp.create({ seconds: '1700000100', nanos: 0 }),
           }));
-        case RuntimeMethodIds.ai.submitMediaJob: {
-          const request = SubmitMediaJobRequest.fromBinary(input.request);
+        case RuntimeMethodIds.ai.executeScenario: {
+          const request = ExecuteScenarioRequest.fromBinary(input.request);
+          if (request.scenarioType === ScenarioType.TEXT_EMBED) {
+            return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
+              output: Struct.fromJson({ vectors: [[1, 2, 3]] } as never),
+              usage: { inputTokens: '1', outputTokens: '0', computeMs: '1' },
+              routeDecision: RoutePolicy.LOCAL_RUNTIME,
+              modelResolved: 'embed-raw',
+              traceId: 'trace-raw-embed',
+            }));
+          }
+          return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({}));
+        }
+        case RuntimeMethodIds.ai.submitScenarioJob: {
+          const request = SubmitScenarioJobRequest.fromBinary(input.request);
           submitted.push(request);
           sequence += 1;
           const jobId = `job-${sequence}`;
-          const job = createMediaJob({
+          const job = createScenarioJob({
             jobId,
-            modal: request.modal,
-            status: MediaJobStatus.COMPLETED,
+            scenarioType: request.scenarioType,
+            status: ScenarioJobStatus.COMPLETED,
             routeDecision: RoutePolicy.TOKEN_API,
             traceId: `trace-${jobId}`,
           });
           jobs.set(jobId, job);
-          return SubmitMediaJobResponse.toBinary(SubmitMediaJobResponse.create({ job }));
+          return SubmitScenarioJobResponse.toBinary(SubmitScenarioJobResponse.create({ job }));
         }
-        case RuntimeMethodIds.ai.getMediaJob: {
-          const request = GetMediaJobRequest.fromBinary(input.request);
+        case RuntimeMethodIds.ai.getScenarioJob: {
+          const request = GetScenarioJobRequest.fromBinary(input.request);
           const job = jobs.get(request.jobId);
-          return GetMediaJobResponse.toBinary(GetMediaJobResponse.create({ job }));
+          return GetScenarioJobResponse.toBinary(GetScenarioJobResponse.create({ job }));
         }
-        case RuntimeMethodIds.ai.cancelMediaJob: {
-          const request = CancelMediaJobRequest.fromBinary(input.request);
+        case RuntimeMethodIds.ai.cancelScenarioJob: {
+          const request = CancelScenarioJobRequest.fromBinary(input.request);
           cancelled.push(request);
           const current = jobs.get(request.jobId);
-          const job = createMediaJob({
+          const job = createScenarioJob({
             jobId: request.jobId,
-            modal: current?.modal ?? Modal.IMAGE,
-            status: MediaJobStatus.CANCELED,
+            scenarioType: current?.scenarioType ?? ScenarioType.IMAGE_GENERATE,
+            status: ScenarioJobStatus.CANCELED,
           });
           jobs.set(request.jobId, job);
-          return CancelMediaJobResponse.toBinary(CancelMediaJobResponse.create({ job }));
+          return CancelScenarioJobResponse.toBinary(CancelScenarioJobResponse.create({ job }));
         }
-        case RuntimeMethodIds.ai.getMediaResult: {
-          const request = GetMediaArtifactsRequest.fromBinary(input.request);
+        case RuntimeMethodIds.ai.getScenarioArtifacts: {
+          const request = GetScenarioArtifactsRequest.fromBinary(input.request);
           const payloadText = `artifact-${request.jobId}`;
-          return GetMediaArtifactsResponse.toBinary(GetMediaArtifactsResponse.create({
+          return GetScenarioArtifactsResponse.toBinary(GetScenarioArtifactsResponse.create({
             artifacts: [{
               artifactId: `artifact-${request.jobId}`,
               mimeType: 'text/plain',
@@ -484,57 +539,32 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
             accepted: true,
             reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
           }));
-        case RuntimeMethodIds.ai.embed:
-          return EmbedResponse.toBinary(EmbedResponse.create({
-            vectors: [ListValue.fromJson([1, 2, 3] as never)],
-            usage: { inputTokens: '1', outputTokens: '0', computeMs: '1' },
-            routeDecision: RoutePolicy.LOCAL_RUNTIME,
-            modelResolved: 'embed-raw',
-            traceId: 'trace-raw-embed',
-          }));
         default:
           return encodeUnary(input.methodId);
       }
     },
     openStream: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.ai.subscribeMediaJobEvents) {
+      if (input.methodId === RuntimeMethodIds.ai.subscribeScenarioJobEvents) {
         return {
           async *[Symbol.asyncIterator]() {
-            yield MediaJobEvent.toBinary(MediaJobEvent.create({
-              eventType: MediaJobEventType.MEDIA_JOB_EVENT_STATUS_UPDATED,
+            yield ScenarioJobEvent.toBinary(ScenarioJobEvent.create({
+              eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
               sequence: '1',
               traceId: 'trace-media-event',
-              job: createMediaJob({
+              job: createScenarioJob({
                 jobId: 'job-1',
-                modal: Modal.IMAGE,
-                status: MediaJobStatus.COMPLETED,
+                scenarioType: ScenarioType.IMAGE_GENERATE,
+                status: ScenarioJobStatus.COMPLETED,
               }),
             }));
           },
         };
       }
 
-      if (
-        input.methodId === RuntimeMethodIds.ai.generateImage
-        || input.methodId === RuntimeMethodIds.ai.generateVideo
-        || input.methodId === RuntimeMethodIds.ai.synthesizeSpeech
-      ) {
+      if (input.methodId === RuntimeMethodIds.ai.streamScenario) {
         return {
           async *[Symbol.asyncIterator]() {
-            yield ArtifactChunk.toBinary(ArtifactChunk.create({
-              artifactId: `chunk-${input.methodId}`,
-              mimeType: 'application/octet-stream',
-              chunk: new Uint8Array([1, 2, 3]),
-              eof: true,
-            }));
-          },
-        };
-      }
-
-      if (input.methodId === RuntimeMethodIds.ai.streamGenerate) {
-        return {
-          async *[Symbol.asyncIterator]() {
-            yield StreamGenerateEvent.toBinary(StreamGenerateEvent.create({
+            yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_COMPLETED,
               sequence: '9',
               traceId: 'trace-raw-stream',
@@ -599,33 +629,56 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     const viaCall = await runtime.call(RuntimeMethodIds.model.list, {});
     assert.ok(viaCall);
 
-    const rawEmbed = await runtime.raw.call(RuntimeMethodIds.ai.embed, {
-      appId: APP_ID,
-      subjectUserId: 'subject-1',
-      modelId: 'embed-raw',
-      inputs: ['raw'],
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 1000,
+    const rawEmbed = await runtime.raw.call(RuntimeMethodIds.ai.executeScenario, {
+      head: {
+        appId: APP_ID,
+        subjectUserId: 'subject-1',
+        modelId: 'embed-raw',
+        routePolicy: RoutePolicy.LOCAL_RUNTIME,
+        fallback: FallbackPolicy.DENY,
+        timeoutMs: 1000,
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_EMBED,
+      executionMode: ExecutionMode.SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textEmbed',
+          textEmbed: { inputs: ['raw'] },
+        },
+      },
+      extensions: [],
     });
     assert.ok(rawEmbed);
 
-    const rawStream = await runtime.raw.call(RuntimeMethodIds.ai.streamGenerate, {
-      appId: APP_ID,
-      subjectUserId: 'subject-1',
-      modelId: 'stream-raw',
-      modal: Modal.TEXT,
-      input: [{ role: 'user', content: 'raw stream', name: '' }],
-      systemPrompt: '',
-      tools: [],
-      temperature: 0,
-      topP: 0,
-      maxTokens: 16,
-      routePolicy: RoutePolicy.LOCAL_RUNTIME,
-      fallback: FallbackPolicy.DENY,
-      timeoutMs: 1000,
-    }) as AsyncIterable<StreamGenerateEvent>;
-    const rawStreamItems: StreamGenerateEvent[] = [];
+    const rawStream = await runtime.raw.call(RuntimeMethodIds.ai.streamScenario, {
+      head: {
+        appId: APP_ID,
+        subjectUserId: 'subject-1',
+        modelId: 'stream-raw',
+        routePolicy: RoutePolicy.LOCAL_RUNTIME,
+        fallback: FallbackPolicy.DENY,
+        timeoutMs: 1000,
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.STREAM,
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate',
+          textGenerate: {
+            input: [{ role: 'user', content: 'raw stream', name: '' }],
+            systemPrompt: '',
+            tools: [],
+            temperature: 0,
+            topP: 0,
+            maxTokens: 16,
+          },
+        },
+      },
+      extensions: [],
+    }) as AsyncIterable<StreamScenarioEvent>;
+    const rawStreamItems: StreamScenarioEvent[] = [];
     for await (const event of rawStream) {
       rawStreamItems.push(event);
     }
@@ -704,16 +757,16 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
       },
     });
 
-    const submittedKinds = submitted.map((request) => request.spec.oneofKind);
-    assert.ok(submittedKinds.includes('imageSpec'));
-    assert.ok(submittedKinds.includes('videoSpec'));
-    assert.ok(submittedKinds.includes('speechSpec'));
-    assert.ok(submittedKinds.includes('transcriptionSpec'));
+    const submittedKinds = submitted.map((request) => request.spec?.spec.oneofKind);
+    assert.ok(submittedKinds.includes('imageGenerate'));
+    assert.ok(submittedKinds.includes('videoGenerate'));
+    assert.ok(submittedKinds.includes('speechSynthesize'));
+    assert.ok(submittedKinds.includes('speechTranscribe'));
 
     const transcriptionSources = submitted
-      .filter((request) => request.spec.oneofKind === 'transcriptionSpec')
-      .map((request) => request.spec.oneofKind === 'transcriptionSpec'
-        ? request.spec.transcriptionSpec.audioSource?.source.oneofKind
+      .filter((request) => request.spec?.spec.oneofKind === 'speechTranscribe')
+      .map((request) => request.spec?.spec.oneofKind === 'speechTranscribe'
+        ? request.spec.spec.speechTranscribe.audioSource?.source.oneofKind
         : undefined);
     assert.ok(transcriptionSources.includes('audioBytes'));
     assert.ok(transcriptionSources.includes('audioUri'));
@@ -799,21 +852,24 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     assert.ok(oneSubmitRequest);
     const submitRequestWithoutSubject = {
       ...oneSubmitRequest,
-      subjectUserId: undefined,
+      head: {
+        ...oneSubmitRequest.head,
+        subjectUserId: undefined,
+      },
     };
-    const lowLevelSubmit = await runtime.ai.submitMediaJob(submitRequestWithoutSubject);
+    const lowLevelSubmit = await runtime.ai.submitScenarioJob(submitRequestWithoutSubject as never);
     assert.ok(lowLevelSubmit.job);
-    assert.equal(submitted[submitted.length - 1]?.subjectUserId, 'subject-1');
-    const lowLevelGet = await runtime.ai.getMediaJob({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
+    assert.equal(submitted[submitted.length - 1]?.head?.subjectUserId, 'subject-1');
+    const lowLevelGet = await runtime.ai.getScenarioJob({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
     assert.ok(lowLevelGet.job);
-    const lowLevelArtifacts = await runtime.ai.getMediaResult({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
+    const lowLevelArtifacts = await runtime.ai.getScenarioArtifacts({ jobId: lowLevelSubmit.job?.jobId || 'job-1' });
     assert.ok(lowLevelArtifacts.artifacts.length >= 1);
-    const lowLevelCancel = await runtime.ai.cancelMediaJob({
+    const lowLevelCancel = await runtime.ai.cancelScenarioJob({
       jobId: lowLevelSubmit.job?.jobId || 'job-1',
-      reason: 'cancel legacy',
+      reason: 'cancel scenario',
     });
     assert.ok(lowLevelCancel.job);
-    const lowLevelMediaEvents = await runtime.ai.subscribeMediaJobEvents({
+    const lowLevelMediaEvents = await runtime.ai.subscribeScenarioJobEvents({
       jobId: lowLevelSubmit.job?.jobId || 'job-1',
     });
     let lowLevelMediaCount = 0;

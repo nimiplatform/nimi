@@ -179,7 +179,7 @@ test('mod ai client generateImage t2i keeps minimal payload', async () => {
   assert.equal(imageCalls[0]?.mask, undefined);
 });
 
-test('mod ai client generateImage i2i forwards reference/mask/provider options', async () => {
+test('mod ai client generateImage i2i forwards reference/mask/extensions', async () => {
   clearModSdkHost();
 
   const imageCalls: Array<Record<string, unknown>> = [];
@@ -227,7 +227,7 @@ test('mod ai client generateImage i2i forwards reference/mask/provider options',
     referenceImages,
     mask: 'https://example.com/mask.png',
     responseFormat: 'base64',
-    providerOptions: {
+    extensions: {
       steps: 30,
       method: 'i2i',
       strength: 0.55,
@@ -247,7 +247,7 @@ test('mod ai client generateImage i2i forwards reference/mask/provider options',
   assert.deepEqual(imageCalls[0]?.referenceImages, referenceImages);
   assert.equal(imageCalls[0]?.mask, 'https://example.com/mask.png');
   assert.equal(imageCalls[0]?.responseFormat, 'base64');
-  assert.deepEqual(imageCalls[0]?.providerOptions, {
+  assert.deepEqual(imageCalls[0]?.extensions, {
     steps: 30,
     method: 'i2i',
     strength: 0.55,

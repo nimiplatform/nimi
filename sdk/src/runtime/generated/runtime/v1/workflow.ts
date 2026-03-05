@@ -13,10 +13,11 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
 import { VoiceReference } from "./voice";
-import { Struct } from "../../google/protobuf/struct";
+import { ScenarioExtension } from "./ai";
 import { VoiceWorkflowType } from "./voice";
 import { FallbackPolicy } from "./ai";
 import { RoutePolicy } from "./ai";
@@ -319,9 +320,9 @@ export interface AiTtsCreateVoiceNodeConfig {
      */
     language: string;
     /**
-     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioExtension extensions = 20
      */
-    providerOptions?: Struct;
+    extensions: ScenarioExtension[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AiTtsSynthesizeNodeConfig
@@ -376,9 +377,9 @@ export interface AiTtsSynthesizeNodeConfig {
      */
     emotion: string;
     /**
-     * @generated from protobuf field: google.protobuf.Struct provider_options = 20
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioExtension extensions = 20
      */
-    providerOptions?: Struct;
+    extensions: ScenarioExtension[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ExtractNodeConfig
@@ -1741,7 +1742,7 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
             { no: 9, name: "instruction_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "preview_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+            { no: 20, name: "extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioExtension }
         ]);
     }
     create(value?: PartialMessage<AiTtsCreateVoiceNodeConfig>): AiTtsCreateVoiceNodeConfig {
@@ -1757,6 +1758,7 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
         message.instructionText = "";
         message.previewText = "";
         message.language = "";
+        message.extensions = [];
         if (value !== undefined)
             reflectionMergePartial<AiTtsCreateVoiceNodeConfig>(this, message, value);
         return message;
@@ -1799,8 +1801,8 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
                 case /* string language */ 11:
                     message.language = reader.string();
                     break;
-                case /* google.protobuf.Struct provider_options */ 20:
-                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                case /* repeated nimi.runtime.v1.ScenarioExtension extensions */ 20:
+                    message.extensions.push(ScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1847,9 +1849,9 @@ class AiTtsCreateVoiceNodeConfig$Type extends MessageType<AiTtsCreateVoiceNodeCo
         /* string language = 11; */
         if (message.language !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.language);
-        /* google.protobuf.Struct provider_options = 20; */
-        if (message.providerOptions)
-            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ScenarioExtension extensions = 20; */
+        for (let i = 0; i < message.extensions.length; i++)
+            ScenarioExtension.internalBinaryWrite(message.extensions[i], writer.tag(20, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1876,7 +1878,7 @@ class AiTtsSynthesizeNodeConfig$Type extends MessageType<AiTtsSynthesizeNodeConf
             { no: 10, name: "pitch", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 11, name: "volume", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 12, name: "emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "provider_options", kind: "message", T: () => Struct }
+            { no: 20, name: "extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioExtension }
         ]);
     }
     create(value?: PartialMessage<AiTtsSynthesizeNodeConfig>): AiTtsSynthesizeNodeConfig {
@@ -1892,6 +1894,7 @@ class AiTtsSynthesizeNodeConfig$Type extends MessageType<AiTtsSynthesizeNodeConf
         message.pitch = 0;
         message.volume = 0;
         message.emotion = "";
+        message.extensions = [];
         if (value !== undefined)
             reflectionMergePartial<AiTtsSynthesizeNodeConfig>(this, message, value);
         return message;
@@ -1937,8 +1940,8 @@ class AiTtsSynthesizeNodeConfig$Type extends MessageType<AiTtsSynthesizeNodeConf
                 case /* string emotion */ 12:
                     message.emotion = reader.string();
                     break;
-                case /* google.protobuf.Struct provider_options */ 20:
-                    message.providerOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerOptions);
+                case /* repeated nimi.runtime.v1.ScenarioExtension extensions */ 20:
+                    message.extensions.push(ScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1988,9 +1991,9 @@ class AiTtsSynthesizeNodeConfig$Type extends MessageType<AiTtsSynthesizeNodeConf
         /* string emotion = 12; */
         if (message.emotion !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.emotion);
-        /* google.protobuf.Struct provider_options = 20; */
-        if (message.providerOptions)
-            Struct.internalBinaryWrite(message.providerOptions, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ScenarioExtension extensions = 20; */
+        for (let i = 0; i < message.extensions.length; i++)
+            ScenarioExtension.internalBinaryWrite(message.extensions[i], writer.tag(20, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

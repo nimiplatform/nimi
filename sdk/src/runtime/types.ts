@@ -35,29 +35,36 @@ import type {
   ValidateAppAccessTokenResponse,
 } from './generated/runtime/v1/grant';
 import type {
-  CancelMediaJobRequest,
-  CancelMediaJobResponse,
-  EmbedRequest,
-  EmbedResponse,
-  GetMediaArtifactsRequest,
-  GetMediaArtifactsResponse,
-  GetMediaJobRequest,
-  GetMediaJobResponse,
   ArtifactChunk,
-  GenerateRequest,
-  GenerateResponse,
-  MediaArtifact,
-  MediaJob,
-  GetSpeechVoicesRequest,
-  GetSpeechVoicesResponse,
-  MediaJobEvent,
-  StreamSpeechSynthesisRequest,
-  SubmitMediaJobRequest,
-  SubmitMediaJobResponse,
-  StreamGenerateEvent,
-  StreamGenerateRequest,
-  SubscribeMediaJobEventsRequest,
+  CancelScenarioJobRequest,
+  CancelScenarioJobResponse,
+  ExecuteScenarioRequest,
+  ExecuteScenarioResponse,
+  GetScenarioArtifactsRequest,
+  GetScenarioArtifactsResponse,
+  GetScenarioJobRequest,
+  GetScenarioJobResponse,
+  ListScenarioProfilesRequest,
+  ListScenarioProfilesResponse,
+  ScenarioArtifact,
+  ScenarioJob,
+  ScenarioJobEvent,
+  StreamScenarioEvent,
+  StreamScenarioRequest,
+  SubmitScenarioJobRequest,
+  SubmitScenarioJobResponse,
+  SubscribeScenarioJobEventsRequest,
 } from './generated/runtime/v1/ai';
+import type {
+  DeleteVoiceAssetRequest,
+  DeleteVoiceAssetResponse,
+  GetVoiceAssetRequest,
+  GetVoiceAssetResponse,
+  ListPresetVoicesRequest,
+  ListPresetVoicesResponse,
+  ListVoiceAssetsRequest,
+  ListVoiceAssetsResponse,
+} from './generated/runtime/v1/voice';
 import type {
   CancelWorkflowRequest,
   GetWorkflowRequest,
@@ -310,16 +317,21 @@ export type RuntimeAppAuthClient = {
 };
 
 export type RuntimeAiClient = {
-  generate(request: GenerateRequest, options?: RuntimeCallOptions): Promise<GenerateResponse>;
-  streamGenerate(request: StreamGenerateRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<StreamGenerateEvent>>;
-  embed(request: EmbedRequest, options?: RuntimeCallOptions): Promise<EmbedResponse>;
-  submitMediaJob(request: SubmitMediaJobRequest, options?: RuntimeCallOptions): Promise<SubmitMediaJobResponse>;
-  getMediaJob(request: GetMediaJobRequest, options?: RuntimeCallOptions): Promise<GetMediaJobResponse>;
-  cancelMediaJob(request: CancelMediaJobRequest, options?: RuntimeCallOptions): Promise<CancelMediaJobResponse>;
-  subscribeMediaJobEvents(request: SubscribeMediaJobEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<MediaJobEvent>>;
-  getMediaResult(request: GetMediaArtifactsRequest, options?: RuntimeCallOptions): Promise<GetMediaArtifactsResponse>;
-  getSpeechVoices(request: GetSpeechVoicesRequest, options?: RuntimeCallOptions): Promise<GetSpeechVoicesResponse>;
-  synthesizeSpeechStream(request: StreamSpeechSynthesisRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<ArtifactChunk>>;
+  executeScenario(request: ExecuteScenarioRequest, options?: RuntimeCallOptions): Promise<ExecuteScenarioResponse>;
+  streamScenario(request: StreamScenarioRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<StreamScenarioEvent>>;
+  submitScenarioJob(request: SubmitScenarioJobRequest, options?: RuntimeCallOptions): Promise<SubmitScenarioJobResponse>;
+  getScenarioJob(request: GetScenarioJobRequest, options?: RuntimeCallOptions): Promise<GetScenarioJobResponse>;
+  cancelScenarioJob(request: CancelScenarioJobRequest, options?: RuntimeCallOptions): Promise<CancelScenarioJobResponse>;
+  subscribeScenarioJobEvents(
+    request: SubscribeScenarioJobEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<AsyncIterable<ScenarioJobEvent>>;
+  getScenarioArtifacts(request: GetScenarioArtifactsRequest, options?: RuntimeCallOptions): Promise<GetScenarioArtifactsResponse>;
+  listScenarioProfiles(request: ListScenarioProfilesRequest, options?: RuntimeCallOptions): Promise<ListScenarioProfilesResponse>;
+  getVoiceAsset(request: GetVoiceAssetRequest, options?: RuntimeCallOptions): Promise<GetVoiceAssetResponse>;
+  listVoiceAssets(request: ListVoiceAssetsRequest, options?: RuntimeCallOptions): Promise<ListVoiceAssetsResponse>;
+  deleteVoiceAsset(request: DeleteVoiceAssetRequest, options?: RuntimeCallOptions): Promise<DeleteVoiceAssetResponse>;
+  listPresetVoices(request: ListPresetVoicesRequest, options?: RuntimeCallOptions): Promise<ListPresetVoicesResponse>;
 };
 
 export type RuntimeWorkflowClient = {
@@ -619,6 +631,7 @@ export type ImageGenerateInput = {
   referenceImages?: string[];
   mask?: string;
   responseFormat?: 'url' | 'base64';
+  extensions?: Record<string, unknown>;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -627,7 +640,6 @@ export type ImageGenerateInput = {
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
-  providerOptions?: Record<string, unknown>;
   signal?: AbortSignal;
 };
 
@@ -664,6 +676,7 @@ export type VideoGenerateInput = {
     executionExpiresAfterSec?: number;
     returnLastFrame?: boolean;
   };
+  extensions?: Record<string, unknown>;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -687,6 +700,7 @@ export type SpeechSynthesizeInput = {
   pitch?: number;
   volume?: number;
   emotion?: string;
+  extensions?: Record<string, unknown>;
   timingMode?: 'none' | 'word' | 'char';
   voiceRenderHints?: {
     stability?: number;
@@ -703,7 +717,6 @@ export type SpeechSynthesizeInput = {
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
-  providerOptions?: Record<string, unknown>;
   signal?: AbortSignal;
 };
 
@@ -721,6 +734,7 @@ export type SpeechTranscribeInput = {
   speakerCount?: number;
   prompt?: string;
   responseFormat?: string;
+  extensions?: Record<string, unknown>;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -729,30 +743,29 @@ export type SpeechTranscribeInput = {
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
-  providerOptions?: Record<string, unknown>;
   signal?: AbortSignal;
 };
 
 export type ImageGenerateOutput = {
-  job: MediaJob;
-  artifacts: MediaArtifact[];
+  job: ScenarioJob;
+  artifacts: ScenarioArtifact[];
   trace: NimiTraceInfo;
 };
 
 export type VideoGenerateOutput = {
-  job: MediaJob;
-  artifacts: MediaArtifact[];
+  job: ScenarioJob;
+  artifacts: ScenarioArtifact[];
   trace: NimiTraceInfo;
 };
 
 export type SpeechSynthesizeOutput = {
-  job: MediaJob;
-  artifacts: MediaArtifact[];
+  job: ScenarioJob;
+  artifacts: ScenarioArtifact[];
   trace: NimiTraceInfo;
 };
 
 export type SpeechTranscribeOutput = {
-  job: MediaJob;
+  job: ScenarioJob;
   text: string;
   trace: NimiTraceInfo;
 };
@@ -780,35 +793,7 @@ export type SpeechListVoicesOutput = {
   voiceCount?: number;
 };
 
-export type SpeechStreamSynthesisInput = {
-  model: string;
-  text: string;
-  subjectUserId?: string;
-  voice?: string;
-  language?: string;
-  audioFormat?: string;
-  sampleRateHz?: number;
-  speed?: number;
-  pitch?: number;
-  volume?: number;
-  emotion?: string;
-  timingMode?: 'none' | 'word' | 'char';
-  voiceRenderHints?: {
-    stability?: number;
-    similarityBoost?: number;
-    style?: number;
-    useSpeakerBoost?: boolean;
-    speed?: number;
-  };
-  route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
-  timeoutMs?: number;
-  connectorId?: string;
-  metadata?: Record<string, string>;
-  providerOptions?: Record<string, unknown>;
-};
-
-export type MediaJobSubmitInput =
+export type ScenarioJobSubmitInput =
   | { modal: 'image'; input: ImageGenerateInput }
   | { modal: 'video'; input: VideoGenerateInput }
   | { modal: 'tts'; input: SpeechSynthesizeInput }
@@ -821,52 +806,61 @@ export type RuntimeScopeModule = {
   list(input?: { include?: Array<'realm' | 'runtime' | 'app'> }): Promise<ScopeCatalogDescriptor>;
 };
 
-export type RuntimeAiGenerateRequestInput =
-  Omit<GenerateRequest, 'subjectUserId'>
-  & { subjectUserId?: string };
+export type RuntimeAiExecuteScenarioRequestInput =
+  Omit<ExecuteScenarioRequest, 'head'>
+  & {
+    head: Omit<NonNullable<ExecuteScenarioRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+  };
 
-export type RuntimeAiStreamGenerateRequestInput =
-  Omit<StreamGenerateRequest, 'subjectUserId'>
-  & { subjectUserId?: string };
+export type RuntimeAiStreamScenarioRequestInput =
+  Omit<StreamScenarioRequest, 'head'>
+  & {
+    head: Omit<NonNullable<StreamScenarioRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+  };
 
-export type RuntimeAiEmbedRequestInput =
-  Omit<EmbedRequest, 'subjectUserId'>
-  & { subjectUserId?: string };
-
-export type RuntimeAiSubmitMediaJobRequestInput =
-  Omit<SubmitMediaJobRequest, 'subjectUserId'>
-  & { subjectUserId?: string };
+export type RuntimeAiSubmitScenarioJobRequestInput =
+  Omit<SubmitScenarioJobRequest, 'head'>
+  & {
+    head: Omit<NonNullable<SubmitScenarioJobRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+  };
 
 export type RuntimeAiModule = {
-  generate(
-    request: RuntimeAiGenerateRequestInput,
+  executeScenario(
+    request: RuntimeAiExecuteScenarioRequestInput,
     options?: RuntimeCallOptions,
-  ): Promise<GenerateResponse>;
-  streamGenerate(
-    request: RuntimeAiStreamGenerateRequestInput,
+  ): Promise<ExecuteScenarioResponse>;
+  streamScenario(
+    request: RuntimeAiStreamScenarioRequestInput,
     options?: RuntimeStreamCallOptions,
-  ): Promise<AsyncIterable<StreamGenerateEvent>>;
-  embed(
-    request: RuntimeAiEmbedRequestInput,
+  ): Promise<AsyncIterable<StreamScenarioEvent>>;
+  submitScenarioJob(
+    request: RuntimeAiSubmitScenarioJobRequestInput,
     options?: RuntimeCallOptions,
-  ): Promise<EmbedResponse>;
-  submitMediaJob(
-    request: RuntimeAiSubmitMediaJobRequestInput,
+  ): Promise<SubmitScenarioJobResponse>;
+  getScenarioJob(
+    request: GetScenarioJobRequest,
     options?: RuntimeCallOptions,
-  ): Promise<SubmitMediaJobResponse>;
-  getMediaJob(request: GetMediaJobRequest, options?: RuntimeCallOptions): Promise<GetMediaJobResponse>;
-  cancelMediaJob(
-    request: CancelMediaJobRequest,
+  ): Promise<GetScenarioJobResponse>;
+  cancelScenarioJob(
+    request: CancelScenarioJobRequest,
     options?: RuntimeCallOptions,
-  ): Promise<CancelMediaJobResponse>;
-  subscribeMediaJobEvents(
-    request: SubscribeMediaJobEventsRequest,
+  ): Promise<CancelScenarioJobResponse>;
+  subscribeScenarioJobEvents(
+    request: SubscribeScenarioJobEventsRequest,
     options?: RuntimeStreamCallOptions,
-  ): Promise<AsyncIterable<MediaJobEvent>>;
-  getMediaResult(
-    request: GetMediaArtifactsRequest,
+  ): Promise<AsyncIterable<ScenarioJobEvent>>;
+  getScenarioArtifacts(
+    request: GetScenarioArtifactsRequest,
     options?: RuntimeCallOptions,
-  ): Promise<GetMediaArtifactsResponse>;
+  ): Promise<GetScenarioArtifactsResponse>;
+  listScenarioProfiles(
+    request: ListScenarioProfilesRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListScenarioProfilesResponse>;
+  getVoiceAsset(request: GetVoiceAssetRequest, options?: RuntimeCallOptions): Promise<GetVoiceAssetResponse>;
+  listVoiceAssets(request: ListVoiceAssetsRequest, options?: RuntimeCallOptions): Promise<ListVoiceAssetsResponse>;
+  deleteVoiceAsset(request: DeleteVoiceAssetRequest, options?: RuntimeCallOptions): Promise<DeleteVoiceAssetResponse>;
+  listPresetVoices(request: ListPresetVoicesRequest, options?: RuntimeCallOptions): Promise<ListPresetVoicesResponse>;
   text: {
     generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     stream(input: TextStreamInput): Promise<TextStreamOutput>;
@@ -889,17 +883,16 @@ export type RuntimeMediaModule = {
     synthesize(input: SpeechSynthesizeInput): Promise<SpeechSynthesizeOutput>;
     stream(input: SpeechSynthesizeInput): Promise<AsyncIterable<ArtifactChunk>>;
     listVoices(input: SpeechListVoicesInput): Promise<SpeechListVoicesOutput>;
-    streamSynthesis(input: SpeechStreamSynthesisInput): Promise<AsyncIterable<ArtifactChunk>>;
   };
   stt: {
     transcribe(input: SpeechTranscribeInput): Promise<SpeechTranscribeOutput>;
   };
   jobs: {
-    submit(input: MediaJobSubmitInput): Promise<MediaJob>;
-    get(jobId: string): Promise<MediaJob>;
-    cancel(input: { jobId: string; reason?: string }): Promise<MediaJob>;
-    subscribe(jobId: string): Promise<AsyncIterable<MediaJobEvent>>;
-    getArtifacts(jobId: string): Promise<{ artifacts: MediaArtifact[]; traceId?: string }>;
+    submit(input: ScenarioJobSubmitInput): Promise<ScenarioJob>;
+    get(jobId: string): Promise<ScenarioJob>;
+    cancel(input: { jobId: string; reason?: string }): Promise<ScenarioJob>;
+    subscribe(jobId: string): Promise<AsyncIterable<ScenarioJobEvent>>;
+    getArtifacts(jobId: string): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }>;
   };
 };
 

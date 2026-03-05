@@ -10,15 +10,6 @@ export const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 export const ROUTE_POLICY_TOKEN_API = 2;
 export const FALLBACK_POLICY_DENY = 1;
 export const FALLBACK_POLICY_ALLOW = 2;
-export const MODAL_TEXT = 1;
-export const MODAL_IMAGE = 2;
-export const MODAL_VIDEO = 3;
-export const MODAL_TTS = 4;
-export const MODAL_STT = 5;
-export const MEDIA_JOB_STATUS_COMPLETED = 4;
-export const MEDIA_JOB_STATUS_FAILED = 5;
-export const MEDIA_JOB_STATUS_CANCELED = 6;
-export const MEDIA_JOB_STATUS_TIMEOUT = 7;
 
 export type RuntimeDefaults = {
   appId: string;
@@ -40,14 +31,13 @@ export type NimiAiProviderConfig = {
 };
 
 export type RuntimeAiBridge = Pick<Runtime['ai'],
-  | 'generate'
-  | 'streamGenerate'
-  | 'embed'
-  | 'submitMediaJob'
-  | 'getMediaJob'
-  | 'cancelMediaJob'
-  | 'subscribeMediaJobEvents'
-  | 'getMediaResult'
+  | 'executeScenario'
+  | 'streamScenario'
+  | 'submitScenarioJob'
+  | 'getScenarioJob'
+  | 'cancelScenarioJob'
+  | 'subscribeScenarioJobEvents'
+  | 'getScenarioArtifacts'
 >;
 
 export type RuntimeForAiProvider = {
@@ -107,7 +97,7 @@ export type NimiRuntimeSpeechModel = {
     pitch?: number;
     volume?: number;
     emotion?: string;
-    providerOptions?: Record<string, unknown>;
+    extensions?: Record<string, unknown>;
     requestId?: string;
     idempotencyKey?: string;
     labels?: Record<string, string>;
@@ -130,7 +120,7 @@ export type NimiRuntimeTranscriptionModel = {
     speakerCount?: number;
     prompt?: string;
     responseFormat?: string;
-    providerOptions?: Record<string, unknown>;
+    extensions?: Record<string, unknown>;
     requestId?: string;
     idempotencyKey?: string;
     labels?: Record<string, string>;

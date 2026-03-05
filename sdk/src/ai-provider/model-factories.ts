@@ -14,11 +14,6 @@ import type {
 import { createNimiError } from '../runtime/index.js';
 import { ReasonCode } from '../types/index.js';
 import {
-  MODAL_IMAGE,
-  MODAL_STT,
-  MODAL_TEXT,
-  MODAL_TTS,
-  MODAL_VIDEO,
   type NimiRuntimeSpeechModel,
   type NimiRuntimeTranscriptionModel,
   type NimiRuntimeVideoModel,
@@ -27,7 +22,7 @@ import {
 } from './types.js';
 import {
   asRecord,
-  executeMediaJob,
+  executeScenarioJob,
   extractGenerateText,
   normalizeProviderError,
   normalizeText,
@@ -36,30 +31,33 @@ import {
   resolveRoutePolicy,
   toBase64,
   toCallOptions,
-  toEmbeddingVectors,
+  toEmbeddingVectorsFromScenarioOutput,
   toFinishReason,
   toImageFileSource,
   toImageFileSources,
   toLabels,
-  toProtoStruct,
   toProviderMetadata,
   toRuntimePrompt,
   toStreamOptions,
   toUsage,
   toUtf8,
 } from './helpers.js';
+import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
 
-function withOptionalSubjectUserId<T extends Record<string, unknown>>(
+function withOptionalHeadSubjectUserId<T extends { head: Record<string, unknown> }>(
   request: T,
   subjectUserId: string | undefined,
-): T | (T & { subjectUserId: string }) {
+): T {
   const normalized = normalizeText(subjectUserId);
   if (!normalized) {
     return request;
   }
   return {
     ...request,
-    subjectUserId: normalized,
+    head: {
+      ...request.head,
+      subjectUserId: normalized,
+    },
   };
 }
 
@@ -106,20 +104,31 @@ export function createLanguageModel(
           });
         }
 
-        const response = await runtime.ai.generate(withOptionalSubjectUserId({
-          appId: defaults.appId,
-          modelId,
-          modal: MODAL_TEXT,
-          input: prompt.input,
-          systemPrompt: prompt.systemPrompt,
-          tools: [],
-          temperature: options.temperature || 0,
-          topP: options.topP || 0,
-          maxTokens: options.maxOutputTokens || 0,
-          routePolicy: resolveRoutePolicy(defaults.routePolicy),
-          fallback: resolveFallbackPolicy(defaults.fallback),
-          timeoutMs: defaults.timeoutMs || 0,
-          connectorId: '',
+        const response = await runtime.ai.executeScenario(withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(defaults.routePolicy),
+            fallback: resolveFallbackPolicy(defaults.fallback),
+            timeoutMs: defaults.timeoutMs || 0,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.TEXT_GENERATE,
+          executionMode: ExecutionMode.SYNC,
+          spec: {
+            spec: {
+              oneofKind: 'textGenerate',
+              textGenerate: {
+                input: prompt.input,
+                systemPrompt: prompt.systemPrompt,
+                tools: [],
+                temperature: options.temperature || 0,
+                topP: options.topP || 0,
+                maxTokens: options.maxOutputTokens || 0,
+              },
+            },
+          },
+          extensions: [],
         }, defaults.subjectUserId), toCallOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
         }));
@@ -158,20 +167,31 @@ export function createLanguageModel(
           });
         }
 
-        const runtimeStream = await runtime.ai.streamGenerate(withOptionalSubjectUserId({
-          appId: defaults.appId,
-          modelId,
-          modal: MODAL_TEXT,
-          input: prompt.input,
-          systemPrompt: prompt.systemPrompt,
-          tools: [],
-          temperature: options.temperature || 0,
-          topP: options.topP || 0,
-          maxTokens: options.maxOutputTokens || 0,
-          routePolicy: resolveRoutePolicy(defaults.routePolicy),
-          fallback: resolveFallbackPolicy(defaults.fallback),
-          timeoutMs: defaults.timeoutMs || 0,
-          connectorId: '',
+        const runtimeStream = await runtime.ai.streamScenario(withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(defaults.routePolicy),
+            fallback: resolveFallbackPolicy(defaults.fallback),
+            timeoutMs: defaults.timeoutMs || 0,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.TEXT_GENERATE,
+          executionMode: ExecutionMode.STREAM,
+          spec: {
+            spec: {
+              oneofKind: 'textGenerate',
+              textGenerate: {
+                input: prompt.input,
+                systemPrompt: prompt.systemPrompt,
+                tools: [],
+                temperature: options.temperature || 0,
+                topP: options.topP || 0,
+                maxTokens: options.maxOutputTokens || 0,
+              },
+            },
+          },
+          extensions: [],
         }, defaults.subjectUserId), toStreamOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
           signal: options.abortSignal,
@@ -186,10 +206,18 @@ export function createLanguageModel(
                 type: 'stream-start',
                 warnings: [],
               });
+              let streamRouteDecision = resolveRoutePolicy(defaults.routePolicy);
+              let streamModelResolved = modelId;
+              let streamUsage: unknown = undefined;
 
               for await (const event of runtimeStream) {
                 const payload = asRecord(event).payload;
                 const oneofKind = normalizeText(asRecord(payload).oneofKind);
+                if (oneofKind === 'started') {
+                  streamRouteDecision = Number(asRecord(asRecord(payload).started).routeDecision) || streamRouteDecision;
+                  streamModelResolved = normalizeText(asRecord(asRecord(payload).started).modelResolved) || streamModelResolved;
+                  continue;
+                }
                 if (oneofKind === 'delta') {
                   const delta = normalizeText(asRecord(asRecord(payload).delta).text);
                   if (!delta) {
@@ -223,6 +251,11 @@ export function createLanguageModel(
                   continue;
                 }
 
+                if (oneofKind === 'usage') {
+                  streamUsage = asRecord(payload).usage;
+                  continue;
+                }
+
                 if (oneofKind === 'completed') {
                   if (textOpen) {
                     controller.enqueue({
@@ -236,11 +269,11 @@ export function createLanguageModel(
                     finishReason: toFinishReason(
                       asRecord(asRecord(payload).completed).finishReason,
                     ),
-                    usage: toUsage(asRecord(event).usage),
+                    usage: toUsage(streamUsage || asRecord(asRecord(payload).completed).usage),
                     providerMetadata: toProviderMetadata({
                       traceId: normalizeText(asRecord(event).traceId) || undefined,
-                      routeDecision: asRecord(event).routeDecision,
-                      modelResolved: normalizeText(asRecord(event).modelResolved) || undefined,
+                      routeDecision: streamRouteDecision,
+                      modelResolved: streamModelResolved,
                     }),
                   });
                 }
@@ -284,21 +317,33 @@ export function createEmbeddingModel(
     supportsParallelCalls: true,
     doEmbed: async (options: EmbeddingModelV3CallOptions): Promise<EmbeddingModelV3Result> => {
       try {
-        const response = await runtime.ai.embed(withOptionalSubjectUserId({
-          appId: defaults.appId,
-          modelId,
-          inputs: options.values,
-          routePolicy: resolveRoutePolicy(defaults.routePolicy),
-          fallback: resolveFallbackPolicy(defaults.fallback),
-          timeoutMs: defaults.timeoutMs || 0,
-          connectorId: '',
+        const response = await runtime.ai.executeScenario(withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(defaults.routePolicy),
+            fallback: resolveFallbackPolicy(defaults.fallback),
+            timeoutMs: defaults.timeoutMs || 0,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.TEXT_EMBED,
+          executionMode: ExecutionMode.SYNC,
+          spec: {
+            spec: {
+              oneofKind: 'textEmbed',
+              textEmbed: {
+                inputs: options.values,
+              },
+            },
+          },
+          extensions: [],
         }, defaults.subjectUserId), toCallOptions(defaults, {
           timeoutMs: defaults.timeoutMs,
           metadata: undefined,
         }));
 
         return {
-          embeddings: toEmbeddingVectors(response.vectors),
+          embeddings: toEmbeddingVectorsFromScenarioOutput(response.output),
           usage: {
             tokens: parseCount(asRecord(response.usage).inputTokens) || 0,
           },
@@ -334,37 +379,40 @@ export function createImageModel(
         const requestLabels = toLabels(flattenedProviderOptions.labels);
         const referenceImages = toImageFileSources(optionRecord.files);
         const mask = toImageFileSource(optionRecord.mask);
-        const media = await executeMediaJob(runtime, defaults, {
-          appId: defaults.appId,
-          ...(normalizeText(defaults.subjectUserId)
-            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
-            : {}),
-          modelId,
-          modal: MODAL_IMAGE,
-          routePolicy: resolveRoutePolicy(defaults.routePolicy),
-          fallback: resolveFallbackPolicy(defaults.fallback),
-          timeoutMs,
+        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(defaults.routePolicy),
+            fallback: resolveFallbackPolicy(defaults.fallback),
+            timeoutMs,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.IMAGE_GENERATE,
+          executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(flattenedProviderOptions.requestId),
           idempotencyKey: normalizeText(flattenedProviderOptions.idempotencyKey),
           labels: requestLabels,
           spec: {
-            oneofKind: 'imageSpec',
-            imageSpec: {
-              prompt: normalizeText(options.prompt),
-              negativePrompt: normalizeText(optionRecord.negativePrompt),
-              n: Number(optionRecord.n || 0),
-              size: normalizeText(optionRecord.size),
-              aspectRatio: normalizeText(optionRecord.aspectRatio),
-              quality: normalizeText(flattenedProviderOptions.quality),
-              style: normalizeText(flattenedProviderOptions.style),
-              seed: Number(optionRecord.seed || 0),
-              referenceImages,
-              mask,
-              responseFormat: normalizeText(flattenedProviderOptions.responseFormat),
-              providerOptions: toProtoStruct(flattenedProviderOptions),
+            spec: {
+              oneofKind: 'imageGenerate',
+              imageGenerate: {
+                prompt: normalizeText(options.prompt),
+                negativePrompt: normalizeText(optionRecord.negativePrompt),
+                n: Number(optionRecord.n || 0),
+                size: normalizeText(optionRecord.size),
+                aspectRatio: normalizeText(optionRecord.aspectRatio),
+                quality: normalizeText(flattenedProviderOptions.quality),
+                style: normalizeText(flattenedProviderOptions.style),
+                seed: String(optionRecord.seed || 0),
+                referenceImages,
+                mask,
+                responseFormat: normalizeText(flattenedProviderOptions.responseFormat),
+              },
             },
           },
-        }, timeoutMs, options.abortSignal);
+          extensions: [],
+        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, options.abortSignal);
         const artifacts = media.artifacts;
         const providerMetadata = {
           nimi: {
@@ -404,61 +452,65 @@ export function createVideoModel(
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
         const resolvedFallback = options.fallback || defaults.fallback;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
-        const media = await executeMediaJob(runtime, defaults, {
-          appId: defaults.appId,
-          ...(normalizeText(defaults.subjectUserId)
-            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
-            : {}),
-          modelId,
-          modal: MODAL_VIDEO,
-          routePolicy: resolveRoutePolicy(resolvedRoute),
-          fallback: resolveFallbackPolicy(resolvedFallback),
-          timeoutMs,
+        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(resolvedRoute),
+            fallback: resolveFallbackPolicy(resolvedFallback),
+            timeoutMs,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.VIDEO_GENERATE,
+          executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(options.requestId),
           idempotencyKey: normalizeText(options.idempotencyKey),
           labels: toLabels(options.labels),
           spec: {
-            oneofKind: 'videoSpec',
-            videoSpec: {
-              prompt: normalizeText(options.prompt),
-              negativePrompt: normalizeText(options.negativePrompt),
-              mode: toVideoModeValue(options.mode),
-              content: Array.isArray(options.content)
-                ? options.content.map((entry) => {
-                  if (entry.type === 'text') {
+            spec: {
+              oneofKind: 'videoGenerate',
+              videoGenerate: {
+                prompt: normalizeText(options.prompt),
+                negativePrompt: normalizeText(options.negativePrompt),
+                mode: toVideoModeValue(options.mode),
+                content: Array.isArray(options.content)
+                  ? options.content.map((entry) => {
+                    if (entry.type === 'text') {
+                      return {
+                        type: 1,
+                        role: toVideoRoleValue(entry.role || 'prompt'),
+                        text: normalizeText(entry.text),
+                        imageUrl: undefined,
+                      };
+                    }
                     return {
-                      type: 1,
-                      role: toVideoRoleValue(entry.role || 'prompt'),
-                      text: normalizeText(entry.text),
-                      imageUrl: undefined,
+                      type: 2,
+                      role: toVideoRoleValue(entry.role),
+                      text: '',
+                      imageUrl: { url: normalizeText(entry.imageUrl) },
                     };
-                  }
-                  return {
-                    type: 2,
-                    role: toVideoRoleValue(entry.role),
-                    text: '',
-                    imageUrl: { url: normalizeText(entry.imageUrl) },
-                  };
-                })
-                : [],
-              options: {
-                resolution: normalizeText(options.options?.resolution),
-                ratio: normalizeText(options.options?.ratio),
-                durationSec: Number(options.options?.durationSec || 0),
-                frames: Number(options.options?.frames || 0),
-                fps: Number(options.options?.fps || 0),
-                seed: Number(options.options?.seed || 0),
-                cameraFixed: Boolean(options.options?.cameraFixed),
-                watermark: Boolean(options.options?.watermark),
-                generateAudio: Boolean(options.options?.generateAudio),
-                draft: Boolean(options.options?.draft),
-                serviceTier: normalizeText(options.options?.serviceTier),
-                executionExpiresAfterSec: Number(options.options?.executionExpiresAfterSec || 0),
-                returnLastFrame: Boolean(options.options?.returnLastFrame),
+                  })
+                  : [],
+                options: {
+                  resolution: normalizeText(options.options?.resolution),
+                  ratio: normalizeText(options.options?.ratio),
+                  durationSec: Number(options.options?.durationSec || 0),
+                  frames: Number(options.options?.frames || 0),
+                  fps: Number(options.options?.fps || 0),
+                  seed: String(options.options?.seed || 0),
+                  cameraFixed: Boolean(options.options?.cameraFixed),
+                  watermark: Boolean(options.options?.watermark),
+                  generateAudio: Boolean(options.options?.generateAudio),
+                  draft: Boolean(options.options?.draft),
+                  serviceTier: normalizeText(options.options?.serviceTier),
+                  executionExpiresAfterSec: Number(options.options?.executionExpiresAfterSec || 0),
+                  returnLastFrame: Boolean(options.options?.returnLastFrame),
+                },
               },
             },
           },
-        }, timeoutMs, options.signal);
+          extensions: [],
+        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, options.signal);
         return {
           artifacts: media.artifacts,
         };
@@ -510,35 +562,46 @@ export function createSpeechModel(
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
         const resolvedFallback = options.fallback || defaults.fallback;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
-        const media = await executeMediaJob(runtime, defaults, {
-          appId: defaults.appId,
-          ...(normalizeText(defaults.subjectUserId)
-            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
-            : {}),
-          modelId,
-          modal: MODAL_TTS,
-          routePolicy: resolveRoutePolicy(resolvedRoute),
-          fallback: resolveFallbackPolicy(resolvedFallback),
-          timeoutMs,
+        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(resolvedRoute),
+            fallback: resolveFallbackPolicy(resolvedFallback),
+            timeoutMs,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+          executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(options.requestId),
           idempotencyKey: normalizeText(options.idempotencyKey),
           labels: toLabels(options.labels),
           spec: {
-            oneofKind: 'speechSpec',
-            speechSpec: {
-              text: normalizeText(options.text),
-              voice: normalizeText(options.voice),
-              language: normalizeText(options.language),
-              audioFormat: normalizeText(options.audioFormat),
-              sampleRateHz: Number(options.sampleRateHz || 0),
-              speed: Number(options.speed || 0),
-              pitch: Number(options.pitch || 0),
-              volume: Number(options.volume || 0),
-              emotion: normalizeText(options.emotion),
-              providerOptions: toProtoStruct(options.providerOptions),
+            spec: {
+              oneofKind: 'speechSynthesize',
+              speechSynthesize: {
+                text: normalizeText(options.text),
+                language: normalizeText(options.language),
+                audioFormat: normalizeText(options.audioFormat),
+                sampleRateHz: Number(options.sampleRateHz || 0),
+                speed: Number(options.speed || 0),
+                pitch: Number(options.pitch || 0),
+                volume: Number(options.volume || 0),
+                emotion: normalizeText(options.emotion),
+                voiceRef: normalizeText(options.voice)
+                  ? {
+                    kind: 3,
+                    reference: {
+                      oneofKind: 'providerVoiceRef',
+                      providerVoiceRef: normalizeText(options.voice),
+                    },
+                  }
+                  : undefined,
+              },
             },
           },
-        }, timeoutMs, options.signal);
+          extensions: [],
+        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, options.signal);
         return {
           artifacts: media.artifacts,
         };
@@ -597,36 +660,37 @@ export function createTranscriptionModel(
                 },
               }
               : undefined;
-        const media = await executeMediaJob(runtime, defaults, {
-          appId: defaults.appId,
-          ...(normalizeText(defaults.subjectUserId)
-            ? { subjectUserId: normalizeText(defaults.subjectUserId) }
-            : {}),
-          modelId,
-          modal: MODAL_STT,
-          routePolicy: resolveRoutePolicy(resolvedRoute),
-          fallback: resolveFallbackPolicy(resolvedFallback),
-          timeoutMs,
+        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+          head: {
+            appId: defaults.appId,
+            modelId,
+            routePolicy: resolveRoutePolicy(resolvedRoute),
+            fallback: resolveFallbackPolicy(resolvedFallback),
+            timeoutMs,
+            connectorId: '',
+          },
+          scenarioType: ScenarioType.SPEECH_TRANSCRIBE,
+          executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(options.requestId),
           idempotencyKey: normalizeText(options.idempotencyKey),
           labels: toLabels(options.labels),
           spec: {
-            oneofKind: 'transcriptionSpec',
-            transcriptionSpec: {
-              audioBytes: options.audioBytes || new Uint8Array(0),
-              audioUri: normalizeText(options.audioUrl),
-              mimeType: normalizeText(options.mimeType || 'audio/wav'),
-              language: normalizeText(options.language),
-              timestamps: Boolean(options.timestamps),
-              diarization: Boolean(options.diarization),
-              speakerCount: Number(options.speakerCount || 0),
-              prompt: normalizeText(options.prompt),
-              audioSource,
-              responseFormat: normalizeText(options.responseFormat),
-              providerOptions: toProtoStruct(options.providerOptions),
+            spec: {
+              oneofKind: 'speechTranscribe',
+              speechTranscribe: {
+                mimeType: normalizeText(options.mimeType || 'audio/wav'),
+                language: normalizeText(options.language),
+                timestamps: Boolean(options.timestamps),
+                diarization: Boolean(options.diarization),
+                speakerCount: Number(options.speakerCount || 0),
+                prompt: normalizeText(options.prompt),
+                audioSource,
+                responseFormat: normalizeText(options.responseFormat),
+              },
             },
           },
-        }, timeoutMs, undefined);
+          extensions: [],
+        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, undefined);
         const firstArtifact = media.artifacts[0];
         const text = firstArtifact ? normalizeText(toUtf8(firstArtifact.bytes)) : '';
         return {

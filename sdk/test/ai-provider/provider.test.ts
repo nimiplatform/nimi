@@ -14,28 +14,108 @@ async function* emptyAsyncIterable<T>(): AsyncIterable<T> {
   // no-op
 }
 
-type RuntimeAiCore = Pick<Runtime['ai'],
-  | 'generate'
-  | 'streamGenerate'
-  | 'embed'
-  | 'submitMediaJob'
-  | 'getMediaJob'
-  | 'cancelMediaJob'
-  | 'subscribeMediaJobEvents'
-  | 'getMediaResult'
-  | 'generateImage'
-  | 'generateVideo'
-  | 'synthesizeSpeech'
-  | 'transcribeAudio'
->;
-
 function createRuntimeStub(
-  aiOverrides: Partial<RuntimeAiCore>,
+  aiOverrides: Partial<{
+    generate: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    streamGenerate: (request: Record<string, unknown>) => Promise<AsyncIterable<Record<string, unknown>>>;
+    embed: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    submitScenarioJob: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    getScenarioJob: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    cancelScenarioJob: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    subscribeScenarioJobEvents: (request: Record<string, unknown>) => Promise<AsyncIterable<Record<string, unknown>>>;
+    getScenarioArtifacts: (request: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  }>,
 ): Runtime {
-  const mediaJobs = new Map<string, {
+  const asRecord = (value: unknown): Record<string, unknown> => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return value as Record<string, unknown>;
+  };
+  const normalizeText = (value: unknown): string => String(value || '').trim();
+  const scenarioTypeToModal = (scenarioType: number): number => {
+    switch (scenarioType) {
+      case 3:
+        return 2;
+      case 4:
+        return 3;
+      case 5:
+        return 4;
+      case 6:
+        return 5;
+      default:
+        return 0;
+    }
+  };
+  const modalToScenarioType = (modal: number): number => {
+    switch (modal) {
+      case 2:
+        return 3;
+      case 3:
+        return 4;
+      case 4:
+        return 5;
+      case 5:
+        return 6;
+      default:
+        return 0;
+    }
+  };
+  const oneofSpecFromScenarioSpec = (specValue: unknown): Record<string, unknown> => {
+    const spec = asRecord(asRecord(specValue).spec);
+    const oneofKind = normalizeText(spec.oneofKind);
+    if (oneofKind === 'imageGenerate') {
+      return {
+        oneofKind: 'imageSpec',
+        imageSpec: asRecord(spec.imageGenerate),
+      };
+    }
+    if (oneofKind === 'videoGenerate') {
+      return {
+        oneofKind: 'videoSpec',
+        videoSpec: asRecord(spec.videoGenerate),
+      };
+    }
+    if (oneofKind === 'speechSynthesize') {
+      return {
+        oneofKind: 'speechSpec',
+        speechSpec: asRecord(spec.speechSynthesize),
+      };
+    }
+    if (oneofKind === 'speechTranscribe') {
+      return {
+        oneofKind: 'transcriptionSpec',
+        transcriptionSpec: asRecord(spec.speechTranscribe),
+      };
+    }
+    return {
+      oneofKind: undefined,
+    };
+  };
+  const toEmbeddingOutput = (value: unknown): Record<string, unknown> => {
+    const vectors = Array.isArray(asRecord(value).vectors) ? asRecord(value).vectors as unknown[] : [];
+    const normalized = vectors.map((entry) => {
+      if (Array.isArray(entry)) {
+        return entry.map((item) => Number(item)).filter((item) => Number.isFinite(item));
+      }
+      const values = Array.isArray(asRecord(entry).values) ? asRecord(entry).values as unknown[] : [];
+      return values.map((item) => {
+        const kind = asRecord(asRecord(item).kind);
+        if (kind.oneofKind === 'numberValue') {
+          const parsed = Number(kind.numberValue);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+        return null;
+      }).filter((item): item is number => item !== null);
+    });
+    return Struct.fromJson({ vectors: normalized } as never) as unknown as Record<string, unknown>;
+  };
+
+  const scenarioJobs = new Map<string, {
     job: {
       jobId: string;
       status: number;
+      scenarioType: number;
       routeDecision: number;
       modelResolved: string;
       traceId: string;
@@ -46,9 +126,9 @@ function createRuntimeStub(
       bytes: Uint8Array;
     }>;
   }>();
-  let mediaJobCounter = 0;
+  let scenarioJobCounter = 0;
 
-  const ai: RuntimeAiCore = {
+  const scenarioBridge = {
     generate: async () => ({
       output: {
         fields: {
@@ -69,7 +149,7 @@ function createRuntimeStub(
       modelResolved: 'model/default',
       traceId: 'trace-default',
     }),
-    streamGenerate: async () => emptyAsyncIterable(),
+    streamGenerate: async () => emptyAsyncIterable<Record<string, unknown>>(),
     embed: async () => ({
       vectors: [],
       usage: {
@@ -79,12 +159,12 @@ function createRuntimeStub(
       modelResolved: 'embed/default',
       traceId: 'trace-embed',
     }),
-    submitMediaJob: async (request) => {
-      mediaJobCounter += 1;
-      const jobId = `job-default-${mediaJobCounter}`;
-      const modal = Number((request as { modal?: number }).modal || 0);
-      const modelResolved = String((request as { modelId?: string }).modelId || 'media/default');
-      const traceId = `trace-media-${mediaJobCounter}`;
+    submitScenarioJob: async (request: Record<string, unknown>) => {
+      scenarioJobCounter += 1;
+      const jobId = `job-default-${scenarioJobCounter}`;
+      const modal = Number(request.modal || 0);
+      const modelResolved = String(request.modelId || 'media/default');
+      const traceId = `trace-scenario-${scenarioJobCounter}`;
       const artifact = modal === 5
         ? {
           artifactId: `${jobId}-artifact-1`,
@@ -96,10 +176,11 @@ function createRuntimeStub(
           mimeType: 'application/octet-stream',
           bytes: Uint8Array.from([1]),
         };
-      mediaJobs.set(jobId, {
+      scenarioJobs.set(jobId, {
         job: {
           jobId,
           status: 4,
+          scenarioType: modalToScenarioType(modal),
           routeDecision: 1,
           modelResolved,
           traceId,
@@ -107,41 +188,251 @@ function createRuntimeStub(
         artifacts: [artifact],
       });
       return {
-        job: mediaJobs.get(jobId)?.job,
+        job: scenarioJobs.get(jobId)?.job,
       };
     },
-    getMediaJob: async (request) => ({
-      job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
+    getScenarioJob: async (request: Record<string, unknown>) => ({
+      job: scenarioJobs.get(String(request.jobId || ''))?.job,
     }),
-    cancelMediaJob: async () => ({
+    cancelScenarioJob: async () => ({
       canceled: true,
     }),
-    subscribeMediaJobEvents: async () => emptyAsyncIterable(),
-    getMediaResult: async (request) => {
-      const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
+    subscribeScenarioJobEvents: async () => emptyAsyncIterable<Record<string, unknown>>(),
+    getScenarioArtifacts: async (request: Record<string, unknown>) => {
+      const entry = scenarioJobs.get(String(request.jobId || ''));
       return {
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
         traceId: entry?.job.traceId || '',
       };
     },
-    generateImage: async () => emptyAsyncIterable(),
-    generateVideo: async () => emptyAsyncIterable(),
-    synthesizeSpeech: async () => emptyAsyncIterable(),
-    transcribeAudio: async () => ({
-      text: 'ok',
-      usage: {
-        inputTokens: '1',
-      },
-      routeDecision: 1,
-      modelResolved: 'stt/default',
-      traceId: 'trace-stt',
-    }),
-    ...(aiOverrides as RuntimeAiCore),
+    ...aiOverrides,
   };
 
+  const ai = {
+    executeScenario: async (request) => {
+      const requestRecord = request as unknown as Record<string, unknown>;
+      const head = asRecord(requestRecord.head);
+      const scenarioType = Number(requestRecord.scenarioType || 0);
+      const spec = asRecord(asRecord(requestRecord.spec).spec);
+
+      if (scenarioType === 2) {
+        const embedResult = await scenarioBridge.embed({
+          appId: head.appId,
+          subjectUserId: head.subjectUserId,
+          modelId: head.modelId,
+          routePolicy: head.routePolicy,
+          fallback: head.fallback,
+          timeoutMs: head.timeoutMs,
+          connectorId: head.connectorId,
+          inputs: asRecord(spec.textEmbed).inputs,
+        });
+        return {
+          output: toEmbeddingOutput(embedResult),
+          finishReason: 0,
+          usage: embedResult.usage,
+          routeDecision: Number(embedResult.routeDecision || 0),
+          modelResolved: normalizeText(embedResult.modelResolved),
+          traceId: normalizeText(embedResult.traceId),
+          ignoredExtensions: [],
+        };
+      }
+
+      const generateResult = await scenarioBridge.generate({
+        appId: head.appId,
+        subjectUserId: head.subjectUserId,
+        modelId: head.modelId,
+        routePolicy: head.routePolicy,
+        fallback: head.fallback,
+        timeoutMs: head.timeoutMs,
+        connectorId: head.connectorId,
+        input: asRecord(spec.textGenerate).input,
+        systemPrompt: asRecord(spec.textGenerate).systemPrompt,
+        tools: asRecord(spec.textGenerate).tools,
+        temperature: asRecord(spec.textGenerate).temperature,
+        topP: asRecord(spec.textGenerate).topP,
+        maxTokens: asRecord(spec.textGenerate).maxTokens,
+      });
+
+      return {
+        output: generateResult.output,
+        finishReason: Number(generateResult.finishReason || 0),
+        usage: generateResult.usage,
+        routeDecision: Number(generateResult.routeDecision || 0),
+        modelResolved: normalizeText(generateResult.modelResolved),
+        traceId: normalizeText(generateResult.traceId),
+        ignoredExtensions: [],
+      };
+    },
+    streamScenario: async (request) => {
+      const requestRecord = request as unknown as Record<string, unknown>;
+      const head = asRecord(requestRecord.head);
+      const spec = asRecord(asRecord(requestRecord.spec).spec);
+      return scenarioBridge.streamGenerate({
+        appId: head.appId,
+        subjectUserId: head.subjectUserId,
+        modelId: head.modelId,
+        routePolicy: head.routePolicy,
+        fallback: head.fallback,
+        timeoutMs: head.timeoutMs,
+        connectorId: head.connectorId,
+        input: asRecord(spec.textGenerate).input,
+        systemPrompt: asRecord(spec.textGenerate).systemPrompt,
+        tools: asRecord(spec.textGenerate).tools,
+        temperature: asRecord(spec.textGenerate).temperature,
+        topP: asRecord(spec.textGenerate).topP,
+        maxTokens: asRecord(spec.textGenerate).maxTokens,
+      }) as unknown as AsyncIterable<Record<string, unknown>>;
+    },
+    submitScenarioJob: async (request) => {
+      const requestRecord = request as unknown as Record<string, unknown>;
+      const head = asRecord(requestRecord.head);
+      const scenarioType = Number(requestRecord.scenarioType || 0);
+      const scenarioResponse = await scenarioBridge.submitScenarioJob({
+        appId: head.appId,
+        subjectUserId: head.subjectUserId,
+        modelId: head.modelId,
+        modal: scenarioTypeToModal(scenarioType),
+        routePolicy: head.routePolicy,
+        fallback: head.fallback,
+        timeoutMs: head.timeoutMs,
+        connectorId: head.connectorId,
+        requestId: requestRecord.requestId,
+        idempotencyKey: requestRecord.idempotencyKey,
+        labels: requestRecord.labels,
+        spec: oneofSpecFromScenarioSpec(requestRecord.spec),
+      });
+      const scenarioSnapshot = asRecord(scenarioResponse.job);
+      return {
+        job: {
+          jobId: normalizeText(scenarioSnapshot.jobId),
+          head: {
+            appId: normalizeText(head.appId),
+            subjectUserId: normalizeText(head.subjectUserId),
+            modelId: normalizeText(head.modelId),
+            routePolicy: Number(head.routePolicy || 0),
+            fallback: Number(head.fallback || 0),
+            timeoutMs: Number(head.timeoutMs || 0),
+            connectorId: normalizeText(head.connectorId),
+          },
+          scenarioType,
+          executionMode: 3,
+          routeDecision: Number(scenarioSnapshot.routeDecision || 0),
+          modelResolved: normalizeText(scenarioSnapshot.modelResolved),
+          status: Number(scenarioSnapshot.status || 0),
+          providerJobId: normalizeText(scenarioSnapshot.providerJobId),
+          reasonCode: scenarioSnapshot.reasonCode,
+          reasonDetail: normalizeText(scenarioSnapshot.reasonDetail),
+          retryCount: Number(scenarioSnapshot.retryCount || 0),
+          createdAt: scenarioSnapshot.createdAt,
+          updatedAt: scenarioSnapshot.updatedAt,
+          nextPollAt: scenarioSnapshot.nextPollAt,
+          artifacts: [],
+          usage: scenarioSnapshot.usage,
+          traceId: normalizeText(scenarioSnapshot.traceId),
+          ignoredExtensions: [],
+        },
+      };
+    },
+    getScenarioJob: async (request) => {
+      const requestRecord = request as unknown as Record<string, unknown>;
+      const scenarioResponse = await scenarioBridge.getScenarioJob({
+        jobId: normalizeText(requestRecord.jobId),
+      });
+      const scenarioSnapshot = asRecord(scenarioResponse.job);
+      const scenarioType = Number(scenarioSnapshot.scenarioType || 0);
+      return {
+        job: {
+          jobId: normalizeText(scenarioSnapshot.jobId),
+          head: {
+            appId: APP_ID,
+            subjectUserId: SUBJECT_USER_ID,
+            modelId: normalizeText(scenarioSnapshot.modelResolved),
+            routePolicy: 1,
+            fallback: 1,
+            timeoutMs: 0,
+            connectorId: '',
+          },
+          scenarioType,
+          executionMode: 3,
+          routeDecision: Number(scenarioSnapshot.routeDecision || 0),
+          modelResolved: normalizeText(scenarioSnapshot.modelResolved),
+          status: Number(scenarioSnapshot.status || 0),
+          providerJobId: normalizeText(scenarioSnapshot.providerJobId),
+          reasonCode: scenarioSnapshot.reasonCode,
+          reasonDetail: normalizeText(scenarioSnapshot.reasonDetail),
+          retryCount: Number(scenarioSnapshot.retryCount || 0),
+          createdAt: scenarioSnapshot.createdAt,
+          updatedAt: scenarioSnapshot.updatedAt,
+          nextPollAt: scenarioSnapshot.nextPollAt,
+          artifacts: [],
+          usage: scenarioSnapshot.usage,
+          traceId: normalizeText(scenarioSnapshot.traceId),
+          ignoredExtensions: [],
+        },
+      };
+    },
+    cancelScenarioJob: async (request) => {
+      const requestRecord = request as unknown as Record<string, unknown>;
+      await scenarioBridge.cancelScenarioJob({
+        jobId: normalizeText(requestRecord.jobId),
+        reason: normalizeText(requestRecord.reason),
+      });
+      const current = scenarioJobs.get(normalizeText(requestRecord.jobId));
+      return {
+        job: {
+          jobId: normalizeText(requestRecord.jobId),
+          head: {
+            appId: APP_ID,
+            subjectUserId: SUBJECT_USER_ID,
+            modelId: current?.job.modelResolved || 'media/default',
+            routePolicy: 1,
+            fallback: 1,
+            timeoutMs: 0,
+            connectorId: '',
+          },
+          scenarioType: current?.job.scenarioType || 3,
+          executionMode: 3,
+          routeDecision: current?.job.routeDecision || 1,
+          modelResolved: current?.job.modelResolved || 'media/default',
+          status: 6,
+          providerJobId: '',
+          reasonCode: 0,
+          reasonDetail: '',
+          retryCount: 0,
+          createdAt: undefined,
+          updatedAt: undefined,
+          nextPollAt: undefined,
+          artifacts: [],
+          usage: undefined,
+          traceId: current?.job.traceId || '',
+          ignoredExtensions: [],
+        },
+      };
+    },
+    subscribeScenarioJobEvents: async (request) => scenarioBridge.subscribeScenarioJobEvents(
+      request as unknown as Record<string, unknown>,
+    ) as unknown as AsyncIterable<Record<string, unknown>>,
+    getScenarioArtifacts: async (request) => {
+      const requestRecord = request as unknown as Record<string, unknown>;
+      const scenarioResponse = await scenarioBridge.getScenarioArtifacts({
+        jobId: normalizeText(requestRecord.jobId),
+      });
+      return {
+        jobId: normalizeText(scenarioResponse.jobId),
+        artifacts: Array.isArray(scenarioResponse.artifacts) ? scenarioResponse.artifacts : [],
+        traceId: normalizeText(scenarioResponse.traceId),
+      };
+    },
+    listScenarioProfiles: async () => ({ profiles: [] }),
+    getVoiceAsset: async () => ({ asset: undefined }),
+    listVoiceAssets: async () => ({ assets: [] }),
+    deleteVoiceAsset: async () => ({ deleted: true }),
+    listPresetVoices: async () => ({ voices: [] }),
+  } as Runtime['ai'];
+
   const runtime = Object.create(Runtime.prototype) as Runtime;
-  (runtime as unknown as { ai: Runtime['ai'] }).ai = ai as Runtime['ai'];
+  (runtime as unknown as { ai: Runtime['ai'] }).ai = ai;
   return runtime;
 }
 
@@ -446,7 +737,7 @@ test('createNimiAiProvider stream interruption requires explicit resubscribe', a
 });
 
 test('createNimiAiProvider embedding and image models map runtime responses', async () => {
-  const mediaJobs = new Map<string, {
+  const scenarioJobs = new Map<string, {
     job: {
       jobId: string;
       status: number;
@@ -460,7 +751,7 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
       bytes: Uint8Array;
     }>;
   }>();
-  let mediaJobCounter = 0;
+  let scenarioJobCounter = 0;
 
   const runtime = createRuntimeStub({
     embed: async () => ({
@@ -477,10 +768,10 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
       modelResolved: 'embed/default',
       traceId: 'trace-embed',
     }),
-    submitMediaJob: async () => {
-      mediaJobCounter += 1;
-      const jobId = `job-image-${mediaJobCounter}`;
-      mediaJobs.set(jobId, {
+    submitScenarioJob: async () => {
+      scenarioJobCounter += 1;
+      const jobId = `job-image-${scenarioJobCounter}`;
+      scenarioJobs.set(jobId, {
         job: {
           jobId,
           status: 4,
@@ -495,14 +786,14 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
         }],
       });
       return {
-        job: mediaJobs.get(jobId)?.job,
+        job: scenarioJobs.get(jobId)?.job,
       };
     },
-    getMediaJob: async (request) => ({
-      job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
+    getScenarioJob: async (request) => ({
+      job: scenarioJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
     }),
-    getMediaResult: async (request) => {
-      const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
+    getScenarioArtifacts: async (request) => {
+      const entry = scenarioJobs.get(String((request as { jobId?: string }).jobId || ''));
       return {
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
@@ -540,7 +831,7 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
 test('createNimiAiProvider image model flattens providerOptions and maps files/mask', async () => {
   let capturedSubmitRequest: Record<string, unknown> | null = null;
   const runtime = createRuntimeStub({
-    submitMediaJob: async (request) => {
+    submitScenarioJob: async (request) => {
       capturedSubmitRequest = request as Record<string, unknown>;
       return {
         job: {
@@ -552,7 +843,7 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
         },
       };
     },
-    getMediaJob: async () => ({
+    getScenarioJob: async () => ({
       job: {
         jobId: 'job-image-compat-1',
         status: 4,
@@ -561,7 +852,7 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
         traceId: 'trace-image-compat',
       },
     }),
-    getMediaResult: async () => ({
+    getScenarioArtifacts: async () => ({
       jobId: 'job-image-compat-1',
       traceId: 'trace-image-compat',
       artifacts: [{
@@ -628,21 +919,11 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
   assert.equal(imageSpec.style, 'cinematic');
   assert.equal(imageSpec.responseFormat, 'b64_json');
 
-  const providerOptionsJson = Struct.toJson(imageSpec.providerOptions as never) as Record<string, unknown>;
-  assert.equal(providerOptionsJson.requestId, 'req-top');
-  assert.equal(providerOptionsJson.idempotencyKey, 'idem-top');
-  assert.equal(providerOptionsJson.quality, 'high-top');
-  assert.equal(providerOptionsJson.style, 'cinematic');
-  assert.equal(providerOptionsJson.steps, 40);
-  assert.equal(providerOptionsJson.method, 'top-method');
-  assert.equal(providerOptionsJson.responseFormat, 'b64_json');
-  assert.equal(providerOptionsJson.nimi, undefined);
-  assert.equal(providerOptionsJson.localai, undefined);
-  assert.equal(providerOptionsJson.nexa, undefined);
+  assert.equal(imageSpec.providerOptions, undefined);
 });
 
 test('createNimiAiProvider maps runtime failures and exposes video/tts/stt extensions', async () => {
-  const mediaJobs = new Map<string, {
+  const scenarioJobs = new Map<string, {
     job: {
       jobId: string;
       status: number;
@@ -656,7 +937,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
       bytes: Uint8Array;
     }>;
   }>();
-  let mediaJobCounter = 0;
+  let scenarioJobCounter = 0;
 
   const runtime = createRuntimeStub({
     generate: async () => {
@@ -668,9 +949,9 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
         message: 'provider timeout',
       });
     },
-    submitMediaJob: async (request) => {
-      mediaJobCounter += 1;
-      const jobId = `job-${mediaJobCounter}`;
+    submitScenarioJob: async (request) => {
+      scenarioJobCounter += 1;
+      const jobId = `job-${scenarioJobCounter}`;
       const modal = Number((request as { modal?: number }).modal || 0);
       const modelResolved = String((request as { modelId?: string }).modelId || 'media/default');
       const routeDecision = modal === 3 ? 2 : 1;
@@ -692,7 +973,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
             mimeType: 'text/plain',
             bytes: Buffer.from('transcribed text', 'utf8'),
           }];
-      mediaJobs.set(jobId, {
+      scenarioJobs.set(jobId, {
         job: {
           jobId,
           status: 4,
@@ -703,14 +984,14 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
         artifacts,
       });
       return {
-        job: mediaJobs.get(jobId)?.job,
+        job: scenarioJobs.get(jobId)?.job,
       };
     },
-    getMediaJob: async (request) => ({
-      job: mediaJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
+    getScenarioJob: async (request) => ({
+      job: scenarioJobs.get(String((request as { jobId?: string }).jobId || ''))?.job,
     }),
-    getMediaResult: async (request) => {
-      const entry = mediaJobs.get(String((request as { jobId?: string }).jobId || ''));
+    getScenarioArtifacts: async (request) => {
+      const entry = scenarioJobs.get(String((request as { jobId?: string }).jobId || ''));
       return {
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
@@ -775,10 +1056,10 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
   assert.equal(stt.routeDecision, 'local-runtime');
 });
 
-test('createNimiAiProvider abort signal cancels media job before throwing', async () => {
+test('createNimiAiProvider abort signal cancels scenario job before throwing', async () => {
   let cancelCalled = false;
   const runtime = createRuntimeStub({
-    submitMediaJob: async () => ({
+    submitScenarioJob: async () => ({
       job: {
         jobId: 'job-abort-1',
         status: 2,
@@ -787,7 +1068,7 @@ test('createNimiAiProvider abort signal cancels media job before throwing', asyn
         traceId: 'trace-abort',
       },
     }),
-    getMediaJob: async () => ({
+    getScenarioJob: async () => ({
       job: {
         jobId: 'job-abort-1',
         status: 3,
@@ -796,7 +1077,7 @@ test('createNimiAiProvider abort signal cancels media job before throwing', asyn
         traceId: 'trace-abort',
       },
     }),
-    cancelMediaJob: async () => {
+    cancelScenarioJob: async () => {
       cancelCalled = true;
       return { canceled: true } as never;
     },
@@ -827,10 +1108,10 @@ test('createNimiAiProvider abort signal cancels media job before throwing', asyn
   assert.equal(cancelCalled, true);
 });
 
-test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitMediaJob', async () => {
+test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitScenarioJob', async () => {
   let capturedSubmitRequest: Record<string, unknown> | null = null;
   const runtime = createRuntimeStub({
-    submitMediaJob: async (request) => {
+    submitScenarioJob: async (request) => {
       capturedSubmitRequest = request as Record<string, unknown>;
       return {
         job: {
@@ -842,7 +1123,7 @@ test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitMed
         },
       };
     },
-    getMediaJob: async () => ({
+    getScenarioJob: async () => ({
       job: {
         jobId: 'job-meta-1',
         status: 4,
@@ -851,7 +1132,7 @@ test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitMed
         traceId: 'trace-meta',
       },
     }),
-    getMediaResult: async () => ({
+    getScenarioArtifacts: async () => ({
       jobId: 'job-meta-1',
       traceId: 'trace-meta',
       artifacts: [{

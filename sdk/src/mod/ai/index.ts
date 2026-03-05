@@ -200,7 +200,7 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
         referenceImages: input.referenceImages,
         mask: input.mask,
         responseFormat: input.responseFormat,
-        providerOptions: input.providerOptions,
+        extensions: input.extensions,
         ...payload,
       });
       return {
