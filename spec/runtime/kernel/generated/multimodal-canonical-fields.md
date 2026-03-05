@@ -10,18 +10,6 @@
 | `image` | `negative_prompt` | `false` | optional negative prompt text | `K-MMPROV-002` |
 | `image` | `reference_images` | `false` | optional i2i reference image inputs | `K-MMPROV-016` |
 | `image` | `mask` | `false` | optional inpaint mask source | `K-MMPROV-002` |
-| `image` | `provider_options.step` | `false` | LocalAI preferred sampling step count | `K-MMPROV-017` |
-| `image` | `provider_options.steps` | `false` | Nexa compatibility key mapped to step when step is absent | `K-MMPROV-017` |
-| `image` | `provider_options.mode` | `false` | LocalAI preferred generation mode | `K-MMPROV-017` |
-| `image` | `provider_options.method` | `false` | Nexa compatibility key mapped to mode when mode is absent | `K-MMPROV-017` |
-| `image` | `provider_options.guidance_scale` | `false` | currently ignored in LocalAI image path and reported in compat.ignored_options | `K-MMPROV-017` |
-| `image` | `provider_options.eta` | `false` | currently ignored in LocalAI image path and reported in compat.ignored_options | `K-MMPROV-017` |
-| `image` | `provider_options.strength` | `false` | currently ignored in LocalAI image path and reported in compat.ignored_options | `K-MMPROV-017` |
-| `image` | `provider_raw.localai_prompt` | `false` | effective LocalAI prompt after positive/negative composition | `K-MMPROV-017` |
-| `image` | `provider_raw.source_image` | `false` | i2i source image mapped to LocalAI file field | `K-MMPROV-017` |
-| `image` | `provider_raw.ref_images_count` | `false` | number of additional LocalAI ref_images entries | `K-MMPROV-017` |
-| `image` | `provider_raw.compat.applied_options` | `false` | compatibility options successfully mapped to LocalAI request | `K-MMPROV-017` |
-| `image` | `provider_raw.compat.ignored_options` | `false` | compatibility options ignored without fail-close | `K-MMPROV-017` |
 | `video` | `mode` | `true` | video generation mode selector (t2v or i2v variants) | `K-MMPROV-024` |
 | `video` | `content[].type` | `true` | content item type (text or image_url) | `K-MMPROV-024` |
 | `video` | `content[].role` | `true` | content role (prompt/first_frame/last_frame/reference_image) constrained by mode | `K-MMPROV-024` |
@@ -41,7 +29,6 @@
 | `video` | `options.execution_expires_after_sec` | `false` | max execution age before provider auto-expire | `K-MMPROV-025` |
 | `video` | `options.return_last_frame` | `false` | request final frame output alongside video artifact | `K-MMPROV-025` |
 | `tts` | `voice_ref` | `true` | strongly-typed synthesis voice reference | `K-MMPROV-018` |
-| `tts` | `voice` | `false` | legacy synthesis voice id string | `K-MMPROV-018` |
 | `tts` | `target_model_id` | `false` | explicit target model binding for voice asset synthesis | `K-MMPROV-019` |
 | `tts` | `timing_mode` | `false` | synthesis alignment mode hint (none|word|char) | `K-MMPROV-021` |
 | `tts` | `voice_render_hints.stability` | `false` | optional voice render stability hint | `K-MMPROV-021` |

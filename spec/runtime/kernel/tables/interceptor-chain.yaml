@@ -34,7 +34,7 @@ interceptors:
     stream: true
     stream_rpc_scope: [ExportAuditEvents]
     side_effects: []
-    description: Protected capability validation via grant service; AI consume streaming RPCs (StreamGenerate, SynthesizeSpeechStream) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor
+    description: Protected capability validation via grant service; AI consume streaming RPCs (StreamScenario TEXT_GENERATE/SPEECH_SYNTHESIZE) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor
     source: K-DAEMON-005
   - name: audit
     order: 6

@@ -143,6 +143,26 @@ const specs = [
     render: renderMultimodalArtifactFields,
   },
   {
+    input: 'scenario-types.yaml',
+    output: 'scenario-types.md',
+    render: renderScenarioTypes,
+  },
+  {
+    input: 'scenario-execution-matrix.yaml',
+    output: 'scenario-execution-matrix.md',
+    render: renderScenarioExecutionMatrix,
+  },
+  {
+    input: 'provider-extension-registry.yaml',
+    output: 'provider-extension-registry.md',
+    render: renderProviderExtensionRegistry,
+  },
+  {
+    input: 'scenario-profile-fields.yaml',
+    output: 'scenario-profile-fields.md',
+    render: renderScenarioProfileFields,
+  },
+  {
     input: 'runtime-delivery-gates.yaml',
     output: 'runtime-delivery-gates.md',
     render: renderRuntimeDeliveryGates,
@@ -451,7 +471,7 @@ function renderConnectorRpcFieldRules(doc, sourceName) {
 
 function renderJobStates(doc, sourceName) {
   const states = Array.isArray(doc?.states) ? doc.states : [];
-  let out = header('Generated Media Job States', sourceName);
+  let out = header('Generated Scenario Job States', sourceName);
 
   out += '| State | Terminal |\n';
   out += '|---|---|\n';
@@ -819,6 +839,85 @@ function renderMultimodalCanonicalFields(doc, sourceName) {
 function renderMultimodalArtifactFields(doc, sourceName) {
   const fields = Array.isArray(doc?.fields) ? doc.fields : [];
   let out = header('Generated Multimodal Artifact Fields', sourceName);
+
+  out += '| Field | Required | Description | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of fields) {
+    const field = String(item?.field || '').trim();
+    if (!field) continue;
+    const required = mdBool(Boolean(item?.required));
+    const description = String(item?.description || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${field}\` | \`${required}\` | ${description} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderScenarioTypes(doc, sourceName) {
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  let out = header('Generated Scenario Types', sourceName);
+
+  out += '| Scenario Type | Description | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of entries) {
+    const scenarioType = String(item?.scenario_type || '').trim();
+    if (!scenarioType) continue;
+    const description = String(item?.description || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${scenarioType}\` | ${description} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderScenarioExecutionMatrix(doc, sourceName) {
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  let out = header('Generated Scenario Execution Matrix', sourceName);
+
+  out += '| Scenario Type | Canonical Modality | Supported Execution Modes | Source Rule |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of entries) {
+    const scenarioType = String(item?.scenario_type || '').trim();
+    if (!scenarioType) continue;
+    const canonicalModality = String(item?.canonical_modality || '').trim() || '—';
+    const modes = Array.isArray(item?.supported_execution_modes)
+      ? item.supported_execution_modes.map((mode) => `\`${String(mode || '').trim()}\``).filter(Boolean).join(', ')
+      : '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${scenarioType}\` | \`${canonicalModality}\` | ${modes || '—'} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderProviderExtensionRegistry(doc, sourceName) {
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  let out = header('Generated Provider Extension Registry', sourceName);
+
+  out += '| Provider ID | Scenario Type | Direction | Namespace | Strategy | Source Rule |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const item of entries) {
+    const providerID = String(item?.provider_id || '').trim();
+    const scenarioType = String(item?.scenario_type || '').trim();
+    if (!providerID || !scenarioType) continue;
+    const direction = String(item?.direction || '').trim() || '—';
+    const namespace = String(item?.namespace || '').trim() || '—';
+    const strategy = String(item?.strategy || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${providerID}\` | \`${scenarioType}\` | \`${direction}\` | \`${namespace}\` | \`${strategy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderScenarioProfileFields(doc, sourceName) {
+  const fields = Array.isArray(doc?.fields) ? doc.fields : [];
+  let out = header('Generated Scenario Profile Fields', sourceName);
 
   out += '| Field | Required | Description | Source Rule |\n';
   out += '|---|---|---|---|\n';

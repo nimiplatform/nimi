@@ -12,7 +12,6 @@
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
 | `RuntimeGrantService` | `RuntimeGrantService` | `aligned` | `phase1` | `K-GRANT-002` |
 | `RuntimeWorkflowService` | `RuntimeWorkflowService` | `aligned` | `phase2` | `K-WF-003` |
-| `VoiceService` | `RuntimeVoiceService` | `renamed_service` | `phase2` | `K-RPC-005` |
 | `RuntimeAuditService` | `RuntimeAuditService` | `aligned` | `phase2` | `K-AUDIT-013` |
 | `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |
 | `RuntimeKnowledgeService` | `RuntimeKnowledgeService` | `aligned` | `phase2` | `K-KNOW-001` |
@@ -23,16 +22,18 @@
 
 | Design Service | Design Method | Proto Service | Proto Method | Status |
 |---|---|---|---|---|
-| `AIService` | `Generate` | `RuntimeAiService` | `Generate` | `aligned` |
-| `AIService` | `StreamGenerate` | `RuntimeAiService` | `StreamGenerate` | `aligned` |
-| `AIService` | `Embed` | `RuntimeAiService` | `Embed` | `aligned` |
-| `AIService` | `SubmitMediaJob` | `RuntimeAiService` | `SubmitMediaJob` | `aligned` |
-| `AIService` | `GetMediaJob` | `RuntimeAiService` | `GetMediaJob` | `aligned` |
-| `AIService` | `CancelMediaJob` | `RuntimeAiService` | `CancelMediaJob` | `aligned` |
-| `AIService` | `SubscribeMediaJobEvents` | `RuntimeAiService` | `SubscribeMediaJobEvents` | `aligned` |
-| `AIService` | `GetMediaResult` | `RuntimeAiService` | `GetMediaArtifacts` | `renamed_method` |
-| `AIService` | `GetSpeechVoices` | `RuntimeAiService` | `GetSpeechVoices` | `aligned` |
-| `AIService` | `SynthesizeSpeechStream` | `RuntimeAiService` | `StreamSpeechSynthesis` | `renamed_method` |
+| `AIService` | `ExecuteScenario` | `RuntimeAiService` | `ExecuteScenario` | `aligned` |
+| `AIService` | `StreamScenario` | `RuntimeAiService` | `StreamScenario` | `aligned` |
+| `AIService` | `SubmitScenarioJob` | `RuntimeAiService` | `SubmitScenarioJob` | `aligned` |
+| `AIService` | `GetScenarioJob` | `RuntimeAiService` | `GetScenarioJob` | `aligned` |
+| `AIService` | `CancelScenarioJob` | `RuntimeAiService` | `CancelScenarioJob` | `aligned` |
+| `AIService` | `SubscribeScenarioJobEvents` | `RuntimeAiService` | `SubscribeScenarioJobEvents` | `aligned` |
+| `AIService` | `GetScenarioArtifacts` | `RuntimeAiService` | `GetScenarioArtifacts` | `aligned` |
+| `AIService` | `ListScenarioProfiles` | `RuntimeAiService` | `ListScenarioProfiles` | `aligned` |
+| `AIService` | `GetVoiceAsset` | `RuntimeAiService` | `GetVoiceAsset` | `aligned` |
+| `AIService` | `ListVoiceAssets` | `RuntimeAiService` | `ListVoiceAssets` | `aligned` |
+| `AIService` | `DeleteVoiceAsset` | `RuntimeAiService` | `DeleteVoiceAsset` | `aligned` |
+| `AIService` | `ListPresetVoices` | `RuntimeAiService` | `ListPresetVoices` | `aligned` |
 | `ConnectorService` | `CreateConnector` | `RuntimeConnectorService` | `CreateConnector` | `aligned` |
 | `ConnectorService` | `GetConnector` | `RuntimeConnectorService` | `GetConnector` | `aligned` |
 | `ConnectorService` | `ListConnectors` | `RuntimeConnectorService` | `ListConnectors` | `aligned` |
@@ -89,14 +90,6 @@
 | `RuntimeWorkflowService` | `GetWorkflow` | `RuntimeWorkflowService` | `GetWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `CancelWorkflow` | `RuntimeWorkflowService` | `CancelWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `SubscribeWorkflowEvents` | `RuntimeWorkflowService` | `SubscribeWorkflowEvents` | `aligned` |
-| `VoiceService` | `SubmitVoiceJob` | `RuntimeVoiceService` | `SubmitVoiceJob` | `aligned` |
-| `VoiceService` | `GetVoiceJob` | `RuntimeVoiceService` | `GetVoiceJob` | `aligned` |
-| `VoiceService` | `CancelVoiceJob` | `RuntimeVoiceService` | `CancelVoiceJob` | `aligned` |
-| `VoiceService` | `SubscribeVoiceJobEvents` | `RuntimeVoiceService` | `SubscribeVoiceJobEvents` | `aligned` |
-| `VoiceService` | `GetVoiceAsset` | `RuntimeVoiceService` | `GetVoiceAsset` | `aligned` |
-| `VoiceService` | `ListVoiceAssets` | `RuntimeVoiceService` | `ListVoiceAssets` | `aligned` |
-| `VoiceService` | `DeleteVoiceAsset` | `RuntimeVoiceService` | `DeleteVoiceAsset` | `aligned` |
-| `VoiceService` | `ListPresetVoices` | `RuntimeVoiceService` | `ListPresetVoices` | `aligned` |
 | `RuntimeAuditService` | `ListAuditEvents` | `RuntimeAuditService` | `ListAuditEvents` | `aligned` |
 | `RuntimeAuditService` | `ExportAuditEvents` | `RuntimeAuditService` | `ExportAuditEvents` | `aligned` |
 | `RuntimeAuditService` | `ListUsageStats` | `RuntimeAuditService` | `ListUsageStats` | `aligned` |

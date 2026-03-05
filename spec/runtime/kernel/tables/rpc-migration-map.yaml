@@ -30,11 +30,6 @@ service_mappings:
     mapping_status: aligned
     phase: phase2
     source: K-WF-003
-  - design_service: VoiceService
-    proto_service: RuntimeVoiceService
-    mapping_status: renamed_service
-    phase: phase2
-    source: K-RPC-005
   - design_service: RuntimeAuditService
     proto_service: RuntimeAuditService
     mapping_status: aligned
@@ -60,59 +55,67 @@ service_mappings:
     mapping_status: aligned
     phase: phase2
     source: K-SCRIPT-001
-
 method_mappings:
   - design_service: AIService
-    design_method: Generate
+    design_method: ExecuteScenario
     proto_service: RuntimeAiService
-    proto_method: Generate
+    proto_method: ExecuteScenario
     mapping_status: aligned
   - design_service: AIService
-    design_method: StreamGenerate
+    design_method: StreamScenario
     proto_service: RuntimeAiService
-    proto_method: StreamGenerate
+    proto_method: StreamScenario
     mapping_status: aligned
   - design_service: AIService
-    design_method: Embed
+    design_method: SubmitScenarioJob
     proto_service: RuntimeAiService
-    proto_method: Embed
+    proto_method: SubmitScenarioJob
     mapping_status: aligned
   - design_service: AIService
-    design_method: SubmitMediaJob
+    design_method: GetScenarioJob
     proto_service: RuntimeAiService
-    proto_method: SubmitMediaJob
+    proto_method: GetScenarioJob
     mapping_status: aligned
   - design_service: AIService
-    design_method: GetMediaJob
+    design_method: CancelScenarioJob
     proto_service: RuntimeAiService
-    proto_method: GetMediaJob
+    proto_method: CancelScenarioJob
     mapping_status: aligned
   - design_service: AIService
-    design_method: CancelMediaJob
+    design_method: SubscribeScenarioJobEvents
     proto_service: RuntimeAiService
-    proto_method: CancelMediaJob
+    proto_method: SubscribeScenarioJobEvents
     mapping_status: aligned
   - design_service: AIService
-    design_method: SubscribeMediaJobEvents
+    design_method: GetScenarioArtifacts
     proto_service: RuntimeAiService
-    proto_method: SubscribeMediaJobEvents
+    proto_method: GetScenarioArtifacts
     mapping_status: aligned
   - design_service: AIService
-    design_method: GetMediaResult
+    design_method: ListScenarioProfiles
     proto_service: RuntimeAiService
-    proto_method: GetMediaArtifacts
-    mapping_status: renamed_method
-  - design_service: AIService
-    design_method: GetSpeechVoices
-    proto_service: RuntimeAiService
-    proto_method: GetSpeechVoices
+    proto_method: ListScenarioProfiles
     mapping_status: aligned
   - design_service: AIService
-    design_method: SynthesizeSpeechStream
+    design_method: GetVoiceAsset
     proto_service: RuntimeAiService
-    proto_method: StreamSpeechSynthesis
-    mapping_status: renamed_method
-
+    proto_method: GetVoiceAsset
+    mapping_status: aligned
+  - design_service: AIService
+    design_method: ListVoiceAssets
+    proto_service: RuntimeAiService
+    proto_method: ListVoiceAssets
+    mapping_status: aligned
+  - design_service: AIService
+    design_method: DeleteVoiceAsset
+    proto_service: RuntimeAiService
+    proto_method: DeleteVoiceAsset
+    mapping_status: aligned
+  - design_service: AIService
+    design_method: ListPresetVoices
+    proto_service: RuntimeAiService
+    proto_method: ListPresetVoices
+    mapping_status: aligned
   - design_service: ConnectorService
     design_method: CreateConnector
     proto_service: RuntimeConnectorService
@@ -168,7 +171,6 @@ method_mappings:
     proto_service: RuntimeConnectorService
     proto_method: DeleteModelCatalogProvider
     mapping_status: aligned
-
   - design_service: RuntimeLocalRuntimeService
     design_method: ListLocalModels
     proto_service: RuntimeLocalRuntimeService
@@ -314,7 +316,6 @@ method_mappings:
     proto_service: RuntimeLocalRuntimeService
     proto_method: GetEngineStatus
     mapping_status: aligned
-
   - design_service: RuntimeAuthService
     design_method: RegisterApp
     proto_service: RuntimeAuthService
@@ -350,7 +351,6 @@ method_mappings:
     proto_service: RuntimeAuthService
     proto_method: RevokeExternalPrincipalSession
     mapping_status: aligned
-
   - design_service: RuntimeGrantService
     design_method: AuthorizeExternalPrincipal
     proto_service: RuntimeGrantService
@@ -376,7 +376,6 @@ method_mappings:
     proto_service: RuntimeGrantService
     proto_method: ListTokenChain
     mapping_status: aligned
-
   - design_service: RuntimeWorkflowService
     design_method: SubmitWorkflow
     proto_service: RuntimeWorkflowService
@@ -397,48 +396,6 @@ method_mappings:
     proto_service: RuntimeWorkflowService
     proto_method: SubscribeWorkflowEvents
     mapping_status: aligned
-
-  - design_service: VoiceService
-    design_method: SubmitVoiceJob
-    proto_service: RuntimeVoiceService
-    proto_method: SubmitVoiceJob
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: GetVoiceJob
-    proto_service: RuntimeVoiceService
-    proto_method: GetVoiceJob
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: CancelVoiceJob
-    proto_service: RuntimeVoiceService
-    proto_method: CancelVoiceJob
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: SubscribeVoiceJobEvents
-    proto_service: RuntimeVoiceService
-    proto_method: SubscribeVoiceJobEvents
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: GetVoiceAsset
-    proto_service: RuntimeVoiceService
-    proto_method: GetVoiceAsset
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: ListVoiceAssets
-    proto_service: RuntimeVoiceService
-    proto_method: ListVoiceAssets
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: DeleteVoiceAsset
-    proto_service: RuntimeVoiceService
-    proto_method: DeleteVoiceAsset
-    mapping_status: aligned
-  - design_service: VoiceService
-    design_method: ListPresetVoices
-    proto_service: RuntimeVoiceService
-    proto_method: ListPresetVoices
-    mapping_status: aligned
-
   - design_service: RuntimeAuditService
     design_method: ListAuditEvents
     proto_service: RuntimeAuditService
@@ -474,7 +431,6 @@ method_mappings:
     proto_service: RuntimeAuditService
     proto_method: SubscribeRuntimeHealthEvents
     mapping_status: aligned
-
   - design_service: RuntimeModelService
     design_method: ListModels
     proto_service: RuntimeModelService
@@ -495,7 +451,6 @@ method_mappings:
     proto_service: RuntimeModelService
     proto_method: CheckModelHealth
     mapping_status: aligned
-
   - design_service: RuntimeKnowledgeService
     design_method: BuildIndex
     proto_service: RuntimeKnowledgeService
@@ -511,7 +466,6 @@ method_mappings:
     proto_service: RuntimeKnowledgeService
     proto_method: DeleteIndex
     mapping_status: aligned
-
   - design_service: RuntimeAppService
     design_method: SendAppMessage
     proto_service: RuntimeAppService
@@ -522,11 +476,9 @@ method_mappings:
     proto_service: RuntimeAppService
     proto_method: SubscribeAppMessages
     mapping_status: aligned
-
   - design_service: ScriptWorkerService
     design_method: Execute
     proto_service: ScriptWorkerService
     proto_method: Execute
     mapping_status: aligned
-
 excluded_proto_methods: []

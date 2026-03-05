@@ -16,7 +16,7 @@ model_id 前缀与 provider 匹配校验必须在进入 provider 出站前完成
 
 ## K-NIMI-004 Media Job Responsibility
 
-媒体任务的提交与查询必须遵循 MediaJob 契约，不得绕开 job 元数据语义。
+媒体任务的提交与查询必须遵循 ScenarioJob 契约，不得绕开 job 元数据语义。
 
 ## K-NIMI-005 Endpoint Security Delegation
 

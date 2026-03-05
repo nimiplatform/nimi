@@ -10,6 +10,12 @@ runtime 交付门集合由 `runtime-delivery-gates.yaml` 管理，gate 不得在
 
 进入实施前必须冻结规范来源与规则编号。
 
+执行命令（PR 必须通过）：
+
+- `pnpm check:ai-scenario-hardcut-drift`
+- `pnpm check:runtime-spec-kernel-consistency`
+- `pnpm check:runtime-spec-kernel-docs-drift`
+
 ## K-GATE-020 G1 Proto Gate
 
 proto lint/breaking/generate/drift 必须全部通过。
@@ -25,7 +31,7 @@ provider 覆盖矩阵、可用性探测、错误映射必须满足基线。
 执行命令（PR 必须通过）：
 
 - `pnpm check:no-legacy-cloud-provider-keys`
-- `pnpm check:runtime-ai-media-coverage`
+- `pnpm check:runtime-ai-scenario-coverage`
 - `pnpm check:live-provider-invariants`
 
 阻断语义：

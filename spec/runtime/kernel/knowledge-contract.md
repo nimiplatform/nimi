@@ -80,6 +80,6 @@ KnowledgeService 的跨域消费契约状态：
 |---|---|---|---|
 | **持久化策略** | in-memory only（K-KNOW-005），重启丢失 | 需评估嵌入模型规模与磁盘 I/O 成本后决定持久化格式（SQLite/mmap/文件系统） | **Desktop UI 必须向用户明确告知"索引在重启后丢失"**。SDK 消费方必须处理重启后 SearchIndex 返回空结果的场景（不应视为错误） |
 | **索引更新策略** | 仅支持全量覆盖（`overwrite=true`） | 增量更新需定义文档变更检测机制与部分重建协议 | Desktop 必须在 UI 中提示"更新索引将替换全部内容" |
-| **BuildIndex 进度上报** | 仅返回 `task_id`，无进度回调。**当前无追踪 RPC**：task_id 既非 MediaJob（无 SubscribeMediaJobEvents 可用）也非 Workflow task（无 SubscribeWorkflowEvents 可用），且无 `GetIndexBuildStatus` 或 `SubscribeKnowledgeEvents` RPC | 需与 Workflow 事件流（K-WF-*）集成后统一设计。候选方案：(1) 纳入 Workflow 体系作为 INLINE 节点；(2) 新增 `GetBuildStatus(task_id)` 轮询 RPC；(3) 新增 `SubscribeKnowledgeEvents` 流 | Desktop/SDK 无法显示索引构建进度，只能显示"构建中"不确定进度指示。完成检测的临时方案：轮询 `SearchIndex` 判断是否返回非空结果 |
+| **BuildIndex 进度上报** | 仅返回 `task_id`，无进度回调。**当前无追踪 RPC**：task_id 既非 ScenarioJob（无 SubscribeScenarioJobEvents 可用）也非 Workflow task（无 SubscribeWorkflowEvents 可用），且无 `GetIndexBuildStatus` 或 `SubscribeKnowledgeEvents` RPC | 需与 Workflow 事件流（K-WF-*）集成后统一设计。候选方案：(1) 纳入 Workflow 体系作为 INLINE 节点；(2) 新增 `GetBuildStatus(task_id)` 轮询 RPC；(3) 新增 `SubscribeKnowledgeEvents` 流 | Desktop/SDK 无法显示索引构建进度，只能显示"构建中"不确定进度指示。完成检测的临时方案：轮询 `SearchIndex` 判断是否返回非空结果 |
 | **SearchIndex 分页** | 无分页，`top_k` 限制返回数量 | 向量搜索的分页语义（score-based cursor）与标准 page_token 不同，需专门设计 | — |
 | **多索引联合搜索** | 不支持 | 需定义跨索引 score 归一化与合并策略 | — |

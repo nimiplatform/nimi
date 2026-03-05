@@ -8,5 +8,5 @@
 | 2 | `lifecycle` | `true` | `true` | Health state gate; rejects non-readonly requests when STOPPING/STOPPED | `K-DAEMON-005` |
 | 3 | `protocol` | `true` | `true` | Envelope parsing, metadata extraction, idempotency check (unary only) | `K-DAEMON-005` |
 | 4 | `authn` | `true` | `true` | Authentication token validation; extracts and verifies caller identity from metadata | `K-DAEMON-005` |
-| 5 | `authz` | `true` | `true` | Protected capability validation via grant service; AI consume streaming RPCs (StreamGenerate, SynthesizeSpeechStream) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor | `K-DAEMON-005` |
+| 5 | `authz` | `true` | `true` | Protected capability validation via grant service; AI consume streaming RPCs (StreamScenario TEXT_GENERATE/SPEECH_SYNTHESIZE) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor | `K-DAEMON-005` |
 | 6 | `audit` | `true` | `true` | Request/response audit logging and usage metric update | `K-DAEMON-005` |

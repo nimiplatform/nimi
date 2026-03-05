@@ -1,0 +1,14 @@
+version: 1
+fields:
+  - field: scenario_type
+    required: true
+    description: Scenario identity.
+    source_rule: K-RPC-002
+  - field: supported_execution_modes
+    required: true
+    description: Execution modes supported by the scenario type.
+    source_rule: K-RPC-002
+  - field: description
+    required: false
+    description: Human-readable scenario profile description.
+    source_rule: K-RPC-002

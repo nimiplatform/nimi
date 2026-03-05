@@ -30,5 +30,9 @@
 | `tts-provider-capability-matrix.md` | `tables/tts-provider-capability-matrix.yaml` |
 | `multimodal-canonical-fields.md` | `tables/multimodal-canonical-fields.yaml` |
 | `multimodal-artifact-fields.md` | `tables/multimodal-artifact-fields.yaml` |
+| `scenario-types.md` | `tables/scenario-types.yaml` |
+| `scenario-execution-matrix.md` | `tables/scenario-execution-matrix.yaml` |
+| `provider-extension-registry.md` | `tables/provider-extension-registry.yaml` |
+| `scenario-profile-fields.md` | `tables/scenario-profile-fields.yaml` |
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |

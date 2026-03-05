@@ -18,7 +18,7 @@ const kernelFiles = [
   'spec/runtime/kernel/auth-service.md',
   'spec/runtime/kernel/grant-service.md',
   'spec/runtime/kernel/key-source-routing.md',
-  'spec/runtime/kernel/media-job-lifecycle.md',
+  'spec/runtime/kernel/scenario-job-lifecycle.md',
   'spec/runtime/kernel/local-category-capability.md',
   'spec/runtime/kernel/local-engine-contract.md',
   'spec/runtime/kernel/device-profile-contract.md',
@@ -70,6 +70,10 @@ const kernelFiles = [
   'spec/runtime/kernel/proto-governance-contract.md',
   'spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',
   'spec/runtime/kernel/tables/multimodal-artifact-fields.yaml',
+  'spec/runtime/kernel/tables/scenario-types.yaml',
+  'spec/runtime/kernel/tables/scenario-execution-matrix.yaml',
+  'spec/runtime/kernel/tables/provider-extension-registry.yaml',
+  'spec/runtime/kernel/tables/scenario-profile-fields.yaml',
   'spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
   'spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
 ];
@@ -555,7 +559,7 @@ function checkModelCatalogTables() {
   if (qwenVoices.has('Haruto')) {
     fail(`runtime/catalog/providers must not include Haruto for ${qwenVersionKey}`);
   }
-  for (const requiredVoice of ['Cherry', 'Serena']) {
+  for (const requiredVoice of ['cherry', 'serena']) {
     if (!qwenVoices.has(requiredVoice)) {
       fail(`runtime/catalog/providers missing required DashScope voice ${requiredVoice} for ${qwenVersionKey}`);
     }
@@ -657,7 +661,7 @@ function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
     const snapshotDoc = YAML.parse(fs.readFileSync(snapshotPath, 'utf8'));
 
     const sourceProvider = normalizeProviderName(sourceDoc?.provider);
-    const inferredRuntimePlane = sourceProvider === 'local' || sourceProvider === 'local-next' ? 'local' : 'remote';
+    const inferredRuntimePlane = sourceProvider === 'local' ? 'local' : 'remote';
     if (runtimePlane !== inferredRuntimePlane) {
       fail(`${tablePath} provider ${providerID} runtime_plane mismatch (matrix=${runtimePlane}, inferred=${inferredRuntimePlane})`);
     }
@@ -775,7 +779,7 @@ function checkStateTransitionCoverage(kernelRuleSet) {
   const requiredMachines = [
     'connector_status',
     'remote_connector_delete_flow',
-    'media_job',
+    'scenario_job',
     'local_model_lifecycle',
     'local_service_lifecycle',
   ];
@@ -785,21 +789,21 @@ function checkStateTransitionCoverage(kernelRuleSet) {
     }
   }
 
-  const mediaMachine = machineMap.get('media_job');
-  if (mediaMachine) {
-    const mediaStates = new Set(
-      (Array.isArray(mediaMachine?.states) ? mediaMachine.states : []).map((s) => String(s || '').trim()).filter(Boolean),
+  const scenarioMachine = machineMap.get('scenario_job');
+  if (scenarioMachine) {
+    const scenarioStates = new Set(
+      (Array.isArray(scenarioMachine?.states) ? scenarioMachine.states : []).map((s) => String(s || '').trim()).filter(Boolean),
     );
     const jobStateSet = new Set(
       (Array.isArray(jobStates?.states) ? jobStates.states : []).map((item) => String(item?.state || '').trim()).filter(Boolean),
     );
-    const missing = [...jobStateSet].filter((state) => !mediaStates.has(state));
-    const extra = [...mediaStates].filter((state) => !jobStateSet.has(state));
+    const missing = [...jobStateSet].filter((state) => !scenarioStates.has(state));
+    const extra = [...scenarioStates].filter((state) => !jobStateSet.has(state));
     if (missing.length > 0) {
-      fail(`state-transitions media_job missing states from job-states: ${missing.join(', ')}`);
+      fail(`state-transitions scenario_job missing states from job-states: ${missing.join(', ')}`);
     }
     if (extra.length > 0) {
-      fail(`state-transitions media_job has unknown states: ${extra.join(', ')}`);
+      fail(`state-transitions scenario_job has unknown states: ${extra.join(', ')}`);
     }
   }
 

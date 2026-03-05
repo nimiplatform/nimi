@@ -46,7 +46,7 @@ Provider 上游失败（401/429/5xx/timeout）统一映射：`UNAVAILABLE` + `AI
 
 `AI_MEDIA_IDEMPOTENCY_CONFLICT` 必须有显式出口语义：
 
-- `SubmitMediaJob` 幂等键冲突：`ALREADY_EXISTS` + `AI_MEDIA_IDEMPOTENCY_CONFLICT`
+- `SubmitScenarioJob` 幂等键冲突：`ALREADY_EXISTS` + `AI_MEDIA_IDEMPOTENCY_CONFLICT`
 - 不允许将该冲突静默降级为普通 provider 错误或未知内部错误
 
 幂等键由客户端通过 gRPC metadata `x-nimi-idempotency-key` 传递（`K-DAEMON-006`），缺失时不做去重。

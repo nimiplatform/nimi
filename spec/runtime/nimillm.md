@@ -2,7 +2,7 @@
 
 > Status: Draft
 > Date: 2026-03-03
-> Scope: remote 执行主题导引（provider 适配、流式语义、MediaJob 关联）。
+> Scope: remote 执行主题导引（provider 适配、流式语义、ScenarioJob 关联）。
 > Normative Imports: `spec/runtime/kernel/*`
 
 ## 0. 权威导入
@@ -13,7 +13,7 @@
 - `kernel/endpoint-security.md`（K-SEC-001, K-SEC-004）
 - `kernel/tables/provider-catalog.yaml`（provider canonical set / endpoint 默认值）
 - `kernel/tables/provider-capabilities.yaml`（provider runtime_plane / execution_module 能力约束）
-- `kernel/media-job-lifecycle.md`（K-JOB-001, K-JOB-006）
+- `kernel/scenario-job-lifecycle.md`（K-JOB-001, K-JOB-006）
 - `kernel/streaming-contract.md`（K-STREAM-002, K-STREAM-003, K-STREAM-004）
 - `kernel/error-model.md`（K-ERR-001, K-ERR-004）
 - `kernel/audit-contract.md`（K-AUDIT-001, K-AUDIT-018）
@@ -28,7 +28,7 @@
 2. 请求评估与路由：`kernel/key-source-routing.md`。
 3. 出站安全：`kernel/endpoint-security.md`。
 4. provider 值域与执行平面：`kernel/tables/provider-catalog.yaml` + `kernel/tables/provider-capabilities.yaml`。
-5. 流式与任务：`kernel/streaming-contract.md` + `kernel/media-job-lifecycle.md`。
+5. 流式与任务：`kernel/streaming-contract.md` + `kernel/scenario-job-lifecycle.md`。
 
 ## 3. 模块映射
 

@@ -32,7 +32,8 @@ Validation scripts run in CI. Each enforces a specific invariant.
 | `check-realm-sdk-generator-smoke.mjs` | SDK | Realm SDK codegen smoke test |
 | `check-realm-spec-kernel-consistency.mjs` | Spec | Realm spec YAML ↔ markdown consistency |
 | `check-reason-code-constants.mjs` | SDK | ReasonCode constant integrity |
-| `check-runtime-ai-media-coverage.mjs` | Runtime | AI media capability coverage |
+| `check-ai-scenario-hardcut-drift.mjs` | Runtime | AI scenario hard-cut legacy token drift detection |
+| `check-runtime-ai-scenario-coverage.mjs` | Runtime | AI scenario capability coverage |
 | `check-runtime-go-coverage.mjs` | Runtime | Go test coverage threshold |
 | `check-runtime-spec-kernel-consistency.mjs` | Spec | Runtime spec YAML ↔ markdown consistency |
 | `check-runtime-catalog-drift.mjs` | Runtime | Runtime catalog source→snapshot drift detection |

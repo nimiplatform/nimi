@@ -8,7 +8,7 @@
 ## 0. 权威导入
 
 - `kernel/multimodal-provider-contract.md`（K-MMPROV-001, K-MMPROV-006, K-MMPROV-007, K-MMPROV-009, K-MMPROV-012）
-- `kernel/media-job-lifecycle.md`（K-JOB-001, K-JOB-002）
+- `kernel/scenario-job-lifecycle.md`（K-JOB-001, K-JOB-002）
 - `kernel/provider-health-contract.md`（K-PROV-001, K-PROV-002, K-PROV-006）
 - `kernel/streaming-contract.md`（K-STREAM-001, K-STREAM-003, K-STREAM-004）
 - `kernel/workflow-contract.md`（K-WF-005）
@@ -22,7 +22,7 @@
 ## 2. 阅读路径
 
 1. 主合同：`kernel/multimodal-provider-contract.md`。
-2. 任务生命周期：`kernel/media-job-lifecycle.md`。
+2. 任务生命周期：`kernel/scenario-job-lifecycle.md`。
 3. provider 健康与命名：`kernel/provider-health-contract.md`。
 4. workflow external async：`kernel/workflow-contract.md`。
 

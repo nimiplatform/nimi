@@ -47,9 +47,9 @@ Daemon 启动固定为以下阶段：
 
 | 子系统状态机 | STOPPING 行为 | 引用 |
 |---|---|---|
-| 活跃 MediaJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已提交的 in-flight job 继续执行直到 gRPC GracefulStop 超时后强制终止 | K-DAEMON-003 step 5 |
-| 活跃 Workflow（K-WF-003） | 同 MediaJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 5 |
-| 活跃 StreamGenerate/SynthesizeSpeechStream | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 5 |
+| 活跃 ScenarioJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已提交的 in-flight job 继续执行直到 gRPC GracefulStop 超时后强制终止 | K-DAEMON-003 step 5 |
+| 活跃 Workflow（K-WF-003） | 同 ScenarioJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 5 |
+| 活跃 StreamScenario | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 5 |
 | 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
 | Supervised 引擎（K-LENG-004b） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 worker/gRPC 关闭前执行 | K-DAEMON-003 step 2 |
 | Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 4 |
@@ -66,7 +66,7 @@ Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervi
 
   | Worker 名称 | 对应 gRPC Service | 说明 |
   |---|---|---|
-  | `ai` | `RuntimeAiService` | AI 推理执行（Generate/Stream/Embed/MediaJob） |
+  | `ai` | `RuntimeAiService` | AI 推理执行（ExecuteScenario/StreamScenario/ScenarioJob/VoiceAsset） |
   | `model` | `RuntimeModelService` | 模型注册与管理 |
   | `workflow` | `RuntimeWorkflowService` | 工作流 DAG 执行 |
   | `script` | `ScriptWorkerService` | 脚本沙箱执行 |
@@ -115,7 +115,7 @@ AI 执行路径使用双层信号量控制并发：
 - **饥饿检测**：等待时间超过阈值（默认 30s）时，`AcquireResult.Starved=true`。
 - **空 AppID 处理**：归入 `_default` 键。
 
-> **参数选取依据**：全局并发上限 8 ≈ 典型桌面端 CPU 核数（4-8 核），避免 AI 推理独占全部计算资源。Per-app 上限 2 保证至少 4 个 app 可同时发起推理（8 / 2 = 4），防止单个 app 独占全部 slot。饥饿检测 30s 对应 StreamGenerate 的首包超时 10s + 总超时 120s 之间的中间值，确保在流式请求超时前有机会检测到调度饥饿。
+> **参数选取依据**：全局并发上限 8 ≈ 典型桌面端 CPU 核数（4-8 核），避免 AI 推理独占全部计算资源。Per-app 上限 2 保证至少 4 个 app 可同时发起推理（8 / 2 = 4），防止单个 app 独占全部 slot。饥饿检测 30s 对应 StreamScenario 的首包超时 10s + 总超时 120s 之间的中间值，确保在流式请求超时前有机会检测到调度饥饿。
 
 ## K-DAEMON-008 AI 超时层次
 
@@ -123,14 +123,14 @@ AI 执行路径使用双层信号量控制并发：
 
 | 操作 | 默认超时 |
 |---|---|
-| Generate | 30s |
-| StreamGenerate（首包） | 10s |
-| StreamGenerate（总） | 120s |
-| Embed | 20s |
-| SubmitMediaJob(image) | 120s |
-| SubmitMediaJob(video) | 300s |
-| SynthesizeSpeechStream | 45s |
-| SubmitMediaJob(stt) | 90s |
+| ExecuteScenario(TEXT_GENERATE) | 30s |
+| StreamScenario（首包） | 10s |
+| StreamScenario（总） | 120s |
+| ExecuteScenario(TEXT_EMBED) | 20s |
+| SubmitScenarioJob(image) | 120s |
+| SubmitScenarioJob(video) | 300s |
+| StreamScenario(SPEECH_SYNTHESIZE) | 45s |
+| SubmitScenarioJob(stt) | 90s |
 
 超时可通过请求级 `timeout_ms` 覆盖（但不得超过服务端上限）。
 

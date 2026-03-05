@@ -3,26 +3,30 @@ services:
   - name: AIService
     source: K-RPC-002
     methods:
-      - name: Generate
+      - name: ExecuteScenario
         type: unary
-      - name: StreamGenerate
+      - name: StreamScenario
         type: server_stream
-      - name: Embed
+      - name: SubmitScenarioJob
         type: unary
-      - name: SubmitMediaJob
+      - name: GetScenarioJob
         type: unary
-      - name: GetMediaJob
+      - name: CancelScenarioJob
         type: unary
-      - name: CancelMediaJob
-        type: unary
-      - name: SubscribeMediaJobEvents
+      - name: SubscribeScenarioJobEvents
         type: server_stream
-      - name: GetMediaResult
+      - name: GetScenarioArtifacts
         type: unary
-      - name: GetSpeechVoices
+      - name: ListScenarioProfiles
         type: unary
-      - name: SynthesizeSpeechStream
-        type: server_stream
+      - name: GetVoiceAsset
+        type: unary
+      - name: ListVoiceAssets
+        type: unary
+      - name: DeleteVoiceAsset
+        type: unary
+      - name: ListPresetVoices
+        type: unary
   - name: ConnectorService
     source: K-RPC-003
     methods:
@@ -150,25 +154,6 @@ services:
         type: unary
       - name: SubscribeWorkflowEvents
         type: server_stream
-  - name: VoiceService
-    source: K-RPC-014
-    methods:
-      - name: SubmitVoiceJob
-        type: unary
-      - name: GetVoiceJob
-        type: unary
-      - name: CancelVoiceJob
-        type: unary
-      - name: SubscribeVoiceJobEvents
-        type: server_stream
-      - name: GetVoiceAsset
-        type: unary
-      - name: ListVoiceAssets
-        type: unary
-      - name: DeleteVoiceAsset
-        type: unary
-      - name: ListPresetVoices
-        type: unary
   - name: RuntimeAuditService
     source: K-AUDIT-013
     methods:

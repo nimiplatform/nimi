@@ -38,10 +38,10 @@
 
 该顺序不可调整，避免越权侧信道泄露。此评估顺序由 K-KEYSRC-004 的 step 定义强制执行。
 
-## K-AUTH-006 MediaJob owner 语义
+## K-AUTH-006 ScenarioJob owner 语义
 
 - job 创建时：有效 JWT => `owner_id=jwt.sub`；否则 `owner_id="anonymous"`。
-- `GetMediaJob/CancelMediaJob/SubscribeMediaJobEvents/GetMediaResult` 基于 job owner 校验，不依赖 connector 存续。
+- `GetScenarioJob/CancelScenarioJob/SubscribeScenarioJobEvents/GetScenarioArtifacts` 基于 job owner 校验，不依赖 connector 存续。
 
 ## K-AUTH-007 AuthN 与 AuthZ 分层
 

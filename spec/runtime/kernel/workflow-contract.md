@@ -50,6 +50,16 @@
 
 节点类型通过 `oneof type_config` 承载，运行时必须校验 `node_type` 与 `type_config` 分支的一致性。
 
+AI 节点执行面必须通过 Scenario 调度统一落地（实现可封装在兼容层，但对外语义必须保持 Scenario 一致）：
+
+- `AI_GENERATE`/`AI_STREAM` -> `TEXT_GENERATE`
+- `AI_EMBED` -> `TEXT_EMBED`
+- `AI_IMAGE` -> `IMAGE_GENERATE`
+- `AI_VIDEO` -> `VIDEO_GENERATE`
+- `AI_TTS` -> `SPEECH_SYNTHESIZE`
+- `AI_STT` -> `SPEECH_TRANSCRIBE`
+- `TTS_CREATE_VOICE` -> `VOICE_CLONE`/`VOICE_DESIGN`（由 `workflow_type` 判定）
+
 ## K-WF-003 Workflow 状态机（事实源：`tables/workflow-states.yaml`）
 
 | 状态 | 值 | 含义 |

@@ -1,0 +1,26 @@
+version: 1
+entries:
+  - scenario_type: TEXT_GENERATE
+    description: Text generation scenario.
+    source_rule: K-RPC-002
+  - scenario_type: TEXT_EMBED
+    description: Text embedding scenario.
+    source_rule: K-RPC-002
+  - scenario_type: IMAGE_GENERATE
+    description: Image generation scenario.
+    source_rule: K-RPC-002
+  - scenario_type: VIDEO_GENERATE
+    description: Video generation scenario.
+    source_rule: K-RPC-002
+  - scenario_type: SPEECH_SYNTHESIZE
+    description: Speech synthesis scenario.
+    source_rule: K-RPC-002
+  - scenario_type: SPEECH_TRANSCRIBE
+    description: Speech transcription scenario.
+    source_rule: K-RPC-002
+  - scenario_type: VOICE_CLONE
+    description: Voice clone scenario.
+    source_rule: K-RPC-002
+  - scenario_type: VOICE_DESIGN
+    description: Voice design scenario.
+    source_rule: K-RPC-002

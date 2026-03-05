@@ -2,7 +2,7 @@ gates:
   - gate: G0
     name: ssot_freeze
     objective: freeze spec authority and rule ids
-    command: pnpm check:runtime-spec-kernel-consistency && pnpm check:runtime-spec-kernel-docs-drift
+    command: pnpm check:ai-scenario-hardcut-drift && pnpm check:runtime-spec-kernel-consistency && pnpm check:runtime-spec-kernel-docs-drift
     blocking: hard_block
     evidence_route: dev/plan/*,dev/report/*
     source_rule: K-GATE-010
@@ -23,14 +23,14 @@ gates:
   - gate: G3
     name: provider_coverage
     objective: provider routing and capability coverage verified
-    command: pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-media-coverage && pnpm check:live-provider-invariants
+    command: pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants
     blocking: hard_block
     evidence_route: dev/report/live-test-coverage.yaml
     source_rule: K-GATE-040
   - gate: G4
     name: workflow_async
-    objective: external async events align with media job states
-    command: cd runtime && go test ./internal/services/ai/ -run Test.*MediaJob -count=1
+    objective: external async events align with scenario job states
+    command: cd runtime && go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1
     blocking: hard_block
     evidence_route: dev/report/*
     source_rule: K-GATE-050

@@ -17,7 +17,6 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 **Phase 2（完整 Runtime 服务）：**
 
 - `RuntimeWorkflowService`（`K-WF-*`）
-- `VoiceService`（design 名称，映射到 proto `RuntimeVoiceService`）
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeKnowledgeService`（`K-KNOW-*`）
@@ -28,16 +27,18 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 
 `AIService` 方法固定为：
 
-1. `Generate`
-2. `StreamGenerate`
-3. `Embed`
-4. `SubmitMediaJob`
-5. `GetMediaJob`
-6. `CancelMediaJob`
-7. `SubscribeMediaJobEvents`
-8. `GetMediaResult`
-9. `GetSpeechVoices`
-10. `SynthesizeSpeechStream`
+1. `ExecuteScenario`
+2. `StreamScenario`
+3. `SubmitScenarioJob`
+4. `GetScenarioJob`
+5. `CancelScenarioJob`
+6. `SubscribeScenarioJobEvents`
+7. `GetScenarioArtifacts`
+8. `ListScenarioProfiles`
+9. `GetVoiceAsset`
+10. `ListVoiceAssets`
+11. `DeleteVoiceAsset`
+12. `ListPresetVoices`
 
 ## K-RPC-003 ConnectorService 方法集合（design 权威）
 
@@ -104,11 +105,8 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 
 ## K-RPC-005 Design 名称与 Proto 名称映射
 
-`tables/rpc-migration-map.yaml` 是 design/proto 命名映射的唯一事实源：
-
-- design 层（kernel/domain）使用 `AIService` 与 `GetMediaResult`/`SynthesizeSpeechStream` 等 design 名称
-- proto 层保留 `RuntimeAiService` 与 `GetMediaArtifacts`/`StreamSpeechSynthesis` 等实际名称
-- 对接层必须通过映射表进行显式转换，不允许隐式双口径
+`tables/rpc-migration-map.yaml` 是 design/proto 命名映射的唯一事实源。
+本轮 AI 入口与 proto 对齐为场景协议命名（`ExecuteScenario` / `SubmitScenarioJob` 等），不再维护 Voice 独立服务映射。
 
 ## K-RPC-006 对外契约禁用名
 
@@ -119,6 +117,17 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - `SynthesizeSpeech`
 - `ListTokenProviderModels`
 - `CheckTokenProviderHealth`
+- `SubmitMediaJob`
+- `GetMediaJob`
+- `CancelMediaJob`
+- `SubscribeMediaJobEvents`
+- `GetMediaResult`
+- `SubmitVoiceJob`
+- `GetVoiceJob`
+- `CancelVoiceJob`
+- `SubscribeVoiceJobEvents`
+- `StreamGenerate`
+- `SynthesizeSpeechStream`
 
 ## K-RPC-007 CreateConnector 字段契约
 
@@ -167,9 +176,9 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - **强制刷新**：调用方可通过 `ListConnectorModels(force_refresh=true)` 绕过缓存，强制出站查询。
 - **缓存未命中**：正常出站查询并回填缓存。
 
-## K-RPC-013 GetSpeechVoices 字段契约
+## K-RPC-013 ListPresetVoices 字段契约
 
-`GetSpeechVoices` 返回可用的语音合成声音列表。
+`ListPresetVoices` 返回 provider 预置声音列表。
 
 **请求字段**：
 
@@ -177,24 +186,23 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 |---|---|---|---|
 | `app_id` | string | 是 | 应用标识 |
 | `subject_user_id` | string | 是 | 鉴权主体用户 ID |
-| `model_id` | string | 是 | 待查询模型（例如 `cloud/qwen3-tts-instruct-flash-2026-01-26`） |
-| `route_policy` | enum | 是 | 路由策略（`local-runtime`/`token-api`） |
-| `fallback` | enum | 是 | fallback 策略 |
+| `model_id` | string | 是 | 待查询模型（例如 `local/qwen3-tts-local`） |
+| `target_model_id` | string | 否 | 目标声音资产绑定模型（克隆/设计场景可选） |
 | `connector_id` | string | 否 | key-source 托管 connector（`managed` 路径） |
 
 **响应字段**：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `voices` | repeated SpeechVoiceDescriptor | 可用声音列表 |
+| `voices` | repeated PresetVoice | 预置声音列表 |
 | `model_resolved` | string | 路由后模型 ID |
 | `trace_id` | string | 请求追踪 ID |
 
-**SpeechVoiceDescriptor 字段**：
+**PresetVoice 字段**：
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `voice_id` | string | 声音唯一标识 |
+| `preset_voice_id` | string | 预置声音唯一标识 |
 | `name` | string | 声音显示名称 |
 | `lang` | string | 默认语言标签 |
 | `supported_langs` | repeated string | 支持语言列表 |
@@ -203,18 +211,14 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 
 - 结果为有界小集合，不分页（无 `page_size`/`page_token`）。
 - 请求必须经过 key-source 解析（`K-KEYSRC-*`），`connector_id` 语义与其他 AI RPC 一致。
-- DashScope TTS voice 来源遵循 `K-MCAT-*` catalog 主路径；兼容模式 voice endpoint 探测不作为主路径。
-- `catalog_source` 属于运行时诊断语义：必须在 runtime 诊断日志与错误 metadata（如 `voice_catalog_source`）可观测；Phase 1 不要求 proto 字段变更。
+- 声音来源遵循 catalog 主路径，不允许无命名空间自由透传参数绕过。
+- Voice 资产（用户克隆/设计声音）不由本接口返回；由 `GetVoiceAsset` / `ListVoiceAssets` 管理。
 
-## K-RPC-014 VoiceService 方法集合（design 权威）
+## K-RPC-014 Voice Asset 管理方法集合
 
-`VoiceService` 方法固定为：
+Voice 相关资产生命周期收敛到 `AIService`：
 
-1. `SubmitVoiceJob`
-2. `GetVoiceJob`
-3. `CancelVoiceJob`
-4. `SubscribeVoiceJobEvents`
-5. `GetVoiceAsset`
-6. `ListVoiceAssets`
-7. `DeleteVoiceAsset`
-8. `ListPresetVoices`
+1. `GetVoiceAsset`
+2. `ListVoiceAssets`
+3. `DeleteVoiceAsset`
+4. `ListPresetVoices`

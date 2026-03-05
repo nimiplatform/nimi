@@ -42,7 +42,7 @@ entries:
     supports_tts_v2v: true
     supports_tts_t2v: true
     supports_timing_alignment: false
-    voice_discovery_mode: dynamic_user_scoped
+    voice_discovery_mode: mixed
     activation_state: active
     source_rule: K-MCAT-023
   - provider_id: azure_speech
@@ -79,14 +79,5 @@ entries:
     supports_tts_t2v: false
     supports_timing_alignment: false
     voice_discovery_mode: dynamic_global
-    activation_state: active
-    source_rule: K-MCAT-023
-  - provider_id: local-next
-    runtime_plane: local
-    supports_tts_synthesize: true
-    supports_tts_v2v: true
-    supports_tts_t2v: false
-    supports_timing_alignment: false
-    voice_discovery_mode: mixed
     activation_state: active
     source_rule: K-MCAT-023

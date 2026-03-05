@@ -17,7 +17,7 @@
 
 ## K-AUDIT-018 AI 执行审计扩展字段
 
-AI 执行路径（Generate/StreamGenerate/Embed/MediaJob/TTS 等）的审计事件在 `K-AUDIT-001` 通用底线基础上，额外包含：
+AI 执行路径（ExecuteScenario/StreamScenario/ScenarioJob 等）的审计事件在 `K-AUDIT-001` 通用底线基础上，额外包含：
 
 - `request_id`
 - `user_id`
@@ -41,7 +41,7 @@ Phase 1 固定 `request_id == trace_id`（同一 ULID），为后续 fan-out 分
 
 ## K-AUDIT-004 app_id 承载规则
 
-- AI consume / MediaJob 查询：`app_id` 在 request body
+- AI consume / ScenarioJob 查询：`app_id` 在 request body
 - Connector 管理：`x-nimi-app-id` metadata
 
 ## K-AUDIT-005 安全治理基线

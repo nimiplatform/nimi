@@ -29,66 +29,6 @@ fields:
     required: false
     description: optional inpaint mask source
     source_rule: K-MMPROV-002
-  - modality: image
-    field: provider_options.step
-    required: false
-    description: LocalAI preferred sampling step count
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_options.steps
-    required: false
-    description: Nexa compatibility key mapped to step when step is absent
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_options.mode
-    required: false
-    description: LocalAI preferred generation mode
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_options.method
-    required: false
-    description: Nexa compatibility key mapped to mode when mode is absent
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_options.guidance_scale
-    required: false
-    description: currently ignored in LocalAI image path and reported in compat.ignored_options
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_options.eta
-    required: false
-    description: currently ignored in LocalAI image path and reported in compat.ignored_options
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_options.strength
-    required: false
-    description: currently ignored in LocalAI image path and reported in compat.ignored_options
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_raw.localai_prompt
-    required: false
-    description: effective LocalAI prompt after positive/negative composition
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_raw.source_image
-    required: false
-    description: i2i source image mapped to LocalAI file field
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_raw.ref_images_count
-    required: false
-    description: number of additional LocalAI ref_images entries
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_raw.compat.applied_options
-    required: false
-    description: compatibility options successfully mapped to LocalAI request
-    source_rule: K-MMPROV-017
-  - modality: image
-    field: provider_raw.compat.ignored_options
-    required: false
-    description: compatibility options ignored without fail-close
-    source_rule: K-MMPROV-017
   - modality: video
     field: mode
     required: true
@@ -183,11 +123,6 @@ fields:
     field: voice_ref
     required: true
     description: strongly-typed synthesis voice reference
-    source_rule: K-MMPROV-018
-  - modality: tts
-    field: voice
-    required: false
-    description: legacy synthesis voice id string
     source_rule: K-MMPROV-018
   - modality: tts
     field: target_model_id

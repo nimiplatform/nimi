@@ -71,7 +71,7 @@ Remote override is opt-in and MUST default to disabled. Enabled remote fetch MUS
 
 ## K-MCAT-007 DashScope Voice Path
 
-For DashScope TTS models, `GetSpeechVoices` and TTS voice validation MUST be catalog-driven. OpenAI-compatible voice discovery endpoint probing MUST NOT be the primary resolution path.
+For DashScope TTS models, `ListPresetVoices` and TTS voice validation MUST be catalog-driven. OpenAI-compatible voice discovery endpoint probing MUST NOT be the primary resolution path.
 
 ## K-MCAT-008 Fail-Close Semantics
 
@@ -84,7 +84,7 @@ Runtime MUST fail-close and MUST NOT silently fallback to legacy hardcoded voice
 
 ## K-MCAT-009 Compatibility Scope
 
-`GetSpeechVoices` gRPC surface remains unchanged in this phase. `catalog_source` is an internal/runtime diagnostic behavior and does not require proto breaking change.
+`ListPresetVoices` gRPC surface remains unchanged in this phase. `catalog_source` is an internal/runtime diagnostic behavior and does not require proto breaking change.
 
 ## K-MCAT-010 DashScope First Rollout
 

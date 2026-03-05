@@ -1,0 +1,50 @@
+version: 1
+entries:
+  - provider_id: local
+    scenario_type: IMAGE_GENERATE
+    direction: request
+    namespace: nimi.scenario.image.request
+    strategy: best_effort
+    source_rule: K-MMPROV-012
+  - provider_id: local
+    scenario_type: VIDEO_GENERATE
+    direction: request
+    namespace: nimi.scenario.video.request
+    strategy: best_effort
+    source_rule: K-MMPROV-012
+  - provider_id: local
+    scenario_type: SPEECH_SYNTHESIZE
+    direction: request
+    namespace: nimi.scenario.speech_synthesize.request
+    strategy: best_effort
+    source_rule: K-MMPROV-012
+  - provider_id: local
+    scenario_type: SPEECH_TRANSCRIBE
+    direction: request
+    namespace: nimi.scenario.speech_transcribe.request
+    strategy: best_effort
+    source_rule: K-MMPROV-012
+  - provider_id: dashscope
+    scenario_type: SPEECH_SYNTHESIZE
+    direction: request
+    namespace: nimi.scenario.speech_synthesize.request
+    strategy: best_effort
+    source_rule: K-MMPROV-012
+  - provider_id: dashscope
+    scenario_type: SPEECH_TRANSCRIBE
+    direction: request
+    namespace: nimi.scenario.speech_transcribe.request
+    strategy: best_effort
+    source_rule: K-MMPROV-012
+  - provider_id: elevenlabs
+    scenario_type: VOICE_CLONE
+    direction: request
+    namespace: nimi.scenario.voice_clone.request
+    strategy: strict
+    source_rule: K-MMPROV-020
+  - provider_id: elevenlabs
+    scenario_type: VOICE_DESIGN
+    direction: request
+    namespace: nimi.scenario.voice_design.request
+    strategy: strict
+    source_rule: K-MMPROV-020

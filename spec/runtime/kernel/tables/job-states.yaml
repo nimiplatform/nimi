@@ -1,5 +1,8 @@
 version: 1
 states:
+  - state: SUBMITTED
+    terminal: false
+    source: K-JOB-002
   - state: QUEUED
     terminal: false
     source: K-JOB-002
@@ -12,9 +15,9 @@ states:
   - state: FAILED
     terminal: true
     source: K-JOB-002
-  - state: CANCELLED
+  - state: CANCELED
     terminal: true
     source: K-JOB-002
-  - state: EXPIRED
+  - state: TIMEOUT
     terminal: true
     source: K-JOB-002

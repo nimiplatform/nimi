@@ -1,0 +1,34 @@
+version: 1
+entries:
+  - scenario_type: TEXT_GENERATE
+    canonical_modality: text
+    supported_execution_modes: [SYNC, STREAM]
+    source_rule: K-RPC-002
+  - scenario_type: TEXT_EMBED
+    canonical_modality: embedding
+    supported_execution_modes: [SYNC]
+    source_rule: K-RPC-002
+  - scenario_type: IMAGE_GENERATE
+    canonical_modality: image
+    supported_execution_modes: [ASYNC_JOB]
+    source_rule: K-RPC-002
+  - scenario_type: VIDEO_GENERATE
+    canonical_modality: video
+    supported_execution_modes: [ASYNC_JOB]
+    source_rule: K-RPC-002
+  - scenario_type: SPEECH_SYNTHESIZE
+    canonical_modality: tts
+    supported_execution_modes: [STREAM, ASYNC_JOB]
+    source_rule: K-RPC-002
+  - scenario_type: SPEECH_TRANSCRIBE
+    canonical_modality: stt
+    supported_execution_modes: [ASYNC_JOB]
+    source_rule: K-RPC-002
+  - scenario_type: VOICE_CLONE
+    canonical_modality: voice
+    supported_execution_modes: [ASYNC_JOB]
+    source_rule: K-RPC-002
+  - scenario_type: VOICE_DESIGN
+    canonical_modality: voice
+    supported_execution_modes: [ASYNC_JOB]
+    source_rule: K-RPC-002

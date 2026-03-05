@@ -35,7 +35,7 @@
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
 | `grant-service.md` | `K-GRANT-*` | RuntimeGrantService 契约与 delegated token 约束 |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
-| `media-job-lifecycle.md` | `K-JOB-*` | MediaJob 生命周期与 owner/credential 快照 |
+| `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
 | `local-category-capability.md` | `K-LOCAL-*` | 本地模型能力、依赖解析、适配器路由 |
 | `local-engine-contract.md` | `K-LENG-*` | 本地引擎类型、运行模式、配置优先级 |
 | `device-profile-contract.md` | `K-DEV-*` | 设备画像与兼容性判定 |
@@ -66,6 +66,9 @@
 
 - `tables/rpc-methods.yaml`
 - `tables/rpc-migration-map.yaml`
+- `tables/scenario-types.yaml`
+- `tables/scenario-execution-matrix.yaml`
+- `tables/scenario-profile-fields.yaml`
 - `tables/reason-codes.yaml`
 - `tables/error-mapping-matrix.yaml`
 - `tables/metadata-keys.yaml`
@@ -90,6 +93,7 @@
 - `tables/tts-provider-capability-matrix.yaml`
 - `tables/multimodal-canonical-fields.yaml`
 - `tables/multimodal-artifact-fields.yaml`
+- `tables/provider-extension-registry.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
 

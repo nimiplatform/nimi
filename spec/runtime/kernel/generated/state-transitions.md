@@ -21,20 +21,25 @@ States: `PRESENT`, `DELETE_PENDING`, `DELETED`
 | `DELETE_PENDING` | `DELETE_PENDING` | `DeleteConnector_retry_or_startup_rescan` | `K-RPC-011` |
 | `DELETE_PENDING` | `DELETED` | `credential_cleanup_and_registry_delete` | `K-RPC-011` |
 
-## media_job
+## scenario_job
 
-States: `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`, `EXPIRED`
+States: `SUBMITTED`, `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELED`, `TIMEOUT`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
+| `SUBMITTED` | `QUEUED` | `accepted_into_queue` | `K-JOB-002` |
+| `SUBMITTED` | `RUNNING` | `provider_accepts_job` | `K-JOB-002` |
+| `SUBMITTED` | `FAILED` | `terminal_error_before_run` | `K-JOB-002` |
+| `SUBMITTED` | `CANCELED` | `user_cancel` | `K-JOB-002` |
+| `SUBMITTED` | `TIMEOUT` | `job_timeout` | `K-JOB-002` |
 | `QUEUED` | `RUNNING` | `provider_accepts_job` | `K-JOB-002` |
 | `QUEUED` | `FAILED` | `terminal_error_before_run` | `K-JOB-002` |
-| `QUEUED` | `CANCELLED` | `user_cancel` | `K-JOB-002` |
-| `QUEUED` | `EXPIRED` | `ttl_expired` | `K-JOB-002` |
+| `QUEUED` | `CANCELED` | `user_cancel` | `K-JOB-002` |
+| `QUEUED` | `TIMEOUT` | `job_timeout` | `K-JOB-002` |
 | `RUNNING` | `COMPLETED` | `provider_success` | `K-JOB-002` |
 | `RUNNING` | `FAILED` | `provider_or_runtime_failure` | `K-JOB-002` |
-| `RUNNING` | `CANCELLED` | `user_cancel` | `K-JOB-002` |
-| `RUNNING` | `EXPIRED` | `ttl_expired` | `K-JOB-002` |
+| `RUNNING` | `CANCELED` | `user_cancel` | `K-JOB-002` |
+| `RUNNING` | `TIMEOUT` | `job_timeout` | `K-JOB-002` |
 
 ## local_model_lifecycle
 

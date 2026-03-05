@@ -8,16 +8,18 @@ Source: `K-RPC-002`
 
 | Method | Type |
 |---|---|
-| `Generate` | `unary` |
-| `StreamGenerate` | `server_stream` |
-| `Embed` | `unary` |
-| `SubmitMediaJob` | `unary` |
-| `GetMediaJob` | `unary` |
-| `CancelMediaJob` | `unary` |
-| `SubscribeMediaJobEvents` | `server_stream` |
-| `GetMediaResult` | `unary` |
-| `GetSpeechVoices` | `unary` |
-| `SynthesizeSpeechStream` | `server_stream` |
+| `ExecuteScenario` | `unary` |
+| `StreamScenario` | `server_stream` |
+| `SubmitScenarioJob` | `unary` |
+| `GetScenarioJob` | `unary` |
+| `CancelScenarioJob` | `unary` |
+| `SubscribeScenarioJobEvents` | `server_stream` |
+| `GetScenarioArtifacts` | `unary` |
+| `ListScenarioProfiles` | `unary` |
+| `GetVoiceAsset` | `unary` |
+| `ListVoiceAssets` | `unary` |
+| `DeleteVoiceAsset` | `unary` |
+| `ListPresetVoices` | `unary` |
 
 ## ConnectorService
 
@@ -109,21 +111,6 @@ Source: `K-WF-003`
 | `GetWorkflow` | `unary` |
 | `CancelWorkflow` | `unary` |
 | `SubscribeWorkflowEvents` | `server_stream` |
-
-## VoiceService
-
-Source: `K-RPC-014`
-
-| Method | Type |
-|---|---|
-| `SubmitVoiceJob` | `unary` |
-| `GetVoiceJob` | `unary` |
-| `CancelVoiceJob` | `unary` |
-| `SubscribeVoiceJobEvents` | `server_stream` |
-| `GetVoiceAsset` | `unary` |
-| `ListVoiceAssets` | `unary` |
-| `DeleteVoiceAsset` | `unary` |
-| `ListPresetVoices` | `unary` |
 
 ## RuntimeAuditService
 
