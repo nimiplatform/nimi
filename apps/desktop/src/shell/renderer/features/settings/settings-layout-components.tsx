@@ -49,7 +49,6 @@ export function Card({
 
 export function PageShell({
   title,
-  description,
   children,
   footer,
 }: {
@@ -61,10 +60,7 @@ export function PageShell({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-14 shrink-0 items-center bg-white px-6">
-        <div className="flex items-end gap-3">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          {description && <p className="text-xs text-gray-500 pb-[3px]">{description}</p>}
-        </div>
+        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
       </div>
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="mx-auto max-w-2xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

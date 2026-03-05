@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -21,7 +21,7 @@ import {
   SaveFooter,
   SectionTitle,
 } from '../settings-layout-components';
-// SelectField component removed - using native select for consistent styling
+// SelectField component removed - settings now use unified custom dropdowns
 
 // Icons
 function LanguageIcon({ className = '' }: { className?: string }) {
@@ -463,6 +463,92 @@ export function ProfilePage() {
   );
 }
 
+type SettingsDropdownOption = {
+  value: string;
+  label: string;
+};
+
+function SettingsDropdown({
+  value,
+  onChange,
+  options,
+  disabled,
+  icon,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: readonly SettingsDropdownOption[];
+  disabled?: boolean;
+  icon?: ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedLabel = options.find((item) => item.value === value)?.label || value;
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      {icon ? (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+          {icon}
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-10 text-sm text-gray-900 outline-none transition-all hover:border-mint-300 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60"
+      >
+        <span>{selectedLabel}</span>
+      </button>
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                value === option.value
+                  ? 'bg-mint-50 text-mint-700 font-medium'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {value === option.value && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mint-500">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+                <span className={value === option.value ? 'ml-0' : 'ml-6'}>{option.label}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LanguageRegionPage() {
   const { t } = useTranslation();
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
@@ -470,6 +556,24 @@ export function LanguageRegionPage() {
   const [timezone, setTimezone] = useState('Asia/Shanghai');
   const [dateFormat, setDateFormat] = useState('YYYY-MM-DD');
   const [saving, setSaving] = useState(false);
+  const languageOptions: SettingsDropdownOption[] = SUPPORTED_LOCALES.map((locale) => ({
+    value: locale,
+    label: getLocaleLabel(locale),
+  }));
+  const timezoneOptions: SettingsDropdownOption[] = [
+    { value: 'Asia/Shanghai', label: t('LanguageRegion.timezoneCst') },
+    { value: 'Asia/Tokyo', label: t('LanguageRegion.timezoneJst') },
+    { value: 'America/New_York', label: t('LanguageRegion.timezoneEt') },
+    { value: 'America/Los_Angeles', label: t('LanguageRegion.timezonePt') },
+    { value: 'Europe/London', label: t('LanguageRegion.timezoneGmt') },
+    { value: 'Europe/Berlin', label: t('LanguageRegion.timezoneCet') },
+  ];
+  const dateFormatOptions: SettingsDropdownOption[] = [
+    { value: 'YYYY-MM-DD', label: t('LanguageRegion.dateFormatIso') },
+    { value: 'MM/DD/YYYY', label: t('LanguageRegion.dateFormatUs') },
+    { value: 'DD/MM/YYYY', label: t('LanguageRegion.dateFormatEu') },
+    { value: 'DD.MM.YYYY', label: t('LanguageRegion.dateFormatDe') },
+  ];
 
   const handleLanguageChange = async (locale: SupportedLocale) => {
     if (saving) {
@@ -503,25 +607,13 @@ export function LanguageRegionPage() {
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {t('LanguageRegion.language')}
               </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <LanguageIcon className="h-5 w-5" />
-                </div>
-                <select
-                  value={language}
-                  onChange={(e) => { void handleLanguageChange(e.target.value as SupportedLocale); }}
-                  className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-10 text-sm text-gray-900 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
-                >
-                  {SUPPORTED_LOCALES.map((l) => (
-                    <option key={l} value={l}>{getLocaleLabel(l)}</option>
-                  ))}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-              </div>
+              <SettingsDropdown
+                value={language}
+                onChange={(locale) => { void handleLanguageChange(locale as SupportedLocale); }}
+                options={languageOptions}
+                disabled={saving}
+                icon={<LanguageIcon className="h-5 w-5" />}
+              />
               <p className="mt-1.5 text-xs text-gray-400">{t('LanguageRegion.languageHelper')}</p>
             </div>
           </div>
@@ -538,28 +630,12 @@ export function LanguageRegionPage() {
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {t('LanguageRegion.timezone')}
               </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <ClockIcon className="h-5 w-5" />
-                </div>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-10 text-sm text-gray-900 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
-                >
-                  <option value="Asia/Shanghai">{t('LanguageRegion.timezoneCst')}</option>
-                  <option value="Asia/Tokyo">{t('LanguageRegion.timezoneJst')}</option>
-                  <option value="America/New_York">{t('LanguageRegion.timezoneEt')}</option>
-                  <option value="America/Los_Angeles">{t('LanguageRegion.timezonePt')}</option>
-                  <option value="Europe/London">{t('LanguageRegion.timezoneGmt')}</option>
-                  <option value="Europe/Berlin">{t('LanguageRegion.timezoneCet')}</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-              </div>
+              <SettingsDropdown
+                value={timezone}
+                onChange={setTimezone}
+                options={timezoneOptions}
+                icon={<ClockIcon className="h-5 w-5" />}
+              />
             </div>
 
             {/* Date Format */}
@@ -567,26 +643,12 @@ export function LanguageRegionPage() {
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {t('LanguageRegion.dateFormat')}
               </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <CalendarIcon className="h-5 w-5" />
-                </div>
-                <select
-                  value={dateFormat}
-                  onChange={(e) => setDateFormat(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-10 text-sm text-gray-900 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
-                >
-                  <option value="YYYY-MM-DD">{t('LanguageRegion.dateFormatIso')}</option>
-                  <option value="MM/DD/YYYY">{t('LanguageRegion.dateFormatUs')}</option>
-                  <option value="DD/MM/YYYY">{t('LanguageRegion.dateFormatEu')}</option>
-                  <option value="DD.MM.YYYY">{t('LanguageRegion.dateFormatDe')}</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
-              </div>
+              <SettingsDropdown
+                value={dateFormat}
+                onChange={setDateFormat}
+                options={dateFormatOptions}
+                icon={<CalendarIcon className="h-5 w-5" />}
+              />
             </div>
           </div>
         </div>
