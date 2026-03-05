@@ -650,9 +650,8 @@ function checkCriticalReasonCodeCoverage() {
 function checkStreamingRpcCoverage() {
   // Streaming RPCs from K-STREAM-001 that must have D-STRM consumption rules
   const streamingRpcs = [
-    'StreamGenerate',
-    'SynthesizeSpeechStream',
-    'SubscribeMediaJobEvents',
+    'StreamScenario',
+    'SubscribeScenarioJobEvents',
   ];
 
   // Mode D long-lived subscription flows (K-STREAM-010) — must have consumption

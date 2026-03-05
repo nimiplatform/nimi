@@ -6,16 +6,18 @@ groups:
     status: active
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
-      - Generate
-      - StreamGenerate
-      - Embed
-      - SubmitMediaJob
-      - GetMediaJob
-      - CancelMediaJob
-      - SubscribeMediaJobEvents
-      - GetMediaResult
-      - GetSpeechVoices
-      - SynthesizeSpeechStream
+      - ExecuteScenario
+      - StreamScenario
+      - SubmitScenarioJob
+      - GetScenarioJob
+      - CancelScenarioJob
+      - SubscribeScenarioJobEvents
+      - GetScenarioArtifacts
+      - ListScenarioProfiles
+      - GetVoiceAsset
+      - ListVoiceAssets
+      - DeleteVoiceAsset
+      - ListPresetVoices
     source_rule: S-SURFACE-002
   - group: connector_service_projection
     service: ConnectorService

@@ -27,7 +27,7 @@
 ## 3. 关联上游
 
 - runtime AI 语义：`spec/runtime/kernel/rpc-surface.md`。
-- MediaJob 语义：`spec/runtime/kernel/media-job-lifecycle.md`。
+- ScenarioJob 语义：`spec/runtime/kernel/scenario-job-lifecycle.md`。
 
 ## 4. 非目标
 

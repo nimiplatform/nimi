@@ -8,16 +8,18 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 | Method | Source Rule |
 |---|---|
-| `Generate` | `S-SURFACE-002` |
-| `StreamGenerate` | `S-SURFACE-002` |
-| `Embed` | `S-SURFACE-002` |
-| `SubmitMediaJob` | `S-SURFACE-002` |
-| `GetMediaJob` | `S-SURFACE-002` |
-| `CancelMediaJob` | `S-SURFACE-002` |
-| `SubscribeMediaJobEvents` | `S-SURFACE-002` |
-| `GetMediaResult` | `S-SURFACE-002` |
-| `GetSpeechVoices` | `S-SURFACE-002` |
-| `SynthesizeSpeechStream` | `S-SURFACE-002` |
+| `ExecuteScenario` | `S-SURFACE-002` |
+| `StreamScenario` | `S-SURFACE-002` |
+| `SubmitScenarioJob` | `S-SURFACE-002` |
+| `GetScenarioJob` | `S-SURFACE-002` |
+| `CancelScenarioJob` | `S-SURFACE-002` |
+| `SubscribeScenarioJobEvents` | `S-SURFACE-002` |
+| `GetScenarioArtifacts` | `S-SURFACE-002` |
+| `ListScenarioProfiles` | `S-SURFACE-002` |
+| `GetVoiceAsset` | `S-SURFACE-002` |
+| `ListVoiceAssets` | `S-SURFACE-002` |
+| `DeleteVoiceAsset` | `S-SURFACE-002` |
+| `ListPresetVoices` | `S-SURFACE-002` |
 
 ## connector_service_projection
 

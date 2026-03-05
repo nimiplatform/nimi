@@ -159,7 +159,7 @@ Desktop 规范采用 kernel + domain 的两层结构：
 ### 修改多模态 UI 交付（图片/视频/音频/TTS/STT）
 
 1. `spec/desktop/chat.md`（文本+语音渲染）
-2. `spec/desktop/kernel/streaming-consumption-contract.md`（D-STRM-005 MediaJob 事件流）
+2. `spec/desktop/kernel/streaming-consumption-contract.md`（D-STRM-005 ScenarioJob 事件流）
 3. `spec/desktop/local-ai.md`（D-LLM-005 语音引擎集成）
 4. `spec/runtime/multimodal-provider.md`（上游多模态提供者）
 5. `spec/runtime/multimodal-delivery-gates.md`（上游交付门控）
