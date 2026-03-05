@@ -54,6 +54,28 @@ export type WorldData = {
   latestWorldviewEventAt: string | null;
 };
 
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function resolveWorldType(raw: Record<string, unknown>): string {
+  return (
+    readString(raw.type) ??
+    readString(raw.worldType) ??
+    readString(raw.world_type) ??
+    'CREATOR'
+  );
+}
+
+function resolveCreatorId(raw: Record<string, unknown>): string | null {
+  return (
+    readString(raw.creatorId) ??
+    readString(raw.worldCreatorId) ??
+    readString(raw.world_creator_id) ??
+    null
+  );
+}
+
 type WorldSemanticInput = {
   worldview?: Record<string, unknown> | null;
   worldviewEvents?: Array<Record<string, unknown>>;
@@ -105,10 +127,10 @@ export function toWorldData(raw: Record<string, unknown>, semantic?: WorldSemant
     era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: typeof raw.type === 'string' ? raw.type : 'CREATOR',
+    type: resolveWorldType(raw),
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
-    creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
+    creatorId: resolveCreatorId(raw),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
     reviewedAt: typeof raw.reviewedAt === 'string' ? raw.reviewedAt : null,

@@ -8,6 +8,7 @@ import {
   getTransitStatusBadgeStyle,
   getWorldInitial,
 } from './world-detail-model';
+import { isMainWorldType } from '../world/shared.js';
 
 type WorldTransitAgentOption = {
   id: string;
@@ -223,7 +224,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                     {world.status}
                   </span>
                   <span className="inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2.5 py-0.5 text-xs font-medium text-[#2A9D8F]">
-                    {world.type === 'OASIS' ? t('WorldDetail.mainWorld') : t('WorldDetail.subWorld')}
+                    {(isMainWorldType(world.type) || !world.creatorId) ? t('WorldDetail.mainWorld') : t('WorldDetail.subWorld')}
                   </span>
                 </div>
 

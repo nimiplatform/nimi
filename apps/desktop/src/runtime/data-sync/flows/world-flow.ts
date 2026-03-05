@@ -50,9 +50,14 @@ export async function loadWorldList(
   try {
     const worlds = await callApi(
       (realm) => realm.services.WorldsService.worldControllerListWorlds(status),
-      '加载世界列表失败',
+      'Failed to load world list',
     );
-    return Array.isArray(worlds) ? worlds : [];
+    if (Array.isArray(worlds)) {
+      return worlds
+        .filter((item) => item && typeof item === 'object')
+        .map((item) => item as WorldDetailDto);
+    }
+    return toRecordArray(worlds).map((item) => item as unknown as WorldDetailDto);
   } catch (error) {
     emitDataSyncError('load-world-list', error);
     throw error;
@@ -66,7 +71,7 @@ export async function loadMainWorld(
   try {
     return await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetMainWorld(),
-      '加载主世界失败',
+      'Failed to load main world',
     );
   } catch (error) {
     emitDataSyncError('load-main-world', error);
@@ -90,7 +95,7 @@ export async function loadWorldLevelAudits(
   try {
     const payload = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetWorldLevelAudits(normalizedWorldId, normalizedLimit),
-      '加载世界等级审计失败',
+      'Failed to load world level audits',
     );
     if (!Array.isArray(payload)) return [];
     return payload
@@ -117,7 +122,7 @@ export async function loadWorldDetailById(
   try {
     const payload = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetWorld(normalizedWorldId),
-      '加载世界详情失败',
+      'Failed to load world detail',
     );
     const record = toRecord(payload);
     return record ? (record as unknown as WorldDetailDto) : null;
@@ -139,7 +144,7 @@ export async function loadWorldEvents(
   try {
     const payload = await callApi(
       (realm) => realm.services.WorldControlService.worldControlControllerListWorldEvents(normalizedWorldId),
-      '加载世界事件列表失败',
+      'Failed to load world events',
     );
     const record = toRecord(payload);
     if (record && Array.isArray(record.items)) {
@@ -164,7 +169,7 @@ export async function loadWorldAgents(
   try {
     const payload = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetWorldAgents(normalizedWorldId),
-      '加载世界Agent列表失败',
+      'Failed to load world agents',
     );
     return toRecordArray(payload);
   } catch (error) {
@@ -185,7 +190,7 @@ export async function loadWorldDetailWithAgents(
   try {
     const payload = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(normalizedWorldId),
-      '加载世界详情(含Agent)失败',
+      'Failed to load world detail with agents',
     );
     return toRecord(payload);
   } catch (error) {
@@ -211,7 +216,7 @@ export async function loadWorldSemanticBundle(
         try {
           const payload = await callApi(
             (realm) => realm.services.WorldsService.worldControllerGetWorldview(normalizedWorldId),
-            '加载世界观失败',
+            'Failed to load worldview',
           );
           return toRecord(payload);
         } catch {
@@ -222,7 +227,7 @@ export async function loadWorldSemanticBundle(
         try {
           const payload = await callApi(
             (realm) => realm.services.WorldsService.worldControllerGetWorldviewEvents(normalizedWorldId, 0, 50),
-            '加载世界观事件失败',
+            'Failed to load worldview events',
           );
           return toRecordArray(payload);
         } catch {
@@ -233,7 +238,7 @@ export async function loadWorldSemanticBundle(
         try {
           const payload = await callApi(
             (realm) => realm.services.WorldsService.worldControllerGetWorldviewSnapshots(normalizedWorldId),
-            '加载世界观快照失败',
+            'Failed to load worldview snapshots',
           );
           return toRecordArray(payload);
         } catch {

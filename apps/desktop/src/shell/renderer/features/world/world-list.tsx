@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
+import { isMainWorldType } from './shared.js';
 
 export type WorldAgentItem = {
   id: string;
@@ -45,6 +46,32 @@ export type WorldListItem = {
   agents?: WorldAgentItem[];
 };
 
+function readString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function resolveWorldType(raw: Record<string, unknown>): string {
+  return (
+    readString(raw.type) ??
+    readString(raw.worldType) ??
+    readString(raw.world_type) ??
+    'CREATOR'
+  );
+}
+
+function resolveCreatorId(raw: Record<string, unknown>): string | null {
+  return (
+    readString(raw.creatorId) ??
+    readString(raw.worldCreatorId) ??
+    readString(raw.world_creator_id) ??
+    null
+  );
+}
+
+function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): boolean {
+  return isMainWorldType(item.type) || !item.creatorId;
+}
+
 export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
   let parsedAgents: WorldAgentItem[] | undefined;
   if (Array.isArray(raw.agents)) {
@@ -72,14 +99,14 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: typeof raw.type === 'string' ? raw.type : 'CREATOR',
+    type: resolveWorldType(raw),
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
     agentCount: typeof raw.agentCount === 'number' ? raw.agentCount : 0,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
-    creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,
+    creatorId: resolveCreatorId(raw),
     freezeReason: typeof raw.freezeReason === 'string' ? raw.freezeReason : null,
     lorebookEntryLimit: typeof raw.lorebookEntryLimit === 'number' ? raw.lorebookEntryLimit : 0,
     nativeAgentLimit: typeof raw.nativeAgentLimit === 'number' ? raw.nativeAgentLimit : 0,
@@ -145,8 +172,8 @@ export function WorldList() {
       )
     : worlds;
 
-  const mainWorld = worlds.find((w) => w.type === 'OASIS');
-  const subWorlds = filteredWorlds.filter((w) => w.type === 'CREATOR');
+  const mainWorld = worlds.find((w) => isMainWorld(w));
+  const subWorlds = filteredWorlds.filter((w) => !isMainWorld(w));
 
   if (worldsQuery.isPending) {
     return (
