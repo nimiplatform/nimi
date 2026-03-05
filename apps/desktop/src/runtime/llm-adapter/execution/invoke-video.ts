@@ -13,6 +13,16 @@ import type { InvokeModVideoInput, InvokeModVideoOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { runtimeModMediaCachePut } from '../tauri-bridge';
+
+function extensionFromMimeType(mimeType: string): string | undefined {
+  const normalized = String(mimeType || '').trim().toLowerCase();
+  if (!normalized) return undefined;
+  const [, subtype = ''] = normalized.split('/');
+  const clean = subtype.split(';')[0]?.trim() || '';
+  if (!clean || clean.length > 12) return undefined;
+  return clean.replace(/[^a-z0-9]/g, '') || undefined;
+}
 
 export async function invokeModVideo(input: InvokeModVideoInput): Promise<InvokeModVideoOutput> {
   const resolved = resolveSourceAndModel({
@@ -68,15 +78,22 @@ export async function invokeModVideo(input: InvokeModVideoInput): Promise<Invoke
     }
     const traceId = runtimeTraceId || createRuntimeTraceId('mod-video');
 
+    const videos = await Promise.all(artifacts.map(async (artifact) => {
+      const mimeType = String(artifact.mimeType || '').trim() || 'application/octet-stream';
+      const b64 = base64FromBytes(artifact.bytes);
+      const cached = await runtimeModMediaCachePut({
+        mediaBase64: b64,
+        mimeType,
+        extensionHint: extensionFromMimeType(mimeType),
+      });
+      return {
+        uri: cached?.uri || `data:${mimeType};base64,${b64}`,
+        mimeType,
+      };
+    }));
+
     return {
-      videos: artifacts.map((artifact) => {
-        const mimeType = String(artifact.mimeType || '').trim() || 'application/octet-stream';
-        const b64 = base64FromBytes(artifact.bytes);
-        return {
-          uri: `data:${mimeType};base64,${b64}`,
-          mimeType,
-        };
-      }),
+      videos,
       traceId,
     };
   } catch (error) {

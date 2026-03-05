@@ -4,13 +4,14 @@ use tauri::AppHandle;
 
 use super::store::{
     append_runtime_audit, delete_action_verify_ticket, get_action_idempotency_record,
-    get_action_verify_ticket, list_local_mod_manifests, open_db, purge_action_execution_ledger,
-    purge_action_idempotency_records, purge_action_verify_tickets,
+    get_action_verify_ticket, gc_media_cache, list_local_mod_manifests, open_db, put_media_cache,
+    purge_action_execution_ledger, purge_action_idempotency_records, purge_action_verify_tickets,
     put_action_execution_ledger_record, put_action_idempotency_record, put_action_verify_ticket,
     query_action_execution_ledger, query_runtime_audit, read_local_mod_entry,
     RuntimeActionExecutionLedgerFilter, RuntimeActionExecutionLedgerRecordPayload,
     RuntimeActionIdempotencyRecordPayload, RuntimeActionVerifyTicketPayload, RuntimeAuditFilter,
-    RuntimeAuditRecordPayload, RuntimeLocalManifestSummary,
+    RuntimeAuditRecordPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,
+    RuntimeMediaCachePutResultPayload,
 };
 
 #[derive(Debug, Deserialize)]
@@ -116,6 +117,20 @@ pub struct RuntimeActionExecutionLedgerQueryPayload {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeActionExecutionLedgerPurgePayload {
     pub before: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeMediaCachePutPayload {
+    pub media_base64: String,
+    pub mime_type: Option<String>,
+    pub extension_hint: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeMediaCacheGcPayload {
+    pub max_age_seconds: Option<u64>,
 }
 
 #[tauri::command]
@@ -347,4 +362,24 @@ pub fn runtime_mod_purge_action_execution_ledger(
 ) -> Result<usize, String> {
     let conn = open_db(&app)?;
     purge_action_execution_ledger(&conn, &payload.before)
+}
+
+#[tauri::command]
+pub fn runtime_mod_media_cache_put(
+    _app: AppHandle,
+    payload: RuntimeMediaCachePutPayload,
+) -> Result<RuntimeMediaCachePutResultPayload, String> {
+    put_media_cache(
+        &payload.media_base64,
+        payload.mime_type.as_deref(),
+        payload.extension_hint.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn runtime_mod_media_cache_gc(
+    _app: AppHandle,
+    payload: Option<RuntimeMediaCacheGcPayload>,
+) -> Result<RuntimeMediaCacheGcResultPayload, String> {
+    gc_media_cache(payload.and_then(|value| value.max_age_seconds))
 }

@@ -217,6 +217,26 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     [internalSelectedDependencyModId, lockedDependencyModId, props.selectedDependencyModId],
   );
 
+  const resolveDependencyPlanPreview = useCallback(async () => {
+    const modId = String(selectedDependencyModId || '').trim();
+    if (!modId) {
+      setDependencyPlanPreview(null);
+      return;
+    }
+    setLoadingDependencyPlan(true);
+    try {
+      const plan = await props.onResolveDependencies(
+        modId,
+        selectedDependencyCapability === 'auto' ? undefined : selectedDependencyCapability,
+      );
+      setDependencyPlanPreview(plan);
+    } catch {
+      setDependencyPlanPreview(null);
+    } finally {
+      setLoadingDependencyPlan(false);
+    }
+  }, [props, selectedDependencyCapability, selectedDependencyModId]);
+
   // Sorted installed models
   const sortedModels = useMemo(
     () => [...props.state.localRuntime.models].sort((left, right) => {
@@ -585,7 +605,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${model.status === 'active' ? 'bg-green-100 text-green-700' : model.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${model.status === 'active' ? 'bg-green-100 text-green-700' : model.status === 'unhealthy' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
                           {model.status}
                         </span>
                         <Toggle

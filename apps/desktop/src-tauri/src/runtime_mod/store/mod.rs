@@ -116,6 +116,26 @@ pub struct RuntimeLocalManifestSummary {
     pub manifest: Option<serde_json::Value>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeMediaCachePutResultPayload {
+    pub cache_key: String,
+    pub file_path: String,
+    pub uri: String,
+    pub mime_type: String,
+    pub size_bytes: u64,
+    pub existed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeMediaCacheGcResultPayload {
+    pub scanned_count: usize,
+    pub removed_count: usize,
+    pub removed_bytes: u64,
+    pub retained_count: usize,
+}
+
 const DEFAULT_MOD_MARKER_FILE: &str = ".nimi-default-managed.json";
 
 
@@ -126,3 +146,4 @@ include!("schema.rs");
 include!("audit_ledger.rs");
 include!("idempotency_verify.rs");
 include!("tokens_kv.rs");
+include!("media_cache.rs");

@@ -105,6 +105,8 @@ fn main() {
             runtime_mod::commands::runtime_mod_put_action_execution_ledger,
             runtime_mod::commands::runtime_mod_query_action_execution_ledger,
             runtime_mod::commands::runtime_mod_purge_action_execution_ledger,
+            runtime_mod::commands::runtime_mod_media_cache_put,
+            runtime_mod::commands::runtime_mod_media_cache_gc,
             external_agent_gateway::external_agent_issue_token,
             external_agent_gateway::external_agent_revoke_token,
             external_agent_gateway::external_agent_list_tokens,

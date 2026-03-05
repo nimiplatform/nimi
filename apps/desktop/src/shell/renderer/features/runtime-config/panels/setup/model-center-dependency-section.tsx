@@ -89,6 +89,11 @@ export type ModelCenterDependencySectionProps = {
 export function ModelCenterDependencySection(props: ModelCenterDependencySectionProps) {
   const [applyingDependencies, setApplyingDependencies] = useState(false);
   const [dependencyApplySummary, setDependencyApplySummary] = useState('');
+  const dependencyDisplayKey = (dep: LocalAiDependencyResolutionPlan['dependencies'][number]): string => (
+    String(dep.modelId || '').trim()
+    || String(dep.dependencyId || '').trim()
+    || 'dependency'
+  );
 
   return (
     <div className="rounded-xl border border-sky-100 bg-sky-50/30 p-4 space-y-3">
@@ -191,8 +196,8 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
               {props.dependencyPlanPreview.dependencies.length > 0 && (
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {props.dependencyPlanPreview.dependencies.map((dep) => (
-                    <div key={dep.localModelId} className="flex items-center justify-between text-xs py-1">
-                      <span className="text-gray-700">{dep.localModelId}</span>
+                    <div key={dependencyDisplayKey(dep)} className="flex items-center justify-between text-xs py-1">
+                      <span className="text-gray-700">{dependencyDisplayKey(dep)}</span>
                       <div className="flex gap-1">
                         {dep.selected && (
                           <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">

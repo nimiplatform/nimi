@@ -11,6 +11,8 @@ description: >
 capabilities:
   - llm.text.generate
   - llm.text.stream
+  - llm.image.generate
+  - llm.video.generate
   - llm.speech.providers.list
   - llm.speech.voices.list
   - llm.speech.synthesize
@@ -46,6 +48,8 @@ capabilities:
 ai:
   consume:
     - chat
+    - image
+    - video
     - tts
     - stt
   dependencies:
@@ -57,7 +61,19 @@ ai:
         repo: Qwen/Qwen2.5-7B-Instruct-GGUF
         engine: openai-compatible
         title: Qwen2.5 7B Instruct (default)
+      - dependencyId: local-chat/image-z-image-turbo
+        kind: model
+        capability: image
+        modelId: z-image-turbo
+        repo: nimeka/z-image-turbo
+        engine: openai-compatible
+        title: Z-Image Turbo (default)
     optional:
+      - dependencyId: local-chat/video-generate-token-node
+        kind: node
+        capability: video
+        nodeId: video.generate.token-api
+        title: Optional video generation node
       - dependencyId: local-chat/stt-local-node
         kind: node
         capability: stt
@@ -85,6 +101,7 @@ ai:
             title: Qwen3 TTS 0.6B
     preferred:
       chat: local-chat/chat-qwen2.5-7b
+      image: local-chat/image-z-image-turbo
       tts: local-chat/tts-qwen3-1.7b
 requires:
   - desktop-core-cloud-chat

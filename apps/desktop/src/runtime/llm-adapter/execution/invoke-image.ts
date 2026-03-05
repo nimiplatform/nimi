@@ -13,6 +13,19 @@ import type { InvokeModImageInput, InvokeModImageOutput } from './types';
 import { PRIVATE_PROVIDER_TIMEOUT_MS } from './types';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { runtimeModMediaCachePut } from '../tauri-bridge';
+
+function extensionFromMimeType(mimeType: string): string | undefined {
+  const normalized = String(mimeType || '').trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === 'image/jpeg') return 'jpg';
+  const [, subtype = ''] = normalized.split('/');
+  const clean = subtype.split(';')[0]?.trim() || '';
+  if (!clean) return undefined;
+  if (clean === 'svg+xml') return 'svg';
+  if (clean.length > 12) return undefined;
+  return clean.replace(/[^a-z0-9]/g, '') || undefined;
+}
 
 export async function invokeModImage(input: InvokeModImageInput): Promise<InvokeModImageOutput> {
   const resolved = resolveSourceAndModel({
@@ -70,16 +83,23 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
     }
     const traceId = runtimeTraceId || createRuntimeTraceId('mod-image');
 
+    const images = await Promise.all(artifacts.map(async (artifact) => {
+      const b64Json = base64FromBytes(artifact.bytes);
+      const mimeType = String(artifact.mimeType || '').trim() || 'application/octet-stream';
+      const cached = await runtimeModMediaCachePut({
+        mediaBase64: b64Json,
+        mimeType,
+        extensionHint: extensionFromMimeType(mimeType),
+      });
+      return {
+        uri: cached?.uri || `data:${mimeType};base64,${b64Json}`,
+        b64Json,
+        mimeType,
+      };
+    }));
+
     return {
-      images: artifacts.map((artifact) => {
-        const b64Json = base64FromBytes(artifact.bytes);
-        const mimeType = String(artifact.mimeType || '').trim() || 'application/octet-stream';
-        return {
-          uri: `data:${mimeType};base64,${b64Json}`,
-          b64Json,
-          mimeType,
-        };
-      }),
+      images,
       traceId,
     };
   } catch (error) {
