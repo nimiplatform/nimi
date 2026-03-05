@@ -1,5 +1,6 @@
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
+import HeroScene from './hero-scene.js';
 
 export type HeroSectionProps = {
   content: LandingContent['hero'];
@@ -8,11 +9,14 @@ export type HeroSectionProps = {
 
 export function HeroSection(props: HeroSectionProps) {
   return (
-    <section className="relative overflow-hidden pb-16 pt-30 md:pb-24 md:pt-36">
-      <div className="orb orb-one" aria-hidden="true" />
-      <div className="orb orb-two" aria-hidden="true" />
-      <div className="orb orb-three" aria-hidden="true" />
-      <div className="container-nimi relative">
+    <section className="relative overflow-hidden pb-16 pt-30 md:pb-24 md:pt-36" style={{ minHeight: '100vh' }}>
+      {/* 3D Galaxy Background */}
+      <div className="absolute inset-0 z-0">
+        <HeroScene />
+      </div>
+
+      {/* Content Overlay */}
+      <div className="container-nimi relative z-10">
         <div className="reveal max-w-4xl">
           <p className="inline-flex rounded-full border border-mint-300/30 bg-mint-300/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-mint-100">
             {props.content.eyebrow}
