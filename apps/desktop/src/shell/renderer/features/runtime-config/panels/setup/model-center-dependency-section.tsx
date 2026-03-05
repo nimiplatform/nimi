@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './model-center-utils';
+import { RuntimeSelect } from '../primitives';
 
 // Icons
 function RefreshIcon({ className = '' }: { className?: string }) {
@@ -130,29 +131,28 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
             ) : (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Runtime Mod</label>
-                <select
+                <RuntimeSelect
                   value={props.selectedDependencyModId}
-                  onChange={(event) => props.onSetSelectedDependencyModId(event.target.value)}
-                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
-                >
-                  {props.runtimeDependencyTargets.map((target) => (
-                    <option key={`runtime-dep-${target.modId}`} value={target.modId}>{target.modName}</option>
-                  ))}
-                </select>
+                  onChange={props.onSetSelectedDependencyModId}
+                  className="w-full"
+                  options={props.runtimeDependencyTargets.map((target) => ({
+                    value: target.modId,
+                    label: target.modName,
+                  }))}
+                />
               </div>
             )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Capability</label>
-              <select
+              <RuntimeSelect
                 value={props.selectedDependencyCapability}
-                onChange={(event) => props.onSetSelectedDependencyCapability((event.target.value || 'auto') as 'auto' | CapabilityOption)}
-                className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
-              >
-                <option value="auto">Auto Detect</option>
-                {CAPABILITY_OPTIONS.map((capability) => (
-                  <option key={`runtime-dep-capability-${capability}`} value={capability}>{capability}</option>
-                ))}
-              </select>
+                onChange={(nextCapability) => props.onSetSelectedDependencyCapability((nextCapability || 'auto') as 'auto' | CapabilityOption)}
+                className="w-full"
+                options={[
+                  { value: 'auto', label: 'Auto Detect' },
+                  ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
+                ]}
+              />
             </div>
           </div>
 

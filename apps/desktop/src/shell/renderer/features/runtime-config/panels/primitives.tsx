@@ -1,6 +1,10 @@
-import type React from 'react';
 import {
-  statusClassV11,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
   statusTextV11,
   type ProviderStatusV11,
 } from '@renderer/features/runtime-config/state/types';
@@ -9,7 +13,7 @@ export function Card({
   children,
   className = '',
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }) {
   return <div className={`rounded-[10px] border border-gray-200 bg-white ${className}`}>{children}</div>;
@@ -22,7 +26,7 @@ export function Button({
   disabled,
   size = 'md',
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'ghost';
   disabled?: boolean;
@@ -78,11 +82,204 @@ export function Input({
   );
 }
 
-export function StatusBadge({ status }: { status: ProviderStatusV11 }) {
+export type RuntimeSelectOption = {
+  value: string;
+  label: string;
+};
+
+export function RuntimeSelect({
+  value,
+  onChange,
+  options,
+  disabled,
+  size = 'md',
+  className = '',
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: RuntimeSelectOption[];
+  disabled?: boolean;
+  size?: 'sm' | 'md';
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selectedLabel = options.find((item) => item.value === value)?.label || value;
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, []);
+
+  const triggerClass = size === 'sm'
+    ? 'h-8 rounded-md px-2 text-xs'
+    : 'h-10 rounded-xl px-3 text-sm';
+  const menuClass = size === 'sm' ? 'rounded-md' : 'rounded-xl';
+  const itemClass = size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm';
+
   return (
-    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusClassV11(status)}`}>
-      {statusTextV11(status)}
+    <div ref={rootRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        disabled={disabled}
+        className={`flex w-full items-center justify-between border border-gray-200 bg-white text-gray-900 outline-none transition-all hover:border-mint-300 focus:border-mint-400 focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${triggerClass}`}
+      >
+        <span className="truncate">{selectedLabel}</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open ? (
+        <div className={`absolute z-50 mt-1 max-h-72 w-full overflow-auto border border-gray-100 bg-white py-1 shadow-lg ${menuClass}`}>
+          {options.map((option) => {
+            const selected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 text-left transition-colors ${
+                  selected ? 'bg-mint-50 font-medium text-mint-700' : 'text-gray-700 hover:bg-gray-50'
+                } ${itemClass}`}
+              >
+                {selected ? (
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0 text-mint-500"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <span className="w-4 shrink-0" />
+                )}
+                <span className="truncate">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Status indicator with dot - using semi-transparent backgrounds
+function StatusIndicator({ 
+  status, 
+  text, 
+  variant 
+}: { 
+  status: 'healthy' | 'idle' | 'unreachable' | 'unsupported' | 'degraded' | 'running' | 'stopped';
+  text: string;
+  variant?: 'daemon' | 'provider';
+}) {
+  const styles = {
+    // Daemon states
+    running: {
+      bg: 'bg-green-500/10',
+      text: 'text-green-700',
+      dot: 'bg-green-500',
+      ring: 'ring-green-500/20',
+    },
+    stopped: {
+      bg: 'bg-red-500/10',
+      text: 'text-red-700',
+      dot: 'bg-red-500',
+      ring: 'ring-red-500/20',
+    },
+    // Provider states
+    healthy: {
+      bg: 'bg-green-500/10',
+      text: 'text-green-700',
+      dot: 'bg-green-500',
+      ring: 'ring-green-500/20',
+    },
+    idle: {
+      bg: 'bg-gray-500/10',
+      text: 'text-gray-600',
+      dot: 'bg-gray-400',
+      ring: 'ring-gray-400/20',
+    },
+    unreachable: {
+      bg: 'bg-red-500/10',
+      text: 'text-red-700',
+      dot: 'bg-red-500',
+      ring: 'ring-red-500/20',
+    },
+    unsupported: {
+      bg: 'bg-orange-500/10',
+      text: 'text-orange-700',
+      dot: 'bg-orange-500',
+      ring: 'ring-orange-500/20',
+    },
+    degraded: {
+      bg: 'bg-yellow-500/10',
+      text: 'text-yellow-700',
+      dot: 'bg-yellow-500',
+      ring: 'ring-yellow-500/20',
+    },
+  };
+
+  const style = styles[status];
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${style.bg} ${style.text} ring-1 ${style.ring}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+      {text}
     </span>
+  );
+}
+
+export function StatusBadge({ status }: { status: ProviderStatusV11 }) {
+  const statusMap: Record<ProviderStatusV11, 'healthy' | 'idle' | 'unreachable' | 'unsupported' | 'degraded'> = {
+    healthy: 'healthy',
+    idle: 'idle',
+    unreachable: 'unreachable',
+    unsupported: 'unsupported',
+    degraded: 'degraded',
+  };
+
+  return (
+    <StatusIndicator 
+      status={statusMap[status]} 
+      text={statusTextV11(status)} 
+      variant="provider"
+    />
+  );
+}
+
+export function DaemonStatusBadge({ running }: { running: boolean }) {
+  return (
+    <StatusIndicator 
+      status={running ? 'running' : 'stopped'} 
+      text={`daemon ${running ? 'running' : 'stopped'}`}
+      variant="daemon"
+    />
   );
 }
 

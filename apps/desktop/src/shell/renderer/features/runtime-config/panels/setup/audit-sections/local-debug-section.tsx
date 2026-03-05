@@ -9,7 +9,7 @@ import {
   resolveAuditReasonCode,
   resolveAuditSource,
 } from '../../../domain/diagnostics/audit-view-model.js';
-import { Button } from '../../primitives.js';
+import { Button, RuntimeSelect } from '../../primitives.js';
 import { useAuditPageData } from '../use-audit-page-data.js';
 
 function auditEventTypeColor(eventType: string): string {
@@ -173,67 +173,67 @@ function LocalDebugContent() {
       {/* Filter bar */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <select
+          <RuntimeSelect
             value={auditEventType}
-            onChange={(event) => {
-              const next = event.target.value;
+            onChange={(next) => {
               setAuditEventType(next);
               void loadAudits({ eventType: next });
             }}
-            className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-800 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
-          >
-            <option value="all">all event types</option>
-            <option value="inference_invoked">inference_invoked</option>
-            <option value="inference_failed">inference_failed</option>
-            <option value="fallback_to_token_api">fallback_to_token_api</option>
-            <option value="engine_started">engine_started</option>
-            <option value="engine_stopped">engine_stopped</option>
-            <option value="model_catalog_search_invoked">model_catalog_search_invoked</option>
-            <option value="model_catalog_search_failed">model_catalog_search_failed</option>
-            <option value="engine_pack_download_started">engine_pack_download_started</option>
-            <option value="engine_pack_download_completed">engine_pack_download_completed</option>
-            <option value="engine_pack_download_failed">engine_pack_download_failed</option>
-            <option value="runtime_model_ready_after_install">runtime_model_ready_after_install</option>
-            <option value="dependency_resolve_invoked">dependency_resolve_invoked</option>
-            <option value="dependency_resolve_failed">dependency_resolve_failed</option>
-            <option value="dependency_apply_started">dependency_apply_started</option>
-            <option value="dependency_apply_completed">dependency_apply_completed</option>
-            <option value="dependency_apply_failed">dependency_apply_failed</option>
-            <option value="service_install_started">service_install_started</option>
-            <option value="service_install_completed">service_install_completed</option>
-            <option value="service_install_failed">service_install_failed</option>
-            <option value="node_catalog_listed">node_catalog_listed</option>
-          </select>
-          <select
+            className="w-64"
+            options={[
+              { value: 'all', label: 'all event types' },
+              { value: 'inference_invoked', label: 'inference_invoked' },
+              { value: 'inference_failed', label: 'inference_failed' },
+              { value: 'fallback_to_token_api', label: 'fallback_to_token_api' },
+              { value: 'engine_started', label: 'engine_started' },
+              { value: 'engine_stopped', label: 'engine_stopped' },
+              { value: 'model_catalog_search_invoked', label: 'model_catalog_search_invoked' },
+              { value: 'model_catalog_search_failed', label: 'model_catalog_search_failed' },
+              { value: 'engine_pack_download_started', label: 'engine_pack_download_started' },
+              { value: 'engine_pack_download_completed', label: 'engine_pack_download_completed' },
+              { value: 'engine_pack_download_failed', label: 'engine_pack_download_failed' },
+              { value: 'runtime_model_ready_after_install', label: 'runtime_model_ready_after_install' },
+              { value: 'dependency_resolve_invoked', label: 'dependency_resolve_invoked' },
+              { value: 'dependency_resolve_failed', label: 'dependency_resolve_failed' },
+              { value: 'dependency_apply_started', label: 'dependency_apply_started' },
+              { value: 'dependency_apply_completed', label: 'dependency_apply_completed' },
+              { value: 'dependency_apply_failed', label: 'dependency_apply_failed' },
+              { value: 'service_install_started', label: 'service_install_started' },
+              { value: 'service_install_completed', label: 'service_install_completed' },
+              { value: 'service_install_failed', label: 'service_install_failed' },
+              { value: 'node_catalog_listed', label: 'node_catalog_listed' },
+            ]}
+          />
+          <RuntimeSelect
             value={auditSource}
-            onChange={(event) => {
-              const next = event.target.value;
+            onChange={(next) => {
               setAuditSource(next);
               void loadAudits({ source: next });
             }}
-            className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-800 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
-          >
-            <option value="all">all sources</option>
-            <option value="local-runtime">local-runtime</option>
-            <option value="token-api">token-api</option>
-          </select>
-          <select
+            className="w-44"
+            options={[
+              { value: 'all', label: 'all sources' },
+              { value: 'local-runtime', label: 'local-runtime' },
+              { value: 'token-api', label: 'token-api' },
+            ]}
+          />
+          <RuntimeSelect
             value={auditModality}
-            onChange={(event) => {
-              const next = event.target.value;
+            onChange={(next) => {
               setAuditModality(next);
               void loadAudits({ modality: next });
             }}
-            className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-800 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
-          >
-            <option value="all">all modalities</option>
-            <option value="chat">chat</option>
-            <option value="image">image</option>
-            <option value="video">video</option>
-            <option value="tts">tts</option>
-            <option value="stt">stt</option>
-            <option value="embedding">embedding</option>
-          </select>
+            className="w-44"
+            options={[
+              { value: 'all', label: 'all modalities' },
+              { value: 'chat', label: 'chat' },
+              { value: 'image', label: 'image' },
+              { value: 'video', label: 'video' },
+              { value: 'tts', label: 'tts' },
+              { value: 'stt', label: 'stt' },
+              { value: 'embedding', label: 'embedding' },
+            ]}
+          />
           <Button variant="secondary" size="sm" disabled={loadingAudits} onClick={() => void loadAudits()}>
             {loadingAudits ? 'Loading...' : 'Refresh'}
           </Button>

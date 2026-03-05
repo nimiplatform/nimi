@@ -26,7 +26,7 @@ import {
 } from '../panels/provider-connectors/connector-actions';
 import { formatRuntimeConfigErrorBanner } from '../domain/provider-connectors/error';
 import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';
-import { StatusBadge, renderModelChips } from '../panels/primitives';
+import { RuntimeSelect, StatusBadge, renderModelChips } from '../panels/primitives';
 
 // Icons
 function CloudIcon({ className = '' }: { className?: string }) {
@@ -564,16 +564,16 @@ export function CloudPage({ model, state }: CloudPageProps) {
               />
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Vendor</label>
-                <select
+                <RuntimeSelect
                   value={selectedConnector.vendor}
-                  onChange={(e) => { void onChangeConnectorVendor(e.target.value).catch((err) => reportError('Switch vendor failed', err)); }}
+                  onChange={(nextVendor) => { void onChangeConnectorVendor(nextVendor).catch((err) => reportError('Switch vendor failed', err)); }}
                   disabled={isSystemOwned}
-                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-mint-400 focus:ring-2 focus:ring-mint-100 disabled:opacity-60"
-                >
-                  {VENDOR_ORDER_V11.map((vendor) => (
-                    <option key={vendor} value={vendor}>{VENDOR_CATALOGS_V11[vendor].label}</option>
-                  ))}
-                </select>
+                  className="w-full"
+                  options={VENDOR_ORDER_V11.map((vendor) => ({
+                    value: vendor,
+                    label: VENDOR_CATALOGS_V11[vendor].label,
+                  }))}
+                />
               </div>
             </div>
 

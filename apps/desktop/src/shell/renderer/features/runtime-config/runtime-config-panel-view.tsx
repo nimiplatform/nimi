@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './panels/sidebar';
-import { StatusBadge } from './panels/primitives';
+import { StatusBadge, DaemonStatusBadge } from './panels/primitives';
 import { OverviewPage } from './pages/overview-page';
 import { LocalPage } from './pages/local-page';
 import { CloudPage } from './pages/cloud-page';
@@ -113,16 +113,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-gray-50">
         <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex w-full items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">{pageMeta.name}</h2>
-              <p className="text-xs text-gray-500">{pageMeta.description}</p>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900">{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                daemonRunning ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-              }`}>
-                daemon {daemonRunning ? 'running' : 'stopped'}
-              </span>
+              <DaemonStatusBadge running={daemonRunning} />
               <StatusBadge status={runtimeStatus} />
             </div>
           </div>

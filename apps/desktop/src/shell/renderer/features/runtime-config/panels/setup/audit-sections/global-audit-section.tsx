@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
 import { CallerKind } from '@nimiplatform/sdk/runtime';
-import { Button, Card } from '../../primitives.js';
+import { Button, Card, RuntimeSelect } from '../../primitives.js';
 import {
   callerKindLabel,
   timestampToIso,
@@ -61,17 +61,19 @@ export function GlobalAuditSection({
           placeholder="Filter domain..."
           className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
         />
-        <select
-          value={filters.callerKind}
-          onChange={(e) => onUpdateFilters({ callerKind: Number(e.target.value) })}
-          className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
-        >
-          <option value={0}>All callers</option>
-          <option value={CallerKind.DESKTOP_CORE}>Desktop Core</option>
-          <option value={CallerKind.DESKTOP_MOD}>Desktop Mod</option>
-          <option value={CallerKind.THIRD_PARTY_APP}>Third-Party App</option>
-          <option value={CallerKind.THIRD_PARTY_SERVICE}>Third-Party Service</option>
-        </select>
+        <RuntimeSelect
+          value={String(filters.callerKind)}
+          onChange={(nextCallerKind) => onUpdateFilters({ callerKind: Number(nextCallerKind) })}
+          size="sm"
+          className="w-40"
+          options={[
+            { value: String(0), label: 'All callers' },
+            { value: String(CallerKind.DESKTOP_CORE), label: 'Desktop Core' },
+            { value: String(CallerKind.DESKTOP_MOD), label: 'Desktop Mod' },
+            { value: String(CallerKind.THIRD_PARTY_APP), label: 'Third-Party App' },
+            { value: String(CallerKind.THIRD_PARTY_SERVICE), label: 'Third-Party Service' },
+          ]}
+        />
         <input
           type="datetime-local"
           value={filters.timeFrom}

@@ -6,7 +6,7 @@ import {
   revokeExternalAgentToken,
   type ExternalAgentTokenRecord,
 } from '@runtime/external-agent';
-import { Button, Card, Input } from '../primitives';
+import { Button, Card, Input, RuntimeSelect } from '../primitives';
 
 type TokenMode = 'delegated' | 'autonomous';
 
@@ -125,14 +125,15 @@ export function ExternalAgentAccessPanel() {
           />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Mode</label>
-            <select
+            <RuntimeSelect
               value={mode}
-              onChange={(event) => setMode(event.target.value === 'autonomous' ? 'autonomous' : 'delegated')}
-              className="h-[46px] w-full rounded-[10px] border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-            >
-              <option value="delegated">delegated</option>
-              <option value="autonomous">autonomous</option>
-            </select>
+              onChange={(nextMode) => setMode(nextMode === 'autonomous' ? 'autonomous' : 'delegated')}
+              className="w-full"
+              options={[
+                { value: 'delegated', label: 'delegated' },
+                { value: 'autonomous', label: 'autonomous' },
+              ]}
+            />
           </div>
           <Input
             label="TTL Seconds"

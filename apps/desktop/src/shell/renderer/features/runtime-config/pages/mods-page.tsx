@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
+import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel, RuntimeDependencyTargetDescriptor } from '../runtime-config-panel-types';
 import { ModelCenterDependencySection } from '../panels/setup/model-center-dependency-section';
-import { Button, Card } from '../panels/primitives';
+import { Button } from '../panels/primitives';
 
 type ModsPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -11,6 +12,11 @@ type ModsPageProps = {
 };
 
 type CapabilityOption = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
+
+// SurfaceCard component matching Overview page style
+function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
+}
 
 export function ModsPage({ model, state }: ModsPageProps) {
   const { runtimeDependencyTargets } = model;
@@ -65,122 +71,128 @@ export function ModsPage({ model, state }: ModsPageProps) {
 
   if (runtimeDependencyTargets.length === 0) {
     return (
-      <Card className="space-y-3 p-6 text-center">
-        <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-          <span className="text-xl text-gray-400">⧉</span>
+      <SurfaceCard className="p-8 text-center">
+        <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
         </div>
         <p className="text-sm font-semibold text-gray-900">No AI Mods</p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 mt-1">
           No installed mods have declared AI dependencies. Install a mod that uses AI capabilities to see its dependency configuration here.
         </p>
-      </Card>
+      </SurfaceCard>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {/* Mod list */}
-      <Card className="space-y-3 p-4">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">Mods with AI Dependencies</p>
-          <p className="text-xs text-gray-500">
+      <section>
+        <SectionTitle description="Select a mod to configure its AI dependencies.">
+          Mods with AI Dependencies
+        </SectionTitle>
+        <SurfaceCard className="mt-3 p-5">
+          <div className="mb-4 text-xs text-gray-500">
             {model.registeredRuntimeModIds.length} registered mod{model.registeredRuntimeModIds.length !== 1 ? 's' : ''}
-            {' \u00b7 '}
+            {' · '}
             {runtimeDependencyTargets.length} with AI dependencies
-          </p>
-        </div>
-        <div className="space-y-1">
-          {runtimeDependencyTargets.map((target) => {
-            const active = target.modId === selectedModId;
-            return (
-              <ModTargetRow
-                key={target.modId}
-                target={target}
-                state={state}
-                active={active}
-                onSelect={() => setSelectedModId(target.modId)}
-              />
-            );
-          })}
-        </div>
-      </Card>
+          </div>
+          <div className="space-y-2">
+            {runtimeDependencyTargets.map((target) => {
+              const active = target.modId === selectedModId;
+              return (
+                <ModTargetRow
+                  key={target.modId}
+                  target={target}
+                  state={state}
+                  active={active}
+                  onSelect={() => setSelectedModId(target.modId)}
+                />
+              );
+            })}
+          </div>
+        </SurfaceCard>
+      </section>
 
       {/* Selected mod detail */}
       {selectedTarget ? (
-        <Card className="space-y-4 p-5">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900">{selectedTarget.modName}</h4>
-            <p className="text-xs text-gray-500">Configure this mod&apos;s declared model dependencies.</p>
-          </div>
-
-          {/* Capability status badges */}
-          {selectedTarget.consumeCapabilities.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
-              <div className="flex flex-wrap gap-2">
-                {selectedTarget.consumeCapabilities.map((cap) => {
-                  const localNode = state.localRuntime.nodeMatrix.find(
-                    (node) => node.capability === cap && node.available,
-                  );
-                  const hasLocalModel = state.localRuntime.models.some(
-                    (m) => m.status === 'active' && m.capabilities.includes(cap),
-                  );
-                  const localAvailable = Boolean(localNode) || hasLocalModel;
-                  return (
-                    <span
-                      key={`mod-cap-${cap}`}
-                      className={`rounded-md border px-2.5 py-1 text-[11px] font-medium ${
-                        localAvailable
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                          : 'border-amber-200 bg-amber-50 text-amber-800'
-                      }`}
-                    >
-                      {cap}: {localAvailable ? 'local-runtime' : 'needs setup'}
-                    </span>
-                  );
-                })}
+        <section>
+          <SectionTitle description="Configure the selected mod's AI model dependencies.">
+            {selectedTarget.modName}
+          </SectionTitle>
+          <SurfaceCard className="mt-3 p-5 space-y-5">
+            {/* Capability status badges */}
+            {selectedTarget.consumeCapabilities.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTarget.consumeCapabilities.map((cap) => {
+                    const localNode = state.localRuntime.nodeMatrix.find(
+                      (node) => node.capability === cap && node.available,
+                    );
+                    const hasLocalModel = state.localRuntime.models.some(
+                      (m) => m.status === 'active' && m.capabilities.includes(cap),
+                    );
+                    const localAvailable = Boolean(localNode) || hasLocalModel;
+                    return (
+                      <span
+                        key={`mod-cap-${cap}`}
+                        className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${
+                          localAvailable
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                            : 'border-amber-200 bg-amber-50 text-amber-800'
+                        }`}
+                      >
+                        {cap}: {localAvailable ? 'local-runtime' : 'needs setup'}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {/* Dependency resolution */}
-          <ModelCenterDependencySection
-            isModMode
-            loadingDependencyPlan={loadingPlan}
-            selectedDependencyModId={selectedModId}
-            dependencySelectionLocked
-            selectedDependencyTarget={selectedTarget}
-            selectedDependencyCapability={selectedCapability}
-            dependencyPlanPreview={dependencyPlanPreview}
-            runtimeDependencyTargets={runtimeDependencyTargets}
-            onSetSelectedDependencyModId={setSelectedModId}
-            onSetSelectedDependencyCapability={setSelectedCapability}
-            onResolveDependencyPlanPreview={() => void resolvePlanPreview()}
-            onApplyDependencies={model.applyRuntimeDependencies}
-          />
+            {/* Dependency resolution */}
+            <ModelCenterDependencySection
+              isModMode
+              loadingDependencyPlan={loadingPlan}
+              selectedDependencyModId={selectedModId}
+              dependencySelectionLocked
+              selectedDependencyTarget={selectedTarget}
+              selectedDependencyCapability={selectedCapability}
+              dependencyPlanPreview={dependencyPlanPreview}
+              runtimeDependencyTargets={runtimeDependencyTargets}
+              onSetSelectedDependencyModId={setSelectedModId}
+              onSetSelectedDependencyCapability={setSelectedCapability}
+              onResolveDependencyPlanPreview={() => void resolvePlanPreview()}
+              onApplyDependencies={model.applyRuntimeDependencies}
+            />
 
-          {/* Setup required warning */}
-          {selectedTarget.consumeCapabilities.some((cap) => {
-            const localNode = state.localRuntime.nodeMatrix.find((n) => n.capability === cap && n.available);
-            const hasLocalModel = state.localRuntime.models.some((m) => m.status === 'active' && m.capabilities.includes(cap));
-            return !localNode && !hasLocalModel;
-          }) ? (
-            <div className="rounded-[10px] border border-amber-200 bg-amber-50 p-4 space-y-2">
-              <p className="text-xs font-semibold text-amber-900">Setup Required</p>
-              <p className="text-[11px] text-amber-800">
-                Some capabilities are not available locally. Install a local model or configure a cloud API connector.
-              </p>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" onClick={() => model.onChangePage('local')}>
-                  Install Models
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => model.onChangePage('cloud')}>
-                  Configure Cloud API
-                </Button>
+            {/* Setup required warning */}
+            {selectedTarget.consumeCapabilities.some((cap) => {
+              const localNode = state.localRuntime.nodeMatrix.find((n) => n.capability === cap && n.available);
+              const hasLocalModel = state.localRuntime.models.some((m) => m.status === 'active' && m.capabilities.includes(cap));
+              return !localNode && !hasLocalModel;
+            }) ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+                <p className="text-sm font-semibold text-amber-900">Setup Required</p>
+                <p className="text-xs text-amber-800">
+                  Some capabilities are not available locally. Install a local model or configure a cloud API connector.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => model.onChangePage('local')}>
+                    Install Models
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => model.onChangePage('cloud')}>
+                    Configure Cloud API
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : null}
-        </Card>
+            ) : null}
+          </SurfaceCard>
+        </section>
       ) : null}
     </div>
   );
@@ -201,17 +213,17 @@ function ModTargetRow({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex w-full items-center justify-between rounded-[10px] border px-4 py-3 text-left transition-colors ${
+      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all ${
         active
-          ? 'border-brand-500 bg-brand-50'
-          : 'border-gray-200 bg-white hover:bg-gray-50'
+          ? 'border-mint-300 bg-mint-50 ring-1 ring-mint-200'
+          : 'border-gray-200 bg-white hover:border-mint-200 hover:bg-mint-50/30'
       }`}
     >
       <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium ${active ? 'text-brand-700' : 'text-gray-900'}`}>
+        <p className={`text-sm font-medium ${active ? 'text-gray-900' : 'text-gray-900'}`}>
           {target.modName}
         </p>
-        <p className={`text-[11px] ${active ? 'text-brand-600/70' : 'text-gray-500'}`}>
+        <p className={`text-xs ${active ? 'text-gray-500' : 'text-gray-400'}`}>
           {target.modId}
         </p>
       </div>
@@ -227,7 +239,7 @@ function ModTargetRow({
           return (
             <span
               key={`${target.modId}-cap-${cap}`}
-              className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+              className={`rounded-lg px-2 py-0.5 text-[10px] font-medium ${
                 available
                   ? 'bg-emerald-100 text-emerald-800'
                   : 'bg-amber-100 text-amber-800'

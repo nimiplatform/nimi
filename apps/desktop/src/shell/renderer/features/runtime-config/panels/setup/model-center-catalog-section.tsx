@@ -6,6 +6,7 @@ import {
   type LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './model-center-utils';
+import { RuntimeSelect } from '../primitives';
 
 // Icons
 function SearchIcon({ className = '' }: { className?: string }) {
@@ -314,16 +315,15 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
             icon={<SearchIcon />}
           />
           <div>
-            <select
+            <RuntimeSelect
               value={catalogCapability}
-              onChange={(event) => setCatalogCapability((event.target.value || 'all') as 'all' | CapabilityOption)}
-              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
-            >
-              <option value="all">All Capabilities</option>
-              {CAPABILITY_OPTIONS.map((capability) => (
-                <option key={`catalog-capability-${capability}`} value={capability}>{capability}</option>
-              ))}
-            </select>
+              onChange={(nextCapability) => setCatalogCapability((nextCapability || 'all') as 'all' | CapabilityOption)}
+              className="w-full"
+              options={[
+                { value: 'all', label: 'All Capabilities' },
+                ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
+              ]}
+            />
           </div>
         </div>
         {catalogItems.length === 0 ? (
