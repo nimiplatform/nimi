@@ -154,6 +154,12 @@ import type {
   UpdateConnectorResponse,
   ListProviderCatalogRequest,
   ListProviderCatalogResponse,
+  ListModelCatalogProvidersRequest,
+  ListModelCatalogProvidersResponse,
+  UpsertModelCatalogProviderRequest,
+  UpsertModelCatalogProviderResponse,
+  DeleteModelCatalogProviderRequest,
+  DeleteModelCatalogProviderResponse,
 } from './generated/runtime/v1/connector';
 import type {
   AIProviderHealthEvent,
@@ -206,6 +212,8 @@ export type RuntimeCallOptions = {
   metadata?: RuntimeMetadata;
   timeoutMs?: number;
   idempotencyKey?: string;
+  /** @internal Side-channel for unary response metadata extraction. */
+  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeStreamCallOptions = RuntimeCallOptions & {
@@ -260,6 +268,8 @@ export type RuntimeUnaryCall<Request = RuntimeWireMessage> = {
   metadata: RuntimeMetadata;
   authorization?: string;
   timeoutMs?: number;
+  /** @internal Side-channel for unary response metadata extraction. */
+  _responseMetadataObserver?: RuntimeResponseMetadataObserver;
 };
 
 export type RuntimeOpenStreamCall<Request = RuntimeWireMessage> = {
@@ -373,6 +383,18 @@ export type RuntimeConnectorClient = {
   testConnector(request: TestConnectorRequest, options?: RuntimeCallOptions): Promise<TestConnectorResponse>;
   listConnectorModels(request: ListConnectorModelsRequest, options?: RuntimeCallOptions): Promise<ListConnectorModelsResponse>;
   listProviderCatalog(request: ListProviderCatalogRequest, options?: RuntimeCallOptions): Promise<ListProviderCatalogResponse>;
+  listModelCatalogProviders(
+    request: ListModelCatalogProvidersRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListModelCatalogProvidersResponse>;
+  upsertModelCatalogProvider(
+    request: UpsertModelCatalogProviderRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<UpsertModelCatalogProviderResponse>;
+  deleteModelCatalogProvider(
+    request: DeleteModelCatalogProviderRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<DeleteModelCatalogProviderResponse>;
 };
 
 export type RuntimeScriptWorkerClient = {
@@ -726,6 +748,9 @@ export type SpeechListVoicesOutput = {
   }>;
   modelResolved: string;
   traceId: string;
+  voiceCatalogSource?: string;
+  voiceCatalogVersion?: string;
+  voiceCount?: number;
 };
 
 export type SpeechStreamSynthesisInput = {

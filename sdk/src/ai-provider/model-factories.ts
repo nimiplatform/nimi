@@ -38,6 +38,8 @@ import {
   toCallOptions,
   toEmbeddingVectors,
   toFinishReason,
+  toImageFileSource,
+  toImageFileSources,
   toLabels,
   toProtoStruct,
   toProviderMetadata,
@@ -59,6 +61,27 @@ function withOptionalSubjectUserId<T extends Record<string, unknown>>(
     ...request,
     subjectUserId: normalized,
   };
+}
+
+function flattenImageProviderOptions(value: unknown): Record<string, unknown> {
+  const topLevel = asRecord(value);
+  const flattened: Record<string, unknown> = {};
+
+  const applyLayer = (layer: Record<string, unknown>): void => {
+    for (const [key, item] of Object.entries(layer)) {
+      const normalizedKey = normalizeText(key);
+      if (!normalizedKey || normalizedKey === 'nimi' || normalizedKey === 'localai' || normalizedKey === 'nexa') {
+        continue;
+      }
+      flattened[normalizedKey] = item;
+    }
+  };
+
+  applyLayer(asRecord(topLevel.nexa));
+  applyLayer(asRecord(topLevel.localai));
+  applyLayer(asRecord(topLevel.nimi));
+  applyLayer(topLevel);
+  return flattened;
 }
 
 export function createLanguageModel(
@@ -307,8 +330,10 @@ export function createImageModel(
       try {
         const timeoutMs = defaults.timeoutMs || 0;
         const optionRecord = asRecord(options as unknown as Record<string, unknown>);
-        const providerOptions = asRecord(options.providerOptions);
-        const requestLabels = toLabels(providerOptions.labels);
+        const flattenedProviderOptions = flattenImageProviderOptions(options.providerOptions);
+        const requestLabels = toLabels(flattenedProviderOptions.labels);
+        const referenceImages = toImageFileSources(optionRecord.files);
+        const mask = toImageFileSource(optionRecord.mask);
         const media = await executeMediaJob(runtime, defaults, {
           appId: defaults.appId,
           ...(normalizeText(defaults.subjectUserId)
@@ -319,8 +344,8 @@ export function createImageModel(
           routePolicy: resolveRoutePolicy(defaults.routePolicy),
           fallback: resolveFallbackPolicy(defaults.fallback),
           timeoutMs,
-          requestId: normalizeText(providerOptions.requestId),
-          idempotencyKey: normalizeText(providerOptions.idempotencyKey),
+          requestId: normalizeText(flattenedProviderOptions.requestId),
+          idempotencyKey: normalizeText(flattenedProviderOptions.idempotencyKey),
           labels: requestLabels,
           spec: {
             oneofKind: 'imageSpec',
@@ -330,13 +355,13 @@ export function createImageModel(
               n: Number(optionRecord.n || 0),
               size: normalizeText(optionRecord.size),
               aspectRatio: normalizeText(optionRecord.aspectRatio),
-              quality: normalizeText(providerOptions.quality),
-              style: normalizeText(providerOptions.style),
+              quality: normalizeText(flattenedProviderOptions.quality),
+              style: normalizeText(flattenedProviderOptions.style),
               seed: Number(optionRecord.seed || 0),
-              referenceImages: [],
-              mask: normalizeText(optionRecord.mask),
-              responseFormat: normalizeText(providerOptions.responseFormat),
-              providerOptions: toProtoStruct(options.providerOptions as Record<string, unknown> | undefined),
+              referenceImages,
+              mask,
+              responseFormat: normalizeText(flattenedProviderOptions.responseFormat),
+              providerOptions: toProtoStruct(flattenedProviderOptions),
             },
           },
         }, timeoutMs, options.abortSignal);

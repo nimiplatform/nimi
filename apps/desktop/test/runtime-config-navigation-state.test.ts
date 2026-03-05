@@ -15,6 +15,7 @@ test('normalizePageIdV11: current values pass through unchanged', () => {
   assert.equal(normalizePageIdV11('overview'), 'overview');
   assert.equal(normalizePageIdV11('local'), 'local');
   assert.equal(normalizePageIdV11('cloud'), 'cloud');
+  assert.equal(normalizePageIdV11('catalog'), 'catalog');
   assert.equal(normalizePageIdV11('runtime'), 'runtime');
   assert.equal(normalizePageIdV11('mods'), 'mods');
 });
@@ -53,9 +54,9 @@ test('createDefaultStateV11: state shape keeps current navigation field only', (
 // RUNTIME_PAGE_META
 // ---------------------------------------------------------------------------
 
-test('RUNTIME_PAGE_META covers all 5 pages', () => {
-  const expectedPages: Array<'overview' | 'local' | 'cloud' | 'runtime' | 'mods'> = [
-    'overview', 'local', 'cloud', 'runtime', 'mods',
+test('RUNTIME_PAGE_META covers all 6 pages', () => {
+  const expectedPages: Array<'overview' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods'> = [
+    'overview', 'local', 'cloud', 'catalog', 'runtime', 'mods',
   ];
 
   for (const page of expectedPages) {
@@ -64,7 +65,7 @@ test('RUNTIME_PAGE_META covers all 5 pages', () => {
     assert.ok(RUNTIME_PAGE_META[page].description, `RUNTIME_PAGE_META["${page}"].description must be non-empty`);
   }
 
-  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 5, 'RUNTIME_PAGE_META must have exactly 5 entries');
+  assert.equal(Object.keys(RUNTIME_PAGE_META).length, 6, 'RUNTIME_PAGE_META must have exactly 6 entries');
 });
 
 test('normalizeStoredStateV11: new activePage field takes precedence', () => {

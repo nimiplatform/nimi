@@ -72,6 +72,9 @@ export interface SpeechVoicesResult {
   lang?: string;
   langs?: string[];
   sampleAudioUri?: string;
+  modelResolved?: string;
+  voiceCatalogSource?: string;
+  voiceCatalogVersion?: string;
 }
 
 export interface SpeechSynthesizeResultPayload {

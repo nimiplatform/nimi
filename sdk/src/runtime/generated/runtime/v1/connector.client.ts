@@ -5,6 +5,12 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeConnectorService } from "./connector";
+import type { DeleteModelCatalogProviderResponse } from "./connector";
+import type { DeleteModelCatalogProviderRequest } from "./connector";
+import type { UpsertModelCatalogProviderResponse } from "./connector";
+import type { UpsertModelCatalogProviderRequest } from "./connector";
+import type { ListModelCatalogProvidersResponse } from "./connector";
+import type { ListModelCatalogProvidersRequest } from "./connector";
 import type { ListProviderCatalogResponse } from "./connector";
 import type { ListProviderCatalogRequest } from "./connector";
 import type { ListConnectorModelsResponse } from "./connector";
@@ -60,6 +66,18 @@ export interface IRuntimeConnectorServiceClient {
      * @generated from protobuf rpc: ListProviderCatalog
      */
     listProviderCatalog(input: ListProviderCatalogRequest, options?: RpcOptions): UnaryCall<ListProviderCatalogRequest, ListProviderCatalogResponse>;
+    /**
+     * @generated from protobuf rpc: ListModelCatalogProviders
+     */
+    listModelCatalogProviders(input: ListModelCatalogProvidersRequest, options?: RpcOptions): UnaryCall<ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse>;
+    /**
+     * @generated from protobuf rpc: UpsertModelCatalogProvider
+     */
+    upsertModelCatalogProvider(input: UpsertModelCatalogProviderRequest, options?: RpcOptions): UnaryCall<UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse>;
+    /**
+     * @generated from protobuf rpc: DeleteModelCatalogProvider
+     */
+    deleteModelCatalogProvider(input: DeleteModelCatalogProviderRequest, options?: RpcOptions): UnaryCall<DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeConnectorService
@@ -125,5 +143,26 @@ export class RuntimeConnectorServiceClient implements IRuntimeConnectorServiceCl
     listProviderCatalog(input: ListProviderCatalogRequest, options?: RpcOptions): UnaryCall<ListProviderCatalogRequest, ListProviderCatalogResponse> {
         const method = this.methods[7], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListProviderCatalogRequest, ListProviderCatalogResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListModelCatalogProviders
+     */
+    listModelCatalogProviders(input: ListModelCatalogProvidersRequest, options?: RpcOptions): UnaryCall<ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse> {
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: UpsertModelCatalogProvider
+     */
+    upsertModelCatalogProvider(input: UpsertModelCatalogProviderRequest, options?: RpcOptions): UnaryCall<UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse> {
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: DeleteModelCatalogProvider
+     */
+    deleteModelCatalogProvider(input: DeleteModelCatalogProviderRequest, options?: RpcOptions): UnaryCall<DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse>("unary", this._transport, method, opt, input);
     }
 }

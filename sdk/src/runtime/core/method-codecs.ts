@@ -137,6 +137,12 @@ import {
   UpdateConnectorResponse,
   ListProviderCatalogRequest,
   ListProviderCatalogResponse,
+  ListModelCatalogProvidersRequest,
+  ListModelCatalogProvidersResponse,
+  UpsertModelCatalogProviderRequest,
+  UpsertModelCatalogProviderResponse,
+  DeleteModelCatalogProviderRequest,
+  DeleteModelCatalogProviderResponse,
 } from '../generated/runtime/v1/connector';
 import {
   AppMessageEvent,
@@ -412,6 +418,18 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.connector.listProviderCatalog]: {
     requestType: ListProviderCatalogRequest,
     responseType: ListProviderCatalogResponse,
+  },
+  [RuntimeMethodIds.connector.listModelCatalogProviders]: {
+    requestType: ListModelCatalogProvidersRequest,
+    responseType: ListModelCatalogProvidersResponse,
+  },
+  [RuntimeMethodIds.connector.upsertModelCatalogProvider]: {
+    requestType: UpsertModelCatalogProviderRequest,
+    responseType: UpsertModelCatalogProviderResponse,
+  },
+  [RuntimeMethodIds.connector.deleteModelCatalogProvider]: {
+    requestType: DeleteModelCatalogProviderRequest,
+    responseType: DeleteModelCatalogProviderResponse,
   },
   [RuntimeMethodIds.knowledge.buildIndex]: {
     requestType: BuildIndexRequest,

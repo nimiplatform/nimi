@@ -326,6 +326,93 @@ export interface ListProviderCatalogResponse {
     providers: ProviderCatalogEntry[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ModelCatalogProviderEntry
+ */
+export interface ModelCatalogProviderEntry {
+    /**
+     * @generated from protobuf field: string provider = 1
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: int32 version = 2
+     */
+    version: number;
+    /**
+     * @generated from protobuf field: string catalog_version = 3
+     */
+    catalogVersion: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelCatalogProviderSource source = 4
+     */
+    source: ModelCatalogProviderSource;
+    /**
+     * @generated from protobuf field: uint32 model_count = 5
+     */
+    modelCount: number;
+    /**
+     * @generated from protobuf field: uint32 voice_count = 6
+     */
+    voiceCount: number;
+    /**
+     * @generated from protobuf field: string yaml = 7
+     */
+    yaml: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListModelCatalogProvidersRequest
+ */
+export interface ListModelCatalogProvidersRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListModelCatalogProvidersResponse
+ */
+export interface ListModelCatalogProvidersResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ModelCatalogProviderEntry providers = 1
+     */
+    providers: ModelCatalogProviderEntry[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpsertModelCatalogProviderRequest
+ */
+export interface UpsertModelCatalogProviderRequest {
+    /**
+     * @generated from protobuf field: string provider = 1
+     */
+    provider: string;
+    /**
+     * @generated from protobuf field: string yaml = 2
+     */
+    yaml: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpsertModelCatalogProviderResponse
+ */
+export interface UpsertModelCatalogProviderResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelCatalogProviderEntry provider = 1
+     */
+    provider?: ModelCatalogProviderEntry;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeleteModelCatalogProviderRequest
+ */
+export interface DeleteModelCatalogProviderRequest {
+    /**
+     * @generated from protobuf field: string provider = 1
+     */
+    provider: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeleteModelCatalogProviderResponse
+ */
+export interface DeleteModelCatalogProviderResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.ConnectorKind
  */
 export enum ConnectorKind {
@@ -408,6 +495,27 @@ export enum LocalConnectorCategory {
      * @generated from protobuf enum value: LOCAL_CONNECTOR_CATEGORY_CUSTOM = 6;
      */
     CUSTOM = 6
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ModelCatalogProviderSource
+ */
+export enum ModelCatalogProviderSource {
+    /**
+     * @generated from protobuf enum value: MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN = 1;
+     */
+    BUILTIN = 1,
+    /**
+     * @generated from protobuf enum value: MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM = 2;
+     */
+    CUSTOM = 2,
+    /**
+     * @generated from protobuf enum value: MODEL_CATALOG_PROVIDER_SOURCE_REMOTE = 3;
+     */
+    REMOTE = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Connector$Type extends MessageType<Connector> {
@@ -1572,6 +1680,380 @@ class ListProviderCatalogResponse$Type extends MessageType<ListProviderCatalogRe
  * @generated MessageType for protobuf message nimi.runtime.v1.ListProviderCatalogResponse
  */
 export const ListProviderCatalogResponse = new ListProviderCatalogResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ModelCatalogProviderEntry$Type extends MessageType<ModelCatalogProviderEntry> {
+    constructor() {
+        super("nimi.runtime.v1.ModelCatalogProviderEntry", [
+            { no: 1, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "catalog_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "source", kind: "enum", T: () => ["nimi.runtime.v1.ModelCatalogProviderSource", ModelCatalogProviderSource, "MODEL_CATALOG_PROVIDER_SOURCE_"] },
+            { no: 5, name: "model_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 6, name: "voice_count", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 7, name: "yaml", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ModelCatalogProviderEntry>): ModelCatalogProviderEntry {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.provider = "";
+        message.version = 0;
+        message.catalogVersion = "";
+        message.source = 0;
+        message.modelCount = 0;
+        message.voiceCount = 0;
+        message.yaml = "";
+        if (value !== undefined)
+            reflectionMergePartial<ModelCatalogProviderEntry>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelCatalogProviderEntry): ModelCatalogProviderEntry {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider */ 1:
+                    message.provider = reader.string();
+                    break;
+                case /* int32 version */ 2:
+                    message.version = reader.int32();
+                    break;
+                case /* string catalog_version */ 3:
+                    message.catalogVersion = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ModelCatalogProviderSource source */ 4:
+                    message.source = reader.int32();
+                    break;
+                case /* uint32 model_count */ 5:
+                    message.modelCount = reader.uint32();
+                    break;
+                case /* uint32 voice_count */ 6:
+                    message.voiceCount = reader.uint32();
+                    break;
+                case /* string yaml */ 7:
+                    message.yaml = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ModelCatalogProviderEntry, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider = 1; */
+        if (message.provider !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.provider);
+        /* int32 version = 2; */
+        if (message.version !== 0)
+            writer.tag(2, WireType.Varint).int32(message.version);
+        /* string catalog_version = 3; */
+        if (message.catalogVersion !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.catalogVersion);
+        /* nimi.runtime.v1.ModelCatalogProviderSource source = 4; */
+        if (message.source !== 0)
+            writer.tag(4, WireType.Varint).int32(message.source);
+        /* uint32 model_count = 5; */
+        if (message.modelCount !== 0)
+            writer.tag(5, WireType.Varint).uint32(message.modelCount);
+        /* uint32 voice_count = 6; */
+        if (message.voiceCount !== 0)
+            writer.tag(6, WireType.Varint).uint32(message.voiceCount);
+        /* string yaml = 7; */
+        if (message.yaml !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.yaml);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelCatalogProviderEntry
+ */
+export const ModelCatalogProviderEntry = new ModelCatalogProviderEntry$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListModelCatalogProvidersRequest$Type extends MessageType<ListModelCatalogProvidersRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListModelCatalogProvidersRequest", []);
+    }
+    create(value?: PartialMessage<ListModelCatalogProvidersRequest>): ListModelCatalogProvidersRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListModelCatalogProvidersRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListModelCatalogProvidersRequest): ListModelCatalogProvidersRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListModelCatalogProvidersRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListModelCatalogProvidersRequest
+ */
+export const ListModelCatalogProvidersRequest = new ListModelCatalogProvidersRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListModelCatalogProvidersResponse$Type extends MessageType<ListModelCatalogProvidersResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListModelCatalogProvidersResponse", [
+            { no: 1, name: "providers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ModelCatalogProviderEntry }
+        ]);
+    }
+    create(value?: PartialMessage<ListModelCatalogProvidersResponse>): ListModelCatalogProvidersResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.providers = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListModelCatalogProvidersResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListModelCatalogProvidersResponse): ListModelCatalogProvidersResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ModelCatalogProviderEntry providers */ 1:
+                    message.providers.push(ModelCatalogProviderEntry.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListModelCatalogProvidersResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ModelCatalogProviderEntry providers = 1; */
+        for (let i = 0; i < message.providers.length; i++)
+            ModelCatalogProviderEntry.internalBinaryWrite(message.providers[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListModelCatalogProvidersResponse
+ */
+export const ListModelCatalogProvidersResponse = new ListModelCatalogProvidersResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpsertModelCatalogProviderRequest$Type extends MessageType<UpsertModelCatalogProviderRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpsertModelCatalogProviderRequest", [
+            { no: 1, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "yaml", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UpsertModelCatalogProviderRequest>): UpsertModelCatalogProviderRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.provider = "";
+        message.yaml = "";
+        if (value !== undefined)
+            reflectionMergePartial<UpsertModelCatalogProviderRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertModelCatalogProviderRequest): UpsertModelCatalogProviderRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider */ 1:
+                    message.provider = reader.string();
+                    break;
+                case /* string yaml */ 2:
+                    message.yaml = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpsertModelCatalogProviderRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider = 1; */
+        if (message.provider !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.provider);
+        /* string yaml = 2; */
+        if (message.yaml !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.yaml);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpsertModelCatalogProviderRequest
+ */
+export const UpsertModelCatalogProviderRequest = new UpsertModelCatalogProviderRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpsertModelCatalogProviderResponse$Type extends MessageType<UpsertModelCatalogProviderResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpsertModelCatalogProviderResponse", [
+            { no: 1, name: "provider", kind: "message", T: () => ModelCatalogProviderEntry }
+        ]);
+    }
+    create(value?: PartialMessage<UpsertModelCatalogProviderResponse>): UpsertModelCatalogProviderResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpsertModelCatalogProviderResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertModelCatalogProviderResponse): UpsertModelCatalogProviderResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ModelCatalogProviderEntry provider */ 1:
+                    message.provider = ModelCatalogProviderEntry.internalBinaryRead(reader, reader.uint32(), options, message.provider);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpsertModelCatalogProviderResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ModelCatalogProviderEntry provider = 1; */
+        if (message.provider)
+            ModelCatalogProviderEntry.internalBinaryWrite(message.provider, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpsertModelCatalogProviderResponse
+ */
+export const UpsertModelCatalogProviderResponse = new UpsertModelCatalogProviderResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeleteModelCatalogProviderRequest$Type extends MessageType<DeleteModelCatalogProviderRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DeleteModelCatalogProviderRequest", [
+            { no: 1, name: "provider", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DeleteModelCatalogProviderRequest>): DeleteModelCatalogProviderRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.provider = "";
+        if (value !== undefined)
+            reflectionMergePartial<DeleteModelCatalogProviderRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteModelCatalogProviderRequest): DeleteModelCatalogProviderRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider */ 1:
+                    message.provider = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeleteModelCatalogProviderRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider = 1; */
+        if (message.provider !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.provider);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeleteModelCatalogProviderRequest
+ */
+export const DeleteModelCatalogProviderRequest = new DeleteModelCatalogProviderRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeleteModelCatalogProviderResponse$Type extends MessageType<DeleteModelCatalogProviderResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DeleteModelCatalogProviderResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack }
+        ]);
+    }
+    create(value?: PartialMessage<DeleteModelCatalogProviderResponse>): DeleteModelCatalogProviderResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DeleteModelCatalogProviderResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteModelCatalogProviderResponse): DeleteModelCatalogProviderResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeleteModelCatalogProviderResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeleteModelCatalogProviderResponse
+ */
+export const DeleteModelCatalogProviderResponse = new DeleteModelCatalogProviderResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeConnectorService
  */
@@ -1583,5 +2065,8 @@ export const RuntimeConnectorService = new ServiceType("nimi.runtime.v1.RuntimeC
     { name: "DeleteConnector", options: {}, I: DeleteConnectorRequest, O: DeleteConnectorResponse },
     { name: "TestConnector", options: {}, I: TestConnectorRequest, O: TestConnectorResponse },
     { name: "ListConnectorModels", options: {}, I: ListConnectorModelsRequest, O: ListConnectorModelsResponse },
-    { name: "ListProviderCatalog", options: {}, I: ListProviderCatalogRequest, O: ListProviderCatalogResponse }
+    { name: "ListProviderCatalog", options: {}, I: ListProviderCatalogRequest, O: ListProviderCatalogResponse },
+    { name: "ListModelCatalogProviders", options: {}, I: ListModelCatalogProvidersRequest, O: ListModelCatalogProvidersResponse },
+    { name: "UpsertModelCatalogProvider", options: {}, I: UpsertModelCatalogProviderRequest, O: UpsertModelCatalogProviderResponse },
+    { name: "DeleteModelCatalogProvider", options: {}, I: DeleteModelCatalogProviderRequest, O: DeleteModelCatalogProviderResponse }
 ]);

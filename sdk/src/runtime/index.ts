@@ -4,7 +4,17 @@ export * from './method-ids';
 export * from './workflow-builder';
 export { Modal, RoutePolicy, FallbackPolicy, StreamEventType, MediaJobStatus, MediaJobEventType } from './generated/runtime/v1/ai';
 export { ModelStatus } from './generated/runtime/v1/model';
-export type { ProviderCatalogEntry } from './generated/runtime/v1/connector';
+export { ModelCatalogProviderSource } from './generated/runtime/v1/connector';
+export type {
+  ProviderCatalogEntry,
+  ModelCatalogProviderEntry,
+  ListModelCatalogProvidersRequest,
+  ListModelCatalogProvidersResponse,
+  UpsertModelCatalogProviderRequest,
+  UpsertModelCatalogProviderResponse,
+  DeleteModelCatalogProviderRequest,
+  DeleteModelCatalogProviderResponse,
+} from './generated/runtime/v1/connector';
 export { RuntimeHealthStatus, UsageWindow } from './generated/runtime/v1/audit';
 export type {
   AuditEventRecord,

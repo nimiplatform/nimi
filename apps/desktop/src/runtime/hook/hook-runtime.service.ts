@@ -365,9 +365,18 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     sourceType?: HookSourceType;
     provider: string;
     prompt: string;
+    negativePrompt?: string;
     model?: string;
     size?: string;
+    aspectRatio?: string;
+    quality?: string;
+    style?: string;
+    seed?: number;
     n?: number;
+    referenceImages?: string[];
+    mask?: string;
+    responseFormat?: 'url' | 'base64';
+    providerOptions?: Record<string, unknown>;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
@@ -429,6 +438,9 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     lang?: string;
     langs?: string[];
     sampleAudioUri?: string;
+    modelResolved?: string;
+    voiceCatalogSource?: string;
+    voiceCatalogVersion?: string;
   }>> {
     return this.speechService.listSpeechVoices(input);
   }

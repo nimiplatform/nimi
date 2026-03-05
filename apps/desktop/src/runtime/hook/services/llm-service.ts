@@ -38,9 +38,18 @@ export interface LlmImageInput {
   sourceType?: HookSourceType;
   provider: string;
   prompt: string;
+  negativePrompt?: string;
   model?: string;
   size?: string;
+  aspectRatio?: string;
+  quality?: string;
+  style?: string;
+  seed?: number;
   n?: number;
+  referenceImages?: string[];
+  mask?: string;
+  responseFormat?: 'url' | 'base64';
+  providerOptions?: Record<string, unknown>;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
@@ -241,9 +250,18 @@ export class HookRuntimeLlmService {
       modId: input.modId,
       provider: input.provider,
       prompt: input.prompt,
+      negativePrompt: input.negativePrompt,
       model: input.model || input.localProviderModel,
       size: input.size,
+      aspectRatio: input.aspectRatio,
+      quality: input.quality,
+      style: input.style,
+      seed: input.seed,
       n: input.n,
+      referenceImages: input.referenceImages,
+      mask: input.mask,
+      responseFormat: input.responseFormat,
+      providerOptions: input.providerOptions,
       abortSignal: undefined,
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,

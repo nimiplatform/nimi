@@ -13,6 +13,10 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Cloud API',
     description: 'Configure API keys for cloud provider connectors.',
   },
+  catalog: {
+    name: 'Catalog',
+    description: 'Provider model/voice yaml catalog (default + custom).',
+  },
   runtime: {
     name: 'Runtime',
     description: 'Daemon lifecycle, health, audit log, EAA, and provider diagnostics.',

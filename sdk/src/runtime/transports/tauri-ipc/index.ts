@@ -252,10 +252,11 @@ export function createTauriIpcTransport(config: RuntimeTauriIpcTransportConfig):
             source: 'runtime',
           });
         }
-        if (config._responseMetadataObserver && response.responseMetadata) {
+        const observer = input._responseMetadataObserver || config._responseMetadataObserver;
+        if (observer && response.responseMetadata) {
           const meta = response.responseMetadata;
           if (typeof meta === 'object' && Object.keys(meta).length > 0) {
-            config._responseMetadataObserver(meta);
+            observer(meta);
           }
         }
         return fromBase64(response.responseBytesBase64);

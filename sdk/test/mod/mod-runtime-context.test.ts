@@ -24,6 +24,11 @@ const LOCAL_ROUTE: ResolvedRuntimeRouteBinding = {
   connectorId: '',
 };
 
+const LOCAL_IMAGE_ROUTE: ResolvedRuntimeRouteBinding = {
+  ...LOCAL_ROUTE,
+  runtimeModelType: 'image',
+};
+
 test('mod ai client uses injected runtime context without global host', async () => {
   clearModSdkHost();
 
@@ -118,4 +123,133 @@ test('mod hook client llm health and route health use injected runtime context',
   assert.equal(routeHealth.actionHint, 'none');
   assert.equal(healthCalls.length, 2);
   assert.deepEqual(healthCalls, ['localai', 'localai']);
+});
+
+test('mod ai client generateImage t2i keeps minimal payload', async () => {
+  clearModSdkHost();
+
+  const routeBindingCalls: Array<{ modId?: string; routeHint: string }> = [];
+  const imageCalls: Array<Record<string, unknown>> = [];
+
+  const runtimeHost = {
+    checkLocalLlmHealth: async () => ({ status: 'healthy' }),
+    getRuntimeHookRuntime: () => ({}) as RuntimeHookRuntimeFacade,
+    resolveRouteBinding: async (input: { modId?: string; routeHint: string }) => {
+      routeBindingCalls.push({ modId: input.modId, routeHint: input.routeHint });
+      return LOCAL_IMAGE_ROUTE;
+    },
+    getModAiDependencySnapshot: async () => ({
+      modId: 'mod.context.test',
+      status: 'ready',
+      routeSource: 'local-runtime',
+      warnings: [],
+      dependencies: [],
+      repairActions: [],
+      updatedAt: new Date(0).toISOString(),
+    }),
+  };
+
+  const runtime = {
+    generateModImage: async (input: Record<string, unknown>) => {
+      imageCalls.push(input);
+      return {
+        images: [{ uri: 'data:image/png;base64,AA==' }],
+        traceId: 'trace-image-t2i',
+      };
+    },
+  } as unknown as RuntimeHookRuntimeFacade;
+
+  const client = createAiClient('mod.context.test', {
+    runtimeHost,
+    runtime,
+  });
+
+  const result = await client.generateImage({
+    prompt: 'draw mountain',
+  });
+
+  assert.equal(result.traceId, 'trace-image-t2i');
+  assert.equal(result.route.runtimeModelType, 'image');
+  assert.equal(routeBindingCalls.length, 1);
+  assert.equal(routeBindingCalls[0]?.routeHint, 'image/default');
+  assert.equal(imageCalls.length, 1);
+  assert.equal(imageCalls[0]?.prompt, 'draw mountain');
+  assert.equal(imageCalls[0]?.negativePrompt, undefined);
+  assert.equal(imageCalls[0]?.referenceImages, undefined);
+  assert.equal(imageCalls[0]?.mask, undefined);
+});
+
+test('mod ai client generateImage i2i forwards reference/mask/provider options', async () => {
+  clearModSdkHost();
+
+  const imageCalls: Array<Record<string, unknown>> = [];
+  const runtimeHost = {
+    checkLocalLlmHealth: async () => ({ status: 'healthy' }),
+    getRuntimeHookRuntime: () => ({}) as RuntimeHookRuntimeFacade,
+    resolveRouteBinding: async () => LOCAL_IMAGE_ROUTE,
+    getModAiDependencySnapshot: async () => ({
+      modId: 'mod.context.test',
+      status: 'ready',
+      routeSource: 'local-runtime',
+      warnings: [],
+      dependencies: [],
+      repairActions: [],
+      updatedAt: new Date(0).toISOString(),
+    }),
+  };
+
+  const runtime = {
+    generateModImage: async (input: Record<string, unknown>) => {
+      imageCalls.push(input);
+      return {
+        images: [{ uri: 'data:image/png;base64,AA==' }],
+        traceId: 'trace-image-i2i',
+      };
+    },
+  } as unknown as RuntimeHookRuntimeFacade;
+
+  const client = createAiClient('mod.context.test', {
+    runtimeHost,
+    runtime,
+  });
+
+  const referenceImages = ['https://example.com/src.png', 'https://example.com/ref.png'];
+  await client.generateImage({
+    prompt: 'turn this into anime style',
+    negativePrompt: 'low quality',
+    model: 'sdxl',
+    size: '1024x1024',
+    aspectRatio: '1:1',
+    quality: 'high',
+    style: 'anime',
+    seed: 42,
+    n: 1,
+    referenceImages,
+    mask: 'https://example.com/mask.png',
+    responseFormat: 'base64',
+    providerOptions: {
+      steps: 30,
+      method: 'i2i',
+      strength: 0.55,
+    },
+  });
+
+  assert.equal(imageCalls.length, 1);
+  assert.equal(imageCalls[0]?.prompt, 'turn this into anime style');
+  assert.equal(imageCalls[0]?.negativePrompt, 'low quality');
+  assert.equal(imageCalls[0]?.model, 'sdxl');
+  assert.equal(imageCalls[0]?.size, '1024x1024');
+  assert.equal(imageCalls[0]?.aspectRatio, '1:1');
+  assert.equal(imageCalls[0]?.quality, 'high');
+  assert.equal(imageCalls[0]?.style, 'anime');
+  assert.equal(imageCalls[0]?.seed, 42);
+  assert.equal(imageCalls[0]?.n, 1);
+  assert.deepEqual(imageCalls[0]?.referenceImages, referenceImages);
+  assert.equal(imageCalls[0]?.mask, 'https://example.com/mask.png');
+  assert.equal(imageCalls[0]?.responseFormat, 'base64');
+  assert.deepEqual(imageCalls[0]?.providerOptions, {
+    steps: 30,
+    method: 'i2i',
+    strength: 0.55,
+  });
 });

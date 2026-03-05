@@ -382,13 +382,25 @@ export function createNodeGrpcTransport(config: RuntimeNodeGrpcTransportConfig):
           resolve(response);
         },
       );
-      if (config._responseMetadataObserver) {
-        const observer = config._responseMetadataObserver;
+      const observer = input._responseMetadataObserver || config._responseMetadataObserver;
+      if (observer) {
         call.on('metadata', (md: { get(key: string): (string | Buffer)[] }) => {
           const collected: Record<string, string> = {};
           const version = md.get('x-nimi-runtime-version');
           if (version.length > 0) {
             collected['x-nimi-runtime-version'] = String(version[0]);
+          }
+          const voiceCatalogSource = md.get('x-nimi-voice-catalog-source');
+          if (voiceCatalogSource.length > 0) {
+            collected['x-nimi-voice-catalog-source'] = String(voiceCatalogSource[0]);
+          }
+          const voiceCatalogVersion = md.get('x-nimi-voice-catalog-version');
+          if (voiceCatalogVersion.length > 0) {
+            collected['x-nimi-voice-catalog-version'] = String(voiceCatalogVersion[0]);
+          }
+          const voiceCount = md.get('x-nimi-voice-count');
+          if (voiceCount.length > 0) {
+            collected['x-nimi-voice-count'] = String(voiceCount[0]);
           }
           if (Object.keys(collected).length > 0) {
             observer(collected);

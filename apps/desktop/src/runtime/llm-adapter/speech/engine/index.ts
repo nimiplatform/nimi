@@ -101,6 +101,9 @@ export class NimiSpeechEngine {
       name: v.name,
       lang: v.lang,
       langs: v.supportedLangs,
+      modelResolved: result.modelResolved || undefined,
+      voiceCatalogSource: result.voiceCatalogSource || undefined,
+      voiceCatalogVersion: result.voiceCatalogVersion || undefined,
     }));
   }
 

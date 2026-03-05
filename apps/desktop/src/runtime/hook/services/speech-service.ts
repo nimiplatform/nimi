@@ -52,6 +52,9 @@ export class HookRuntimeSpeechService {
       lang: voice.lang,
       langs: voice.langs,
       sampleAudioUri: voice.sampleAudioUri,
+      modelResolved: voice.modelResolved,
+      voiceCatalogSource: voice.voiceCatalogSource,
+      voiceCatalogVersion: voice.voiceCatalogVersion,
     };
   }
 

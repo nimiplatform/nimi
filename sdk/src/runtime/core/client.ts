@@ -359,6 +359,7 @@ async function toUnaryCall(
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
     authorization: await resolveAuthorization(config),
     timeoutMs: resolvedOptions?.timeoutMs,
+    _responseMetadataObserver: resolvedOptions?._responseMetadataObserver,
   };
 }
 
@@ -589,6 +590,9 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       testConnector: unary(RuntimeMethodIds.connector.testConnector),
       listConnectorModels: unary(RuntimeMethodIds.connector.listConnectorModels),
       listProviderCatalog: unary(RuntimeMethodIds.connector.listProviderCatalog),
+      listModelCatalogProviders: unary(RuntimeMethodIds.connector.listModelCatalogProviders),
+      upsertModelCatalogProvider: unary(RuntimeMethodIds.connector.upsertModelCatalogProvider),
+      deleteModelCatalogProvider: unary(RuntimeMethodIds.connector.deleteModelCatalogProvider),
     },
     knowledge: {
       buildIndex: unary(RuntimeMethodIds.knowledge.buildIndex),

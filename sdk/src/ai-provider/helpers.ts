@@ -234,6 +234,71 @@ export function toBase64(value: Uint8Array): string {
   });
 }
 
+function isDataURL(value: string): boolean {
+  return /^data:[^,]+,/.test(value);
+}
+
+function toUint8Array(value: unknown): Uint8Array | undefined {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return undefined;
+}
+
+export function toImageFileSource(value: unknown): string {
+  if (typeof value === 'string') {
+    return normalizeText(value);
+  }
+  const record = asRecord(value);
+  const type = normalizeText(record.type).toLowerCase();
+  if (type === 'url') {
+    return normalizeText(record.url);
+  }
+  if (type !== 'file') {
+    return '';
+  }
+
+  const mediaType = normalizeText(record.mediaType) || 'application/octet-stream';
+  const data = record.data;
+  if (typeof data === 'string') {
+    const normalized = normalizeText(data);
+    if (!normalized) {
+      return '';
+    }
+    if (isDataURL(normalized)) {
+      return normalized;
+    }
+    return `data:${mediaType};base64,${normalized}`;
+  }
+
+  const bytes = toUint8Array(data);
+  if (!bytes || bytes.length === 0) {
+    return '';
+  }
+  return `data:${mediaType};base64,${toBase64(bytes)}`;
+}
+
+export function toImageFileSources(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const sources: string[] = [];
+  for (const item of value) {
+    const source = toImageFileSource(item);
+    if (!source) {
+      continue;
+    }
+    sources.push(source);
+  }
+  return sources;
+}
+
 export function toUtf8(value: Uint8Array): string {
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(value).toString('utf8');

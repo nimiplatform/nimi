@@ -90,6 +90,12 @@ const SIDEBAR_ITEMS: Array<{
     icon: ICON_CLOUD,
   },
   {
+    id: 'catalog',
+    label: 'Catalog',
+    description: 'Provider yaml management',
+    icon: '☰',
+  },
+  {
     id: 'runtime',
     section: 'Operations',
     label: 'Runtime',

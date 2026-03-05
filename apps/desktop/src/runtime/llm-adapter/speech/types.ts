@@ -47,6 +47,9 @@ export type SpeechVoiceDescriptor = {
   lang?: string;
   langs?: string[];
   sampleAudioUri?: string;
+  modelResolved?: string;
+  voiceCatalogSource?: string;
+  voiceCatalogVersion?: string;
 };
 
 export type SpeechHealthResult = {

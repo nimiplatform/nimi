@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
+import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 
 import { asNimiError, Runtime } from '../../src/runtime/index.js';
 
@@ -534,6 +535,110 @@ test('createNimiAiProvider embedding and image models map runtime responses', as
   });
   assert.equal(imageResult.images.length, 1);
   assert.equal(imageResult.images[0], Buffer.from([1, 2, 3, 4]).toString('base64'));
+});
+
+test('createNimiAiProvider image model flattens providerOptions and maps files/mask', async () => {
+  let capturedSubmitRequest: Record<string, unknown> | null = null;
+  const runtime = createRuntimeStub({
+    submitMediaJob: async (request) => {
+      capturedSubmitRequest = request as Record<string, unknown>;
+      return {
+        job: {
+          jobId: 'job-image-compat-1',
+          status: 4,
+          routeDecision: 1,
+          modelResolved: 'image/default',
+          traceId: 'trace-image-compat',
+        },
+      };
+    },
+    getMediaJob: async () => ({
+      job: {
+        jobId: 'job-image-compat-1',
+        status: 4,
+        routeDecision: 1,
+        modelResolved: 'image/default',
+        traceId: 'trace-image-compat',
+      },
+    }),
+    getMediaResult: async () => ({
+      jobId: 'job-image-compat-1',
+      traceId: 'trace-image-compat',
+      artifacts: [{
+        artifactId: 'image-compat-1',
+        mimeType: 'image/png',
+        bytes: Uint8Array.from([7, 8, 9]),
+      }],
+    }),
+  });
+
+  const nimi = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  });
+
+  await nimi.image('image/default').doGenerate({
+    prompt: 'draw',
+    n: 1,
+    size: '1024x1024',
+    aspectRatio: '1:1',
+    files: [
+      { type: 'url', url: 'https://example.com/ref-1.png' } as never,
+      { type: 'file', mediaType: 'image/png', data: 'QUJD' } as never,
+      { type: 'file', mediaType: 'image/jpeg', data: Uint8Array.from([1, 2, 3]) } as never,
+    ],
+    mask: { type: 'file', mediaType: 'image/png', data: 'Rk9P' } as never,
+    providerOptions: {
+      requestId: 'req-top',
+      idempotencyKey: 'idem-top',
+      labels: { source: 'top' },
+      quality: 'high-top',
+      steps: 40,
+      method: 'top-method',
+      nimi: {
+        responseFormat: 'b64_json',
+        requestId: 'req-nimi',
+      },
+      localai: {
+        idempotencyKey: 'idem-localai',
+        quality: 'high-localai',
+      },
+      nexa: {
+        style: 'cinematic',
+        method: 'nexa-method',
+      },
+    },
+  });
+
+  assert.ok(capturedSubmitRequest);
+  assert.equal(capturedSubmitRequest.requestId, 'req-top');
+  assert.equal(capturedSubmitRequest.idempotencyKey, 'idem-top');
+  assert.deepEqual(capturedSubmitRequest.labels, { source: 'top' });
+
+  const specRecord = capturedSubmitRequest.spec as { imageSpec?: Record<string, unknown> } | undefined;
+  const imageSpec = (specRecord?.imageSpec || {}) as Record<string, unknown>;
+  assert.deepEqual(imageSpec.referenceImages, [
+    'https://example.com/ref-1.png',
+    'data:image/png;base64,QUJD',
+    'data:image/jpeg;base64,AQID',
+  ]);
+  assert.equal(imageSpec.mask, 'data:image/png;base64,Rk9P');
+  assert.equal(imageSpec.quality, 'high-top');
+  assert.equal(imageSpec.style, 'cinematic');
+  assert.equal(imageSpec.responseFormat, 'b64_json');
+
+  const providerOptionsJson = Struct.toJson(imageSpec.providerOptions as never) as Record<string, unknown>;
+  assert.equal(providerOptionsJson.requestId, 'req-top');
+  assert.equal(providerOptionsJson.idempotencyKey, 'idem-top');
+  assert.equal(providerOptionsJson.quality, 'high-top');
+  assert.equal(providerOptionsJson.style, 'cinematic');
+  assert.equal(providerOptionsJson.steps, 40);
+  assert.equal(providerOptionsJson.method, 'top-method');
+  assert.equal(providerOptionsJson.responseFormat, 'b64_json');
+  assert.equal(providerOptionsJson.nimi, undefined);
+  assert.equal(providerOptionsJson.localai, undefined);
+  assert.equal(providerOptionsJson.nexa, undefined);
 });
 
 test('createNimiAiProvider maps runtime failures and exposes video/tts/stt extensions', async () => {

@@ -189,9 +189,18 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       const result = await runtime.generateModImage({
         modId: normalizedModId,
         prompt: input.prompt,
+        negativePrompt: input.negativePrompt,
         model: input.model,
         size: input.size,
+        aspectRatio: input.aspectRatio,
+        quality: input.quality,
+        style: input.style,
+        seed: input.seed,
         n: input.n,
+        referenceImages: input.referenceImages,
+        mask: input.mask,
+        responseFormat: input.responseFormat,
+        providerOptions: input.providerOptions,
         ...payload,
       });
       return {

@@ -21,6 +21,7 @@ export interface RuntimeInternalContext {
     timeoutMs?: number;
     metadata?: Record<string, string>;
     idempotencyKey?: string;
+    _responseMetadataObserver?: (metadata: Record<string, string>) => void;
   }) => RuntimeCallOptions;
 
   /** Resolve stream call options from input metadata/timeout/signal. */

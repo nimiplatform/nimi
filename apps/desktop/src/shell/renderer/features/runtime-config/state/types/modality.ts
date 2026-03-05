@@ -2,7 +2,7 @@ export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedd
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
 export type SourceIdV11 = 'local-runtime' | 'token-api';
-export type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'runtime' | 'mods';
+export type RuntimePageIdV11 = 'overview' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods';
 export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
@@ -22,7 +22,14 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 }
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
-  if (value === 'overview' || value === 'local' || value === 'cloud' || value === 'runtime' || value === 'mods') {
+  if (
+    value === 'overview'
+    || value === 'local'
+    || value === 'cloud'
+    || value === 'catalog'
+    || value === 'runtime'
+    || value === 'mods'
+  ) {
     return value;
   }
   return 'overview';

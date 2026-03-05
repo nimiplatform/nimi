@@ -39,9 +39,18 @@ export type AiGenerateObjectRequest = AiTextRequest & {
 
 export type AiGenerateImageRequest = AiRouteInput & {
   prompt: string;
+  negativePrompt?: string;
   model?: string;
   size?: string;
+  aspectRatio?: string;
+  quality?: string;
+  style?: string;
+  seed?: number;
   n?: number;
+  referenceImages?: string[];
+  mask?: string;
+  responseFormat?: 'url' | 'base64';
+  providerOptions?: Record<string, unknown>;
 };
 
 export type AiGenerateImageResult = {

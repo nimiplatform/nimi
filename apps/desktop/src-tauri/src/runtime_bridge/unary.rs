@@ -1,5 +1,6 @@
 use base64::Engine;
 use serde::Serialize;
+use std::collections::HashMap;
 use tonic::client::Grpc;
 
 use super::channel_pool;
@@ -13,6 +14,32 @@ use super::RuntimeBridgeUnaryPayload;
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeUnaryResult {
     pub response_bytes_base64: String,
+    pub response_metadata: Option<HashMap<String, String>>,
+}
+
+fn extract_response_metadata(response: &tonic::Response<Vec<u8>>) -> Option<HashMap<String, String>> {
+    let keys = [
+        "x-nimi-runtime-version",
+        "x-nimi-voice-catalog-source",
+        "x-nimi-voice-catalog-version",
+        "x-nimi-voice-count",
+    ];
+    let mut out: HashMap<String, String> = HashMap::new();
+    for key in keys {
+        if let Some(value) = response.metadata().get(key) {
+            if let Ok(as_str) = value.to_str() {
+                let normalized = as_str.trim();
+                if !normalized.is_empty() {
+                    out.insert(key.to_string(), normalized.to_string());
+                }
+            }
+        }
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(out)
+    }
 }
 
 fn decode_request_bytes(payload: &RuntimeBridgeUnaryPayload) -> Result<Vec<u8>, String> {
@@ -69,9 +96,11 @@ pub async fn invoke_unary(
         .unary(request, path, RawBytesCodec)
         .await
         .map_err(bridge_status_error)?;
+    let response_metadata = extract_response_metadata(&response);
     Ok(RuntimeBridgeUnaryResult {
         response_bytes_base64: base64::engine::general_purpose::STANDARD
             .encode(response.into_inner()),
+        response_metadata,
     })
 }
 

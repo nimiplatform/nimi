@@ -224,6 +224,7 @@ export function resolveRuntimeCallOptions(
     timeoutMs?: number;
     metadata?: Record<string, string>;
     idempotencyKey?: string;
+    _responseMetadataObserver?: (metadata: Record<string, string>) => void;
   },
 ): RuntimeCallOptions {
   const timeoutMs = typeof input.timeoutMs === 'number'
@@ -279,6 +280,7 @@ export function resolveRuntimeCallOptions(
       extra: metadataExtra,
     },
     idempotencyKey: normalizeText(input.idempotencyKey) || undefined,
+    _responseMetadataObserver: input._responseMetadataObserver,
   };
 }
 

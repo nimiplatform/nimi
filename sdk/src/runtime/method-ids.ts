@@ -83,6 +83,9 @@ export const RuntimeMethodIds = {
     testConnector: '/nimi.runtime.v1.RuntimeConnectorService/TestConnector',
     listConnectorModels: '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels',
     listProviderCatalog: '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog',
+    listModelCatalogProviders: '/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders',
+    upsertModelCatalogProvider: '/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider',
+    deleteModelCatalogProvider: '/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider',
   },
   scriptWorker: {
     execute: '/nimi.runtime.v1.ScriptWorkerService/Execute',

@@ -182,6 +182,7 @@ export async function runtimeListSpeechVoices(
   input: SpeechListVoicesInput,
 ): Promise<SpeechListVoicesOutput> {
   const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
+  const responseMetadata: Record<string, string> = {};
   const request: GetSpeechVoicesRequest = {
     appId: ctx.appId,
     subjectUserId,
@@ -195,8 +196,15 @@ export async function runtimeListSpeechVoices(
     request,
     ctx.resolveRuntimeCallOptions({
       metadata: input.metadata,
+      _responseMetadataObserver: (metadata) => {
+        Object.assign(responseMetadata, metadata);
+      },
     }),
   ));
+  const voiceCatalogSource = normalizeText(responseMetadata['x-nimi-voice-catalog-source']);
+  const voiceCatalogVersion = normalizeText(responseMetadata['x-nimi-voice-catalog-version']);
+  const voiceCountRaw = Number.parseInt(normalizeText(responseMetadata['x-nimi-voice-count']), 10);
+  const voiceCount = Number.isFinite(voiceCountRaw) ? voiceCountRaw : undefined;
 
   return {
     voices: (response.voices || []).map((v: SpeechVoiceDescriptor) => ({
@@ -207,6 +215,9 @@ export async function runtimeListSpeechVoices(
     })),
     modelResolved: normalizeText(response.modelResolved),
     traceId: normalizeText(response.traceId),
+    voiceCatalogSource: voiceCatalogSource || undefined,
+    voiceCatalogVersion: voiceCatalogVersion || undefined,
+    voiceCount,
   };
 }
 

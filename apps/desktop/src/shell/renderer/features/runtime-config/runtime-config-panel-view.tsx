@@ -5,6 +5,7 @@ import { StatusBadge, DaemonStatusBadge } from './panels/primitives';
 import { OverviewPage } from './pages/overview-page';
 import { LocalPage } from './pages/local-page';
 import { CloudPage } from './pages/cloud-page';
+import { CatalogPage } from './pages/catalog-page';
 import { RuntimePage } from './pages/runtime-page';
 import { ModsPage } from './pages/mods-page';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -131,6 +132,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               )}
               {activePage === 'cloud' && (
                 <CloudPage model={model} state={state} />
+              )}
+              {activePage === 'catalog' && (
+                <CatalogPage state={state} />
               )}
               {activePage === 'runtime' && (
                 <RuntimePage model={model} state={state} />
