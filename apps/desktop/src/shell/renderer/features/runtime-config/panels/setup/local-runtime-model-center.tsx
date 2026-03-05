@@ -2,11 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   localAiRuntime,
   type LocalAiDependencyResolutionPlan,
+  type LocalAiCatalogItemDescriptor,
+  type LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
-import { Button, Card, Input, StatusBadge, renderModelChips } from '../primitives';
-import { ModelCenterCatalogSection } from './model-center-catalog-section';
 import { ModelCenterDependencySection } from './model-center-dependency-section';
-import { ModelCenterInstalledList } from './model-center-installed-list';
 import {
   CAPABILITY_OPTIONS,
   downloadStateLabel,
@@ -24,25 +23,187 @@ import {
   pruneProgressSessions,
 } from './model-center-utils';
 
+function formatLastCheckedAgo(lastCheckedAt: string | null): string {
+  if (!lastCheckedAt) {
+    return 'Not checked yet';
+  }
+  const ts = parseTimestamp(lastCheckedAt);
+  if (!ts) {
+    return `Last checked: ${lastCheckedAt}`;
+  }
+  const deltaSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (deltaSec < 60) {
+    return `Checked ${deltaSec} second${deltaSec === 1 ? '' : 's'} ago`;
+  }
+  const deltaMin = Math.floor(deltaSec / 60);
+  if (deltaMin < 60) {
+    return `Checked ${deltaMin} minute${deltaMin === 1 ? '' : 's'} ago`;
+  }
+  const deltaHour = Math.floor(deltaMin / 60);
+  if (deltaHour < 24) {
+    return `Checked ${deltaHour} hour${deltaHour === 1 ? '' : 's'} ago`;
+  }
+  const deltaDay = Math.floor(deltaHour / 24);
+  return `Checked ${deltaDay} day${deltaDay === 1 ? '' : 's'} ago`;
+}
+
+// Icons
+function SearchIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function HeartPulseIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27" />
+    </svg>
+  );
+}
+
+function RefreshIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
+    </svg>
+  );
+}
+
+function PackageIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m7.5 4.27 9 5.15" />
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
+  );
+}
+
+function DownloadIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function StarIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
+function PauseIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </svg>
+  );
+}
+
+function StopIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+// Toggle Switch
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      disabled={disabled}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+        checked ? 'bg-mint-500' : 'bg-gray-200'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
+  );
+}
+
+// Model Icon
+function ModelIcon({ engine }: { engine: string }) {
+  const colors: Record<string, string> = {
+    localai: 'from-emerald-400 to-teal-500',
+    ollama: 'from-amber-400 to-orange-500',
+    llamacpp: 'from-blue-400 to-indigo-500',
+    vllm: 'from-purple-400 to-pink-500',
+    default: 'from-gray-400 to-gray-500',
+  };
+  const color = colors[engine.toLowerCase()] || colors.default;
+  
+  return (
+    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${color} text-white text-[10px] font-bold shadow-sm`}>
+      {engine.slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
 export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const [installing, setInstalling] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [modelId, setModelId] = useState('');
-  const [repo, setRepo] = useState('');
-  const [revision, setRevision] = useState('main');
-  const [engine, setEngine] = useState('localai');
-  const [entry, setEntry] = useState('');
-  const [license, setLicense] = useState('');
-  const [selectedCapabilities, setSelectedCapabilities] = useState<CapabilityOption[]>(['chat']);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [pendingHighlightModel, setPendingHighlightModel] = useState('');
   const [highlightLocalModelId, setHighlightLocalModelId] = useState('');
   const [progressBySessionId, setProgressBySessionId] = useState<Record<string, ProgressSessionState>>({});
-  const [installedSearchQuery, setInstalledSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [catalogCapability, setCatalogCapability] = useState<'all' | CapabilityOption>('all');
+  const [catalogItems, setCatalogItems] = useState<LocalAiCatalogItemDescriptor[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [verifiedModels, setVerifiedModels] = useState<LocalAiVerifiedModelDescriptor[]>([]);
+  const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [internalSelectedDependencyModId, setInternalSelectedDependencyModId] = useState('');
   const [selectedDependencyCapability, setSelectedDependencyCapability] = useState<'auto' | CapabilityOption>('auto');
   const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
   const [loadingDependencyPlan, setLoadingDependencyPlan] = useState(false);
+
   const displayMode: 'runtime' | 'mod' = props.displayMode === 'mod' ? 'mod' : 'runtime';
   const isModMode = displayMode === 'mod';
   const lockedDependencyModId = String(props.lockedDependencyModId || '').trim();
@@ -55,41 +216,87 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     ),
     [internalSelectedDependencyModId, lockedDependencyModId, props.selectedDependencyModId],
   );
-  const setSelectedDependencyModId = useCallback((modId: string) => {
-    const normalized = String(modId || '').trim();
-    if (dependencySelectionLocked) return;
-    setInternalSelectedDependencyModId(normalized);
-    props.onSelectDependencyModId?.(normalized);
-  }, [dependencySelectionLocked, props.onSelectDependencyModId]);
 
-  const resolveDependencyPlanPreview = useCallback(async (input?: {
-    modId?: string;
-    capability?: 'auto' | CapabilityOption;
-  }) => {
-    const modId = String(input?.modId ?? selectedDependencyModId).trim();
-    const capability = input?.capability ?? selectedDependencyCapability;
-    if (!modId) {
-      setDependencyPlanPreview(null);
+  // Sorted installed models
+  const sortedModels = useMemo(
+    () => [...props.state.localRuntime.models].sort((left, right) => {
+      const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
+      const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
+      if (leftRank !== rightRank) return rightRank - leftRank;
+      return String(right.localModelId || '').localeCompare(String(left.localModelId || ''));
+    }),
+    [props.state.localRuntime.models],
+  );
+
+  // Filter installed models by search
+  const filteredInstalledModels = useMemo(() => {
+    if (!searchQuery.trim()) return sortedModels;
+    const query = searchQuery.toLowerCase().trim();
+    return sortedModels.filter(m => 
+      m.model.toLowerCase().includes(query) ||
+      m.localModelId.toLowerCase().includes(query) ||
+      m.engine.toLowerCase().includes(query)
+    );
+  }, [sortedModels, searchQuery]);
+
+  // Check if a catalog item is already installed
+  const isInstalled = useCallback((modelId: string) => {
+    return sortedModels.some(m => m.model.toLowerCase() === modelId.toLowerCase());
+  }, [sortedModels]);
+
+  // Catalog search
+  const refreshCatalogItems = useCallback(async () => {
+    if (!searchQuery.trim()) {
+      setCatalogItems([]);
       return;
     }
-    setLoadingDependencyPlan(true);
+    setLoadingCatalog(true);
     try {
-      const plan = await props.onResolveDependencies(
-        modId,
-        capability === 'auto' ? undefined : capability,
-      );
-      setDependencyPlanPreview(plan);
+      const rows = await localAiRuntime.searchCatalog({
+        query: searchQuery.trim(),
+        capability: catalogCapability === 'all' ? undefined : catalogCapability,
+        limit: 30,
+      });
+      // Filter out already installed models
+      const notInstalled = rows.filter(item => !isInstalled(item.modelId));
+      setCatalogItems(notInstalled);
     } catch {
-      setDependencyPlanPreview(null);
+      setCatalogItems([]);
     } finally {
-      setLoadingDependencyPlan(false);
+      setLoadingCatalog(false);
     }
-  }, [props.onResolveDependencies, selectedDependencyCapability, selectedDependencyModId]);
+  }, [searchQuery, catalogCapability, isInstalled]);
 
-  useEffect(() => {
-    if (isModMode) {
-      return undefined;
+  const refreshVerifiedModels = useCallback(async () => {
+    setLoadingVerifiedModels(true);
+    try {
+      const rows = await localAiRuntime.listVerified();
+      // Filter out already installed models and limit to top 5
+      const notInstalled = rows.filter(item => !isInstalled(item.modelId)).slice(0, 5);
+      setVerifiedModels(notInstalled);
+    } catch {
+      setVerifiedModels([]);
+    } finally {
+      setLoadingVerifiedModels(false);
     }
+  }, [isInstalled]);
+
+  // Auto search on query change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void refreshCatalogItems();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery, catalogCapability, refreshCatalogItems]);
+
+  // Load verified models on mount
+  useEffect(() => {
+    void refreshVerifiedModels();
+  }, [refreshVerifiedModels]);
+
+  // Downloads progress
+  useEffect(() => {
+    if (isModMode) return undefined;
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
     void localAiRuntime.listDownloads()
@@ -108,9 +315,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
           return merged;
         });
       })
-      .catch(() => {
-        // Keep existing in-memory progress if hydration fails.
-      });
+      .catch(() => {});
     void localAiRuntime.subscribeDownloadProgress((event) => {
       if (disposed) return;
       const nowMs = Date.now();
@@ -132,6 +337,8 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
           event.localModelId,
           event.modelId,
         );
+        // Refresh verified models after download completes
+        void refreshVerifiedModels();
       }
     }).then((off) => {
       if (disposed) {
@@ -142,94 +349,9 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     });
     return () => {
       disposed = true;
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      if (unsubscribe) unsubscribe();
     };
-  }, [isModMode, props.onDownloadComplete]);
-
-  useEffect(() => {
-    if (props.runtimeDependencyTargets.length === 0) {
-      setSelectedDependencyModId('');
-      setDependencyPlanPreview(null);
-      return;
-    }
-    if (!props.runtimeDependencyTargets.some((item) => item.modId === selectedDependencyModId)) {
-      setSelectedDependencyModId(props.runtimeDependencyTargets[0]?.modId || '');
-    }
-  }, [props.runtimeDependencyTargets, selectedDependencyModId, setSelectedDependencyModId]);
-
-  useEffect(() => {
-    if (!selectedDependencyModId) {
-      setDependencyPlanPreview(null);
-      return;
-    }
-    const timer = setTimeout(() => {
-      void resolveDependencyPlanPreview();
-    }, 140);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [resolveDependencyPlanPreview, selectedDependencyCapability, selectedDependencyModId]);
-
-  useEffect(() => {
-    if (isModMode) {
-      return undefined;
-    }
-    const timer = setInterval(() => {
-      const nowMs = Date.now();
-      setProgressBySessionId((prev) => pruneProgressSessions(prev, nowMs));
-    }, 60_000);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [isModMode]);
-
-  useEffect(() => {
-    if (isModMode) {
-      return;
-    }
-    if (!pendingHighlightModel) return;
-    const targetModel = pendingHighlightModel.toLowerCase();
-    const matched = props.state.localRuntime.models.find((model) => {
-      const modelName = String(model.model || '').trim().toLowerCase();
-      const localModelId = String(model.localModelId || '').trim().toLowerCase();
-      return modelName === targetModel || localModelId.includes(targetModel);
-    });
-    if (!matched) return;
-    setHighlightLocalModelId(matched.localModelId);
-    setPendingHighlightModel('');
-  }, [isModMode, pendingHighlightModel, props.state.localRuntime.models]);
-
-  useEffect(() => {
-    if (isModMode) {
-      return undefined;
-    }
-    if (!highlightLocalModelId) return;
-    const timer = setTimeout(() => {
-      setHighlightLocalModelId('');
-    }, HIGHLIGHT_CLEAR_MS);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [highlightLocalModelId, isModMode]);
-
-  const sortedModels = useMemo(
-    () => [...props.state.localRuntime.models].sort((left, right) => {
-      const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
-      const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
-      if (leftRank !== rightRank) {
-        return rightRank - leftRank;
-      }
-      return String(right.localModelId || '').localeCompare(String(left.localModelId || ''));
-    }),
-    [props.state.localRuntime.models],
-  );
-
-  const selectedDependencyTarget = useMemo(
-    () => props.runtimeDependencyTargets.find((item) => item.modId === selectedDependencyModId) || null,
-    [props.runtimeDependencyTargets, selectedDependencyModId],
-  );
+  }, [isModMode, props.onDownloadComplete, refreshVerifiedModels]);
 
   const progressEvents = useMemo(
     () => Object.values(progressBySessionId)
@@ -241,23 +363,12 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
 
   const activeDownloads = useMemo(
     () => progressEvents.filter((event) => (
-      event.state === 'queued'
-      || event.state === 'running'
-      || event.state === 'paused'
-      || event.state === 'failed'
+      event.state === 'queued' || event.state === 'running' || event.state === 'paused' || event.state === 'failed'
     )),
     [progressEvents],
   );
 
-  const recentSessions = useMemo(() => {
-    const activeIds = new Set(activeDownloads.map((e) => e.installSessionId));
-    return progressEvents.filter((event) => (
-      isDownloadTerminal(event.state)
-      && event.state !== 'failed'
-      && !activeIds.has(event.installSessionId)
-    ));
-  }, [activeDownloads, progressEvents]);
-
+  // Download controls
   const mergeSessionSummary = useCallback((installSessionId: string, updater: () => Promise<ReturnType<typeof toProgressEventFromSummary>>) => {
     void updater()
       .then((event) => {
@@ -270,401 +381,461 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
           },
         }));
       })
-      .catch(() => {
-        // Keep current state if control action fails.
-      });
+      .catch(() => {});
   }, []);
 
   const onPauseDownload = useCallback((installSessionId: string) => {
-    mergeSessionSummary(
-      installSessionId,
-      async () => toProgressEventFromSummary(await localAiRuntime.pauseDownload(installSessionId, { caller: 'core' })),
+    mergeSessionSummary(installSessionId, async () => 
+      toProgressEventFromSummary(await localAiRuntime.pauseDownload(installSessionId, { caller: 'core' }))
     );
   }, [mergeSessionSummary]);
 
   const onResumeDownload = useCallback((installSessionId: string) => {
-    mergeSessionSummary(
-      installSessionId,
-      async () => toProgressEventFromSummary(await localAiRuntime.resumeDownload(installSessionId, { caller: 'core' })),
+    mergeSessionSummary(installSessionId, async () => 
+      toProgressEventFromSummary(await localAiRuntime.resumeDownload(installSessionId, { caller: 'core' }))
     );
   }, [mergeSessionSummary]);
 
   const onCancelDownload = useCallback((installSessionId: string) => {
-    mergeSessionSummary(
-      installSessionId,
-      async () => toProgressEventFromSummary(await localAiRuntime.cancelDownload(installSessionId, { caller: 'core' })),
+    mergeSessionSummary(installSessionId, async () => 
+      toProgressEventFromSummary(await localAiRuntime.cancelDownload(installSessionId, { caller: 'core' }))
     );
   }, [mergeSessionSummary]);
 
-  const toggleCapability = (capability: CapabilityOption) => {
-    setSelectedCapabilities((prev) => {
-      if (prev.includes(capability)) {
-        if (prev.length === 1) return prev;
-        return prev.filter((item) => item !== capability);
-      }
-      return [...prev, capability];
-    });
-  };
-
-  const currentCapabilities = selectedCapabilities.length > 0 ? selectedCapabilities : ['chat'];
-
-  const dependencySection = (
-    <ModelCenterDependencySection
-      isModMode={isModMode}
-      loadingDependencyPlan={loadingDependencyPlan}
-      selectedDependencyModId={selectedDependencyModId}
-      dependencySelectionLocked={dependencySelectionLocked}
-      selectedDependencyTarget={selectedDependencyTarget}
-      selectedDependencyCapability={selectedDependencyCapability}
-      dependencyPlanPreview={dependencyPlanPreview}
-      runtimeDependencyTargets={props.runtimeDependencyTargets}
-      onSetSelectedDependencyModId={setSelectedDependencyModId}
-      onSetSelectedDependencyCapability={setSelectedDependencyCapability}
-      onResolveDependencyPlanPreview={() => void resolveDependencyPlanPreview()}
-      onApplyDependencies={props.onApplyDependencies}
-    />
-  );
-
+  // Mod mode
   if (isModMode) {
-    const modCapabilities = selectedDependencyTarget?.consumeCapabilities || [];
+    const modCapabilities = props.runtimeDependencyTargets.find((item) => item.modId === selectedDependencyModId)?.consumeCapabilities || [];
     const capabilityStatuses = modCapabilities.map((cap) => {
-      const localNode = props.state.localRuntime.nodeMatrix.find(
-        (node) => node.capability === cap && node.available,
-      );
-      const hasLocalModel = props.state.localRuntime.models.some(
-        (model) => model.status === 'active' && model.capabilities.includes(cap),
-      );
+      const localNode = props.state.localRuntime.nodeMatrix.find((node) => node.capability === cap && node.available);
+      const hasLocalModel = props.state.localRuntime.models.some((model) => model.status === 'active' && model.capabilities.includes(cap));
       const localAvailable = Boolean(localNode) || hasLocalModel;
       return { capability: cap, localAvailable };
     });
     const hasUnavailable = capabilityStatuses.some((item) => !item.localAvailable);
     return (
-      <div className="space-y-4">
-        <Card className="space-y-4 p-5">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900">
-              {selectedDependencyTarget?.modName || selectedDependencyModId || 'Runtime Mod'}
-            </h4>
-            <p className="text-xs text-gray-500">Configure only this mod&apos;s declared model dependencies.</p>
-          </div>
-          {modCapabilities.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
-              <div className="flex flex-wrap gap-2">
-                {capabilityStatuses.map((item) => (
-                  <span
-                    key={`mod-cap-status-${item.capability}`}
-                    className={`rounded-md border px-2.5 py-1 text-[11px] font-medium ${
-                      item.localAvailable
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-amber-200 bg-amber-50 text-amber-800'
-                    }`}
-                  >
-                    {item.capability}: {item.localAvailable ? 'local-runtime' : 'needs setup'}
-                  </span>
-                ))}
+      <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+        <div className="flex h-14 shrink-0 items-center bg-white px-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Local Models</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">
+                  {props.runtimeDependencyTargets.find((item) => item.modId === selectedDependencyModId)?.modName || selectedDependencyModId || 'Runtime Mod'}
+                </h4>
+                <p className="text-xs text-gray-500">Configure only this mod&apos;s declared model dependencies.</p>
               </div>
+              {modCapabilities.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
+                  <div className="flex flex-wrap gap-2">
+                    {capabilityStatuses.map((item) => (
+                      <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {item.capability}: {item.localAvailable ? 'local-runtime' : 'needs setup'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <ModelCenterDependencySection
+                isModMode={isModMode}
+                loadingDependencyPlan={loadingDependencyPlan}
+                selectedDependencyModId={selectedDependencyModId}
+                dependencySelectionLocked={dependencySelectionLocked}
+                selectedDependencyTarget={props.runtimeDependencyTargets.find((item) => item.modId === selectedDependencyModId) || null}
+                selectedDependencyCapability={selectedDependencyCapability}
+                dependencyPlanPreview={dependencyPlanPreview}
+                runtimeDependencyTargets={props.runtimeDependencyTargets}
+                onSetSelectedDependencyModId={(modId) => {
+                  if (!dependencySelectionLocked) {
+                    setInternalSelectedDependencyModId(modId);
+                    props.onSelectDependencyModId?.(modId);
+                  }
+                }}
+                onSetSelectedDependencyCapability={setSelectedDependencyCapability}
+                onResolveDependencyPlanPreview={() => void resolveDependencyPlanPreview()}
+                onApplyDependencies={props.onApplyDependencies}
+              />
             </div>
-          ) : null}
-          {dependencySection}
-        </Card>
-        {hasUnavailable ? (
-          <Card className="space-y-2 border-amber-200 bg-amber-50 p-4">
-            <p className="text-xs font-semibold text-amber-900">Setup Required</p>
-            <p className="text-[11px] text-amber-800">
-              Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.
-            </p>
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" size="sm" onClick={() => props.onNavigateToSetup?.('local')}>
-                Install Models
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => props.onNavigateToSetup?.('cloud')}>
-                Configure Cloud API
-              </Button>
-            </div>
-          </Card>
-        ) : null}
+            {hasUnavailable ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <p className="text-xs font-semibold text-amber-900">Setup Required</p>
+                <p className="text-[11px] text-amber-800 mt-1">Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.</p>
+                <div className="flex items-center gap-2 mt-3">
+                  <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-amber-300 text-amber-700 hover:bg-amber-100">Install Models</button>
+                  <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium rounded-lg text-amber-700 hover:bg-amber-100">Configure Cloud API</button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Main layout - unified search + results
+  const hasSearchQuery = searchQuery.trim().length > 0;
+  const showInstalledSection = !hasSearchQuery || filteredInstalledModels.length > 0;
+  const showSearchResults = hasSearchQuery && (catalogItems.length > 0 || verifiedModels.length > 0);
+  const localRuntimeHealthy = props.state.localRuntime.status === 'healthy';
+  const healthTooltip = formatLastCheckedAgo(props.state.localRuntime.lastCheckedAt);
+
   return (
-    <div className="space-y-4">
-      <Card className="space-y-4 p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900">Search & Install Models</h4>
-          <p className="text-xs text-gray-500">Search the catalog or pick a verified model to install.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={props.state.localRuntime.status} />
-          <Button variant="secondary" size="sm" disabled={props.checkingHealth} onClick={() => void props.onHealthCheck()}>
-            {props.checkingHealth ? 'Checking...' : 'Health'}
-          </Button>
-          <Button variant="secondary" size="sm" disabled={props.discovering} onClick={() => void props.onDiscover()}>
-            {props.discovering ? 'Refreshing...' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
-
-      <ModelCenterCatalogSection
-        onInstallCatalogItem={props.onInstallCatalogItem}
-        onInstallVerified={props.onInstallVerified}
-        onPendingHighlightModel={setPendingHighlightModel}
-      />
-
-    </Card>
-
-      {activeDownloads.length > 0 ? (
-        <div className="space-y-3">
-          {activeDownloads.map((event) => {
-            const sessionMeta = props.installSessionMeta?.get(event.installSessionId);
-            const isQueued = event.state === 'queued';
-            const isRunning = event.state === 'running';
-            const isPaused = event.state === 'paused';
-            const isFailed = event.state === 'failed';
-            const isCompleted = event.state === 'completed';
-            const isCancelled = event.state === 'cancelled';
-            const canPause = isQueued || isRunning;
-            const canResume = isPaused || (isFailed && event.retryable);
-            const canCancel = isQueued || isRunning || isPaused || (isFailed && event.retryable);
-            const badgeClass = isFailed
-              ? 'bg-rose-50 text-rose-700'
-              : isCompleted
-                ? 'bg-emerald-50 text-emerald-700'
-                : isPaused
-                  ? 'bg-amber-50 text-amber-700'
-                  : isQueued
-                    ? 'bg-slate-100 text-slate-700'
-                    : isCancelled
-                      ? 'bg-gray-100 text-gray-700'
-                      : 'bg-blue-50 text-blue-700';
-            const barClass = isFailed
-              ? 'bg-rose-500'
-              : isCompleted
-                ? 'bg-emerald-500'
-                : isPaused
-                  ? 'bg-amber-500'
-                  : 'bg-blue-500';
-            return (
-              <div key={`active-dl-${event.installSessionId}`} className="space-y-2 rounded-[10px] border border-gray-200 bg-white p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-gray-700">
-                    {event.modelId} <span className="font-normal text-gray-500">({event.phase})</span>
-                  </p>
-                  <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${badgeClass}`}>
-                    {downloadStateLabel(event.state)}
-                  </span>
-                </div>
-                {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
-                  <>
-                    <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                      <div
-                        className={`h-full transition-all ${barClass}`}
-                        style={{
-                          width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-600">
-                      <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
-                      {(isRunning || isQueued) && <span>{formatSpeed(event.speedBytesPerSec)}</span>}
-                      {(isRunning || isQueued) && <span>ETA {formatEta(event.etaSeconds)}</span>}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[11px] text-gray-600">{formatBytes(event.bytesReceived)} downloaded</p>
-                )}
-                {event.message ? (
-                  <p className={`text-[11px] ${isFailed ? 'text-rose-700' : 'text-gray-500'}`}>
-                    {event.message}
-                  </p>
-                ) : null}
-                {(canPause || canResume || canCancel) ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {canPause ? (
-                      <Button variant="secondary" size="sm" onClick={() => onPauseDownload(event.installSessionId)}>
-                        Pause
-                      </Button>
-                    ) : null}
-                    {canResume ? (
-                      <Button variant="secondary" size="sm" onClick={() => onResumeDownload(event.installSessionId)}>
-                        Resume
-                      </Button>
-                    ) : null}
-                    {canCancel ? (
-                      <Button variant="ghost" size="sm" onClick={() => onCancelDownload(event.installSessionId)}>
-                        Cancel
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-                {isFailed && !event.retryable && sessionMeta ? (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      props.onRetryInstall?.(
-                        sessionMeta.plan,
-                        sessionMeta.installSource as 'catalog' | 'manual' | 'verified',
-                      );
-                    }}
-                  >
-                    Reinstall
-                  </Button>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {recentSessions.length > 0 ? (
-        <div className="space-y-1 rounded-[10px] border border-gray-200 bg-white p-3">
-          <p className="text-xs font-semibold text-gray-700">Recent Sessions</p>
-          <div className="space-y-1">
-            {recentSessions.map((event) => (
-              <p key={`recent-session-${event.installSessionId}`} className="text-[11px] text-gray-500">
-                {event.modelId} · {event.phase} · {downloadStateLabel(event.state).toLowerCase()}
-                {event.message ? ` — ${event.message}` : ''}
-              </p>
-            ))}
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+          {/* Page Title - Same style as Overview */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Local Models</h3>
+            <p className="mt-0.5 text-xs text-gray-500">Search, install, and manage local AI models.</p>
           </div>
-        </div>
-      ) : null}
 
-      <ModelCenterInstalledList
-        sortedModels={sortedModels}
-        highlightLocalModelId={highlightLocalModelId}
-        searchQuery={installedSearchQuery}
-        onSearchQueryChange={setInstalledSearchQuery}
-        onStart={props.onStart}
-        onStop={props.onStop}
-        onRestart={props.onRestart}
-        onRemove={props.onRemove}
-      />
-
-      <Card className="p-3">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between text-left"
-          onClick={() => setAdvancedOpen((prev) => !prev)}
-        >
-          <p className="text-sm font-semibold text-gray-900">Advanced</p>
-          <p className="text-xs text-gray-500">{advancedOpen ? 'Hide' : 'Show'}</p>
-        </button>
-        {advancedOpen ? (
-          <div className="mt-3 space-y-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <Input label="Model ID" value={modelId} onChange={setModelId} placeholder="qwen2.5-7b-instruct" />
-              <Input label="HF Repo" value={repo} onChange={setRepo} placeholder="org/model" />
-              <Input label="Revision" value={revision} onChange={setRevision} placeholder="main" />
-              <Input label="Engine" value={engine} onChange={setEngine} placeholder="localai" />
-              <Input label="Entry (optional)" value={entry} onChange={setEntry} placeholder="model.gguf" />
-              <Input label="License (optional)" value={license} onChange={setLicense} placeholder="apache-2.0" />
+          {/* Status Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void props.onHealthCheck()}
+                disabled={props.checkingHealth}
+                title={healthTooltip}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
+                  localRuntimeHealthy
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <HeartPulseIcon className="w-4 h-4" />
+                {props.checkingHealth ? 'Checking...' : 'Health'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void props.onDiscover()}
+                disabled={props.discovering}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RefreshIcon className="w-4 h-4" />
+                {props.discovering ? 'Refreshing...' : 'Refresh'}
+              </button>
             </div>
-            <div className="space-y-2 rounded-[10px] border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs font-semibold text-gray-700">Capabilities</p>
-              <div className="flex flex-wrap gap-2">
-                {CAPABILITY_OPTIONS.map((capability) => (
-                  <label
-                    key={`capability-${capability}`}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={currentCapabilities.includes(capability)}
-                      onChange={() => toggleCapability(capability)}
-                      className="h-3.5 w-3.5"
-                    />
-                    <span>{capability}</span>
-                  </label>
+          </div>
+          {/* Unified Model Manager - Search + Installed */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-mint-100 text-mint-600">
+                  <SearchIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Model Catalog</h3>
+                  <p className="text-xs text-gray-500">Search and install from Hugging Face or verified models</p>
+                </div>
+              </div>
+              {/* Search Row */}
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search models by name, repo, or task..."
+                    className="w-full h-10 pl-9 pr-4 rounded-lg border border-gray-200 text-sm focus:border-mint-400 focus:ring-2 focus:ring-mint-100 outline-none"
+                  />
+                </div>
+                <select
+                  value={catalogCapability}
+                  onChange={(e) => setCatalogCapability(e.target.value as 'all' | CapabilityOption)}
+                  className="h-10 px-3 rounded-lg border border-gray-200 text-sm focus:border-mint-400 focus:ring-2 focus:ring-mint-100 outline-none bg-white"
+                >
+                  <option value="all">All Capabilities</option>
+                  {CAPABILITY_OPTIONS.map((cap) => (
+                    <option key={cap} value={cap}>{cap}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Installed Models Section - Inside the same card */}
+            <div className="bg-gray-50/50">
+              <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2">
+                <PackageIcon className="w-4 h-4 text-gray-400" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {hasSearchQuery ? 'Matching Installed' : 'Installed Models'} ({filteredInstalledModels.length})
+                </span>
+              </div>
+              {filteredInstalledModels.length > 0 ? (
+                <div className="divide-y divide-gray-100 bg-white">
+                  {filteredInstalledModels.map((model) => (
+                    <div key={model.localModelId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                      <ModelIcon engine={model.engine} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 truncate">{model.model}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{model.engine}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{model.localModelId}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {model.capabilities.slice(0, 3).map((cap) => (
+                            <span key={cap} className="text-[10px] px-1.5 py-0.5 rounded bg-mint-50 text-mint-600 border border-mint-100">{cap}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${model.status === 'active' ? 'bg-green-100 text-green-700' : model.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {model.status}
+                        </span>
+                        <Toggle
+                          checked={model.status === 'active'}
+                          onChange={() => model.status === 'active' ? props.onStop?.(model.localModelId) : props.onStart?.(model.localModelId)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => props.onRemove?.(model.localModelId)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Remove"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-center bg-white">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400 mb-3">
+                    <PackageIcon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">
+                    {hasSearchQuery ? 'No Matching Installed Models' : 'No Models Installed'}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {hasSearchQuery ? 'Try a different search term' : 'Use the search above to find and install models'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Downloads */}
+          {activeDownloads.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Downloads ({activeDownloads.length})</h3>
+              {activeDownloads.map((event) => {
+                const isRunning = event.state === 'running';
+                const isPaused = event.state === 'paused';
+                const isFailed = event.state === 'failed';
+                const canPause = event.state === 'queued' || isRunning;
+                const canResume = isPaused || (isFailed && event.retryable);
+                const canCancel = event.state !== 'completed' && event.state !== 'cancelled';
+
+                return (
+                  <div key={event.installSessionId} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-red-100 text-red-600' : 'bg-mint-100 text-mint-600'}`}>
+                        <DownloadIcon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{event.modelId}</p>
+                        <p className="text-xs text-gray-500">{event.phase}</p>
+                      </div>
+                      <span className={`text-[10px] font-medium px-2 py-1 rounded-full ${
+                        isFailed ? 'bg-red-100 text-red-700' :
+                        isPaused ? 'bg-amber-100 text-amber-700' :
+                        isRunning ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {downloadStateLabel(event.state)}
+                      </span>
+                    </div>
+                    {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
+                      <div className="mb-2">
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${isFailed ? 'bg-red-500' : 'bg-mint-500'}`}
+                            style={{ width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                          <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
+                          {isRunning && <span>{formatSpeed(event.speedBytesPerSec)} · ETA {formatEta(event.etaSeconds)}</span>}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 mb-2">{formatBytes(event.bytesReceived)} downloaded</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {canPause && (
+                        <button onClick={() => onPauseDownload(event.installSessionId)} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50">
+                          Pause
+                        </button>
+                      )}
+                      {canResume && (
+                        <button onClick={() => onResumeDownload(event.installSessionId)} className="px-2 py-1 text-xs rounded bg-mint-500 text-white hover:bg-mint-600">
+                          Resume
+                        </button>
+                      )}
+                      {canCancel && (
+                        <button onClick={() => onCancelDownload(event.installSessionId)} className="px-2 py-1 text-xs rounded border border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-200">
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Search Results - Available to Install */}
+          {showSearchResults && (
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available to Install</span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {/* Verified Models */}
+                {verifiedModels.map((item) => (
+                  <div key={item.templateId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+                      <StarIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 truncate">{item.title}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Verified</span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
+                      {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void (async () => {
+                          setInstalling(true);
+                          try {
+                            await props.onInstallVerified(item.templateId);
+                            setPendingHighlightModel(item.modelId);
+                          } finally {
+                            setInstalling(false);
+                          }
+                        })();
+                      }}
+                      disabled={installing}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
+                    >
+                      <DownloadIcon className="w-3.5 h-3.5" />
+                      Install
+                    </button>
+                  </div>
+                ))}
+                {/* Catalog Results */}
+                {catalogItems.map((item) => (
+                  <div key={item.itemId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <ModelIcon engine={item.engine} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.engine}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">Hugging Face</span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-1 rounded-full ${item.installAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {item.installAvailable ? 'Ready' : 'Manual'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void (async () => {
+                          setInstalling(true);
+                          try {
+                            await props.onInstallCatalogItem(item);
+                            setPendingHighlightModel(item.modelId);
+                          } finally {
+                            setInstalling(false);
+                          }
+                        })();
+                      }}
+                      disabled={!item.installAvailable || installing}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
+                    >
+                      <DownloadIcon className="w-3.5 h-3.5" />
+                      Install
+                    </button>
+                  </div>
                 ))}
               </div>
-              <p className="text-[11px] text-gray-500">Choose at least one capability. Install is blocked when none is selected.</p>
+              {catalogItems.length === 0 && verifiedModels.length === 0 && !loadingCatalog && (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm text-gray-500">No models found matching your search</p>
+                </div>
+              )}
+              {loadingCatalog && (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm text-gray-500">Searching...</p>
+                </div>
+              )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={installing || !modelId.trim() || !repo.trim() || currentCapabilities.length === 0}
-                onClick={() => {
-                  void (async () => {
-                    setInstalling(true);
-                    try {
-                      const installedModel = modelId.trim();
-                      await props.onInstall({
-                        modelId: installedModel,
-                        repo: repo.trim(),
-                        revision: revision.trim() || undefined,
-                        engine: engine.trim() || undefined,
-                        entry: entry.trim() || undefined,
-                        license: license.trim() || undefined,
-                        capabilities: currentCapabilities,
-                      });
-                      setPendingHighlightModel(installedModel);
-                    } finally {
-                      setInstalling(false);
-                    }
-                  })();
-                }}
-              >
-                {installing ? 'Installing...' : 'Install from Hugging Face'}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={importing}
-                onClick={() => {
-                  void (async () => {
-                    setImporting(true);
-                    try {
-                      await props.onImport();
-                    } finally {
-                      setImporting(false);
-                    }
-                  })();
-                }}
-              >
-                {importing ? 'Importing...' : 'Import from Local Manifest'}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={importing}
-                onClick={() => {
-                  void (async () => {
-                    setImporting(true);
-                    try {
-                      await props.onImportFile(currentCapabilities, engine.trim() || undefined);
-                    } finally {
-                      setImporting(false);
-                    }
-                  })();
-                }}
-              >
-                {importing ? 'Importing...' : 'Import Model File'}
-              </Button>
+          )}
+
+          {/* Quick Picks - Only show when no search */}
+          {!hasSearchQuery && verifiedModels.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <StarIcon className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Quick Picks</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void refreshVerifiedModels()}
+                  disabled={loadingVerifiedModels}
+                  className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  <RefreshIcon className="w-3 h-3" />
+                  Refresh
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {verifiedModels.map((item) => (
+                  <div key={item.templateId} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-mint-200 hover:bg-mint-50/30 transition-colors">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+                      <StarIcon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void (async () => {
+                          setInstalling(true);
+                          try {
+                            await props.onInstallVerified(item.templateId);
+                            setPendingHighlightModel(item.modelId);
+                          } finally {
+                            setInstalling(false);
+                          }
+                        })();
+                      }}
+                      disabled={installing}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
+                    >
+                      <DownloadIcon className="w-3.5 h-3.5" />
+                      Install
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-            <Input
-              label="Local Runtime Endpoint"
-              value={props.state.localRuntime.endpoint}
-              onChange={props.onChangeLocalRuntimeEndpoint}
-              placeholder="http://127.0.0.1:1234/v1"
-            />
-            <Input
-              label="Search Discovered Models"
-              value={props.localRuntimeModelQuery}
-              onChange={props.onSetLocalRuntimeModelQuery}
-              placeholder="Search by model name..."
-            />
-            <div>
-              <p className="mb-1 text-xs font-semibold text-gray-700">Discovered Models</p>
-              {renderModelChips(props.filteredLocalRuntimeModels, 'local-runtime-v11-advanced')}
-            </div>
-          </div>
-        ) : null}
-      </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

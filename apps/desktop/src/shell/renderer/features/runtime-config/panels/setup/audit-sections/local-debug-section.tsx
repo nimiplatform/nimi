@@ -1,5 +1,6 @@
 import type { LocalAiAuditEvent } from '@runtime/local-ai-runtime';
 import { formatLocaleDateTime } from '@renderer/i18n';
+import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import {
   buildAuditDiagnosticsText,
   resolveAuditDetail,
@@ -8,7 +9,7 @@ import {
   resolveAuditReasonCode,
   resolveAuditSource,
 } from '../../../domain/diagnostics/audit-view-model.js';
-import { Button, Card } from '../../primitives.js';
+import { Button } from '../../primitives.js';
 import { useAuditPageData } from '../use-audit-page-data.js';
 
 function auditEventTypeColor(eventType: string): string {
@@ -37,6 +38,11 @@ function relativeTime(isoString: string): string {
   return `${days}d ago`;
 }
 
+// SurfaceCard component matching Overview page style
+function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
+}
+
 type LocalDebugSectionProps = {
   collapsed: boolean;
   onToggle: () => void;
@@ -44,20 +50,23 @@ type LocalDebugSectionProps = {
 
 export function LocalDebugSection({ collapsed, onToggle }: LocalDebugSectionProps) {
   return (
-    <Card className="overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
-      >
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Local AI Debug Audit</h3>
-          <p className="text-[11px] text-gray-500 mt-0.5">Local-only events (5k limit, for debugging)</p>
-        </div>
-        <span className="text-gray-400 text-sm">{collapsed ? '\u25B6' : '\u25BC'}</span>
-      </button>
-      {!collapsed ? <LocalDebugContent /> : null}
-    </Card>
+    <section>
+      <SectionTitle description="Local-only events (5k limit, for debugging)">Local AI Debug Audit</SectionTitle>
+      <SurfaceCard className="mt-3 overflow-hidden">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        >
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Audit Events</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Click to {collapsed ? 'expand' : 'collapse'}</p>
+          </div>
+          <span className="text-gray-400 text-sm">{collapsed ? '\u25B6' : '\u25BC'}</span>
+        </button>
+        {!collapsed ? <LocalDebugContent /> : null}
+      </SurfaceCard>
+    </section>
   );
 }
 
@@ -88,26 +97,28 @@ function LocalDebugContent() {
   const latestEvent = filteredAudits.length > 0 ? filteredAudits[0] : null;
 
   return (
-    <div className="border-t border-gray-100 p-4 space-y-4">
+    <div className="border-t border-gray-100 p-5 space-y-5">
       {/* Summary */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span>{filteredAudits.length} events</span>
-            {latestEvent ? (
-              <span>latest: {formatLocaleDateTime(latestEvent.occurredAt)}</span>
-            ) : null}
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span className="font-medium">{filteredAudits.length} events</span>
+            {latestEvent ? <span className="text-gray-400">|</span> : null}
+            {latestEvent ? <span>latest: {formatLocaleDateTime(latestEvent.occurredAt)}</span> : null}
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
-            <p className="text-[11px] font-medium text-gray-500">Event Types</p>
-            <div className="flex flex-wrap gap-1">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
+            <p className="text-xs font-medium text-gray-500">Event Types</p>
+            <div className="flex flex-wrap gap-1.5">
               {eventTypeCounts.length === 0 ? (
-                <span className="text-[11px] text-gray-400">-</span>
+                <span className="text-xs text-gray-400">-</span>
               ) : (
                 eventTypeCounts.map((item) => (
-                  <span key={item.eventType} className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${auditEventTypeColor(item.eventType)}`}>
+                  <span
+                    key={item.eventType}
+                    className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-medium ${auditEventTypeColor(item.eventType)}`}
+                  >
                     {item.eventType}
                     <span className="rounded-full bg-white/60 px-1 text-[9px]">{item.count}</span>
                   </span>
@@ -115,14 +126,17 @@ function LocalDebugContent() {
               )}
             </div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
-            <p className="text-[11px] font-medium text-gray-500">Sources</p>
-            <div className="flex flex-wrap gap-1">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
+            <p className="text-xs font-medium text-gray-500">Sources</p>
+            <div className="flex flex-wrap gap-1.5">
               {sourceCounts.length === 0 ? (
-                <span className="text-[11px] text-gray-400">-</span>
+                <span className="text-xs text-gray-400">-</span>
               ) : (
                 sourceCounts.map((item) => (
-                  <span key={item.source} className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+                  <span
+                    key={item.source}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700"
+                  >
                     {item.source}
                     <span className="rounded-full bg-gray-100 px-1 text-[9px]">{item.count}</span>
                   </span>
@@ -130,14 +144,17 @@ function LocalDebugContent() {
               )}
             </div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
-            <p className="text-[11px] font-medium text-gray-500">Modalities</p>
-            <div className="flex flex-wrap gap-1">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
+            <p className="text-xs font-medium text-gray-500">Modalities</p>
+            <div className="flex flex-wrap gap-1.5">
               {modalityCounts.length === 0 ? (
-                <span className="text-[11px] text-gray-400">-</span>
+                <span className="text-xs text-gray-400">-</span>
               ) : (
                 modalityCounts.map((item) => (
-                  <span key={item.modality} className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+                  <span
+                    key={item.modality}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-700"
+                  >
                     {item.modality}
                     <span className="rounded-full bg-gray-100 px-1 text-[9px]">{item.count}</span>
                   </span>
@@ -147,14 +164,14 @@ function LocalDebugContent() {
           </div>
         </div>
         {reasonBuckets.length > 0 ? (
-          <p className="text-[11px] text-gray-600">
+          <p className="text-xs text-gray-600">
             Reason Codes: {reasonBuckets.map((item) => `${item.reasonCode}(${item.count})`).join(', ')}
           </p>
         ) : null}
       </div>
 
       {/* Filter bar */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={auditEventType}
@@ -163,7 +180,7 @@ function LocalDebugContent() {
               setAuditEventType(next);
               void loadAudits({ eventType: next });
             }}
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+            className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-800 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
           >
             <option value="all">all event types</option>
             <option value="inference_invoked">inference_invoked</option>
@@ -194,7 +211,7 @@ function LocalDebugContent() {
               setAuditSource(next);
               void loadAudits({ source: next });
             }}
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+            className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-800 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
           >
             <option value="all">all sources</option>
             <option value="local-runtime">local-runtime</option>
@@ -207,7 +224,7 @@ function LocalDebugContent() {
               setAuditModality(next);
               void loadAudits({ modality: next });
             }}
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+            className="h-9 rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-800 focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
           >
             <option value="all">all modalities</option>
             <option value="chat">chat</option>
@@ -259,7 +276,7 @@ function LocalDebugContent() {
               void loadAudits({ reasonCode: next });
             }}
             placeholder="Filter reasonCode..."
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+            className="h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
           <input
             type="datetime-local"
@@ -269,7 +286,7 @@ function LocalDebugContent() {
               setAuditTimeFrom(next);
               void loadAudits({ timeFrom: next });
             }}
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+            className="h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
           <input
             type="datetime-local"
@@ -279,19 +296,21 @@ function LocalDebugContent() {
               setAuditTimeTo(next);
               void loadAudits({ timeTo: next });
             }}
-            className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+            className="h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
         </div>
       </div>
 
       {/* Timeline */}
-      <div className="max-h-[calc(100vh-30rem)] overflow-y-auto rounded-lg border border-gray-100">
+      <div className="max-h-[calc(100vh-30rem)] overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/50">
         {filteredAudits.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-gray-500">No local audit events matching current filters.</p>
+          <p className="px-5 py-8 text-center text-sm text-gray-500">No local audit events matching current filters.</p>
         ) : (
-          filteredAudits.map((event) => (
-            <LocalAuditEventCard key={event.id} event={event} />
-          ))
+          <div className="divide-y divide-gray-100">
+            {filteredAudits.map((event) => (
+              <LocalAuditEventCard key={event.id} event={event} />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -307,12 +326,10 @@ function LocalAuditEventCard({ event }: { event: LocalAiAuditEvent }) {
   const colorClass = auditEventTypeColor(event.eventType);
 
   return (
-    <div className="border-b border-gray-100 px-4 py-3 last:border-b-0">
+    <div className="px-5 py-3 hover:bg-gray-50 transition-colors">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className={`rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${colorClass}`}>
-            {event.eventType}
-          </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`rounded-lg border px-2 py-0.5 text-[11px] font-medium ${colorClass}`}>{event.eventType}</span>
           <span className="text-[11px] text-gray-500">{source}</span>
           <span className="text-[11px] text-gray-400">{modality}</span>
         </div>
@@ -320,7 +337,7 @@ function LocalAuditEventCard({ event }: { event: LocalAiAuditEvent }) {
           {relativeTime(event.occurredAt)}
         </span>
       </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-600">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600">
         {event.modelId ? <span>model={event.modelId}</span> : null}
         {event.localModelId ? <span>localModelId={event.localModelId}</span> : null}
         {detail !== '-' ? <span>detail={detail}</span> : null}

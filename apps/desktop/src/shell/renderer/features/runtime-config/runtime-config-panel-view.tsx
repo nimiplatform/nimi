@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './panels/sidebar';
 import { StatusBadge } from './panels/primitives';
@@ -16,8 +16,13 @@ export function RuntimeConfigPanelBody() {
 }
 
 export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControllerModel }) {
+  const MIN_SIDEBAR_WIDTH = 200;
+  const MAX_SIDEBAR_WIDTH = 420;
   const { model } = props;
   const { state } = model;
+  const [sidebarWidth, setSidebarWidth] = useState(224);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
 
@@ -34,6 +39,40 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     [state],
   );
 
+  useEffect(() => {
+    const onMouseMove = (event: globalThis.MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) {
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const nextWidth = Math.min(
+        MAX_SIDEBAR_WIDTH,
+        Math.max(MIN_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
+      );
+      setSidebarWidth(nextWidth);
+    };
+
+    const onMouseUp = () => {
+      resizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const startResize = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
   if (!state) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -47,8 +86,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
 
   return (
-    <div className="flex min-h-0 flex-1">
-      <aside className="flex w-56 shrink-0 flex-col overflow-y-auto border-r border-gray-200 bg-white">
+    <div ref={containerRef} className="flex min-h-0 flex-1">
+      <aside className="relative flex shrink-0 flex-col overflow-y-auto bg-white" style={{ width: `${sidebarWidth}px` }}>
         <div className="flex h-14 shrink-0 items-center px-5">
           <h1 className="text-lg font-semibold text-gray-900">AI Runtime</h1>
         </div>
@@ -61,6 +100,13 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           healthyConnectorCount={healthyConnectorCount}
           modCount={model.runtimeDependencyTargets.length}
           daemonRunning={daemonRunning}
+        />
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize runtime sidebar"
+          onMouseDown={startResize}
+          className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
       </aside>
 
@@ -82,24 +128,25 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-5xl space-y-6">
-            {activePage === 'overview' && (
-              <OverviewPage model={model} state={state} />
-            )}
-            {activePage === 'local' && (
-              <LocalPage model={model} state={state} />
-            )}
-            {activePage === 'cloud' && (
-              <CloudPage model={model} state={state} />
-            )}
-            {activePage === 'runtime' && (
-              <RuntimePage model={model} state={state} />
-            )}
-            {activePage === 'mods' && (
-              <ModsPage model={model} state={state} />
-            )}
-          </div>
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          {activePage === 'local' ? (
+            <LocalPage model={model} state={state} />
+          ) : (
+            <div className="mx-auto max-w-5xl p-6 space-y-6">
+              {activePage === 'overview' && (
+                <OverviewPage model={model} state={state} />
+              )}
+              {activePage === 'cloud' && (
+                <CloudPage model={model} state={state} />
+              )}
+              {activePage === 'runtime' && (
+                <RuntimePage model={model} state={state} />
+              )}
+              {activePage === 'mods' && (
+                <ModsPage model={model} state={state} />
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
