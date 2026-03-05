@@ -72,7 +72,7 @@ export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: typeof raw.type === 'string' ? raw.type : 'SUB',
+    type: typeof raw.type === 'string' ? raw.type : 'CREATOR',
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
@@ -145,8 +145,8 @@ export function WorldList() {
       )
     : worlds;
 
-  const mainWorld = worlds.find((w) => w.type === 'MAIN');
-  const subWorlds = filteredWorlds.filter((w) => w.type === 'SUB');
+  const mainWorld = worlds.find((w) => w.type === 'OASIS');
+  const subWorlds = filteredWorlds.filter((w) => w.type === 'CREATOR');
 
   if (worldsQuery.isPending) {
     return (

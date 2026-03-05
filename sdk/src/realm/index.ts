@@ -264,19 +264,12 @@ export type { WorldviewEventDto } from './generated/models/WorldviewEventDto';
 export type { WorldviewPatchDto } from './generated/models/WorldviewPatchDto';
 export type { WorldviewSnapshotDto } from './generated/models/WorldviewSnapshotDto';
 
+// Account data extension exports.
+export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
+export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
+
 // Explicit service type exports for public naming checks.
 export type { MeTwoFactorService, SocialDefaultVisibilityService, SocialAttributesService } from './client-types.js';
-export type {
-  AccountDataTaskStatus,
-  RequestDataExportInput,
-  RequestDataExportOutput,
-  RequestAccountDeletionInput,
-  RequestAccountDeletionOutput,
-} from './extensions/account-data.js';
-export {
-  requestDataExport,
-  requestAccountDeletion,
-} from './extensions/account-data.js';
 
 // vNext realm client exports.
 export { Realm } from './client.js';

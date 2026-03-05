@@ -223,7 +223,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                     {world.status}
                   </span>
                   <span className="inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-2.5 py-0.5 text-xs font-medium text-[#2A9D8F]">
-                    {world.type === 'MAIN' ? t('WorldDetail.mainWorld') : t('WorldDetail.subWorld')}
+                    {world.type === 'OASIS' ? t('WorldDetail.mainWorld') : t('WorldDetail.subWorld')}
                   </span>
                 </div>
 

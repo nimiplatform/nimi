@@ -16,7 +16,7 @@ function createPlaceholderWorld(worldId: string): WorldListItem {
     era: null,
     iconUrl: null,
     bannerUrl: null,
-    type: 'SUB',
+    type: 'CREATOR',
     status: 'DRAFT',
     level: 1,
     levelUpdatedAt: null,

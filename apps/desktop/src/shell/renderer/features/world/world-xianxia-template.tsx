@@ -296,7 +296,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               {/* Top right badge */}
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs tracking-wider uppercase bg-[#4ECCA3]/20 text-[#4ECCA3] border border-[#4ECCA3]/40 font-semibold backdrop-blur-sm">
-                  MAIN WORLD
+                  OASIS WORLD
                 </span>
               </div>
 

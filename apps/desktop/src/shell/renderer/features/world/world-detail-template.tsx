@@ -8,7 +8,7 @@ export type WorldDetailData = {
   description: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
-  type: 'MAIN' | 'SUB';
+  type: 'OASIS' | 'CREATOR';
   status: 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
   level: number;
   levelUpdatedAt: string | null;
@@ -103,7 +103,7 @@ const fieldDefinitions = [
   { key: 'id', title: '世界唯一标识符', format: (v: string) => v },
   { key: 'name', title: '世界名称', format: (v: string) => v },
   { key: 'description', title: '世界描述', format: (v: string | null) => v || '暂无描述' },
-  { key: 'type', title: '世界类型', format: (v: string) => v === 'MAIN' ? 'MAIN · 主世界' : 'SUB · 子世界' },
+  { key: 'type', title: '世界类型', format: (v: string) => v === 'OASIS' ? 'OASIS · 主世界' : 'CREATOR · 子世界' },
   { key: 'status', title: '世界状态', format: (v: string) => v },
   { key: 'freezeReason', title: '冻结原因', format: (v: string | null) => v ? `${v} · ${freezeReasonLabels[v]}` : null },
   { key: 'nativeCreationState', title: '创建状态', format: (v: string) => v },
@@ -313,7 +313,7 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
             {/* 顶部标签栏 */}
             <div className="flex flex-wrap items-center gap-2.5 mb-6">
               <span className="px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase bg-white/15 text-white border border-white/20 backdrop-blur-sm">
-                {props.world.type === 'MAIN' ? 'Main World' : 'Sub World'}
+                {props.world.type === 'OASIS' ? 'Main World' : 'Sub World'}
               </span>
               <span className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wider border backdrop-blur-sm ${statusStyle!.bg} ${statusStyle!.text}`}>
                 {props.world.status}

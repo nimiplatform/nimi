@@ -105,7 +105,7 @@ export function toWorldData(raw: Record<string, unknown>, semantic?: WorldSemant
     era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: typeof raw.type === 'string' ? raw.type : 'SUB',
+    type: typeof raw.type === 'string' ? raw.type : 'CREATOR',
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
     creatorId: typeof raw.creatorId === 'string' ? raw.creatorId : null,

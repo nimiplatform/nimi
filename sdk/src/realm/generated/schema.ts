@@ -4186,7 +4186,7 @@ export type components = {
             isNative: boolean;
             /** @description Agent creator (Master) ID */
             masterId: string;
-            /** @description World creator ID (null for MAIN world) */
+            /** @description World creator ID (null for OASIS world) */
             worldCreatorId: string | null;
             /** @description World ID the Agent belongs to */
             worldId: string;
@@ -5797,7 +5797,7 @@ export type components = {
                 [key: string]: unknown;
             };
             /** @enum {string} */
-            status?: "DRAFT" | "READY" | "ARCHIVED";
+            status?: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
         };
         UpdateWorldMaintenanceDto: {
             ifSnapshotVersion?: string;
@@ -6066,7 +6066,7 @@ export type components = {
             /** @enum {string} */
             maintainRole: "OWNER" | "MAINTAINER";
             /** @enum {string} */
-            scopeType: "GLOBAL" | "WORLD";
+            scopeType: "CREATE" | "MAINTAIN";
             scopeWorldId?: string;
             /** @enum {string} */
             status: "ACTIVE" | "REVOKED" | "EXPIRED" | "SUSPENDED";
@@ -6126,7 +6126,7 @@ export type components = {
             timeFlowRatio: number;
             transitInLimit: number;
             /** @enum {string} */
-            type: "MAIN" | "SUB";
+            type: "OASIS" | "CREATOR";
             /** Format: date-time */
             updatedAt?: string;
         };
@@ -6168,7 +6168,7 @@ export type components = {
             timeFlowRatio: number;
             transitInLimit: number;
             /** @enum {string} */
-            type: "MAIN" | "SUB";
+            type: "OASIS" | "CREATOR";
             /** Format: date-time */
             updatedAt?: string;
         };
@@ -6190,7 +6190,7 @@ export type components = {
             /** @enum {string} */
             sourceType: "TEXT" | "FILE";
             /** @enum {string} */
-            status: "DRAFT" | "READY" | "PUBLISHED" | "ARCHIVED";
+            status: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
             targetWorldId?: string;
             updatedAt: string;
         };
@@ -6201,7 +6201,7 @@ export type components = {
             /** @enum {string} */
             sourceType: "TEXT" | "FILE";
             /** @enum {string} */
-            status: "DRAFT" | "READY" | "PUBLISHED" | "ARCHIVED";
+            status: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
             targetWorldId?: string;
             updatedAt: string;
         };

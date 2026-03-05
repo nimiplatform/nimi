@@ -205,7 +205,7 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
     era: typeof raw.era === 'string' ? raw.era : null,
     iconUrl: typeof raw.iconUrl === 'string' ? raw.iconUrl : null,
     bannerUrl: typeof raw.bannerUrl === 'string' ? raw.bannerUrl : null,
-    type: typeof raw.type === 'string' ? raw.type : 'SUB',
+    type: typeof raw.type === 'string' ? raw.type : 'CREATOR',
     status: typeof raw.status === 'string' ? raw.status : 'DRAFT',
     level: typeof raw.level === 'number' ? raw.level : 1,
     levelUpdatedAt: typeof raw.levelUpdatedAt === 'string' ? raw.levelUpdatedAt : null,
@@ -250,10 +250,10 @@ export function ExplorePanel() {
 
   const worldBanners = useMemo(() => {
     const worlds = worldsQuery.data ?? [];
-    // Sort: MAIN worlds first, then by name for consistent ordering
+    // Sort: OASIS world first, then by name for consistent ordering
     const sortedWorlds = [...worlds].sort((a, b) => {
-      if (a.type === 'MAIN' && b.type !== 'MAIN') return -1;
-      if (a.type !== 'MAIN' && b.type === 'MAIN') return 1;
+      if (a.type === 'OASIS' && b.type !== 'OASIS') return -1;
+      if (a.type !== 'OASIS' && b.type === 'OASIS') return 1;
       return a.name.localeCompare(b.name);
     });
     return sortedWorlds.map((world) => ({

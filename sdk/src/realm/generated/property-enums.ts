@@ -469,8 +469,10 @@ export type TranslateContext = (typeof TranslateContext)[keyof typeof TranslateC
 
 export const UpdateWorldDraftStatus = {
   DRAFT: "DRAFT",
-  READY: "READY",
-  ARCHIVED: "ARCHIVED",
+  SYNTHESIZE: "SYNTHESIZE",
+  REVIEW: "REVIEW",
+  PUBLISH: "PUBLISH",
+  FAILED: "FAILED",
 } as const satisfies Record<string, components['schemas']['UpdateWorldDraftDto']['status']>;
 
 export type UpdateWorldDraftStatus = (typeof UpdateWorldDraftStatus)[keyof typeof UpdateWorldDraftStatus];
@@ -490,8 +492,8 @@ export const WorldAccessRecordMaintainRole = {
 export type WorldAccessRecordMaintainRole = (typeof WorldAccessRecordMaintainRole)[keyof typeof WorldAccessRecordMaintainRole];
 
 export const WorldAccessRecordScopeType = {
-  GLOBAL: "GLOBAL",
-  WORLD: "WORLD",
+  CREATE: "CREATE",
+  MAINTAIN: "MAINTAIN",
 } as const satisfies Record<string, components['schemas']['WorldAccessRecordDto']['scopeType']>;
 
 export type WorldAccessRecordScopeType = (typeof WorldAccessRecordScopeType)[keyof typeof WorldAccessRecordScopeType];
@@ -531,8 +533,8 @@ export const WorldDetailStatus = {
 export type WorldDetailStatus = (typeof WorldDetailStatus)[keyof typeof WorldDetailStatus];
 
 export const WorldDetailType = {
-  MAIN: "MAIN",
-  SUB: "SUB",
+  OASIS: "OASIS",
+  CREATOR: "CREATOR",
 } as const satisfies Record<string, components['schemas']['WorldDetailDto']['type']>;
 
 export type WorldDetailType = (typeof WorldDetailType)[keyof typeof WorldDetailType];
@@ -563,8 +565,8 @@ export const WorldDetailWithAgentsStatus = {
 export type WorldDetailWithAgentsStatus = (typeof WorldDetailWithAgentsStatus)[keyof typeof WorldDetailWithAgentsStatus];
 
 export const WorldDetailWithAgentsType = {
-  MAIN: "MAIN",
-  SUB: "SUB",
+  OASIS: "OASIS",
+  CREATOR: "CREATOR",
 } as const satisfies Record<string, components['schemas']['WorldDetailWithAgentsDto']['type']>;
 
 export type WorldDetailWithAgentsType = (typeof WorldDetailWithAgentsType)[keyof typeof WorldDetailWithAgentsType];
@@ -578,9 +580,10 @@ export type WorldDraftDetailSourceType = (typeof WorldDraftDetailSourceType)[key
 
 export const WorldDraftDetailStatus = {
   DRAFT: "DRAFT",
-  READY: "READY",
-  PUBLISHED: "PUBLISHED",
-  ARCHIVED: "ARCHIVED",
+  SYNTHESIZE: "SYNTHESIZE",
+  REVIEW: "REVIEW",
+  PUBLISH: "PUBLISH",
+  FAILED: "FAILED",
 } as const satisfies Record<string, components['schemas']['WorldDraftDetailDto']['status']>;
 
 export type WorldDraftDetailStatus = (typeof WorldDraftDetailStatus)[keyof typeof WorldDraftDetailStatus];
@@ -594,9 +597,10 @@ export type WorldDraftSummarySourceType = (typeof WorldDraftSummarySourceType)[k
 
 export const WorldDraftSummaryStatus = {
   DRAFT: "DRAFT",
-  READY: "READY",
-  PUBLISHED: "PUBLISHED",
-  ARCHIVED: "ARCHIVED",
+  SYNTHESIZE: "SYNTHESIZE",
+  REVIEW: "REVIEW",
+  PUBLISH: "PUBLISH",
+  FAILED: "FAILED",
 } as const satisfies Record<string, components['schemas']['WorldDraftSummaryDto']['status']>;
 
 export type WorldDraftSummaryStatus = (typeof WorldDraftSummaryStatus)[keyof typeof WorldDraftSummaryStatus];

@@ -26,7 +26,7 @@ function toXianxiaWorldData(
     description: (detail?.description as string | null) ?? world.description,
     iconUrl: (detail?.iconUrl as string | null) ?? world.iconUrl,
     bannerUrl: (detail?.bannerUrl as string | null) ?? world.bannerUrl,
-    type: ((detail?.type as string) ?? world.type) === 'MAIN' ? 'MAIN' : 'SUB',
+    type: ((detail?.type as string) ?? world.type) === 'OASIS' ? 'OASIS' : 'CREATOR',
     status: ((detail?.status as string) ?? world.status) as XianxiaWorldData['status'],
     level: (detail?.level as number) ?? world.level,
     levelUpdatedAt: (detail?.levelUpdatedAt as string | null) ?? world.levelUpdatedAt,
