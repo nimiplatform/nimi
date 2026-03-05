@@ -5,16 +5,47 @@ import (
 	"errors"
 	"strings"
 
+	"google.golang.org/grpc/codes"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 )
 
 type speechVoiceCatalogSource string
 
 const (
 	speechVoiceSourceProviderLive    speechVoiceCatalogSource = "provider_live"
-	speechVoiceSourceCatalogFallback speechVoiceCatalogSource = "catalog_fallback"
+	speechVoiceSourceCatalogBuiltin  speechVoiceCatalogSource = "catalog_builtin_snapshot"
+	speechVoiceSourceCatalogCustom   speechVoiceCatalogSource = "catalog_custom_dir"
+	speechVoiceSourceCatalogRemote   speechVoiceCatalogSource = "catalog_remote_cache"
 )
+
+func mapCatalogSource(source catalog.CatalogSource) speechVoiceCatalogSource {
+	switch source {
+	case catalog.SourceCustomDir:
+		return speechVoiceSourceCatalogCustom
+	case catalog.SourceRemoteCache:
+		return speechVoiceSourceCatalogRemote
+	case catalog.SourceBuiltinSnapshot:
+		fallthrough
+	default:
+		return speechVoiceSourceCatalogBuiltin
+	}
+}
+
+func shouldUseDashScopeCatalog(providerType string, modelResolved string) bool {
+	provider := strings.ToLower(strings.TrimSpace(providerType))
+	if provider == "dashscope" {
+		return true
+	}
+	model := strings.ToLower(strings.TrimSpace(modelResolved))
+	model = strings.TrimPrefix(model, "cloud/")
+	model = strings.TrimPrefix(model, "token/")
+	model = strings.TrimPrefix(model, "local/")
+	return strings.HasPrefix(model, "dashscope/") || strings.Contains(model, "qwen3-tts") || strings.Contains(model, "qwen-tts")
+}
 
 func resolveSpeechVoiceBackend(
 	modelResolved string,
@@ -49,12 +80,13 @@ func resolveSpeechVoicesForModel(
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
 	backend *nimillm.Backend,
-) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, error) {
+	voiceCatalog *catalog.Resolver,
+) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, string, error) {
 	providerType := ""
 	if remoteTarget != nil {
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
 	}
-	return resolveSpeechVoicesForModelWithProviderType(ctx, modelResolved, providerType, backend)
+	return resolveSpeechVoicesForModelWithProviderType(ctx, modelResolved, providerType, backend, voiceCatalog)
 }
 
 func resolveSpeechVoicesForModelWithProviderType(
@@ -62,18 +94,77 @@ func resolveSpeechVoicesForModelWithProviderType(
 	modelResolved string,
 	providerType string,
 	backend *nimillm.Backend,
-) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, error) {
+	voiceCatalog *catalog.Resolver,
+) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, string, error) {
+	if shouldUseDashScopeCatalog(providerType, modelResolved) {
+		return resolveCatalogVoices(modelResolved, providerType, voiceCatalog)
+	}
+
 	if backend != nil {
 		voices, err := backend.ListSpeechVoices(ctx, modelResolved)
 		if err == nil && len(voices) > 0 {
-			return voices, speechVoiceSourceProviderLive, nil
+			return voices, speechVoiceSourceProviderLive, "", nil
 		}
 		if err != nil && (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
-			return nil, "", err
+			return nil, "", "", err
 		}
 	}
 
-	return resolveVoicePresets(modelResolved, providerType), speechVoiceSourceCatalogFallback, nil
+	return resolveCatalogVoices(modelResolved, providerType, voiceCatalog)
+}
+
+func resolveCatalogVoices(
+	modelResolved string,
+	providerType string,
+	voiceCatalog *catalog.Resolver,
+) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, string, error) {
+	provider := strings.ToLower(strings.TrimSpace(providerType))
+	if provider == "" {
+		provider = strings.ToLower(strings.TrimSpace(modelResolved))
+	}
+	if voiceCatalog == nil {
+		return nil, "", "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	resolved, err := voiceCatalog.ResolveVoices(providerType, modelResolved)
+	if err != nil {
+		if errors.Is(err, catalog.ErrModelNotFound) {
+			providerMessage := "model not found in provider voice catalog"
+			return nil, "", "", grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
+				ActionHint: "switch_tts_model_or_refresh_connector_models",
+				Message:    providerMessage,
+				Metadata: map[string]string{
+					"provider_message": providerMessage,
+					"provider_type":    provider,
+				},
+			})
+		}
+		if errors.Is(err, catalog.ErrVoiceSetEmpty) {
+			providerMessage := "voice set is empty for selected model"
+			return nil, "", "", grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+				ActionHint: "adjust_tts_voice_or_audio_options",
+				Message:    providerMessage,
+				Metadata: map[string]string{
+					"provider_message": providerMessage,
+					"provider_type":    provider,
+				},
+			})
+		}
+		return nil, "", "", err
+	}
+
+	voices := make([]*runtimev1.SpeechVoiceDescriptor, 0, len(resolved.Voices))
+	for _, voice := range resolved.Voices {
+		voices = append(voices, &runtimev1.SpeechVoiceDescriptor{
+			VoiceId:        strings.TrimSpace(voice.VoiceID),
+			Name:           strings.TrimSpace(voice.Name),
+			Lang:           strings.TrimSpace(voice.Lang),
+			SupportedLangs: append([]string(nil), voice.SupportedLangs...),
+		})
+	}
+	if len(voices) == 0 {
+		return nil, "", "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+	}
+	return voices, mapCatalogSource(resolved.Source), strings.TrimSpace(resolved.CatalogVersion), nil
 }
 
 func isSpeechVoiceSupported(requestedVoice string, voices []*runtimev1.SpeechVoiceDescriptor) bool {
@@ -92,58 +183,4 @@ func isSpeechVoiceSupported(requestedVoice string, voices []*runtimev1.SpeechVoi
 		}
 	}
 	return false
-}
-
-// resolveVoicePresets returns runtime-maintained fallback voice descriptors.
-func resolveVoicePresets(modelResolved string, providerType string) []*runtimev1.SpeechVoiceDescriptor {
-	lowerProvider := strings.ToLower(strings.TrimSpace(providerType))
-	switch lowerProvider {
-	case "dashscope":
-		return dashScopeVoicePresets()
-	case "volcengine", "volcengine_openspeech":
-		return volcengineVoicePresets()
-	}
-
-	lower := strings.ToLower(strings.TrimSpace(modelResolved))
-
-	switch {
-	case strings.HasPrefix(lower, "dashscope/"):
-		return dashScopeVoicePresets()
-	case strings.Contains(lower, "qwen3-tts"), strings.Contains(lower, "qwen-tts"):
-		return dashScopeVoicePresets()
-	case strings.HasPrefix(lower, "volcengine/") || strings.HasPrefix(lower, "volcengine_openspeech/"):
-		return volcengineVoicePresets()
-	default:
-		return openAIVoicePresets()
-	}
-}
-
-func dashScopeVoicePresets() []*runtimev1.SpeechVoiceDescriptor {
-	return []*runtimev1.SpeechVoiceDescriptor{
-		{VoiceId: "Cherry", Name: "Cherry", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Serena", Name: "Serena", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Ethan", Name: "Ethan", Lang: "en", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Chelsie", Name: "Chelsie", Lang: "en", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Aura", Name: "Aura", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Breeze", Name: "Breeze", Lang: "zh", SupportedLangs: []string{"zh", "en"}},
-		{VoiceId: "Haruto", Name: "Haruto", Lang: "ja", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-		{VoiceId: "Maple", Name: "Maple", Lang: "zh", SupportedLangs: []string{"zh", "en"}},
-		{VoiceId: "Sierra", Name: "Sierra", Lang: "en", SupportedLangs: []string{"zh", "en"}},
-		{VoiceId: "River", Name: "River", Lang: "zh", SupportedLangs: []string{"zh", "en", "ja", "ko"}},
-	}
-}
-
-func volcengineVoicePresets() []*runtimev1.SpeechVoiceDescriptor {
-	return []*runtimev1.SpeechVoiceDescriptor{
-		{VoiceId: "BV001_streaming", Name: "BV001", Lang: "zh", SupportedLangs: []string{"zh"}},
-		{VoiceId: "BV002_streaming", Name: "BV002", Lang: "zh", SupportedLangs: []string{"zh"}},
-	}
-}
-
-func openAIVoicePresets() []*runtimev1.SpeechVoiceDescriptor {
-	return []*runtimev1.SpeechVoiceDescriptor{
-		{VoiceId: "alloy", Name: "Alloy", Lang: "en", SupportedLangs: []string{"en", "zh", "ja", "ko", "es", "fr", "de"}},
-		{VoiceId: "nova", Name: "Nova", Lang: "en", SupportedLangs: []string{"en", "zh", "ja", "ko", "es", "fr", "de"}},
-		{VoiceId: "shimmer", Name: "Shimmer", Lang: "en", SupportedLangs: []string{"en", "zh", "ja", "ko", "es", "fr", "de"}},
-	}
 }

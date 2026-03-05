@@ -14,6 +14,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 )
 
 func buildConnectorTTSRequest(modelID string, voice string) *runtimev1.SubmitMediaJobRequest {
@@ -35,15 +36,24 @@ func buildConnectorTTSRequest(modelID string, voice string) *runtimev1.SubmitMed
 	}
 }
 
-func buildConnectorCloudProvider(baseURL string) *nimillm.CloudProvider {
+func buildConnectorCloudProvider(providerID string, baseURL string) *nimillm.CloudProvider {
 	return nimillm.NewCloudProvider(nimillm.CloudConfig{
 		Providers: map[string]nimillm.ProviderCredentials{
-			"dashscope": {
+			providerID: {
 				BaseURL: baseURL,
 				APIKey:  "test-api-key",
 			},
 		},
 	}, nil, nil)
+}
+
+func buildDefaultVoiceCatalog(t *testing.T) *catalog.Resolver {
+	t.Helper()
+	resolver, err := catalog.NewResolver(catalog.ResolverConfig{})
+	if err != nil {
+		t.Fatalf("buildDefaultVoiceCatalog: %v", err)
+	}
+	return resolver
 }
 
 func extractErrorMetadata(err error) map[string]string {
@@ -79,16 +89,17 @@ func TestExecuteBackendSyncMediaTTSGatewayModelNotFound(t *testing.T) {
 	_, _, _, err := executeBackendSyncMedia(
 		context.Background(),
 		nil,
-		buildConnectorTTSRequest("cloud/qwen-tts-2025-05-22", "alloy"),
+		buildConnectorTTSRequest("cloud/qwen3-tts-unknown", "alloy"),
 		nil,
-		"cloud/qwen-tts-2025-05-22",
+		"cloud/qwen3-tts-unknown",
 		adapterOpenAICompat,
 		&nimillm.RemoteTarget{
 			ProviderType: "dashscope",
 			Endpoint:     server.URL,
 			APIKey:       "test-api-key",
 		},
-		buildConnectorCloudProvider(server.URL),
+		buildConnectorCloudProvider("dashscope", server.URL),
+		buildDefaultVoiceCatalog(t),
 	)
 	if err == nil {
 		t.Fatal("expected model-not-found error")
@@ -129,11 +140,12 @@ func TestExecuteBackendSyncMediaTTSGatewayModalityNotSupported(t *testing.T) {
 		"cloud/deepseek-chat",
 		adapterOpenAICompat,
 		&nimillm.RemoteTarget{
-			ProviderType: "dashscope",
+			ProviderType: "openai",
 			Endpoint:     server.URL,
 			APIKey:       "test-api-key",
 		},
-		buildConnectorCloudProvider(server.URL),
+		buildConnectorCloudProvider("openai", server.URL),
+		buildDefaultVoiceCatalog(t),
 	)
 	if err == nil {
 		t.Fatal("expected modality-not-supported error")
@@ -179,7 +191,8 @@ func TestExecuteBackendSyncMediaTTSGatewayPassesValidModel(t *testing.T) {
 			Endpoint:     server.URL,
 			APIKey:       "test-api-key",
 		},
-		buildConnectorCloudProvider(server.URL),
+		buildConnectorCloudProvider("dashscope", server.URL),
+		buildDefaultVoiceCatalog(t),
 	)
 	if err != nil {
 		t.Fatalf("expected successful tts synthesis, got error: %v", err)
@@ -223,7 +236,8 @@ func TestExecuteBackendSyncMediaTTSGatewayRejectsUnsupportedVoice(t *testing.T) 
 			Endpoint:     server.URL,
 			APIKey:       "test-api-key",
 		},
-		buildConnectorCloudProvider(server.URL),
+		buildConnectorCloudProvider("dashscope", server.URL),
+		buildDefaultVoiceCatalog(t),
 	)
 	if err == nil {
 		t.Fatal("expected unsupported voice preflight error")
@@ -253,6 +267,7 @@ func TestValidateConnectorTTSModelSupportNoConnectorSkipsGateway(t *testing.T) {
 			},
 		},
 		"qwen-tts-2025-05-22",
+		nil,
 		nil,
 		nil,
 	)

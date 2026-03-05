@@ -22,10 +22,12 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 )
 
 const (
 	adapterOpenAICompat        = "openai_compat_adapter"
+	adapterLocalAINative       = "localai_native_adapter"
 	adapterNexaNative          = "nexa_native_adapter"
 	adapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
@@ -226,6 +228,8 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 	providerType := ""
 	if remoteTarget != nil {
 		providerType = remoteTarget.ProviderType
+	} else {
+		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved)
 	}
 	adapterName := resolveMediaAdapterName(req.GetModelId(), modelResolved, req.GetModal(), providerType)
 	var (
@@ -236,7 +240,7 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 	)
 
 	if req.GetModal() == runtimev1.Modal_MODAL_TTS {
-		err = validateConnectorTTSModelSupport(ctx, s.logger, req, modelResolved, remoteTarget, s.selector.cloudProvider)
+		err = validateConnectorTTSModelSupport(ctx, s.logger, req, modelResolved, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
 	}
 
 	if err == nil {
@@ -266,7 +270,7 @@ func (s *Service) executeMediaJob(ctx context.Context, jobID string, req *runtim
 			cfg := s.resolveNativeAdapterConfig("kimi", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
 		default:
-			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider)
+			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
 		}
 	}
 
@@ -316,6 +320,7 @@ func executeBackendSyncMedia(
 	adapterName string,
 	remoteTarget *nimillm.RemoteTarget,
 	cloudProvider *nimillm.CloudProvider,
+	voiceCatalog *catalog.Resolver,
 ) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
 	var backend *nimillm.Backend
 	var backendModelID string
@@ -341,7 +346,17 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		payload, usage, err := backend.GenerateImage(ctx, backendModelID, spec)
+		var (
+			payload []byte
+			usage   *runtimev1.UsageStats
+			err     error
+			compat  *nimillm.LocalAIImageCompat
+		)
+		if adapterName == adapterLocalAINative {
+			payload, usage, compat, err = backend.GenerateImageLocalAI(ctx, backendModelID, spec)
+		} else {
+			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec)
+		}
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -354,9 +369,18 @@ func executeBackendSyncMedia(
 			"quality":          strings.TrimSpace(spec.GetQuality()),
 			"style":            strings.TrimSpace(spec.GetStyle()),
 			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
+			"reference_images": stringSliceToAny(spec.GetReferenceImages()),
 			"mask":             strings.TrimSpace(spec.GetMask()),
 			"provider_options": nimillm.StructToMap(spec.GetProviderOptions()),
+		}
+		if compat != nil {
+			providerRaw["localai_prompt"] = compat.LocalAIPrompt
+			providerRaw["source_image"] = compat.SourceImage
+			providerRaw["ref_images_count"] = compat.RefImagesCount
+			providerRaw["compat"] = map[string]any{
+				"applied_options": stringSliceToAny(compat.AppliedOptions),
+				"ignored_options": stringSliceToAny(compat.IgnoredOptions),
+			}
 		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveImageArtifactMIME(spec, payload), payload, providerRaw)
 		nimillm.ApplyImageSpecMetadata(artifact, spec)
@@ -391,7 +415,7 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		if err := validateConnectorTTSModelSupport(ctx, logger, req, backendModelID, remoteTarget, cloudProvider); err != nil {
+		if err := validateConnectorTTSModelSupport(ctx, logger, req, backendModelID, remoteTarget, cloudProvider, voiceCatalog); err != nil {
 			return nil, nil, "", err
 		}
 		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec)
@@ -447,6 +471,7 @@ func validateConnectorTTSModelSupport(
 	resolvedModelID string,
 	remoteTarget *nimillm.RemoteTarget,
 	cloudProvider *nimillm.CloudProvider,
+	voiceCatalog *catalog.Resolver,
 ) error {
 	if req == nil || req.GetModal() != runtimev1.Modal_MODAL_TTS {
 		return nil
@@ -454,7 +479,67 @@ func validateConnectorTTSModelSupport(
 	if strings.TrimSpace(req.GetConnectorId()) == "" {
 		return nil
 	}
-	if remoteTarget == nil || cloudProvider == nil {
+	if remoteTarget == nil {
+		return nil
+	}
+	providerType := strings.TrimSpace(remoteTarget.ProviderType)
+
+	if shouldUseDashScopeCatalog(providerType, resolvedModelID) {
+		voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(
+			ctx,
+			strings.TrimSpace(resolvedModelID),
+			providerType,
+			nil,
+			voiceCatalog,
+		)
+		if err != nil {
+			return err
+		}
+		if catalogVersion == "" {
+			catalogVersion = "n/a"
+		}
+		if logger != nil {
+			logger.Debug(
+				"voice-list-resolved",
+				"source", string(source),
+				"catalog_version", catalogVersion,
+				"model_resolved", strings.TrimSpace(resolvedModelID),
+				"provider_type", providerType,
+				"connector_id", strings.TrimSpace(req.GetConnectorId()),
+			)
+		}
+
+		requestedVoice := strings.TrimSpace(req.GetSpeechSpec().GetVoice())
+		if !isSpeechVoiceSupported(requestedVoice, voices) {
+			providerMessage := fmt.Sprintf(
+				"voice %q is not supported by model %q",
+				requestedVoice,
+				strings.TrimSpace(resolvedModelID),
+			)
+			if logger != nil {
+				logger.Warn(
+					"voice-validation-failed",
+					"voice", requestedVoice,
+					"model_resolved", strings.TrimSpace(resolvedModelID),
+					"connector_id", strings.TrimSpace(req.GetConnectorId()),
+					"source", string(source),
+				)
+			}
+			return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+				ActionHint: "adjust_tts_voice_or_audio_options",
+				Message:    providerMessage,
+				Metadata: map[string]string{
+					"provider_message":     providerMessage,
+					"voice_catalog_source": string(source),
+					"catalog_version":      catalogVersion,
+					"requested_voice":      requestedVoice,
+				},
+			})
+		}
+		return nil
+	}
+
+	if cloudProvider == nil {
 		return nil
 	}
 
@@ -501,19 +586,24 @@ func validateConnectorTTSModelSupport(
 		})
 	}
 
-	voices, source, err := resolveSpeechVoicesForModelWithProviderType(
+	voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(
 		ctx,
 		strings.TrimSpace(matchedModelID),
 		strings.TrimSpace(remoteTarget.ProviderType),
 		probeBackend,
+		voiceCatalog,
 	)
 	if err != nil {
 		return err
+	}
+	if catalogVersion == "" {
+		catalogVersion = "n/a"
 	}
 	if logger != nil {
 		logger.Debug(
 			"voice-list-resolved",
 			"source", string(source),
+			"catalog_version", catalogVersion,
 			"model_resolved", strings.TrimSpace(matchedModelID),
 			"provider_type", strings.TrimSpace(remoteTarget.ProviderType),
 			"connector_id", strings.TrimSpace(req.GetConnectorId()),
@@ -542,6 +632,7 @@ func validateConnectorTTSModelSupport(
 			Metadata: map[string]string{
 				"provider_message":     providerMessage,
 				"voice_catalog_source": string(source),
+				"catalog_version":      catalogVersion,
 				"requested_voice":      requestedVoice,
 			},
 		})
@@ -601,7 +692,9 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 	joined := raw + "::" + resolved
 	provider := strings.ToLower(strings.TrimSpace(providerType))
 	switch {
-	case strings.Contains(joined, "nexa/"):
+	case strings.Contains(joined, "localai/"), provider == "localai":
+		return adapterLocalAINative
+	case strings.Contains(joined, "nexa/"), provider == "nexa":
 		return adapterNexaNative
 	case strings.Contains(joined, "dashscope/"), provider == "dashscope":
 		return adapterAlibabaNative
@@ -627,6 +720,48 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		}
 	}
 	return adapterOpenAICompat
+}
+
+func inferMediaProviderTypeFromSelectedBackend(selectedProvider provider, modelResolved string) string {
+	mbp, ok := selectedProvider.(nimillm.MediaBackendProvider)
+	if !ok || mbp == nil {
+		return ""
+	}
+	backend, _ := mbp.ResolveMediaBackend(modelResolved)
+	return inferMediaProviderTypeFromBackendName(backend)
+}
+
+func inferMediaProviderTypeFromBackendName(backend *nimillm.Backend) string {
+	if backend == nil {
+		return ""
+	}
+	name := strings.ToLower(strings.TrimSpace(backend.Name))
+	switch {
+	case strings.HasPrefix(name, "local-"):
+		return strings.TrimSpace(strings.TrimPrefix(name, "local-"))
+	case strings.HasPrefix(name, "cloud-"):
+		return strings.TrimSpace(strings.TrimPrefix(name, "cloud-"))
+	default:
+		return ""
+	}
+}
+
+func stringSliceToAny(values []string) []any {
+	if len(values) == 0 {
+		return nil
+	}
+	output := make([]any, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		output = append(output, trimmed)
+	}
+	if len(output) == 0 {
+		return nil
+	}
+	return output
 }
 
 // resolveNativeAdapterConfig returns adapter credentials from remoteTarget when

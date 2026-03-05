@@ -140,6 +140,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		connSvc := connectorservice.New(logger, connStore, auditStore)
 		connSvc.SetCloudProvider(aiSvc.CloudProvider())
 		connSvc.SetLocalModelLister(localSvc)
+		connSvc.SetModelCatalogResolver(aiSvc.SpeechCatalogResolver())
 		runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 		logger.Info("runtime in-process mode enabled")
 	}

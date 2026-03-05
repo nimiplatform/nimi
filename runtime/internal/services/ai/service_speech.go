@@ -2,11 +2,13 @@ package ai
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -46,14 +48,25 @@ func (s *Service) GetSpeechVoices(ctx context.Context, req *runtimev1.GetSpeechV
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
 	}
 	backend := resolveSpeechVoiceBackend(modelResolved, remoteTarget, selectedProvider, s.selector.cloudProvider)
-	voices, source, err := resolveSpeechVoicesForModel(ctx, modelResolved, remoteTarget, backend)
+	voices, source, catalogVersion, err := resolveSpeechVoicesForModel(ctx, modelResolved, remoteTarget, backend, s.speechCatalog)
 	if err != nil {
 		return nil, err
 	}
+	if catalogVersion == "" {
+		catalogVersion = "n/a"
+	}
+	_ = grpc.SetHeader(ctx, metadata.Pairs(
+		"x-nimi-voice-catalog-source", string(source),
+		"x-nimi-voice-catalog-version", catalogVersion,
+		"x-nimi-voice-count", strconv.Itoa(len(voices)),
+	))
 
 	s.logger.Debug(
 		"voice-list-resolved",
 		"source", string(source),
+		"catalog_source", string(source),
+		"catalog_version", catalogVersion,
+		"voice_count", len(voices),
 		"model_resolved", strings.TrimSpace(modelResolved),
 		"provider_type", providerType,
 		"connector_id", strings.TrimSpace(req.GetConnectorId()),

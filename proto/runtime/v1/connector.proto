@@ -152,6 +152,46 @@ message ListProviderCatalogResponse {
   repeated ProviderCatalogEntry providers = 1;
 }
 
+enum ModelCatalogProviderSource {
+  MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED = 0;
+  MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN = 1;
+  MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM = 2;
+  MODEL_CATALOG_PROVIDER_SOURCE_REMOTE = 3;
+}
+
+message ModelCatalogProviderEntry {
+  string provider = 1;
+  int32 version = 2;
+  string catalog_version = 3;
+  ModelCatalogProviderSource source = 4;
+  uint32 model_count = 5;
+  uint32 voice_count = 6;
+  string yaml = 7;
+}
+
+message ListModelCatalogProvidersRequest {}
+
+message ListModelCatalogProvidersResponse {
+  repeated ModelCatalogProviderEntry providers = 1;
+}
+
+message UpsertModelCatalogProviderRequest {
+  string provider = 1;
+  string yaml = 2;
+}
+
+message UpsertModelCatalogProviderResponse {
+  ModelCatalogProviderEntry provider = 1;
+}
+
+message DeleteModelCatalogProviderRequest {
+  string provider = 1;
+}
+
+message DeleteModelCatalogProviderResponse {
+  Ack ack = 1;
+}
+
 service RuntimeConnectorService {
   rpc CreateConnector(CreateConnectorRequest) returns (CreateConnectorResponse);
   rpc GetConnector(GetConnectorRequest) returns (GetConnectorResponse);
@@ -161,4 +201,7 @@ service RuntimeConnectorService {
   rpc TestConnector(TestConnectorRequest) returns (TestConnectorResponse);
   rpc ListConnectorModels(ListConnectorModelsRequest) returns (ListConnectorModelsResponse);
   rpc ListProviderCatalog(ListProviderCatalogRequest) returns (ListProviderCatalogResponse);
+  rpc ListModelCatalogProviders(ListModelCatalogProvidersRequest) returns (ListModelCatalogProvidersResponse);
+  rpc UpsertModelCatalogProvider(UpsertModelCatalogProviderRequest) returns (UpsertModelCatalogProviderResponse);
+  rpc DeleteModelCatalogProvider(DeleteModelCatalogProviderRequest) returns (DeleteModelCatalogProviderResponse);
 }

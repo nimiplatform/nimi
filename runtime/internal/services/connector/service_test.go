@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,6 +16,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -45,6 +48,19 @@ func newTestService(t *testing.T) *Service {
 	store := newTestStore(t)
 	logger := slog.Default()
 	return New(logger, store, nil)
+}
+
+func newTestServiceWithModelCatalog(t *testing.T) *Service {
+	t.Helper()
+	svc := newTestService(t)
+	resolver, err := aicatalog.NewResolver(aicatalog.ResolverConfig{
+		CustomDir: filepath.Join(t.TempDir(), "provider-catalog"),
+	})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+	svc.SetModelCatalogResolver(resolver)
+	return svc
 }
 
 func userContext(userID string) context.Context {
@@ -736,5 +752,138 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 	}
 	if resp.GetModels()[0].GetModelId() != "chat-model" {
 		t.Fatalf("unexpected local model id: %s", resp.GetModels()[0].GetModelId())
+	}
+}
+
+func TestListModelCatalogProvidersReturnsBuiltins(t *testing.T) {
+	svc := newTestServiceWithModelCatalog(t)
+
+	resp, err := svc.ListModelCatalogProviders(context.Background(), &runtimev1.ListModelCatalogProvidersRequest{})
+	if err != nil {
+		t.Fatalf("ListModelCatalogProviders: %v", err)
+	}
+	if len(resp.GetProviders()) == 0 {
+		t.Fatalf("expected non-empty providers")
+	}
+	foundDashScope := false
+	for _, entry := range resp.GetProviders() {
+		if entry.GetProvider() == "dashscope" {
+			foundDashScope = true
+		}
+		if entry.GetSource() == runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED {
+			t.Fatalf("provider source should not be unspecified")
+		}
+	}
+	if !foundDashScope {
+		t.Fatalf("expected dashscope provider entry")
+	}
+}
+
+func TestUpsertModelCatalogProviderRequiresAuth(t *testing.T) {
+	svc := newTestServiceWithModelCatalog(t)
+
+	_, err := svc.UpsertModelCatalogProvider(context.Background(), &runtimev1.UpsertModelCatalogProviderRequest{
+		Provider: "dashscope",
+		Yaml:     "version: 1\nprovider: dashscope\ncatalog_version: test\nmodels: []\nvoices: []\n",
+	})
+	if err == nil {
+		t.Fatalf("expected unauthenticated error")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.Unauthenticated {
+		t.Fatalf("expected Unauthenticated, got %v", st.Code())
+	}
+}
+
+func TestUpsertAndDeleteModelCatalogProvider(t *testing.T) {
+	svc := newTestServiceWithModelCatalog(t)
+	ctx := userContext("user-1")
+
+	upsertResp, err := svc.UpsertModelCatalogProvider(ctx, &runtimev1.UpsertModelCatalogProviderRequest{
+		Provider: "dashscope",
+		Yaml: `version: 1
+provider: dashscope
+catalog_version: custom-test
+models:
+  - provider: dashscope
+    model_id: qwen3-tts-instruct-flash-2026-01-26
+    model_type: tts
+    updated_at: "2026-01-26"
+    capabilities: [tts, llm.speech.synthesize]
+    pricing:
+      unit: char
+      input: "unknown"
+      output: "unknown"
+      currency: CNY
+      as_of: "2026-03-05"
+      notes: custom test
+    voice_set_id: dashscope:qwen3-tts-system-v1
+    source_ref:
+      url: https://example.com/model
+      retrieved_at: "2026-03-05"
+      note: custom test
+voices:
+  - voice_set_id: dashscope:qwen3-tts-system-v1
+    provider: dashscope
+    voice_id: CustomCherry
+    name: CustomCherry
+    langs: [zh-cn]
+    model_ids: [qwen3-tts-instruct-flash-2026-01-26]
+    source_ref:
+      url: https://example.com/model
+      retrieved_at: "2026-03-05"
+      note: custom test
+`,
+	})
+	if err != nil {
+		t.Fatalf("UpsertModelCatalogProvider: %v", err)
+	}
+	if upsertResp.GetProvider().GetProvider() != "dashscope" {
+		t.Fatalf("unexpected provider in upsert response: %q", upsertResp.GetProvider().GetProvider())
+	}
+	if upsertResp.GetProvider().GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM {
+		t.Fatalf("expected custom source after upsert")
+	}
+
+	listResp, err := svc.ListModelCatalogProviders(ctx, &runtimev1.ListModelCatalogProvidersRequest{})
+	if err != nil {
+		t.Fatalf("ListModelCatalogProviders after upsert: %v", err)
+	}
+	foundCustomVoice := false
+	for _, entry := range listResp.GetProviders() {
+		if entry.GetProvider() != "dashscope" {
+			continue
+		}
+		if entry.GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM {
+			t.Fatalf("expected dashscope source=custom after upsert")
+		}
+		if !strings.Contains(entry.GetYaml(), "CustomCherry") {
+			t.Fatalf("expected custom yaml to contain CustomCherry")
+		}
+		foundCustomVoice = true
+	}
+	if !foundCustomVoice {
+		t.Fatalf("expected dashscope custom provider entry")
+	}
+
+	_, err = svc.DeleteModelCatalogProvider(ctx, &runtimev1.DeleteModelCatalogProviderRequest{Provider: "dashscope"})
+	if err != nil {
+		t.Fatalf("DeleteModelCatalogProvider: %v", err)
+	}
+
+	finalList, err := svc.ListModelCatalogProviders(ctx, &runtimev1.ListModelCatalogProvidersRequest{})
+	if err != nil {
+		t.Fatalf("ListModelCatalogProviders after delete: %v", err)
+	}
+	for _, entry := range finalList.GetProviders() {
+		if entry.GetProvider() != "dashscope" {
+			continue
+		}
+		if entry.GetSource() != runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN {
+			t.Fatalf("expected dashscope source=builtin after delete")
+		}
+		if strings.Contains(entry.GetYaml(), "CustomCherry") {
+			t.Fatalf("custom yaml should be removed after delete")
+		}
 	}
 }

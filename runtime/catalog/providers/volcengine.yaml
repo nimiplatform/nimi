@@ -1,0 +1,48 @@
+version: 1
+provider: volcengine
+catalog_version: 2026-03-05-volcengine-v1
+models:
+  - model_id: doubao-tts
+    provider: volcengine
+    model_type: tts
+    updated_at: "2026-03-05"
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: char
+      input: "unknown"
+      output: "unknown"
+      currency: CNY
+      as_of: "2026-03-05"
+      notes: Pricing differs by account tier and product line.
+    voice_set_id: volcengine:openspeech-streaming-v1
+    source_ref:
+      url: https://www.volcengine.com/docs/6561/1257584
+      retrieved_at: "2026-03-05"
+      note: Volcengine OpenSpeech documentation
+voices:
+  - voice_id: BV001_streaming
+    voice_set_id: volcengine:openspeech-streaming-v1
+    provider: volcengine
+    name: BV001
+    langs:
+      - zh
+    model_ids:
+      - doubao-tts
+    source_ref:
+      url: https://www.volcengine.com/docs/6561/1257584
+      retrieved_at: "2026-03-05"
+      note: Volcengine OpenSpeech documentation
+  - voice_id: BV002_streaming
+    voice_set_id: volcengine:openspeech-streaming-v1
+    provider: volcengine
+    name: BV002
+    langs:
+      - zh
+    model_ids:
+      - doubao-tts
+    source_ref:
+      url: https://www.volcengine.com/docs/6561/1257584
+      retrieved_at: "2026-03-05"
+      note: Volcengine OpenSpeech documentation

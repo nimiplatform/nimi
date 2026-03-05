@@ -481,3 +481,205 @@ func TestSubmitMediaJobNexaModalitiesAndVideoFailClose(t *testing.T) {
 		t.Fatalf("reason code mismatch: got=%v want=%v", job.GetReasonCode(), runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 }
+
+func TestSubmitMediaJobLocalAIImageMinimalWorkflowMapping(t *testing.T) {
+	imagePayload := []byte("localai-image-bytes")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	referenceImages := []string{
+		"https://example.com/source.png",
+		"https://example.com/ref-2.png",
+		"https://example.com/ref-3.png",
+	}
+	var capturedSubmitPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
+			_ = json.NewDecoder(r.Body).Decode(&capturedSubmitPayload)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_json": imageB64, "mime_type": "image/png"},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/sdxl-image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt:          "sunrise over city",
+				NegativePrompt:  "rain",
+				ReferenceImages: referenceImages,
+				ProviderOptions: structToMapPB(t, map[string]any{
+					"steps":          30,
+					"method":         "i2i",
+					"guidance_scale": 7,
+					"eta":            1,
+					"strength":       0.5,
+				}),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit localai image job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+
+	if capturedSubmitPayload["prompt"] != "sunrise over city|rain" {
+		t.Fatalf("localai prompt mismatch: %#v", capturedSubmitPayload["prompt"])
+	}
+	if capturedSubmitPayload["negative_prompt"] != "rain" {
+		t.Fatalf("negative prompt mismatch: %#v", capturedSubmitPayload["negative_prompt"])
+	}
+	if capturedSubmitPayload["file"] != referenceImages[0] {
+		t.Fatalf("file mapping mismatch: %#v", capturedSubmitPayload["file"])
+	}
+	if files := stringSliceFromAny(capturedSubmitPayload["files"]); len(files) != 3 || files[0] != referenceImages[0] || files[1] != referenceImages[1] || files[2] != referenceImages[2] {
+		t.Fatalf("files mapping mismatch: %#v", capturedSubmitPayload["files"])
+	}
+	if refs := stringSliceFromAny(capturedSubmitPayload["ref_images"]); len(refs) != 2 || refs[0] != referenceImages[1] || refs[1] != referenceImages[2] {
+		t.Fatalf("ref_images mapping mismatch: %#v", capturedSubmitPayload["ref_images"])
+	}
+	if _, exists := capturedSubmitPayload["reference_images"]; exists {
+		t.Fatalf("localai request must not send canonical reference_images: %#v", capturedSubmitPayload)
+	}
+	if numberAsInt(capturedSubmitPayload["step"]) != 30 {
+		t.Fatalf("step mapping mismatch: %#v", capturedSubmitPayload["step"])
+	}
+	if capturedSubmitPayload["mode"] != "i2i" {
+		t.Fatalf("mode mapping mismatch: %#v", capturedSubmitPayload["mode"])
+	}
+
+	raw := job.GetArtifacts()[0].GetProviderRaw().AsMap()
+	if raw["adapter"] != adapterLocalAINative {
+		t.Fatalf("provider_raw adapter mismatch: got=%#v want=%s", raw["adapter"], adapterLocalAINative)
+	}
+	if raw["localai_prompt"] != "sunrise over city|rain" {
+		t.Fatalf("provider_raw localai_prompt mismatch: %#v", raw["localai_prompt"])
+	}
+	if raw["source_image"] != referenceImages[0] {
+		t.Fatalf("provider_raw source_image mismatch: %#v", raw["source_image"])
+	}
+	if numberAsInt(raw["ref_images_count"]) != 2 {
+		t.Fatalf("provider_raw ref_images_count mismatch: %#v", raw["ref_images_count"])
+	}
+	compat, ok := raw["compat"].(map[string]any)
+	if !ok {
+		t.Fatalf("provider_raw compat missing: %#v", raw["compat"])
+	}
+	applied := stringSliceFromAny(compat["applied_options"])
+	if !containsString(applied, "steps->step") || !containsString(applied, "method->mode") {
+		t.Fatalf("provider_raw applied options mismatch: %#v", compat["applied_options"])
+	}
+	ignored := stringSliceFromAny(compat["ignored_options"])
+	if !containsString(ignored, "guidance_scale") || !containsString(ignored, "eta") || !containsString(ignored, "strength") {
+		t.Fatalf("provider_raw ignored options mismatch: %#v", compat["ignored_options"])
+	}
+}
+
+func TestSubmitMediaJobLocalPrefixUsesNexaAdapterWhenOnlyNexaBackend(t *testing.T) {
+	imagePayload := []byte("nexa-local-prefix-image")
+	imageB64 := base64.StdEncoding.EncodeToString(imagePayload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/images/generations" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"b64_json": imageB64, "mime_type": "image/png"},
+				},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"nexa": {BaseURL: server.URL}},
+	})
+	resp, err := svc.SubmitMediaJob(context.Background(), &runtimev1.SubmitMediaJobRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		ModelId:       "local/image-1",
+		Modal:         runtimev1.Modal_MODAL_IMAGE,
+		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		Spec: &runtimev1.SubmitMediaJobRequest_ImageSpec{
+			ImageSpec: &runtimev1.ImageGenerationSpec{
+				Prompt: "nexa local prefix",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit nexa local-prefix image job: %v", err)
+	}
+	job := waitMediaJobTerminal(t, svc, resp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status mismatch: %v", job.GetStatus())
+	}
+	if got := string(job.GetArtifacts()[0].GetBytes()); got != string(imagePayload) {
+		t.Fatalf("image payload mismatch: got=%q want=%q", got, string(imagePayload))
+	}
+	raw := job.GetArtifacts()[0].GetProviderRaw().AsMap()
+	if raw["adapter"] != adapterNexaNative {
+		t.Fatalf("adapter mismatch for local/ + nexa backend: got=%#v want=%s", raw["adapter"], adapterNexaNative)
+	}
+}
+
+func stringSliceFromAny(value any) []string {
+	switch typed := value.(type) {
+	case []string:
+		return append([]string(nil), typed...)
+	case []any:
+		out := make([]string, 0, len(typed))
+		for _, item := range typed {
+			str, ok := item.(string)
+			if !ok {
+				continue
+			}
+			out = append(out, str)
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func numberAsInt(value any) int {
+	switch typed := value.(type) {
+	case int:
+		return typed
+	case int32:
+		return int(typed)
+	case int64:
+		return int(typed)
+	case float64:
+		return int(typed)
+	default:
+		return 0
+	}
+}
+
+func containsString(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
+}

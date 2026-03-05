@@ -19,14 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeConnectorService_CreateConnector_FullMethodName     = "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector"
-	RuntimeConnectorService_GetConnector_FullMethodName        = "/nimi.runtime.v1.RuntimeConnectorService/GetConnector"
-	RuntimeConnectorService_ListConnectors_FullMethodName      = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors"
-	RuntimeConnectorService_UpdateConnector_FullMethodName     = "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector"
-	RuntimeConnectorService_DeleteConnector_FullMethodName     = "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector"
-	RuntimeConnectorService_TestConnector_FullMethodName       = "/nimi.runtime.v1.RuntimeConnectorService/TestConnector"
-	RuntimeConnectorService_ListConnectorModels_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels"
-	RuntimeConnectorService_ListProviderCatalog_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog"
+	RuntimeConnectorService_CreateConnector_FullMethodName            = "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector"
+	RuntimeConnectorService_GetConnector_FullMethodName               = "/nimi.runtime.v1.RuntimeConnectorService/GetConnector"
+	RuntimeConnectorService_ListConnectors_FullMethodName             = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectors"
+	RuntimeConnectorService_UpdateConnector_FullMethodName            = "/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector"
+	RuntimeConnectorService_DeleteConnector_FullMethodName            = "/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector"
+	RuntimeConnectorService_TestConnector_FullMethodName              = "/nimi.runtime.v1.RuntimeConnectorService/TestConnector"
+	RuntimeConnectorService_ListConnectorModels_FullMethodName        = "/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels"
+	RuntimeConnectorService_ListProviderCatalog_FullMethodName        = "/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog"
+	RuntimeConnectorService_ListModelCatalogProviders_FullMethodName  = "/nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders"
+	RuntimeConnectorService_UpsertModelCatalogProvider_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider"
+	RuntimeConnectorService_DeleteModelCatalogProvider_FullMethodName = "/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider"
 )
 
 // RuntimeConnectorServiceClient is the client API for RuntimeConnectorService service.
@@ -41,6 +44,9 @@ type RuntimeConnectorServiceClient interface {
 	TestConnector(ctx context.Context, in *TestConnectorRequest, opts ...grpc.CallOption) (*TestConnectorResponse, error)
 	ListConnectorModels(ctx context.Context, in *ListConnectorModelsRequest, opts ...grpc.CallOption) (*ListConnectorModelsResponse, error)
 	ListProviderCatalog(ctx context.Context, in *ListProviderCatalogRequest, opts ...grpc.CallOption) (*ListProviderCatalogResponse, error)
+	ListModelCatalogProviders(ctx context.Context, in *ListModelCatalogProvidersRequest, opts ...grpc.CallOption) (*ListModelCatalogProvidersResponse, error)
+	UpsertModelCatalogProvider(ctx context.Context, in *UpsertModelCatalogProviderRequest, opts ...grpc.CallOption) (*UpsertModelCatalogProviderResponse, error)
+	DeleteModelCatalogProvider(ctx context.Context, in *DeleteModelCatalogProviderRequest, opts ...grpc.CallOption) (*DeleteModelCatalogProviderResponse, error)
 }
 
 type runtimeConnectorServiceClient struct {
@@ -131,6 +137,36 @@ func (c *runtimeConnectorServiceClient) ListProviderCatalog(ctx context.Context,
 	return out, nil
 }
 
+func (c *runtimeConnectorServiceClient) ListModelCatalogProviders(ctx context.Context, in *ListModelCatalogProvidersRequest, opts ...grpc.CallOption) (*ListModelCatalogProvidersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListModelCatalogProvidersResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_ListModelCatalogProviders_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) UpsertModelCatalogProvider(ctx context.Context, in *UpsertModelCatalogProviderRequest, opts ...grpc.CallOption) (*UpsertModelCatalogProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertModelCatalogProviderResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_UpsertModelCatalogProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeConnectorServiceClient) DeleteModelCatalogProvider(ctx context.Context, in *DeleteModelCatalogProviderRequest, opts ...grpc.CallOption) (*DeleteModelCatalogProviderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteModelCatalogProviderResponse)
+	err := c.cc.Invoke(ctx, RuntimeConnectorService_DeleteModelCatalogProvider_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeConnectorServiceServer is the server API for RuntimeConnectorService service.
 // All implementations should embed UnimplementedRuntimeConnectorServiceServer
 // for forward compatibility.
@@ -143,6 +179,9 @@ type RuntimeConnectorServiceServer interface {
 	TestConnector(context.Context, *TestConnectorRequest) (*TestConnectorResponse, error)
 	ListConnectorModels(context.Context, *ListConnectorModelsRequest) (*ListConnectorModelsResponse, error)
 	ListProviderCatalog(context.Context, *ListProviderCatalogRequest) (*ListProviderCatalogResponse, error)
+	ListModelCatalogProviders(context.Context, *ListModelCatalogProvidersRequest) (*ListModelCatalogProvidersResponse, error)
+	UpsertModelCatalogProvider(context.Context, *UpsertModelCatalogProviderRequest) (*UpsertModelCatalogProviderResponse, error)
+	DeleteModelCatalogProvider(context.Context, *DeleteModelCatalogProviderRequest) (*DeleteModelCatalogProviderResponse, error)
 }
 
 // UnimplementedRuntimeConnectorServiceServer should be embedded to have
@@ -175,6 +214,15 @@ func (UnimplementedRuntimeConnectorServiceServer) ListConnectorModels(context.Co
 }
 func (UnimplementedRuntimeConnectorServiceServer) ListProviderCatalog(context.Context, *ListProviderCatalogRequest) (*ListProviderCatalogResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListProviderCatalog not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) ListModelCatalogProviders(context.Context, *ListModelCatalogProvidersRequest) (*ListModelCatalogProvidersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListModelCatalogProviders not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) UpsertModelCatalogProvider(context.Context, *UpsertModelCatalogProviderRequest) (*UpsertModelCatalogProviderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertModelCatalogProvider not implemented")
+}
+func (UnimplementedRuntimeConnectorServiceServer) DeleteModelCatalogProvider(context.Context, *DeleteModelCatalogProviderRequest) (*DeleteModelCatalogProviderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteModelCatalogProvider not implemented")
 }
 func (UnimplementedRuntimeConnectorServiceServer) testEmbeddedByValue() {}
 
@@ -340,6 +388,60 @@ func _RuntimeConnectorService_ListProviderCatalog_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeConnectorService_ListModelCatalogProviders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListModelCatalogProvidersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).ListModelCatalogProviders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_ListModelCatalogProviders_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).ListModelCatalogProviders(ctx, req.(*ListModelCatalogProvidersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_UpsertModelCatalogProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertModelCatalogProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).UpsertModelCatalogProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_UpsertModelCatalogProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).UpsertModelCatalogProvider(ctx, req.(*UpsertModelCatalogProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeConnectorService_DeleteModelCatalogProvider_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteModelCatalogProviderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeConnectorServiceServer).DeleteModelCatalogProvider(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeConnectorService_DeleteModelCatalogProvider_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeConnectorServiceServer).DeleteModelCatalogProvider(ctx, req.(*DeleteModelCatalogProviderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeConnectorService_ServiceDesc is the grpc.ServiceDesc for RuntimeConnectorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -378,6 +480,18 @@ var RuntimeConnectorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListProviderCatalog",
 			Handler:    _RuntimeConnectorService_ListProviderCatalog_Handler,
+		},
+		{
+			MethodName: "ListModelCatalogProviders",
+			Handler:    _RuntimeConnectorService_ListModelCatalogProviders_Handler,
+		},
+		{
+			MethodName: "UpsertModelCatalogProvider",
+			Handler:    _RuntimeConnectorService_UpsertModelCatalogProvider_Handler,
+		},
+		{
+			MethodName: "DeleteModelCatalogProvider",
+			Handler:    _RuntimeConnectorService_DeleteModelCatalogProvider_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

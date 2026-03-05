@@ -1,0 +1,179 @@
+schema_version: 1
+provider: dashscope
+catalog_version: 2026-03-05-dashscope-v1
+generated_target: runtime/catalog/providers/dashscope.yaml
+resolution_mode: canonical_with_aliases
+defaults:
+  provider: dashscope
+  model_type: tts
+  capabilities: [tts, llm.speech.synthesize]
+  pricing:
+    unit: char
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-03-05
+    notes: Official document does not provide stable public pricing in a unified schema.
+
+sources:
+  - source_id: dashscope_doc
+    url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+    retrieved_at: 2026-03-05
+    note: dashscope official model documentation
+  - source_id: dashscope_voice_cloning_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
+    retrieved_at: 2026-03-05
+    note: qwen tts voice cloning documentation
+  - source_id: dashscope_voice_design_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
+    retrieved_at: 2026-03-05
+    note: qwen tts voice design documentation
+
+lang_sets:
+  global_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
+  global_short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+
+# voice_sets supports oneOf:
+# - langs_ref: <lang_set_id>
+# - langs: [zh-cn, en-us, ...]
+voice_sets:
+  - voice_set_id: tts_voice_set
+    langs_ref: global_v1
+    source_ids: [dashscope_doc]
+    voices:
+      - Chelsie
+      - Cherry
+      - Dylan
+      - Ethan
+      - Jada
+      - Serena
+      - Sunny
+  - voice_set_id: instruct_flash_voice_set
+    langs_ref: global_v1
+    source_ids: [dashscope_doc]
+    voices:
+      - Arthur
+      - Bella
+      - Bellona
+      - Bunny
+      - Chelsie
+      - Cherry
+      - Ebona
+      - "Eldric Sage"
+      - Elias
+      - Ethan
+      - Kai
+      - Maia
+      - Mia
+      - Mochi
+      - Momo
+      - Moon
+      - Neil
+      - Nini
+      - Nofish
+      - Pip
+      - Seren
+      - Serena
+      - Stella
+      - Vincent
+      - Vivian
+  - voice_set_id: flash_voice_set
+    langs_ref: global_v1
+    source_ids: [dashscope_doc]
+    voices:
+      - Aiden
+      - Alek
+      - Andre
+      - Arthur
+      - Bella
+      - Bellona
+      - Bodega
+      - Bunny
+      - Chelsie
+      - Cherry
+      - Dolce
+      - Dylan
+      - Ebona
+      - "Eldric Sage"
+      - Elias
+      - Emilien
+      - Eric
+      - Ethan
+      - Jada
+      - Jennifer
+      - Kai
+      - Katerina
+      - Kiki
+      - Lenn
+      - Li
+      - Maia
+      - Marcus
+      - Mia
+      - Mochi
+      - Momo
+      - Moon
+      - Neil
+      - Nini
+      - Nofish
+      - "Ono Anna"
+      - Peter
+      - Pip
+      - "Radio Gol"
+      - Rocky
+      - Roy
+      - Ryan
+      - Seren
+      - Serena
+      - Sohee
+      - Sonrisa
+      - Stella
+      - Sunny
+      - Vincent
+      - Vivian
+
+# models supports oneOf:
+# - voice_set_ref: <voice_set_id>
+# - voice_set: { langs_ref|langs, source_ids, voices }
+models:
+  - model_id: qwen-tts
+    updated_at: 2025-04-10
+    voice_set_ref: tts_voice_set
+    aliases:
+      - qwen-tts-2025-04-10
+      - qwen-tts-2025-05-22
+      - qwen-tts-latest
+  - model_id: qwen3-tts-instruct-flash
+    updated_at: 2026-01-26
+    voice_set_ref: instruct_flash_voice_set
+    aliases:
+      - qwen3-tts-instruct-flash-2026-01-26
+  - model_id: qwen3-tts-flash
+    updated_at: 2025-11-27
+    voice_set_ref: flash_voice_set
+    aliases:
+      - qwen3-tts-flash-2025-09-18
+      - qwen3-tts-flash-2025-11-27
+
+# workflow models for dynamic custom voices.
+# these entries describe how custom voice IDs are created.
+custom_voice_workflows:
+  - workflow_id: voice_cloning
+    workflow_model_id: qwen-voice-enrollment
+    mode: voice_to_voice
+    langs_ref: global_short_v1
+    source_ids: [dashscope_voice_cloning_doc]
+    target_models:
+      - qwen3-tts-vc
+      - qwen3-tts-vc-2026-01-22
+  - workflow_id: voice_design
+    workflow_model_id: qwen-voice-design
+    mode: text_to_voice
+    langs_ref: global_short_v1
+    source_ids: [dashscope_voice_design_doc]
+    target_models:
+      - qwen3-tts-vd
+      - qwen3-tts-vd-2026-01-26
+
+overrides:
+  models: []
+  voices: []

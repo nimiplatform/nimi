@@ -21,6 +21,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
+	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 )
@@ -50,6 +51,7 @@ type Service struct {
 	mediaJobs                *mediaJobStore
 	connStore                *connector.ConnectorStore
 	localModel               localModelLister
+	speechCatalog            *catalog.Resolver
 	allowLoopback            bool
 	streamFirstPacketTimeout time.Duration
 }
@@ -69,6 +71,21 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	}
 	svc := newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
 	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
+	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
+		Logger:          logger,
+		CustomDir:       daemonCfg.ModelCatalogCustomDir,
+		RemoteEnabled:   daemonCfg.ModelCatalogRemoteEnabled,
+		RemoteURL:       daemonCfg.ModelCatalogRemoteURL,
+		RefreshInterval: daemonCfg.ModelCatalogRefreshInterval,
+		CachePath:       daemonCfg.ModelCatalogCachePath,
+	})
+	if err != nil {
+		if logger != nil {
+			logger.Warn("speech catalog init failed; fallback to built-in snapshot", "error", err)
+		}
+	} else {
+		svc.speechCatalog = voiceCatalog
+	}
 	return svc
 }
 
@@ -80,7 +97,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 	if perAppConc <= 0 {
 		perAppConc = 2
 	}
-	return &Service{
+	svc := &Service{
 		logger:                   logger,
 		config:                   cfg,
 		selector:                 newRouteSelectorWithRegistry(cfg, registry, aiHealth),
@@ -91,6 +108,13 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		connStore:                connStore,
 		streamFirstPacketTimeout: defaultStreamFirstTimeout,
 	}
+	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{Logger: logger})
+	if err == nil {
+		svc.speechCatalog = voiceCatalog
+	} else if logger != nil {
+		logger.Warn("speech catalog default init failed", "error", err)
+	}
+	return svc
 }
 
 func (s *Service) SetModelRegistryPersistencePath(path string) {
@@ -105,6 +129,12 @@ func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).
 func (s *Service) CloudProvider() *nimillm.CloudProvider {
 	return s.selector.cloudProvider
+}
+
+// SpeechCatalogResolver exposes the runtime speech catalog resolver for other
+// runtime services (for example connector config surfaces).
+func (s *Service) SpeechCatalogResolver() *catalog.Resolver {
+	return s.speechCatalog
 }
 
 func (s *Service) Generate(ctx context.Context, req *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {

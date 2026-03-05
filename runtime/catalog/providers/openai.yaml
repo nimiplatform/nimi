@@ -1,0 +1,122 @@
+version: 1
+provider: openai
+catalog_version: 2026-03-05-openai-v1
+models:
+  - model_id: gpt-audio
+    provider: openai
+    model_type: tts
+    updated_at: "2026-03-05"
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: token
+      input: "unknown"
+      output: "unknown"
+      currency: USD
+      as_of: "2026-03-05"
+      notes: Official pricing differs by tier/model revision.
+    voice_set_id: openai:default-tts-v1
+    source_ref:
+      url: https://platform.openai.com/docs/guides/text-to-speech
+      retrieved_at: "2026-03-05"
+      note: OpenAI text-to-speech documentation
+  - model_id: gpt-audio-mini
+    provider: openai
+    model_type: tts
+    updated_at: "2026-03-05"
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: token
+      input: "unknown"
+      output: "unknown"
+      currency: USD
+      as_of: "2026-03-05"
+      notes: Official pricing differs by tier/model revision.
+    voice_set_id: openai:default-tts-v1
+    source_ref:
+      url: https://platform.openai.com/docs/guides/text-to-speech
+      retrieved_at: "2026-03-05"
+      note: OpenAI text-to-speech documentation
+  - model_id: tts-1
+    provider: openai
+    model_type: tts
+    updated_at: "2026-03-05"
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: token
+      input: "unknown"
+      output: "unknown"
+      currency: USD
+      as_of: "2026-03-05"
+      notes: Legacy TTS model retained for compatibility.
+    voice_set_id: openai:default-tts-v1
+    source_ref:
+      url: https://platform.openai.com/docs/guides/text-to-speech
+      retrieved_at: "2026-03-05"
+      note: OpenAI text-to-speech documentation
+voices:
+  - voice_id: alloy
+    voice_set_id: openai:default-tts-v1
+    provider: openai
+    name: Alloy
+    langs:
+      - en
+      - zh
+      - ja
+      - ko
+      - es
+      - fr
+      - de
+    model_ids:
+      - gpt-audio
+      - gpt-audio-mini
+      - tts-1
+    source_ref:
+      url: https://platform.openai.com/docs/guides/text-to-speech
+      retrieved_at: "2026-03-05"
+      note: OpenAI text-to-speech documentation
+  - voice_id: nova
+    voice_set_id: openai:default-tts-v1
+    provider: openai
+    name: Nova
+    langs:
+      - en
+      - zh
+      - ja
+      - ko
+      - es
+      - fr
+      - de
+    model_ids:
+      - gpt-audio
+      - gpt-audio-mini
+      - tts-1
+    source_ref:
+      url: https://platform.openai.com/docs/guides/text-to-speech
+      retrieved_at: "2026-03-05"
+      note: OpenAI text-to-speech documentation
+  - voice_id: shimmer
+    voice_set_id: openai:default-tts-v1
+    provider: openai
+    name: Shimmer
+    langs:
+      - en
+      - zh
+      - ja
+      - ko
+      - es
+      - fr
+      - de
+    model_ids:
+      - gpt-audio
+      - gpt-audio-mini
+      - tts-1
+    source_ref:
+      url: https://platform.openai.com/docs/guides/text-to-speech
+      retrieved_at: "2026-03-05"
+      note: OpenAI text-to-speech documentation

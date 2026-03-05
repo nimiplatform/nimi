@@ -194,6 +194,167 @@ func (b *Backend) Transcribe(
 	return text, usage, nil
 }
 
+// LocalAIImageCompat captures LocalAI-specific image mapping diagnostics.
+type LocalAIImageCompat struct {
+	LocalAIPrompt  string
+	SourceImage    string
+	RefImagesCount int
+	AppliedOptions []string
+	IgnoredOptions []string
+}
+
+// GenerateImageLocalAI sends a LocalAI-optimized image generation request.
+// It supports the minimal t2i/i2i workflow (file/files/ref_images) and best-effort
+// Nexa parameter compatibility (steps->step, method->mode).
+func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, *LocalAIImageCompat, error) {
+	type imageRequest struct {
+		Model           string         `json:"model"`
+		Prompt          string         `json:"prompt"`
+		NegativePrompt  string         `json:"negative_prompt,omitempty"`
+		N               int32          `json:"n,omitempty"`
+		Size            string         `json:"size,omitempty"`
+		AspectRatio     string         `json:"aspect_ratio,omitempty"`
+		Quality         string         `json:"quality,omitempty"`
+		Style           string         `json:"style,omitempty"`
+		Seed            int64          `json:"seed,omitempty"`
+		Mask            string         `json:"mask,omitempty"`
+		ResponseFormat  string         `json:"response_format,omitempty"`
+		ProviderOptions map[string]any `json:"provider_options,omitempty"`
+		File            string         `json:"file,omitempty"`
+		Files           []string       `json:"files,omitempty"`
+		RefImages       []string       `json:"ref_images,omitempty"`
+		Step            int32          `json:"step,omitempty"`
+		Mode            string         `json:"mode,omitempty"`
+	}
+	type imageResponse struct {
+		Data []struct {
+			B64JSON string `json:"b64_json"`
+			URL     string `json:"url"`
+		} `json:"data"`
+	}
+
+	prompt := ""
+	negativePrompt := ""
+	responseFormat := "b64_json"
+	n := int32(0)
+	size := ""
+	aspectRatio := ""
+	quality := ""
+	style := ""
+	seed := int64(0)
+	mask := ""
+	referenceImages := []string{}
+	providerOptions := map[string]any(nil)
+	if spec != nil {
+		prompt = strings.TrimSpace(spec.GetPrompt())
+		negativePrompt = strings.TrimSpace(spec.GetNegativePrompt())
+		if normalizedFormat := strings.TrimSpace(spec.GetResponseFormat()); normalizedFormat != "" {
+			responseFormat = normalizedFormat
+		}
+		n = spec.GetN()
+		size = strings.TrimSpace(spec.GetSize())
+		aspectRatio = strings.TrimSpace(spec.GetAspectRatio())
+		quality = strings.TrimSpace(spec.GetQuality())
+		style = strings.TrimSpace(spec.GetStyle())
+		seed = spec.GetSeed()
+		mask = strings.TrimSpace(spec.GetMask())
+		providerOptions = StructToMap(spec.GetProviderOptions())
+		for _, image := range spec.GetReferenceImages() {
+			trimmed := strings.TrimSpace(image)
+			if trimmed != "" {
+				referenceImages = append(referenceImages, trimmed)
+			}
+		}
+	}
+
+	localPrompt := prompt
+	if negativePrompt != "" && !strings.Contains(localPrompt, "|") {
+		localPrompt = strings.TrimSpace(localPrompt + "|" + negativePrompt)
+	}
+
+	appliedOptions := make([]string, 0, 2)
+	if step := ValueAsInt32(providerOptions["step"]); step > 0 {
+		appliedOptions = append(appliedOptions, "step")
+	} else if steps := ValueAsInt32(providerOptions["steps"]); steps > 0 {
+		appliedOptions = append(appliedOptions, "steps->step")
+	}
+	if mode := strings.TrimSpace(ValueAsString(providerOptions["mode"])); mode != "" {
+		appliedOptions = append(appliedOptions, "mode")
+	} else if method := strings.TrimSpace(ValueAsString(providerOptions["method"])); method != "" {
+		appliedOptions = append(appliedOptions, "method->mode")
+	}
+
+	ignoredOptions := make([]string, 0, 3)
+	for _, key := range []string{"guidance_scale", "eta", "strength"} {
+		if _, exists := providerOptions[key]; exists {
+			ignoredOptions = append(ignoredOptions, key)
+		}
+	}
+
+	sourceImage := ""
+	refImages := []string(nil)
+	if len(referenceImages) > 0 {
+		sourceImage = referenceImages[0]
+		if len(referenceImages) > 1 {
+			refImages = append([]string(nil), referenceImages[1:]...)
+		}
+	}
+
+	requestBody := imageRequest{
+		Model:           modelID,
+		Prompt:          localPrompt,
+		NegativePrompt:  negativePrompt,
+		N:               n,
+		Size:            size,
+		AspectRatio:     aspectRatio,
+		Quality:         quality,
+		Style:           style,
+		Seed:            seed,
+		Mask:            mask,
+		ResponseFormat:  responseFormat,
+		ProviderOptions: providerOptions,
+	}
+	if sourceImage != "" {
+		requestBody.File = sourceImage
+		requestBody.Files = append([]string(nil), referenceImages...)
+	}
+	if len(refImages) > 0 {
+		requestBody.RefImages = refImages
+	}
+	if step := ValueAsInt32(providerOptions["step"]); step > 0 {
+		requestBody.Step = step
+	} else if steps := ValueAsInt32(providerOptions["steps"]); steps > 0 {
+		requestBody.Step = steps
+	}
+	if mode := strings.TrimSpace(ValueAsString(providerOptions["mode"])); mode != "" {
+		requestBody.Mode = mode
+	} else if method := strings.TrimSpace(ValueAsString(providerOptions["method"])); method != "" {
+		requestBody.Mode = method
+	}
+
+	var respBody imageResponse
+	if err := b.postJSON(ctx, "/v1/images/generations", requestBody, &respBody); err != nil {
+		return nil, nil, nil, err
+	}
+	if len(respBody.Data) == 0 {
+		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	payload, err := b.DecodeMedia(respBody.Data[0].B64JSON, respBody.Data[0].URL)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	compat := &LocalAIImageCompat{
+		LocalAIPrompt:  localPrompt,
+		SourceImage:    sourceImage,
+		RefImagesCount: len(refImages),
+		AppliedOptions: appliedOptions,
+		IgnoredOptions: ignoredOptions,
+	}
+	usage := ArtifactUsage(localPrompt, payload, 180)
+	return payload, usage, compat, nil
+}
+
 // GenerateImage sends an image generation request.
 func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type imageRequest struct {

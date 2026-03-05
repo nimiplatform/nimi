@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sort"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
@@ -30,6 +32,7 @@ type Service struct {
 	audit      *auditlog.Store
 	cloud      *nimillm.CloudProvider
 	localModel localModelLister
+	modelCatalog *aicatalog.Resolver
 
 	modelFetchMu       sync.Mutex
 	modelFetchInFlight map[string]*modelFetchCall
@@ -65,6 +68,11 @@ func (s *Service) SetCloudProvider(cloud *nimillm.CloudProvider) {
 // SetLocalModelLister wires RuntimeLocalRuntimeService for local connector checks.
 func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
+}
+
+// SetModelCatalogResolver wires runtime model/voice catalog management hooks.
+func (s *Service) SetModelCatalogResolver(resolver *aicatalog.Resolver) {
+	s.modelCatalog = resolver
 }
 
 func (s *Service) internalProviderError(operation string, err error) error {
@@ -672,6 +680,118 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 		})
 	}
 	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil
+}
+
+func (s *Service) ListModelCatalogProviders(_ context.Context, _ *runtimev1.ListModelCatalogProvidersRequest) (*runtimev1.ListModelCatalogProvidersResponse, error) {
+	if s.modelCatalog == nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "configure_runtime_model_catalog_custom_dir",
+		})
+	}
+
+	records := s.modelCatalog.ListProviders()
+	entries := make([]*runtimev1.ModelCatalogProviderEntry, 0, len(records))
+	for _, record := range records {
+		entries = append(entries, &runtimev1.ModelCatalogProviderEntry{
+			Provider:       record.Provider,
+			Version:        int32(record.Version),
+			CatalogVersion: record.CatalogVersion,
+			Source:         mapCatalogProviderSource(record.Source),
+			ModelCount:     uint32(record.ModelCount),
+			VoiceCount:     uint32(record.VoiceCount),
+			Yaml:           record.YAML,
+		})
+	}
+	return &runtimev1.ListModelCatalogProvidersResponse{Providers: entries}, nil
+}
+
+func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1.UpsertModelCatalogProviderRequest) (*runtimev1.UpsertModelCatalogProviderResponse, error) {
+	if _, err := requireSubjectUserID(ctx); err != nil {
+		return nil, err
+	}
+	if s.modelCatalog == nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "configure_runtime_model_catalog_custom_dir",
+		})
+	}
+
+	provider := strings.TrimSpace(req.GetProvider())
+	rawYAML := strings.TrimSpace(req.GetYaml())
+	if provider == "" || rawYAML == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+
+	record, err := s.modelCatalog.UpsertCustomProvider(provider, []byte(rawYAML))
+	if err != nil {
+		switch {
+		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
+			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+				ActionHint: "configure_runtime_model_catalog_custom_dir",
+			})
+		case errors.Is(err, aicatalog.ErrProviderUnsupported):
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		default:
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+				ActionHint: "fix_provider_catalog_yaml",
+				Message:    err.Error(),
+			})
+		}
+	}
+
+	return &runtimev1.UpsertModelCatalogProviderResponse{
+		Provider: &runtimev1.ModelCatalogProviderEntry{
+			Provider:       record.Provider,
+			Version:        int32(record.Version),
+			CatalogVersion: record.CatalogVersion,
+			Source:         mapCatalogProviderSource(record.Source),
+			ModelCount:     uint32(record.ModelCount),
+			VoiceCount:     uint32(record.VoiceCount),
+			Yaml:           record.YAML,
+		},
+	}, nil
+}
+
+func (s *Service) DeleteModelCatalogProvider(ctx context.Context, req *runtimev1.DeleteModelCatalogProviderRequest) (*runtimev1.DeleteModelCatalogProviderResponse, error) {
+	if _, err := requireSubjectUserID(ctx); err != nil {
+		return nil, err
+	}
+	if s.modelCatalog == nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "configure_runtime_model_catalog_custom_dir",
+		})
+	}
+
+	provider := strings.TrimSpace(req.GetProvider())
+	if provider == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if err := s.modelCatalog.DeleteCustomProvider(provider); err != nil {
+		switch {
+		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
+			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
+				ActionHint: "configure_runtime_model_catalog_custom_dir",
+			})
+		case errors.Is(err, aicatalog.ErrProviderUnsupported):
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		default:
+			return nil, s.internalProviderError("delete_model_catalog_provider", err)
+		}
+	}
+
+	return &runtimev1.DeleteModelCatalogProviderResponse{
+		Ack: &runtimev1.Ack{Ok: true},
+	}, nil
+}
+
+func mapCatalogProviderSource(source aicatalog.ProviderSource) runtimev1.ModelCatalogProviderSource {
+	switch source {
+	case aicatalog.ProviderSourceCustom:
+		return runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM
+	case aicatalog.ProviderSourceRemote:
+		return runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_REMOTE
+	default:
+		return runtimev1.ModelCatalogProviderSource_MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN
+	}
 }
 
 func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalModelRecord, error) {

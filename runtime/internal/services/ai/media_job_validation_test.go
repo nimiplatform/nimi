@@ -58,6 +58,20 @@ func TestResolveMediaAdapterNameProviderTypeFallback(t *testing.T) {
 		want         string
 	}{
 		{
+			name:         "localai provider + bare model + IMAGE",
+			modelID:      "sdxl-local",
+			modal:        runtimev1.Modal_MODAL_IMAGE,
+			providerType: "localai",
+			want:         adapterLocalAINative,
+		},
+		{
+			name:         "nexa provider + bare model + IMAGE",
+			modelID:      "sdxl-local",
+			modal:        runtimev1.Modal_MODAL_IMAGE,
+			providerType: "nexa",
+			want:         adapterNexaNative,
+		},
+		{
 			name:         "dashscope provider + bare model + TTS",
 			modelID:      "qwen3-tts-instruct-flash-2026-01-26",
 			modal:        runtimev1.Modal_MODAL_TTS,
@@ -105,6 +119,20 @@ func TestResolveMediaAdapterNameProviderTypeFallback(t *testing.T) {
 			modal:        runtimev1.Modal_MODAL_TTS,
 			providerType: "",
 			want:         adapterAlibabaNative,
+		},
+		{
+			name:         "localai prefix works with empty provider",
+			modelID:      "localai/sdxl-local",
+			modal:        runtimev1.Modal_MODAL_IMAGE,
+			providerType: "",
+			want:         adapterLocalAINative,
+		},
+		{
+			name:         "nexa prefix works with empty provider",
+			modelID:      "nexa/sdxl-local",
+			modal:        runtimev1.Modal_MODAL_IMAGE,
+			providerType: "",
+			want:         adapterNexaNative,
 		},
 	}
 	for _, tc := range tests {

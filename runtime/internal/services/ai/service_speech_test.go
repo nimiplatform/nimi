@@ -16,15 +16,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestGetSpeechVoicesReturnsPresets(t *testing.T) {
+func TestGetSpeechVoicesReturnsCatalogVoices(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"nimillm": {BaseURL: "http://example.com", APIKey: "test-key"}},
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
 
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "nimillm/qwen3-tts-instruct-flash",
+		ModelId:       "openai/tts-1",
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 	})
@@ -57,12 +57,20 @@ func TestGetSpeechVoicesDashScopePresets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getSpeechVoices: %v", err)
 	}
-	if len(resp.GetVoices()) != 10 {
-		t.Fatalf("expected 10 DashScope voices, got=%d", len(resp.GetVoices()))
+	if len(resp.GetVoices()) == 0 {
+		t.Fatalf("expected non-empty DashScope catalog voices")
 	}
-	firstVoice := resp.GetVoices()[0]
-	if firstVoice.GetVoiceId() != "Cherry" {
-		t.Fatalf("first voice should be Cherry, got=%s", firstVoice.GetVoiceId())
+	foundCherry := false
+	for _, voice := range resp.GetVoices() {
+		if voice.GetVoiceId() == "Cherry" {
+			foundCherry = true
+		}
+		if voice.GetVoiceId() == "Haruto" {
+			t.Fatalf("DashScope catalog must not include Haruto")
+		}
+	}
+	if !foundCherry {
+		t.Fatalf("expected DashScope catalog to include Cherry")
 	}
 }
 
@@ -89,7 +97,7 @@ func TestGetSpeechVoicesUsesProviderLiveVoicesWhenAvailable(t *testing.T) {
 						"name":            "LiveCherry",
 						"lang":            "zh",
 						"supported_langs": []string{"zh", "en"},
-						"models":          []string{"qwen3-tts-instruct-flash-2026-01-26"},
+						"models":          []string{"tts-1"},
 					},
 				},
 			})
@@ -101,14 +109,14 @@ func TestGetSpeechVoicesUsesProviderLiveVoicesWhenAvailable(t *testing.T) {
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{
-			"dashscope": {BaseURL: server.URL, APIKey: "test-key"},
+			"openai": {BaseURL: server.URL, APIKey: "test-key"},
 		},
 	})
 
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "dashscope/qwen3-tts-instruct-flash-2026-01-26",
+		ModelId:       "openai/tts-1",
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 	})
@@ -145,11 +153,13 @@ func TestGetSpeechVoicesFallsBackToCatalogWhenLiveListingUnsupported(t *testing.
 	if err != nil {
 		t.Fatalf("getSpeechVoices: %v", err)
 	}
-	if len(resp.GetVoices()) != 10 {
-		t.Fatalf("expected 10 fallback catalog voices, got=%d", len(resp.GetVoices()))
+	if len(resp.GetVoices()) == 0 {
+		t.Fatalf("expected non-empty fallback catalog voices")
 	}
-	if resp.GetVoices()[0].GetVoiceId() != "Cherry" {
-		t.Fatalf("expected fallback catalog voice Cherry, got=%q", resp.GetVoices()[0].GetVoiceId())
+	for _, voice := range resp.GetVoices() {
+		if voice.GetVoiceId() == "Haruto" {
+			t.Fatalf("fallback catalog must not include Haruto for DashScope")
+		}
 	}
 }
 
@@ -316,7 +326,7 @@ func TestStreamSpeechSynthesisLargePayloadChunking(t *testing.T) {
 	}
 }
 
-func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
+func TestGetSpeechVoicesVolcengineCatalog(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"volcengine": {BaseURL: "http://example.com", APIKey: "test-key"}},
 	})
@@ -324,7 +334,7 @@ func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
 	resp, err := svc.GetSpeechVoices(context.Background(), &runtimev1.GetSpeechVoicesRequest{
 		AppId:         "nimi.desktop",
 		SubjectUserId: "user-001",
-		ModelId:       "volcengine/tts-model",
+		ModelId:       "volcengine/doubao-tts",
 		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 	})
@@ -336,28 +346,48 @@ func TestGetSpeechVoicesVolcenginePresets(t *testing.T) {
 	}
 }
 
-func TestResolveVoicePresetsUsesProviderTypeForBareModel(t *testing.T) {
-	dashscopeVoices := resolveVoicePresets("qwen3-tts-instruct-flash-2026-01-26", "dashscope")
-	if len(dashscopeVoices) != 10 {
-		t.Fatalf("expected 10 DashScope voices from provider hint, got=%d", len(dashscopeVoices))
+func TestResolveSpeechVoicesVolcengineCatalogForBareModel(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	voices, source, _, err := resolveSpeechVoicesForModelWithProviderType(
+		context.Background(),
+		"doubao-tts",
+		"volcengine",
+		nil,
+		svc.speechCatalog,
+	)
+	if err != nil {
+		t.Fatalf("resolveSpeechVoicesForModelWithProviderType: %v", err)
 	}
-	if dashscopeVoices[0].GetVoiceId() != "Cherry" {
-		t.Fatalf("dashscope first voice should be Cherry, got=%s", dashscopeVoices[0].GetVoiceId())
+	if source != speechVoiceSourceCatalogBuiltin {
+		t.Fatalf("expected catalog source, got=%s", source)
 	}
-
-	volcengineVoices := resolveVoicePresets("tts-model", "volcengine")
-	if len(volcengineVoices) != 2 {
-		t.Fatalf("expected 2 Volcengine voices from provider hint, got=%d", len(volcengineVoices))
+	if len(voices) != 2 {
+		t.Fatalf("expected 2 Volcengine catalog voices, got=%d", len(voices))
 	}
 }
 
-func TestResolveVoicePresetsInfersDashScopeFromQwenTTSModel(t *testing.T) {
-	voices := resolveVoicePresets("qwen3-tts-instruct-flash-2026-01-26", "")
-	if len(voices) != 10 {
-		t.Fatalf("expected 10 DashScope voices for qwen-tts model, got=%d", len(voices))
+func TestResolveSpeechVoicesDashScopeCatalogExcludesHaruto(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	voices, source, _, err := resolveSpeechVoicesForModelWithProviderType(
+		context.Background(),
+		"qwen3-tts-instruct-flash-2026-01-26",
+		"dashscope",
+		nil,
+		svc.speechCatalog,
+	)
+	if err != nil {
+		t.Fatalf("resolveSpeechVoicesForModelWithProviderType: %v", err)
 	}
-	if voices[0].GetVoiceId() != "Cherry" {
-		t.Fatalf("expected Cherry as first DashScope voice, got=%s", voices[0].GetVoiceId())
+	if source != speechVoiceSourceCatalogBuiltin {
+		t.Fatalf("expected dashscope catalog source, got=%s", source)
+	}
+	if len(voices) == 0 {
+		t.Fatalf("expected non-empty dashscope catalog voices")
+	}
+	for _, voice := range voices {
+		if voice.GetVoiceId() == "Haruto" {
+			t.Fatalf("dashscope catalog must not include Haruto")
+		}
 	}
 }
 
