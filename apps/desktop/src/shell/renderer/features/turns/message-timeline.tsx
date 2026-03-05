@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
@@ -21,6 +21,128 @@ function resolveMessageText(message: MessageViewDto): string {
   if (payloadText) return payloadText;
 
   return '';
+}
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function resolveMediaUrl(
+  payload: Record<string, unknown> | null,
+  realmBaseUrl: string,
+  keys: string[],
+): string {
+  if (!payload) {
+    return '';
+  }
+  for (const key of keys) {
+    const value = String(payload[key] || '').trim();
+    if (!value) {
+      continue;
+    }
+    if (/^https?:\/\//i.test(value)) {
+      return value;
+    }
+    if (value.startsWith('/')) {
+      return `${realmBaseUrl}${value}`;
+    }
+  }
+  return '';
+}
+
+function resolveImageMessageUrl(message: MessageViewDto, realmBaseUrl: string): string {
+  const payload = toRecord(message.payload);
+  const directUrl = resolveMediaUrl(
+    payload,
+    realmBaseUrl,
+    ['url', 'imageUrl', 'imageURL', 'src', 'mediaUrl', 'mediaURL'],
+  );
+  if (directUrl) {
+    return directUrl;
+  }
+  const imageId = String(payload?.imageId || payload?.id || '').trim();
+  if (!imageId || !realmBaseUrl) {
+    return '';
+  }
+  return `${realmBaseUrl}/api/media/images/${encodeURIComponent(imageId)}`;
+}
+
+function resolveVideoMessageUrl(message: MessageViewDto, realmBaseUrl: string): string {
+  const payload = toRecord(message.payload);
+  const directUrl = resolveMediaUrl(
+    payload,
+    realmBaseUrl,
+    ['url', 'videoUrl', 'videoURL', 'streamUrl', 'streamURL', 'mediaUrl', 'mediaURL'],
+  );
+  if (directUrl) {
+    return directUrl;
+  }
+  const videoId = String(payload?.videoId || payload?.uid || payload?.id || '').trim();
+  if (!videoId || !realmBaseUrl) {
+    return '';
+  }
+  return `${realmBaseUrl}/api/media/videos/${encodeURIComponent(videoId)}`;
+}
+
+function ChatMessageImage(input: {
+  src: string;
+  alt: string;
+  realmBaseUrl: string;
+  authToken: string;
+}) {
+  const [resolvedSrc, setResolvedSrc] = useState(input.src);
+
+  useEffect(() => {
+    setResolvedSrc(input.src);
+    const normalizedSrc = String(input.src || '').trim();
+    const normalizedBase = String(input.realmBaseUrl || '').trim().replace(/\/$/, '');
+    const token = String(input.authToken || '').trim();
+    if (!normalizedSrc || !normalizedBase || !token || !normalizedSrc.startsWith(`${normalizedBase}/`)) {
+      return;
+    }
+
+    let revokedUrl = '';
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const response = await fetch(normalizedSrc, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          return;
+        }
+        const blob = await response.blob();
+        if (cancelled) {
+          return;
+        }
+        revokedUrl = URL.createObjectURL(blob);
+        setResolvedSrc(revokedUrl);
+      } catch {
+        // Keep original URL fallback when authenticated fetch is unavailable.
+      }
+    };
+    void run();
+
+    return () => {
+      cancelled = true;
+      if (revokedUrl) {
+        URL.revokeObjectURL(revokedUrl);
+      }
+    };
+  }, [input.src, input.realmBaseUrl, input.authToken]);
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={input.alt}
+      className="max-h-[320px] max-w-[260px] rounded-xl object-contain"
+    />
+  );
 }
 
 function getInitial(name: string): string {
@@ -258,8 +380,15 @@ function useStreamState(chatId: string | null): StreamState | null {
 
 export function MessageTimeline() {
   const { t } = useTranslation();
+  const COMPOSER_MIN_HEIGHT = 108;
+  const COMPOSER_MAX_HEIGHT = 340;
+  const [composerHeight, setComposerHeight] = useState(136);
+  const timelineLayoutRef = useRef<HTMLDivElement>(null);
+  const composerResizingRef = useRef(false);
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
+  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
+  const authToken = useAppStore((state) => String(state.auth.token || ''));
   const currentUser = useAppStore((state) => state.auth.user);
   const currentUserId = String(currentUser?.id || '');
   const currentUserAvatarUrl = typeof currentUser?.avatarUrl === 'string' ? currentUser.avatarUrl : null;
@@ -318,6 +447,40 @@ export function MessageTimeline() {
     setProfilePanelTarget(null);
     setExpandedDiagnosticsMessageId(null);
   }, [selectedChatId]);
+
+  useEffect(() => {
+    const onMouseMove = (event: globalThis.MouseEvent) => {
+      if (!composerResizingRef.current || !timelineLayoutRef.current) {
+        return;
+      }
+      const rect = timelineLayoutRef.current.getBoundingClientRect();
+      const nextHeight = Math.min(
+        COMPOSER_MAX_HEIGHT,
+        Math.max(COMPOSER_MIN_HEIGHT, Math.round(rect.bottom - event.clientY)),
+      );
+      setComposerHeight(nextHeight);
+    };
+
+    const onMouseUp = () => {
+      composerResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const startComposerResize = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    composerResizingRef.current = true;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   const toggleProfilePanel = (target: Exclude<ProfilePanelTarget, null>) => {
     setProfilePanelTarget(profilePanelTarget === target ? null : target);
@@ -389,7 +552,7 @@ export function MessageTimeline() {
 
   return (
     <section className="flex h-full min-w-0">
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div ref={timelineLayoutRef} className="flex min-w-0 flex-1 flex-col">
         {/* Chat header */}
         <header className="flex h-14 shrink-0 items-center bg-white px-4">
           {/* Name - clickable to open profile panel */}
@@ -416,6 +579,12 @@ export function MessageTimeline() {
               const messageProfileTarget: Exclude<ProfilePanelTarget, null> = isMe ? 'self' : 'other';
               const showTimestamp = shouldShowTimestamp(message, index > 0 ? (messages[index - 1] ?? null) : null);
               const timestampLabel = showTimestamp ? formatDateSeparator(message.createdAt) : '';
+              const isImageMessage = String(message.type || '').toUpperCase() === 'IMAGE';
+              const isVideoMessage = String(message.type || '').toUpperCase() === 'VIDEO';
+              const isMediaMessage = isImageMessage || isVideoMessage;
+              const avatarMarginTopClass = isMediaMessage ? 'mt-0' : 'mt-1';
+              const imageUrl = isImageMessage ? resolveImageMessageUrl(message, realmBaseUrl) : '';
+              const videoUrl = isVideoMessage ? resolveVideoMessageUrl(message, realmBaseUrl) : '';
               const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
               const diagnostics = extractMessageDiagnostics(message);
               const hasDiagnosticData = Boolean(
@@ -432,13 +601,13 @@ export function MessageTimeline() {
                       <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-500">{timestampLabel}</span>
                     </div>
                   ) : null}
-                <div className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-start gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                   {/* Avatar */}
                   {isMe && currentUserAvatarUrl ? (
                     <button
                       type="button"
                       onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className="mt-1 shrink-0 rounded-full"
+                      className={`${avatarMarginTopClass} shrink-0 rounded-full`}
                       aria-label={profilePanelTarget === messageProfileTarget
                         ? t('ChatTimeline.collapseMyProfile')
                         : t('ChatTimeline.viewMyProfile')}
@@ -449,7 +618,7 @@ export function MessageTimeline() {
                     <button
                       type="button"
                       onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className="mt-1 shrink-0 rounded-full"
+                      className={`${avatarMarginTopClass} shrink-0 rounded-full`}
                       aria-label={profilePanelTarget === messageProfileTarget
                         ? t('ChatTimeline.collapseUserProfile')
                         : t('ChatTimeline.viewUserProfile')}
@@ -460,7 +629,7 @@ export function MessageTimeline() {
                     <button
                       type="button"
                       onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className="mt-1 shrink-0 rounded-full"
+                      className={`${avatarMarginTopClass} shrink-0 rounded-full`}
                       aria-label={profilePanelTarget === messageProfileTarget
                         ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
                         : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
@@ -474,11 +643,13 @@ export function MessageTimeline() {
                   )}
                   {/* Bubble */}
                   <div className={`max-w-[75%] ${isMe ? 'text-right' : ''}`}>
-                    <div className={`inline-block rounded-[18px] px-4 py-2.5 text-[15px] leading-snug ${
-                      isMe
+                    <div className={`inline-block rounded-[18px] text-[15px] leading-snug ${
+                      isMediaMessage
+                        ? 'bg-transparent text-gray-900'
+                        : isMe
                         ? 'bg-[#0066CC] text-white'
                         : 'bg-[#F2F2F7] text-gray-900'
-                    }`}>
+                    } ${isMediaMessage ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}>
                       {diagnostics.interactionKind && (
                         <div className={`mb-1 inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
                           isMe
@@ -488,7 +659,30 @@ export function MessageTimeline() {
                           interaction: {diagnostics.interactionKind}
                         </div>
                       )}
-                      {resolvedMessageText}
+                      {isImageMessage ? (
+                        imageUrl ? (
+                          <ChatMessageImage
+                            src={imageUrl}
+                            alt={t('ChatTimeline.imageMessage', 'Image')}
+                            realmBaseUrl={realmBaseUrl}
+                            authToken={authToken}
+                          />
+                        ) : (
+                          <span>{t('ChatTimeline.imageMessage', 'Image')}</span>
+                        )
+                      ) : isVideoMessage ? (
+                        videoUrl ? (
+                          <video
+                            src={videoUrl}
+                            controls
+                            className="max-h-[320px] max-w-[260px] rounded-xl"
+                          />
+                        ) : (
+                          <span>{t('ChatTimeline.videoMessage', 'Video')}</span>
+                        )
+                      ) : (
+                        resolvedMessageText
+                      )}
 
                       {hasDiagnosticData && (
                         <div className={`mt-2 ${isMe ? 'text-right' : 'text-left'}`}>
@@ -594,7 +788,19 @@ export function MessageTimeline() {
 
           <div ref={bottomRef} />
         </div>
-        <TurnInput />
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize input area"
+          onMouseDown={startComposerResize}
+          className="relative h-2 shrink-0 cursor-row-resize bg-transparent"
+        >
+          <div className="absolute left-0 right-0 top-1/2 h-[0.5px] -translate-y-1/2 bg-gray-100/80" />
+        </div>
+
+        <div className="shrink-0" style={{ height: `${composerHeight}px` }}>
+          <TurnInput className="h-full" showTopBorder={false} />
+        </div>
       </div>
 
       {profilePanelTarget ? (

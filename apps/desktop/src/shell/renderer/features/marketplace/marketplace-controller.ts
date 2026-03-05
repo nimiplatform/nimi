@@ -104,6 +104,7 @@ export type MarketplacePageModel = {
   searchQuery: string;
   filteredMods: MarketplaceMod[];
   pendingAction: MarketplacePendingAction;
+  selectedModId: string | null;
   onSearchQueryChange: (value: string) => void;
   onOpenMod: (modId: string) => void;
   onInstallMod: (modId: string) => void;
@@ -111,11 +112,13 @@ export type MarketplacePageModel = {
   onEnableMod: (modId: string) => void;
   onDisableMod: (modId: string) => void;
   onOpenModSettings: (modId: string) => void;
+  onSelectMod: (modId: string | null) => void;
 };
 
 export function useMarketplacePageModel(): MarketplacePageModel {
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingAction, setPendingAction] = useState<MarketplacePendingAction>(null);
+  const [selectedModId, setSelectedModId] = useState<string | null>(null);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
@@ -151,14 +154,26 @@ export function useMarketplacePageModel(): MarketplacePageModel {
 
   const filteredMods = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    if (!query) return sourceMods;
-    return sourceMods.filter(
-      (mod) =>
-        mod.name.toLowerCase().includes(query) ||
-        mod.description.toLowerCase().includes(query) ||
-        mod.author.toLowerCase().includes(query),
-    );
+    let mods = query
+      ? sourceMods.filter(
+          (mod) =>
+            mod.name.toLowerCase().includes(query) ||
+            mod.description.toLowerCase().includes(query) ||
+            mod.author.toLowerCase().includes(query),
+        )
+      : sourceMods;
+    // Sort: enabled (can open) > installed but disabled > not installed
+    return mods.sort((a, b) => {
+      const aScore = a.isInstalled ? (a.isEnabled ? 2 : 1) : 0;
+      const bScore = b.isInstalled ? (b.isEnabled ? 2 : 1) : 0;
+      if (aScore !== bScore) return bScore - aScore;
+      return a.name.localeCompare(b.name);
+    });
   }, [searchQuery, sourceMods]);
+
+  const onSelectMod = useCallback((modId: string | null) => {
+    setSelectedModId(modId);
+  }, []);
 
   const onOpenMod = useCallback((modId: string) => {
     const normalized = normalizeModId(modId);
@@ -345,6 +360,7 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     searchQuery,
     filteredMods,
     pendingAction,
+    selectedModId,
     onSearchQueryChange: setSearchQuery,
     onOpenMod,
     onInstallMod,
@@ -352,5 +368,6 @@ export function useMarketplacePageModel(): MarketplacePageModel {
     onEnableMod,
     onDisableMod,
     onOpenModSettings,
+    onSelectMod,
   };
 }

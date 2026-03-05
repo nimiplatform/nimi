@@ -71,6 +71,7 @@ export function AuthMenu({
   const desktopCallbackRequest = useMemo(() => resolveDesktopCallbackRequestFromLocation(), []);
   const persistedAuthSession = loadPersistedAuthSession();
   const persistedToken = String(persistedAuthSession?.accessToken || '').trim();
+  
   const desktopCallbackToken = useMemo(() => {
     const tokenFromStore = String(authToken || '').trim();
     if (persistedToken) {
@@ -78,6 +79,7 @@ export function AuthMenu({
     }
     return tokenFromStore;
   }, [authToken, persistedToken]);
+
   const desktopCallbackUser = useMemo(() => {
     const tokenFromStore = String(authToken || '').trim();
     if (persistedToken && tokenFromStore && persistedToken !== tokenFromStore) {
@@ -95,10 +97,12 @@ export function AuthMenu({
     }
     return null;
   }, [authToken, authUser, persistedAuthSession, persistedToken]);
+
   const desktopCallbackUserLabel = useMemo(
     () => getUserDisplayLabel(desktopCallbackUser, t('Auth.currentAccount')),
     [desktopCallbackUser, t],
   );
+
   const initialModalView: AuthView =
     desktopCallbackRequest && (authStatus === 'authenticated' || Boolean(desktopCallbackToken))
       ? 'desktop_authorize'
@@ -127,8 +131,6 @@ export function AuthMenu({
   const twitterOauthConfig = useMemo(() => resolveSocialOauthConfig('TWITTER'), []);
   const tikTokOauthConfig = useMemo(() => resolveSocialOauthConfig('TIKTOK'), []);
 
-  // -- Shared setter/context objects for handler delegation ----------------
-
   const setters: AuthMenuSetters = useMemo(() => ({
     setView,
     setPending,
@@ -148,8 +150,6 @@ export function AuthMenu({
     desktopCallbackUser,
     authToken,
   }), [desktopCallbackRequest, desktopCallbackToken, desktopCallbackUser, authToken]);
-
-  // -- Effects ------------------------------------------------------------
 
   useEffect(() => {
     onLogoHoverChange?.(isHoveringLogo);
@@ -209,7 +209,6 @@ export function AuthMenu({
     };
   }, [desktopCallbackRequest, setAuthSession]);
 
-  // 加载记住的登录凭据
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const remembered = loadRememberedLogin();
@@ -234,7 +233,6 @@ export function AuthMenu({
     setOtpResendCountdown(0);
     setTempToken('');
     setTwoFactorCode('');
-    // Don't reset email/password if they were loaded from remembered login
     const remembered = loadRememberedLogin();
     if (!remembered?.rememberMe) {
       setEmail('');
@@ -257,7 +255,6 @@ export function AuthMenu({
     setOtpResendCountdown(0);
     setTempToken('');
     setTwoFactorCode('');
-    // Don't reset email/password if they were loaded from remembered login
     const remembered = loadRememberedLogin();
     if (!remembered?.rememberMe) {
       setEmail('');

@@ -208,9 +208,15 @@ export function ChatList() {
                 {/* Info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
-                    <p className={`truncate text-[15px] ${active ? 'font-semibold text-gray-900' : 'font-medium text-gray-800'}`}>{title}</p>
+                    <p
+                      className={`min-w-0 flex-1 truncate pr-2 text-[15px] ${
+                        active ? 'font-semibold text-gray-900' : 'font-medium text-gray-800'
+                      }`}
+                    >
+                      {title}
+                    </p>
                     {timeLabel ? (
-                      <span className="shrink-0 text-[12px] text-gray-400">{timeLabel}</span>
+                      <span className="w-10 shrink-0 text-right text-[12px] text-gray-400">{timeLabel}</span>
                     ) : null}
                   </div>
                   <p className={`mt-0.5 truncate text-[14px] leading-5 ${unread > 0 ? 'font-medium text-gray-700' : 'text-gray-500'}`}>

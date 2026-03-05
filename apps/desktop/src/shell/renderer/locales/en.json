@@ -617,10 +617,14 @@
     "components": "Components",
     "files": "Files",
     "moreTools": "More tools",
-    "send": "Send"
+    "send": "Send",
+    "uploadFile": "Upload file",
+    "uploadFailed": "Upload failed",
+    "unsupportedFileType": "Unsupported file type, please upload an image or video"
   },
   "ChatTimeline": {
     "emptyMessage": "(Empty message)",
+    "imageMessage": "Image",
     "myProfile": "My profile",
     "userProfile": "User profile",
     "myProfileLoadError": "Failed to load my profile",

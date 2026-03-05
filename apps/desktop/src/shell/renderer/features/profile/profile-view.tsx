@@ -24,6 +24,7 @@ type ProfileViewProps = {
   addFriendHint?: string | null;
   onSendGift: () => void;
   showMessageButton?: boolean;
+  sidebarStyleVariant?: 'default' | 'agent';
 };
 
 type MediaSelection = {
@@ -181,6 +182,7 @@ export function ProfileView(props: ProfileViewProps) {
   const { profile } = props;
   const friendCount = profile.stats?.friendsCount ?? 0;
   const postCount = profile.stats?.postsCount ?? 0;
+  const useAgentSidebar = props.sidebarStyleVariant === 'agent';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
@@ -196,10 +198,19 @@ export function ProfileView(props: ProfileViewProps) {
             {/* Left Sidebar - Sticky */}
             <div className="w-72 shrink-0">
               <div className="sticky top-6">
-                {/* Combined Profile Card - Glassmorphism */}
-                <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-                  {/* Subtle gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                {/* Combined Profile Card */}
+                <div
+                  className={`relative overflow-hidden ${
+                    useAgentSidebar
+                      ? 'rounded-[24px] bg-white shadow-lg'
+                      : 'rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl'
+                  }`}
+                >
+                  {useAgentSidebar ? (
+                    <div className="h-28 w-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400" />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
+                  )}
                   
                   {/* More Options Menu */}
                   {!props.isOwnProfile && (
@@ -251,15 +262,15 @@ export function ProfileView(props: ProfileViewProps) {
                     </div>
                   )}
                   
-                  <div className="relative flex flex-col items-center">
+                  <div className={`relative flex flex-col items-center ${useAgentSidebar ? '-mt-12 px-6 pb-6' : ''}`}>
                     {/* Avatar with agent glow effect */}
                     <div className="relative">
-                      <div className={`${profile.isAgent ? '' : 'rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1'}`}>
+                      <div className={useAgentSidebar ? 'h-24 w-24 rounded-2xl bg-white p-1 shadow-md' : `${profile.isAgent ? '' : 'rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1'}`}>
                         {profile.avatarUrl ? (
                           <img
                             src={profile.avatarUrl}
                             alt={profile.displayName}
-                            className={`h-24 w-24 rounded-2xl object-cover ${profile.isAgent ? '' : ''}`}
+                            className={`h-24 w-24 object-cover rounded-2xl ${profile.isAgent ? '' : ''}`}
                             style={profile.isAgent ? {
                               boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
                             } : undefined}
@@ -271,9 +282,13 @@ export function ProfileView(props: ProfileViewProps) {
                                 ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
                                 : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#4ECCA3]'
                             }`}
-                            style={profile.isAgent ? {
+                            style={useAgentSidebar ? {
+                              ...(profile.isAgent ? {
+                                boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
+                              } : {})
+                            } : (profile.isAgent ? {
                               boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
-                            } : undefined}
+                            } : undefined)}
                           >
                             {getProfileInitial(profile.displayName)}
                           </div>
@@ -301,7 +316,7 @@ export function ProfileView(props: ProfileViewProps) {
                     )}
 
                     {/* Stats */}
-                    <div className="mt-4 flex items-center gap-8">
+                    <div className={`mt-4 flex items-center ${useAgentSidebar ? 'w-full justify-around rounded-2xl bg-gray-50 px-4 py-4' : 'gap-8'}`}>
                       <div className="text-center">
                         <p className="text-lg font-bold text-gray-800">{friendCount}</p>
                         <p className="text-xs text-gray-500">Friends</p>
@@ -319,7 +334,9 @@ export function ProfileView(props: ProfileViewProps) {
                           type="button"
                           onClick={props.onMessage}
                           title="Chat"
-                          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4ECCA3] text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] transition-all hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95"
+                          className={useAgentSidebar
+                            ? 'flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200 active:scale-95'
+                            : 'flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4ECCA3] text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] transition-all hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95'}
                         >
                           <MessageIcon className="h-5 w-5" />
                         </button>
@@ -329,7 +346,9 @@ export function ProfileView(props: ProfileViewProps) {
                           type="button"
                           onClick={props.onSendGift}
                           title="Send Gift"
-                          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#4ECCA3]/30 bg-white/60 text-[#2A9D8F] backdrop-blur-sm transition-all hover:bg-[#4ECCA3]/10 active:scale-95"
+                          className={useAgentSidebar
+                            ? 'flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200 active:scale-95'
+                            : 'flex h-11 w-11 items-center justify-center rounded-2xl border border-[#4ECCA3]/30 bg-white/60 text-[#2A9D8F] backdrop-blur-sm transition-all hover:bg-[#4ECCA3]/10 active:scale-95'}
                         >
                           <GiftIcon className="h-5 w-5" />
                         </button>

@@ -411,6 +411,7 @@ export function ContactsView(props: ContactsViewProps) {
               }
             }}
             showMessageButton={!selectedContact?.isAgent}
+            sidebarStyleVariant="agent"
           />
         ) : (
           // 空状态 - 显示 Nimi Logo

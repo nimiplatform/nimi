@@ -190,6 +190,19 @@ export function HomeView(props: HomeViewProps) {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Floating Create Post Button */}
+      <button
+        type="button"
+        onClick={() => setCreatePostOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-lg shadow-[#4ECCA3]/30 transition-all duration-200 hover:scale-110 hover:shadow-xl hover:shadow-[#4ECCA3]/40 active:scale-95"
+        aria-label="Create Post"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
     </div>
   );
 }

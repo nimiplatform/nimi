@@ -270,7 +270,7 @@ export function AgentRecommendationCard({
           e.stopPropagation();
           onAddFriend?.();
         }}
-        className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow-sm transition-all hover:scale-110 hover:bg-white"
+        className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-110 hover:bg-mint-600"
         aria-label="Add friend"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -282,20 +282,20 @@ export function AgentRecommendationCard({
       {/* Avatar */}
       <div className="relative mx-auto mb-3 flex justify-center">
         <div
-          className="h-[72px] w-[72px] rounded-full p-0.5 shadow-md"
+          className="h-[72px] w-[72px] rounded-2xl p-0.5 shadow-md"
           style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
           }}
         >
-          <div className="h-full w-full rounded-full bg-white p-0.5">
+          <div className="h-full w-full rounded-2xl bg-white p-0.5">
             {agent.avatarUrl ? (
               <img
                 src={agent.avatarUrl}
                 alt={agent.name}
-                className="h-full w-full rounded-full object-cover"
+                className="h-full w-full rounded-2xl object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100 text-lg font-semibold text-purple-600">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 text-lg font-semibold text-purple-600">
                 {agent.name.charAt(0).toUpperCase()}
               </div>
             )}
@@ -308,6 +308,18 @@ export function AgentRecommendationCard({
       <div className="text-center">
         <h3 className="truncate text-[15px] font-bold text-gray-900 transition-colors group-hover:text-mint-600">{agent.name}</h3>
         <p className="mt-1 truncate text-[12px] font-mono text-gray-500">{agent.handle}</p>
+        
+        {/* World */}
+        {agent.worldName && (
+          <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-gray-400">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+            <span className="truncate max-w-[120px]">{agent.worldName}</span>
+          </div>
+        )}
         
         {/* Badges */}
         <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
@@ -480,10 +492,10 @@ export function TopAgentCard({
         <button
           type="button"
           onClick={onAddFriend}
-          className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition-all hover:scale-105 hover:bg-white hover:shadow-md"
+          className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-105 hover:bg-mint-600 hover:shadow-md"
           aria-label="Add friend"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>

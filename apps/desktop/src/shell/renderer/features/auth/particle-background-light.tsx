@@ -26,7 +26,7 @@ function resolveParticleConfig(profile: ParticleBackgroundProfile) {
     // Web viewport is usually larger; increase density/speed to keep desktop-like perception.
     return {
       ...BASE_PARTICLE_CONFIG,
-      particleCount: 620,
+      particleCount: 1000,
       connectDistance: 118,
       baseSpeed: 0.62,
       mouseRepelRadius: 190,

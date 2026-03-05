@@ -7,6 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { MessageType } from '@nimiplatform/sdk/realm';
 
 // Common emoji categories
 const EMOJI_CATEGORIES = [
@@ -40,7 +41,64 @@ const EMOJI_CATEGORIES = [
   }
 ];
 
-export function TurnInput() {
+async function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  if (typeof createImageBitmap === 'function') {
+    const bitmap = await createImageBitmap(file);
+    try {
+      return {
+        width: Math.max(1, Math.floor(bitmap.width || 0)),
+        height: Math.max(1, Math.floor(bitmap.height || 0)),
+      };
+    } finally {
+      bitmap.close();
+    }
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('image-metadata-read-failed'));
+      img.src = objectUrl;
+    });
+    return {
+      width: Math.max(1, Math.floor(image.naturalWidth || image.width || 0)),
+      height: Math.max(1, Math.floor(image.naturalHeight || image.height || 0)),
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function readVideoMetadata(file: File): Promise<{ width: number; height: number; duration: number }> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const metadata = await new Promise<{ width: number; height: number; duration: number }>((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        resolve({
+          width: Math.max(1, Math.floor(video.videoWidth || 0)),
+          height: Math.max(1, Math.floor(video.videoHeight || 0)),
+          duration: Math.max(0, Math.floor(video.duration || 0)),
+        });
+      };
+      video.onerror = () => reject(new Error('video-metadata-read-failed'));
+      video.src = objectUrl;
+    });
+    return metadata;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+type TurnInputProps = {
+  className?: string;
+  showTopBorder?: boolean;
+};
+
+export function TurnInput(props: TurnInputProps = {}) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const selectedChatId = useAppStore((state) => state.selectedChatId);
@@ -50,9 +108,12 @@ export function TurnInput() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
   const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [pastedImage, setPastedImage] = useState<{ file: File; previewUrl: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const context = useUiExtensionContext();
 
   // Categories per page
@@ -94,6 +155,31 @@ export function TurnInput() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showEmojiPicker]);
+
+  useEffect(() => () => {
+    if (pastedImage) {
+      URL.revokeObjectURL(pastedImage.previewUrl);
+    }
+  }, [pastedImage]);
+
+  const replacePastedImage = (file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    setPastedImage((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous.previewUrl);
+      }
+      return { file, previewUrl };
+    });
+  };
+
+  const clearPastedImage = () => {
+    setPastedImage((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous.previewUrl);
+      }
+      return null;
+    });
+  };
 
   const insertEmoji = (emoji: string) => {
     const textarea = textareaRef.current;
@@ -142,8 +228,160 @@ export function TurnInput() {
     },
   });
 
+  // File upload mutation
+  const uploadFileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!selectedChatId) {
+        throw new Error(t('TurnInput.selectChatFirst'));
+      }
+
+      setIsUploading(true);
+      try {
+        // Determine file type
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+
+        if (!isImage && !isVideo) {
+          throw new Error(t('TurnInput.unsupportedFileType'));
+        }
+
+        // Get direct upload URL
+        let uploadUrl: string;
+        let mediaUid: string;
+
+        if (isImage) {
+          const uploadInfo = await dataSync.createImageDirectUpload();
+          uploadUrl = uploadInfo.uploadUrl;
+          mediaUid = uploadInfo.imageId;
+        } else {
+          const uploadInfo = await dataSync.createVideoDirectUpload();
+          uploadUrl = uploadInfo.uploadURL;
+          mediaUid = uploadInfo.uid;
+        }
+
+        if (!uploadUrl) {
+          throw new Error(t('TurnInput.uploadFailed'));
+        }
+
+        // Upload file to the provided direct-upload endpoint.
+        // Some providers expect multipart POST; others use raw PUT.
+        const formData = new FormData();
+        formData.append('file', file);
+        let uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': file.type,
+            },
+          });
+        }
+
+        if (!uploadResponse.ok) {
+          throw new Error(t('TurnInput.uploadFailed'));
+        }
+
+        // Send message with media payload that realm chat validation expects.
+        if (isImage) {
+          const dimensions = await readImageDimensions(file);
+          await dataSync.sendMessage(selectedChatId, '', {
+            type: 'IMAGE' as MessageType,
+            payload: {
+              imageId: mediaUid,
+              width: dimensions.width,
+              height: dimensions.height,
+            } as unknown as Record<string, never>,
+          });
+        } else {
+          const metadata = await readVideoMetadata(file);
+          await dataSync.sendMessage(selectedChatId, '', {
+            type: 'VIDEO' as MessageType,
+            payload: {
+              videoId: mediaUid,
+              width: metadata.width,
+              height: metadata.height,
+              duration: metadata.duration,
+            } as unknown as Record<string, never>,
+          });
+        }
+
+        return mediaUid;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    onSuccess: async () => {
+      clearPastedImage();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }),
+        queryClient.invalidateQueries({ queryKey: ['chats'] }),
+      ]);
+    },
+    onError: (error) => {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('TurnInput.uploadFailed'),
+      });
+    },
+  });
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadFileMutation.mutate(file);
+    }
+    // Reset input so the same file can be selected again
+    event.target.value = '';
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));
+    if (!imageItem) {
+      return;
+    }
+    const file = imageItem.getAsFile();
+    if (!file) {
+      return;
+    }
+    event.preventDefault();
+    replacePastedImage(file);
+  };
+
+  const canSend = Boolean(selectedChatId)
+    && !sendMutation.isPending
+    && !isUploading
+    && (Boolean(text.trim()) || Boolean(pastedImage));
+
+  const handleSend = () => {
+    if (!selectedChatId || sendMutation.isPending || isUploading) {
+      return;
+    }
+    if (pastedImage) {
+      uploadFileMutation.mutate(pastedImage.file);
+      if (text.trim()) {
+        sendMutation.mutate();
+      }
+      return;
+    }
+    if (text.trim()) {
+      sendMutation.mutate();
+    }
+  };
+
   return (
-    <section className="border-t border-gray-100 bg-white px-4 pb-4 pt-3 relative">
+    <section
+      className={`${props.showTopBorder === false ? '' : 'border-t border-gray-100 '}relative flex h-full flex-col bg-white px-4 pb-4 pt-3 ${props.className || ''}`}
+    >
       {/* Emoji Picker Popup */}
       {showEmojiPicker && (
         <div
@@ -220,11 +458,35 @@ export function TurnInput() {
       )}
 
       {/* Input container with border */}
-      <div className="relative rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
+      <div className="relative flex h-full flex-col rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
+        {pastedImage ? (
+          <div className="mb-2 inline-block">
+            <div className="relative inline-block">
+              <img
+                src={pastedImage.previewUrl}
+                alt="Pasted image"
+                className="block h-16 w-16 rounded-lg object-cover"
+              />
+              <button
+                type="button"
+                onClick={clearPastedImage}
+                className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/80"
+                aria-label="Remove attachment"
+                title="Remove attachment"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {/* Input area */}
         <textarea
           ref={textareaRef}
-          className="min-h-[44px] w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-5 text-gray-900 outline-none placeholder:text-gray-400"
+          className="min-h-[44px] flex-1 w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-5 text-gray-900 outline-none placeholder:text-gray-400"
           rows={2}
           placeholder={t('TurnInput.typeMessage')}
           value={text}
@@ -232,6 +494,7 @@ export function TurnInput() {
           onChange={(event) => setText(event.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          onPaste={handlePaste}
           onKeyDown={(event) => {
             if (event.key !== 'Enter' || event.shiftKey) {
               return;
@@ -240,14 +503,12 @@ export function TurnInput() {
               return;
             }
             event.preventDefault();
-            if (text.trim() && selectedChatId && !sendMutation.isPending) {
-              sendMutation.mutate();
-            }
+            handleSend();
           }}
         />
 
         {/* Toolbar row */}
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2 mt-auto flex items-center justify-between">
           <div className="flex items-center gap-1">
             <button
               ref={emojiButtonRef}
@@ -268,6 +529,34 @@ export function TurnInput() {
               </svg>
             </button>
 
+            {/* File upload button */}
+            <button
+              type="button"
+              onClick={handleUploadClick}
+              disabled={!selectedChatId || isUploading}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200/50 hover:text-gray-700 disabled:opacity-40"
+              aria-label={t('TurnInput.uploadFile')}
+              title={t('TurnInput.uploadFile')}
+            >
+              {isUploading ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                </svg>
+              )}
+            </button>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-hidden="true"
+            />
+
             {flags.enableModUi ? (
               <SlotHost slot="chat.turn.input.toolbar" base={null} context={context} />
             ) : null}
@@ -276,14 +565,10 @@ export function TurnInput() {
           {/* Send button */}
           <button
             type="button"
-            onClick={() => {
-              if (text.trim() && selectedChatId && !sendMutation.isPending) {
-                sendMutation.mutate();
-              }
-            }}
-            disabled={!text.trim() || !selectedChatId || sendMutation.isPending}
+            onClick={handleSend}
+            disabled={!canSend}
             className={`flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm transition-all hover:bg-[#0052A3] disabled:opacity-40 disabled:cursor-not-allowed ${
-              isFocused && text.trim() 
+              isFocused && (text.trim() || pastedImage)
                 ? 'bg-[#0066CC] shadow-[0_0_12px_rgba(0,102,204,0.5)] scale-105' 
                 : 'bg-[#0066CC]/70'
             }`}

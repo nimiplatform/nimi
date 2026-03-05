@@ -221,36 +221,7 @@ export function ExploreView(props: ExploreViewProps) {
             </section>
           )}
 
-          {/* Category Chips */}
-          <section className="mb-10 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => props.onToggleCategory('')}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                props.selectedCategory === null
-                  ? 'bg-mint-500 text-white shadow-sm'
-                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              All
-            </button>
-            {props.categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => props.onToggleCategory(cat)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  props.selectedCategory === cat
-                    ? 'bg-mint-500 text-white shadow-sm'
-                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </section>
-
-          <section>
+          <section className="mt-10">
             <h2 className="mb-4 text-[19px] font-semibold leading-7 text-gray-900" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif' }}>
               Dynamic Feed
             </h2>

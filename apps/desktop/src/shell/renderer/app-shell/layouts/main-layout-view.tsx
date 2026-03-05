@@ -210,10 +210,57 @@ function SidebarTooltipButton({
 }
 
 function ChatLayout() {
+  const MIN_CHAT_LIST_WIDTH = 240;
+  const MAX_CHAT_LIST_WIDTH = 460;
+  const [chatListWidth, setChatListWidth] = useState(280);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
+
+  useEffect(() => {
+    const onMouseMove = (event: globalThis.MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) {
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const nextWidth = Math.min(
+        MAX_CHAT_LIST_WIDTH,
+        Math.max(MIN_CHAT_LIST_WIDTH, Math.round(event.clientX - rect.left)),
+      );
+      setChatListWidth(nextWidth);
+    };
+
+    const onMouseUp = () => {
+      resizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const startResize = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
   return (
-    <div className="flex min-h-0 flex-1">
-      <div className="w-[280px] shrink-0 border-r border-gray-200 bg-white">
+    <div ref={containerRef} className="flex min-h-0 flex-1">
+      <div className="relative shrink-0 bg-white" style={{ width: `${chatListWidth}px` }}>
         <ChatList />
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize chat list"
+          onMouseDown={startResize}
+          className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
+        />
       </div>
       <div className="flex min-w-0 flex-1 flex-col bg-white">
         <MessageTimeline />
@@ -482,21 +529,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   onClick={() => props.onNav(item.id)}
                 />
               ))}
-              {/* Create Post Button - Middle of sidebar */}
-              <div className="py-3 px-2">
-                <SidebarTooltipButton
-                  label={t('Common.createPost')}
-                  onClick={openCreatePostFromTitlebar}
-                  className="flex h-11 w-full items-center justify-center text-gray-400 transition-colors hover:bg-mint-100 hover:text-gray-600 rounded-[10px]"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#4ECCA3] text-white shadow-sm transition hover:bg-[#3DBA92]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </span>
-                </SidebarTooltipButton>
-              </div>
               {flags.enableModUi ? (
                 <NavLink
                   item={modsNavItem}

@@ -18,7 +18,7 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
   if (placement === 'titlebar') {
     return (
       <div className="h-full max-w-full overflow-x-auto">
-        <div className="inline-flex h-full min-w-max items-stretch">
+        <div className="inline-flex h-full min-w-max items-stretch gap-1 px-2">
           {modWorkspaceTabs.map((tab) => {
             const active = tab.tabId === activeTab;
             return (
@@ -27,20 +27,20 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                 type="button"
                 data-mod-tab-interactive="true"
                 onClick={() => setActiveTab(tab.tabId)}
-                className={`group relative flex h-full items-center gap-2 px-3.5 text-[12px] font-medium transition-colors ${
+                className={`group relative mt-1.5 mb-1.5 flex h-9 items-center gap-2 rounded-lg border px-3 text-[13px] font-medium transition-all ${
                   active
-                    ? 'bg-white/24 text-[#0a4a3f]'
-                    : 'bg-transparent text-[#0d5f51]/86 hover:bg-white/16 hover:text-[#083f36]'
+                    ? 'border-white/60 bg-white/90 text-[#0a4a3f] shadow-sm'
+                    : 'border-white/20 bg-white/20 text-[#0b4f43] hover:bg-white/35 hover:border-white/40'
                 }`}
               >
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${
-                    active ? 'bg-[#0ea68b]' : 'border border-white/34'
+                    active ? 'bg-[#0ea68b]' : 'bg-[#0a4a3f]/40'
                   }`}
                 />
-                <span className="max-w-40 truncate">{tab.title}</span>
+                <span className="max-w-36 truncate">{tab.title}</span>
                 {tab.fused ? (
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-600">
+                  <span className="rounded bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                     CRASH
                   </span>
                 ) : null}
@@ -59,10 +59,10 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                       closeModWorkspaceTab(tab.tabId);
                     }
                   }}
-                  className={`ml-0.5 flex h-4 w-4 items-center justify-center rounded text-[12px] leading-none transition-colors ${
+                  className={`ml-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[14px] leading-none transition-colors ${
                     active
-                      ? 'text-[#0d5b4d]/80 hover:bg-white/36 hover:text-[#083f36]'
-                      : 'text-[#0b5b4d]/68 hover:bg-white/22 hover:text-[#083f36]'
+                      ? 'text-[#0d5b4d]/70 hover:bg-[#0a4a3f]/10 hover:text-[#0a4a3f]'
+                      : 'text-[#0b5b4d]/60 hover:bg-white/30 hover:text-[#0a4a3f]'
                   }`}
                   aria-label={`Close ${tab.title}`}
                 >

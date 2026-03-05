@@ -617,10 +617,14 @@
     "components": "组件",
     "files": "文件",
     "moreTools": "更多工具",
-    "send": "发送"
+    "send": "发送",
+    "uploadFile": "上传文件",
+    "uploadFailed": "上传失败",
+    "unsupportedFileType": "不支持的文件类型，请上传图片或视频"
   },
   "ChatTimeline": {
     "emptyMessage": "(空消息)",
+    "imageMessage": "图片",
     "myProfile": "我的简介",
     "userProfile": "用户简介",
     "myProfileLoadError": "我的简介加载失败",

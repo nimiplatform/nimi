@@ -512,10 +512,10 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
               <span className="text-sm text-[#4ECCA3] font-medium">World Agents</span>
             </div>
 
-            {/* Agent Grid - horizontal layout */}
-            <div className="flex gap-4 overflow-x-auto pb-2">
+            {/* Agent Grid - 4 columns per row */}
+            <div className="grid grid-cols-4 gap-4">
               {props.agentsLoading ? (
-                <div className="flex-1 py-16 flex flex-col items-center justify-center gap-2">
+                <div className="col-span-4 py-16 flex flex-col items-center justify-center gap-2">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#4ECCA3]/30 border-t-[#4ECCA3]" />
                   <span className="text-xs text-[#e8f5ee]/40">Loading agents...</span>
                 </div>
@@ -523,7 +523,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                 props.agents.map((agent) => (
                   <article
                     key={agent.id}
-                    className="relative flex-shrink-0 w-[280px] p-4 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10 overflow-hidden"
+                    className="relative w-full min-w-0 p-4 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10 overflow-hidden"
                   >
                     {/* Agent header */}
                     <div className="flex items-start gap-3 mb-3">
@@ -561,7 +561,7 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                   </article>
                 ))
               ) : (
-                <div className="flex-1 py-16 flex flex-col items-center justify-center text-center">
+                <div className="col-span-4 py-16 flex flex-col items-center justify-center text-center">
                   <div className="w-16 h-16 mb-4 rounded-full bg-[#4ECCA3]/10 border border-[#4ECCA3]/20 flex items-center justify-center">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ECCA3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
