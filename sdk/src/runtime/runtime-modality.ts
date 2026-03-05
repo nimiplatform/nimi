@@ -2,6 +2,7 @@ import { ReasonCode } from '../types/index.js';
 import { createNimiError } from './errors.js';
 import {
   RoutePolicy,
+  SpeechTimingMode,
   type ArtifactChunk,
   type GetSpeechVoicesRequest,
   type MediaJob,
@@ -240,6 +241,16 @@ export async function runtimeStreamSpeechSynthesis(
       pitch: Number(input.pitch || 0),
       volume: Number(input.volume || 0),
       emotion: normalizeText(input.emotion),
+      timingMode: toSpeechTimingMode(input.timingMode),
+      voiceRenderHints: input.voiceRenderHints
+        ? {
+          stability: Number(input.voiceRenderHints.stability || 0),
+          similarityBoost: Number(input.voiceRenderHints.similarityBoost || 0),
+          style: Number(input.voiceRenderHints.style || 0),
+          useSpeakerBoost: Boolean(input.voiceRenderHints.useSpeakerBoost),
+          speed: Number(input.voiceRenderHints.speed || 0),
+        }
+        : undefined,
       providerOptions: toProtoStruct(input.providerOptions),
     },
     routePolicy: toRoutePolicy(input.route),
@@ -255,6 +266,19 @@ export async function runtimeStreamSpeechSynthesis(
       metadata: input.metadata,
     }),
   ));
+}
+
+function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechTimingMode {
+  switch (value) {
+    case 'word':
+      return SpeechTimingMode.WORD;
+    case 'char':
+      return SpeechTimingMode.CHAR;
+    case 'none':
+      return SpeechTimingMode.NONE;
+    default:
+      return SpeechTimingMode.UNSPECIFIED;
+  }
 }
 
 export function streamArtifactsFromMediaOutput(

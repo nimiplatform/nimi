@@ -422,15 +422,40 @@ export function createVideoModel(
             videoSpec: {
               prompt: normalizeText(options.prompt),
               negativePrompt: normalizeText(options.negativePrompt),
-              durationSec: Number(options.durationSec || 0),
-              fps: Number(options.fps || 0),
-              resolution: normalizeText(options.resolution),
-              aspectRatio: normalizeText(options.aspectRatio),
-              seed: Number(options.seed || 0),
-              firstFrameUri: normalizeText(options.firstFrameUri),
-              lastFrameUri: normalizeText(options.lastFrameUri),
-              cameraMotion: normalizeText(options.cameraMotion),
-              providerOptions: toProtoStruct(options.providerOptions),
+              mode: toVideoModeValue(options.mode),
+              content: Array.isArray(options.content)
+                ? options.content.map((entry) => {
+                  if (entry.type === 'text') {
+                    return {
+                      type: 1,
+                      role: toVideoRoleValue(entry.role || 'prompt'),
+                      text: normalizeText(entry.text),
+                      imageUrl: undefined,
+                    };
+                  }
+                  return {
+                    type: 2,
+                    role: toVideoRoleValue(entry.role),
+                    text: '',
+                    imageUrl: { url: normalizeText(entry.imageUrl) },
+                  };
+                })
+                : [],
+              options: {
+                resolution: normalizeText(options.options?.resolution),
+                ratio: normalizeText(options.options?.ratio),
+                durationSec: Number(options.options?.durationSec || 0),
+                frames: Number(options.options?.frames || 0),
+                fps: Number(options.options?.fps || 0),
+                seed: Number(options.options?.seed || 0),
+                cameraFixed: Boolean(options.options?.cameraFixed),
+                watermark: Boolean(options.options?.watermark),
+                generateAudio: Boolean(options.options?.generateAudio),
+                draft: Boolean(options.options?.draft),
+                serviceTier: normalizeText(options.options?.serviceTier),
+                executionExpiresAfterSec: Number(options.options?.executionExpiresAfterSec || 0),
+                returnLastFrame: Boolean(options.options?.returnLastFrame),
+              },
             },
           },
         }, timeoutMs, options.signal);
@@ -442,6 +467,36 @@ export function createVideoModel(
       }
     },
   };
+}
+
+function toVideoModeValue(value: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference'): number {
+  switch (value) {
+    case 't2v':
+      return 1;
+    case 'i2v-first-frame':
+      return 2;
+    case 'i2v-first-last':
+      return 3;
+    case 'i2v-reference':
+      return 4;
+    default:
+      return 0;
+  }
+}
+
+function toVideoRoleValue(value: 'prompt' | 'first_frame' | 'last_frame' | 'reference_image'): number {
+  switch (value) {
+    case 'prompt':
+      return 1;
+    case 'first_frame':
+      return 2;
+    case 'last_frame':
+      return 3;
+    case 'reference_image':
+      return 4;
+    default:
+      return 0;
+  }
 }
 
 export function createSpeechModel(

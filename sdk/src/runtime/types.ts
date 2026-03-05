@@ -632,18 +632,38 @@ export type ImageGenerateInput = {
 };
 
 export type VideoGenerateInput = {
+  mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
   model: string;
-  prompt: string;
+  prompt?: string;
   subjectUserId?: string;
   negativePrompt?: string;
-  durationSec?: number;
-  fps?: number;
-  resolution?: string;
-  aspectRatio?: string;
-  seed?: number;
-  firstFrameUri?: string;
-  lastFrameUri?: string;
-  cameraMotion?: string;
+  content: Array<
+    | {
+      type: 'text';
+      role?: 'prompt';
+      text: string;
+    }
+    | {
+      type: 'image_url';
+      role: 'first_frame' | 'last_frame' | 'reference_image';
+      imageUrl: string;
+    }
+  >;
+  options?: {
+    resolution?: string;
+    ratio?: string;
+    durationSec?: number;
+    frames?: number;
+    fps?: number;
+    seed?: number;
+    cameraFixed?: boolean;
+    watermark?: boolean;
+    generateAudio?: boolean;
+    draft?: boolean;
+    serviceTier?: string;
+    executionExpiresAfterSec?: number;
+    returnLastFrame?: boolean;
+  };
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -652,7 +672,6 @@ export type VideoGenerateInput = {
   idempotencyKey?: string;
   requestId?: string;
   labels?: Record<string, string>;
-  providerOptions?: Record<string, unknown>;
   signal?: AbortSignal;
 };
 
@@ -668,6 +687,14 @@ export type SpeechSynthesizeInput = {
   pitch?: number;
   volume?: number;
   emotion?: string;
+  timingMode?: 'none' | 'word' | 'char';
+  voiceRenderHints?: {
+    stability?: number;
+    similarityBoost?: number;
+    style?: number;
+    useSpeakerBoost?: boolean;
+    speed?: number;
+  };
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -765,6 +792,14 @@ export type SpeechStreamSynthesisInput = {
   pitch?: number;
   volume?: number;
   emotion?: string;
+  timingMode?: 'none' | 'word' | 'char';
+  voiceRenderHints?: {
+    stability?: number;
+    similarityBoost?: number;
+    style?: number;
+    useSpeakerBoost?: boolean;
+    speed?: number;
+  };
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;

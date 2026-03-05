@@ -15,6 +15,40 @@ import type {
 } from '../speech';
 import type { HookSourceType } from './shared';
 
+type HookVideoMode =
+  | 't2v'
+  | 'i2v-first-frame'
+  | 'i2v-first-last'
+  | 'i2v-reference';
+
+type HookVideoContentItem =
+  | {
+    type: 'text';
+    role?: 'prompt';
+    text: string;
+  }
+  | {
+    type: 'image_url';
+    role: 'first_frame' | 'last_frame' | 'reference_image';
+    imageUrl: string;
+  };
+
+type HookVideoOptions = {
+  resolution?: string;
+  ratio?: string;
+  durationSec?: number;
+  frames?: number;
+  fps?: number;
+  seed?: number;
+  cameraFixed?: boolean;
+  watermark?: boolean;
+  generateAudio?: boolean;
+  draft?: boolean;
+  serviceTier?: string;
+  executionExpiresAfterSec?: number;
+  returnLastFrame?: boolean;
+};
+
 export type RuntimeHookLlmFacade = {
   generateModText: (input: {
     modId: string;
@@ -79,9 +113,12 @@ export type RuntimeHookLlmFacade = {
     modId: string;
     sourceType?: HookSourceType;
     provider: string;
-    prompt: string;
+    mode: HookVideoMode;
+    prompt?: string;
+    negativePrompt?: string;
     model?: string;
-    durationSeconds?: number;
+    content: HookVideoContentItem[];
+    options?: HookVideoOptions;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
@@ -234,9 +271,12 @@ export type HookLlmClient = {
   video: {
     generate: (input: {
       provider: string;
-      prompt: string;
+      mode: HookVideoMode;
+      prompt?: string;
+      negativePrompt?: string;
       model?: string;
-      durationSeconds?: number;
+      content: HookVideoContentItem[];
+      options?: HookVideoOptions;
       localProviderEndpoint?: string;
       localProviderModel?: string;
       localOpenAiEndpoint?: string;

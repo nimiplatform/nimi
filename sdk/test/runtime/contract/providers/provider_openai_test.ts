@@ -192,7 +192,18 @@ test('provider_openai_test.ts: video uses /v1/videos/generations fallback path',
         });
 
         const video = await provider.video('localai/vid-model').generate({
+          mode: 't2v',
           prompt: 'drive on mars',
+          content: [
+            {
+              type: 'text',
+              role: 'prompt',
+              text: 'drive on mars',
+            },
+          ],
+          options: {
+            durationSec: 5,
+          },
         });
 
         assert.equal(video.artifacts.length, 1);
@@ -247,7 +258,18 @@ test('provider_openai_test.ts: video unsupported returns strict fail-close', {
         let thrown: unknown = null;
         try {
           await provider.video('localai/vid-model').generate({
+            mode: 't2v',
             prompt: 'unsupported video endpoint',
+            content: [
+              {
+                type: 'text',
+                role: 'prompt',
+                text: 'unsupported video endpoint',
+              },
+            ],
+            options: {
+              durationSec: 5,
+            },
           });
         } catch (error) {
           thrown = error;

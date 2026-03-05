@@ -123,9 +123,12 @@ export function createLlmClient(input: {
     video: {
       generate: async ({
         provider,
+        mode,
         prompt,
+        negativePrompt,
         model,
-        durationSeconds,
+        content,
+        options,
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,
@@ -133,9 +136,12 @@ export function createLlmClient(input: {
       }) => input.runtime.generateModVideo({
         modId: input.modId,
         provider,
+        mode,
         prompt,
+        negativePrompt,
         model,
-        durationSeconds,
+        content,
+        options,
         localProviderEndpoint,
         localProviderModel,
         localOpenAiEndpoint,

@@ -219,9 +219,12 @@ export function createAiClient(modId: string, context?: ModRuntimeContextInput):
       const payload = routeRuntimePayload(route);
       const result = await runtime.generateModVideo({
         modId: normalizedModId,
+        mode: input.mode,
         prompt: input.prompt,
+        negativePrompt: input.negativePrompt,
         model: input.model,
-        durationSeconds: input.durationSeconds,
+        content: input.content,
+        options: input.options,
         ...payload,
       });
       return {

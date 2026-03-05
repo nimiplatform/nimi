@@ -216,7 +216,18 @@ test('provider_local_test.ts: nexa modalities + video fail-close via nimi-sdk', 
         let videoError: unknown = null;
         try {
           await provider.video('nexa/video').generate({
+            mode: 't2v',
             prompt: 'unsupported',
+            content: [
+              {
+                type: 'text',
+                role: 'prompt',
+                text: 'unsupported',
+              },
+            ],
+            options: {
+              durationSec: 5,
+            },
           });
         } catch (error) {
           videoError = error;

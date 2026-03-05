@@ -747,7 +747,16 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
   assert.equal(nimiError.retryable, true);
 
   const video = await nimi.video('video/default').generate({
+    mode: 't2v',
     prompt: 'create video',
+    content: [{
+      type: 'text',
+      role: 'prompt',
+      text: 'create video',
+    }],
+    options: {
+      durationSec: 5,
+    },
   });
   assert.equal(video.artifacts.length, 1);
   assert.equal(video.artifacts[0]?.routeDecision, 'token-api');
@@ -802,7 +811,16 @@ test('createNimiAiProvider abort signal cancels media job before throwing', asyn
   });
   await assert.rejects(async () => {
     await nimi.video('video/default').generate({
+      mode: 't2v',
       prompt: 'cancel me',
+      content: [{
+        type: 'text',
+        role: 'prompt',
+        text: 'cancel me',
+      }],
+      options: {
+        durationSec: 5,
+      },
       signal: abortController.signal,
     });
   });
@@ -850,7 +868,16 @@ test('createNimiAiProvider forwards requestId/idempotencyKey/labels to submitMed
     subjectUserId: SUBJECT_USER_ID,
   });
   await nimi.video('video/default').generate({
+    mode: 't2v',
     prompt: 'meta',
+    content: [{
+      type: 'text',
+      role: 'prompt',
+      text: 'meta',
+    }],
+    options: {
+      durationSec: 5,
+    },
     requestId: 'req-001',
     idempotencyKey: 'idem-001',
     labels: {

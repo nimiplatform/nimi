@@ -63,10 +63,47 @@ export type AiGenerateImageResult = {
   route: ResolvedRuntimeRouteBinding;
 };
 
+export type AiVideoMode =
+  | 't2v'
+  | 'i2v-first-frame'
+  | 'i2v-first-last'
+  | 'i2v-reference';
+
+export type AiVideoContentItem =
+  | {
+    type: 'text';
+    role?: 'prompt';
+    text: string;
+  }
+  | {
+    type: 'image_url';
+    role: 'first_frame' | 'last_frame' | 'reference_image';
+    imageUrl: string;
+  };
+
+export type AiVideoOptions = {
+  resolution?: string;
+  ratio?: string;
+  durationSec?: number;
+  frames?: number;
+  fps?: number;
+  seed?: number;
+  cameraFixed?: boolean;
+  watermark?: boolean;
+  generateAudio?: boolean;
+  draft?: boolean;
+  serviceTier?: string;
+  executionExpiresAfterSec?: number;
+  returnLastFrame?: boolean;
+};
+
 export type AiGenerateVideoRequest = AiRouteInput & {
-  prompt: string;
+  mode: AiVideoMode;
+  prompt?: string;
+  negativePrompt?: string;
   model?: string;
-  durationSeconds?: number;
+  content: AiVideoContentItem[];
+  options?: AiVideoOptions;
 };
 
 export type AiGenerateVideoResult = {

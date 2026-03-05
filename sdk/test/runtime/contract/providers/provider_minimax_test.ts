@@ -165,7 +165,18 @@ test('provider_minimax_test.ts: minimax image/video task via nimi-sdk', {
         assert.equal(imageResult.images[0], Buffer.from('minimax-image-bytes', 'utf8').toString('base64'));
 
         const videoResult = await provider.video('minimax/video-1').generate({
+          mode: 't2v',
           prompt: 'sea sunset',
+          content: [
+            {
+              type: 'text',
+              role: 'prompt',
+              text: 'sea sunset',
+            },
+          ],
+          options: {
+            durationSec: 6,
+          },
         });
         assert.equal(videoResult.artifacts.length, 1);
         assert.equal(

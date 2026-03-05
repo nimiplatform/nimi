@@ -3,6 +3,10 @@ import { createNimiError } from './errors.js';
 import {
   MediaJobStatus,
   Modal,
+  SpeechTimingMode,
+  VideoContentRole,
+  VideoContentType,
+  VideoMode,
   type CancelMediaJobRequest,
   type MediaJob,
   type MediaJobEvent,
@@ -196,6 +200,25 @@ export async function runtimeBuildSubmitMediaJobRequest(
 
   if (input.modal === 'video') {
     const value = input.input as VideoGenerateInput;
+    const options = value.options || {};
+    const videoContent = Array.isArray(value.content)
+      ? value.content.map((entry) => {
+        if (entry.type === 'text') {
+          return {
+            type: VideoContentType.TEXT,
+            role: toVideoContentRole(entry.role || 'prompt'),
+            text: normalizeText(entry.text),
+            imageUrl: undefined,
+          };
+        }
+        return {
+          type: VideoContentType.IMAGE_URL,
+          role: toVideoContentRole(entry.role),
+          text: '',
+          imageUrl: { url: normalizeText(entry.imageUrl) },
+        };
+      })
+      : [];
     return {
       ...base,
       modal: Modal.VIDEO,
@@ -204,15 +227,23 @@ export async function runtimeBuildSubmitMediaJobRequest(
         videoSpec: {
           prompt: normalizeText(value.prompt),
           negativePrompt: normalizeText(value.negativePrompt),
-          durationSec: Number(value.durationSec || 0),
-          fps: Number(value.fps || 0),
-          resolution: normalizeText(value.resolution),
-          aspectRatio: normalizeText(value.aspectRatio),
-          seed: String(value.seed || 0),
-          firstFrameUri: normalizeText(value.firstFrameUri),
-          lastFrameUri: normalizeText(value.lastFrameUri),
-          cameraMotion: normalizeText(value.cameraMotion),
-          providerOptions: toProtoStruct(value.providerOptions),
+          mode: toVideoMode(value.mode),
+          content: videoContent,
+          options: {
+            resolution: normalizeText(options.resolution),
+            ratio: normalizeText(options.ratio),
+            durationSec: Number(options.durationSec || 0),
+            frames: Number(options.frames || 0),
+            fps: Number(options.fps || 0),
+            seed: String(options.seed || 0),
+            cameraFixed: Boolean(options.cameraFixed),
+            watermark: Boolean(options.watermark),
+            generateAudio: Boolean(options.generateAudio),
+            draft: Boolean(options.draft),
+            serviceTier: normalizeText(options.serviceTier),
+            executionExpiresAfterSec: Number(options.executionExpiresAfterSec || 0),
+            returnLastFrame: Boolean(options.returnLastFrame),
+          },
         },
       },
     };
@@ -235,6 +266,16 @@ export async function runtimeBuildSubmitMediaJobRequest(
           pitch: Number(value.pitch || 0),
           volume: Number(value.volume || 0),
           emotion: normalizeText(value.emotion),
+          timingMode: toSpeechTimingMode(value.timingMode),
+          voiceRenderHints: value.voiceRenderHints
+            ? {
+              stability: Number(value.voiceRenderHints.stability || 0),
+              similarityBoost: Number(value.voiceRenderHints.similarityBoost || 0),
+              style: Number(value.voiceRenderHints.style || 0),
+              useSpeakerBoost: Boolean(value.voiceRenderHints.useSpeakerBoost),
+              speed: Number(value.voiceRenderHints.speed || 0),
+            }
+            : undefined,
           providerOptions: toProtoStruct(value.providerOptions),
         },
       },
@@ -285,6 +326,49 @@ export async function runtimeBuildSubmitMediaJobRequest(
       },
     },
   };
+}
+
+function toVideoMode(value: VideoGenerateInput['mode']): VideoMode {
+  switch (value) {
+    case 't2v':
+      return VideoMode.T2V;
+    case 'i2v-first-frame':
+      return VideoMode.I2V_FIRST_FRAME;
+    case 'i2v-first-last':
+      return VideoMode.I2V_FIRST_LAST;
+    case 'i2v-reference':
+      return VideoMode.I2V_REFERENCE;
+    default:
+      return VideoMode.UNSPECIFIED;
+  }
+}
+
+function toVideoContentRole(value: 'prompt' | 'first_frame' | 'last_frame' | 'reference_image'): VideoContentRole {
+  switch (value) {
+    case 'prompt':
+      return VideoContentRole.PROMPT;
+    case 'first_frame':
+      return VideoContentRole.FIRST_FRAME;
+    case 'last_frame':
+      return VideoContentRole.LAST_FRAME;
+    case 'reference_image':
+      return VideoContentRole.REFERENCE_IMAGE;
+    default:
+      return VideoContentRole.UNSPECIFIED;
+  }
+}
+
+function toSpeechTimingMode(value: SpeechSynthesizeInput['timingMode']): SpeechTimingMode {
+  switch (value) {
+    case 'word':
+      return SpeechTimingMode.WORD;
+    case 'char':
+      return SpeechTimingMode.CHAR;
+    case 'none':
+      return SpeechTimingMode.NONE;
+    default:
+      return SpeechTimingMode.UNSPECIFIED;
+  }
 }
 
 export async function runtimeWaitForMediaJobCompletion(

@@ -162,8 +162,18 @@ test('provider_glm_test.ts: glm task/native media via nimi-sdk', {
         });
 
         const videoResult = await provider.video('glm/cogvideox-3').generate({
+          mode: 't2v',
           prompt: 'city flyover',
-          durationSec: 6,
+          content: [
+            {
+              type: 'text',
+              role: 'prompt',
+              text: 'city flyover',
+            },
+          ],
+          options: {
+            durationSec: 6,
+          },
         });
         assert.equal(videoResult.artifacts.length, 1);
         assert.equal(

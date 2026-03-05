@@ -220,7 +220,18 @@ test('provider_cloud_test.ts: nimillm modalities via nimi-sdk', {
         assert.equal(imageResult.images[0], expectedImage.toString('base64'));
 
         const videoResult = await provider.video('nimillm/video-1').generate({
+          mode: 't2v',
           prompt: 'ocean',
+          content: [
+            {
+              type: 'text',
+              role: 'prompt',
+              text: 'ocean',
+            },
+          ],
+          options: {
+            durationSec: 5,
+          },
         });
         assert.equal(videoResult.artifacts.length, 1);
         assert.equal(

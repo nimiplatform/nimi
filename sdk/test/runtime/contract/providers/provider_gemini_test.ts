@@ -185,11 +185,18 @@ test('provider_gemini_test.ts: gemini operation image/video via nimi-sdk', {
         assert.equal(imageResult.images[0], Buffer.from('gemini-image-bytes', 'utf8').toString('base64'));
 
         const videoResult = await provider.video('gemini/veo-3').generate({
+          mode: 't2v',
           prompt: 'city at dawn',
-          durationSec: 8,
-          fps: 24,
-          providerOptions: {
-            stabilization: true,
+          content: [
+            {
+              type: 'text',
+              role: 'prompt',
+              text: 'city at dawn',
+            },
+          ],
+          options: {
+            durationSec: 8,
+            fps: 24,
           },
         });
         assert.equal(videoResult.artifacts.length, 1);
