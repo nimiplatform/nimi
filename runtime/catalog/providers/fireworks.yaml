@@ -1,0 +1,157 @@
+version: 1
+provider: fireworks
+catalog_version: 2026-03-05-fireworks-v1
+models:
+  - model_id: accounts/fireworks/models/llama4-maverick-instruct-basic
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: llama-4-maverick
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: accounts/fireworks/models/llama4-scout-instruct-basic
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: llama-4-scout
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: accounts/fireworks/models/deepseek-r1
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: deepseek-r1
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: accounts/fireworks/models/qwen3-235b-a22b
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+  - model_id: qwen3-235b
+    provider: fireworks
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://fireworks.ai/models
+      retrieved_at: 2026-03-05
+      note: Fireworks AI model catalog.
+voices: []

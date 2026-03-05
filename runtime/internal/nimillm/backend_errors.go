@@ -92,7 +92,7 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		return codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, "adjust_tts_voice_or_audio_options"
 	}
 
-	return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_tts_input_and_provider_options"
+	return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_tts_input_and_extensions"
 }
 
 // MapProviderRequestError maps a network/request error to gRPC status.

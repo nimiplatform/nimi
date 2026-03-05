@@ -18,41 +18,41 @@ import (
 
 const AdapterMiniMaxTask = "minimax_task_adapter"
 
-// ExecuteMiniMaxTask handles MiniMax media job execution for TTS, STT, image,
+// ExecuteMiniMaxTask handles MiniMax scenario job execution for TTS, STT, image,
 // and video modalities.
 func ExecuteMiniMaxTask(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
 	updater JobStateUpdater,
 	jobID string,
-	req *runtimev1.SubmitMediaJobRequest,
+	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
-	extractProviderOptions func(*runtimev1.SubmitMediaJobRequest) *structpb.Struct,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	extractScenarioExtensions func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct,
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
-	switch req.GetModal() {
+	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_TTS:
-		spec := req.GetSpeechSpec()
+		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		providerOptions := StructToMap(spec.GetProviderOptions())
+		scenarioExtensions := StructToMap(nil)
 		miniMaxPayload := map[string]any{
 			"model":  modelResolved,
 			"text":   strings.TrimSpace(spec.GetText()),
 			"input":  strings.TrimSpace(spec.GetText()),
 			"stream": false,
 		}
-		if len(providerOptions) > 0 {
-			miniMaxPayload["provider_options"] = providerOptions
+		if len(scenarioExtensions) > 0 {
+			miniMaxPayload["extensions"] = scenarioExtensions
 		}
 		voiceSetting := map[string]any{}
-		if voice := strings.TrimSpace(spec.GetVoice()); voice != "" {
+		if voice := strings.TrimSpace(scenarioVoiceRef(spec)); voice != "" {
 			voiceSetting["voice"] = voice
 		}
 		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
@@ -90,7 +90,7 @@ func ExecuteMiniMaxTask(
 			"model":          modelResolved,
 			"input":          strings.TrimSpace(spec.GetText()),
 			"text":           strings.TrimSpace(spec.GetText()),
-			"voice":          strings.TrimSpace(spec.GetVoice()),
+			"voice":          strings.TrimSpace(scenarioVoiceRef(spec)),
 			"language":       strings.TrimSpace(spec.GetLanguage()),
 			"emotion":        strings.TrimSpace(spec.GetEmotion()),
 			"speed":          spec.GetSpeed(),
@@ -102,8 +102,8 @@ func ExecuteMiniMaxTask(
 			openAIPayload["audio_format"] = audioFormat
 			openAIPayload["response_format"] = audioFormat
 		}
-		if len(providerOptions) > 0 {
-			openAIPayload["provider_options"] = providerOptions
+		if len(scenarioExtensions) > 0 {
+			openAIPayload["extensions"] = scenarioExtensions
 		}
 		paths := resolveMiniMaxSpeechPaths(spec)
 		var lastErr error
@@ -131,14 +131,14 @@ func ExecuteMiniMaxTask(
 			artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
 				"adapter":          AdapterMiniMaxTask,
 				"endpoint":         endpointPath,
-				"voice":            strings.TrimSpace(spec.GetVoice()),
+				"voice":            strings.TrimSpace(scenarioVoiceRef(spec)),
 				"language":         strings.TrimSpace(spec.GetLanguage()),
 				"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
 				"emotion":          strings.TrimSpace(spec.GetEmotion()),
-				"provider_options": providerOptions,
+				"extensions": scenarioExtensions,
 			})
 			ApplySpeechSpecMetadata(artifact, spec)
-			return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
 		}
 		if lastErr != nil {
 			if status.Code(lastErr) == codes.NotFound {
@@ -148,7 +148,7 @@ func ExecuteMiniMaxTask(
 		}
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.Modal_MODAL_STT:
-		spec := req.GetTranscriptionSpec()
+		spec := scenarioSpeechTranscribeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -176,10 +176,10 @@ func ExecuteMiniMaxTask(
 			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 			"mime_type":        mimeType,
 			"audio_uri":        audioURI,
-			"provider_options": StructToMap(spec.GetProviderOptions()),
+			"extensions": StructToMap(nil),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 	}
 
 	// MODAL_IMAGE / MODAL_VIDEO: async task submission + polling
@@ -187,22 +187,22 @@ func ExecuteMiniMaxTask(
 	queryPath := "/v1/query/image_generation"
 	prompt := ""
 	defaultMIME := "image/png"
-	if req.GetModal() == runtimev1.Modal_MODAL_VIDEO {
+	if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
 		submitPath = "/v1/video_generation"
 		queryPath = "/v1/query/video_generation"
 		defaultMIME = "video/mp4"
 	}
-	if req.GetModal() != runtimev1.Modal_MODAL_IMAGE && req.GetModal() != runtimev1.Modal_MODAL_VIDEO {
+	if scenarioModal(req) != runtimev1.Modal_MODAL_IMAGE && scenarioModal(req) != runtimev1.Modal_MODAL_VIDEO {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	if req.GetModal() == runtimev1.Modal_MODAL_IMAGE {
-		spec := req.GetImageSpec()
+	if scenarioModal(req) == runtimev1.Modal_MODAL_IMAGE {
+		spec := scenarioImageSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		prompt = spec.GetPrompt()
 	} else {
-		spec := req.GetVideoSpec()
+		spec := scenarioVideoSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -213,7 +213,7 @@ func ExecuteMiniMaxTask(
 		"model":  modelResolved,
 		"prompt": prompt,
 	}
-	if imageSpec := req.GetImageSpec(); imageSpec != nil {
+	if imageSpec := scenarioImageSpec(req); imageSpec != nil {
 		submitPayload["negative_prompt"] = imageSpec.GetNegativePrompt()
 		submitPayload["size"] = imageSpec.GetSize()
 		submitPayload["aspect_ratio"] = imageSpec.GetAspectRatio()
@@ -221,7 +221,7 @@ func ExecuteMiniMaxTask(
 		submitPayload["style"] = imageSpec.GetStyle()
 		submitPayload["response_format"] = imageSpec.GetResponseFormat()
 	}
-	if videoSpec := req.GetVideoSpec(); videoSpec != nil {
+	if videoSpec := scenarioVideoSpec(req); videoSpec != nil {
 		submitPayload["mode"] = strings.ToLower(strings.TrimPrefix(videoSpec.GetMode().String(), "VIDEO_MODE_"))
 		submitPayload["negative_prompt"] = VideoNegativePrompt(videoSpec)
 		submitPayload["content"] = VideoContentPayload(videoSpec)
@@ -242,8 +242,8 @@ func ExecuteMiniMaxTask(
 		submitPayload["execution_expires_after_sec"] = VideoExecutionExpiresAfterSec(videoSpec)
 		submitPayload["return_last_frame"] = VideoReturnLastFrame(videoSpec)
 	}
-	if opts := StructToMap(extractProviderOptions(req)); len(opts) > 0 {
-		submitPayload["provider_options"] = opts
+	if opts := StructToMap(extractScenarioExtensions(req)); len(opts) > 0 {
+		submitPayload["extensions"] = opts
 	}
 	submitResp := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
@@ -299,26 +299,26 @@ func ExecuteMiniMaxTask(
 		if mimeType == "" {
 			mimeType = defaultMIME
 		}
-		providerRaw := map[string]any{
+		artifactMeta := map[string]any{
 			"adapter":  AdapterMiniMaxTask,
 			"response": pollResp,
 		}
 		if artifactURI != "" {
-			providerRaw["uri"] = artifactURI
+			artifactMeta["uri"] = artifactURI
 		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
-		if req.GetModal() == runtimev1.Modal_MODAL_IMAGE {
-			ApplyImageSpecMetadata(artifact, req.GetImageSpec())
+		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
+		if scenarioModal(req) == runtimev1.Modal_MODAL_IMAGE {
+			ApplyImageSpecMetadata(artifact, scenarioImageSpec(req))
 		}
-		if req.GetModal() == runtimev1.Modal_MODAL_VIDEO {
-			ApplyVideoSpecMetadata(artifact, req.GetVideoSpec())
+		if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
+			ApplyVideoSpecMetadata(artifact, scenarioVideoSpec(req))
 		}
 		computeMs := int64(180)
-		if req.GetModal() == runtimev1.Modal_MODAL_VIDEO {
+		if scenarioModal(req) == runtimev1.Modal_MODAL_VIDEO {
 			computeMs = 420
 		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
 	}
 }
 
@@ -330,7 +330,7 @@ func ExecuteMiniMaxTranscribe(
 	baseURL string,
 	apiKey string,
 	modelResolved string,
-	spec *runtimev1.SpeechTranscriptionSpec,
+	spec *runtimev1.SpeechTranscribeScenarioSpec,
 	audioBytes []byte,
 	mimeType string,
 ) (string, string, error) {
@@ -378,26 +378,26 @@ func isMiniMaxTaskFailedStatus(statusText string) bool {
 	}
 }
 
-func resolveMiniMaxSpeechPaths(spec *runtimev1.SpeechSynthesisSpec) []string {
-	providerOptions := map[string]any{}
+func resolveMiniMaxSpeechPaths(spec *runtimev1.SpeechSynthesizeScenarioSpec) []string {
+	scenarioExtensions := map[string]any{}
 	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 	}
 	return ResolveProviderEndpointPaths(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"tts_path", "speech_path", "audio_speech_path"},
 		[]string{"tts_paths", "speech_paths"},
 		[]string{"/v1/t2a_v2", "/v1/audio/speech"},
 	)
 }
 
-func resolveMiniMaxTranscriptionPaths(spec *runtimev1.SpeechTranscriptionSpec) []string {
-	providerOptions := map[string]any{}
+func resolveMiniMaxTranscriptionPaths(spec *runtimev1.SpeechTranscribeScenarioSpec) []string {
+	scenarioExtensions := map[string]any{}
 	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 	}
 	return ResolveProviderEndpointPaths(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"stt_path", "transcription_path", "audio_transcriptions_path"},
 		[]string{"stt_paths", "transcription_paths"},
 		[]string{"/v1/audio/transcriptions", "/v1/stt/transcriptions", "/v1/stt"},

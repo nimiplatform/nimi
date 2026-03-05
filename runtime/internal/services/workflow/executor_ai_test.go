@@ -42,11 +42,11 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai generate: %v", err)
 	}
-	if client.generateReq == nil || client.generateReq.GetModelId() != "m-generate" {
+	if client.generateReq == nil || client.generateReq.GetHead().GetModelId() != "m-generate" {
 		t.Fatalf("generate request not captured: %+v", client.generateReq)
 	}
-	if len(client.generateReq.GetInput()) == 0 || client.generateReq.GetInput()[0].GetContent() != "prompt-generate" {
-		t.Fatalf("generate prompt mapping mismatch: %+v", client.generateReq.GetInput())
+	if len(client.generateReq.GetSpec().GetTextGenerate().GetInput()) == 0 || client.generateReq.GetSpec().GetTextGenerate().GetInput()[0].GetContent() != "prompt-generate" {
+		t.Fatalf("generate prompt mapping mismatch: %+v", client.generateReq.GetSpec().GetTextGenerate().GetInput())
 	}
 
 	_, err = svc.executeNode(ctx, record, &runtimev1.WorkflowNode{
@@ -61,7 +61,7 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai stream: %v", err)
 	}
-	if client.streamReq == nil || client.streamReq.GetModelId() != "m-stream" {
+	if client.streamReq == nil || client.streamReq.GetHead().GetModelId() != "m-stream" {
 		t.Fatalf("stream request not captured: %+v", client.streamReq)
 	}
 
@@ -77,7 +77,7 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai embed: %v", err)
 	}
-	if client.embedReq == nil || len(client.embedReq.GetInputs()) != 2 {
+	if client.embedReq == nil || len(client.embedReq.GetSpec().GetTextEmbed().GetInputs()) != 2 {
 		t.Fatalf("embed request mapping mismatch: %+v", client.embedReq)
 	}
 
@@ -93,12 +93,11 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai image: %v", err)
 	}
-	imageReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_IMAGE)
+	imageReq := client.findScenarioReqByType(runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE)
 	if imageReq == nil {
-		t.Fatalf("image media request not captured")
+		t.Fatalf("image scenario request not captured")
 	}
-	imageSpec, ok := imageReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_ImageSpec)
-	if !ok || imageSpec.ImageSpec.GetPrompt() != "image-prompt" {
+	if imageReq.GetSpec().GetImageGenerate().GetPrompt() != "image-prompt" {
 		t.Fatalf("image request mapping mismatch: %+v", imageReq)
 	}
 	if imageOutputs["artifact"] == nil {
@@ -117,12 +116,11 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai video: %v", err)
 	}
-	videoReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_VIDEO)
+	videoReq := client.findScenarioReqByType(runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE)
 	if videoReq == nil {
-		t.Fatalf("video media request not captured")
+		t.Fatalf("video scenario request not captured")
 	}
-	videoSpec, ok := videoReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_VideoSpec)
-	if !ok || videoSpec.VideoSpec.GetPrompt() != "video-prompt" {
+	if videoReq.GetSpec().GetVideoGenerate().GetPrompt() != "video-prompt" {
 		t.Fatalf("video request mapping mismatch: %+v", videoReq)
 	}
 	if videoOutputs["artifact"] == nil {
@@ -141,12 +139,11 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai tts: %v", err)
 	}
-	ttsReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_TTS)
+	ttsReq := client.findScenarioReqByType(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE)
 	if ttsReq == nil {
-		t.Fatalf("tts media request not captured")
+		t.Fatalf("tts scenario request not captured")
 	}
-	speechSpec, ok := ttsReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_SpeechSpec)
-	if !ok || speechSpec.SpeechSpec.GetText() != "tts-input" {
+	if ttsReq.GetSpec().GetSpeechSynthesize().GetText() != "tts-input" {
 		t.Fatalf("tts request mapping mismatch: %+v", ttsReq)
 	}
 	if ttsOutputs["artifact"] == nil {
@@ -167,12 +164,11 @@ func TestExecuteAINodesMapToRuntimeAIService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute ai stt: %v", err)
 	}
-	sttReq := client.findMediaReqByModal(runtimev1.Modal_MODAL_STT)
+	sttReq := client.findScenarioReqByType(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE)
 	if sttReq == nil {
-		t.Fatalf("stt media request not captured")
+		t.Fatalf("stt scenario request not captured")
 	}
-	transcriptionSpec, ok := sttReq.GetSpec().(*runtimev1.SubmitMediaJobRequest_TranscriptionSpec)
-	if sttReq.GetModelId() != "m-stt" || !ok || transcriptionSpec.TranscriptionSpec.GetMimeType() != "audio/wav" {
+	if sttReq.GetHead().GetModelId() != "m-stt" || sttReq.GetSpec().GetSpeechTranscribe().GetMimeType() != "audio/wav" {
 		t.Fatalf("stt request mapping mismatch: %+v", sttReq)
 	}
 	if sttOutputs["text"].AsMap()["value"] != "transcribed-audio" {
@@ -227,16 +223,16 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 	if statusResp.GetStatus() != runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED {
 		t.Fatalf("workflow status mismatch: %v", statusResp.GetStatus())
 	}
-	if client.mediaReq == nil {
-		t.Fatalf("submitMediaJob request not captured")
+	if client.scenarioSubmitReq == nil {
+		t.Fatalf("submitScenarioJob request not captured")
 	}
-	if client.mediaReq.GetModal() != runtimev1.Modal_MODAL_IMAGE {
-		t.Fatalf("external async modal mismatch: %v", client.mediaReq.GetModal())
+	if client.scenarioSubmitReq.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
+		t.Fatalf("external async scenario type mismatch: %v", client.scenarioSubmitReq.GetScenarioType())
 	}
-	if client.mediaReq.GetRequestId() == "" || client.mediaReq.GetIdempotencyKey() == "" {
+	if client.scenarioSubmitReq.GetRequestId() == "" || client.scenarioSubmitReq.GetIdempotencyKey() == "" {
 		t.Fatalf("external async request_id/idempotency_key must be populated")
 	}
-	if client.mediaReq.GetLabels()["workflow_task_id"] == "" || client.mediaReq.GetLabels()["workflow_node_id"] == "" {
+	if client.scenarioSubmitReq.GetLabels()["workflow_task_id"] == "" || client.scenarioSubmitReq.GetLabels()["workflow_node_id"] == "" {
 		t.Fatalf("external async labels must include workflow_task_id/workflow_node_id")
 	}
 
@@ -277,12 +273,12 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 	}
 }
 
-func TestWorkflowExternalAsyncCancelPropagatesToMediaJob(t *testing.T) {
+func TestWorkflowExternalAsyncCancelPropagatesToScenarioJob(t *testing.T) {
 	client := &recordingRuntimeAIClient{
-		mediaPollStatuses: []runtimev1.MediaJobStatus{
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING,
+		scenarioPollStatuses: []runtimev1.ScenarioJobStatus{
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
 		},
 	}
 	svc := New(
@@ -327,11 +323,11 @@ func TestWorkflowExternalAsyncCancelPropagatesToMediaJob(t *testing.T) {
 		t.Fatalf("submit workflow: %v", err)
 	}
 	deadline := time.Now().Add(2 * time.Second)
-	for client.mediaReq == nil && time.Now().Before(deadline) {
+	for client.scenarioSubmitReq == nil && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
 	}
-	if client.mediaReq == nil {
-		t.Fatalf("media submit request was not issued")
+	if client.scenarioSubmitReq == nil {
+		t.Fatalf("scenario submit request was not issued")
 	}
 	if _, cancelErr := svc.CancelWorkflow(ctx, &runtimev1.CancelWorkflowRequest{
 		TaskId: submitResp.GetTaskId(),
@@ -343,190 +339,209 @@ func TestWorkflowExternalAsyncCancelPropagatesToMediaJob(t *testing.T) {
 		t.Fatalf("workflow status mismatch: %v", statusResp.GetStatus())
 	}
 	if client.cancelReq == nil || client.cancelReq.GetJobId() == "" {
-		t.Fatalf("cancel media job request must be forwarded")
+		t.Fatalf("cancel scenario job request must be forwarded")
 	}
 }
 
 type recordingRuntimeAIClient struct {
-	generateReq       *runtimev1.GenerateRequest
-	streamReq         *runtimev1.StreamGenerateRequest
-	embedReq          *runtimev1.EmbedRequest
-	mediaReq          *runtimev1.SubmitMediaJobRequest
-	mediaReqs         []*runtimev1.SubmitMediaJobRequest
-	mediaJobs         map[string]*runtimev1.MediaJob
-	mediaPollStatuses []runtimev1.MediaJobStatus
-	mediaPollIndex    int
-	cancelReq         *runtimev1.CancelMediaJobRequest
+	generateReq          *runtimev1.ExecuteScenarioRequest
+	streamReq            *runtimev1.StreamScenarioRequest
+	embedReq             *runtimev1.ExecuteScenarioRequest
+	scenarioSubmitReq    *runtimev1.SubmitScenarioJobRequest
+	scenarioSubmitReqs   []*runtimev1.SubmitScenarioJobRequest
+	scenarioJobs         map[string]*runtimev1.ScenarioJob
+	scenarioPollStatuses []runtimev1.ScenarioJobStatus
+	scenarioPollIndex    int
+	cancelReq            *runtimev1.CancelScenarioJobRequest
 }
 
-func (c *recordingRuntimeAIClient) Generate(_ context.Context, req *runtimev1.GenerateRequest, _ ...grpc.CallOption) (*runtimev1.GenerateResponse, error) {
-	c.generateReq = cloneGenerateRequest(req)
-	return &runtimev1.GenerateResponse{
-		Output: structFromMap(map[string]any{"text": "generated"}),
-	}, nil
+func (c *recordingRuntimeAIClient) ExecuteScenario(_ context.Context, req *runtimev1.ExecuteScenarioRequest, _ ...grpc.CallOption) (*runtimev1.ExecuteScenarioResponse, error) {
+	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		c.generateReq = cloneExecuteScenarioRequest(req)
+		return &runtimev1.ExecuteScenarioResponse{
+			Output: structFromMap(map[string]any{"text": "generated"}),
+		}, nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		c.embedReq = cloneExecuteScenarioRequest(req)
+		return &runtimev1.ExecuteScenarioResponse{
+			Output: structFromMap(map[string]any{
+				"vectors": []any{
+					[]any{1.0, 2.0},
+				},
+			}),
+		}, nil
+	default:
+		return nil, status.Error(codes.Unimplemented, "unimplemented")
+	}
 }
 
-func (c *recordingRuntimeAIClient) StreamGenerate(ctx context.Context, req *runtimev1.StreamGenerateRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.StreamGenerateEvent], error) {
-	c.streamReq = cloneStreamGenerateRequest(req)
-	return &fakeStreamGenerateClient{
+func (c *recordingRuntimeAIClient) StreamScenario(ctx context.Context, req *runtimev1.StreamScenarioRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.StreamScenarioEvent], error) {
+	c.streamReq = cloneStreamScenarioRequest(req)
+	return &fakeStreamScenarioClient{
 		ctx: ctx,
-		events: []*runtimev1.StreamGenerateEvent{
+		events: []*runtimev1.StreamScenarioEvent{
 			{
-				Payload: &runtimev1.StreamGenerateEvent_Delta{
-					Delta: &runtimev1.StreamDelta{Text: "hello"},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{Text: "hello"},
 				},
 			},
 			{
-				Payload: &runtimev1.StreamGenerateEvent_Delta{
-					Delta: &runtimev1.StreamDelta{Text: " world"},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{Text: " world"},
 				},
 			},
 		},
 	}, nil
 }
 
-func (c *recordingRuntimeAIClient) Embed(_ context.Context, req *runtimev1.EmbedRequest, _ ...grpc.CallOption) (*runtimev1.EmbedResponse, error) {
-	c.embedReq = cloneEmbedRequest(req)
-	vector, err := structpb.NewList([]any{1.0, 2.0})
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.EmbedResponse{
-		Vectors: []*structpb.ListValue{vector},
-	}, nil
-}
-
-func (c *recordingRuntimeAIClient) SubmitMediaJob(_ context.Context, req *runtimev1.SubmitMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.SubmitMediaJobResponse, error) {
-	c.mediaReq = cloneSubmitMediaJobRequest(req)
-	c.mediaReqs = append(c.mediaReqs, cloneSubmitMediaJobRequest(req))
-	if c.mediaJobs == nil {
-		c.mediaJobs = make(map[string]*runtimev1.MediaJob)
+func (c *recordingRuntimeAIClient) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest, _ ...grpc.CallOption) (*runtimev1.SubmitScenarioJobResponse, error) {
+	c.scenarioSubmitReq = cloneSubmitScenarioJobRequest(req)
+	c.scenarioSubmitReqs = append(c.scenarioSubmitReqs, cloneSubmitScenarioJobRequest(req))
+	if c.scenarioJobs == nil {
+		c.scenarioJobs = make(map[string]*runtimev1.ScenarioJob)
 	}
 	jobID := "job-1"
-	artifact := &runtimev1.MediaArtifact{
+	scenarioArtifact := &runtimev1.ScenarioArtifact{
 		ArtifactId: "artifact-1",
 		MimeType:   "image/png",
 		Bytes:      []byte("artifact-content"),
 	}
-	if req.GetModal() == runtimev1.Modal_MODAL_VIDEO {
-		artifact.MimeType = "video/mp4"
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
+		scenarioArtifact.MimeType = "video/mp4"
 	}
-	if req.GetModal() == runtimev1.Modal_MODAL_TTS {
-		artifact.MimeType = "audio/wav"
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
+		scenarioArtifact.MimeType = "audio/wav"
 	}
-	if req.GetModal() == runtimev1.Modal_MODAL_STT {
-		artifact.MimeType = "text/plain"
-		artifact.Bytes = []byte("transcribed-audio")
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE {
+		scenarioArtifact.MimeType = "text/plain"
+		scenarioArtifact.Bytes = []byte("transcribed-audio")
 	}
-	job := &runtimev1.MediaJob{
+	scenarioJob := &runtimev1.ScenarioJob{
 		JobId:         jobID,
-		Status:        runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
-		Artifacts:     []*runtimev1.MediaArtifact{artifact},
+		Head:          cloneScenarioHead(req.GetHead()),
+		ScenarioType:  req.GetScenarioType(),
+		ExecutionMode: req.GetExecutionMode(),
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		Artifacts:     []*runtimev1.ScenarioArtifact{scenarioArtifact},
 		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
-		RouteDecision: req.GetRoutePolicy(),
-		ModelResolved: req.GetModelId(),
+		RouteDecision: req.GetHead().GetRoutePolicy(),
+		ModelResolved: req.GetHead().GetModelId(),
 	}
-	c.mediaJobs[jobID] = job
-	return &runtimev1.SubmitMediaJobResponse{Job: job}, nil
+	c.scenarioJobs[jobID] = scenarioJob
+	return &runtimev1.SubmitScenarioJobResponse{Job: cloneScenarioJob(scenarioJob)}, nil
 }
 
-func (c *recordingRuntimeAIClient) GetMediaJob(_ context.Context, req *runtimev1.GetMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.GetMediaJobResponse, error) {
-	if c.mediaJobs == nil {
-		c.mediaJobs = map[string]*runtimev1.MediaJob{}
+func (c *recordingRuntimeAIClient) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest, _ ...grpc.CallOption) (*runtimev1.GetScenarioJobResponse, error) {
+	if c.scenarioJobs == nil {
+		c.scenarioJobs = map[string]*runtimev1.ScenarioJob{}
 	}
-	job := c.mediaJobs[req.GetJobId()]
+	job := c.scenarioJobs[req.GetJobId()]
 	if job == nil {
-		job = &runtimev1.MediaJob{
+		job = &runtimev1.ScenarioJob{
 			JobId:      req.GetJobId(),
-			Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED,
+			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 			ReasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 		}
-	} else if len(c.mediaPollStatuses) > 0 {
-		statusIndex := c.mediaPollIndex
-		if statusIndex >= len(c.mediaPollStatuses) {
-			statusIndex = len(c.mediaPollStatuses) - 1
+	} else if len(c.scenarioPollStatuses) > 0 {
+		statusIndex := c.scenarioPollIndex
+		if statusIndex >= len(c.scenarioPollStatuses) {
+			statusIndex = len(c.scenarioPollStatuses) - 1
 		}
-		c.mediaPollIndex++
-		job.Status = c.mediaPollStatuses[statusIndex]
-		if job.Status == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED {
+		c.scenarioPollIndex++
+		job.Status = c.scenarioPollStatuses[statusIndex]
+		if job.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
 			job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 			job.ReasonDetail = "poll failed"
 		}
-		if job.Status == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING || job.Status == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED {
-			job.RetryCount = int32(c.mediaPollIndex)
+		if job.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING || job.Status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED {
+			job.RetryCount = int32(c.scenarioPollIndex)
 		}
 	}
-	return &runtimev1.GetMediaJobResponse{Job: job}, nil
+	c.scenarioJobs[req.GetJobId()] = job
+	return &runtimev1.GetScenarioJobResponse{Job: cloneScenarioJob(job)}, nil
 }
 
-func (c *recordingRuntimeAIClient) CancelMediaJob(_ context.Context, req *runtimev1.CancelMediaJobRequest, _ ...grpc.CallOption) (*runtimev1.CancelMediaJobResponse, error) {
-	c.cancelReq = cloneCancelMediaJobRequest(req)
-	if c.mediaJobs == nil {
-		c.mediaJobs = map[string]*runtimev1.MediaJob{}
+func (c *recordingRuntimeAIClient) CancelScenarioJob(_ context.Context, req *runtimev1.CancelScenarioJobRequest, _ ...grpc.CallOption) (*runtimev1.CancelScenarioJobResponse, error) {
+	c.cancelReq = cloneCancelScenarioJobRequest(req)
+	if c.scenarioJobs == nil {
+		c.scenarioJobs = map[string]*runtimev1.ScenarioJob{}
 	}
-	job := c.mediaJobs[req.GetJobId()]
+	job := c.scenarioJobs[req.GetJobId()]
 	if job == nil {
-		job = &runtimev1.MediaJob{JobId: req.GetJobId()}
+		job = &runtimev1.ScenarioJob{JobId: req.GetJobId()}
 	}
-	job.Status = runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_CANCELED
-	c.mediaJobs[req.GetJobId()] = job
-	return &runtimev1.CancelMediaJobResponse{Job: job}, nil
+	job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
+	c.scenarioJobs[req.GetJobId()] = job
+	return &runtimev1.CancelScenarioJobResponse{Job: cloneScenarioJob(job)}, nil
 }
 
-func (c *recordingRuntimeAIClient) SubscribeMediaJobEvents(ctx context.Context, req *runtimev1.SubscribeMediaJobEventsRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.MediaJobEvent], error) {
-	event := &runtimev1.MediaJobEvent{
-		EventType: runtimev1.MediaJobEventType_MEDIA_JOB_EVENT_COMPLETED,
-		Job: &runtimev1.MediaJob{
+func (c *recordingRuntimeAIClient) SubscribeScenarioJobEvents(ctx context.Context, req *runtimev1.SubscribeScenarioJobEventsRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ScenarioJobEvent], error) {
+	event := &runtimev1.ScenarioJobEvent{
+		EventType: runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		Job: &runtimev1.ScenarioJob{
 			JobId:      req.GetJobId(),
-			Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
+			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		},
 	}
-	return &fakeMediaJobEventClient{
+	return &fakeScenarioJobEventClient{
 		ctx:    ctx,
-		events: []*runtimev1.MediaJobEvent{event},
+		events: []*runtimev1.ScenarioJobEvent{event},
 	}, nil
 }
 
-func (c *recordingRuntimeAIClient) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaArtifactsRequest, _ ...grpc.CallOption) (*runtimev1.GetMediaArtifactsResponse, error) {
-	if c.mediaJobs == nil {
-		c.mediaJobs = map[string]*runtimev1.MediaJob{}
+func (c *recordingRuntimeAIClient) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScenarioArtifactsRequest, _ ...grpc.CallOption) (*runtimev1.GetScenarioArtifactsResponse, error) {
+	if c.scenarioJobs == nil {
+		c.scenarioJobs = map[string]*runtimev1.ScenarioJob{}
 	}
-	job := c.mediaJobs[req.GetJobId()]
+	job := c.scenarioJobs[req.GetJobId()]
 	if job == nil {
-		return &runtimev1.GetMediaArtifactsResponse{JobId: req.GetJobId()}, nil
+		return &runtimev1.GetScenarioArtifactsResponse{JobId: req.GetJobId()}, nil
 	}
-	return &runtimev1.GetMediaArtifactsResponse{
+	return &runtimev1.GetScenarioArtifactsResponse{
 		JobId:     req.GetJobId(),
 		Artifacts: job.GetArtifacts(),
 		TraceId:   job.GetTraceId(),
 	}, nil
 }
 
-func (c *recordingRuntimeAIClient) GetSpeechVoices(_ context.Context, _ *runtimev1.GetSpeechVoicesRequest, _ ...grpc.CallOption) (*runtimev1.GetSpeechVoicesResponse, error) {
-	return &runtimev1.GetSpeechVoicesResponse{}, nil
+func (c *recordingRuntimeAIClient) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScenarioProfilesRequest, _ ...grpc.CallOption) (*runtimev1.ListScenarioProfilesResponse, error) {
+	return &runtimev1.ListScenarioProfilesResponse{}, nil
 }
 
-func (c *recordingRuntimeAIClient) StreamSpeechSynthesis(_ context.Context, _ *runtimev1.StreamSpeechSynthesisRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
+func (c *recordingRuntimeAIClient) GetVoiceAsset(_ context.Context, _ *runtimev1.GetVoiceAssetRequest, _ ...grpc.CallOption) (*runtimev1.GetVoiceAssetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
-func (c *recordingRuntimeAIClient) findMediaReqByModal(modal runtimev1.Modal) *runtimev1.SubmitMediaJobRequest {
-	for _, req := range c.mediaReqs {
-		if req.GetModal() == modal {
+func (c *recordingRuntimeAIClient) ListVoiceAssets(_ context.Context, _ *runtimev1.ListVoiceAssetsRequest, _ ...grpc.CallOption) (*runtimev1.ListVoiceAssetsResponse, error) {
+	return &runtimev1.ListVoiceAssetsResponse{}, nil
+}
+
+func (c *recordingRuntimeAIClient) DeleteVoiceAsset(_ context.Context, _ *runtimev1.DeleteVoiceAssetRequest, _ ...grpc.CallOption) (*runtimev1.DeleteVoiceAssetResponse, error) {
+	return &runtimev1.DeleteVoiceAssetResponse{}, nil
+}
+
+func (c *recordingRuntimeAIClient) ListPresetVoices(_ context.Context, _ *runtimev1.ListPresetVoicesRequest, _ ...grpc.CallOption) (*runtimev1.ListPresetVoicesResponse, error) {
+	return &runtimev1.ListPresetVoicesResponse{}, nil
+}
+
+func (c *recordingRuntimeAIClient) findScenarioReqByType(scenarioType runtimev1.ScenarioType) *runtimev1.SubmitScenarioJobRequest {
+	for _, req := range c.scenarioSubmitReqs {
+		if req.GetScenarioType() == scenarioType {
 			return req
 		}
 	}
 	return nil
 }
 
-type fakeStreamGenerateClient struct {
+type fakeStreamScenarioClient struct {
 	ctx    context.Context
-	events []*runtimev1.StreamGenerateEvent
+	events []*runtimev1.StreamScenarioEvent
 	index  int
 }
 
-func (f *fakeStreamGenerateClient) Recv() (*runtimev1.StreamGenerateEvent, error) {
+func (f *fakeStreamScenarioClient) Recv() (*runtimev1.StreamScenarioEvent, error) {
 	if f.index >= len(f.events) {
 		return nil, io.EOF
 	}
@@ -535,20 +550,20 @@ func (f *fakeStreamGenerateClient) Recv() (*runtimev1.StreamGenerateEvent, error
 	return event, nil
 }
 
-func (f *fakeStreamGenerateClient) Header() (metadata.MD, error) { return metadata.MD{}, nil }
-func (f *fakeStreamGenerateClient) Trailer() metadata.MD         { return metadata.MD{} }
-func (f *fakeStreamGenerateClient) CloseSend() error             { return nil }
-func (f *fakeStreamGenerateClient) Context() context.Context     { return f.ctx }
-func (f *fakeStreamGenerateClient) SendMsg(any) error            { return nil }
-func (f *fakeStreamGenerateClient) RecvMsg(any) error            { return nil }
+func (f *fakeStreamScenarioClient) Header() (metadata.MD, error) { return metadata.MD{}, nil }
+func (f *fakeStreamScenarioClient) Trailer() metadata.MD         { return metadata.MD{} }
+func (f *fakeStreamScenarioClient) CloseSend() error             { return nil }
+func (f *fakeStreamScenarioClient) Context() context.Context     { return f.ctx }
+func (f *fakeStreamScenarioClient) SendMsg(any) error            { return nil }
+func (f *fakeStreamScenarioClient) RecvMsg(any) error            { return nil }
 
-type fakeMediaJobEventClient struct {
+type fakeScenarioJobEventClient struct {
 	ctx    context.Context
-	events []*runtimev1.MediaJobEvent
+	events []*runtimev1.ScenarioJobEvent
 	index  int
 }
 
-func (f *fakeMediaJobEventClient) Recv() (*runtimev1.MediaJobEvent, error) {
+func (f *fakeScenarioJobEventClient) Recv() (*runtimev1.ScenarioJobEvent, error) {
 	if f.index >= len(f.events) {
 		return nil, io.EOF
 	}
@@ -557,54 +572,69 @@ func (f *fakeMediaJobEventClient) Recv() (*runtimev1.MediaJobEvent, error) {
 	return item, nil
 }
 
-func (f *fakeMediaJobEventClient) Header() (metadata.MD, error) { return metadata.MD{}, nil }
-func (f *fakeMediaJobEventClient) Trailer() metadata.MD         { return metadata.MD{} }
-func (f *fakeMediaJobEventClient) CloseSend() error             { return nil }
-func (f *fakeMediaJobEventClient) Context() context.Context     { return f.ctx }
-func (f *fakeMediaJobEventClient) SendMsg(any) error            { return nil }
-func (f *fakeMediaJobEventClient) RecvMsg(any) error            { return nil }
+func (f *fakeScenarioJobEventClient) Header() (metadata.MD, error) { return metadata.MD{}, nil }
+func (f *fakeScenarioJobEventClient) Trailer() metadata.MD         { return metadata.MD{} }
+func (f *fakeScenarioJobEventClient) CloseSend() error             { return nil }
+func (f *fakeScenarioJobEventClient) Context() context.Context     { return f.ctx }
+func (f *fakeScenarioJobEventClient) SendMsg(any) error            { return nil }
+func (f *fakeScenarioJobEventClient) RecvMsg(any) error            { return nil }
 
-func cloneGenerateRequest(req *runtimev1.GenerateRequest) *runtimev1.GenerateRequest {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.GenerateRequest)
+func cloneScenarioHead(head *runtimev1.ScenarioRequestHead) *runtimev1.ScenarioRequestHead {
+	if head == nil {
+		return &runtimev1.ScenarioRequestHead{}
+	}
+	cloned := proto.Clone(head)
+	copied, ok := cloned.(*runtimev1.ScenarioRequestHead)
 	if !ok {
-		return &runtimev1.GenerateRequest{}
+		return &runtimev1.ScenarioRequestHead{}
 	}
 	return copied
 }
 
-func cloneStreamGenerateRequest(req *runtimev1.StreamGenerateRequest) *runtimev1.StreamGenerateRequest {
-	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.StreamGenerateRequest)
+func cloneScenarioJob(job *runtimev1.ScenarioJob) *runtimev1.ScenarioJob {
+	if job == nil {
+		return &runtimev1.ScenarioJob{}
+	}
+	cloned := proto.Clone(job)
+	copied, ok := cloned.(*runtimev1.ScenarioJob)
 	if !ok {
-		return &runtimev1.StreamGenerateRequest{}
+		return &runtimev1.ScenarioJob{}
 	}
 	return copied
 }
 
-func cloneEmbedRequest(req *runtimev1.EmbedRequest) *runtimev1.EmbedRequest {
+func cloneExecuteScenarioRequest(req *runtimev1.ExecuteScenarioRequest) *runtimev1.ExecuteScenarioRequest {
 	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.EmbedRequest)
+	copied, ok := cloned.(*runtimev1.ExecuteScenarioRequest)
 	if !ok {
-		return &runtimev1.EmbedRequest{}
+		return &runtimev1.ExecuteScenarioRequest{}
 	}
 	return copied
 }
 
-func cloneSubmitMediaJobRequest(req *runtimev1.SubmitMediaJobRequest) *runtimev1.SubmitMediaJobRequest {
+func cloneStreamScenarioRequest(req *runtimev1.StreamScenarioRequest) *runtimev1.StreamScenarioRequest {
 	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.SubmitMediaJobRequest)
+	copied, ok := cloned.(*runtimev1.StreamScenarioRequest)
 	if !ok {
-		return &runtimev1.SubmitMediaJobRequest{}
+		return &runtimev1.StreamScenarioRequest{}
 	}
 	return copied
 }
 
-func cloneCancelMediaJobRequest(req *runtimev1.CancelMediaJobRequest) *runtimev1.CancelMediaJobRequest {
+func cloneSubmitScenarioJobRequest(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.SubmitScenarioJobRequest {
 	cloned := proto.Clone(req)
-	copied, ok := cloned.(*runtimev1.CancelMediaJobRequest)
+	copied, ok := cloned.(*runtimev1.SubmitScenarioJobRequest)
 	if !ok {
-		return &runtimev1.CancelMediaJobRequest{}
+		return &runtimev1.SubmitScenarioJobRequest{}
+	}
+	return copied
+}
+
+func cloneCancelScenarioJobRequest(req *runtimev1.CancelScenarioJobRequest) *runtimev1.CancelScenarioJobRequest {
+	cloned := proto.Clone(req)
+	copied, ok := cloned.(*runtimev1.CancelScenarioJobRequest)
+	if !ok {
+		return &runtimev1.CancelScenarioJobRequest{}
 	}
 	return copied
 }

@@ -20,20 +20,29 @@ func (s *Service) executeAIGenerateNode(ctx context.Context, record *taskRecord,
 		prompt = firstInputString(inputs, "prompt", "text", "input")
 	}
 	if client := s.runtimeAIClient(); client != nil {
-		resp, err := client.Generate(ctx, &runtimev1.GenerateRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			Modal:         cfg.GetModal(),
-			Input:         promptAsMessages(prompt),
-			SystemPrompt:  cfg.GetSystemPrompt(),
-			Tools:         cfg.GetTools(),
-			Temperature:   cfg.GetTemperature(),
-			TopP:          cfg.GetTopP(),
-			MaxTokens:     cfg.GetMaxTokens(),
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
+		resp, err := aiExecuteScenario(ctx, client, &runtimev1.ExecuteScenarioRequest{
+			Head: &runtimev1.ScenarioRequestHead{
+				AppId:         record.AppID,
+				SubjectUserId: record.SubjectUserID,
+				ModelId:       cfg.GetModelId(),
+				RoutePolicy:   cfg.GetRoutePolicy(),
+				Fallback:      cfg.GetFallback(),
+				TimeoutMs:     cfg.GetTimeoutMs(),
+			},
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+						Input:        promptAsMessages(prompt),
+						SystemPrompt: cfg.GetSystemPrompt(),
+						Tools:        cfg.GetTools(),
+						Temperature:  cfg.GetTemperature(),
+						TopP:         cfg.GetTopP(),
+						MaxTokens:    cfg.GetMaxTokens(),
+					},
+				},
+			},
 		})
 		if err != nil {
 			return nil, err
@@ -65,20 +74,29 @@ func (s *Service) executeAIStreamNode(ctx context.Context, record *taskRecord, n
 		prompt = firstInputString(inputs, "prompt", "text", "input")
 	}
 	if client := s.runtimeAIClient(); client != nil {
-		stream, err := client.StreamGenerate(ctx, &runtimev1.StreamGenerateRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			Modal:         cfg.GetModal(),
-			Input:         promptAsMessages(prompt),
-			SystemPrompt:  cfg.GetSystemPrompt(),
-			Tools:         cfg.GetTools(),
-			Temperature:   cfg.GetTemperature(),
-			TopP:          cfg.GetTopP(),
-			MaxTokens:     cfg.GetMaxTokens(),
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
+		stream, err := aiStreamScenario(ctx, client, &runtimev1.StreamScenarioRequest{
+			Head: &runtimev1.ScenarioRequestHead{
+				AppId:         record.AppID,
+				SubjectUserId: record.SubjectUserID,
+				ModelId:       cfg.GetModelId(),
+				RoutePolicy:   cfg.GetRoutePolicy(),
+				Fallback:      cfg.GetFallback(),
+				TimeoutMs:     cfg.GetTimeoutMs(),
+			},
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+						Input:        promptAsMessages(prompt),
+						SystemPrompt: cfg.GetSystemPrompt(),
+						Tools:        cfg.GetTools(),
+						Temperature:  cfg.GetTemperature(),
+						TopP:         cfg.GetTopP(),
+						MaxTokens:    cfg.GetMaxTokens(),
+					},
+				},
+			},
 		})
 		if err != nil {
 			return nil, err
@@ -123,21 +141,33 @@ func (s *Service) executeAIEmbedNode(ctx context.Context, record *taskRecord, no
 		return nil, fmt.Errorf("embed inputs are empty")
 	}
 	if client := s.runtimeAIClient(); client != nil {
-		resp, err := client.Embed(ctx, &runtimev1.EmbedRequest{
-			AppId:         record.AppID,
-			SubjectUserId: record.SubjectUserID,
-			ModelId:       cfg.GetModelId(),
-			Inputs:        embedInputs,
-			RoutePolicy:   cfg.GetRoutePolicy(),
-			Fallback:      cfg.GetFallback(),
-			TimeoutMs:     cfg.GetTimeoutMs(),
+		resp, err := aiExecuteScenario(ctx, client, &runtimev1.ExecuteScenarioRequest{
+			Head: &runtimev1.ScenarioRequestHead{
+				AppId:         record.AppID,
+				SubjectUserId: record.SubjectUserID,
+				ModelId:       cfg.GetModelId(),
+				RoutePolicy:   cfg.GetRoutePolicy(),
+				Fallback:      cfg.GetFallback(),
+				TimeoutMs:     cfg.GetTimeoutMs(),
+			},
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_TextEmbed{
+					TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+						Inputs: embedInputs,
+					},
+				},
+			},
 		})
 		if err != nil {
 			return nil, err
 		}
-		vectors := make([]any, 0, len(resp.GetVectors()))
-		for _, vector := range resp.GetVectors() {
-			vectors = append(vectors, vector.AsSlice())
+		vectors := make([]any, 0)
+		if output := resp.GetOutput(); output != nil {
+			if raw, ok := output.AsMap()["vectors"].([]any); ok {
+				vectors = append(vectors, raw...)
+			}
 		}
 		return map[string]*structpb.Struct{
 			"output": structFromMap(map[string]any{"vectors": vectors}),
@@ -166,11 +196,11 @@ func (s *Service) executeAIImageNode(ctx context.Context, record *taskRecord, no
 	content := []byte(prompt)
 	mimeType := "image/png"
 	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
 		if runErr != nil {
 			return nil, runErr
 		}
-		first := firstMediaArtifact(artifacts)
+		first := firstScenarioArtifact(artifacts)
 		if first == nil {
 			return nil, fmt.Errorf("image artifacts are empty")
 		}
@@ -201,11 +231,11 @@ func (s *Service) executeAIVideoNode(ctx context.Context, record *taskRecord, no
 	content := []byte(prompt)
 	mimeType := "video/mp4"
 	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
 		if runErr != nil {
 			return nil, runErr
 		}
-		first := firstMediaArtifact(artifacts)
+		first := firstScenarioArtifact(artifacts)
 		if first == nil {
 			return nil, fmt.Errorf("video artifacts are empty")
 		}
@@ -236,11 +266,11 @@ func (s *Service) executeAITTSNode(ctx context.Context, record *taskRecord, node
 	content := []byte(text)
 	mimeType := "audio/wav"
 	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
 		if runErr != nil {
 			return nil, runErr
 		}
-		first := firstMediaArtifact(artifacts)
+		first := firstScenarioArtifact(artifacts)
 		if first == nil {
 			return nil, fmt.Errorf("tts artifacts are empty")
 		}
@@ -270,18 +300,13 @@ func (s *Service) executeAISTTNode(ctx context.Context, record *taskRecord, node
 	}
 	text := "transcribed"
 	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runMediaJobSync(ctx, client, record, node, inputs)
+		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
 		if runErr != nil {
 			return nil, runErr
 		}
-		first := firstMediaArtifact(artifacts)
+		first := firstScenarioArtifact(artifacts)
 		if first != nil {
 			value := strings.TrimSpace(string(first.GetBytes()))
-			if value == "" && first.GetProviderRaw() != nil {
-				if rawText, ok := first.GetProviderRaw().AsMap()["text"].(string); ok {
-					value = strings.TrimSpace(rawText)
-				}
-			}
 			if value != "" {
 				text = value
 			}
@@ -293,19 +318,19 @@ func (s *Service) executeAISTTNode(ctx context.Context, record *taskRecord, node
 	}, nil
 }
 
-func (s *Service) runMediaJobSync(
+func (s *Service) runScenarioJobSync(
 	ctx context.Context,
 	client runtimev1.RuntimeAiServiceClient,
 	record *taskRecord,
 	node *runtimev1.WorkflowNode,
 	inputs map[string]*structpb.Struct,
-) (*runtimev1.MediaJob, []*runtimev1.MediaArtifact, error) {
-	submitReq, err := buildSubmitMediaJobRequest(record, node, inputs)
+) (*runtimev1.ScenarioJob, []*runtimev1.ScenarioArtifact, error) {
+	submitReq, err := buildSubmitScenarioJobRequest(record, node, inputs)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	submitResp, err := client.SubmitMediaJob(ctx, submitReq)
+	submitResp, err := aiSubmitScenarioJob(ctx, client, submitReq)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -323,7 +348,7 @@ func (s *Service) runMediaJobSync(
 		cancelForwarded = true
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_, _ = client.CancelMediaJob(cancelCtx, &runtimev1.CancelMediaJobRequest{
+		_, _ = aiCancelScenarioJob(cancelCtx, client, &runtimev1.CancelScenarioJobRequest{
 			JobId:  jobID,
 			Reason: strings.TrimSpace(reason),
 		})
@@ -336,25 +361,25 @@ func (s *Service) runMediaJobSync(
 		}
 
 		switch job.GetStatus() {
-		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING:
 			time.Sleep(250 * time.Millisecond)
-			pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
+			pollResp, pollErr := aiGetScenarioJob(ctx, client, &runtimev1.GetScenarioJobRequest{
 				JobId: jobID,
 			})
 			if pollErr != nil {
 				return nil, nil, pollErr
 			}
-			if pollResp.GetJob() == nil {
-				return nil, nil, fmt.Errorf("media poll returned empty job")
-			}
+				if pollResp.GetJob() == nil {
+					return nil, nil, fmt.Errorf("scenario poll returned empty job")
+				}
 			job = pollResp.GetJob()
 			continue
-		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED:
 			artifacts := job.GetArtifacts()
 			if len(artifacts) == 0 {
-				artifactsResp, artifactsErr := client.GetMediaArtifacts(ctx, &runtimev1.GetMediaArtifactsRequest{
+				artifactsResp, artifactsErr := aiGetScenarioArtifacts(ctx, client, &runtimev1.GetScenarioArtifactsRequest{
 					JobId: jobID,
 				})
 				if artifactsErr != nil {
@@ -368,22 +393,22 @@ func (s *Service) runMediaJobSync(
 			if reason == "" {
 				reason = strings.TrimSpace(job.GetReasonCode().String())
 			}
-			if reason == "" {
-				reason = "unknown media job failure"
-			}
-			return nil, nil, fmt.Errorf("media job failed: %s", reason)
+				if reason == "" {
+					reason = "unknown scenario job failure"
+				}
+			return nil, nil, fmt.Errorf("scenario job failed: %s", reason)
 		}
 	}
 }
 
-func firstMediaArtifact(artifacts []*runtimev1.MediaArtifact) *runtimev1.MediaArtifact {
+func firstScenarioArtifact(artifacts []*runtimev1.ScenarioArtifact) *runtimev1.ScenarioArtifact {
 	if len(artifacts) == 0 {
 		return nil
 	}
 	return artifacts[0]
 }
 
-func workflowReasonCodeFromMediaJob(job *runtimev1.MediaJob) runtimev1.ReasonCode {
+func workflowReasonCodeFromScenarioJob(job *runtimev1.ScenarioJob) runtimev1.ReasonCode {
 	if job == nil {
 		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 	}

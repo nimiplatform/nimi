@@ -92,7 +92,7 @@ func TestCloudProviderWithTargetLoopbackPolicy(t *testing.T) {
 		AllowLoopbackEndpoint:   false,
 	}, nil, nil)
 
-	req := &runtimev1.GenerateRequest{
+	req := &runtimev1.TextGenerateScenarioSpec{
 		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
 	}
 

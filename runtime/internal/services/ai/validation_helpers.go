@@ -14,22 +14,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
-func validateGenerateRequest(req *runtimev1.GenerateRequest) error {
-	if req == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
-		return err
-	}
-	if req.GetModal() == runtimev1.Modal_MODAL_UNSPECIFIED {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if len(req.GetInput()) == 0 && strings.TrimSpace(req.GetSystemPrompt()) == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	return nil
-}
-
 func (s *Service) recordRouteAutoSwitch(appID string, subjectUserID string, requestedModelID string, resolvedModelID string, decision nimillm.RouteDecisionInfo) {
 	if !decision.HintAutoSwitch {
 		return
@@ -65,40 +49,6 @@ func (s *Service) persistModelRegistry() {
 	if err := s.registry.SaveToFile(s.registryPath); err != nil && s.logger != nil {
 		s.logger.Error("persist model registry from ai route switch failed", "path", s.registryPath, "error", err)
 	}
-}
-
-func validateStreamGenerateRequest(req *runtimev1.StreamGenerateRequest) error {
-	if req == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
-		return err
-	}
-	if req.GetModal() == runtimev1.Modal_MODAL_UNSPECIFIED {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if len(req.GetInput()) == 0 && strings.TrimSpace(req.GetSystemPrompt()) == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	return nil
-}
-
-func validateEmbedRequest(req *runtimev1.EmbedRequest) error {
-	if req == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if err := validateBaseRequest(req.GetAppId(), req.GetSubjectUserId(), req.GetModelId(), req.GetRoutePolicy()); err != nil {
-		return err
-	}
-	if len(req.GetInputs()) == 0 {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	for _, input := range req.GetInputs() {
-		if strings.TrimSpace(input) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-	}
-	return nil
 }
 
 func validatePromptRequest(appID string, subjectUserID string, modelID string, prompt string, route runtimev1.RoutePolicy) error {

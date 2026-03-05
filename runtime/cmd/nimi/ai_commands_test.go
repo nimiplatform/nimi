@@ -22,7 +22,7 @@ import (
 
 func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
-		generateResponse: &runtimev1.GenerateResponse{
+		textGenerateResponse: &runtimev1.ExecuteScenarioResponse{
 			Output: &structpb.Struct{Fields: map[string]*structpb.Value{
 				"text": structpb.NewStringValue("hello from runtime"),
 			}},
@@ -42,7 +42,7 @@ func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 
 	output, err := captureStdoutFromRun(func() error {
 		return runRuntimeAI([]string{
-			"generate",
+			"text-generate",
 			"--grpc-addr", addr,
 			"--prompt", "hello",
 			"--json",
@@ -81,21 +81,14 @@ func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 
 func TestRunRuntimeAIEmbedJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
-		embedResponse: &runtimev1.EmbedResponse{
-			Vectors: []*structpb.ListValue{
-				{
-					Values: []*structpb.Value{
-						structpb.NewNumberValue(1),
-						structpb.NewNumberValue(2),
-					},
+		textEmbedResponse: &runtimev1.ExecuteScenarioResponse{
+			Output: mustStructPB(t, map[string]any{
+				"vectors": []any{
+					[]any{1.0, 2.0},
+					[]any{3.0, 4.0},
 				},
-				{
-					Values: []*structpb.Value{
-						structpb.NewNumberValue(3),
-						structpb.NewNumberValue(4),
-					},
-				},
-			},
+			}),
+			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
 			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 			ModelResolved: "text-embedding-3-small",
 			TraceId:       "trace-resp-embed",
@@ -111,7 +104,7 @@ func TestRunRuntimeAIEmbedJSON(t *testing.T) {
 
 	output, err := captureStdoutFromRun(func() error {
 		return runRuntimeAI([]string{
-			"embed",
+			"text-embed",
 			"--grpc-addr", addr,
 			"--input", "first input",
 			"--input", "second input",
@@ -129,22 +122,22 @@ func TestRunRuntimeAIEmbedJSON(t *testing.T) {
 	if got := int(asFloat(payload["vector_count"])); got != 2 {
 		t.Fatalf("vector_count mismatch: %d", got)
 	}
-	embedReq := service.lastEmbedRequest()
-	if len(embedReq.GetInputs()) != 2 {
-		t.Fatalf("embed input count mismatch: %d", len(embedReq.GetInputs()))
+	embedReq := service.lastEmbedScenarioRequest()
+	if len(embedReq.GetSpec().GetTextEmbed().GetInputs()) != 2 {
+		t.Fatalf("embed input count mismatch: %d", len(embedReq.GetSpec().GetTextEmbed().GetInputs()))
 	}
 }
 
 func TestRunRuntimeAIStreamJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
-		streamEvents: []*runtimev1.StreamGenerateEvent{
+		streamScenarioEvents: []*runtimev1.StreamScenarioEvent{
 			{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 				Sequence:  1,
 				TraceId:   "trace-stream-1",
 				Timestamp: timestamppb.Now(),
-				Payload: &runtimev1.StreamGenerateEvent_Started{
-					Started: &runtimev1.StreamStarted{
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{
 						ModelResolved: "qwen2.5",
 						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 					},
@@ -155,8 +148,8 @@ func TestRunRuntimeAIStreamJSON(t *testing.T) {
 				Sequence:  2,
 				TraceId:   "trace-stream-1",
 				Timestamp: timestamppb.Now(),
-				Payload: &runtimev1.StreamGenerateEvent_Delta{
-					Delta: &runtimev1.StreamDelta{Text: "hello"},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{Text: "hello"},
 				},
 			},
 			{
@@ -164,8 +157,8 @@ func TestRunRuntimeAIStreamJSON(t *testing.T) {
 				Sequence:  3,
 				TraceId:   "trace-stream-1",
 				Timestamp: timestamppb.Now(),
-				Payload: &runtimev1.StreamGenerateEvent_Completed{
-					Completed: &runtimev1.StreamCompleted{
+				Payload: &runtimev1.StreamScenarioEvent_Completed{
+					Completed: &runtimev1.ScenarioStreamCompleted{
 						FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 					},
 				},
@@ -416,11 +409,11 @@ func TestRunRuntimeAISTTJSON(t *testing.T) {
 	if req == nil {
 		t.Fatalf("stt submit request not captured")
 	}
-	spec, ok := req.GetSpec().(*runtimev1.SubmitMediaJobRequest_TranscriptionSpec)
-	if !ok {
-		t.Fatalf("stt transcription spec missing")
+	audioSource := req.GetSpec().GetSpeechTranscribe().GetAudioSource()
+	if audioSource == nil {
+		t.Fatalf("stt audio source missing")
 	}
-	if string(spec.TranscriptionSpec.GetAudioBytes()) != "fake wav bytes" {
+	if string(audioSource.GetAudioBytes()) != "fake wav bytes" {
 		t.Fatalf("audio bytes mismatch")
 	}
 }
@@ -448,38 +441,60 @@ type cmdTestRuntimeAIService struct {
 
 	mu sync.Mutex
 
-	generateMD      metadata.MD
-	streamMD        metadata.MD
-	mediaSubmitMD   metadata.MD
-	embedRequest    *runtimev1.EmbedRequest
-	lastMediaReq    *runtimev1.SubmitMediaJobRequest
-	lastMediaJob    *runtimev1.MediaJob
-	lastMediaRecord []*runtimev1.MediaArtifact
+	generateMD    metadata.MD
+	streamMD      metadata.MD
+	mediaSubmitMD metadata.MD
 
-	generateResponse   *runtimev1.GenerateResponse
-	embedResponse      *runtimev1.EmbedResponse
-	streamEvents       []*runtimev1.StreamGenerateEvent
-	imageChunks        []*runtimev1.ArtifactChunk
-	videoChunks        []*runtimev1.ArtifactChunk
-	ttsChunks          []*runtimev1.ArtifactChunk
-	sttText            string
+	lastEmbedReq      *runtimev1.ExecuteScenarioRequest
+	lastScenarioReq   *runtimev1.SubmitScenarioJobRequest
+	lastScenarioJob   *runtimev1.ScenarioJob
+	lastScenarioParts []*runtimev1.ScenarioArtifact
+
+	textGenerateResponse *runtimev1.ExecuteScenarioResponse
+	textEmbedResponse    *runtimev1.ExecuteScenarioResponse
+	streamScenarioEvents []*runtimev1.StreamScenarioEvent
+	imageChunks          []*runtimev1.ArtifactChunk
+	videoChunks          []*runtimev1.ArtifactChunk
+	ttsChunks            []*runtimev1.ArtifactChunk
+	sttText              string
 }
 
-func (s *cmdTestRuntimeAIService) Generate(ctx context.Context, _ *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.generateMD = cloneIncomingMetadata(ctx)
-	if s.generateResponse != nil {
-		return s.generateResponse, nil
+func (s *cmdTestRuntimeAIService) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
+	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
+		return nil, errors.New("scenario request is required")
 	}
-	return nil, errors.New("generate response not configured")
+	s.mu.Lock()
+	s.generateMD = cloneIncomingMetadata(ctx)
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED {
+		s.lastEmbedReq = cloneExecuteScenarioRequest(req)
+	}
+	var resp *runtimev1.ExecuteScenarioResponse
+	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		resp = cloneExecuteScenarioResponse(s.textGenerateResponse)
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		resp = cloneExecuteScenarioResponse(s.textEmbedResponse)
+	default:
+		s.mu.Unlock()
+		return nil, errors.New("unsupported scenario type in test service")
+	}
+	s.mu.Unlock()
+	if resp == nil {
+		return nil, errors.New("execute scenario response not configured")
+	}
+	return resp, nil
 }
 
-func (s *cmdTestRuntimeAIService) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream grpc.ServerStreamingServer[runtimev1.StreamGenerateEvent]) error {
+func (s *cmdTestRuntimeAIService) StreamScenario(req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
+	if req == nil {
+		return errors.New("stream scenario request is required")
+	}
+	if req.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE {
+		return errors.New("unsupported stream scenario type in test service")
+	}
 	s.mu.Lock()
 	s.streamMD = cloneIncomingMetadata(stream.Context())
-	events := append([]*runtimev1.StreamGenerateEvent(nil), s.streamEvents...)
-	_ = req
+	events := append([]*runtimev1.StreamScenarioEvent(nil), s.streamScenarioEvents...)
 	s.mu.Unlock()
 	for _, event := range events {
 		if event == nil {
@@ -492,33 +507,23 @@ func (s *cmdTestRuntimeAIService) StreamGenerate(req *runtimev1.StreamGenerateRe
 	return nil
 }
 
-func (s *cmdTestRuntimeAIService) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runtimev1.EmbedResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.embedRequest = req
-	_ = cloneIncomingMetadata(ctx)
-	if s.embedResponse != nil {
-		return s.embedResponse, nil
+func (s *cmdTestRuntimeAIService) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
+	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
+		return nil, errors.New("scenario submit request is required")
 	}
-	return nil, errors.New("embed response not configured")
-}
-
-func (s *cmdTestRuntimeAIService) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	s.mediaSubmitMD = cloneIncomingMetadata(ctx)
-	s.lastMediaReq = req
+	s.lastScenarioReq = cloneSubmitScenarioJobRequest(req)
 
 	var chunks []*runtimev1.ArtifactChunk
-	switch req.GetModal() {
-	case runtimev1.Modal_MODAL_IMAGE:
+	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		chunks = append([]*runtimev1.ArtifactChunk(nil), s.imageChunks...)
-	case runtimev1.Modal_MODAL_VIDEO:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
 		chunks = append([]*runtimev1.ArtifactChunk(nil), s.videoChunks...)
-	case runtimev1.Modal_MODAL_TTS:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		chunks = append([]*runtimev1.ArtifactChunk(nil), s.ttsChunks...)
-	case runtimev1.Modal_MODAL_STT:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		chunks = []*runtimev1.ArtifactChunk{
 			{
 				ArtifactId:    "stt-1",
@@ -526,56 +531,71 @@ func (s *cmdTestRuntimeAIService) SubmitMediaJob(ctx context.Context, req *runti
 				Chunk:         []byte(s.sttText),
 				Eof:           true,
 				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-				ModelResolved: req.GetModelId(),
+				ModelResolved: req.GetHead().GetModelId(),
 				TraceId:       "trace-stt-1",
 			},
 		}
 	default:
+		s.mu.Unlock()
 		return nil, errors.New("unsupported media modal in test service")
 	}
 
-	artifact, routeDecision, modelResolved, traceID, usage := assembleArtifactFromChunks(chunks)
-	job := &runtimev1.MediaJob{
+	artifact, routeDecision, modelResolved, traceID, usage := assembleScenarioArtifactFromChunks(chunks)
+	job := &runtimev1.ScenarioJob{
 		JobId:         "job-1",
-		Status:        runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED,
+		Head:          cloneScenarioRequestHead(req.GetHead()),
+		ScenarioType:  req.GetScenarioType(),
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		RouteDecision: routeDecision,
 		ModelResolved: modelResolved,
 		TraceId:       traceID,
 		Usage:         usage,
-		Artifacts:     []*runtimev1.MediaArtifact{artifact},
+		Artifacts:     []*runtimev1.ScenarioArtifact{artifact},
 	}
-
-	s.lastMediaJob = job
-	s.lastMediaRecord = []*runtimev1.MediaArtifact{artifact}
-	return &runtimev1.SubmitMediaJobResponse{Job: job}, nil
+	s.lastScenarioJob = cloneScenarioJob(job)
+	s.lastScenarioParts = []*runtimev1.ScenarioArtifact{cloneScenarioArtifact(artifact)}
+	s.mu.Unlock()
+	return &runtimev1.SubmitScenarioJobResponse{
+		Job: cloneScenarioJob(job),
+	}, nil
 }
 
-func (s *cmdTestRuntimeAIService) GetMediaJob(context.Context, *runtimev1.GetMediaJobRequest) (*runtimev1.GetMediaJobResponse, error) {
+func (s *cmdTestRuntimeAIService) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
+		return nil, errors.New("job id is required")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.lastMediaJob == nil {
-		return &runtimev1.GetMediaJobResponse{
-			Job: &runtimev1.MediaJob{
-				JobId:      "job-1",
-				Status:     runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_FAILED,
+	if s.lastScenarioJob == nil {
+		return &runtimev1.GetScenarioJobResponse{
+			Job: &runtimev1.ScenarioJob{
+				JobId:      req.GetJobId(),
+				Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
 				ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 			},
 		}, nil
 	}
-	return &runtimev1.GetMediaJobResponse{
-		Job: cloneMediaJob(s.lastMediaJob),
+	return &runtimev1.GetScenarioJobResponse{
+		Job: cloneScenarioJob(s.lastScenarioJob),
 	}, nil
 }
 
-func (s *cmdTestRuntimeAIService) GetMediaArtifacts(_ context.Context, req *runtimev1.GetMediaArtifactsRequest) (*runtimev1.GetMediaArtifactsResponse, error) {
+func (s *cmdTestRuntimeAIService) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
+	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
+		return nil, errors.New("job id is required")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	artifacts := append([]*runtimev1.MediaArtifact(nil), s.lastMediaRecord...)
-	traceID := ""
-	if s.lastMediaJob != nil {
-		traceID = s.lastMediaJob.GetTraceId()
+	artifacts := make([]*runtimev1.ScenarioArtifact, 0, len(s.lastScenarioParts))
+	for _, artifact := range s.lastScenarioParts {
+		artifacts = append(artifacts, cloneScenarioArtifact(artifact))
 	}
-	return &runtimev1.GetMediaArtifactsResponse{
+	traceID := ""
+	if s.lastScenarioJob != nil {
+		traceID = s.lastScenarioJob.GetTraceId()
+	}
+	return &runtimev1.GetScenarioArtifactsResponse{
 		JobId:     req.GetJobId(),
 		Artifacts: artifacts,
 		TraceId:   traceID,
@@ -594,25 +614,25 @@ func (s *cmdTestRuntimeAIService) lastStreamMetadata() metadata.MD {
 	return s.streamMD.Copy()
 }
 
-func (s *cmdTestRuntimeAIService) lastEmbedRequest() *runtimev1.EmbedRequest {
+func (s *cmdTestRuntimeAIService) lastEmbedScenarioRequest() *runtimev1.ExecuteScenarioRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.embedRequest == nil {
-		return &runtimev1.EmbedRequest{}
+	if s.lastEmbedReq == nil {
+		return &runtimev1.ExecuteScenarioRequest{}
 	}
-	return s.embedRequest
+	return cloneExecuteScenarioRequest(s.lastEmbedReq)
 }
 
-func (s *cmdTestRuntimeAIService) lastSTTSubmitRequest() *runtimev1.SubmitMediaJobRequest {
+func (s *cmdTestRuntimeAIService) lastSTTSubmitRequest() *runtimev1.SubmitScenarioJobRequest {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.lastMediaReq == nil || s.lastMediaReq.GetModal() != runtimev1.Modal_MODAL_STT {
+	if s.lastScenarioReq == nil || s.lastScenarioReq.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE {
 		return nil
 	}
-	return s.lastMediaReq
+	return cloneSubmitScenarioJobRequest(s.lastScenarioReq)
 }
 
-func assembleArtifactFromChunks(chunks []*runtimev1.ArtifactChunk) (*runtimev1.MediaArtifact, runtimev1.RoutePolicy, string, string, *runtimev1.UsageStats) {
+func assembleScenarioArtifactFromChunks(chunks []*runtimev1.ArtifactChunk) (*runtimev1.ScenarioArtifact, runtimev1.RoutePolicy, string, string, *runtimev1.UsageStats) {
 	artifactID := "artifact-1"
 	mimeType := "application/octet-stream"
 	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
@@ -648,18 +668,73 @@ func assembleArtifactFromChunks(chunks []*runtimev1.ArtifactChunk) (*runtimev1.M
 		}
 	}
 
-	return &runtimev1.MediaArtifact{
+	return &runtimev1.ScenarioArtifact{
 		ArtifactId: artifactID,
 		MimeType:   mimeType,
 		Bytes:      payload,
 	}, routeDecision, modelResolved, traceID, usage
 }
 
-func cloneMediaJob(job *runtimev1.MediaJob) *runtimev1.MediaJob {
+func cloneExecuteScenarioRequest(req *runtimev1.ExecuteScenarioRequest) *runtimev1.ExecuteScenarioRequest {
+	if req == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(req).(*runtimev1.ExecuteScenarioRequest)
+	if !ok {
+		return nil
+	}
+	return cloned
+}
+
+func cloneExecuteScenarioResponse(resp *runtimev1.ExecuteScenarioResponse) *runtimev1.ExecuteScenarioResponse {
+	if resp == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(resp).(*runtimev1.ExecuteScenarioResponse)
+	if !ok {
+		return nil
+	}
+	return cloned
+}
+
+func cloneSubmitScenarioJobRequest(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.SubmitScenarioJobRequest {
+	if req == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(req).(*runtimev1.SubmitScenarioJobRequest)
+	if !ok {
+		return nil
+	}
+	return cloned
+}
+
+func cloneScenarioJob(job *runtimev1.ScenarioJob) *runtimev1.ScenarioJob {
 	if job == nil {
 		return nil
 	}
-	cloned, ok := proto.Clone(job).(*runtimev1.MediaJob)
+	cloned, ok := proto.Clone(job).(*runtimev1.ScenarioJob)
+	if !ok {
+		return nil
+	}
+	return cloned
+}
+
+func cloneScenarioArtifact(input *runtimev1.ScenarioArtifact) *runtimev1.ScenarioArtifact {
+	if input == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(input).(*runtimev1.ScenarioArtifact)
+	if !ok {
+		return nil
+	}
+	return cloned
+}
+
+func cloneScenarioRequestHead(input *runtimev1.ScenarioRequestHead) *runtimev1.ScenarioRequestHead {
+	if input == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(input).(*runtimev1.ScenarioRequestHead)
 	if !ok {
 		return nil
 	}
@@ -737,6 +812,15 @@ func asFloat(value any) float64 {
 	default:
 		return 0
 	}
+}
+
+func mustStructPB(t *testing.T, input map[string]any) *structpb.Struct {
+	t.Helper()
+	out, err := structpb.NewStruct(input)
+	if err != nil {
+		t.Fatalf("build structpb: %v", err)
+	}
+	return out
 }
 
 func splitNonEmptyLines(input string) []string {

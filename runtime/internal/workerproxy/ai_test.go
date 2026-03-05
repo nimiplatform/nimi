@@ -16,15 +16,24 @@ func TestAIProxyUnavailableWhenWorkerSocketMissing(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_WORKER_DIR", t.TempDir())
 
 	proxy := NewAIProxy(NewConnPool(nil))
-	_, err := proxy.Generate(context.Background(), &runtimev1.GenerateRequest{
-		AppId:         "app.test",
-		SubjectUserId: "user.test",
-		ModelId:       "local/default",
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-		Input: []*runtimev1.ChatMessage{
-			{
-				Role:    "user",
-				Content: "hello",
+	_, err := proxy.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app.test",
+			SubjectUserId: "user.test",
+			ModelId:       "local/default",
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{
+							Role:    "user",
+							Content: "hello",
+						},
+					},
+				},
 			},
 		},
 	})

@@ -15,13 +15,26 @@ import (
 
 const providerFileExt = ".yaml"
 
-var supportedProviderSet = map[string]struct{}{
-	"dashscope": {},
-	"openai":    {},
-	"volcengine": {},
+var supportedProvidersOrdered = []string{
+	"aws_polly",
+	"azure_speech",
+	"dashscope",
+	"elevenlabs",
+	"fish_audio",
+	"google_cloud_tts",
+	"local",
+	"openai",
+	"playht",
+	"volcengine",
 }
 
-var supportedProvidersOrdered = []string{"dashscope", "openai", "volcengine"}
+var supportedProviderSet = func() map[string]struct{} {
+	set := make(map[string]struct{}, len(supportedProvidersOrdered))
+	for _, provider := range supportedProvidersOrdered {
+		set[provider] = struct{}{}
+	}
+	return set
+}()
 
 func SupportedProviders() []string {
 	return append([]string(nil), supportedProvidersOrdered...)
@@ -52,6 +65,9 @@ func loadBuiltInProviderDocuments() (map[string]ProviderDocument, error) {
 		}
 		doc, parseErr := parseProviderDocumentYAML(raw, name)
 		if parseErr != nil {
+			if errors.Is(parseErr, ErrProviderUnsupported) {
+				continue
+			}
 			return nil, fmt.Errorf("parse built-in provider file %q: %w", name, parseErr)
 		}
 		providers[doc.Provider] = doc
@@ -98,6 +114,9 @@ func loadProviderDocumentsFromDir(dir string) (map[string]ProviderDocument, erro
 		}
 		doc, parseErr := parseProviderDocumentYAML(raw, name)
 		if parseErr != nil {
+			if errors.Is(parseErr, ErrProviderUnsupported) {
+				continue
+			}
 			return nil, fmt.Errorf("parse provider catalog file %q: %w", absPath, parseErr)
 		}
 		providers[doc.Provider] = doc
@@ -158,12 +177,67 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string) (Provid
 		}
 		doc.Models[i].Provider = provider
 	}
+
+	speechModels := make([]ModelEntry, 0, len(doc.Models))
+	modelIDSet := make(map[string]struct{}, len(doc.Models))
+	voiceSetIDSet := make(map[string]struct{}, len(doc.Models))
+	for _, model := range doc.Models {
+		if !isSpeechSynthesisModel(model) {
+			continue
+		}
+		speechModels = append(speechModels, model)
+		if modelID := normalizeID(model.ModelID); modelID != "" {
+			modelIDSet[modelID] = struct{}{}
+		}
+		if voiceSetID := normalizeID(model.VoiceSetID); voiceSetID != "" {
+			voiceSetIDSet[voiceSetID] = struct{}{}
+		}
+	}
+
 	for i := range doc.Voices {
 		entryProvider := normalizeProvider(doc.Voices[i].Provider)
 		if entryProvider != "" && entryProvider != provider {
 			return ProviderDocument{}, fmt.Errorf("voice %q provider mismatch: expected %q", doc.Voices[i].VoiceID, provider)
 		}
 		doc.Voices[i].Provider = provider
+	}
+	speechVoices := make([]VoiceEntry, 0, len(doc.Voices))
+	for _, voice := range doc.Voices {
+		if provider == "dashscope" {
+			name := strings.TrimSpace(voice.Name)
+			if name != "" && strings.EqualFold(name, strings.TrimSpace(voice.VoiceID)) {
+				voice.VoiceID = name
+			}
+		}
+		voiceSetID := normalizeID(voice.VoiceSetID)
+		if voiceSetID == "" {
+			continue
+		}
+		if _, ok := voiceSetIDSet[voiceSetID]; !ok {
+			continue
+		}
+		filteredModelIDs := make([]string, 0, len(voice.ModelIDs))
+		for _, modelIDRaw := range voice.ModelIDs {
+			modelID := normalizeID(modelIDRaw)
+			if modelID == "" {
+				continue
+			}
+			if _, ok := modelIDSet[modelID]; !ok {
+				continue
+			}
+			filteredModelIDs = append(filteredModelIDs, strings.TrimSpace(modelIDRaw))
+		}
+		if len(filteredModelIDs) == 0 {
+			continue
+		}
+		voice.ModelIDs = filteredModelIDs
+		speechVoices = append(speechVoices, voice)
+	}
+
+	doc.Models = speechModels
+	doc.Voices = speechVoices
+	if len(doc.Models) == 0 || len(doc.Voices) == 0 {
+		return ProviderDocument{}, fmt.Errorf("%w: %s", ErrProviderUnsupported, provider)
 	}
 
 	snapshot := Snapshot{
@@ -201,6 +275,9 @@ func parseRemoteBundleYAML(raw []byte) (map[string]ProviderDocument, error) {
 	for _, candidate := range bundle.Providers {
 		doc, err := normalizeProviderDocument(candidate, candidate.Provider+providerFileExt)
 		if err != nil {
+			if errors.Is(err, ErrProviderUnsupported) {
+				continue
+			}
 			return nil, err
 		}
 		rawDoc, err := yaml.Marshal(doc)
@@ -209,6 +286,9 @@ func parseRemoteBundleYAML(raw []byte) (map[string]ProviderDocument, error) {
 		}
 		doc.RawYAML = normalizeYAMLString(string(rawDoc))
 		providers[doc.Provider] = doc
+	}
+	if len(providers) == 0 {
+		return nil, errors.New("remote catalog providers must include at least one speech provider")
 	}
 	return providers, nil
 }
@@ -315,9 +395,6 @@ func validateSnapshot(snapshot Snapshot) error {
 		if provider == "" || modelID == "" {
 			return fmt.Errorf("model entry missing provider/model_id")
 		}
-		if !isSupportedProvider(provider) {
-			return fmt.Errorf("unsupported provider %q in model entry", provider)
-		}
 		if strings.TrimSpace(model.ModelType) == "" {
 			return fmt.Errorf("model %s:%s missing model_type", provider, modelID)
 		}
@@ -356,9 +433,6 @@ func validateSnapshot(snapshot Snapshot) error {
 		voiceID := strings.TrimSpace(voice.VoiceID)
 		if provider == "" || voiceSetID == "" || voiceID == "" {
 			return fmt.Errorf("voice entry missing provider/voice_set_id/voice_id")
-		}
-		if !isSupportedProvider(provider) {
-			return fmt.Errorf("unsupported provider %q in voice entry", provider)
 		}
 		if strings.TrimSpace(voice.Name) == "" {
 			return fmt.Errorf("voice %s:%s missing name", provider, voiceID)
@@ -410,4 +484,26 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func isSpeechSynthesisModel(model ModelEntry) bool {
+	if strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") {
+		return true
+	}
+	return containsCapability(model.Capabilities, "tts") ||
+		containsCapability(model.Capabilities, "speech.synthesize") ||
+		containsCapability(model.Capabilities, "llm.speech.synthesize")
+}
+
+func containsCapability(capabilities []string, expected string) bool {
+	target := strings.ToLower(strings.TrimSpace(expected))
+	if target == "" {
+		return false
+	}
+	for _, capability := range capabilities {
+		if strings.ToLower(strings.TrimSpace(capability)) == target {
+			return true
+		}
+	}
+	return false
 }

@@ -2,7 +2,7 @@ version: 1
 provider: azure
 catalog_version: 2026-03-05-azure-v1
 models:
-  - model_id: gpt-5
+  - model_id: gpt-5.2
     provider: azure
     model_type: chat
     updated_at: 2026-03-05

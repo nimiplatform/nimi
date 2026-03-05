@@ -166,7 +166,7 @@ message AiTtsCreateVoiceNodeConfig {
   string instruction_text = 9;
   string preview_text = 10;
   string language = 11;
-  google.protobuf.Struct provider_options = 20;
+  repeated ScenarioExtension extensions = 20;
 }
 
 message AiTtsSynthesizeNodeConfig {
@@ -182,7 +182,7 @@ message AiTtsSynthesizeNodeConfig {
   float pitch = 10;
   float volume = 11;
   string emotion = 12;
-  google.protobuf.Struct provider_options = 20;
+  repeated ScenarioExtension extensions = 20;
 }
 
 message ExtractNodeConfig {

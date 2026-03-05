@@ -11,13 +11,16 @@ import (
 	"time"
 )
 
-func GenerateTextGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.GenerateRequest, metadataOverride ...*ClientMetadata) (*runtimev1.GenerateResponse, error) {
+func ExecuteScenarioGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.ExecuteScenarioRequest, metadataOverride ...*ClientMetadata) (*runtimev1.ExecuteScenarioResponse, error) {
 	addr := strings.TrimSpace(grpcAddr)
 	if addr == "" {
 		return nil, errors.New("grpc address is required")
 	}
 	if req == nil {
-		return nil, errors.New("generate request is required")
+		return nil, errors.New("execute scenario request is required")
+	}
+	if req.GetHead() == nil {
+		return nil, errors.New("scenario request head is required")
 	}
 	if timeout <= 0 {
 		timeout = 10 * time.Second
@@ -25,7 +28,7 @@ func GenerateTextGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Gen
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	ctx = withNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -34,54 +37,26 @@ func GenerateTextGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Gen
 	defer conn.Close()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	resp, err := client.Generate(ctx, req)
+	resp, err := client.ExecuteScenario(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("runtime ai generate: %w", err)
+		return nil, fmt.Errorf("runtime ai execute scenario: %w", err)
 	}
 	return resp, nil
 }
 
-// EmbedGRPC calls RuntimeAiService.Embed over gRPC.
-func EmbedGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.EmbedRequest, metadataOverride ...*ClientMetadata) (*runtimev1.EmbedResponse, error) {
+// SubmitScenarioJobAndCollectGRPC submits a scenario async job, polls until completion, and returns the first artifact payload.
+func SubmitScenarioJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.SubmitScenarioJobRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {
 	addr := strings.TrimSpace(grpcAddr)
 	if addr == "" {
 		return nil, errors.New("grpc address is required")
 	}
 	if req == nil {
-		return nil, errors.New("embed request is required")
+		return nil, errors.New("submit scenario job request is required")
 	}
-	if timeout <= 0 {
-		timeout = 10 * time.Second
+	if req.GetHead() == nil {
+		return nil, errors.New("head is required")
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
-
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("dial grpc %s: %w", addr, err)
-	}
-	defer conn.Close()
-
-	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	resp, err := client.Embed(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("runtime ai embed: %w", err)
-	}
-	return resp, nil
-}
-
-// SubmitMediaJobAndCollectGRPC submits a media job, polls until completion, and returns the first artifact payload.
-func SubmitMediaJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.SubmitMediaJobRequest, metadataOverride ...*ClientMetadata) (*ArtifactResult, error) {
-	addr := strings.TrimSpace(grpcAddr)
-	if addr == "" {
-		return nil, errors.New("grpc address is required")
-	}
-	if req == nil {
-		return nil, errors.New("submit media job request is required")
-	}
-	if strings.TrimSpace(req.GetAppId()) == "" {
+	if strings.TrimSpace(req.GetHead().GetAppId()) == "" {
 		return nil, errors.New("app_id is required")
 	}
 	if timeout <= 0 {
@@ -90,7 +65,7 @@ func SubmitMediaJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *r
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	ctx = withNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -99,32 +74,35 @@ func SubmitMediaJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *r
 	defer conn.Close()
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	submitResp, err := client.SubmitMediaJob(ctx, req)
+	if req.GetExecutionMode() == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {
+		req.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
+	}
+	submitResp, err := client.SubmitScenarioJob(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("runtime ai submit media job: %w", err)
+		return nil, fmt.Errorf("runtime ai submit scenario job: %w", err)
 	}
 	job := submitResp.GetJob()
 	if job == nil || strings.TrimSpace(job.GetJobId()) == "" {
-		return nil, errors.New("runtime ai submit media job returned empty job")
+		return nil, errors.New("runtime ai submit scenario job returned empty job")
 	}
 
 	jobID := strings.TrimSpace(job.GetJobId())
 	for {
 		switch job.GetStatus() {
-		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
-			return collectMediaArtifactResult(ctx, client, job)
-		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED:
+			return collectScenarioArtifactResult(ctx, client, job)
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING:
 			time.Sleep(250 * time.Millisecond)
-			pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
+			pollResp, pollErr := client.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{
 				JobId: jobID,
 			})
 			if pollErr != nil {
-				return nil, fmt.Errorf("runtime ai get media job: %w", pollErr)
+				return nil, fmt.Errorf("runtime ai get scenario job: %w", pollErr)
 			}
 			if pollResp.GetJob() == nil {
-				return nil, errors.New("runtime ai get media job returned empty job")
+				return nil, errors.New("runtime ai get scenario job returned empty job")
 			}
 			job = pollResp.GetJob()
 		default:
@@ -133,26 +111,26 @@ func SubmitMediaJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req *r
 				reason = strings.TrimSpace(job.GetReasonCode().String())
 			}
 			if reason == "" {
-				reason = "unknown media job failure"
+				reason = "unknown scenario job failure"
 			}
-			return nil, fmt.Errorf("runtime ai media job failed: %s", reason)
+			return nil, fmt.Errorf("runtime ai scenario job failed: %s", reason)
 		}
 	}
 }
 
-func collectMediaArtifactResult(ctx context.Context, client runtimev1.RuntimeAiServiceClient, job *runtimev1.MediaJob) (*ArtifactResult, error) {
+func collectScenarioArtifactResult(ctx context.Context, client runtimev1.RuntimeAiServiceClient, job *runtimev1.ScenarioJob) (*ArtifactResult, error) {
 	if job == nil || strings.TrimSpace(job.GetJobId()) == "" {
-		return nil, errors.New("media job is required")
+		return nil, errors.New("scenario job is required")
 	}
 	jobID := strings.TrimSpace(job.GetJobId())
 	artifacts := job.GetArtifacts()
 	traceID := strings.TrimSpace(job.GetTraceId())
 	if len(artifacts) == 0 {
-		artifactsResp, artifactsErr := client.GetMediaArtifacts(ctx, &runtimev1.GetMediaArtifactsRequest{
+		artifactsResp, artifactsErr := client.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{
 			JobId: jobID,
 		})
 		if artifactsErr != nil {
-			return nil, fmt.Errorf("runtime ai get media artifacts: %w", artifactsErr)
+			return nil, fmt.Errorf("runtime ai get scenario artifacts: %w", artifactsErr)
 		}
 		artifacts = artifactsResp.GetArtifacts()
 		if traceID == "" {
@@ -160,7 +138,7 @@ func collectMediaArtifactResult(ctx context.Context, client runtimev1.RuntimeAiS
 		}
 	}
 	if len(artifacts) == 0 {
-		return nil, errors.New("media job completed without artifacts")
+		return nil, errors.New("scenario job completed without artifacts")
 	}
 
 	first := artifacts[0]

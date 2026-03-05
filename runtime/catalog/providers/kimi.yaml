@@ -2,6 +2,25 @@ version: 1
 provider: kimi
 catalog_version: 2026-03-05-kimi-v1
 models:
+  - model_id: kimi-k2.5
+    provider: kimi
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by caching mode and model tier.
+    source_ref:
+      url: https://platform.moonshot.cn/blog/posts/changelog
+      retrieved_at: 2026-03-05
+      note: Kimi official changelog with model release notes.
   - model_id: kimi-k2-0905-preview
     provider: kimi
     model_type: chat

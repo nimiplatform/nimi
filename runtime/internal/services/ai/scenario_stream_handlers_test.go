@@ -1,0 +1,253 @@
+package ai
+
+import (
+	"context"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+)
+
+func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
+	payload := []byte("speech-audio-payload")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "hello world",
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario speech synthesize: %v", err)
+	}
+	if len(stream.events) < 4 {
+		t.Fatalf("expected at least 4 events, got=%d", len(stream.events))
+	}
+	if stream.events[0].GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_STARTED {
+		t.Fatalf("first event should be started, got=%v", stream.events[0].GetEventType())
+	}
+
+	var sawDelta bool
+	var sawUsage bool
+	var completed *runtimev1.ScenarioStreamCompleted
+	for _, event := range stream.events {
+		switch event.GetEventType() {
+		case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
+			if len(event.GetDelta().GetChunk()) == 0 {
+				t.Fatalf("delta chunk should not be empty")
+			}
+			if event.GetDelta().GetMimeType() == "" {
+				t.Fatalf("delta mime type should be set")
+			}
+			sawDelta = true
+		case runtimev1.StreamEventType_STREAM_EVENT_USAGE:
+			sawUsage = true
+		case runtimev1.StreamEventType_STREAM_EVENT_COMPLETED:
+			completed = event.GetCompleted()
+		}
+	}
+	if !sawDelta {
+		t.Fatalf("expected delta event")
+	}
+	if !sawUsage {
+		t.Fatalf("expected usage event")
+	}
+	if completed == nil {
+		t.Fatalf("expected completed event")
+	}
+	if completed.GetFinishReason() != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("unexpected finish reason: %v", completed.GetFinishReason())
+	}
+	if completed.GetUsage() == nil {
+		t.Fatalf("expected usage in completed event")
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{},
+			},
+		},
+	}
+
+	err := svc.StreamScenario(req, stream)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got=%v err=%v", status.Code(err), err)
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "provider failure", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "hello world",
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario should return nil and emit failed event, err=%v", err)
+	}
+	if len(stream.events) < 2 {
+		t.Fatalf("expected started + failed events, got=%d", len(stream.events))
+	}
+	if stream.events[0].GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_STARTED {
+		t.Fatalf("first event should be started, got=%v", stream.events[0].GetEventType())
+	}
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_FAILED {
+		t.Fatalf("expected failed event, got=%v", last.GetEventType())
+	}
+	if last.GetFailed().GetReasonCode() == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+		t.Fatalf("failed event reason_code should be set")
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
+	largePayload := make([]byte, 100*1024)
+	for i := range largePayload {
+		largePayload[i] = byte(i % 256)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write(largePayload)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "hello world",
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario speech synthesize: %v", err)
+	}
+
+	chunkCount := 0
+	totalBytes := 0
+	for _, event := range stream.events {
+		if event.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_DELTA {
+			continue
+		}
+		chunkCount++
+		totalBytes += len(event.GetDelta().GetChunk())
+	}
+	expectedChunks := (len(largePayload) + defaultSpeechStreamChunkSize - 1) / defaultSpeechStreamChunkSize
+	if chunkCount != expectedChunks {
+		t.Fatalf("chunk count mismatch: got=%d want=%d", chunkCount, expectedChunks)
+	}
+	if totalBytes != len(largePayload) {
+		t.Fatalf("payload bytes mismatch: got=%d want=%d", totalBytes, len(largePayload))
+	}
+}
+
+type mockScenarioEventStream struct {
+	ctx    context.Context
+	events []*runtimev1.StreamScenarioEvent
+}
+
+func (m *mockScenarioEventStream) Send(event *runtimev1.StreamScenarioEvent) error {
+	m.events = append(m.events, event)
+	return nil
+}
+
+func (m *mockScenarioEventStream) Context() context.Context {
+	return m.ctx
+}
+
+func (m *mockScenarioEventStream) SendHeader(_ metadata.MD) error { return nil }
+func (m *mockScenarioEventStream) SetHeader(_ metadata.MD) error  { return nil }
+func (m *mockScenarioEventStream) SetTrailer(_ metadata.MD)       {}
+func (m *mockScenarioEventStream) RecvMsg(any) error              { return nil }
+func (m *mockScenarioEventStream) SendMsg(any) error              { return nil }

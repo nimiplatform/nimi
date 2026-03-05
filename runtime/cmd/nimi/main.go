@@ -180,21 +180,30 @@ func runTopLevelRun(args []string) error {
 		return err
 	}
 
-	req := &runtimev1.StreamGenerateRequest{
-		AppId:         strings.TrimSpace(*appID),
-		SubjectUserId: strings.TrimSpace(*subjectUserID),
-		ModelId:       modelID,
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-		Input: []*runtimev1.ChatMessage{
-			{Role: "user", Content: promptValue},
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         strings.TrimSpace(*appID),
+			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			ModelId:       modelID,
+			RoutePolicy:   routePolicy,
+			Fallback:      fallbackPolicy,
+			TimeoutMs:     int32(*timeoutMs),
 		},
-		SystemPrompt: *systemPrompt,
-		RoutePolicy:  routePolicy,
-		Fallback:     fallbackPolicy,
-		TimeoutMs:    int32(*timeoutMs),
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{Role: "user", Content: promptValue},
+					},
+					SystemPrompt: *systemPrompt,
+				},
+			},
+		},
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
-	events, errCh, err := entrypoint.StreamGenerateTextGRPC(context.Background(), *grpcAddr, req, callerMeta)
+	events, errCh, err := entrypoint.StreamScenarioGRPC(context.Background(), *grpcAddr, req, callerMeta)
 	if err != nil {
 		return err
 	}
@@ -250,12 +259,12 @@ func runRuntimeAI(args []string) error {
 	}
 
 	switch args[0] {
-	case "generate":
-		return runRuntimeAIGenerate(args[1:])
+	case "text-generate":
+		return runRuntimeAITextGenerate(args[1:])
 	case "stream":
 		return runRuntimeAIStream(args[1:])
-	case "embed":
-		return runRuntimeAIEmbed(args[1:])
+	case "text-embed":
+		return runRuntimeAITextEmbed(args[1:])
 	case "image":
 		return runRuntimeAIImage(args[1:])
 	case "video":

@@ -61,7 +61,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-03-05
-      notes: Legacy TTS model retained for compatibility.
+      notes: Baseline TTS model retained as stable default.
     source_ref:
       url: https://platform.openai.com/docs/guides/text-to-speech
       retrieved_at: 2026-03-05
@@ -94,6 +94,25 @@ models:
     provider: openai
     model_type: chat
     updated_at: 2025-12-11
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by tier and model revision.
+    source_ref:
+      url: https://platform.openai.com/docs/models/gpt-5.2
+      retrieved_at: 2026-03-05
+      note: OpenAI GPT-5.2 model card.
+  - model_id: gpt-5.2-pro
+    provider: openai
+    model_type: chat
+    updated_at: 2026-03-05
     capabilities:
       - chat
       - text.generate
@@ -166,6 +185,127 @@ models:
       url: https://platform.openai.com/docs/models/gpt-image-1.5
       retrieved_at: 2026-03-05
       note: OpenAI gpt-image-1.5 model card.
+  - model_id: o3
+    provider: openai
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Full reasoning model pricing varies by tier and reasoning effort.
+    source_ref:
+      url: https://platform.openai.com/docs/models/o3-mini
+      retrieved_at: 2026-03-05
+      note: OpenAI o3-mini reasoning model card.
+  - model_id: o3-mini
+    provider: openai
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by tier and reasoning effort.
+    source_ref:
+      url: https://platform.openai.com/docs/models/o3-mini
+      retrieved_at: 2026-03-05
+      note: OpenAI o3-mini reasoning model card.
+  - model_id: gpt-5.3-codex
+    provider: openai
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Agentic coding model pricing varies by tier and task complexity.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-5.3-codex
+      retrieved_at: 2026-03-05
+      note: OpenAI GPT-5.3-Codex agentic coding model card.
+  - model_id: sora-2
+    provider: openai
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Video generation pricing varies by resolution, duration, and tier.
+    source_ref:
+      url: https://platform.openai.com/docs/models/sora-2
+      retrieved_at: 2026-03-05
+      note: OpenAI Sora 2 video generation model card.
+    video_generation: &a1
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: sora-2-2025-12-08
+    provider: openai
+    model_type: video
+    updated_at: 2025-12-08
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Video generation pricing varies by resolution, duration, and tier.
+    source_ref:
+      url: https://platform.openai.com/docs/models/sora-2
+      retrieved_at: 2026-03-05
+      note: OpenAI Sora 2 video generation model card.
+    video_generation: *a1
 voices:
   - voice_id: alloy
     voice_set_id: openai:default-tts-v1

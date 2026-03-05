@@ -2,6 +2,44 @@ version: 1
 provider: spark
 catalog_version: 2026-03-05-spark-v1
 models:
+  - model_id: spark-x1
+    provider: spark
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat pricing varies by request quota and enterprise plan.
+    source_ref:
+      url: https://www.xfyun.cn/doc/spark/x1.html
+      retrieved_at: 2026-03-05
+      note: iFlytek Spark X1 reasoning model documentation.
+  - model_id: spark-lite-max
+    provider: spark
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat pricing varies by request quota and enterprise plan.
+    source_ref:
+      url: https://www.xfyun.cn/doc/spark/lite.html
+      retrieved_at: 2026-03-05
+      note: iFlytek Spark Lite API documentation.
   - model_id: lite
     provider: spark
     model_type: chat

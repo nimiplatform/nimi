@@ -59,3 +59,51 @@ func TestUnaryLifecycleInterceptorRejectsLocalRuntimeWriteWhenStopping(t *testin
 	}
 }
 
+func TestUnaryLifecycleInterceptorAllowsScenarioReadWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	handlerCalled := false
+	_, err := interceptor(
+		context.Background(),
+		struct{}{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob"},
+		func(_ context.Context, _ any) (any, error) {
+			handlerCalled = true
+			return struct{}{}, nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("scenario read method should be allowed while stopping: %v", err)
+	}
+	if !handlerCalled {
+		t.Fatalf("handler must be called for scenario read method")
+	}
+}
+
+func TestUnaryLifecycleInterceptorRejectsScenarioWriteWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newUnaryLifecycleInterceptor(state)
+
+	handlerCalled := false
+	_, err := interceptor(
+		context.Background(),
+		struct{}{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"},
+		func(_ context.Context, _ any) (any, error) {
+			handlerCalled = true
+			return struct{}{}, nil
+		},
+	)
+	if err == nil {
+		t.Fatalf("scenario write method must be rejected while stopping")
+	}
+	if handlerCalled {
+		t.Fatalf("handler must not be called for rejected scenario write method")
+	}
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("status code mismatch: got=%s want=%s", status.Code(err), codes.Unavailable)
+	}
+}

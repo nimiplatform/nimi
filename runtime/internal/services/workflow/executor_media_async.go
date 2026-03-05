@@ -38,11 +38,11 @@ func (s *Service) executeNodeExternalAsync(
 	if client == nil {
 		return nil, fmt.Errorf("runtime ai client unavailable for external async node")
 	}
-	submitReq, err := buildSubmitMediaJobRequest(record, node, inputs)
+	submitReq, err := buildSubmitScenarioJobRequest(record, node, inputs)
 	if err != nil {
 		return nil, err
 	}
-	submitResp, err := client.SubmitMediaJob(ctx, submitReq)
+	submitResp, err := aiSubmitScenarioJob(ctx, client, submitReq)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s *Service) executeNodeExternalAsync(
 		cancelForwarded = true
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		_, _ = client.CancelMediaJob(cancelCtx, &runtimev1.CancelMediaJobRequest{
+		_, _ = aiCancelScenarioJob(cancelCtx, client, &runtimev1.CancelScenarioJobRequest{
 			JobId:  jobID,
 			Reason: strings.TrimSpace(reason),
 		})
@@ -90,7 +90,7 @@ func (s *Service) executeNodeExternalAsync(
 			forwardCancel(ctx.Err().Error())
 			return nil, ctx.Err()
 		}
-		pollResp, pollErr := client.GetMediaJob(ctx, &runtimev1.GetMediaJobRequest{
+		pollResp, pollErr := aiGetScenarioJob(ctx, client, &runtimev1.GetScenarioJobRequest{
 			JobId: jobID,
 		})
 		if pollErr != nil {
@@ -110,10 +110,10 @@ func (s *Service) executeNodeExternalAsync(
 		}
 		s.setNodeExternalStatus(taskID, nodeID, current.GetProviderJobId(), current.GetNextPollAt(), effectiveRetryCount, "")
 		switch current.GetStatus() {
-		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_SUBMITTED,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_QUEUED,
-			runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING:
-			if !runningEventSent || current.GetStatus() == runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_RUNNING {
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING:
+			if !runningEventSent || current.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
 				runningEventSent = true
 				if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 					EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING,
@@ -133,7 +133,7 @@ func (s *Service) executeNodeExternalAsync(
 			}
 			time.Sleep(400 * time.Millisecond)
 			continue
-		case runtimev1.MediaJobStatus_MEDIA_JOB_STATUS_COMPLETED:
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED:
 			if err := s.publishEvent(taskID, &runtimev1.WorkflowEvent{
 				EventType:  runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED,
 				NodeId:     nodeID,
@@ -149,9 +149,9 @@ func (s *Service) executeNodeExternalAsync(
 			}); err != nil {
 				s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
 			}
-			return outputsFromMediaJob(s, record, node, current)
+			return outputsFromScenarioJob(s, record, node, current)
 		default:
-			reasonCode := workflowReasonCodeFromMediaJob(current)
+			reasonCode := workflowReasonCodeFromScenarioJob(current)
 			lastError := strings.TrimSpace(current.GetReasonDetail())
 			if lastError == "" {
 				lastError = current.GetReasonCode().String()
@@ -172,24 +172,27 @@ func (s *Service) executeNodeExternalAsync(
 			}); err != nil {
 				s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
 			}
-			return nil, fmt.Errorf("external async media job failed: %s", current.GetReasonCode().String())
+			return nil, fmt.Errorf("external async scenario job failed: %s", current.GetReasonCode().String())
 		}
 	}
 }
 
-func buildSubmitMediaJobRequest(
+func buildSubmitScenarioJobRequest(
 	record *taskRecord,
 	node *runtimev1.WorkflowNode,
 	inputs map[string]*structpb.Struct,
-) (*runtimev1.SubmitMediaJobRequest, error) {
+) (*runtimev1.SubmitScenarioJobRequest, error) {
 	if record == nil || node == nil {
 		return nil, fmt.Errorf("workflow record/node is nil")
 	}
-	req := &runtimev1.SubmitMediaJobRequest{
-		AppId:          record.AppID,
-		SubjectUserId:  record.SubjectUserID,
-		RoutePolicy:    runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-		Fallback:       runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         record.AppID,
+			SubjectUserId: record.SubjectUserID,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		RequestId:      fmt.Sprintf("%s:%s", record.TaskID, node.GetNodeId()),
 		IdempotencyKey: fmt.Sprintf("%s:%s:external-async", record.TaskID, node.GetNodeId()),
 		Labels: map[string]string{
@@ -208,14 +211,16 @@ func buildSubmitMediaJobRequest(
 		if prompt == "" {
 			return nil, fmt.Errorf("image prompt is empty")
 		}
-		req.ModelId = cfg.GetModelId()
-		req.Modal = runtimev1.Modal_MODAL_IMAGE
-		req.RoutePolicy = cfg.GetRoutePolicy()
-		req.Fallback = cfg.GetFallback()
-		req.TimeoutMs = cfg.GetTimeoutMs()
-		req.Spec = &runtimev1.SubmitMediaJobRequest_ImageSpec{
-			ImageSpec: &runtimev1.ImageGenerationSpec{
-				Prompt: prompt,
+		req.Head.ModelId = cfg.GetModelId()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+		req.Head.RoutePolicy = cfg.GetRoutePolicy()
+		req.Head.Fallback = cfg.GetFallback()
+		req.Head.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt: prompt,
+				},
 			},
 		}
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_VIDEO:
@@ -227,23 +232,25 @@ func buildSubmitMediaJobRequest(
 		if prompt == "" {
 			return nil, fmt.Errorf("video prompt is empty")
 		}
-		req.ModelId = cfg.GetModelId()
-		req.Modal = runtimev1.Modal_MODAL_VIDEO
-		req.RoutePolicy = cfg.GetRoutePolicy()
-		req.Fallback = cfg.GetFallback()
-		req.TimeoutMs = cfg.GetTimeoutMs()
-		req.Spec = &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: prompt,
-				Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
-				Content: []*runtimev1.VideoContentItem{
-					{
-						Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
-						Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
-						Text: prompt,
+		req.Head.ModelId = cfg.GetModelId()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
+		req.Head.RoutePolicy = cfg.GetRoutePolicy()
+		req.Head.Fallback = cfg.GetFallback()
+		req.Head.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VideoGenerate{
+				VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+					Prompt: prompt,
+					Mode:   runtimev1.VideoMode_VIDEO_MODE_T2V,
+					Content: []*runtimev1.VideoContentItem{
+						{
+							Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+							Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+							Text: prompt,
+						},
 					},
+					Options: &runtimev1.VideoGenerationOptions{},
 				},
-				Options: &runtimev1.VideoGenerationOptions{},
 			},
 		}
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS:
@@ -255,14 +262,16 @@ func buildSubmitMediaJobRequest(
 		if text == "" {
 			return nil, fmt.Errorf("tts text is empty")
 		}
-		req.ModelId = cfg.GetModelId()
-		req.Modal = runtimev1.Modal_MODAL_TTS
-		req.RoutePolicy = cfg.GetRoutePolicy()
-		req.Fallback = cfg.GetFallback()
-		req.TimeoutMs = cfg.GetTimeoutMs()
-		req.Spec = &runtimev1.SubmitMediaJobRequest_SpeechSpec{
-			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
-				Text: text,
+		req.Head.ModelId = cfg.GetModelId()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE
+		req.Head.RoutePolicy = cfg.GetRoutePolicy()
+		req.Head.Fallback = cfg.GetFallback()
+		req.Head.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: text,
+				},
 			},
 		}
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
@@ -274,44 +283,50 @@ func buildSubmitMediaJobRequest(
 		if len(audio) == 0 {
 			return nil, fmt.Errorf("stt audio is empty")
 		}
-		req.ModelId = cfg.GetModelId()
-		req.Modal = runtimev1.Modal_MODAL_STT
-		req.RoutePolicy = cfg.GetRoutePolicy()
-		req.Fallback = cfg.GetFallback()
-		req.TimeoutMs = cfg.GetTimeoutMs()
-		req.Spec = &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
-			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
-				AudioBytes: audio,
-				MimeType:   cfg.GetMimeType(),
+		req.Head.ModelId = cfg.GetModelId()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE
+		req.Head.RoutePolicy = cfg.GetRoutePolicy()
+		req.Head.Fallback = cfg.GetFallback()
+		req.Head.TimeoutMs = cfg.GetTimeoutMs()
+		req.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
+				SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
+					MimeType: cfg.GetMimeType(),
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
+							AudioBytes: append([]byte(nil), audio...),
+						},
+					},
+				},
 			},
 		}
 	default:
 		return nil, fmt.Errorf("node type does not support external async media execution: %s", node.GetNodeType().String())
 	}
-	if strings.TrimSpace(req.GetModelId()) == "" {
+	if strings.TrimSpace(req.GetHead().GetModelId()) == "" {
 		return nil, fmt.Errorf("model id is empty for external async node")
 	}
-	if req.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		req.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+	if req.GetHead().GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
 	}
-	if req.GetFallback() == runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED {
-		req.Fallback = runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
+	if req.GetHead().GetFallback() == runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED {
+		req.Head.Fallback = runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
 	}
 	return req, nil
 }
 
-func outputsFromMediaJob(
+func outputsFromScenarioJob(
 	svc *Service,
 	record *taskRecord,
 	node *runtimev1.WorkflowNode,
-	job *runtimev1.MediaJob,
+	job *runtimev1.ScenarioJob,
 ) (map[string]*structpb.Struct, error) {
 	if job == nil {
-		return nil, fmt.Errorf("media job is nil")
+		return nil, fmt.Errorf("scenario job is nil")
 	}
 	artifacts := job.GetArtifacts()
 	if len(artifacts) == 0 {
-		return nil, fmt.Errorf("media job artifacts are empty")
+		return nil, fmt.Errorf("scenario job artifacts are empty")
 	}
 	first := artifacts[0]
 	switch node.GetNodeType() {
@@ -321,11 +336,6 @@ func outputsFromMediaJob(
 		return svc.writeArtifact(record, node, "artifact", first.GetMimeType(), first.GetBytes())
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
 		text := strings.TrimSpace(string(first.GetBytes()))
-		if text == "" && first.GetProviderRaw() != nil {
-			if value, ok := first.GetProviderRaw().AsMap()["text"].(string); ok {
-				text = strings.TrimSpace(value)
-			}
-		}
 		return map[string]*structpb.Struct{
 			"output": structFromMap(map[string]any{"text": text}),
 			"text":   structFromMap(map[string]any{"value": text}),

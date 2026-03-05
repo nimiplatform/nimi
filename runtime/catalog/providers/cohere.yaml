@@ -1,0 +1,62 @@
+version: 1
+provider: cohere
+catalog_version: 2026-03-05-cohere-v1
+models:
+  - model_id: command-r-plus
+    provider: cohere
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and usage tier.
+    source_ref:
+      url: https://docs.cohere.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Cohere official model catalog.
+  - model_id: command-r
+    provider: cohere
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and usage tier.
+    source_ref:
+      url: https://docs.cohere.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Cohere official model catalog.
+  - model_id: embed-v4.0
+    provider: cohere
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and account plan.
+    source_ref:
+      url: https://docs.cohere.com/docs/embed
+      retrieved_at: 2026-03-05
+      note: Cohere Embed v4 documentation.
+voices: []

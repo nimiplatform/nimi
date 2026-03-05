@@ -33,6 +33,23 @@ func inferRequestIdentity(req any) (string, string, string) {
 	case interface{ GetModelId() string }:
 		modelID = strings.TrimSpace(value.GetModelId())
 	}
+	switch value := req.(type) {
+	case interface {
+		GetHead() *runtimev1.ScenarioRequestHead
+	}:
+		head := value.GetHead()
+		if head != nil {
+			if appID == "" {
+				appID = strings.TrimSpace(head.GetAppId())
+			}
+			if subjectUserID == "" {
+				subjectUserID = strings.TrimSpace(head.GetSubjectUserId())
+			}
+			if modelID == "" {
+				modelID = strings.TrimSpace(head.GetModelId())
+			}
+		}
+	}
 	return appID, subjectUserID, modelID
 }
 
@@ -112,10 +129,20 @@ func secretFingerprint(value string) string {
 
 func appIDFromRequest(req any) string {
 	item, ok := req.(interface{ GetAppId() string })
+	if ok {
+		return strings.TrimSpace(item.GetAppId())
+	}
+	headCarrier, ok := req.(interface {
+		GetHead() *runtimev1.ScenarioRequestHead
+	})
 	if !ok {
 		return ""
 	}
-	return strings.TrimSpace(item.GetAppId())
+	head := headCarrier.GetHead()
+	if head == nil {
+		return ""
+	}
+	return strings.TrimSpace(head.GetAppId())
 }
 
 func firstMetadata(md metadata.MD, key string) string {

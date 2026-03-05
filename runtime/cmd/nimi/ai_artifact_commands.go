@@ -79,18 +79,27 @@ func runRuntimeAISTT(args []string) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
-	artifact, err := entrypoint.SubmitMediaJobAndCollectGRPC(*grpcAddr, timeout, &runtimev1.SubmitMediaJobRequest{
-		AppId:         strings.TrimSpace(*appID),
-		SubjectUserId: strings.TrimSpace(*subjectUserID),
-		ModelId:       strings.TrimSpace(*modelID),
-		Modal:         runtimev1.Modal_MODAL_STT,
-		RoutePolicy:   routePolicy,
-		Fallback:      fallbackPolicy,
-		TimeoutMs:     int32(*timeoutMS),
-		Spec: &runtimev1.SubmitMediaJobRequest_TranscriptionSpec{
-			TranscriptionSpec: &runtimev1.SpeechTranscriptionSpec{
-				AudioBytes: audioBytes,
-				MimeType:   strings.TrimSpace(*mimeType),
+	artifact, err := entrypoint.SubmitScenarioJobAndCollectGRPC(*grpcAddr, timeout, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         strings.TrimSpace(*appID),
+			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			ModelId:       strings.TrimSpace(*modelID),
+			RoutePolicy:   routePolicy,
+			Fallback:      fallbackPolicy,
+			TimeoutMs:     int32(*timeoutMS),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
+				SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
+					MimeType: strings.TrimSpace(*mimeType),
+					AudioSource: &runtimev1.SpeechTranscriptionAudioSource{
+						Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{
+							AudioBytes: audioBytes,
+						},
+					},
+				},
 			},
 		},
 	}, callerMeta)
@@ -197,40 +206,49 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
-	submitReq := &runtimev1.SubmitMediaJobRequest{
-		AppId:         strings.TrimSpace(*appID),
-		SubjectUserId: strings.TrimSpace(*subjectUserID),
-		ModelId:       strings.TrimSpace(*modelID),
-		RoutePolicy:   routePolicy,
-		Fallback:      fallbackPolicy,
-		TimeoutMs:     int32(*timeoutMS),
+	submitReq := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         strings.TrimSpace(*appID),
+			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			ModelId:       strings.TrimSpace(*modelID),
+			RoutePolicy:   routePolicy,
+			Fallback:      fallbackPolicy,
+			TimeoutMs:     int32(*timeoutMS),
+		},
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 	}
 	switch mode {
 	case runtimeAIArtifactModeImage:
-		submitReq.Modal = runtimev1.Modal_MODAL_IMAGE
-		submitReq.Spec = &runtimev1.SubmitMediaJobRequest_ImageSpec{
-			ImageSpec: &runtimev1.ImageGenerationSpec{
-				Prompt: content,
+		submitReq.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+		submitReq.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt: content,
+				},
 			},
 		}
 	case runtimeAIArtifactModeVideo:
-		submitReq.Modal = runtimev1.Modal_MODAL_VIDEO
-		submitReq.Spec = &runtimev1.SubmitMediaJobRequest_VideoSpec{
-			VideoSpec: &runtimev1.VideoGenerationSpec{
-				Prompt: content,
+		submitReq.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
+		submitReq.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VideoGenerate{
+				VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+					Prompt: content,
+				},
 			},
 		}
 	case runtimeAIArtifactModeTTS:
-		submitReq.Modal = runtimev1.Modal_MODAL_TTS
-		submitReq.Spec = &runtimev1.SubmitMediaJobRequest_SpeechSpec{
-			SpeechSpec: &runtimev1.SpeechSynthesisSpec{
-				Text: content,
+		submitReq.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE
+		submitReq.Spec = &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: content,
+				},
 			},
 		}
 	default:
 		return fmt.Errorf("unsupported mode %q", mode)
 	}
-	artifact, err := entrypoint.SubmitMediaJobAndCollectGRPC(*grpcAddr, timeout, submitReq, callerMeta)
+	artifact, err := entrypoint.SubmitScenarioJobAndCollectGRPC(*grpcAddr, timeout, submitReq, callerMeta)
 	if err != nil {
 		return err
 	}

@@ -29,31 +29,31 @@ func nativeOriginURL(endpoint string) string {
 	return u.Scheme + "://" + u.Host
 }
 
-// ExecuteAlibabaNative executes a media job against the Alibaba native API.
+// ExecuteAlibabaNative executes a scenario job against the Alibaba native API.
 // It handles four modals: image generation, video generation, TTS, and STT.
 func ExecuteAlibabaNative(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
 	updater JobStateUpdater,
 	jobID string,
-	req *runtimev1.SubmitMediaJobRequest,
+	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := nativeOriginURL(strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/"))
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
-	switch req.GetModal() {
+	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
-		spec := req.GetImageSpec()
+		spec := scenarioImageSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		providerOptions := StructToMap(spec.GetProviderOptions())
+		scenarioExtensions := StructToMap(nil)
 		submitPath := resolveAlibabaImageSubmitPath(spec)
-		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(providerOptions)
+		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(scenarioExtensions)
 		submitPayload := map[string]any{
 			"model":           modelResolved,
 			"prompt":          spec.GetPrompt(),
@@ -76,8 +76,8 @@ func ExecuteAlibabaNative(
 		if len(spec.GetReferenceImages()) > 0 {
 			submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
 		}
-		if len(providerOptions) > 0 {
-			submitPayload["provider_options"] = providerOptions
+		if len(scenarioExtensions) > 0 {
+			submitPayload["extensions"] = scenarioExtensions
 		}
 		submitResp := map[string]any{}
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
@@ -92,18 +92,18 @@ func ExecuteAlibabaNative(
 			if mimeType == "" {
 				mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
 			}
-			providerRaw := map[string]any{
+			artifactMeta := map[string]any{
 				"adapter":          AdapterAlibabaNative,
 				"submit_endpoint":  submitPath,
 				"response":         submitResp,
-				"provider_options": providerOptions,
+				"extensions": scenarioExtensions,
 			}
 			if artifactURI != "" {
-				providerRaw["uri"] = artifactURI
+				artifactMeta["uri"] = artifactURI
 			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 			ApplyImageSpecMetadata(artifact, spec)
-			return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
 		}
 		return PollProviderTaskForArtifact(
 			ctx,
@@ -118,15 +118,15 @@ func ExecuteAlibabaNative(
 			ResolveImageArtifactMIME(spec, nil),
 			180,
 			spec.GetPrompt(),
-			func(artifact *runtimev1.MediaArtifact) {
+			func(artifact *runtimev1.ScenarioArtifact) {
 				ApplyImageSpecMetadata(artifact, spec)
 			},
 			map[string]any{
-				"provider_options": providerOptions,
+				"extensions": scenarioExtensions,
 			},
 		)
 	case runtimev1.Modal_MODAL_VIDEO:
-		spec := req.GetVideoSpec()
+		spec := scenarioVideoSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -175,17 +175,17 @@ func ExecuteAlibabaNative(
 			if mimeType == "" {
 				mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
 			}
-			providerRaw := map[string]any{
+			artifactMeta := map[string]any{
 				"adapter":         AdapterAlibabaNative,
 				"submit_endpoint": submitPath,
 				"response":        submitResp,
 			}
 			if artifactURI != "" {
-				providerRaw["uri"] = artifactURI
+				artifactMeta["uri"] = artifactURI
 			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(VideoPrompt(spec), artifactBytes, 420), "", nil
 		}
 		return PollProviderTaskForArtifact(
 			ctx,
@@ -200,18 +200,18 @@ func ExecuteAlibabaNative(
 			"video/mp4",
 			420,
 			VideoPrompt(spec),
-			func(artifact *runtimev1.MediaArtifact) {
+			func(artifact *runtimev1.ScenarioArtifact) {
 				ApplyVideoSpecMetadata(artifact, spec)
 			},
 			map[string]any{"mode": spec.GetMode().String()},
 		)
 	case runtimev1.Modal_MODAL_TTS:
-		spec := req.GetSpeechSpec()
+		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		requestedVoice := strings.TrimSpace(spec.GetVoice())
-		providerOptions := StructToMap(spec.GetProviderOptions())
+		requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
+		scenarioExtensions := StructToMap(nil)
 		payload := map[string]any{
 			"model": modelResolved,
 			"input": map[string]any{
@@ -232,8 +232,8 @@ func ExecuteAlibabaNative(
 			"audio_format":   strings.TrimSpace(spec.GetAudioFormat()),
 			"sample_rate_hz": spec.GetSampleRateHz(),
 		}
-		if len(providerOptions) > 0 {
-			payload["provider_options"] = providerOptions
+		if len(scenarioExtensions) > 0 {
+			payload["extensions"] = scenarioExtensions
 		}
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, resolveAlibabaTTSPath(spec)), apiKey, payload)
 		if err != nil {
@@ -253,12 +253,12 @@ func ExecuteAlibabaNative(
 			"language":         strings.TrimSpace(spec.GetLanguage()),
 			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
 			"emotion":          strings.TrimSpace(spec.GetEmotion()),
-			"provider_options": providerOptions,
+			"extensions": scenarioExtensions,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
 	case runtimev1.Modal_MODAL_STT:
-		spec := req.GetTranscriptionSpec()
+		spec := scenarioSpeechTranscribeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -287,10 +287,10 @@ func ExecuteAlibabaNative(
 			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 			"mime_type":        mimeType,
 			"audio_uri":        audioURI,
-			"provider_options": StructToMap(spec.GetProviderOptions()),
+			"extensions": StructToMap(nil),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-		return []*runtimev1.MediaArtifact{artifact}, usage, "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -300,13 +300,13 @@ func ExecuteAlibabaNative(
 // Alibaba-specific path resolvers (package-private)
 // ---------------------------------------------------------------------------
 
-func resolveAlibabaImageSubmitPath(spec *runtimev1.ImageGenerationSpec) string {
-	providerOptions := map[string]any{}
+func resolveAlibabaImageSubmitPath(spec *runtimev1.ImageGenerateScenarioSpec) string {
+	scenarioExtensions := map[string]any{}
 	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 	}
 	return FirstProviderEndpointPath(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"image_path", "image_submit_path"},
 		[]string{"image_paths", "image_submit_paths"},
 		[]string{"/api/v1/services/aigc/image2image/image-synthesis"},
@@ -322,35 +322,35 @@ func resolveAlibabaVideoSubmitPath() string {
 	)
 }
 
-func resolveAlibabaTaskQueryPathTemplate(providerOptions map[string]any) string {
+func resolveAlibabaTaskQueryPathTemplate(scenarioExtensions map[string]any) string {
 	return ResolveTaskQueryPathTemplate(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"task_query_path", "query_path", "task_query_path_template"},
 		[]string{"task_query_paths", "query_paths", "task_query_path_templates"},
 		[]string{"/api/v1/tasks/{task_id}"},
 	)
 }
 
-func resolveAlibabaTTSPath(spec *runtimev1.SpeechSynthesisSpec) string {
-	providerOptions := map[string]any{}
+func resolveAlibabaTTSPath(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
+	scenarioExtensions := map[string]any{}
 	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 	}
 	return FirstProviderEndpointPath(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"tts_path", "speech_path"},
 		[]string{"tts_paths", "speech_paths"},
 		[]string{"/api/v1/services/aigc/multimodal-generation/generation"},
 	)
 }
 
-func resolveAlibabaSTTPath(spec *runtimev1.SpeechTranscriptionSpec) string {
-	providerOptions := map[string]any{}
+func resolveAlibabaSTTPath(spec *runtimev1.SpeechTranscribeScenarioSpec) string {
+	scenarioExtensions := map[string]any{}
 	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 	}
 	return FirstProviderEndpointPath(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"stt_path", "transcription_path"},
 		[]string{"stt_paths", "transcription_paths"},
 		[]string{"/api/v1/services/audio/asr/transcription"},

@@ -212,12 +212,15 @@ func (s *auditStream) SendMsg(m any) error {
 	}
 
 	switch msg := m.(type) {
-	case *runtimev1.StreamGenerateEvent:
+	case *runtimev1.StreamScenarioEvent:
 		if usage := msg.GetUsage(); usage != nil {
 			s.usage = cloneUsage(usage)
 		}
 		if started := msg.GetStarted(); started != nil && started.GetModelResolved() != "" {
 			s.modelResolved = started.GetModelResolved()
+		}
+		if completed := msg.GetCompleted(); completed != nil && completed.GetUsage() != nil {
+			s.usage = cloneUsage(completed.GetUsage())
 		}
 		if msg.GetTraceId() != "" {
 			s.traceID = msg.GetTraceId()
@@ -228,6 +231,18 @@ func (s *auditStream) SendMsg(m any) error {
 		}
 		if msg.GetModelResolved() != "" {
 			s.modelResolved = msg.GetModelResolved()
+		}
+		if msg.GetTraceId() != "" {
+			s.traceID = msg.GetTraceId()
+		}
+	case *runtimev1.ScenarioJobEvent:
+		if job := msg.GetJob(); job != nil {
+			if usage := job.GetUsage(); usage != nil {
+				s.usage = cloneUsage(usage)
+			}
+			if job.GetModelResolved() != "" {
+				s.modelResolved = job.GetModelResolved()
+			}
 		}
 		if msg.GetTraceId() != "" {
 			s.traceID = msg.GetTraceId()

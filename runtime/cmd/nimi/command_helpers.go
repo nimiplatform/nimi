@@ -260,7 +260,7 @@ func runtimeAICallerMetadataFromFlags(callerKind string, callerID string, surfac
 	}
 }
 
-func streamEventJSON(event *runtimev1.StreamGenerateEvent) map[string]any {
+func streamEventJSON(event *runtimev1.StreamScenarioEvent) map[string]any {
 	payload := map[string]any{
 		"event_type": event.GetEventType().String(),
 		"sequence":   event.GetSequence(),
@@ -279,15 +279,8 @@ func streamEventJSON(event *runtimev1.StreamGenerateEvent) map[string]any {
 		}
 	case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
 		payload["delta"] = map[string]any{
-			"text": event.GetDelta().GetText(),
-		}
-	case runtimev1.StreamEventType_STREAM_EVENT_TOOL_CALL:
-		payload["tool_call"] = map[string]any{
-			"tool_name": event.GetToolCall().GetToolName(),
-		}
-	case runtimev1.StreamEventType_STREAM_EVENT_TOOL_RESULT:
-		payload["tool_result"] = map[string]any{
-			"tool_name": event.GetToolResult().GetToolName(),
+			"text":      event.GetDelta().GetText(),
+			"mime_type": event.GetDelta().GetMimeType(),
 		}
 	case runtimev1.StreamEventType_STREAM_EVENT_USAGE:
 		payload["usage"] = map[string]any{

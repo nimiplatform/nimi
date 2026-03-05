@@ -84,24 +84,3 @@ func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) time.Duratio
 	}
 	return duration
 }
-
-func streamToGenerateRequest(input *runtimev1.StreamGenerateRequest) *runtimev1.GenerateRequest {
-	if input == nil {
-		return nil
-	}
-	return &runtimev1.GenerateRequest{
-		AppId:         input.GetAppId(),
-		SubjectUserId: input.GetSubjectUserId(),
-		ModelId:       input.GetModelId(),
-		Modal:         input.GetModal(),
-		Input:         input.GetInput(),
-		SystemPrompt:  input.GetSystemPrompt(),
-		Tools:         input.GetTools(),
-		Temperature:   input.GetTemperature(),
-		TopP:          input.GetTopP(),
-		MaxTokens:     input.GetMaxTokens(),
-		RoutePolicy:   input.GetRoutePolicy(),
-		Fallback:      input.GetFallback(),
-		TimeoutMs:     input.GetTimeoutMs(),
-	}
-}

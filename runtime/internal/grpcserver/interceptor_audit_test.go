@@ -26,16 +26,12 @@ func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		"x-nimi-surface-id", "chat-export",
 		"x-nimi-trace-id", "trace-unary-001",
 	))
-	req := &runtimev1.GenerateRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/qwen2.5",
-	}
+	req := scenarioExecuteTextRequest("nimi.desktop", "user-001", "local/qwen2.5")
 	info := &grpc.UnaryServerInfo{
-		FullMethod: "/nimi.runtime.v1.RuntimeAiService/Generate",
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
 	}
 	resp, err := interceptor(ctx, req, info, func(context.Context, any) (any, error) {
-		return &runtimev1.GenerateResponse{
+		return &runtimev1.ExecuteScenarioResponse{
 			ModelResolved: "qwen2.5",
 			Usage: &runtimev1.UsageStats{
 				InputTokens:  12,
@@ -56,7 +52,7 @@ func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
 	event := events.GetEvents()[0]
-	if event.GetOperation() != "generate" {
+	if event.GetOperation() != "execute_scenario" {
 		t.Fatalf("unexpected operation: %s", event.GetOperation())
 	}
 	if event.GetCallerKind() != runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_APP {
@@ -72,7 +68,7 @@ func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("trace id mismatch: %s", event.GetTraceId())
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.generate"})
+	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.execute_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -98,33 +94,28 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		"x-nimi-surface-id", "background-job",
 		"x-nimi-trace-id", "trace-stream-001",
 	))
-	req := &runtimev1.StreamGenerateRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/qwen2.5",
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-	}
+	req := scenarioStreamTextRequest("nimi.desktop", "user-001", "local/qwen2.5")
 	stream := &auditInterceptorTestStream{
 		ctx:      ctx,
-		requests: []*runtimev1.StreamGenerateRequest{req},
+		requests: []*runtimev1.StreamScenarioRequest{req},
 	}
 	info := &grpc.StreamServerInfo{
-		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
+		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		IsServerStream: true,
 	}
 	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
-		var got runtimev1.StreamGenerateRequest
+		var got runtimev1.StreamScenarioRequest
 		if recvErr := ss.RecvMsg(&got); recvErr != nil {
 			return recvErr
 		}
-		if got.GetModelId() != "local/qwen2.5" {
-			t.Fatalf("request model mismatch: %s", got.GetModelId())
+		if got.GetHead().GetModelId() != "local/qwen2.5" {
+			t.Fatalf("request model mismatch: %s", got.GetHead().GetModelId())
 		}
-		if sendErr := ss.SendMsg(&runtimev1.StreamGenerateEvent{
+		if sendErr := ss.SendMsg(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 			TraceId:   "trace-stream-001",
-			Payload: &runtimev1.StreamGenerateEvent_Started{
-				Started: &runtimev1.StreamStarted{
+			Payload: &runtimev1.StreamScenarioEvent_Started{
+				Started: &runtimev1.ScenarioStreamStarted{
 					ModelResolved: "qwen2.5",
 					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
 				},
@@ -132,10 +123,10 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		}); sendErr != nil {
 			return sendErr
 		}
-		if sendErr := ss.SendMsg(&runtimev1.StreamGenerateEvent{
+		if sendErr := ss.SendMsg(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
 			TraceId:   "trace-stream-001",
-			Payload: &runtimev1.StreamGenerateEvent_Usage{
+			Payload: &runtimev1.StreamScenarioEvent_Usage{
 				Usage: &runtimev1.UsageStats{
 					InputTokens:  8,
 					OutputTokens: 5,
@@ -145,11 +136,11 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		}); sendErr != nil {
 			return sendErr
 		}
-		return ss.SendMsg(&runtimev1.StreamGenerateEvent{
+		return ss.SendMsg(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 			TraceId:   "trace-stream-001",
-			Payload: &runtimev1.StreamGenerateEvent_Completed{
-				Completed: &runtimev1.StreamCompleted{
+			Payload: &runtimev1.StreamScenarioEvent_Completed{
+				Completed: &runtimev1.ScenarioStreamCompleted{
 					FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 				},
 			},
@@ -164,7 +155,7 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
 	event := events.GetEvents()[0]
-	if event.GetOperation() != "stream_generate" {
+	if event.GetOperation() != "stream_scenario" {
 		t.Fatalf("unexpected operation: %s", event.GetOperation())
 	}
 	if event.GetCallerKind() != runtimev1.CallerKind_CALLER_KIND_THIRD_PARTY_SERVICE {
@@ -180,7 +171,7 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("trace id mismatch: %s", event.GetTraceId())
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_generate"})
+	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -204,13 +195,9 @@ func TestUnaryAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 		"x-nimi-app-id", "nimi.desktop",
 		"x-nimi-trace-id", "trace-conflict-unary",
 	))
-	req := &runtimev1.GenerateRequest{
-		AppId:         "other.app",
-		SubjectUserId: "user-001",
-		ModelId:       "local/qwen2.5",
-	}
+	req := scenarioExecuteTextRequest("other.app", "user-001", "local/qwen2.5")
 	info := &grpc.UnaryServerInfo{
-		FullMethod: "/nimi.runtime.v1.RuntimeAiService/Generate",
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
 	}
 
 	_, err := interceptor(ctx, req, info, func(context.Context, any) (any, error) {
@@ -248,22 +235,17 @@ func TestStreamAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 		"x-nimi-app-id", "nimi.desktop",
 		"x-nimi-trace-id", "trace-conflict-stream",
 	))
-	req := &runtimev1.StreamGenerateRequest{
-		AppId:         "other.app",
-		SubjectUserId: "user-001",
-		ModelId:       "local/qwen2.5",
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-	}
+	req := scenarioStreamTextRequest("other.app", "user-001", "local/qwen2.5")
 	stream := &auditInterceptorTestStream{
 		ctx:      ctx,
-		requests: []*runtimev1.StreamGenerateRequest{req},
+		requests: []*runtimev1.StreamScenarioRequest{req},
 	}
 	info := &grpc.StreamServerInfo{
-		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
+		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		IsServerStream: true,
 	}
 	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
-		var got runtimev1.StreamGenerateRequest
+		var got runtimev1.StreamScenarioRequest
 		return ss.RecvMsg(&got)
 	})
 	if err == nil {
@@ -288,7 +270,7 @@ func TestStreamAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 	if event.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT {
 		t.Fatalf("unexpected audit reason: %v", event.GetReasonCode())
 	}
-	if !strings.Contains(event.GetOperation(), "stream_generate") {
+	if !strings.Contains(event.GetOperation(), "stream_scenario") {
 		t.Fatalf("unexpected operation: %s", event.GetOperation())
 	}
 }
@@ -301,21 +283,17 @@ func TestUnaryAuditInterceptorUsesRecordedQueueWaitMs(t *testing.T) {
 		"x-nimi-caller-kind", "third-party-app",
 		"x-nimi-caller-id", "app:novelizer",
 	))
-	req := &runtimev1.GenerateRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/qwen2.5",
-	}
-	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/Generate"}
+	req := scenarioExecuteTextRequest("nimi.desktop", "user-001", "local/qwen2.5")
+	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario"}
 	_, err := interceptor(ctx, req, info, func(handlerCtx context.Context, _ any) (any, error) {
 		usagemetrics.SetQueueWaitMS(handlerCtx, 37)
-		return &runtimev1.GenerateResponse{}, nil
+		return &runtimev1.ExecuteScenarioResponse{}, nil
 	})
 	if err != nil {
 		t.Fatalf("unary interceptor returned error: %v", err)
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.generate"})
+	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.execute_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -332,27 +310,22 @@ func TestStreamAuditInterceptorUsesRecordedQueueWaitMs(t *testing.T) {
 		"x-nimi-caller-kind", "third-party-service",
 		"x-nimi-caller-id", "svc:orchestrator",
 	))
-	req := &runtimev1.StreamGenerateRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/qwen2.5",
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-	}
+	req := scenarioStreamTextRequest("nimi.desktop", "user-001", "local/qwen2.5")
 	stream := &auditInterceptorTestStream{
 		ctx:      ctx,
-		requests: []*runtimev1.StreamGenerateRequest{req},
+		requests: []*runtimev1.StreamScenarioRequest{req},
 	}
 	info := &grpc.StreamServerInfo{
-		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
+		FullMethod:     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
 		IsServerStream: true,
 	}
 	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
-		var got runtimev1.StreamGenerateRequest
+		var got runtimev1.StreamScenarioRequest
 		if recvErr := ss.RecvMsg(&got); recvErr != nil {
 			return recvErr
 		}
 		usagemetrics.SetQueueWaitMS(ss.Context(), 91)
-		return ss.SendMsg(&runtimev1.StreamGenerateEvent{
+		return ss.SendMsg(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 		})
 	})
@@ -360,7 +333,7 @@ func TestStreamAuditInterceptorUsesRecordedQueueWaitMs(t *testing.T) {
 		t.Fatalf("stream interceptor returned error: %v", err)
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_generate"})
+	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -441,7 +414,7 @@ func TestUnaryAuditInterceptorCapturesGrantAuditFields(t *testing.T) {
 type auditInterceptorTestStream struct {
 	grpc.ServerStream
 	ctx      context.Context
-	requests []*runtimev1.StreamGenerateRequest
+	requests []*runtimev1.StreamScenarioRequest
 }
 
 func (s *auditInterceptorTestStream) SetHeader(metadata.MD) error  { return nil }
@@ -457,7 +430,7 @@ func (s *auditInterceptorTestStream) RecvMsg(m any) error {
 	request := s.requests[0]
 	s.requests = s.requests[1:]
 
-	target, ok := m.(*runtimev1.StreamGenerateRequest)
+	target, ok := m.(*runtimev1.StreamScenarioRequest)
 	if !ok {
 		return io.EOF
 	}
@@ -469,4 +442,50 @@ func (s *auditInterceptorTestStream) RecvMsg(m any) error {
 		return err
 	}
 	return nil
+}
+
+func scenarioExecuteTextRequest(appID string, subjectUserID string, modelID string) *runtimev1.ExecuteScenarioRequest {
+	return &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         appID,
+			SubjectUserId: subjectUserID,
+			ModelId:       modelID,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{Role: "user", Content: "hello"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func scenarioStreamTextRequest(appID string, subjectUserID string, modelID string) *runtimev1.StreamScenarioRequest {
+	return &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         appID,
+			SubjectUserId: subjectUserID,
+			ModelId:       modelID,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{Role: "user", Content: "hello"},
+					},
+				},
+			},
+		},
+	}
 }

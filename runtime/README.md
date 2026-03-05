@@ -62,13 +62,13 @@ Current implementation scope:
     - `/v1/video/generations` (fallback `/v1/videos/generations`)
   - runtime daemon probes `/healthz` then `/v1/models`; failures switch runtime status to `DEGRADED`
   - per-request timeout policy (`timeout_ms`):
-    - `Generate`: default `30_000ms`
-    - `StreamGenerate`: first packet `10_000ms`, default total `120_000ms`
-    - `Embed`: default `20_000ms`
-    - `GenerateImage`: default `120_000ms`
-    - `GenerateVideo`: default `300_000ms`
-    - `SynthesizeSpeech`: default `45_000ms`
-    - `TranscribeAudio`: default `90_000ms`
+    - `ExecuteScenario(TEXT_GENERATE)`: default `30_000ms`
+    - `StreamScenario(TEXT_GENERATE)`: first packet `10_000ms`, default total `120_000ms`
+    - `ExecuteScenario(TEXT_EMBED)`: default `20_000ms`
+    - `SubmitScenarioJob(IMAGE_GENERATE)`: default `120_000ms`
+    - `SubmitScenarioJob(VIDEO_GENERATE)`: default `300_000ms`
+    - `StreamScenario(SPEECH_SYNTHESIZE)`: default `45_000ms`
+    - `SubmitScenarioJob(SPEECH_TRANSCRIBE)`: default `90_000ms`
   - stream timeout/path failures are emitted as `STREAM_EVENT_FAILED` with mapped reason code (for example `AI_PROVIDER_TIMEOUT`)
 - HTTP diagnostics endpoints:
   - `/livez`

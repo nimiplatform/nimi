@@ -17,9 +17,9 @@ import (
 // Artifact helpers
 // ---------------------------------------------------------------------------
 
-// BinaryArtifact creates a MediaArtifact from raw bytes, computing SHA-256,
-// detecting MIME type, and extracting metadata from providerRaw.
-func BinaryArtifact(mimeType string, payload []byte, providerRaw map[string]any) *runtimev1.MediaArtifact {
+// BinaryArtifact creates a ScenarioArtifact from raw bytes, computing SHA-256,
+// detecting MIME type, and extracting structured metadata hints.
+func BinaryArtifact(mimeType string, payload []byte, artifactMeta map[string]any) *runtimev1.ScenarioArtifact {
 	if len(payload) == 0 {
 		payload = []byte{}
 	}
@@ -34,50 +34,49 @@ func BinaryArtifact(mimeType string, payload []byte, providerRaw map[string]any)
 	if resolvedMIME == "" {
 		resolvedMIME = "application/octet-stream"
 	}
-	artifact := &runtimev1.MediaArtifact{
+	artifact := &runtimev1.ScenarioArtifact{
 		ArtifactId: ulid.Make().String(),
 		MimeType:   resolvedMIME,
 		Bytes:      append([]byte(nil), payload...),
 		Sha256:     fmt.Sprintf("%x", sum),
 		SizeBytes:  int64(len(payload)),
 	}
-	if len(providerRaw) > 0 {
+	if len(artifactMeta) > 0 {
 		if uri := strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(providerRaw["uri"]),
-			ValueAsString(providerRaw["url"]),
+			ValueAsString(artifactMeta["uri"]),
+			ValueAsString(artifactMeta["url"]),
 		)); uri != "" {
 			artifact.Uri = uri
 		}
-		if durationMS := ValueAsInt64(FirstNonNil(providerRaw["duration_ms"], providerRaw["durationMs"])); durationMS > 0 {
+		if durationMS := ValueAsInt64(FirstNonNil(artifactMeta["duration_ms"], artifactMeta["durationMs"])); durationMS > 0 {
 			artifact.DurationMs = durationMS
-		} else if durationSec := ValueAsInt64(FirstNonNil(providerRaw["duration_sec"], providerRaw["durationSec"])); durationSec > 0 {
+		} else if durationSec := ValueAsInt64(FirstNonNil(artifactMeta["duration_sec"], artifactMeta["durationSec"])); durationSec > 0 {
 			artifact.DurationMs = durationSec * 1000
 		}
-		if fps := ValueAsInt32(providerRaw["fps"]); fps > 0 {
+		if fps := ValueAsInt32(artifactMeta["fps"]); fps > 0 {
 			artifact.Fps = fps
 		}
-		if width := ValueAsInt32(providerRaw["width"]); width > 0 {
+		if width := ValueAsInt32(artifactMeta["width"]); width > 0 {
 			artifact.Width = width
 		}
-		if height := ValueAsInt32(providerRaw["height"]); height > 0 {
+		if height := ValueAsInt32(artifactMeta["height"]); height > 0 {
 			artifact.Height = height
 		}
 		if artifact.GetWidth() == 0 || artifact.GetHeight() == 0 {
 			if width, height := ParseDimensionPair(FirstNonEmpty(
-				ValueAsString(providerRaw["size"]),
-				ValueAsString(providerRaw["resolution"]),
+				ValueAsString(artifactMeta["size"]),
+				ValueAsString(artifactMeta["resolution"]),
 			)); width > 0 && height > 0 {
 				artifact.Width = width
 				artifact.Height = height
 			}
 		}
-		if sampleRate := ValueAsInt32(FirstNonNil(providerRaw["sample_rate_hz"], providerRaw["sampleRateHz"])); sampleRate > 0 {
+		if sampleRate := ValueAsInt32(FirstNonNil(artifactMeta["sample_rate_hz"], artifactMeta["sampleRateHz"])); sampleRate > 0 {
 			artifact.SampleRateHz = sampleRate
 		}
-		if channels := ValueAsInt32(providerRaw["channels"]); channels > 0 {
+		if channels := ValueAsInt32(artifactMeta["channels"]); channels > 0 {
 			artifact.Channels = channels
 		}
-		artifact.ProviderRaw = ToStruct(providerRaw)
 	}
 	return artifact
 }

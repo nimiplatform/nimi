@@ -2,6 +2,101 @@ version: 1
 provider: groq
 catalog_version: 2026-03-05-groq-v1
 models:
+  - model_id: meta-llama/llama-4-scout-17b-16e-instruct
+    provider: groq
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and region.
+    source_ref:
+      url: https://console.groq.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Groq official model catalog.
+  - model_id: llama-4-scout
+    provider: groq
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and region.
+    source_ref:
+      url: https://console.groq.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Groq official model catalog.
+  - model_id: meta-llama/llama-4-maverick-17b-128e-instruct
+    provider: groq
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and region.
+    source_ref:
+      url: https://console.groq.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Groq official model catalog.
+  - model_id: llama-4-maverick
+    provider: groq
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and region.
+    source_ref:
+      url: https://console.groq.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Groq official model catalog.
+  - model_id: deepseek-r1-distill-llama-70b
+    provider: groq
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning distill model pricing varies by account plan and region.
+    source_ref:
+      url: https://console.groq.com/docs/models
+      retrieved_at: 2026-03-05
+      note: Groq official model catalog.
   - model_id: llama-3.3-70b-versatile
     provider: groq
     model_type: chat

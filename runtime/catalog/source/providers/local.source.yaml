@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-03-05-local-v1
+catalog_version: 2026-03-05-local-v2
 generated_target: runtime/catalog/providers/local.yaml
 resolution_mode: model_anchor_v2
 defaults:
@@ -24,6 +24,26 @@ sources:
     url: https://github.com/QwenLM/Qwen3-TTS/blob/main/README.md
     retrieved_at: 2026-03-05
     note: Open-source usage examples for synthesis and voice customization workflows.
+  - source_id: cosyvoice_repo
+    url: https://github.com/FunAudioLLM/CosyVoice
+    retrieved_at: 2026-03-05
+    note: CosyVoice repository.
+  - source_id: gpt_sovits_repo
+    url: https://github.com/RVC-Boss/GPT-SoVITS
+    retrieved_at: 2026-03-05
+    note: GPT-SoVITS repository.
+  - source_id: f5_tts_repo
+    url: https://github.com/SWivid/F5-TTS
+    retrieved_at: 2026-03-05
+    note: F5-TTS repository.
+  - source_id: piper_repo
+    url: https://github.com/rhasspy/piper
+    retrieved_at: 2026-03-05
+    note: Piper repository.
+  - source_id: kokoro_repo
+    url: https://github.com/hexgrad/kokoro
+    retrieved_at: 2026-03-05
+    note: Kokoro repository.
 
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
@@ -42,6 +62,51 @@ models:
       - qwen3-tts
       - Qwen/Qwen3-TTS-8B
 
+  - model_id: cosyvoice2-local
+    updated_at: 2026-03-05
+    source_ids: [cosyvoice_repo]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_cosyvoice2_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: gpt-sovits-local
+    updated_at: 2026-03-05
+    source_ids: [gpt_sovits_repo]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_gpt_sovits_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: f5-tts-local
+    updated_at: 2026-03-05
+    source_ids: [f5_tts_repo]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_f5_tts_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: piper-local
+    updated_at: 2026-03-05
+    source_ids: [piper_repo]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: local_piper_dynamic_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: kokoro-local
+    updated_at: 2026-03-05
+    source_ids: [kokoro_repo]
+    voice:
+      discovery_mode: dynamic_global
+      dynamic_voice_set_ref: local_kokoro_dynamic_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+
 voice_workflow_models:
   - workflow_model_id: qwen3-local-voice-clone-prompt
     workflow_type: tts_v2v
@@ -53,6 +118,7 @@ voice_workflow_models:
       - Qwen/Qwen3-TTS-8B
     langs_ref: short_v1
     source_ids: [qwen3_tts_readme]
+
   - workflow_model_id: qwen3-local-voice-design-prompt
     workflow_type: tts_t2v
     input_contract_ref: local_tts_t2v_input_v1
@@ -64,6 +130,30 @@ voice_workflow_models:
     langs_ref: short_v1
     source_ids: [qwen3_tts_readme]
 
+  - workflow_model_id: cosyvoice2-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: local_tts_v2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs: [cosyvoice2-local]
+    langs_ref: short_v1
+    source_ids: [cosyvoice_repo]
+
+  - workflow_model_id: gpt-sovits-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: local_tts_v2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs: [gpt-sovits-local]
+    langs_ref: short_v1
+    source_ids: [gpt_sovits_repo]
+
+  - workflow_model_id: f5-tts-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: local_tts_v2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs: [f5-tts-local]
+    langs_ref: short_v1
+    source_ids: [f5_tts_repo]
+
 model_workflow_bindings:
   - model_id: qwen3-tts-local
     workflow_model_refs: [qwen3-local-voice-clone-prompt, qwen3-local-voice-design-prompt]
@@ -74,6 +164,15 @@ model_workflow_bindings:
   - model_id: Qwen/Qwen3-TTS-8B
     workflow_model_refs: [qwen3-local-voice-clone-prompt, qwen3-local-voice-design-prompt]
     workflow_types: [tts_v2v, tts_t2v]
+  - model_id: cosyvoice2-local
+    workflow_model_refs: [cosyvoice2-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: gpt-sovits-local
+    workflow_model_refs: [gpt-sovits-voice-clone]
+    workflow_types: [tts_v2v]
+  - model_id: f5-tts-local
+    workflow_model_refs: [f5-tts-voice-clone]
+    workflow_types: [tts_v2v]
 
 voice_handle_policies:
   - policy_id: local_session_ephemeral_default
@@ -81,7 +180,7 @@ voice_handle_policies:
     persistence: session_ephemeral
     default_ttl: session
     scope: user_scoped
-    source_ids: [qwen3_tts_readme]
+    source_ids: [qwen3_tts_readme, cosyvoice_repo, gpt_sovits_repo, f5_tts_repo]
 
 overrides:
   models: []

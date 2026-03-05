@@ -16,10 +16,10 @@ import (
 type speechVoiceCatalogSource string
 
 const (
-	speechVoiceSourceProviderLive    speechVoiceCatalogSource = "provider_live"
-	speechVoiceSourceCatalogBuiltin  speechVoiceCatalogSource = "catalog_builtin_snapshot"
-	speechVoiceSourceCatalogCustom   speechVoiceCatalogSource = "catalog_custom_dir"
-	speechVoiceSourceCatalogRemote   speechVoiceCatalogSource = "catalog_remote_cache"
+	speechVoiceSourceProviderLive   speechVoiceCatalogSource = "provider_live"
+	speechVoiceSourceCatalogBuiltin speechVoiceCatalogSource = "catalog_builtin_snapshot"
+	speechVoiceSourceCatalogCustom  speechVoiceCatalogSource = "catalog_custom_dir"
+	speechVoiceSourceCatalogRemote  speechVoiceCatalogSource = "catalog_remote_cache"
 )
 
 func mapCatalogSource(source catalog.CatalogSource) speechVoiceCatalogSource {
@@ -81,7 +81,7 @@ func resolveSpeechVoicesForModel(
 	remoteTarget *nimillm.RemoteTarget,
 	backend *nimillm.Backend,
 	voiceCatalog *catalog.Resolver,
-) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, string, error) {
+) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
 	providerType := ""
 	if remoteTarget != nil {
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
@@ -95,7 +95,7 @@ func resolveSpeechVoicesForModelWithProviderType(
 	providerType string,
 	backend *nimillm.Backend,
 	voiceCatalog *catalog.Resolver,
-) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, string, error) {
+) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
 	if shouldUseDashScopeCatalog(providerType, modelResolved) {
 		return resolveCatalogVoices(modelResolved, providerType, voiceCatalog)
 	}
@@ -117,7 +117,7 @@ func resolveCatalogVoices(
 	modelResolved string,
 	providerType string,
 	voiceCatalog *catalog.Resolver,
-) ([]*runtimev1.SpeechVoiceDescriptor, speechVoiceCatalogSource, string, error) {
+) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
 	provider := strings.ToLower(strings.TrimSpace(providerType))
 	if provider == "" {
 		provider = strings.ToLower(strings.TrimSpace(modelResolved))
@@ -152,13 +152,14 @@ func resolveCatalogVoices(
 		return nil, "", "", err
 	}
 
-	voices := make([]*runtimev1.SpeechVoiceDescriptor, 0, len(resolved.Voices))
+	voices := make([]*runtimev1.VoicePresetDescriptor, 0, len(resolved.Voices))
 	for _, voice := range resolved.Voices {
-		voices = append(voices, &runtimev1.SpeechVoiceDescriptor{
+		voices = append(voices, &runtimev1.VoicePresetDescriptor{
 			VoiceId:        strings.TrimSpace(voice.VoiceID),
 			Name:           strings.TrimSpace(voice.Name),
 			Lang:           strings.TrimSpace(voice.Lang),
 			SupportedLangs: append([]string(nil), voice.SupportedLangs...),
+			Labels:         map[string]string{},
 		})
 	}
 	if len(voices) == 0 {
@@ -167,7 +168,7 @@ func resolveCatalogVoices(
 	return voices, mapCatalogSource(resolved.Source), strings.TrimSpace(resolved.CatalogVersion), nil
 }
 
-func isSpeechVoiceSupported(requestedVoice string, voices []*runtimev1.SpeechVoiceDescriptor) bool {
+func isSpeechVoiceSupported(requestedVoice string, voices []*runtimev1.VoicePresetDescriptor) bool {
 	normalizedRequested := strings.TrimSpace(requestedVoice)
 	if normalizedRequested == "" {
 		return true

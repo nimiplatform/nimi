@@ -23,7 +23,7 @@ const AdapterGeminiOperation = "gemini_operation_adapter"
 // all supported modalities (image, video, TTS, STT). It submits a job to
 // the Gemini /operations endpoint, then polls until completion.
 //
-// extractProviderOptions is passed as a function parameter because it is
+// extractScenarioExtensions is passed as a function parameter because it is
 // defined in services/ai and extracts provider options from different spec
 // types.
 func ExecuteGeminiOperation(
@@ -31,10 +31,10 @@ func ExecuteGeminiOperation(
 	cfg MediaAdapterConfig,
 	updater JobStateUpdater,
 	jobID string,
-	req *runtimev1.SubmitMediaJobRequest,
+	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
-	extractProviderOptions func(*runtimev1.SubmitMediaJobRequest) *structpb.Struct,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	extractScenarioExtensions func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct,
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -43,18 +43,18 @@ func ExecuteGeminiOperation(
 
 	submitPayload := map[string]any{
 		"model": modelResolved,
-		"modal": strings.ToLower(req.GetModal().String()),
+		"modal": strings.ToLower(scenarioModal(req).String()),
 	}
-	providerOptions := StructToMap(extractProviderOptions(req))
+	scenarioExtensions := StructToMap(extractScenarioExtensions(req))
 	prompt := ""
 	defaultMIME := ""
 	computeMs := int64(180)
 	transcriptionAudioBytes := []byte(nil)
 	transcriptionAudioURI := ""
 	transcriptionMIME := ""
-	switch req.GetModal() {
+	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
-		spec := req.GetImageSpec()
+		spec := scenarioImageSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -71,7 +71,7 @@ func ExecuteGeminiOperation(
 		submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
 		submitPayload["mask"] = spec.GetMask()
 	case runtimev1.Modal_MODAL_VIDEO:
-		spec := req.GetVideoSpec()
+		spec := scenarioVideoSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -99,7 +99,7 @@ func ExecuteGeminiOperation(
 		submitPayload["execution_expires_after_sec"] = VideoExecutionExpiresAfterSec(spec)
 		submitPayload["return_last_frame"] = VideoReturnLastFrame(spec)
 	case runtimev1.Modal_MODAL_TTS:
-		spec := req.GetSpeechSpec()
+		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -108,7 +108,7 @@ func ExecuteGeminiOperation(
 		computeMs = 120
 		submitPayload["input"] = spec.GetText()
 		submitPayload["text"] = spec.GetText()
-		submitPayload["voice"] = spec.GetVoice()
+		submitPayload["voice"] = scenarioVoiceRef(spec)
 		submitPayload["language"] = spec.GetLanguage()
 		submitPayload["emotion"] = spec.GetEmotion()
 		submitPayload["speed"] = spec.GetSpeed()
@@ -120,7 +120,7 @@ func ExecuteGeminiOperation(
 			submitPayload["response_format"] = format
 		}
 	case runtimev1.Modal_MODAL_STT:
-		spec := req.GetTranscriptionSpec()
+		spec := scenarioSpeechTranscribeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -148,8 +148,8 @@ func ExecuteGeminiOperation(
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	if len(providerOptions) > 0 {
-		submitPayload["provider_options"] = providerOptions
+	if len(scenarioExtensions) > 0 {
+		submitPayload["extensions"] = scenarioExtensions
 	}
 
 	submitResp := map[string]any{}
@@ -200,53 +200,53 @@ func ExecuteGeminiOperation(
 		if mimeType == "" {
 			mimeType = defaultMIME
 		}
-		providerRaw := map[string]any{
+		artifactMeta := map[string]any{
 			"adapter":  AdapterGeminiOperation,
 			"response": pollResp,
 		}
 		if artifactURI != "" {
-			providerRaw["uri"] = artifactURI
+			artifactMeta["uri"] = artifactURI
 		}
-		if req.GetModal() == runtimev1.Modal_MODAL_STT {
-			providerRaw["audio_uri"] = transcriptionAudioURI
-			providerRaw["mime_type"] = transcriptionMIME
+		if scenarioModal(req) == runtimev1.Modal_MODAL_STT {
+			artifactMeta["audio_uri"] = transcriptionAudioURI
+			artifactMeta["mime_type"] = transcriptionMIME
 		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		var usage *runtimev1.UsageStats
-		if req.GetImageSpec() != nil {
-			ApplyImageSpecMetadata(artifact, req.GetImageSpec())
+		if scenarioImageSpec(req) != nil {
+			ApplyImageSpecMetadata(artifact, scenarioImageSpec(req))
 		}
-		if req.GetVideoSpec() != nil {
-			ApplyVideoSpecMetadata(artifact, req.GetVideoSpec())
+		if scenarioVideoSpec(req) != nil {
+			ApplyVideoSpecMetadata(artifact, scenarioVideoSpec(req))
 		}
-		if req.GetSpeechSpec() != nil {
-			spec := req.GetSpeechSpec()
-			providerRaw["voice"] = strings.TrimSpace(spec.GetVoice())
-			providerRaw["language"] = strings.TrimSpace(spec.GetLanguage())
-			providerRaw["audio_format"] = strings.TrimSpace(spec.GetAudioFormat())
-			providerRaw["emotion"] = strings.TrimSpace(spec.GetEmotion())
-			providerRaw["provider_options"] = providerOptions
+		if scenarioSpeechSynthesizeSpec(req) != nil {
+			spec := scenarioSpeechSynthesizeSpec(req)
+			artifactMeta["voice"] = strings.TrimSpace(scenarioVoiceRef(spec))
+			artifactMeta["language"] = strings.TrimSpace(spec.GetLanguage())
+			artifactMeta["audio_format"] = strings.TrimSpace(spec.GetAudioFormat())
+			artifactMeta["emotion"] = strings.TrimSpace(spec.GetEmotion())
+			artifactMeta["extensions"] = scenarioExtensions
 			ApplySpeechSpecMetadata(artifact, spec)
 			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "audio/") {
 				artifact.MimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
 			}
 			usage = ArtifactUsage(spec.GetText(), artifactBytes, computeMs)
 		}
-		if req.GetTranscriptionSpec() != nil {
-			spec := req.GetTranscriptionSpec()
+		if scenarioSpeechTranscribeSpec(req) != nil {
+			spec := scenarioSpeechTranscribeSpec(req)
 			text := strings.TrimSpace(FirstNonEmpty(
 				ValueAsString(pollResp["artifact_text"]),
 				ValueAsString(pollResp["text"]),
 				ValueAsString(MapField(pollResp["result"], "text")),
 				string(artifactBytes),
 			))
-			providerRaw["text"] = text
-			providerRaw["language"] = strings.TrimSpace(spec.GetLanguage())
-			providerRaw["timestamps"] = spec.GetTimestamps()
-			providerRaw["diarization"] = spec.GetDiarization()
-			providerRaw["speaker_count"] = spec.GetSpeakerCount()
-			providerRaw["response_format"] = strings.TrimSpace(spec.GetResponseFormat())
-			providerRaw["provider_options"] = providerOptions
+			artifactMeta["text"] = text
+			artifactMeta["language"] = strings.TrimSpace(spec.GetLanguage())
+			artifactMeta["timestamps"] = spec.GetTimestamps()
+			artifactMeta["diarization"] = spec.GetDiarization()
+			artifactMeta["speaker_count"] = spec.GetSpeakerCount()
+			artifactMeta["response_format"] = strings.TrimSpace(spec.GetResponseFormat())
+			artifactMeta["extensions"] = scenarioExtensions
 			ApplyTranscriptionSpecMetadata(artifact, spec, transcriptionAudioURI)
 			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "text/") &&
 				!strings.EqualFold(strings.TrimSpace(artifact.GetMimeType()), "application/json") {
@@ -258,11 +258,10 @@ func ExecuteGeminiOperation(
 				ComputeMs:    computeMs,
 			}
 		}
-		artifact.ProviderRaw = ToStruct(providerRaw)
 		if usage == nil {
 			usage = ArtifactUsage(prompt, artifactBytes, computeMs)
 		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.MediaArtifact{artifact}, usage, providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, usage, providerJobID, nil
 	}
 }

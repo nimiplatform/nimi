@@ -360,5 +360,3 @@ func ExportAuditEventsGRPC(grpcAddr string, timeout time.Duration, req *runtimev
 	}
 	return collectAuditExportStream(stream)
 }
-
-// GenerateTextGRPC calls RuntimeAiService.Generate over gRPC.

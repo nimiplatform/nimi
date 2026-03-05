@@ -1,0 +1,119 @@
+version: 1
+provider: bedrock
+catalog_version: 2026-03-05-bedrock-v1
+models:
+  - model_id: anthropic.claude-sonnet-4-6-v1:0
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: claude-sonnet-4-6
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: anthropic.claude-haiku-4-5-v1:0
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: claude-haiku-4-5
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Bedrock on-demand pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: amazon.nova-pro-v1:0
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Amazon Nova Pro pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+  - model_id: nova-pro
+    provider: bedrock
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Amazon Nova Pro pricing varies by region and throughput tier.
+    source_ref:
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html
+      retrieved_at: 2026-03-05
+      note: Amazon Bedrock supported foundation models.
+voices: []

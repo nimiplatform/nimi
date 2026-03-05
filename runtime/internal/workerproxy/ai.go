@@ -25,14 +25,14 @@ func NewAIProxy(pool *ConnPool) *AIProxy {
 	return &AIProxy{pool: pool}
 }
 
-func (s *AIProxy) Generate(ctx context.Context, req *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {
+func (s *AIProxy) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
 	ctx = forwardIncomingMetadata(ctx)
 	var trailer metadata.MD
-	resp, err := client.Generate(ctx, req, grpc.Trailer(&trailer))
+	resp, err := client.ExecuteScenario(ctx, req, grpc.Trailer(&trailer))
 	s.applyQueueWaitFromTrailer(ctx, trailer)
 	if err != nil {
 		return nil, mapAIError(err)
@@ -40,12 +40,12 @@ func (s *AIProxy) Generate(ctx context.Context, req *runtimev1.GenerateRequest) 
 	return resp, nil
 }
 
-func (s *AIProxy) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream grpc.ServerStreamingServer[runtimev1.StreamGenerateEvent]) error {
+func (s *AIProxy) StreamScenario(req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
 	client, err := s.client()
 	if err != nil {
 		return unavailableAI(err)
 	}
-	remote, err := client.StreamGenerate(forwardIncomingMetadata(stream.Context()), req)
+	remote, err := client.StreamScenario(forwardIncomingMetadata(stream.Context()), req)
 	if err != nil {
 		return mapAIError(err)
 	}
@@ -57,14 +57,14 @@ func (s *AIProxy) StreamGenerate(req *runtimev1.StreamGenerateRequest, stream gr
 	return nil
 }
 
-func (s *AIProxy) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runtimev1.EmbedResponse, error) {
+func (s *AIProxy) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
 	ctx = forwardIncomingMetadata(ctx)
 	var trailer metadata.MD
-	resp, err := client.Embed(ctx, req, grpc.Trailer(&trailer))
+	resp, err := client.SubmitScenarioJob(ctx, req, grpc.Trailer(&trailer))
 	s.applyQueueWaitFromTrailer(ctx, trailer)
 	if err != nil {
 		return nil, mapAIError(err)
@@ -72,53 +72,38 @@ func (s *AIProxy) Embed(ctx context.Context, req *runtimev1.EmbedRequest) (*runt
 	return resp, nil
 }
 
-func (s *AIProxy) SubmitMediaJob(ctx context.Context, req *runtimev1.SubmitMediaJobRequest) (*runtimev1.SubmitMediaJobResponse, error) {
+func (s *AIProxy) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
 	ctx = forwardIncomingMetadata(ctx)
-	var trailer metadata.MD
-	resp, err := client.SubmitMediaJob(ctx, req, grpc.Trailer(&trailer))
-	s.applyQueueWaitFromTrailer(ctx, trailer)
+	resp, err := client.GetScenarioJob(ctx, req)
 	if err != nil {
 		return nil, mapAIError(err)
 	}
 	return resp, nil
 }
 
-func (s *AIProxy) GetMediaJob(ctx context.Context, req *runtimev1.GetMediaJobRequest) (*runtimev1.GetMediaJobResponse, error) {
+func (s *AIProxy) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
 	ctx = forwardIncomingMetadata(ctx)
-	resp, err := client.GetMediaJob(ctx, req)
+	resp, err := client.CancelScenarioJob(ctx, req)
 	if err != nil {
 		return nil, mapAIError(err)
 	}
 	return resp, nil
 }
 
-func (s *AIProxy) CancelMediaJob(ctx context.Context, req *runtimev1.CancelMediaJobRequest) (*runtimev1.CancelMediaJobResponse, error) {
-	client, err := s.client()
-	if err != nil {
-		return nil, unavailableAI(err)
-	}
-	ctx = forwardIncomingMetadata(ctx)
-	resp, err := client.CancelMediaJob(ctx, req)
-	if err != nil {
-		return nil, mapAIError(err)
-	}
-	return resp, nil
-}
-
-func (s *AIProxy) SubscribeMediaJobEvents(req *runtimev1.SubscribeMediaJobEventsRequest, stream grpc.ServerStreamingServer[runtimev1.MediaJobEvent]) error {
+func (s *AIProxy) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJobEventsRequest, stream grpc.ServerStreamingServer[runtimev1.ScenarioJobEvent]) error {
 	client, err := s.client()
 	if err != nil {
 		return unavailableAI(err)
 	}
-	remote, err := client.SubscribeMediaJobEvents(forwardIncomingMetadata(stream.Context()), req)
+	remote, err := client.SubscribeScenarioJobEvents(forwardIncomingMetadata(stream.Context()), req)
 	if err != nil {
 		return mapAIError(err)
 	}
@@ -129,13 +114,78 @@ func (s *AIProxy) SubscribeMediaJobEvents(req *runtimev1.SubscribeMediaJobEvents
 	return nil
 }
 
-func (s *AIProxy) GetMediaArtifacts(ctx context.Context, req *runtimev1.GetMediaArtifactsRequest) (*runtimev1.GetMediaArtifactsResponse, error) {
+func (s *AIProxy) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
 	client, err := s.client()
 	if err != nil {
 		return nil, unavailableAI(err)
 	}
 	ctx = forwardIncomingMetadata(ctx)
-	resp, err := client.GetMediaArtifacts(ctx, req)
+	resp, err := client.GetScenarioArtifacts(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) ListScenarioProfiles(ctx context.Context, req *runtimev1.ListScenarioProfilesRequest) (*runtimev1.ListScenarioProfilesResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	ctx = forwardIncomingMetadata(ctx)
+	resp, err := client.ListScenarioProfiles(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) GetVoiceAsset(ctx context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	ctx = forwardIncomingMetadata(ctx)
+	resp, err := client.GetVoiceAsset(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceAssetsRequest) (*runtimev1.ListVoiceAssetsResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	ctx = forwardIncomingMetadata(ctx)
+	resp, err := client.ListVoiceAssets(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoiceAssetRequest) (*runtimev1.DeleteVoiceAssetResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	ctx = forwardIncomingMetadata(ctx)
+	resp, err := client.DeleteVoiceAsset(ctx, req)
+	if err != nil {
+		return nil, mapAIError(err)
+	}
+	return resp, nil
+}
+
+func (s *AIProxy) ListPresetVoices(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableAI(err)
+	}
+	ctx = forwardIncomingMetadata(ctx)
+	resp, err := client.ListPresetVoices(ctx, req)
 	if err != nil {
 		return nil, mapAIError(err)
 	}

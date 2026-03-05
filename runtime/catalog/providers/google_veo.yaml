@@ -1,0 +1,91 @@
+version: 1
+provider: google_veo
+catalog_version: 2026-03-05-google-veo-v1
+models:
+  - model_id: veo-3
+    provider: google_veo
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Google Veo pricing varies by resolution, duration, and account plan.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/video
+      retrieved_at: 2026-03-05
+      note: Google Veo video generation via Gemini API.
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: veo-3-fast
+    provider: google_veo
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Google Veo pricing varies by resolution, duration, and account plan.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/video
+      retrieved_at: 2026-03-05
+      note: Google Veo video generation via Gemini API.
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints: {}
+      outputs:
+        video_url: true
+voices: []

@@ -1,0 +1,97 @@
+version: 1
+provider: fish_audio
+catalog_version: 2026-03-05-fish-audio-v1
+models:
+  - model_id: fish-speech-1.5
+    provider: fish_audio
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Fish Audio pricing varies by model and account plan.
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
+    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
+    voice_discovery_mode: dynamic_global
+    voice_ref_kinds: &a1
+      - preset_voice_id
+      - provider_voice_ref
+      - voice_asset_id
+  - model_id: fish-speech
+    provider: fish_audio
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Fish Audio pricing varies by model and account plan.
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
+    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
+    voice_discovery_mode: dynamic_global
+    voice_ref_kinds: *a1
+  - model_id: fish-agent-v1
+    provider: fish_audio
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Fish Audio pricing varies by model and account plan.
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
+    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
+    voice_discovery_mode: dynamic_global
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+      - voice_asset_id
+voices:
+  - voice_id: preset-dynamic
+    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
+    provider: fish_audio
+    name: Dynamic Preset Voices
+    langs:
+      - en
+      - zh
+      - ja
+      - ko
+      - fr
+      - de
+      - es
+      - pt
+      - it
+      - ru
+    model_ids:
+      - fish-speech-1.5
+      - fish-speech
+      - fish-agent-v1
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.

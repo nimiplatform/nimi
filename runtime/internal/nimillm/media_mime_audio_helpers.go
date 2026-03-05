@@ -19,7 +19,7 @@ import (
 
 // ResolveImageArtifactMIME determines the MIME type for an image artifact
 // from the spec response_format or content detection.
-func ResolveImageArtifactMIME(spec *runtimev1.ImageGenerationSpec, payload []byte) string {
+func ResolveImageArtifactMIME(spec *runtimev1.ImageGenerateScenarioSpec, payload []byte) string {
 	responseFormat := ""
 	if spec != nil {
 		responseFormat = strings.ToLower(strings.TrimSpace(spec.GetResponseFormat()))
@@ -40,7 +40,7 @@ func ResolveImageArtifactMIME(spec *runtimev1.ImageGenerationSpec, payload []byt
 }
 
 // ResolveVideoArtifactMIME determines the MIME type for a video artifact.
-func ResolveVideoArtifactMIME(spec *runtimev1.VideoGenerationSpec, payload []byte) string {
+func ResolveVideoArtifactMIME(spec *runtimev1.VideoGenerateScenarioSpec, payload []byte) string {
 	detected := strings.TrimSpace(http.DetectContentType(payload))
 	if strings.HasPrefix(detected, "video/") {
 		return detected
@@ -50,7 +50,7 @@ func ResolveVideoArtifactMIME(spec *runtimev1.VideoGenerationSpec, payload []byt
 
 // ResolveSpeechArtifactMIME determines the MIME type for a speech artifact
 // from the spec audio_format or content detection.
-func ResolveSpeechArtifactMIME(spec *runtimev1.SpeechSynthesisSpec, payload []byte) string {
+func ResolveSpeechArtifactMIME(spec *runtimev1.SpeechSynthesizeScenarioSpec, payload []byte) string {
 	audioFormat := ""
 	if spec != nil {
 		audioFormat = strings.ToLower(strings.TrimSpace(spec.GetAudioFormat()))
@@ -74,7 +74,7 @@ func ResolveSpeechArtifactMIME(spec *runtimev1.SpeechSynthesisSpec, payload []by
 
 // ResolveTranscriptionArtifactMIME determines the MIME type for a
 // transcription artifact from the spec response_format.
-func ResolveTranscriptionArtifactMIME(spec *runtimev1.SpeechTranscriptionSpec) string {
+func ResolveTranscriptionArtifactMIME(spec *runtimev1.SpeechTranscribeScenarioSpec) string {
 	responseFormat := ""
 	if spec != nil {
 		responseFormat = strings.ToLower(strings.TrimSpace(spec.GetResponseFormat()))
@@ -97,7 +97,7 @@ func ResolveTranscriptionArtifactMIME(spec *runtimev1.SpeechTranscriptionSpec) s
 
 // ApplyImageSpecMetadata applies image spec metadata (dimensions from size)
 // onto the artifact.
-func ApplyImageSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.ImageGenerationSpec) {
+func ApplyImageSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.ImageGenerateScenarioSpec) {
 	if artifact == nil || spec == nil {
 		return
 	}
@@ -109,7 +109,7 @@ func ApplyImageSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.I
 
 // ApplyVideoSpecMetadata applies video spec metadata (duration, fps,
 // resolution) onto the artifact.
-func ApplyVideoSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.VideoGenerationSpec) {
+func ApplyVideoSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.VideoGenerateScenarioSpec) {
 	if artifact == nil || spec == nil {
 		return
 	}
@@ -127,7 +127,7 @@ func ApplyVideoSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.V
 
 // ApplySpeechSpecMetadata applies speech spec metadata (sample rate) onto
 // the artifact.
-func ApplySpeechSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.SpeechSynthesisSpec) {
+func ApplySpeechSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.SpeechSynthesizeScenarioSpec) {
 	if artifact == nil || spec == nil {
 		return
 	}
@@ -138,7 +138,7 @@ func ApplySpeechSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.
 
 // ApplyTranscriptionSpecMetadata applies transcription spec metadata (audio
 // URI, speaker count) onto the artifact.
-func ApplyTranscriptionSpecMetadata(artifact *runtimev1.MediaArtifact, spec *runtimev1.SpeechTranscriptionSpec, audioURI string) {
+func ApplyTranscriptionSpecMetadata(artifact *runtimev1.ScenarioArtifact, spec *runtimev1.SpeechTranscribeScenarioSpec, audioURI string) {
 	if artifact == nil || spec == nil {
 		return
 	}
@@ -155,8 +155,8 @@ func ApplyTranscriptionSpecMetadata(artifact *runtimev1.MediaArtifact, spec *run
 // ---------------------------------------------------------------------------
 
 // ResolveTranscriptionAudioSource resolves audio bytes, MIME type, and URI
-// from a SpeechTranscriptionSpec, handling bytes, URI, and chunked sources.
-func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.SpeechTranscriptionSpec) ([]byte, string, string, error) {
+// from a SpeechTranscribeScenarioSpec, handling bytes, URI, and chunked sources.
+func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.SpeechTranscribeScenarioSpec) ([]byte, string, string, error) {
 	if spec == nil {
 		return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -192,19 +192,6 @@ func ResolveTranscriptionAudioSource(ctx context.Context, spec *runtimev1.Speech
 			}
 			return audio, mimeType, "", nil
 		}
-	}
-	if len(spec.GetAudioBytes()) > 0 {
-		return append([]byte(nil), spec.GetAudioBytes()...), mimeType, "", nil
-	}
-	if uriText := strings.TrimSpace(spec.GetAudioUri()); uriText != "" {
-		audio, detectedMIME, err := FetchAudioFromURI(ctx, uriText)
-		if err != nil {
-			return nil, "", "", err
-		}
-		if mimeType == "" {
-			mimeType = detectedMIME
-		}
-		return audio, mimeType, uriText, nil
 	}
 	return nil, "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 }

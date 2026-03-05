@@ -16,18 +16,21 @@ import (
 	"strings"
 )
 
-func StreamGenerateTextGRPC(ctx context.Context, grpcAddr string, req *runtimev1.StreamGenerateRequest, metadataOverride ...*ClientMetadata) (<-chan *runtimev1.StreamGenerateEvent, <-chan error, error) {
+func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.StreamScenarioRequest, metadataOverride ...*ClientMetadata) (<-chan *runtimev1.StreamScenarioEvent, <-chan error, error) {
 	addr := strings.TrimSpace(grpcAddr)
 	if addr == "" {
 		return nil, nil, errors.New("grpc address is required")
 	}
 	if req == nil {
-		return nil, nil, errors.New("stream generate request is required")
+		return nil, nil, errors.New("stream scenario request is required")
+	}
+	if req.GetHead() == nil {
+		return nil, nil, errors.New("stream scenario request head is required")
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	ctx = withNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -35,13 +38,13 @@ func StreamGenerateTextGRPC(ctx context.Context, grpcAddr string, req *runtimev1
 	}
 
 	client := runtimev1.NewRuntimeAiServiceClient(conn)
-	stream, err := client.StreamGenerate(ctx, req)
+	stream, err := client.StreamScenario(ctx, req)
 	if err != nil {
 		conn.Close()
-		return nil, nil, fmt.Errorf("runtime ai stream generate: %w", err)
+		return nil, nil, fmt.Errorf("runtime ai stream scenario: %w", err)
 	}
 
-	events := make(chan *runtimev1.StreamGenerateEvent, 64)
+	events := make(chan *runtimev1.StreamScenarioEvent, 64)
 	errCh := make(chan error, 1)
 	go func() {
 		defer close(events)

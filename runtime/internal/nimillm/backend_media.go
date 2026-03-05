@@ -88,7 +88,7 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string) ([
 func (b *Backend) Transcribe(
 	ctx context.Context,
 	modelID string,
-	spec *runtimev1.SpeechTranscriptionSpec,
+	spec *runtimev1.SpeechTranscribeScenarioSpec,
 	audio []byte,
 	mimeType string,
 ) (string, *runtimev1.UsageStats, error) {
@@ -137,12 +137,12 @@ func (b *Backend) Transcribe(
 				return "", nil, MapProviderRequestError(err)
 			}
 		}
-		if options := StructToMap(spec.GetProviderOptions()); len(options) > 0 {
+		if options := StructToMap(nil); len(options) > 0 {
 			raw, marshalErr := json.Marshal(options)
 			if marshalErr != nil {
 				return "", nil, MapProviderRequestError(marshalErr)
 			}
-			if err := writer.WriteField("provider_options", string(raw)); err != nil {
+			if err := writer.WriteField("extensions", string(raw)); err != nil {
 				return "", nil, MapProviderRequestError(err)
 			}
 		}
@@ -206,7 +206,7 @@ type LocalAIImageCompat struct {
 // GenerateImageLocalAI sends a LocalAI-optimized image generation request.
 // It supports the minimal t2i/i2i workflow (file/files/ref_images) and best-effort
 // Nexa parameter compatibility (steps->step, method->mode).
-func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, *LocalAIImageCompat, error) {
+func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec) ([]byte, *runtimev1.UsageStats, *LocalAIImageCompat, error) {
 	type imageRequest struct {
 		Model           string         `json:"model"`
 		Prompt          string         `json:"prompt"`
@@ -219,7 +219,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		Seed            int64          `json:"seed,omitempty"`
 		Mask            string         `json:"mask,omitempty"`
 		ResponseFormat  string         `json:"response_format,omitempty"`
-		ProviderOptions map[string]any `json:"provider_options,omitempty"`
+		Extensions map[string]any `json:"extensions,omitempty"`
 		File            string         `json:"file,omitempty"`
 		Files           []string       `json:"files,omitempty"`
 		RefImages       []string       `json:"ref_images,omitempty"`
@@ -244,7 +244,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	seed := int64(0)
 	mask := ""
 	referenceImages := []string{}
-	providerOptions := map[string]any(nil)
+	scenarioExtensions := map[string]any(nil)
 	if spec != nil {
 		prompt = strings.TrimSpace(spec.GetPrompt())
 		negativePrompt = strings.TrimSpace(spec.GetNegativePrompt())
@@ -258,7 +258,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		style = strings.TrimSpace(spec.GetStyle())
 		seed = spec.GetSeed()
 		mask = strings.TrimSpace(spec.GetMask())
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 		for _, image := range spec.GetReferenceImages() {
 			trimmed := strings.TrimSpace(image)
 			if trimmed != "" {
@@ -273,20 +273,20 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	}
 
 	appliedOptions := make([]string, 0, 2)
-	if step := ValueAsInt32(providerOptions["step"]); step > 0 {
+	if step := ValueAsInt32(scenarioExtensions["step"]); step > 0 {
 		appliedOptions = append(appliedOptions, "step")
-	} else if steps := ValueAsInt32(providerOptions["steps"]); steps > 0 {
+	} else if steps := ValueAsInt32(scenarioExtensions["steps"]); steps > 0 {
 		appliedOptions = append(appliedOptions, "steps->step")
 	}
-	if mode := strings.TrimSpace(ValueAsString(providerOptions["mode"])); mode != "" {
+	if mode := strings.TrimSpace(ValueAsString(scenarioExtensions["mode"])); mode != "" {
 		appliedOptions = append(appliedOptions, "mode")
-	} else if method := strings.TrimSpace(ValueAsString(providerOptions["method"])); method != "" {
+	} else if method := strings.TrimSpace(ValueAsString(scenarioExtensions["method"])); method != "" {
 		appliedOptions = append(appliedOptions, "method->mode")
 	}
 
 	ignoredOptions := make([]string, 0, 3)
 	for _, key := range []string{"guidance_scale", "eta", "strength"} {
-		if _, exists := providerOptions[key]; exists {
+		if _, exists := scenarioExtensions[key]; exists {
 			ignoredOptions = append(ignoredOptions, key)
 		}
 	}
@@ -312,7 +312,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		Seed:            seed,
 		Mask:            mask,
 		ResponseFormat:  responseFormat,
-		ProviderOptions: providerOptions,
+		Extensions: scenarioExtensions,
 	}
 	if sourceImage != "" {
 		requestBody.File = sourceImage
@@ -321,14 +321,14 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	if len(refImages) > 0 {
 		requestBody.RefImages = refImages
 	}
-	if step := ValueAsInt32(providerOptions["step"]); step > 0 {
+	if step := ValueAsInt32(scenarioExtensions["step"]); step > 0 {
 		requestBody.Step = step
-	} else if steps := ValueAsInt32(providerOptions["steps"]); steps > 0 {
+	} else if steps := ValueAsInt32(scenarioExtensions["steps"]); steps > 0 {
 		requestBody.Step = steps
 	}
-	if mode := strings.TrimSpace(ValueAsString(providerOptions["mode"])); mode != "" {
+	if mode := strings.TrimSpace(ValueAsString(scenarioExtensions["mode"])); mode != "" {
 		requestBody.Mode = mode
-	} else if method := strings.TrimSpace(ValueAsString(providerOptions["method"])); method != "" {
+	} else if method := strings.TrimSpace(ValueAsString(scenarioExtensions["method"])); method != "" {
 		requestBody.Mode = method
 	}
 
@@ -356,7 +356,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 }
 
 // GenerateImage sends an image generation request.
-func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type imageRequest struct {
 		Model           string         `json:"model"`
 		Prompt          string         `json:"prompt"`
@@ -370,7 +370,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		ReferenceImages []string       `json:"reference_images,omitempty"`
 		Mask            string         `json:"mask,omitempty"`
 		ResponseFormat  string         `json:"response_format,omitempty"`
-		ProviderOptions map[string]any `json:"provider_options,omitempty"`
+		Extensions map[string]any `json:"extensions,omitempty"`
 	}
 	type imageResponse struct {
 		Data []struct {
@@ -402,7 +402,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		ReferenceImages: append([]string(nil), spec.GetReferenceImages()...),
 		Mask:            strings.TrimSpace(spec.GetMask()),
 		ResponseFormat:  responseFormat,
-		ProviderOptions: StructToMap(spec.GetProviderOptions()),
+		Extensions: StructToMap(nil),
 	}, &respBody)
 	if err != nil {
 		return nil, nil, err
@@ -420,7 +420,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 }
 
 // GenerateVideo sends a video generation request.
-func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerationSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerateScenarioSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type videoRequest struct {
 		Model                    string           `json:"model"`
 		Prompt                   string           `json:"prompt"`
@@ -515,7 +515,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 }
 
 // SynthesizeSpeech sends a text-to-speech request.
-func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesisSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec) ([]byte, *runtimev1.UsageStats, error) {
 	type speechRequest struct {
 		Model           string         `json:"model"`
 		Input           string         `json:"input"`
@@ -527,13 +527,13 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 		Pitch           float32        `json:"pitch,omitempty"`
 		Volume          float32        `json:"volume,omitempty"`
 		Emotion         string         `json:"emotion,omitempty"`
-		ProviderOptions map[string]any `json:"provider_options,omitempty"`
+		Extensions map[string]any `json:"extensions,omitempty"`
 	}
 	text := ""
 	requestedVoice := ""
 	if spec != nil {
 		text = strings.TrimSpace(spec.GetText())
-		requestedVoice = strings.TrimSpace(spec.GetVoice())
+		requestedVoice = strings.TrimSpace(scenarioVoiceRef(spec))
 	}
 	payload, err := b.postRaw(ctx, "/v1/audio/speech", speechRequest{
 		Model:           modelID,
@@ -546,7 +546,7 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 		Pitch:           spec.GetPitch(),
 		Volume:          spec.GetVolume(),
 		Emotion:         strings.TrimSpace(spec.GetEmotion()),
-		ProviderOptions: StructToMap(spec.GetProviderOptions()),
+		Extensions: StructToMap(nil),
 	})
 	if err != nil {
 		return nil, nil, err

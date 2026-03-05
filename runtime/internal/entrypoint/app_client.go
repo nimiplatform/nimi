@@ -96,5 +96,3 @@ func SubscribeAppMessagesGRPC(ctx context.Context, grpcAddr string, req *runtime
 
 	return events, errCh, nil
 }
-
-// StreamGenerateTextGRPC subscribes StreamGenerate events over gRPC.

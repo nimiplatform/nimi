@@ -1,6 +1,6 @@
 version: 1
 provider: local
-catalog_version: 2026-03-05-local-v1
+catalog_version: 2026-03-05-local-v2
 models:
   - model_id: qwen3-tts-local
     provider: local
@@ -67,6 +67,121 @@ models:
     voice_set_id: local:qwen3-tts-local-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a1
+  - model_id: cosyvoice2-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/FunAudioLLM/CosyVoice
+      retrieved_at: 2026-03-05
+      note: CosyVoice repository.
+    voice_set_id: local:local_cosyvoice2_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: gpt-sovits-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/RVC-Boss/GPT-SoVITS
+      retrieved_at: 2026-03-05
+      note: GPT-SoVITS repository.
+    voice_set_id: local:local_gpt_sovits_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: f5-tts-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/SWivid/F5-TTS
+      retrieved_at: 2026-03-05
+      note: F5-TTS repository.
+    voice_set_id: local:local_f5_tts_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: piper-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/rhasspy/piper
+      retrieved_at: 2026-03-05
+      note: Piper repository.
+    voice_set_id: local:local_piper_dynamic_voice_set
+    voice_discovery_mode: dynamic_global
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: kokoro-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-03-05
+    capabilities:
+      - tts
+      - llm.speech.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: none
+      as_of: 2026-03-05
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/hexgrad/kokoro
+      retrieved_at: 2026-03-05
+      note: Kokoro repository.
+    voice_set_id: local:local_kokoro_dynamic_voice_set
+    voice_discovery_mode: dynamic_global
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
 voices:
   - voice_id: user-custom
     voice_set_id: local:qwen3-tts-local-dynamic
@@ -91,3 +206,108 @@ voices:
       url: https://github.com/QwenLM/Qwen3-TTS
       retrieved_at: 2026-03-05
       note: Open-source Qwen3-TTS repository and examples.
+  - voice_id: user-custom
+    voice_set_id: local:local_cosyvoice2_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - cosyvoice2-local
+    source_ref:
+      url: https://github.com/FunAudioLLM/CosyVoice
+      retrieved_at: 2026-03-05
+      note: CosyVoice repository.
+  - voice_id: user-custom
+    voice_set_id: local:local_gpt_sovits_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - gpt-sovits-local
+    source_ref:
+      url: https://github.com/RVC-Boss/GPT-SoVITS
+      retrieved_at: 2026-03-05
+      note: GPT-SoVITS repository.
+  - voice_id: user-custom
+    voice_set_id: local:local_f5_tts_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - f5-tts-local
+    source_ref:
+      url: https://github.com/SWivid/F5-TTS
+      retrieved_at: 2026-03-05
+      note: F5-TTS repository.
+  - voice_id: preset-dynamic
+    voice_set_id: local:local_piper_dynamic_voice_set
+    provider: local
+    name: Dynamic Preset Voices
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - piper-local
+    source_ref:
+      url: https://github.com/rhasspy/piper
+      retrieved_at: 2026-03-05
+      note: Piper repository.
+  - voice_id: preset-dynamic
+    voice_set_id: local:local_kokoro_dynamic_voice_set
+    provider: local
+    name: Dynamic Preset Voices
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - kokoro-local
+    source_ref:
+      url: https://github.com/hexgrad/kokoro
+      retrieved_at: 2026-03-05
+      note: Kokoro repository.

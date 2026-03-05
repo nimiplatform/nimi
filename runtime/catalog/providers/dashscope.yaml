@@ -285,6 +285,63 @@ models:
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a5
+  - model_id: qwen3-max
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: qwen3.5-plus
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: qwen3.5-flash
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by account plan and model revision.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
   - model_id: qwen-plus-latest
     provider: dashscope
     model_type: chat
@@ -319,6 +376,25 @@ models:
       currency: CNY
       as_of: 2026-03-05
       notes: Chat token pricing varies by account plan and model revision.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: qwen-vl-max-latest
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Vision-language model pricing varies by account plan and token class.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/getting-started/models
       retrieved_at: 2026-03-05
@@ -362,7 +438,7 @@ models:
       retrieved_at: 2026-03-05
       note: DashScope model catalog and pricing overview.
 voices:
-  - voice_id: Chelsie
+  - voice_id: chelsie
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Chelsie
@@ -386,7 +462,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Cherry
+  - voice_id: cherry
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Cherry
@@ -410,7 +486,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Dylan
+  - voice_id: dylan
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Dylan
@@ -434,7 +510,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ethan
+  - voice_id: ethan
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Ethan
@@ -458,7 +534,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Jada
+  - voice_id: jada
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Jada
@@ -482,7 +558,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Serena
+  - voice_id: serena
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Serena
@@ -506,7 +582,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Sunny
+  - voice_id: sunny
     voice_set_id: dashscope:tts_voice_set
     provider: dashscope
     name: Sunny
@@ -530,7 +606,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Arthur
+  - voice_id: arthur
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Arthur
@@ -552,7 +628,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bella
+  - voice_id: bella
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Bella
@@ -574,7 +650,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bellona
+  - voice_id: bellona
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Bellona
@@ -596,7 +672,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bunny
+  - voice_id: bunny
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Bunny
@@ -618,7 +694,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Chelsie
+  - voice_id: chelsie
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Chelsie
@@ -640,7 +716,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Cherry
+  - voice_id: cherry
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Cherry
@@ -662,7 +738,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ebona
+  - voice_id: ebona
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Ebona
@@ -684,7 +760,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Eldric Sage
+  - voice_id: eldric_sage
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Eldric Sage
@@ -706,7 +782,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Elias
+  - voice_id: elias
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Elias
@@ -728,7 +804,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ethan
+  - voice_id: ethan
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Ethan
@@ -750,7 +826,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Kai
+  - voice_id: kai
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Kai
@@ -772,7 +848,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Maia
+  - voice_id: maia
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Maia
@@ -794,7 +870,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Mia
+  - voice_id: mia
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Mia
@@ -816,7 +892,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Mochi
+  - voice_id: mochi
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Mochi
@@ -838,7 +914,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Momo
+  - voice_id: momo
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Momo
@@ -860,7 +936,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Moon
+  - voice_id: moon
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Moon
@@ -882,7 +958,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Neil
+  - voice_id: neil
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Neil
@@ -904,7 +980,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Nini
+  - voice_id: nini
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Nini
@@ -926,7 +1002,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Nofish
+  - voice_id: nofish
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Nofish
@@ -948,7 +1024,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Pip
+  - voice_id: pip
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Pip
@@ -970,7 +1046,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Seren
+  - voice_id: seren
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Seren
@@ -992,7 +1068,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Serena
+  - voice_id: serena
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Serena
@@ -1014,7 +1090,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Stella
+  - voice_id: stella
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Stella
@@ -1036,7 +1112,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Vincent
+  - voice_id: vincent
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Vincent
@@ -1058,7 +1134,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Vivian
+  - voice_id: vivian
     voice_set_id: dashscope:instruct_flash_voice_set
     provider: dashscope
     name: Vivian
@@ -1080,7 +1156,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Aiden
+  - voice_id: aiden
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Aiden
@@ -1103,7 +1179,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Alek
+  - voice_id: alek
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Alek
@@ -1126,7 +1202,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Andre
+  - voice_id: andre
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Andre
@@ -1149,7 +1225,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Arthur
+  - voice_id: arthur
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Arthur
@@ -1172,7 +1248,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bella
+  - voice_id: bella
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Bella
@@ -1195,7 +1271,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bellona
+  - voice_id: bellona
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Bellona
@@ -1218,7 +1294,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bodega
+  - voice_id: bodega
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Bodega
@@ -1241,7 +1317,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Bunny
+  - voice_id: bunny
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Bunny
@@ -1264,7 +1340,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Chelsie
+  - voice_id: chelsie
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Chelsie
@@ -1287,7 +1363,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Cherry
+  - voice_id: cherry
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Cherry
@@ -1310,7 +1386,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Dolce
+  - voice_id: dolce
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Dolce
@@ -1333,7 +1409,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Dylan
+  - voice_id: dylan
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Dylan
@@ -1356,7 +1432,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ebona
+  - voice_id: ebona
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Ebona
@@ -1379,7 +1455,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Eldric Sage
+  - voice_id: eldric_sage
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Eldric Sage
@@ -1402,7 +1478,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Elias
+  - voice_id: elias
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Elias
@@ -1425,7 +1501,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Emilien
+  - voice_id: emilien
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Emilien
@@ -1448,7 +1524,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Eric
+  - voice_id: eric
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Eric
@@ -1471,7 +1547,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ethan
+  - voice_id: ethan
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Ethan
@@ -1494,7 +1570,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Jada
+  - voice_id: jada
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Jada
@@ -1517,7 +1593,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Jennifer
+  - voice_id: jennifer
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Jennifer
@@ -1540,7 +1616,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Kai
+  - voice_id: kai
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Kai
@@ -1563,7 +1639,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Katerina
+  - voice_id: katerina
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Katerina
@@ -1586,7 +1662,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Kiki
+  - voice_id: kiki
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Kiki
@@ -1609,7 +1685,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Lenn
+  - voice_id: lenn
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Lenn
@@ -1632,7 +1708,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Li
+  - voice_id: li
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Li
@@ -1655,7 +1731,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Maia
+  - voice_id: maia
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Maia
@@ -1678,7 +1754,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Marcus
+  - voice_id: marcus
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Marcus
@@ -1701,7 +1777,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Mia
+  - voice_id: mia
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Mia
@@ -1724,7 +1800,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Mochi
+  - voice_id: mochi
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Mochi
@@ -1747,7 +1823,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Momo
+  - voice_id: momo
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Momo
@@ -1770,7 +1846,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Moon
+  - voice_id: moon
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Moon
@@ -1793,7 +1869,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Neil
+  - voice_id: neil
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Neil
@@ -1816,7 +1892,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Nini
+  - voice_id: nini
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Nini
@@ -1839,7 +1915,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Nofish
+  - voice_id: nofish
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Nofish
@@ -1862,7 +1938,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ono Anna
+  - voice_id: ono_anna
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Ono Anna
@@ -1885,7 +1961,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Peter
+  - voice_id: peter
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Peter
@@ -1908,7 +1984,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Pip
+  - voice_id: pip
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Pip
@@ -1931,7 +2007,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Radio Gol
+  - voice_id: radio_gol
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Radio Gol
@@ -1954,7 +2030,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Rocky
+  - voice_id: rocky
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Rocky
@@ -1977,7 +2053,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Roy
+  - voice_id: roy
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Roy
@@ -2000,7 +2076,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Ryan
+  - voice_id: ryan
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Ryan
@@ -2023,7 +2099,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Seren
+  - voice_id: seren
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Seren
@@ -2046,7 +2122,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Serena
+  - voice_id: serena
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Serena
@@ -2069,7 +2145,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Sohee
+  - voice_id: sohee
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Sohee
@@ -2092,7 +2168,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Sonrisa
+  - voice_id: sonrisa
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Sonrisa
@@ -2115,7 +2191,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Stella
+  - voice_id: stella
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Stella
@@ -2138,7 +2214,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Sunny
+  - voice_id: sunny
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Sunny
@@ -2161,7 +2237,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Vincent
+  - voice_id: vincent
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Vincent
@@ -2184,7 +2260,7 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
-  - voice_id: Vivian
+  - voice_id: vivian
     voice_set_id: dashscope:flash_voice_set
     provider: dashscope
     name: Vivian

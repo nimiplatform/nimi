@@ -209,7 +209,7 @@ Live smoke tests validate real API key → provider → response chains. They li
 |-----------|---------|
 | Generate text | `TestLiveSmoke{Provider}GenerateText` |
 | Embed | `TestLiveSmoke{Provider}Embed` |
-| Media jobs | `TestLiveSmoke{Provider}SubmitMediaJobModalities/{modal}` |
+| Scenario jobs | `TestLiveSmoke{Provider}SubmitScenarioJobModalities/{modal}` |
 | Connector TTS | `TestLiveSmokeConnector{Provider}TTS` |
 
 **Env var convention:** `NIMI_LIVE_{PROVIDER}_{FIELD}` where FIELD is `API_KEY`, `BASE_URL`, `MODEL_ID`, `EMBED_MODEL_ID`, etc. See `dev/live-test.env.example` for the full list.

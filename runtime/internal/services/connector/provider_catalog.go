@@ -34,6 +34,7 @@ var ProviderCatalog = map[string]ProviderCatalogEntry{
 	"glm":               {DefaultEndpoint: "https://open.bigmodel.cn/api/paas/v4", RequiresExplicitEndpoint: false},
 	"deepseek":          {DefaultEndpoint: "https://api.deepseek.com/v1", RequiresExplicitEndpoint: false},
 	"openrouter":        {DefaultEndpoint: "https://openrouter.ai/api/v1", RequiresExplicitEndpoint: false},
+	"stepfun":           {DefaultEndpoint: "https://api.stepfun.com/v1", RequiresExplicitEndpoint: false},
 	"openai_compatible": {RequiresExplicitEndpoint: true},
 }
 
@@ -58,6 +59,7 @@ var ProviderCapabilities = map[string]ProviderCapability{
 	"glm":               {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 	"deepseek":          {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 	"openrouter":        {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
+	"stepfun":           {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 	"openai_compatible": {RuntimePlane: "remote", ExecutionModule: "nimillm", ManagedSupported: true, InlineSupported: true},
 }
 

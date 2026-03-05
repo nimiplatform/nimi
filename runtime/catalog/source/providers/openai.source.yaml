@@ -95,7 +95,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-03-05
-      notes: Legacy TTS model retained for compatibility.
+      notes: Baseline TTS model retained as stable default.
     voice:
       discovery_mode: static_catalog
       voice_set_ref: default-tts-v1

@@ -15,13 +15,13 @@ type Provider interface {
 	Route() runtimev1.RoutePolicy
 	ResolveModelID(raw string) string
 	CheckModelAvailability(modelID string) error
-	GenerateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error)
+	GenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error)
 	Embed(ctx context.Context, modelID string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error)
 }
 
 // StreamingTextProvider extends Provider with streaming text generation.
 type StreamingTextProvider interface {
-	StreamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
+	StreamGenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
 }
 
 // MediaBackendProvider exposes the underlying Backend for sync media operations.

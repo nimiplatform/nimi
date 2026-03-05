@@ -28,9 +28,9 @@ func PollProviderTaskForArtifact(
 	defaultMIME string,
 	computeMs int64,
 	prompt string,
-	applyMetadata func(*runtimev1.MediaArtifact),
-	extraProviderRaw map[string]any,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+	applyMetadata func(*runtimev1.ScenarioArtifact),
+	extraArtifactMeta map[string]any,
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 	retryCount := int32(0)
 	for {
@@ -75,23 +75,23 @@ func PollProviderTaskForArtifact(
 		if mimeType == "" {
 			mimeType = "application/octet-stream"
 		}
-		providerRaw := map[string]any{
+		artifactMeta := map[string]any{
 			"adapter":         adapter,
 			"submit_endpoint": submitPath,
 			"query_endpoint":  queryPathTemplate,
 			"response":        pollResp,
 		}
-		for key, value := range extraProviderRaw {
-			providerRaw[key] = value
+		for key, value := range extraArtifactMeta {
+			artifactMeta[key] = value
 		}
 		if artifactURI != "" {
-			providerRaw["uri"] = artifactURI
+			artifactMeta["uri"] = artifactURI
 		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		if applyMetadata != nil {
 			applyMetadata(artifact)
 		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
-		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
+		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(prompt, artifactBytes, computeMs), providerJobID, nil
 	}
 }

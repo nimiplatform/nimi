@@ -21,6 +21,63 @@ models:
       url: https://docs.mistral.ai/getting-started/models/
       retrieved_at: 2026-03-05
       note: Mistral model catalog and lifecycle aliases.
+  - model_id: mistral-medium-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model generation and account tier.
+    source_ref:
+      url: https://docs.mistral.ai/getting-started/models/
+      retrieved_at: 2026-03-05
+      note: Mistral model catalog and lifecycle aliases.
+  - model_id: mistral-small-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Cost-efficient chat model pricing varies by account tier.
+    source_ref:
+      url: https://docs.mistral.ai/getting-started/models/
+      retrieved_at: 2026-03-05
+      note: Mistral model catalog and lifecycle aliases.
+  - model_id: codestral-latest
+    provider: mistral
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Code-specialized model pricing varies by account tier.
+    source_ref:
+      url: https://docs.mistral.ai/getting-started/models/
+      retrieved_at: 2026-03-05
+      note: Mistral model catalog and lifecycle aliases.
   - model_id: mistral-embed
     provider: mistral
     model_type: embedding

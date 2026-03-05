@@ -21,31 +21,31 @@ import (
 // AdapterBytedanceOpenSpeech is the adapter identifier for Bytedance OpenSpeech TTS/STT.
 const AdapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 
-// ExecuteBytedanceOpenSpeech handles TTS and STT media jobs via the Bytedance
+// ExecuteBytedanceOpenSpeech handles TTS and STT scenario jobs via the Bytedance
 // OpenSpeech API. It replaces the former Service.executeBytedanceOpenSpeech
 // method, accepting a MediaAdapterConfig instead of reading from service config.
 func ExecuteBytedanceOpenSpeech(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitMediaJobRequest,
+	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
-	switch req.GetModal() {
+	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_TTS:
-		spec := req.GetSpeechSpec()
+		spec := scenarioSpeechSynthesizeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		payload := map[string]any{
 			"model":       modelResolved,
 			"text":        spec.GetText(),
-			"voice":       spec.GetVoice(),
+			"voice":       scenarioVoiceRef(spec),
 			"language":    spec.GetLanguage(),
 			"emotion":     spec.GetEmotion(),
 			"speed":       spec.GetSpeed(),
@@ -56,8 +56,8 @@ func ExecuteBytedanceOpenSpeech(
 		if spec.GetAudioFormat() != "" {
 			payload["format"] = spec.GetAudioFormat()
 		}
-		if opts := StructToMap(spec.GetProviderOptions()); len(opts) > 0 {
-			payload["provider_options"] = opts
+		if opts := StructToMap(nil); len(opts) > 0 {
+			payload["extensions"] = opts
 		}
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v1/tts"), apiKey, payload)
 		if err != nil {
@@ -65,17 +65,17 @@ func ExecuteBytedanceOpenSpeech(
 		}
 		artifact := BinaryArtifact(ResolveSpeechArtifactMIME(spec, body.Bytes), body.Bytes, map[string]any{
 			"adapter":          AdapterBytedanceOpenSpeech,
-			"voice":            spec.GetVoice(),
+			"voice":            scenarioVoiceRef(spec),
 			"language":         spec.GetLanguage(),
 			"emotion":          spec.GetEmotion(),
-			"provider_options": StructToMap(spec.GetProviderOptions()),
+			"extensions": StructToMap(nil),
 			"mime_type":        body.MIME,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetText(), body.Bytes, 120), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), body.Bytes, 120), "", nil
 
 	case runtimev1.Modal_MODAL_STT:
-		spec := req.GetTranscriptionSpec()
+		spec := scenarioSpeechTranscribeSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -83,27 +83,27 @@ func ExecuteBytedanceOpenSpeech(
 		if resolveErr != nil {
 			return nil, nil, "", resolveErr
 		}
-		providerOptions := StructToMap(spec.GetProviderOptions())
-		if shouldUseBytedanceOpenSpeechWS(spec, providerOptions) {
-			text, wsRaw, wsErr := executeBytedanceOpenSpeechWS(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, providerOptions)
+		scenarioExtensions := StructToMap(nil)
+		if shouldUseBytedanceOpenSpeechWS(spec, scenarioExtensions) {
+			text, wsRaw, wsErr := executeBytedanceOpenSpeechWS(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
 			if wsErr != nil {
 				return nil, nil, "", wsErr
 			}
-			providerRaw := map[string]any{
+			artifactMeta := map[string]any{
 				"text":             text,
 				"adapter":          AdapterBytedanceOpenSpeech,
 				"transport":        "ws",
 				"mime_type":        mimeType,
 				"audio_uri":        audioURI,
 				"response_format":  spec.GetResponseFormat(),
-				"provider_options": providerOptions,
+				"extensions": scenarioExtensions,
 			}
 			if len(wsRaw) > 0 {
-				providerRaw["ws_response"] = wsRaw
+				artifactMeta["ws_response"] = wsRaw
 			}
-			artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), providerRaw)
+			artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
 			ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-			return []*runtimev1.MediaArtifact{artifact}, &runtimev1.UsageStats{
+			return []*runtimev1.ScenarioArtifact{artifact}, &runtimev1.UsageStats{
 				InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
 				OutputTokens: EstimateTokens(text),
 				ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
@@ -122,9 +122,9 @@ func ExecuteBytedanceOpenSpeech(
 		if spec.GetLanguage() != "" {
 			payload["language"] = spec.GetLanguage()
 		}
-		if len(providerOptions) > 0 {
-			opts := providerOptions
-			payload["provider_options"] = opts
+		if len(scenarioExtensions) > 0 {
+			opts := scenarioExtensions
+			payload["extensions"] = opts
 		}
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v3/auc/bigmodel/recognize/flash"), apiKey, payload)
 		if err != nil {
@@ -140,10 +140,10 @@ func ExecuteBytedanceOpenSpeech(
 			"mime_type":        mimeType,
 			"audio_uri":        audioURI,
 			"response_format":  spec.GetResponseFormat(),
-			"provider_options": providerOptions,
+			"extensions": scenarioExtensions,
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-		return []*runtimev1.MediaArtifact{artifact}, &runtimev1.UsageStats{
+		return []*runtimev1.ScenarioArtifact{artifact}, &runtimev1.UsageStats{
 			InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
 			OutputTokens: EstimateTokens(text),
 			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
@@ -158,14 +158,14 @@ func ExecuteBytedanceOpenSpeech(
 // WebSocket-based STT helpers (package-private)
 // ---------------------------------------------------------------------------
 
-func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscriptionSpec, providerOptions map[string]any) bool {
+func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscribeScenarioSpec, scenarioExtensions map[string]any) bool {
 	if spec == nil {
 		return false
 	}
-	if ValueAsBool(FirstNonNil(providerOptions["prefer_ws"], providerOptions["use_ws"], providerOptions["websocket"])) {
+	if ValueAsBool(FirstNonNil(scenarioExtensions["prefer_ws"], scenarioExtensions["use_ws"], scenarioExtensions["websocket"])) {
 		return true
 	}
-	transport := strings.ToLower(strings.TrimSpace(ValueAsString(providerOptions["transport"])))
+	transport := strings.ToLower(strings.TrimSpace(ValueAsString(scenarioExtensions["transport"])))
 	if transport == "ws" || transport == "websocket" {
 		return true
 	}
@@ -182,12 +182,12 @@ func executeBytedanceOpenSpeechWS(
 	baseURL string,
 	apiKey string,
 	modelResolved string,
-	spec *runtimev1.SpeechTranscriptionSpec,
+	spec *runtimev1.SpeechTranscribeScenarioSpec,
 	audioBytes []byte,
 	mimeType string,
-	providerOptions map[string]any,
+	scenarioExtensions map[string]any,
 ) (string, map[string]any, error) {
-	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL, providerOptions)
+	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL, scenarioExtensions)
 	if targetURL == "" {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -231,7 +231,7 @@ func executeBytedanceOpenSpeechWS(
 		"speaker_count":    spec.GetSpeakerCount(),
 		"prompt":           strings.TrimSpace(spec.GetPrompt()),
 		"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-		"provider_options": providerOptions,
+		"extensions": scenarioExtensions,
 	}
 	if err := websocket.JSON.Send(connection, startPayload); err != nil {
 		return "", nil, MapProviderRequestError(err)
@@ -254,7 +254,7 @@ func executeBytedanceOpenSpeechWS(
 	}
 
 	readTimeout := 4 * time.Second
-	if rawTimeout := ValueAsInt64(FirstNonNil(providerOptions["ws_read_timeout_ms"], providerOptions["read_timeout_ms"])); rawTimeout > 0 {
+	if rawTimeout := ValueAsInt64(FirstNonNil(scenarioExtensions["ws_read_timeout_ms"], scenarioExtensions["read_timeout_ms"])); rawTimeout > 0 {
 		readTimeout = time.Duration(rawTimeout) * time.Millisecond
 	}
 	messageCount := 0
@@ -343,11 +343,11 @@ func computeWSReadDeadline(ctx context.Context, readTimeout time.Duration) time.
 	return deadline
 }
 
-func resolveBytedanceOpenSpeechWSURL(baseURL string, providerOptions map[string]any) string {
-	if explicitURL := strings.TrimSpace(ValueAsString(providerOptions["ws_url"])); explicitURL != "" {
+func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[string]any) string {
+	if explicitURL := strings.TrimSpace(ValueAsString(scenarioExtensions["ws_url"])); explicitURL != "" {
 		return explicitURL
 	}
-	wsPath := strings.TrimSpace(ValueAsString(providerOptions["ws_path"]))
+	wsPath := strings.TrimSpace(ValueAsString(scenarioExtensions["ws_path"]))
 	if wsPath == "" {
 		wsPath = "/api/v3/auc/bigmodel/recognize/stream"
 	}
@@ -376,7 +376,7 @@ func websocketOrigin(targetURL string) string {
 	return "http://" + parsed.Host + "/"
 }
 
-func transcriptionAudioChunks(spec *runtimev1.SpeechTranscriptionSpec, fallback []byte) [][]byte {
+func transcriptionAudioChunks(spec *runtimev1.SpeechTranscribeScenarioSpec, fallback []byte) [][]byte {
 	if spec != nil {
 		if source := spec.GetAudioSource(); source != nil {
 			if chunks := source.GetAudioChunks(); chunks != nil {

@@ -353,7 +353,7 @@ func ExtractSpeechArtifactFromResponseBody(body *JSONOrBinaryBody) ([]byte, stri
 // ResolveProviderEndpointPaths resolves provider endpoint paths from provider
 // options, checking single-value keys, list-value keys, and defaults.
 // Paths are deduplicated and normalised.
-func ResolveProviderEndpointPaths(providerOptions map[string]any, singleKeys, listKeys, defaults []string) []string {
+func ResolveProviderEndpointPaths(scenarioExtensions map[string]any, singleKeys, listKeys, defaults []string) []string {
 	paths := make([]string, 0, len(defaults)+len(singleKeys))
 	seen := map[string]bool{}
 	addPath := func(raw string) {
@@ -365,10 +365,10 @@ func ResolveProviderEndpointPaths(providerOptions map[string]any, singleKeys, li
 		paths = append(paths, normalized)
 	}
 	for _, key := range singleKeys {
-		addPath(ValueAsString(providerOptions[key]))
+		addPath(ValueAsString(scenarioExtensions[key]))
 	}
 	for _, key := range listKeys {
-		switch typed := providerOptions[key].(type) {
+		switch typed := scenarioExtensions[key].(type) {
 		case string:
 			addPath(typed)
 		case []string:
@@ -405,8 +405,8 @@ func NormalizeProviderEndpointPath(raw string) string {
 
 // FirstProviderEndpointPath returns the first resolved provider endpoint path,
 // or empty string if none are found.
-func FirstProviderEndpointPath(providerOptions map[string]any, singleKeys, listKeys, defaults []string) string {
-	paths := ResolveProviderEndpointPaths(providerOptions, singleKeys, listKeys, defaults)
+func FirstProviderEndpointPath(scenarioExtensions map[string]any, singleKeys, listKeys, defaults []string) string {
+	paths := ResolveProviderEndpointPaths(scenarioExtensions, singleKeys, listKeys, defaults)
 	if len(paths) == 0 {
 		return ""
 	}
@@ -415,8 +415,8 @@ func FirstProviderEndpointPath(providerOptions map[string]any, singleKeys, listK
 
 // ResolveTaskQueryPathTemplate resolves a task query path template from
 // provider options, ensuring it contains a {task_id} placeholder.
-func ResolveTaskQueryPathTemplate(providerOptions map[string]any, singleKeys, listKeys, defaults []string) string {
-	candidates := ResolveProviderEndpointPaths(providerOptions, singleKeys, listKeys, defaults)
+func ResolveTaskQueryPathTemplate(scenarioExtensions map[string]any, singleKeys, listKeys, defaults []string) string {
+	candidates := ResolveProviderEndpointPaths(scenarioExtensions, singleKeys, listKeys, defaults)
 	for _, candidate := range candidates {
 		trimmed := strings.TrimSpace(candidate)
 		if trimmed == "" {

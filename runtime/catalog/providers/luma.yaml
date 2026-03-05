@@ -2,6 +2,56 @@ version: 1
 provider: luma
 catalog_version: 2026-03-05-luma-v1
 models:
+  - model_id: ray-3
+    provider: luma
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Luma video pricing varies by model family, output profile, and account tier.
+    source_ref:
+      url: https://docs.lumalabs.ai/docs/video-generation
+      retrieved_at: 2026-03-05
+      note: Luma video generation overview and model capability guide.
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 540p
+          - 720p
+          - 1080p
+          - 4k
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints:
+          keyframes_mapped_to_first_last_contract: true
+      outputs:
+        video_url: true
   - model_id: ray-2
     provider: luma
     model_type: video

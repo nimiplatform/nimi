@@ -72,12 +72,19 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 		},
 		nil,
 		"job-test",
-		&runtimev1.SubmitMediaJobRequest{
-			Modal: runtimev1.Modal_MODAL_TTS,
-			Spec: &runtimev1.SubmitMediaJobRequest_SpeechSpec{
-				SpeechSpec: &runtimev1.SpeechSynthesisSpec{
-					Text:  "hello",
-					Voice: "alloy",
+		&runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+					SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+						Text: "hello",
+						VoiceRef: &runtimev1.VoiceReference{
+							Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+							Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
+								ProviderVoiceRef: "alloy",
+							},
+						},
+					},
 				},
 			},
 		},

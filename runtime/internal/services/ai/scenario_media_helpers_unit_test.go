@@ -1,0 +1,315 @@
+package ai
+
+import (
+	"io"
+	"log/slog"
+	"testing"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func baseScenarioJobRequest() *runtimev1.SubmitScenarioJobRequest {
+	return &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-1",
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+	}
+}
+
+func TestScenarioModalFromType(t *testing.T) {
+	cases := map[runtimev1.ScenarioType]runtimev1.Modal{
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:    runtimev1.Modal_MODAL_IMAGE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:    runtimev1.Modal_MODAL_VIDEO,
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE: runtimev1.Modal_MODAL_TTS,
+		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE: runtimev1.Modal_MODAL_STT,
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:     runtimev1.Modal_MODAL_UNSPECIFIED,
+	}
+	for in, expect := range cases {
+		if got := scenarioModalFromType(in); got != expect {
+			t.Fatalf("scenario modal mismatch for %v: got=%v want=%v", in, got, expect)
+		}
+	}
+}
+
+func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
+	t.Run("image valid", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: 1}}}
+		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("image invalid n", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat", N: 99}}}
+		err := validateSubmitScenarioAsyncJobRequest(req)
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		if reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("unexpected reason: %v", reason)
+		}
+	})
+
+	t.Run("video valid t2v", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
+			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Text: "a running cat"}},
+			Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+		}}}
+		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("video invalid mode", func(t *testing.T) {
+		spec := &runtimev1.VideoGenerateScenarioSpec{Mode: runtimev1.VideoMode_VIDEO_MODE_UNSPECIFIED}
+		err := validateVideoGenerateScenarioSpec(spec)
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		if reason != runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID {
+			t.Fatalf("unexpected reason: %v", reason)
+		}
+	})
+
+	t.Run("stt valid bytes source", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
+			AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{AudioBytes: []byte("abc")}},
+		}}}
+		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("stt invalid speaker count", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
+			SpeakerCount: 100,
+			AudioSource:  &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: "https://example.com/a.wav"}},
+		}}}
+		err := validateSubmitScenarioAsyncJobRequest(req)
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		if reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("unexpected reason: %v", reason)
+		}
+	})
+
+	t.Run("unsupported scenario", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{TextGenerate: &runtimev1.TextGenerateScenarioSpec{}}}
+		err := validateSubmitScenarioAsyncJobRequest(req)
+		reason, _ := grpcerr.ExtractReasonCode(err)
+		if reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+			t.Fatalf("unexpected reason: %v", reason)
+		}
+	})
+}
+
+func TestTranscriptionAudioSourceHelpers(t *testing.T) {
+	if hasTranscriptionAudioSource(nil) {
+		t.Fatalf("nil spec should be false")
+	}
+	if !hasTranscriptionAudioSource(&runtimev1.SpeechTranscribeScenarioSpec{
+		AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioUri{AudioUri: "https://example.com/a.wav"}},
+	}) {
+		t.Fatalf("uri source should be true")
+	}
+	if !hasTranscriptionAudioSource(&runtimev1.SpeechTranscribeScenarioSpec{
+		AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioChunks{AudioChunks: &runtimev1.AudioChunks{Chunks: [][]byte{{}, {1}}}}},
+	}) {
+		t.Fatalf("chunk source should be true when any chunk non-empty")
+	}
+}
+
+func TestScenarioJobIdempotencyAndTimeoutHelpers(t *testing.T) {
+	req := baseScenarioJobRequest()
+	req.IdempotencyKey = "idem-1"
+	req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+	req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "p"}}}
+
+	scope1, err := buildScenarioJobIdempotencyScope(req)
+	if err != nil || scope1 == "" {
+		t.Fatalf("expected non-empty scope, err=%v scope=%q", err, scope1)
+	}
+	scope2, err := buildScenarioJobIdempotencyScope(req)
+	if err != nil || scope2 != scope1 {
+		t.Fatalf("idempotency scope should be stable: %q vs %q err=%v", scope1, scope2, err)
+	}
+
+	hash, err := hashSubmitScenarioSpec(req)
+	if err != nil || hash == "" {
+		t.Fatalf("hash should be non-empty, err=%v", err)
+	}
+
+	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE) != defaultGenerateImageTimeout {
+		t.Fatalf("unexpected image timeout")
+	}
+	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE) != defaultGenerateVideoTimeout {
+		t.Fatalf("unexpected video timeout")
+	}
+	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE) != defaultSynthesizeTimeout {
+		t.Fatalf("unexpected synth timeout")
+	}
+	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) != defaultTranscribeTimeout {
+		t.Fatalf("unexpected transcribe timeout")
+	}
+	if defaultScenarioJobTimeout(runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE) != defaultGenerateTimeout {
+		t.Fatalf("unexpected default timeout")
+	}
+}
+
+func TestMediaRoutingHelpers(t *testing.T) {
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_VIDEO, "volcengine"); got != adapterBytedanceARKTask {
+		t.Fatalf("unexpected adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_TTS, "dashscope"); got != adapterAlibabaNative {
+		t.Fatalf("unexpected adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("localai/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterLocalAINative {
+		t.Fatalf("unexpected adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("nexa/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterNexaNative {
+		t.Fatalf("unexpected adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
+		t.Fatalf("unexpected adapter: %s", got)
+	}
+
+	if got := inferMediaProviderTypeFromBackendName(nil); got != "" {
+		t.Fatalf("nil backend should infer empty provider")
+	}
+	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "cloud-openai"}); got != "openai" {
+		t.Fatalf("unexpected cloud provider type: %q", got)
+	}
+	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "local-localai"}); got != "localai" {
+		t.Fatalf("unexpected local provider type: %q", got)
+	}
+
+	if got := stringSliceToAny([]string{"  a ", "", "b"}); len(got) != 2 {
+		t.Fatalf("unexpected trimmed slice length: %d", len(got))
+	}
+	if got := stringSliceToAny([]string{"", "  "}); got != nil {
+		t.Fatalf("expected nil for empty trimmed values")
+	}
+
+	if got := normalizeComparableModelID("models/ABC"); got != "abc" {
+		t.Fatalf("unexpected comparable model id: %q", got)
+	}
+	if got := modelIDBase("gpt-4o@2024-11-01"); got != "gpt-4o" {
+		t.Fatalf("unexpected model base: %q", got)
+	}
+	if got := modelIDBase("plain-model"); got != "plain-model" {
+		t.Fatalf("unexpected plain model base: %q", got)
+	}
+	if !supportsTTSCapability([]string{"chat", "audio_synthesize"}) {
+		t.Fatalf("tts capability should be detected from audio_synthesize")
+	}
+	if supportsTTSCapability([]string{"chat", "vision"}) {
+		t.Fatalf("tts capability should be false for non-tts capabilities")
+	}
+
+	models := []nimillm.ProbeModel{
+		{ModelID: "models/gpt-4o"},
+		{ModelID: "gpt-4o-mini@latest"},
+	}
+	if resolved, ok := findProbeModelID(models, "gpt-4o"); !ok || resolved != "models/gpt-4o" {
+		t.Fatalf("findProbeModelID exact comparable mismatch: ok=%v resolved=%q", ok, resolved)
+	}
+	if resolved, ok := findProbeModelID(models, "gpt-4o-mini"); !ok || resolved != "gpt-4o-mini@latest" {
+		t.Fatalf("findProbeModelID base fallback mismatch: ok=%v resolved=%q", ok, resolved)
+	}
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"gemini": {BaseURL: "https://example.test/v1", APIKey: "k"},
+		},
+	})
+	cfg := svc.resolveNativeAdapterConfig("gemini", nil)
+	if cfg.BaseURL == "" {
+		t.Fatalf("resolveNativeAdapterConfig should fallback to configured base url")
+	}
+	cfg = svc.resolveNativeAdapterConfig("gemini", &nimillm.RemoteTarget{Endpoint: "https://remote.test/v1", APIKey: "remote-key"})
+	if cfg.BaseURL != "https://remote.test/v1" || cfg.APIKey != "remote-key" {
+		t.Fatalf("resolveNativeAdapterConfig should prefer remote target: %#v", cfg)
+	}
+
+	jobID := "poll-state-job"
+	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId:        jobID,
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		CreatedAt:    timestamppb.Now(),
+		UpdatedAt:    timestamppb.Now(),
+		TraceId:      "trace-poll",
+	}, func() {})
+	next := timestamppb.Now()
+	svc.UpdatePollState(jobID, "provider-job", 3, next, "last-error")
+	updated, ok := svc.scenarioJobs.get(jobID)
+	if !ok {
+		t.Fatalf("expected poll-updated scenario job")
+	}
+	if updated.GetProviderJobId() != "provider-job" || updated.GetRetryCount() != 3 || updated.GetReasonDetail() != "last-error" {
+		t.Fatalf("unexpected poll state update: %#v", updated)
+	}
+
+	if extractScenarioExtensions(baseScenarioJobRequest()) != nil {
+		t.Fatalf("extractScenarioExtensions currently should return nil")
+	}
+}
+
+func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
+	if got := reasonCodeFromMediaError(nil); got != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("unexpected nil-error reason: %v", got)
+	}
+	if got := reasonCodeFromMediaError(grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)); got != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("unexpected grpcerr reason: %v", got)
+	}
+	if got := reasonCodeFromMediaError(status.Error(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED.String())); got != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("unexpected message-mapped reason: %v", got)
+	}
+	if got := reasonCodeFromMediaError(status.Error(codes.DeadlineExceeded, "timeout")); got != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("unexpected deadline reason: %v", got)
+	}
+	if got := reasonCodeFromMediaError(status.Error(codes.Canceled, "cancel")); got != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("unexpected canceled reason: %v", got)
+	}
+
+	spec := &runtimev1.SpeechSynthesizeScenarioSpec{VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF, Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "voice-1"}}}
+	if got := resolveScenarioVoiceRef(spec); got != "voice-1" {
+		t.Fatalf("unexpected provider voice ref: %q", got)
+	}
+	spec.VoiceRef = &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "preset-1"}}
+	if got := resolveScenarioVoiceRef(spec); got != "preset-1" {
+		t.Fatalf("unexpected preset voice ref: %q", got)
+	}
+	spec.VoiceRef = &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET, Reference: &runtimev1.VoiceReference_VoiceAssetId{VoiceAssetId: "asset-1"}}
+	if got := resolveScenarioVoiceRef(spec); got != "asset-1" {
+		t.Fatalf("unexpected asset voice ref: %q", got)
+	}
+	if got := resolveScenarioVoiceRef(nil); got != "" {
+		t.Fatalf("nil spec should resolve empty voice ref")
+	}
+}
+
+func init() {
+	// Compile-time guard for timeout constants to ensure tests cover helper defaults.
+	_ = []time.Duration{defaultGenerateTimeout, defaultGenerateImageTimeout, defaultGenerateVideoTimeout, defaultSynthesizeTimeout, defaultTranscribeTimeout}
+}

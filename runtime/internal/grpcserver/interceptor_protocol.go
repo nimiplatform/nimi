@@ -107,11 +107,11 @@ func hashRequest(req any) string {
 
 func isWriteMethod(fullMethod string) bool {
 	switch fullMethod {
-	case "/nimi.runtime.v1.RuntimeAiService/Generate",
-		"/nimi.runtime.v1.RuntimeAiService/StreamGenerate",
-		"/nimi.runtime.v1.RuntimeAiService/Embed",
-		"/nimi.runtime.v1.RuntimeAiService/SubmitMediaJob",
-		"/nimi.runtime.v1.RuntimeAiService/CancelMediaJob",
+	case "/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
 		"/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
 		"/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
 		"/nimi.runtime.v1.RuntimeModelService/PullModel",

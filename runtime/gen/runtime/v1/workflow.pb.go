@@ -1121,7 +1121,7 @@ type AiTtsCreateVoiceNodeConfig struct {
 	InstructionText    string                 `protobuf:"bytes,9,opt,name=instruction_text,json=instructionText,proto3" json:"instruction_text,omitempty"`
 	PreviewText        string                 `protobuf:"bytes,10,opt,name=preview_text,json=previewText,proto3" json:"preview_text,omitempty"`
 	Language           string                 `protobuf:"bytes,11,opt,name=language,proto3" json:"language,omitempty"`
-	ProviderOptions    *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
+	Extensions         []*ScenarioExtension   `protobuf:"bytes,20,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1233,30 +1233,30 @@ func (x *AiTtsCreateVoiceNodeConfig) GetLanguage() string {
 	return ""
 }
 
-func (x *AiTtsCreateVoiceNodeConfig) GetProviderOptions() *structpb.Struct {
+func (x *AiTtsCreateVoiceNodeConfig) GetExtensions() []*ScenarioExtension {
 	if x != nil {
-		return x.ProviderOptions
+		return x.Extensions
 	}
 	return nil
 }
 
 type AiTtsSynthesizeNodeConfig struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ModelId         string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	TargetModelId   string                 `protobuf:"bytes,2,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
-	Text            string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
-	VoiceRef        *VoiceReference        `protobuf:"bytes,4,opt,name=voice_ref,json=voiceRef,proto3" json:"voice_ref,omitempty"`
-	ConnectorId     string                 `protobuf:"bytes,5,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
-	TimeoutMs       int32                  `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
-	AudioFormat     string                 `protobuf:"bytes,7,opt,name=audio_format,json=audioFormat,proto3" json:"audio_format,omitempty"`
-	SampleRateHz    int32                  `protobuf:"varint,8,opt,name=sample_rate_hz,json=sampleRateHz,proto3" json:"sample_rate_hz,omitempty"`
-	Speed           float32                `protobuf:"fixed32,9,opt,name=speed,proto3" json:"speed,omitempty"`
-	Pitch           float32                `protobuf:"fixed32,10,opt,name=pitch,proto3" json:"pitch,omitempty"`
-	Volume          float32                `protobuf:"fixed32,11,opt,name=volume,proto3" json:"volume,omitempty"`
-	Emotion         string                 `protobuf:"bytes,12,opt,name=emotion,proto3" json:"emotion,omitempty"`
-	ProviderOptions *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	TargetModelId string                 `protobuf:"bytes,2,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
+	Text          string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	VoiceRef      *VoiceReference        `protobuf:"bytes,4,opt,name=voice_ref,json=voiceRef,proto3" json:"voice_ref,omitempty"`
+	ConnectorId   string                 `protobuf:"bytes,5,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
+	TimeoutMs     int32                  `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	AudioFormat   string                 `protobuf:"bytes,7,opt,name=audio_format,json=audioFormat,proto3" json:"audio_format,omitempty"`
+	SampleRateHz  int32                  `protobuf:"varint,8,opt,name=sample_rate_hz,json=sampleRateHz,proto3" json:"sample_rate_hz,omitempty"`
+	Speed         float32                `protobuf:"fixed32,9,opt,name=speed,proto3" json:"speed,omitempty"`
+	Pitch         float32                `protobuf:"fixed32,10,opt,name=pitch,proto3" json:"pitch,omitempty"`
+	Volume        float32                `protobuf:"fixed32,11,opt,name=volume,proto3" json:"volume,omitempty"`
+	Emotion       string                 `protobuf:"bytes,12,opt,name=emotion,proto3" json:"emotion,omitempty"`
+	Extensions    []*ScenarioExtension   `protobuf:"bytes,20,rep,name=extensions,proto3" json:"extensions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AiTtsSynthesizeNodeConfig) Reset() {
@@ -1373,9 +1373,9 @@ func (x *AiTtsSynthesizeNodeConfig) GetEmotion() string {
 	return ""
 }
 
-func (x *AiTtsSynthesizeNodeConfig) GetProviderOptions() *structpb.Struct {
+func (x *AiTtsSynthesizeNodeConfig) GetExtensions() []*ScenarioExtension {
 	if x != nil {
-		return x.ProviderOptions
+		return x.Extensions
 	}
 	return nil
 }
@@ -2752,7 +2752,9 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	"\fpreview_text\x18\n" +
 	" \x01(\tR\vpreviewText\x12\x1a\n" +
 	"\blanguage\x18\v \x01(\tR\blanguage\x12B\n" +
-	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xdd\x03\n" +
+	"\n" +
+	"extensions\x18\x14 \x03(\v2\".nimi.runtime.v1.ScenarioExtensionR\n" +
+	"extensions\"\xdd\x03\n" +
 	"\x19AiTtsSynthesizeNodeConfig\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12&\n" +
 	"\x0ftarget_model_id\x18\x02 \x01(\tR\rtargetModelId\x12\x12\n" +
@@ -2768,7 +2770,9 @@ const file_runtime_v1_workflow_proto_rawDesc = "" +
 	" \x01(\x02R\x05pitch\x12\x16\n" +
 	"\x06volume\x18\v \x01(\x02R\x06volume\x12\x18\n" +
 	"\aemotion\x18\f \x01(\tR\aemotion\x12B\n" +
-	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"S\n" +
+	"\n" +
+	"extensions\x18\x14 \x03(\v2\".nimi.runtime.v1.ScenarioExtensionR\n" +
+	"extensions\"S\n" +
 	"\x11ExtractNodeConfig\x12\x1b\n" +
 	"\tjson_path\x18\x01 \x01(\tR\bjsonPath\x12!\n" +
 	"\fsource_input\x18\x02 \x01(\tR\vsourceInput\"Z\n" +
@@ -2984,11 +2988,12 @@ var file_runtime_v1_workflow_proto_goTypes = []any{
 	(RoutePolicy)(0),                       // 34: nimi.runtime.v1.RoutePolicy
 	(FallbackPolicy)(0),                    // 35: nimi.runtime.v1.FallbackPolicy
 	(VoiceWorkflowType)(0),                 // 36: nimi.runtime.v1.VoiceWorkflowType
-	(*structpb.Struct)(nil),                // 37: google.protobuf.Struct
+	(*ScenarioExtension)(nil),              // 37: nimi.runtime.v1.ScenarioExtension
 	(*VoiceReference)(nil),                 // 38: nimi.runtime.v1.VoiceReference
 	(ReasonCode)(0),                        // 39: nimi.runtime.v1.ReasonCode
 	(*timestamppb.Timestamp)(nil),          // 40: google.protobuf.Timestamp
-	(*Ack)(nil),                            // 41: nimi.runtime.v1.Ack
+	(*structpb.Struct)(nil),                // 41: google.protobuf.Struct
+	(*Ack)(nil),                            // 42: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_workflow_proto_depIdxs = []int32{
 	32, // 0: nimi.runtime.v1.AiGenerateNodeConfig.modal:type_name -> nimi.runtime.v1.Modal
@@ -3010,9 +3015,9 @@ var file_runtime_v1_workflow_proto_depIdxs = []int32{
 	34, // 16: nimi.runtime.v1.AiSttNodeConfig.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	35, // 17: nimi.runtime.v1.AiSttNodeConfig.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
 	36, // 18: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
-	37, // 19: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig.provider_options:type_name -> google.protobuf.Struct
+	37, // 19: nimi.runtime.v1.AiTtsCreateVoiceNodeConfig.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
 	38, // 20: nimi.runtime.v1.AiTtsSynthesizeNodeConfig.voice_ref:type_name -> nimi.runtime.v1.VoiceReference
-	37, // 21: nimi.runtime.v1.AiTtsSynthesizeNodeConfig.provider_options:type_name -> google.protobuf.Struct
+	37, // 21: nimi.runtime.v1.AiTtsSynthesizeNodeConfig.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
 	3,  // 22: nimi.runtime.v1.MergeNodeConfig.strategy:type_name -> nimi.runtime.v1.MergeStrategy
 	2,  // 23: nimi.runtime.v1.WorkflowNode.node_type:type_name -> nimi.runtime.v1.WorkflowNodeType
 	7,  // 24: nimi.runtime.v1.WorkflowNode.ai_generate_config:type_name -> nimi.runtime.v1.AiGenerateNodeConfig
@@ -3040,19 +3045,19 @@ var file_runtime_v1_workflow_proto_depIdxs = []int32{
 	40, // 46: nimi.runtime.v1.WorkflowNodeStatus.next_poll_at:type_name -> google.protobuf.Timestamp
 	0,  // 47: nimi.runtime.v1.GetWorkflowResponse.status:type_name -> nimi.runtime.v1.WorkflowStatus
 	27, // 48: nimi.runtime.v1.GetWorkflowResponse.nodes:type_name -> nimi.runtime.v1.WorkflowNodeStatus
-	37, // 49: nimi.runtime.v1.GetWorkflowResponse.output:type_name -> google.protobuf.Struct
+	41, // 49: nimi.runtime.v1.GetWorkflowResponse.output:type_name -> google.protobuf.Struct
 	39, // 50: nimi.runtime.v1.GetWorkflowResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	1,  // 51: nimi.runtime.v1.WorkflowEvent.event_type:type_name -> nimi.runtime.v1.WorkflowEventType
 	40, // 52: nimi.runtime.v1.WorkflowEvent.timestamp:type_name -> google.protobuf.Timestamp
 	39, // 53: nimi.runtime.v1.WorkflowEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	37, // 54: nimi.runtime.v1.WorkflowEvent.payload:type_name -> google.protobuf.Struct
+	41, // 54: nimi.runtime.v1.WorkflowEvent.payload:type_name -> google.protobuf.Struct
 	24, // 55: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:input_type -> nimi.runtime.v1.SubmitWorkflowRequest
 	26, // 56: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:input_type -> nimi.runtime.v1.GetWorkflowRequest
 	29, // 57: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:input_type -> nimi.runtime.v1.CancelWorkflowRequest
 	31, // 58: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:input_type -> nimi.runtime.v1.SubscribeWorkflowEventsRequest
 	25, // 59: nimi.runtime.v1.RuntimeWorkflowService.SubmitWorkflow:output_type -> nimi.runtime.v1.SubmitWorkflowResponse
 	28, // 60: nimi.runtime.v1.RuntimeWorkflowService.GetWorkflow:output_type -> nimi.runtime.v1.GetWorkflowResponse
-	41, // 61: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:output_type -> nimi.runtime.v1.Ack
+	42, // 61: nimi.runtime.v1.RuntimeWorkflowService.CancelWorkflow:output_type -> nimi.runtime.v1.Ack
 	30, // 62: nimi.runtime.v1.RuntimeWorkflowService.SubscribeWorkflowEvents:output_type -> nimi.runtime.v1.WorkflowEvent
 	59, // [59:63] is the sub-list for method output_type
 	55, // [55:59] is the sub-list for method input_type

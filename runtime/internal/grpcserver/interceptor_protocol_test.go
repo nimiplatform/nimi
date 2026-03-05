@@ -179,3 +179,29 @@ func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 		t.Fatalf("expected protected action allowed, got %v", err)
 	}
 }
+
+func TestIsWriteMethodScenarioSurface(t *testing.T) {
+	writeMethods := []string{
+		"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+		"/nimi.runtime.v1.RuntimeAiService/StreamScenario",
+		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+	}
+	for _, method := range writeMethods {
+		if !isWriteMethod(method) {
+			t.Fatalf("expected write method: %s", method)
+		}
+	}
+
+	readMethods := []string{
+		"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
+		"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
+		"/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
+	}
+	for _, method := range readMethods {
+		if isWriteMethod(method) {
+			t.Fatalf("expected read method: %s", method)
+		}
+	}
+}

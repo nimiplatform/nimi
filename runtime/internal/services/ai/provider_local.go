@@ -52,13 +52,28 @@ func (p *localProvider) CheckModelAvailability(modelID string) error {
 	return nil
 }
 
-func (p *localProvider) GenerateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (p *localProvider) GenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return p.GenerateTextScenario(ctx, modelID, spec, inputText)
+}
+
+func (p *localProvider) GenerateTextScenario(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	_ string,
+) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
 	if backend != nil {
-		text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
+		text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens())
 		if err != nil {
 			return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 		}
@@ -87,13 +102,28 @@ func (p *localProvider) ResolveMediaBackend(modelID string) (*nimillm.Backend, s
 	return backend, resolvedModelID
 }
 
-func (p *localProvider) StreamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (p *localProvider) StreamGenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return p.StreamGenerateTextScenario(ctx, modelID, spec, onDelta)
+}
+
+func (p *localProvider) StreamGenerateTextScenario(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	onDelta func(string) error,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	backend, resolvedModelID, explicit, ok, _ := p.pickBackend(modelID)
 	if explicit && !ok {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
 	}
 	if backend != nil {
-		return backend.StreamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
+		return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), onDelta)
 	}
 	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }

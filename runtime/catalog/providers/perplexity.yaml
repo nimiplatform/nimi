@@ -1,0 +1,81 @@
+version: 1
+provider: perplexity
+catalog_version: 2026-03-05-perplexity-v1
+models:
+  - model_id: sonar-pro
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Search-augmented chat pricing varies by usage tier.
+    source_ref:
+      url: https://docs.perplexity.ai/guides/model-cards
+      retrieved_at: 2026-03-05
+      note: Perplexity AI model cards documentation.
+  - model_id: sonar
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Search-augmented chat pricing varies by usage tier.
+    source_ref:
+      url: https://docs.perplexity.ai/guides/model-cards
+      retrieved_at: 2026-03-05
+      note: Perplexity AI model cards documentation.
+  - model_id: sonar-reasoning-pro
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by usage tier.
+    source_ref:
+      url: https://docs.perplexity.ai/guides/model-cards
+      retrieved_at: 2026-03-05
+      note: Perplexity AI model cards documentation.
+  - model_id: sonar-reasoning
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by usage tier.
+    source_ref:
+      url: https://docs.perplexity.ai/guides/model-cards
+      retrieved_at: 2026-03-05
+      note: Perplexity AI model cards documentation.
+voices: []

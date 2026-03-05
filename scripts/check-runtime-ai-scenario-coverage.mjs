@@ -13,19 +13,19 @@ const repoRoot = path.resolve(__dirname, '..');
 const runtimeDir = path.join(repoRoot, 'runtime');
 
 const minAiStatementsCoverage = Number(process.env.NIMI_RUNTIME_MIN_AI_STATEMENTS_COVERAGE || '70');
-const minMediaCoreFunctionCoverage = Number(process.env.NIMI_RUNTIME_MIN_AI_MEDIA_FUNCTION_COVERAGE || '80');
+const minScenarioCoreFunctionCoverage = Number(process.env.NIMI_RUNTIME_MIN_AI_SCENARIO_FUNCTION_COVERAGE || '80');
 
-const mediaCoreFunctions = [
-  'internal/services/ai/media_job_methods.go:SubmitMediaJob',
-  'internal/services/ai/media_job_methods.go:GetMediaJob',
-  'internal/services/ai/media_job_methods.go:CancelMediaJob',
-  'internal/services/ai/media_job_methods.go:SubscribeMediaJobEvents',
-  'internal/services/ai/media_job_methods.go:GetMediaArtifacts',
+const scenarioCoreFunctions = [
+  'internal/services/ai/scenario_job_store.go:SubmitScenarioJob',
+  'internal/services/ai/scenario_job_store.go:GetScenarioJob',
+  'internal/services/ai/scenario_job_store.go:CancelScenarioJob',
+  'internal/services/ai/scenario_job_store.go:SubscribeScenarioJobEvents',
+  'internal/services/ai/scenario_job_store.go:GetScenarioArtifacts',
 ];
 
 function assertFiniteThreshold(value, envName) {
   if (!Number.isFinite(value)) {
-    throw new Error(`[check-runtime-ai-media-coverage] invalid threshold ${envName}`);
+    throw new Error(`[check-runtime-ai-scenario-coverage] invalid threshold ${envName}`);
   }
 }
 
@@ -42,7 +42,7 @@ function run(command, args, options = {}) {
     const stdout = typeof result.stdout === 'string' ? result.stdout : '';
     const details = [stdout, stderr].filter(Boolean).join('\n').trim();
     throw new Error(
-      `[check-runtime-ai-media-coverage] command failed: ${command} ${args.join(' ')}${details ? `\n${details}` : ''}`,
+      `[check-runtime-ai-scenario-coverage] command failed: ${command} ${args.join(' ')}${details ? `\n${details}` : ''}`,
     );
   }
   return result;
@@ -67,11 +67,11 @@ function parseTotalCoverage(raw) {
     .map((line) => line.trim())
     .find((line) => line.startsWith('total:'));
   if (!totalLine) {
-    throw new Error('[check-runtime-ai-media-coverage] unable to locate total coverage line');
+    throw new Error('[check-runtime-ai-scenario-coverage] unable to locate total coverage line');
   }
   const match = totalLine.match(/([0-9]+(?:\.[0-9]+)?)%/);
   if (!match) {
-    throw new Error(`[check-runtime-ai-media-coverage] unable to parse total coverage percentage: ${totalLine}`);
+    throw new Error(`[check-runtime-ai-scenario-coverage] unable to parse total coverage percentage: ${totalLine}`);
   }
   return Number(match[1]);
 }
@@ -102,10 +102,10 @@ function formatPercentage(value) {
 
 function main() {
   assertFiniteThreshold(minAiStatementsCoverage, 'NIMI_RUNTIME_MIN_AI_STATEMENTS_COVERAGE');
-  assertFiniteThreshold(minMediaCoreFunctionCoverage, 'NIMI_RUNTIME_MIN_AI_MEDIA_FUNCTION_COVERAGE');
+  assertFiniteThreshold(minScenarioCoreFunctionCoverage, 'NIMI_RUNTIME_MIN_AI_SCENARIO_FUNCTION_COVERAGE');
 
   process.stdout.write(
-    `[check-runtime-ai-media-coverage] running ai package coverage with statements>=${minAiStatementsCoverage}% and media-core-function>=${minMediaCoreFunctionCoverage}%\n`,
+    `[check-runtime-ai-scenario-coverage] running ai package coverage with statements>=${minAiStatementsCoverage}% and scenario-core-function>=${minScenarioCoreFunctionCoverage}%\n`,
   );
 
   const coverProfilePath = path.join(
@@ -125,34 +125,34 @@ function main() {
     const coverageOutput = String(coverageResult.stdout || '');
     const aiStatementsCoverage = parseTotalCoverage(coverageOutput);
     process.stdout.write(
-      `[check-runtime-ai-media-coverage] ai package statements coverage: ${formatPercentage(aiStatementsCoverage)}\n`,
+      `[check-runtime-ai-scenario-coverage] ai package statements coverage: ${formatPercentage(aiStatementsCoverage)}\n`,
     );
     if (aiStatementsCoverage < minAiStatementsCoverage) {
       throw new Error(
-        `[check-runtime-ai-media-coverage] ai package coverage gate failed: got ${formatPercentage(aiStatementsCoverage)}, required >= ${formatPercentage(minAiStatementsCoverage)}`,
+        `[check-runtime-ai-scenario-coverage] ai package coverage gate failed: got ${formatPercentage(aiStatementsCoverage)}, required >= ${formatPercentage(minAiStatementsCoverage)}`,
       );
     }
 
     const functionCoverage = parseFunctionCoverage(coverageOutput);
     const missingFunctions = [];
     const belowThreshold = [];
-    for (const functionKey of mediaCoreFunctions) {
+    for (const functionKey of scenarioCoreFunctions) {
       if (!functionCoverage.has(functionKey)) {
         missingFunctions.push(functionKey);
         continue;
       }
       const percentage = functionCoverage.get(functionKey) || 0;
       process.stdout.write(
-        `[check-runtime-ai-media-coverage] ${functionKey}: ${formatPercentage(percentage)}\n`,
+        `[check-runtime-ai-scenario-coverage] ${functionKey}: ${formatPercentage(percentage)}\n`,
       );
-      if (percentage < minMediaCoreFunctionCoverage) {
+      if (percentage < minScenarioCoreFunctionCoverage) {
         belowThreshold.push({ functionKey, percentage });
       }
     }
 
     if (missingFunctions.length > 0) {
       throw new Error(
-        `[check-runtime-ai-media-coverage] missing media core functions in coverage report: ${missingFunctions.join(', ')}`,
+        `[check-runtime-ai-scenario-coverage] missing scenario core functions in coverage report: ${missingFunctions.join(', ')}`,
       );
     }
     if (belowThreshold.length > 0) {
@@ -160,11 +160,11 @@ function main() {
         .map((item) => `${item.functionKey}=${formatPercentage(item.percentage)}`)
         .join(', ');
       throw new Error(
-        `[check-runtime-ai-media-coverage] media core function coverage gate failed: ${details}, required >= ${formatPercentage(minMediaCoreFunctionCoverage)}`,
+        `[check-runtime-ai-scenario-coverage] scenario core function coverage gate failed: ${details}, required >= ${formatPercentage(minScenarioCoreFunctionCoverage)}`,
       );
     }
 
-    process.stdout.write('[check-runtime-ai-media-coverage] ai/media coverage gates passed\n');
+    process.stdout.write('[check-runtime-ai-scenario-coverage] ai/scenario coverage gates passed\n');
   } finally {
     if (existsSync(coverProfilePath)) {
       rmSync(coverProfilePath, { force: true });

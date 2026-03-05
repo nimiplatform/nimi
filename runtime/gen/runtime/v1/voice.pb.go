@@ -173,70 +173,6 @@ func (VoiceAssetPersistence) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{2}
 }
 
-type VoiceJobStatus int32
-
-const (
-	VoiceJobStatus_VOICE_JOB_STATUS_UNSPECIFIED VoiceJobStatus = 0
-	VoiceJobStatus_VOICE_JOB_STATUS_SUBMITTED   VoiceJobStatus = 1
-	VoiceJobStatus_VOICE_JOB_STATUS_QUEUED      VoiceJobStatus = 2
-	VoiceJobStatus_VOICE_JOB_STATUS_RUNNING     VoiceJobStatus = 3
-	VoiceJobStatus_VOICE_JOB_STATUS_COMPLETED   VoiceJobStatus = 4
-	VoiceJobStatus_VOICE_JOB_STATUS_FAILED      VoiceJobStatus = 5
-	VoiceJobStatus_VOICE_JOB_STATUS_CANCELED    VoiceJobStatus = 6
-	VoiceJobStatus_VOICE_JOB_STATUS_TIMEOUT     VoiceJobStatus = 7
-)
-
-// Enum value maps for VoiceJobStatus.
-var (
-	VoiceJobStatus_name = map[int32]string{
-		0: "VOICE_JOB_STATUS_UNSPECIFIED",
-		1: "VOICE_JOB_STATUS_SUBMITTED",
-		2: "VOICE_JOB_STATUS_QUEUED",
-		3: "VOICE_JOB_STATUS_RUNNING",
-		4: "VOICE_JOB_STATUS_COMPLETED",
-		5: "VOICE_JOB_STATUS_FAILED",
-		6: "VOICE_JOB_STATUS_CANCELED",
-		7: "VOICE_JOB_STATUS_TIMEOUT",
-	}
-	VoiceJobStatus_value = map[string]int32{
-		"VOICE_JOB_STATUS_UNSPECIFIED": 0,
-		"VOICE_JOB_STATUS_SUBMITTED":   1,
-		"VOICE_JOB_STATUS_QUEUED":      2,
-		"VOICE_JOB_STATUS_RUNNING":     3,
-		"VOICE_JOB_STATUS_COMPLETED":   4,
-		"VOICE_JOB_STATUS_FAILED":      5,
-		"VOICE_JOB_STATUS_CANCELED":    6,
-		"VOICE_JOB_STATUS_TIMEOUT":     7,
-	}
-)
-
-func (x VoiceJobStatus) Enum() *VoiceJobStatus {
-	p := new(VoiceJobStatus)
-	*p = x
-	return p
-}
-
-func (x VoiceJobStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (VoiceJobStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[3].Descriptor()
-}
-
-func (VoiceJobStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[3]
-}
-
-func (x VoiceJobStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use VoiceJobStatus.Descriptor instead.
-func (VoiceJobStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{3}
-}
-
 type VoiceAssetStatus int32
 
 const (
@@ -276,11 +212,11 @@ func (x VoiceAssetStatus) String() string {
 }
 
 func (VoiceAssetStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[4].Descriptor()
+	return file_runtime_v1_voice_proto_enumTypes[3].Descriptor()
 }
 
 func (VoiceAssetStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[4]
+	return &file_runtime_v1_voice_proto_enumTypes[3]
 }
 
 func (x VoiceAssetStatus) Number() protoreflect.EnumNumber {
@@ -289,71 +225,7 @@ func (x VoiceAssetStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VoiceAssetStatus.Descriptor instead.
 func (VoiceAssetStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{4}
-}
-
-type VoiceJobEventType int32
-
-const (
-	VoiceJobEventType_VOICE_JOB_EVENT_TYPE_UNSPECIFIED VoiceJobEventType = 0
-	VoiceJobEventType_VOICE_JOB_EVENT_SUBMITTED        VoiceJobEventType = 1
-	VoiceJobEventType_VOICE_JOB_EVENT_QUEUED           VoiceJobEventType = 2
-	VoiceJobEventType_VOICE_JOB_EVENT_RUNNING          VoiceJobEventType = 3
-	VoiceJobEventType_VOICE_JOB_EVENT_COMPLETED        VoiceJobEventType = 4
-	VoiceJobEventType_VOICE_JOB_EVENT_FAILED           VoiceJobEventType = 5
-	VoiceJobEventType_VOICE_JOB_EVENT_CANCELED         VoiceJobEventType = 6
-	VoiceJobEventType_VOICE_JOB_EVENT_TIMEOUT          VoiceJobEventType = 7
-)
-
-// Enum value maps for VoiceJobEventType.
-var (
-	VoiceJobEventType_name = map[int32]string{
-		0: "VOICE_JOB_EVENT_TYPE_UNSPECIFIED",
-		1: "VOICE_JOB_EVENT_SUBMITTED",
-		2: "VOICE_JOB_EVENT_QUEUED",
-		3: "VOICE_JOB_EVENT_RUNNING",
-		4: "VOICE_JOB_EVENT_COMPLETED",
-		5: "VOICE_JOB_EVENT_FAILED",
-		6: "VOICE_JOB_EVENT_CANCELED",
-		7: "VOICE_JOB_EVENT_TIMEOUT",
-	}
-	VoiceJobEventType_value = map[string]int32{
-		"VOICE_JOB_EVENT_TYPE_UNSPECIFIED": 0,
-		"VOICE_JOB_EVENT_SUBMITTED":        1,
-		"VOICE_JOB_EVENT_QUEUED":           2,
-		"VOICE_JOB_EVENT_RUNNING":          3,
-		"VOICE_JOB_EVENT_COMPLETED":        4,
-		"VOICE_JOB_EVENT_FAILED":           5,
-		"VOICE_JOB_EVENT_CANCELED":         6,
-		"VOICE_JOB_EVENT_TIMEOUT":          7,
-	}
-)
-
-func (x VoiceJobEventType) Enum() *VoiceJobEventType {
-	p := new(VoiceJobEventType)
-	*p = x
-	return p
-}
-
-func (x VoiceJobEventType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (VoiceJobEventType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[5].Descriptor()
-}
-
-func (VoiceJobEventType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[5]
-}
-
-func (x VoiceJobEventType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use VoiceJobEventType.Descriptor instead.
-func (VoiceJobEventType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{3}
 }
 
 type VoiceReference struct {
@@ -702,162 +574,6 @@ func (x *VoiceAsset) GetMetadata() *structpb.Struct {
 	return nil
 }
 
-type VoiceJob struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	AppId         string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ModelId       string                 `protobuf:"bytes,4,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	TargetModelId string                 `protobuf:"bytes,5,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
-	WorkflowType  VoiceWorkflowType      `protobuf:"varint,6,opt,name=workflow_type,json=workflowType,proto3,enum=nimi.runtime.v1.VoiceWorkflowType" json:"workflow_type,omitempty"`
-	Status        VoiceJobStatus         `protobuf:"varint,7,opt,name=status,proto3,enum=nimi.runtime.v1.VoiceJobStatus" json:"status,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,8,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	ReasonDetail  string                 `protobuf:"bytes,9,opt,name=reason_detail,json=reasonDetail,proto3" json:"reason_detail,omitempty"`
-	RetryCount    int32                  `protobuf:"varint,10,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	NextPollAt    *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=next_poll_at,json=nextPollAt,proto3" json:"next_poll_at,omitempty"`
-	VoiceAssetId  string                 `protobuf:"bytes,14,opt,name=voice_asset_id,json=voiceAssetId,proto3" json:"voice_asset_id,omitempty"`
-	TraceId       string                 `protobuf:"bytes,15,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *VoiceJob) Reset() {
-	*x = VoiceJob{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VoiceJob) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VoiceJob) ProtoMessage() {}
-
-func (x *VoiceJob) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VoiceJob.ProtoReflect.Descriptor instead.
-func (*VoiceJob) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *VoiceJob) GetJobId() string {
-	if x != nil {
-		return x.JobId
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetSubjectUserId() string {
-	if x != nil {
-		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetTargetModelId() string {
-	if x != nil {
-		return x.TargetModelId
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetWorkflowType() VoiceWorkflowType {
-	if x != nil {
-		return x.WorkflowType
-	}
-	return VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED
-}
-
-func (x *VoiceJob) GetStatus() VoiceJobStatus {
-	if x != nil {
-		return x.Status
-	}
-	return VoiceJobStatus_VOICE_JOB_STATUS_UNSPECIFIED
-}
-
-func (x *VoiceJob) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-func (x *VoiceJob) GetReasonDetail() string {
-	if x != nil {
-		return x.ReasonDetail
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetRetryCount() int32 {
-	if x != nil {
-		return x.RetryCount
-	}
-	return 0
-}
-
-func (x *VoiceJob) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *VoiceJob) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return nil
-}
-
-func (x *VoiceJob) GetNextPollAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.NextPollAt
-	}
-	return nil
-}
-
-func (x *VoiceJob) GetVoiceAssetId() string {
-	if x != nil {
-		return x.VoiceAssetId
-	}
-	return ""
-}
-
-func (x *VoiceJob) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
 type VoiceV2VInput struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	ReferenceAudioBytes []byte                 `protobuf:"bytes,1,opt,name=reference_audio_bytes,json=referenceAudioBytes,proto3" json:"reference_audio_bytes,omitempty"`
@@ -865,14 +581,13 @@ type VoiceV2VInput struct {
 	ReferenceAudioMime  string                 `protobuf:"bytes,3,opt,name=reference_audio_mime,json=referenceAudioMime,proto3" json:"reference_audio_mime,omitempty"`
 	LanguageHints       []string               `protobuf:"bytes,4,rep,name=language_hints,json=languageHints,proto3" json:"language_hints,omitempty"`
 	PreferredName       string                 `protobuf:"bytes,5,opt,name=preferred_name,json=preferredName,proto3" json:"preferred_name,omitempty"`
-	ProviderOptions     *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
 
 func (x *VoiceV2VInput) Reset() {
 	*x = VoiceV2VInput{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[4]
+	mi := &file_runtime_v1_voice_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -884,7 +599,7 @@ func (x *VoiceV2VInput) String() string {
 func (*VoiceV2VInput) ProtoMessage() {}
 
 func (x *VoiceV2VInput) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[4]
+	mi := &file_runtime_v1_voice_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -897,7 +612,7 @@ func (x *VoiceV2VInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoiceV2VInput.ProtoReflect.Descriptor instead.
 func (*VoiceV2VInput) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *VoiceV2VInput) GetReferenceAudioBytes() []byte {
@@ -935,27 +650,19 @@ func (x *VoiceV2VInput) GetPreferredName() string {
 	return ""
 }
 
-func (x *VoiceV2VInput) GetProviderOptions() *structpb.Struct {
-	if x != nil {
-		return x.ProviderOptions
-	}
-	return nil
-}
-
 type VoiceT2VInput struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	InstructionText string                 `protobuf:"bytes,1,opt,name=instruction_text,json=instructionText,proto3" json:"instruction_text,omitempty"`
 	PreviewText     string                 `protobuf:"bytes,2,opt,name=preview_text,json=previewText,proto3" json:"preview_text,omitempty"`
 	Language        string                 `protobuf:"bytes,3,opt,name=language,proto3" json:"language,omitempty"`
 	PreferredName   string                 `protobuf:"bytes,4,opt,name=preferred_name,json=preferredName,proto3" json:"preferred_name,omitempty"`
-	ProviderOptions *structpb.Struct       `protobuf:"bytes,20,opt,name=provider_options,json=providerOptions,proto3" json:"provider_options,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *VoiceT2VInput) Reset() {
 	*x = VoiceT2VInput{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[5]
+	mi := &file_runtime_v1_voice_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +674,7 @@ func (x *VoiceT2VInput) String() string {
 func (*VoiceT2VInput) ProtoMessage() {}
 
 func (x *VoiceT2VInput) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[5]
+	mi := &file_runtime_v1_voice_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +687,7 @@ func (x *VoiceT2VInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoiceT2VInput.ProtoReflect.Descriptor instead.
 func (*VoiceT2VInput) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *VoiceT2VInput) GetInstructionText() string {
@@ -1011,531 +718,6 @@ func (x *VoiceT2VInput) GetPreferredName() string {
 	return ""
 }
 
-func (x *VoiceT2VInput) GetProviderOptions() *structpb.Struct {
-	if x != nil {
-		return x.ProviderOptions
-	}
-	return nil
-}
-
-type SubmitVoiceJobRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	AppId          string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId  string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	ModelId        string                 `protobuf:"bytes,3,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	TargetModelId  string                 `protobuf:"bytes,4,opt,name=target_model_id,json=targetModelId,proto3" json:"target_model_id,omitempty"`
-	WorkflowType   VoiceWorkflowType      `protobuf:"varint,5,opt,name=workflow_type,json=workflowType,proto3,enum=nimi.runtime.v1.VoiceWorkflowType" json:"workflow_type,omitempty"`
-	TimeoutMs      int32                  `protobuf:"varint,6,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
-	RequestId      string                 `protobuf:"bytes,7,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	IdempotencyKey string                 `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	Labels         map[string]string      `protobuf:"bytes,9,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ConnectorId    string                 `protobuf:"bytes,10,opt,name=connector_id,json=connectorId,proto3" json:"connector_id,omitempty"`
-	// Types that are valid to be assigned to Input:
-	//
-	//	*SubmitVoiceJobRequest_V2VInput
-	//	*SubmitVoiceJobRequest_T2VInput
-	Input         isSubmitVoiceJobRequest_Input `protobuf_oneof:"input"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubmitVoiceJobRequest) Reset() {
-	*x = SubmitVoiceJobRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubmitVoiceJobRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubmitVoiceJobRequest) ProtoMessage() {}
-
-func (x *SubmitVoiceJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubmitVoiceJobRequest.ProtoReflect.Descriptor instead.
-func (*SubmitVoiceJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *SubmitVoiceJobRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetSubjectUserId() string {
-	if x != nil {
-		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetTargetModelId() string {
-	if x != nil {
-		return x.TargetModelId
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetWorkflowType() VoiceWorkflowType {
-	if x != nil {
-		return x.WorkflowType
-	}
-	return VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED
-}
-
-func (x *SubmitVoiceJobRequest) GetTimeoutMs() int32 {
-	if x != nil {
-		return x.TimeoutMs
-	}
-	return 0
-}
-
-func (x *SubmitVoiceJobRequest) GetRequestId() string {
-	if x != nil {
-		return x.RequestId
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetIdempotencyKey() string {
-	if x != nil {
-		return x.IdempotencyKey
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetLabels() map[string]string {
-	if x != nil {
-		return x.Labels
-	}
-	return nil
-}
-
-func (x *SubmitVoiceJobRequest) GetConnectorId() string {
-	if x != nil {
-		return x.ConnectorId
-	}
-	return ""
-}
-
-func (x *SubmitVoiceJobRequest) GetInput() isSubmitVoiceJobRequest_Input {
-	if x != nil {
-		return x.Input
-	}
-	return nil
-}
-
-func (x *SubmitVoiceJobRequest) GetV2VInput() *VoiceV2VInput {
-	if x != nil {
-		if x, ok := x.Input.(*SubmitVoiceJobRequest_V2VInput); ok {
-			return x.V2VInput
-		}
-	}
-	return nil
-}
-
-func (x *SubmitVoiceJobRequest) GetT2VInput() *VoiceT2VInput {
-	if x != nil {
-		if x, ok := x.Input.(*SubmitVoiceJobRequest_T2VInput); ok {
-			return x.T2VInput
-		}
-	}
-	return nil
-}
-
-type isSubmitVoiceJobRequest_Input interface {
-	isSubmitVoiceJobRequest_Input()
-}
-
-type SubmitVoiceJobRequest_V2VInput struct {
-	V2VInput *VoiceV2VInput `protobuf:"bytes,20,opt,name=v2v_input,json=v2vInput,proto3,oneof"`
-}
-
-type SubmitVoiceJobRequest_T2VInput struct {
-	T2VInput *VoiceT2VInput `protobuf:"bytes,21,opt,name=t2v_input,json=t2vInput,proto3,oneof"`
-}
-
-func (*SubmitVoiceJobRequest_V2VInput) isSubmitVoiceJobRequest_Input() {}
-
-func (*SubmitVoiceJobRequest_T2VInput) isSubmitVoiceJobRequest_Input() {}
-
-type SubmitVoiceJobResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Job           *VoiceJob              `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	Asset         *VoiceAsset            `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubmitVoiceJobResponse) Reset() {
-	*x = SubmitVoiceJobResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubmitVoiceJobResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubmitVoiceJobResponse) ProtoMessage() {}
-
-func (x *SubmitVoiceJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubmitVoiceJobResponse.ProtoReflect.Descriptor instead.
-func (*SubmitVoiceJobResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *SubmitVoiceJobResponse) GetJob() *VoiceJob {
-	if x != nil {
-		return x.Job
-	}
-	return nil
-}
-
-func (x *SubmitVoiceJobResponse) GetAsset() *VoiceAsset {
-	if x != nil {
-		return x.Asset
-	}
-	return nil
-}
-
-type GetVoiceJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetVoiceJobRequest) Reset() {
-	*x = GetVoiceJobRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetVoiceJobRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetVoiceJobRequest) ProtoMessage() {}
-
-func (x *GetVoiceJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetVoiceJobRequest.ProtoReflect.Descriptor instead.
-func (*GetVoiceJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetVoiceJobRequest) GetJobId() string {
-	if x != nil {
-		return x.JobId
-	}
-	return ""
-}
-
-type GetVoiceJobResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Job           *VoiceJob              `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetVoiceJobResponse) Reset() {
-	*x = GetVoiceJobResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetVoiceJobResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetVoiceJobResponse) ProtoMessage() {}
-
-func (x *GetVoiceJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetVoiceJobResponse.ProtoReflect.Descriptor instead.
-func (*GetVoiceJobResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *GetVoiceJobResponse) GetJob() *VoiceJob {
-	if x != nil {
-		return x.Job
-	}
-	return nil
-}
-
-type CancelVoiceJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CancelVoiceJobRequest) Reset() {
-	*x = CancelVoiceJobRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CancelVoiceJobRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CancelVoiceJobRequest) ProtoMessage() {}
-
-func (x *CancelVoiceJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CancelVoiceJobRequest.ProtoReflect.Descriptor instead.
-func (*CancelVoiceJobRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *CancelVoiceJobRequest) GetJobId() string {
-	if x != nil {
-		return x.JobId
-	}
-	return ""
-}
-
-func (x *CancelVoiceJobRequest) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-type CancelVoiceJobResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Job           *VoiceJob              `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CancelVoiceJobResponse) Reset() {
-	*x = CancelVoiceJobResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CancelVoiceJobResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CancelVoiceJobResponse) ProtoMessage() {}
-
-func (x *CancelVoiceJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CancelVoiceJobResponse.ProtoReflect.Descriptor instead.
-func (*CancelVoiceJobResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *CancelVoiceJobResponse) GetJob() *VoiceJob {
-	if x != nil {
-		return x.Job
-	}
-	return nil
-}
-
-type VoiceJobEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     VoiceJobEventType      `protobuf:"varint,1,opt,name=event_type,json=eventType,proto3,enum=nimi.runtime.v1.VoiceJobEventType" json:"event_type,omitempty"`
-	Sequence      uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	TraceId       string                 `protobuf:"bytes,3,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Job           *VoiceJob              `protobuf:"bytes,5,opt,name=job,proto3" json:"job,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *VoiceJobEvent) Reset() {
-	*x = VoiceJobEvent{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VoiceJobEvent) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VoiceJobEvent) ProtoMessage() {}
-
-func (x *VoiceJobEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use VoiceJobEvent.ProtoReflect.Descriptor instead.
-func (*VoiceJobEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *VoiceJobEvent) GetEventType() VoiceJobEventType {
-	if x != nil {
-		return x.EventType
-	}
-	return VoiceJobEventType_VOICE_JOB_EVENT_TYPE_UNSPECIFIED
-}
-
-func (x *VoiceJobEvent) GetSequence() uint64 {
-	if x != nil {
-		return x.Sequence
-	}
-	return 0
-}
-
-func (x *VoiceJobEvent) GetTraceId() string {
-	if x != nil {
-		return x.TraceId
-	}
-	return ""
-}
-
-func (x *VoiceJobEvent) GetTimestamp() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Timestamp
-	}
-	return nil
-}
-
-func (x *VoiceJobEvent) GetJob() *VoiceJob {
-	if x != nil {
-		return x.Job
-	}
-	return nil
-}
-
-type SubscribeVoiceJobEventsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeVoiceJobEventsRequest) Reset() {
-	*x = SubscribeVoiceJobEventsRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeVoiceJobEventsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeVoiceJobEventsRequest) ProtoMessage() {}
-
-func (x *SubscribeVoiceJobEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeVoiceJobEventsRequest.ProtoReflect.Descriptor instead.
-func (*SubscribeVoiceJobEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *SubscribeVoiceJobEventsRequest) GetJobId() string {
-	if x != nil {
-		return x.JobId
-	}
-	return ""
-}
-
 type GetVoiceAssetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	VoiceAssetId  string                 `protobuf:"bytes,1,opt,name=voice_asset_id,json=voiceAssetId,proto3" json:"voice_asset_id,omitempty"`
@@ -1545,7 +727,7 @@ type GetVoiceAssetRequest struct {
 
 func (x *GetVoiceAssetRequest) Reset() {
 	*x = GetVoiceAssetRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[14]
+	mi := &file_runtime_v1_voice_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1557,7 +739,7 @@ func (x *GetVoiceAssetRequest) String() string {
 func (*GetVoiceAssetRequest) ProtoMessage() {}
 
 func (x *GetVoiceAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[14]
+	mi := &file_runtime_v1_voice_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1570,7 +752,7 @@ func (x *GetVoiceAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVoiceAssetRequest.ProtoReflect.Descriptor instead.
 func (*GetVoiceAssetRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetVoiceAssetRequest) GetVoiceAssetId() string {
@@ -1589,7 +771,7 @@ type GetVoiceAssetResponse struct {
 
 func (x *GetVoiceAssetResponse) Reset() {
 	*x = GetVoiceAssetResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[15]
+	mi := &file_runtime_v1_voice_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1601,7 +783,7 @@ func (x *GetVoiceAssetResponse) String() string {
 func (*GetVoiceAssetResponse) ProtoMessage() {}
 
 func (x *GetVoiceAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[15]
+	mi := &file_runtime_v1_voice_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1614,7 +796,7 @@ func (x *GetVoiceAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVoiceAssetResponse.ProtoReflect.Descriptor instead.
 func (*GetVoiceAssetResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetVoiceAssetResponse) GetAsset() *VoiceAsset {
@@ -1641,7 +823,7 @@ type ListVoiceAssetsRequest struct {
 
 func (x *ListVoiceAssetsRequest) Reset() {
 	*x = ListVoiceAssetsRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[16]
+	mi := &file_runtime_v1_voice_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1653,7 +835,7 @@ func (x *ListVoiceAssetsRequest) String() string {
 func (*ListVoiceAssetsRequest) ProtoMessage() {}
 
 func (x *ListVoiceAssetsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[16]
+	mi := &file_runtime_v1_voice_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1666,7 +848,7 @@ func (x *ListVoiceAssetsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVoiceAssetsRequest.ProtoReflect.Descriptor instead.
 func (*ListVoiceAssetsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListVoiceAssetsRequest) GetAppId() string {
@@ -1742,7 +924,7 @@ type ListVoiceAssetsResponse struct {
 
 func (x *ListVoiceAssetsResponse) Reset() {
 	*x = ListVoiceAssetsResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[17]
+	mi := &file_runtime_v1_voice_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1754,7 +936,7 @@ func (x *ListVoiceAssetsResponse) String() string {
 func (*ListVoiceAssetsResponse) ProtoMessage() {}
 
 func (x *ListVoiceAssetsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[17]
+	mi := &file_runtime_v1_voice_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1767,7 +949,7 @@ func (x *ListVoiceAssetsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVoiceAssetsResponse.ProtoReflect.Descriptor instead.
 func (*ListVoiceAssetsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListVoiceAssetsResponse) GetAssets() []*VoiceAsset {
@@ -1793,7 +975,7 @@ type DeleteVoiceAssetRequest struct {
 
 func (x *DeleteVoiceAssetRequest) Reset() {
 	*x = DeleteVoiceAssetRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[18]
+	mi := &file_runtime_v1_voice_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1805,7 +987,7 @@ func (x *DeleteVoiceAssetRequest) String() string {
 func (*DeleteVoiceAssetRequest) ProtoMessage() {}
 
 func (x *DeleteVoiceAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[18]
+	mi := &file_runtime_v1_voice_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1818,7 +1000,7 @@ func (x *DeleteVoiceAssetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVoiceAssetRequest.ProtoReflect.Descriptor instead.
 func (*DeleteVoiceAssetRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteVoiceAssetRequest) GetVoiceAssetId() string {
@@ -1837,7 +1019,7 @@ type DeleteVoiceAssetResponse struct {
 
 func (x *DeleteVoiceAssetResponse) Reset() {
 	*x = DeleteVoiceAssetResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[19]
+	mi := &file_runtime_v1_voice_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1849,7 +1031,7 @@ func (x *DeleteVoiceAssetResponse) String() string {
 func (*DeleteVoiceAssetResponse) ProtoMessage() {}
 
 func (x *DeleteVoiceAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[19]
+	mi := &file_runtime_v1_voice_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1862,7 +1044,7 @@ func (x *DeleteVoiceAssetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVoiceAssetResponse.ProtoReflect.Descriptor instead.
 func (*DeleteVoiceAssetResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteVoiceAssetResponse) GetAck() *Ack {
@@ -1885,7 +1067,7 @@ type ListPresetVoicesRequest struct {
 
 func (x *ListPresetVoicesRequest) Reset() {
 	*x = ListPresetVoicesRequest{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[20]
+	mi := &file_runtime_v1_voice_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1897,7 +1079,7 @@ func (x *ListPresetVoicesRequest) String() string {
 func (*ListPresetVoicesRequest) ProtoMessage() {}
 
 func (x *ListPresetVoicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[20]
+	mi := &file_runtime_v1_voice_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +1092,7 @@ func (x *ListPresetVoicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPresetVoicesRequest.ProtoReflect.Descriptor instead.
 func (*ListPresetVoicesRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListPresetVoicesRequest) GetAppId() string {
@@ -1959,7 +1141,7 @@ type ListPresetVoicesResponse struct {
 
 func (x *ListPresetVoicesResponse) Reset() {
 	*x = ListPresetVoicesResponse{}
-	mi := &file_runtime_v1_voice_proto_msgTypes[21]
+	mi := &file_runtime_v1_voice_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1971,7 +1153,7 @@ func (x *ListPresetVoicesResponse) String() string {
 func (*ListPresetVoicesResponse) ProtoMessage() {}
 
 func (x *ListPresetVoicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_voice_proto_msgTypes[21]
+	mi := &file_runtime_v1_voice_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1984,7 +1166,7 @@ func (x *ListPresetVoicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPresetVoicesResponse.ProtoReflect.Descriptor instead.
 func (*ListPresetVoicesResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListPresetVoicesResponse) GetVoices() []*VoicePresetDescriptor {
@@ -2049,83 +1231,18 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x129\n" +
 	"\n" +
 	"expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x123\n" +
-	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x9e\x05\n" +
-	"\bVoiceJob\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x15\n" +
-	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x03 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bmodel_id\x18\x04 \x01(\tR\amodelId\x12&\n" +
-	"\x0ftarget_model_id\x18\x05 \x01(\tR\rtargetModelId\x12G\n" +
-	"\rworkflow_type\x18\x06 \x01(\x0e2\".nimi.runtime.v1.VoiceWorkflowTypeR\fworkflowType\x127\n" +
-	"\x06status\x18\a \x01(\x0e2\x1f.nimi.runtime.v1.VoiceJobStatusR\x06status\x12<\n" +
-	"\vreason_code\x18\b \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\x12#\n" +
-	"\rreason_detail\x18\t \x01(\tR\freasonDetail\x12\x1f\n" +
-	"\vretry_count\x18\n" +
-	" \x01(\x05R\n" +
-	"retryCount\x129\n" +
-	"\n" +
-	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
-	"\n" +
-	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12<\n" +
-	"\fnext_poll_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"nextPollAt\x12$\n" +
-	"\x0evoice_asset_id\x18\x0e \x01(\tR\fvoiceAssetId\x12\x19\n" +
-	"\btrace_id\x18\x0f \x01(\tR\atraceId\"\xb7\x02\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x8b\x02\n" +
 	"\rVoiceV2VInput\x122\n" +
 	"\x15reference_audio_bytes\x18\x01 \x01(\fR\x13referenceAudioBytes\x12.\n" +
 	"\x13reference_audio_uri\x18\x02 \x01(\tR\x11referenceAudioUri\x120\n" +
 	"\x14reference_audio_mime\x18\x03 \x01(\tR\x12referenceAudioMime\x12%\n" +
 	"\x0elanguage_hints\x18\x04 \x03(\tR\rlanguageHints\x12%\n" +
-	"\x0epreferred_name\x18\x05 \x01(\tR\rpreferredName\x12B\n" +
-	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xe4\x01\n" +
+	"\x0epreferred_name\x18\x05 \x01(\tR\rpreferredNameJ\x04\b\x14\x10\x15R\x10provider_options\"\xb8\x01\n" +
 	"\rVoiceT2VInput\x12)\n" +
 	"\x10instruction_text\x18\x01 \x01(\tR\x0finstructionText\x12!\n" +
 	"\fpreview_text\x18\x02 \x01(\tR\vpreviewText\x12\x1a\n" +
 	"\blanguage\x18\x03 \x01(\tR\blanguage\x12%\n" +
-	"\x0epreferred_name\x18\x04 \x01(\tR\rpreferredName\x12B\n" +
-	"\x10provider_options\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x0fproviderOptions\"\xfa\x04\n" +
-	"\x15SubmitVoiceJobRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bmodel_id\x18\x03 \x01(\tR\amodelId\x12&\n" +
-	"\x0ftarget_model_id\x18\x04 \x01(\tR\rtargetModelId\x12G\n" +
-	"\rworkflow_type\x18\x05 \x01(\x0e2\".nimi.runtime.v1.VoiceWorkflowTypeR\fworkflowType\x12\x1d\n" +
-	"\n" +
-	"timeout_ms\x18\x06 \x01(\x05R\ttimeoutMs\x12\x1d\n" +
-	"\n" +
-	"request_id\x18\a \x01(\tR\trequestId\x12'\n" +
-	"\x0fidempotency_key\x18\b \x01(\tR\x0eidempotencyKey\x12J\n" +
-	"\x06labels\x18\t \x03(\v22.nimi.runtime.v1.SubmitVoiceJobRequest.LabelsEntryR\x06labels\x12!\n" +
-	"\fconnector_id\x18\n" +
-	" \x01(\tR\vconnectorId\x12=\n" +
-	"\tv2v_input\x18\x14 \x01(\v2\x1e.nimi.runtime.v1.VoiceV2VInputH\x00R\bv2vInput\x12=\n" +
-	"\tt2v_input\x18\x15 \x01(\v2\x1e.nimi.runtime.v1.VoiceT2VInputH\x00R\bt2vInput\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\a\n" +
-	"\x05input\"x\n" +
-	"\x16SubmitVoiceJobResponse\x12+\n" +
-	"\x03job\x18\x01 \x01(\v2\x19.nimi.runtime.v1.VoiceJobR\x03job\x121\n" +
-	"\x05asset\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.VoiceAssetR\x05asset\"+\n" +
-	"\x12GetVoiceJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"B\n" +
-	"\x13GetVoiceJobResponse\x12+\n" +
-	"\x03job\x18\x01 \x01(\v2\x19.nimi.runtime.v1.VoiceJobR\x03job\"F\n" +
-	"\x15CancelVoiceJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"E\n" +
-	"\x16CancelVoiceJobResponse\x12+\n" +
-	"\x03job\x18\x01 \x01(\v2\x19.nimi.runtime.v1.VoiceJobR\x03job\"\xf0\x01\n" +
-	"\rVoiceJobEvent\x12A\n" +
-	"\n" +
-	"event_type\x18\x01 \x01(\x0e2\".nimi.runtime.v1.VoiceJobEventTypeR\teventType\x12\x1a\n" +
-	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x19\n" +
-	"\btrace_id\x18\x03 \x01(\tR\atraceId\x128\n" +
-	"\ttimestamp\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12+\n" +
-	"\x03job\x18\x05 \x01(\v2\x19.nimi.runtime.v1.VoiceJobR\x03job\"7\n" +
-	"\x1eSubscribeVoiceJobEventsRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"<\n" +
+	"\x0epreferred_name\x18\x04 \x01(\tR\rpreferredNameJ\x04\b\x14\x10\x15R\x10provider_options\"<\n" +
 	"\x14GetVoiceAssetRequest\x12$\n" +
 	"\x0evoice_asset_id\x18\x01 \x01(\tR\fvoiceAssetId\"J\n" +
 	"\x15GetVoiceAssetResponse\x121\n" +
@@ -2170,40 +1287,13 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"\x15VoiceAssetPersistence\x12'\n" +
 	"#VOICE_ASSET_PERSISTENCE_UNSPECIFIED\x10\x00\x12/\n" +
 	"+VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT\x10\x01\x12-\n" +
-	")VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL\x10\x02*\x87\x02\n" +
-	"\x0eVoiceJobStatus\x12 \n" +
-	"\x1cVOICE_JOB_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
-	"\x1aVOICE_JOB_STATUS_SUBMITTED\x10\x01\x12\x1b\n" +
-	"\x17VOICE_JOB_STATUS_QUEUED\x10\x02\x12\x1c\n" +
-	"\x18VOICE_JOB_STATUS_RUNNING\x10\x03\x12\x1e\n" +
-	"\x1aVOICE_JOB_STATUS_COMPLETED\x10\x04\x12\x1b\n" +
-	"\x17VOICE_JOB_STATUS_FAILED\x10\x05\x12\x1d\n" +
-	"\x19VOICE_JOB_STATUS_CANCELED\x10\x06\x12\x1c\n" +
-	"\x18VOICE_JOB_STATUS_TIMEOUT\x10\a*\xb4\x01\n" +
+	")VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL\x10\x02*\xb4\x01\n" +
 	"\x10VoiceAssetStatus\x12\"\n" +
 	"\x1eVOICE_ASSET_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19VOICE_ASSET_STATUS_ACTIVE\x10\x01\x12\x1e\n" +
 	"\x1aVOICE_ASSET_STATUS_EXPIRED\x10\x02\x12\x1e\n" +
 	"\x1aVOICE_ASSET_STATUS_DELETED\x10\x03\x12\x1d\n" +
-	"\x19VOICE_ASSET_STATUS_FAILED\x10\x04*\x87\x02\n" +
-	"\x11VoiceJobEventType\x12$\n" +
-	" VOICE_JOB_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19VOICE_JOB_EVENT_SUBMITTED\x10\x01\x12\x1a\n" +
-	"\x16VOICE_JOB_EVENT_QUEUED\x10\x02\x12\x1b\n" +
-	"\x17VOICE_JOB_EVENT_RUNNING\x10\x03\x12\x1d\n" +
-	"\x19VOICE_JOB_EVENT_COMPLETED\x10\x04\x12\x1a\n" +
-	"\x16VOICE_JOB_EVENT_FAILED\x10\x05\x12\x1c\n" +
-	"\x18VOICE_JOB_EVENT_CANCELED\x10\x06\x12\x1b\n" +
-	"\x17VOICE_JOB_EVENT_TIMEOUT\x10\a2\xbb\x06\n" +
-	"\x13RuntimeVoiceService\x12a\n" +
-	"\x0eSubmitVoiceJob\x12&.nimi.runtime.v1.SubmitVoiceJobRequest\x1a'.nimi.runtime.v1.SubmitVoiceJobResponse\x12X\n" +
-	"\vGetVoiceJob\x12#.nimi.runtime.v1.GetVoiceJobRequest\x1a$.nimi.runtime.v1.GetVoiceJobResponse\x12a\n" +
-	"\x0eCancelVoiceJob\x12&.nimi.runtime.v1.CancelVoiceJobRequest\x1a'.nimi.runtime.v1.CancelVoiceJobResponse\x12l\n" +
-	"\x17SubscribeVoiceJobEvents\x12/.nimi.runtime.v1.SubscribeVoiceJobEventsRequest\x1a\x1e.nimi.runtime.v1.VoiceJobEvent0\x01\x12^\n" +
-	"\rGetVoiceAsset\x12%.nimi.runtime.v1.GetVoiceAssetRequest\x1a&.nimi.runtime.v1.GetVoiceAssetResponse\x12d\n" +
-	"\x0fListVoiceAssets\x12'.nimi.runtime.v1.ListVoiceAssetsRequest\x1a(.nimi.runtime.v1.ListVoiceAssetsResponse\x12g\n" +
-	"\x10DeleteVoiceAsset\x12(.nimi.runtime.v1.DeleteVoiceAssetRequest\x1a).nimi.runtime.v1.DeleteVoiceAssetResponse\x12g\n" +
-	"\x10ListPresetVoices\x12(.nimi.runtime.v1.ListPresetVoicesRequest\x1a).nimi.runtime.v1.ListPresetVoicesResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x19VOICE_ASSET_STATUS_FAILED\x10\x04B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_voice_proto_rawDescOnce sync.Once
@@ -2217,100 +1307,52 @@ func file_runtime_v1_voice_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_voice_proto_rawDescData
 }
 
-var file_runtime_v1_voice_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_runtime_v1_voice_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_runtime_v1_voice_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_runtime_v1_voice_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_runtime_v1_voice_proto_goTypes = []any{
-	(VoiceWorkflowType)(0),                 // 0: nimi.runtime.v1.VoiceWorkflowType
-	(VoiceReferenceKind)(0),                // 1: nimi.runtime.v1.VoiceReferenceKind
-	(VoiceAssetPersistence)(0),             // 2: nimi.runtime.v1.VoiceAssetPersistence
-	(VoiceJobStatus)(0),                    // 3: nimi.runtime.v1.VoiceJobStatus
-	(VoiceAssetStatus)(0),                  // 4: nimi.runtime.v1.VoiceAssetStatus
-	(VoiceJobEventType)(0),                 // 5: nimi.runtime.v1.VoiceJobEventType
-	(*VoiceReference)(nil),                 // 6: nimi.runtime.v1.VoiceReference
-	(*VoicePresetDescriptor)(nil),          // 7: nimi.runtime.v1.VoicePresetDescriptor
-	(*VoiceAsset)(nil),                     // 8: nimi.runtime.v1.VoiceAsset
-	(*VoiceJob)(nil),                       // 9: nimi.runtime.v1.VoiceJob
-	(*VoiceV2VInput)(nil),                  // 10: nimi.runtime.v1.VoiceV2VInput
-	(*VoiceT2VInput)(nil),                  // 11: nimi.runtime.v1.VoiceT2VInput
-	(*SubmitVoiceJobRequest)(nil),          // 12: nimi.runtime.v1.SubmitVoiceJobRequest
-	(*SubmitVoiceJobResponse)(nil),         // 13: nimi.runtime.v1.SubmitVoiceJobResponse
-	(*GetVoiceJobRequest)(nil),             // 14: nimi.runtime.v1.GetVoiceJobRequest
-	(*GetVoiceJobResponse)(nil),            // 15: nimi.runtime.v1.GetVoiceJobResponse
-	(*CancelVoiceJobRequest)(nil),          // 16: nimi.runtime.v1.CancelVoiceJobRequest
-	(*CancelVoiceJobResponse)(nil),         // 17: nimi.runtime.v1.CancelVoiceJobResponse
-	(*VoiceJobEvent)(nil),                  // 18: nimi.runtime.v1.VoiceJobEvent
-	(*SubscribeVoiceJobEventsRequest)(nil), // 19: nimi.runtime.v1.SubscribeVoiceJobEventsRequest
-	(*GetVoiceAssetRequest)(nil),           // 20: nimi.runtime.v1.GetVoiceAssetRequest
-	(*GetVoiceAssetResponse)(nil),          // 21: nimi.runtime.v1.GetVoiceAssetResponse
-	(*ListVoiceAssetsRequest)(nil),         // 22: nimi.runtime.v1.ListVoiceAssetsRequest
-	(*ListVoiceAssetsResponse)(nil),        // 23: nimi.runtime.v1.ListVoiceAssetsResponse
-	(*DeleteVoiceAssetRequest)(nil),        // 24: nimi.runtime.v1.DeleteVoiceAssetRequest
-	(*DeleteVoiceAssetResponse)(nil),       // 25: nimi.runtime.v1.DeleteVoiceAssetResponse
-	(*ListPresetVoicesRequest)(nil),        // 26: nimi.runtime.v1.ListPresetVoicesRequest
-	(*ListPresetVoicesResponse)(nil),       // 27: nimi.runtime.v1.ListPresetVoicesResponse
-	nil,                                    // 28: nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
-	nil,                                    // 29: nimi.runtime.v1.SubmitVoiceJobRequest.LabelsEntry
-	(*timestamppb.Timestamp)(nil),          // 30: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),                // 31: google.protobuf.Struct
-	(ReasonCode)(0),                        // 32: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                            // 33: nimi.runtime.v1.Ack
+	(VoiceWorkflowType)(0),           // 0: nimi.runtime.v1.VoiceWorkflowType
+	(VoiceReferenceKind)(0),          // 1: nimi.runtime.v1.VoiceReferenceKind
+	(VoiceAssetPersistence)(0),       // 2: nimi.runtime.v1.VoiceAssetPersistence
+	(VoiceAssetStatus)(0),            // 3: nimi.runtime.v1.VoiceAssetStatus
+	(*VoiceReference)(nil),           // 4: nimi.runtime.v1.VoiceReference
+	(*VoicePresetDescriptor)(nil),    // 5: nimi.runtime.v1.VoicePresetDescriptor
+	(*VoiceAsset)(nil),               // 6: nimi.runtime.v1.VoiceAsset
+	(*VoiceV2VInput)(nil),            // 7: nimi.runtime.v1.VoiceV2VInput
+	(*VoiceT2VInput)(nil),            // 8: nimi.runtime.v1.VoiceT2VInput
+	(*GetVoiceAssetRequest)(nil),     // 9: nimi.runtime.v1.GetVoiceAssetRequest
+	(*GetVoiceAssetResponse)(nil),    // 10: nimi.runtime.v1.GetVoiceAssetResponse
+	(*ListVoiceAssetsRequest)(nil),   // 11: nimi.runtime.v1.ListVoiceAssetsRequest
+	(*ListVoiceAssetsResponse)(nil),  // 12: nimi.runtime.v1.ListVoiceAssetsResponse
+	(*DeleteVoiceAssetRequest)(nil),  // 13: nimi.runtime.v1.DeleteVoiceAssetRequest
+	(*DeleteVoiceAssetResponse)(nil), // 14: nimi.runtime.v1.DeleteVoiceAssetResponse
+	(*ListPresetVoicesRequest)(nil),  // 15: nimi.runtime.v1.ListPresetVoicesRequest
+	(*ListPresetVoicesResponse)(nil), // 16: nimi.runtime.v1.ListPresetVoicesResponse
+	nil,                              // 17: nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
+	(*timestamppb.Timestamp)(nil),    // 18: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),          // 19: google.protobuf.Struct
+	(*Ack)(nil),                      // 20: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_voice_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.VoiceReference.kind:type_name -> nimi.runtime.v1.VoiceReferenceKind
-	28, // 1: nimi.runtime.v1.VoicePresetDescriptor.labels:type_name -> nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
+	17, // 1: nimi.runtime.v1.VoicePresetDescriptor.labels:type_name -> nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
 	0,  // 2: nimi.runtime.v1.VoiceAsset.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
 	2,  // 3: nimi.runtime.v1.VoiceAsset.persistence:type_name -> nimi.runtime.v1.VoiceAssetPersistence
-	4,  // 4: nimi.runtime.v1.VoiceAsset.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
-	30, // 5: nimi.runtime.v1.VoiceAsset.created_at:type_name -> google.protobuf.Timestamp
-	30, // 6: nimi.runtime.v1.VoiceAsset.updated_at:type_name -> google.protobuf.Timestamp
-	30, // 7: nimi.runtime.v1.VoiceAsset.expires_at:type_name -> google.protobuf.Timestamp
-	31, // 8: nimi.runtime.v1.VoiceAsset.metadata:type_name -> google.protobuf.Struct
-	0,  // 9: nimi.runtime.v1.VoiceJob.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
-	3,  // 10: nimi.runtime.v1.VoiceJob.status:type_name -> nimi.runtime.v1.VoiceJobStatus
-	32, // 11: nimi.runtime.v1.VoiceJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	30, // 12: nimi.runtime.v1.VoiceJob.created_at:type_name -> google.protobuf.Timestamp
-	30, // 13: nimi.runtime.v1.VoiceJob.updated_at:type_name -> google.protobuf.Timestamp
-	30, // 14: nimi.runtime.v1.VoiceJob.next_poll_at:type_name -> google.protobuf.Timestamp
-	31, // 15: nimi.runtime.v1.VoiceV2VInput.provider_options:type_name -> google.protobuf.Struct
-	31, // 16: nimi.runtime.v1.VoiceT2VInput.provider_options:type_name -> google.protobuf.Struct
-	0,  // 17: nimi.runtime.v1.SubmitVoiceJobRequest.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
-	29, // 18: nimi.runtime.v1.SubmitVoiceJobRequest.labels:type_name -> nimi.runtime.v1.SubmitVoiceJobRequest.LabelsEntry
-	10, // 19: nimi.runtime.v1.SubmitVoiceJobRequest.v2v_input:type_name -> nimi.runtime.v1.VoiceV2VInput
-	11, // 20: nimi.runtime.v1.SubmitVoiceJobRequest.t2v_input:type_name -> nimi.runtime.v1.VoiceT2VInput
-	9,  // 21: nimi.runtime.v1.SubmitVoiceJobResponse.job:type_name -> nimi.runtime.v1.VoiceJob
-	8,  // 22: nimi.runtime.v1.SubmitVoiceJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	9,  // 23: nimi.runtime.v1.GetVoiceJobResponse.job:type_name -> nimi.runtime.v1.VoiceJob
-	9,  // 24: nimi.runtime.v1.CancelVoiceJobResponse.job:type_name -> nimi.runtime.v1.VoiceJob
-	5,  // 25: nimi.runtime.v1.VoiceJobEvent.event_type:type_name -> nimi.runtime.v1.VoiceJobEventType
-	30, // 26: nimi.runtime.v1.VoiceJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	9,  // 27: nimi.runtime.v1.VoiceJobEvent.job:type_name -> nimi.runtime.v1.VoiceJob
-	8,  // 28: nimi.runtime.v1.GetVoiceAssetResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	0,  // 29: nimi.runtime.v1.ListVoiceAssetsRequest.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
-	4,  // 30: nimi.runtime.v1.ListVoiceAssetsRequest.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
-	8,  // 31: nimi.runtime.v1.ListVoiceAssetsResponse.assets:type_name -> nimi.runtime.v1.VoiceAsset
-	33, // 32: nimi.runtime.v1.DeleteVoiceAssetResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,  // 33: nimi.runtime.v1.ListPresetVoicesResponse.voices:type_name -> nimi.runtime.v1.VoicePresetDescriptor
-	12, // 34: nimi.runtime.v1.RuntimeVoiceService.SubmitVoiceJob:input_type -> nimi.runtime.v1.SubmitVoiceJobRequest
-	14, // 35: nimi.runtime.v1.RuntimeVoiceService.GetVoiceJob:input_type -> nimi.runtime.v1.GetVoiceJobRequest
-	16, // 36: nimi.runtime.v1.RuntimeVoiceService.CancelVoiceJob:input_type -> nimi.runtime.v1.CancelVoiceJobRequest
-	19, // 37: nimi.runtime.v1.RuntimeVoiceService.SubscribeVoiceJobEvents:input_type -> nimi.runtime.v1.SubscribeVoiceJobEventsRequest
-	20, // 38: nimi.runtime.v1.RuntimeVoiceService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
-	22, // 39: nimi.runtime.v1.RuntimeVoiceService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
-	24, // 40: nimi.runtime.v1.RuntimeVoiceService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
-	26, // 41: nimi.runtime.v1.RuntimeVoiceService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
-	13, // 42: nimi.runtime.v1.RuntimeVoiceService.SubmitVoiceJob:output_type -> nimi.runtime.v1.SubmitVoiceJobResponse
-	15, // 43: nimi.runtime.v1.RuntimeVoiceService.GetVoiceJob:output_type -> nimi.runtime.v1.GetVoiceJobResponse
-	17, // 44: nimi.runtime.v1.RuntimeVoiceService.CancelVoiceJob:output_type -> nimi.runtime.v1.CancelVoiceJobResponse
-	18, // 45: nimi.runtime.v1.RuntimeVoiceService.SubscribeVoiceJobEvents:output_type -> nimi.runtime.v1.VoiceJobEvent
-	21, // 46: nimi.runtime.v1.RuntimeVoiceService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
-	23, // 47: nimi.runtime.v1.RuntimeVoiceService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
-	25, // 48: nimi.runtime.v1.RuntimeVoiceService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
-	27, // 49: nimi.runtime.v1.RuntimeVoiceService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
-	42, // [42:50] is the sub-list for method output_type
-	34, // [34:42] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	3,  // 4: nimi.runtime.v1.VoiceAsset.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
+	18, // 5: nimi.runtime.v1.VoiceAsset.created_at:type_name -> google.protobuf.Timestamp
+	18, // 6: nimi.runtime.v1.VoiceAsset.updated_at:type_name -> google.protobuf.Timestamp
+	18, // 7: nimi.runtime.v1.VoiceAsset.expires_at:type_name -> google.protobuf.Timestamp
+	19, // 8: nimi.runtime.v1.VoiceAsset.metadata:type_name -> google.protobuf.Struct
+	6,  // 9: nimi.runtime.v1.GetVoiceAssetResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	0,  // 10: nimi.runtime.v1.ListVoiceAssetsRequest.workflow_type:type_name -> nimi.runtime.v1.VoiceWorkflowType
+	3,  // 11: nimi.runtime.v1.ListVoiceAssetsRequest.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
+	6,  // 12: nimi.runtime.v1.ListVoiceAssetsResponse.assets:type_name -> nimi.runtime.v1.VoiceAsset
+	20, // 13: nimi.runtime.v1.DeleteVoiceAssetResponse.ack:type_name -> nimi.runtime.v1.Ack
+	5,  // 14: nimi.runtime.v1.ListPresetVoicesResponse.voices:type_name -> nimi.runtime.v1.VoicePresetDescriptor
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_voice_proto_init() }
@@ -2324,19 +1366,15 @@ func file_runtime_v1_voice_proto_init() {
 		(*VoiceReference_VoiceAssetId)(nil),
 		(*VoiceReference_ProviderVoiceRef)(nil),
 	}
-	file_runtime_v1_voice_proto_msgTypes[6].OneofWrappers = []any{
-		(*SubmitVoiceJobRequest_V2VInput)(nil),
-		(*SubmitVoiceJobRequest_T2VInput)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_voice_proto_rawDesc), len(file_runtime_v1_voice_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   24,
+			NumEnums:      4,
+			NumMessages:   14,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_runtime_v1_voice_proto_goTypes,
 		DependencyIndexes: file_runtime_v1_voice_proto_depIdxs,

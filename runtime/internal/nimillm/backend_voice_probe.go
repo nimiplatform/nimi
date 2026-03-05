@@ -33,7 +33,7 @@ type probeSpeechVoice struct {
 }
 
 // ListSpeechVoices probes provider voice discovery endpoints.
-func (b *Backend) ListSpeechVoices(ctx context.Context, modelID string) ([]*runtimev1.SpeechVoiceDescriptor, error) {
+func (b *Backend) ListSpeechVoices(ctx context.Context, modelID string) ([]*runtimev1.VoicePresetDescriptor, error) {
 	if b == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -57,7 +57,7 @@ func (b *Backend) ListSpeechVoices(ctx context.Context, modelID string) ([]*runt
 	return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 }
 
-func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*runtimev1.SpeechVoiceDescriptor {
+func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*runtimev1.VoicePresetDescriptor {
 	entries := payload.Voices
 	if len(entries) == 0 {
 		entries = payload.Data
@@ -72,7 +72,7 @@ func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*
 	normalizedTarget := normalizeComparableVoiceModelID(modelID)
 	targetBase := voiceModelIDBase(normalizedTarget)
 	seen := make(map[string]struct{}, len(entries))
-	out := make([]*runtimev1.SpeechVoiceDescriptor, 0, len(entries))
+	out := make([]*runtimev1.VoicePresetDescriptor, 0, len(entries))
 	for _, entry := range entries {
 		if !voiceSupportsTargetModel(entry, normalizedTarget, targetBase) {
 			continue
@@ -99,11 +99,12 @@ func mapProbeSpeechVoices(payload probeSpeechVoicesResponse, modelID string) []*
 		if len(supportedLangs) == 0 {
 			supportedLangs = normalizeStringSlice(entry.Languages)
 		}
-		out = append(out, &runtimev1.SpeechVoiceDescriptor{
+		out = append(out, &runtimev1.VoicePresetDescriptor{
 			VoiceId:        voiceID,
 			Name:           name,
 			Lang:           lang,
 			SupportedLangs: supportedLangs,
+			Labels:         map[string]string{},
 		})
 	}
 	return out

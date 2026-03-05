@@ -263,9 +263,6 @@ func (r *Resolver) UpsertCustomProvider(provider string, rawYAML []byte) (Catalo
 	if requestedProvider != "" && requestedProvider != candidate.Provider {
 		return CatalogProviderRecord{}, fmt.Errorf("provider mismatch: request=%s yaml=%s", requestedProvider, candidate.Provider)
 	}
-	if !isSupportedProvider(candidate.Provider) {
-		return CatalogProviderRecord{}, fmt.Errorf("%w: %s", ErrProviderUnsupported, candidate.Provider)
-	}
 	yamlText, err := marshalProviderDocumentYAML(candidate)
 	if err != nil {
 		return CatalogProviderRecord{}, err
@@ -299,7 +296,7 @@ func (r *Resolver) DeleteCustomProvider(provider string) error {
 		return ErrCatalogMutationDisabled
 	}
 	normalized := normalizeProvider(provider)
-	if !isSupportedProvider(normalized) {
+	if normalized == "" {
 		return fmt.Errorf("%w: %s", ErrProviderUnsupported, normalized)
 	}
 	path := customProviderFilePath(r.customDir, normalized)

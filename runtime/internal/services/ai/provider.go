@@ -1,6 +1,8 @@
 package ai
 
 import (
+	"context"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -18,6 +20,26 @@ type provider = nimillm.Provider
 
 // streamingTextProvider is a type alias for nimillm.StreamingTextProvider.
 type streamingTextProvider = nimillm.StreamingTextProvider
+
+// scenarioTextProvider defines Scenario-native sync text generation for providers.
+type scenarioTextProvider interface {
+	GenerateTextScenario(
+		ctx context.Context,
+		modelID string,
+		spec *runtimev1.TextGenerateScenarioSpec,
+		inputText string,
+	) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error)
+}
+
+// scenarioStreamingTextProvider defines Scenario-native stream text generation for providers.
+type scenarioStreamingTextProvider interface {
+	StreamGenerateTextScenario(
+		ctx context.Context,
+		modelID string,
+		spec *runtimev1.TextGenerateScenarioSpec,
+		onDelta func(string) error,
+	) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
+}
 
 // Config controls local/cloud provider connectivity.
 type Config struct {

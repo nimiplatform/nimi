@@ -40,6 +40,69 @@ models:
       url: https://platform.minimax.io/docs/api-reference/api-overview
       retrieved_at: 2026-03-05
       note: MiniMax API overview with text, image, and video model tables.
+  - model_id: video-01
+    provider: minimax
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Video generation pricing varies by resolution, duration, and account tier.
+    source_ref:
+      url: https://platform.minimax.io/docs/api-reference/api-overview
+      retrieved_at: 2026-03-05
+      note: MiniMax API overview with text, image, and video model tables.
+    video_generation: &a1
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+  - model_id: video-01-live
+    provider: minimax
+    model_type: video
+    updated_at: 2026-03-05
+    capabilities:
+      - video_generation
+      - llm.video.generate
+      - t2v
+      - i2v
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Video generation pricing varies by resolution, duration, and account tier.
+    source_ref:
+      url: https://platform.minimax.io/docs/api-reference/api-overview
+      retrieved_at: 2026-03-05
+      note: MiniMax API overview with text, image, and video model tables.
+    video_generation: *a1
   - model_id: image-01
     provider: minimax
     model_type: image

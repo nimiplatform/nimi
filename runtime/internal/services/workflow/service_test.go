@@ -507,12 +507,12 @@ func TestWorkflowMergeNOfMSucceeds(t *testing.T) {
 
 func TestWorkflowCancel(t *testing.T) {
 	aiClient := &fakeRuntimeAIClient{
-		generateFn: func(ctx context.Context, _ *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error) {
+		executeScenarioFn: func(ctx context.Context, _ *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
 			select {
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			case <-time.After(400 * time.Millisecond):
-				return &runtimev1.GenerateResponse{Output: structFromMap(map[string]any{"text": "ok"})}, nil
+				return &runtimev1.ExecuteScenarioResponse{Output: structFromMap(map[string]any{"text": "ok"})}, nil
 			}
 		},
 	}
@@ -656,49 +656,56 @@ func TestSubscribeWorkflowEventsNotFoundReasonCode(t *testing.T) {
 }
 
 type fakeRuntimeAIClient struct {
-	generateFn func(context.Context, *runtimev1.GenerateRequest) (*runtimev1.GenerateResponse, error)
+	executeScenarioFn func(context.Context, *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error)
 }
 
-func (f *fakeRuntimeAIClient) Generate(ctx context.Context, req *runtimev1.GenerateRequest, _ ...grpc.CallOption) (*runtimev1.GenerateResponse, error) {
-	if f.generateFn == nil {
-		return nil, errors.New("generate not configured")
+func (f *fakeRuntimeAIClient) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest, _ ...grpc.CallOption) (*runtimev1.ExecuteScenarioResponse, error) {
+	if f.executeScenarioFn == nil {
+		return nil, errors.New("execute scenario not configured")
 	}
-	return f.generateFn(ctx, req)
+	return f.executeScenarioFn(ctx, req)
 }
 
-func (f *fakeRuntimeAIClient) StreamGenerate(context.Context, *runtimev1.StreamGenerateRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.StreamGenerateEvent], error) {
+func (f *fakeRuntimeAIClient) StreamScenario(context.Context, *runtimev1.StreamScenarioRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.StreamScenarioEvent], error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) Embed(context.Context, *runtimev1.EmbedRequest, ...grpc.CallOption) (*runtimev1.EmbedResponse, error) {
+func (f *fakeRuntimeAIClient) SubmitScenarioJob(context.Context, *runtimev1.SubmitScenarioJobRequest, ...grpc.CallOption) (*runtimev1.SubmitScenarioJobResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) SubmitMediaJob(context.Context, *runtimev1.SubmitMediaJobRequest, ...grpc.CallOption) (*runtimev1.SubmitMediaJobResponse, error) {
+func (f *fakeRuntimeAIClient) GetScenarioJob(context.Context, *runtimev1.GetScenarioJobRequest, ...grpc.CallOption) (*runtimev1.GetScenarioJobResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) GetMediaJob(context.Context, *runtimev1.GetMediaJobRequest, ...grpc.CallOption) (*runtimev1.GetMediaJobResponse, error) {
+func (f *fakeRuntimeAIClient) CancelScenarioJob(context.Context, *runtimev1.CancelScenarioJobRequest, ...grpc.CallOption) (*runtimev1.CancelScenarioJobResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) CancelMediaJob(context.Context, *runtimev1.CancelMediaJobRequest, ...grpc.CallOption) (*runtimev1.CancelMediaJobResponse, error) {
+func (f *fakeRuntimeAIClient) SubscribeScenarioJobEvents(context.Context, *runtimev1.SubscribeScenarioJobEventsRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ScenarioJobEvent], error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) SubscribeMediaJobEvents(context.Context, *runtimev1.SubscribeMediaJobEventsRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.MediaJobEvent], error) {
+func (f *fakeRuntimeAIClient) GetScenarioArtifacts(context.Context, *runtimev1.GetScenarioArtifactsRequest, ...grpc.CallOption) (*runtimev1.GetScenarioArtifactsResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) GetMediaArtifacts(context.Context, *runtimev1.GetMediaArtifactsRequest, ...grpc.CallOption) (*runtimev1.GetMediaArtifactsResponse, error) {
+func (f *fakeRuntimeAIClient) ListScenarioProfiles(context.Context, *runtimev1.ListScenarioProfilesRequest, ...grpc.CallOption) (*runtimev1.ListScenarioProfilesResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) GetSpeechVoices(context.Context, *runtimev1.GetSpeechVoicesRequest, ...grpc.CallOption) (*runtimev1.GetSpeechVoicesResponse, error) {
+func (f *fakeRuntimeAIClient) GetVoiceAsset(context.Context, *runtimev1.GetVoiceAssetRequest, ...grpc.CallOption) (*runtimev1.GetVoiceAssetResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
-func (f *fakeRuntimeAIClient) StreamSpeechSynthesis(context.Context, *runtimev1.StreamSpeechSynthesisRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[runtimev1.ArtifactChunk], error) {
+func (f *fakeRuntimeAIClient) ListVoiceAssets(context.Context, *runtimev1.ListVoiceAssetsRequest, ...grpc.CallOption) (*runtimev1.ListVoiceAssetsResponse, error) {
 	return nil, status.Error(12, "unimplemented")
 }
 
+func (f *fakeRuntimeAIClient) DeleteVoiceAsset(context.Context, *runtimev1.DeleteVoiceAssetRequest, ...grpc.CallOption) (*runtimev1.DeleteVoiceAssetResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}
+
+func (f *fakeRuntimeAIClient) ListPresetVoices(context.Context, *runtimev1.ListPresetVoicesRequest, ...grpc.CallOption) (*runtimev1.ListPresetVoicesResponse, error) {
+	return nil, status.Error(12, "unimplemented")
+}

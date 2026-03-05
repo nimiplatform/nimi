@@ -18,22 +18,22 @@ func ExecuteBytedanceARKTask(
 	cfg MediaAdapterConfig,
 	updater JobStateUpdater,
 	jobID string,
-	req *runtimev1.SubmitMediaJobRequest,
+	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
 
-	switch req.GetModal() {
+	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
-		spec := req.GetImageSpec()
+		spec := scenarioImageSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		providerOptions := StructToMap(spec.GetProviderOptions())
+		scenarioExtensions := StructToMap(nil)
 		submitPath := resolveBytedanceARKImagePath(spec)
 		submitPayload := map[string]any{
 			"model":           modelResolved,
@@ -58,8 +58,8 @@ func ExecuteBytedanceARKTask(
 			"prompt":          spec.GetPrompt(),
 			"negative_prompt": spec.GetNegativePrompt(),
 		}
-		if len(providerOptions) > 0 {
-			submitPayload["provider_options"] = providerOptions
+		if len(scenarioExtensions) > 0 {
+			submitPayload["extensions"] = scenarioExtensions
 		}
 
 		submitResp := map[string]any{}
@@ -73,7 +73,7 @@ func ExecuteBytedanceARKTask(
 		if mimeType == "" {
 			mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
 		}
-		providerRaw := map[string]any{
+		artifactMeta := map[string]any{
 			"adapter":          AdapterBytedanceARKTask,
 			"endpoint":         submitPath,
 			"response":         submitResp,
@@ -86,16 +86,16 @@ func ExecuteBytedanceARKTask(
 			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
 			"mask":             strings.TrimSpace(spec.GetMask()),
-			"provider_options": providerOptions,
+			"extensions": scenarioExtensions,
 		}
 		if artifactURI != "" {
-			providerRaw["uri"] = artifactURI
+			artifactMeta["uri"] = artifactURI
 		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
 	case runtimev1.Modal_MODAL_VIDEO:
-		spec := req.GetVideoSpec()
+		spec := scenarioVideoSpec(req)
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
@@ -158,23 +158,23 @@ func ExecuteBytedanceARKTask(
 			if mimeType == "" {
 				mimeType = ResolveVideoArtifactMIME(spec, artifactBytes)
 			}
-			providerRaw := map[string]any{
+			artifactMeta := map[string]any{
 				"adapter":         AdapterBytedanceARKTask,
 				"submit_endpoint": submitPath,
 				"response":        submitResp,
 			}
 			if artifactURI != "" {
-				providerRaw["uri"] = artifactURI
+				artifactMeta["uri"] = artifactURI
 			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+			artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 			ApplyVideoSpecMetadata(artifact, spec)
-			return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 420), "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 420), "", nil
 		}
 		return PollProviderTaskForArtifact(
 			ctx, updater, jobID, baseURL, apiKey,
 			AdapterBytedanceARKTask, providerJobID, submitPath, queryPathTemplate,
 			"video/mp4", 420, VideoPrompt(spec),
-			func(artifact *runtimev1.MediaArtifact) {
+			func(artifact *runtimev1.ScenarioArtifact) {
 				ApplyVideoSpecMetadata(artifact, spec)
 			},
 			map[string]any{
@@ -189,13 +189,13 @@ func ExecuteBytedanceARKTask(
 
 // Provider-specific path resolvers (package-private)
 
-func resolveBytedanceARKImagePath(spec *runtimev1.ImageGenerationSpec) string {
-	providerOptions := map[string]any{}
+func resolveBytedanceARKImagePath(spec *runtimev1.ImageGenerateScenarioSpec) string {
+	scenarioExtensions := map[string]any{}
 	if spec != nil {
-		providerOptions = StructToMap(spec.GetProviderOptions())
+		scenarioExtensions = StructToMap(nil)
 	}
 	return FirstProviderEndpointPath(
-		providerOptions,
+		scenarioExtensions,
 		[]string{"image_path", "image_submit_path"},
 		[]string{"image_paths", "image_submit_paths"},
 		[]string{"/api/v3/images/generations"},

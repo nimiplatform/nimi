@@ -151,18 +151,48 @@ func (p *CloudProvider) CheckModelAvailability(modelID string) error {
 }
 
 // GenerateText routes a text generation request to the appropriate backend.
-func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	return p.GenerateTextWithTarget(ctx, modelID, req, inputText, nil)
+func (p *CloudProvider) GenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, inputText string) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
 }
 
 // GenerateTextWithTarget routes a text generation request, optionally using a RemoteTarget override.
-func (p *CloudProvider) GenerateTextWithTarget(ctx context.Context, modelID string, req *runtimev1.GenerateRequest, inputText string, target *RemoteTarget) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (p *CloudProvider) GenerateTextWithTarget(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, inputText string, target *RemoteTarget) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, target)
+}
+
+// GenerateTextScenario routes a Scenario-native text generation request.
+func (p *CloudProvider) GenerateTextScenario(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	inputText string,
+) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return p.GenerateTextScenarioWithTarget(ctx, modelID, spec, inputText, nil)
+}
+
+// GenerateTextScenarioWithTarget routes a Scenario-native request with optional target override.
+func (p *CloudProvider) GenerateTextScenarioWithTarget(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	_ string,
+	target *RemoteTarget,
+) (string, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	p.rememberDecision(modelID, backend.Name)
-	text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens())
+	text, usage, finish, err := backend.GenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens())
 	if err != nil {
 		return "", nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
@@ -206,18 +236,48 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 }
 
 // StreamGenerateText routes a streaming text generation request.
-func (p *CloudProvider) StreamGenerateText(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	return p.StreamGenerateTextWithTarget(ctx, modelID, req, onDelta, nil)
+func (p *CloudProvider) StreamGenerateText(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, nil)
 }
 
 // StreamGenerateTextWithTarget routes a streaming request, optionally using a RemoteTarget override.
-func (p *CloudProvider) StreamGenerateTextWithTarget(ctx context.Context, modelID string, req *runtimev1.StreamGenerateRequest, onDelta func(string) error, target *RemoteTarget) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+func (p *CloudProvider) StreamGenerateTextWithTarget(ctx context.Context, modelID string, spec *runtimev1.TextGenerateScenarioSpec, onDelta func(string) error, target *RemoteTarget) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, target)
+}
+
+// StreamGenerateTextScenario routes a Scenario-native streaming request.
+func (p *CloudProvider) StreamGenerateTextScenario(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	onDelta func(string) error,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return p.StreamGenerateTextScenarioWithTarget(ctx, modelID, spec, onDelta, nil)
+}
+
+// StreamGenerateTextScenarioWithTarget routes a Scenario-native streaming request with optional target.
+func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	onDelta func(string) error,
+	target *RemoteTarget,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	p.rememberDecision(modelID, backend.Name)
-	return backend.StreamGenerateText(ctx, resolvedModelID, req.GetInput(), req.GetSystemPrompt(), req.GetTemperature(), req.GetTopP(), req.GetMaxTokens(), onDelta)
+	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), onDelta)
 }
 
 // ResolveMediaBackend returns the underlying Backend for sync media operations.

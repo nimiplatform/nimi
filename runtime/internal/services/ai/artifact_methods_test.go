@@ -1,140 +1,74 @@
 package ai
 
 import (
-	"context"
-	"io"
-	"log/slog"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func TestEmbedLegacyWrapper(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/embeddings" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":[{"embedding":[0.1,0.2,0.3]}],"usage":{"prompt_tokens":4,"total_tokens":6}}`))
-	}))
-	defer server.Close()
-
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
-	})
-
-	_, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/embedding",
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("embed invalid request code mismatch: %v", status.Code(err))
-	}
-
-	resp, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/embedding",
-		Inputs:        []string{"first text"},
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-	})
-	if err != nil {
-		t.Fatalf("embed success: %v", err)
-	}
-	if len(resp.GetVectors()) != 1 {
-		t.Fatalf("embed vectors length mismatch: %d", len(resp.GetVectors()))
-	}
-	if got := len(resp.GetVectors()[0].GetValues()); got != 3 {
-		t.Fatalf("embed vector size mismatch: %d", got)
-	}
-	if resp.GetUsage().GetInputTokens() != 4 || resp.GetUsage().GetOutputTokens() != 2 {
-		t.Fatalf("embed usage mismatch: input=%d output=%d", resp.GetUsage().GetInputTokens(), resp.GetUsage().GetOutputTokens())
-	}
-}
-
-func TestEmbedLocalModelUnavailableUsesLocalModelUnavailable(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	svc.SetLocalModelLister(&staticLocalModelLister{models: []*runtimev1.LocalModelRecord{}})
-
-	_, err := svc.Embed(context.Background(), &runtimev1.EmbedRequest{
-		AppId:         "nimi.desktop",
-		SubjectUserId: "user-001",
-		ModelId:       "local/embedding",
-		Inputs:        []string{"first text"},
-		RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
-		Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-	})
-	if err == nil {
-		t.Fatalf("expected local model unavailable")
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("expected grpc status")
-	}
-	if st.Code() != codes.FailedPrecondition || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
-		t.Fatalf("unexpected error: code=%v msg=%s", st.Code(), st.Message())
-	}
-}
-
-func TestMediaJobStatusToErrorMapping(t *testing.T) {
-	cases := []struct {
-		name string
-		job  *runtimev1.MediaJob
-		code codes.Code
+func TestMediaJobStatusToError(t *testing.T) {
+	tests := []struct {
+		name       string
+		job        *runtimev1.ScenarioJob
+		expectCode codes.Code
+		expectRC   runtimev1.ReasonCode
 	}{
 		{
-			name: "nil job",
-			job:  nil,
-			code: codes.Internal,
+			name:       "nil job",
+			job:        nil,
+			expectCode: codes.Internal,
+			expectRC:   runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 		},
 		{
-			name: "unspecified reason defaults unavailable",
-			job:  &runtimev1.MediaJob{},
-			code: codes.Unavailable,
+			name:       "input invalid",
+			job:        &runtimev1.ScenarioJob{ReasonCode: runtimev1.ReasonCode_AI_INPUT_INVALID},
+			expectCode: codes.InvalidArgument,
+			expectRC:   runtimev1.ReasonCode_AI_INPUT_INVALID,
 		},
 		{
-			name: "input invalid",
-			job:  &runtimev1.MediaJob{ReasonCode: runtimev1.ReasonCode_AI_INPUT_INVALID},
-			code: codes.InvalidArgument,
+			name:       "model not found",
+			job:        &runtimev1.ScenarioJob{ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND},
+			expectCode: codes.NotFound,
+			expectRC:   runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
 		},
 		{
-			name: "model not found",
-			job:  &runtimev1.MediaJob{ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND},
-			code: codes.NotFound,
+			name:       "provider timeout",
+			job:        &runtimev1.ScenarioJob{ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT},
+			expectCode: codes.DeadlineExceeded,
+			expectRC:   runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
 		},
 		{
-			name: "provider timeout",
-			job:  &runtimev1.MediaJob{ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT},
-			code: codes.DeadlineExceeded,
+			name:       "route unsupported",
+			job:        &runtimev1.ScenarioJob{ReasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED},
+			expectCode: codes.FailedPrecondition,
+			expectRC:   runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
 		},
 		{
-			name: "route unsupported",
-			job:  &runtimev1.MediaJob{ReasonCode: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED},
-			code: codes.FailedPrecondition,
+			name:       "content blocked",
+			job:        &runtimev1.ScenarioJob{ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED},
+			expectCode: codes.PermissionDenied,
+			expectRC:   runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED,
 		},
 		{
-			name: "content filtered",
-			job:  &runtimev1.MediaJob{ReasonCode: runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED},
-			code: codes.PermissionDenied,
+			name:       "unspecified fallback",
+			job:        &runtimev1.ScenarioJob{ReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED},
+			expectCode: codes.Unavailable,
+			expectRC:   runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 		},
 	}
 
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			err := mediaJobStatusToError(tc.job)
-			if status.Code(err) != tc.code {
-				t.Fatalf("status code mismatch: got=%v want=%v", status.Code(err), tc.code)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := mediaJobStatusToError(tt.job)
+			if status.Code(err) != tt.expectCode {
+				t.Fatalf("code mismatch: got=%v want=%v", status.Code(err), tt.expectCode)
+			}
+			rc, ok := grpcerr.ExtractReasonCode(err)
+			if !ok || rc != tt.expectRC {
+				t.Fatalf("reason code mismatch: got=%v ok=%v want=%v", rc, ok, tt.expectRC)
 			}
 		})
 	}

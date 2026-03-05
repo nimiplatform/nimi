@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-func runRuntimeAIGenerate(args []string) error {
+func runRuntimeAITextGenerate(args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	fs := flag.NewFlagSet("nimi ai generate", flag.ContinueOnError)
+	fs := flag.NewFlagSet("nimi ai text-generate", flag.ContinueOnError)
 	fs.SetOutput(os.Stdout)
 	grpcAddr := fs.String("grpc-addr", cfg.GRPCAddr, "runtime gRPC address")
 	timeoutRaw := fs.String("timeout", "10s", "grpc request timeout")
@@ -60,21 +60,30 @@ func runRuntimeAIGenerate(args []string) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
-	resp, err := entrypoint.GenerateTextGRPC(*grpcAddr, timeout, &runtimev1.GenerateRequest{
-		AppId:         strings.TrimSpace(*appID),
-		SubjectUserId: strings.TrimSpace(*subjectUserID),
-		ModelId:       strings.TrimSpace(*modelID),
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-		Input: []*runtimev1.ChatMessage{
-			{
-				Role:    "user",
-				Content: strings.TrimSpace(*prompt),
+	resp, err := entrypoint.ExecuteScenarioGRPC(*grpcAddr, timeout, &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         strings.TrimSpace(*appID),
+			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			ModelId:       strings.TrimSpace(*modelID),
+			RoutePolicy:   routePolicy,
+			Fallback:      fallbackPolicy,
+			TimeoutMs:     int32(*timeoutMS),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{
+							Role:    "user",
+							Content: strings.TrimSpace(*prompt),
+						},
+					},
+					SystemPrompt: strings.TrimSpace(*systemPrompt),
+				},
 			},
 		},
-		SystemPrompt: strings.TrimSpace(*systemPrompt),
-		RoutePolicy:  routePolicy,
-		Fallback:     fallbackPolicy,
-		TimeoutMs:    int32(*timeoutMS),
 	}, callerMeta)
 	if err != nil {
 		return err
@@ -171,21 +180,30 @@ func runRuntimeAIStream(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	events, errCh, err := entrypoint.StreamGenerateTextGRPC(ctx, *grpcAddr, &runtimev1.StreamGenerateRequest{
-		AppId:         strings.TrimSpace(*appID),
-		SubjectUserId: strings.TrimSpace(*subjectUserID),
-		ModelId:       strings.TrimSpace(*modelID),
-		Modal:         runtimev1.Modal_MODAL_TEXT,
-		Input: []*runtimev1.ChatMessage{
-			{
-				Role:    "user",
-				Content: strings.TrimSpace(*prompt),
+	events, errCh, err := entrypoint.StreamScenarioGRPC(ctx, *grpcAddr, &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         strings.TrimSpace(*appID),
+			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			ModelId:       strings.TrimSpace(*modelID),
+			RoutePolicy:   routePolicy,
+			Fallback:      fallbackPolicy,
+			TimeoutMs:     int32(*timeoutMS),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{
+							Role:    "user",
+							Content: strings.TrimSpace(*prompt),
+						},
+					},
+					SystemPrompt: strings.TrimSpace(*systemPrompt),
+				},
 			},
 		},
-		SystemPrompt: strings.TrimSpace(*systemPrompt),
-		RoutePolicy:  routePolicy,
-		Fallback:     fallbackPolicy,
-		TimeoutMs:    int32(*timeoutMS),
 	}, callerMeta)
 	if err != nil {
 		return err
@@ -266,14 +284,14 @@ func runRuntimeAIStream(args []string) error {
 	return nil
 }
 
-func runRuntimeAIEmbed(args []string) error {
+func runRuntimeAITextEmbed(args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
 	var inputs multiStringFlag
-	fs := flag.NewFlagSet("nimi ai embed", flag.ContinueOnError)
+	fs := flag.NewFlagSet("nimi ai text-embed", flag.ContinueOnError)
 	fs.SetOutput(os.Stdout)
 	grpcAddr := fs.String("grpc-addr", cfg.GRPCAddr, "runtime gRPC address")
 	timeoutRaw := fs.String("timeout", "10s", "grpc request timeout")
@@ -314,22 +332,39 @@ func runRuntimeAIEmbed(args []string) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 
-	resp, err := entrypoint.EmbedGRPC(*grpcAddr, timeout, &runtimev1.EmbedRequest{
-		AppId:         strings.TrimSpace(*appID),
-		SubjectUserId: strings.TrimSpace(*subjectUserID),
-		ModelId:       strings.TrimSpace(*modelID),
-		Inputs:        normalizedInputs,
-		RoutePolicy:   routePolicy,
-		Fallback:      fallbackPolicy,
-		TimeoutMs:     int32(*timeoutMS),
+	resp, err := entrypoint.ExecuteScenarioGRPC(*grpcAddr, timeout, &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         strings.TrimSpace(*appID),
+			SubjectUserId: strings.TrimSpace(*subjectUserID),
+			ModelId:       strings.TrimSpace(*modelID),
+			RoutePolicy:   routePolicy,
+			Fallback:      fallbackPolicy,
+			TimeoutMs:     int32(*timeoutMS),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextEmbed{
+				TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+					Inputs: normalizedInputs,
+				},
+			},
+		},
 	}, callerMeta)
 	if err != nil {
 		return err
 	}
+	vectorPayloads := make([]any, 0)
+	if output := resp.GetOutput(); output != nil {
+		if raw, ok := output.AsMap()["vectors"].([]any); ok {
+			vectorPayloads = raw
+		}
+	}
+	vectorCount := len(vectorPayloads)
 
 	if *jsonOutput {
 		out, err := json.MarshalIndent(map[string]any{
-			"vector_count":   len(resp.GetVectors()),
+			"vector_count":   vectorCount,
 			"route_decision": resp.GetRouteDecision().String(),
 			"model_resolved": resp.GetModelResolved(),
 			"trace_id":       resp.GetTraceId(),
@@ -338,7 +373,7 @@ func runRuntimeAIEmbed(args []string) error {
 				"output_tokens": resp.GetUsage().GetOutputTokens(),
 				"compute_ms":    resp.GetUsage().GetComputeMs(),
 			},
-			"vectors": resp.GetVectors(),
+			"vectors": vectorPayloads,
 		}, "", "  ")
 		if err != nil {
 			return err
@@ -348,7 +383,7 @@ func runRuntimeAIEmbed(args []string) error {
 	}
 
 	fmt.Printf("vectors=%d trace=%s model=%s route=%s usage(in=%d,out=%d,ms=%d)\n",
-		len(resp.GetVectors()),
+		vectorCount,
 		resp.GetTraceId(),
 		resp.GetModelResolved(),
 		resp.GetRouteDecision().String(),

@@ -1,0 +1,157 @@
+version: 1
+provider: together
+catalog_version: 2026-03-05-together-v1
+models:
+  - model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: llama-4-maverick
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: meta-llama/Llama-4-Scout-17B-16E-Instruct
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: llama-4-scout
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: deepseek-ai/DeepSeek-R1
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: deepseek-r1
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: Qwen/Qwen3-235B-A22B-fp8
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+  - model_id: qwen3-235b
+    provider: together
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless-models
+      retrieved_at: 2026-03-05
+      note: Together AI serverless model catalog.
+voices: []

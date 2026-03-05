@@ -168,7 +168,7 @@ function normalizeMediaModality(value) {
 export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
   const source = fs.readFileSync(runtimeLiveSmokePath, 'utf8');
   const definitions = new Map();
-  const fnRegex = /func\s+(TestLiveSmoke(?:Connector)?[A-Za-z0-9]+(?:GenerateText|Embed|SubmitMediaJobModalities|TTS))\s*\(/g;
+  const fnRegex = /func\s+(TestLiveSmoke(?:Connector)?[A-Za-z0-9]+(?:GenerateText|Embed|SubmitScenarioJobModalities|TTS))\s*\(/g;
   let match;
 
   while ((match = fnRegex.exec(source)) !== null) {
@@ -202,8 +202,8 @@ export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
       continue;
     }
 
-    if (functionName.endsWith('SubmitMediaJobModalities')) {
-      const token = functionName.slice('TestLiveSmoke'.length, -'SubmitMediaJobModalities'.length);
+    if (functionName.endsWith('SubmitScenarioJobModalities')) {
+      const token = functionName.slice('TestLiveSmoke'.length, -'SubmitScenarioJobModalities'.length);
       const provider = canonicalProviderId(token);
       const body = extractFunctionBody(source, match.index);
       const modalitySet = new Set();

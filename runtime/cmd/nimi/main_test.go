@@ -331,12 +331,12 @@ func TestParseFallbackPolicy(t *testing.T) {
 }
 
 func TestStreamEventJSONDelta(t *testing.T) {
-	event := &runtimev1.StreamGenerateEvent{
+	event := &runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 		Sequence:  2,
 		TraceId:   "trace-1",
-		Payload: &runtimev1.StreamGenerateEvent_Delta{
-			Delta: &runtimev1.StreamDelta{Text: "hello"},
+		Payload: &runtimev1.StreamScenarioEvent_Delta{
+			Delta: &runtimev1.ScenarioStreamDelta{Text: "hello"},
 		},
 	}
 

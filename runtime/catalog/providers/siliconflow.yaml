@@ -1,0 +1,195 @@
+version: 1
+provider: siliconflow
+catalog_version: 2026-03-05-siliconflow-v1
+models:
+  - model_id: deepseek-ai/DeepSeek-V3
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: deepseek-v3
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: deepseek-ai/DeepSeek-R1
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: deepseek-r1
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Reasoning model pricing varies by usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: Qwen/Qwen3-235B-A22B
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: qwen3-235b
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: THUDM/GLM-4-32B
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: glm-4-32b
+    provider: siliconflow
+    model_type: chat
+    updated_at: 2026-03-05
+    capabilities:
+      - chat
+      - text.generate
+      - llm.text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Chat token pricing varies by model size and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: BAAI/bge-m3
+    provider: siliconflow
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+  - model_id: bge-m3
+    provider: siliconflow
+    model_type: embedding
+    updated_at: 2026-03-05
+    capabilities:
+      - embedding
+      - text.embed
+      - llm.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Embedding pricing varies by token volume and usage tier.
+    source_ref:
+      url: https://docs.siliconflow.cn/cn/userguides/models
+      retrieved_at: 2026-03-05
+      note: SiliconFlow model catalog and supported models.
+voices: []

@@ -359,24 +359,24 @@ func runtimeChecklist() []checklistItemSpec {
 		},
 		{
 			ID:          "RS-11-12",
-			Requirement: "Generate/StreamGenerate request/response schema",
+			Requirement: "Scenario Execute/Stream request-response schema",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestGenerateSuccess"},
-				{Package: pkgAI, Name: "TestStreamGenerateSequence"},
+				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateSuccess"},
+				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateSequence"},
 			},
 		},
 		{
 			ID:          "RS-11-13",
-			Requirement: "stream envelope contract",
+			Requirement: "scenario stream envelope contract",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestStreamGenerateSequence"},
+				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateSequence"},
 			},
 		},
 		{
 			ID:          "RS-11-14",
 			Requirement: "AI reason-code mapping (timeout/unavailable/filter/auth/rate-limit/internal)",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestStreamGenerateTimeoutEmitsFailedEvent"},
+				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent"},
 				{Package: pkgAI, Name: "TestMapProviderHTTPErrorContentFilter"},
 				{Package: pkgAI, Name: "TestOpenAIBackendStreamGenerateBrokenChunk"},
 				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderAuthFailed"},
@@ -388,7 +388,7 @@ func runtimeChecklist() []checklistItemSpec {
 			ID:          "RS-11-15",
 			Requirement: "AI route policy regression (explicit route + no silent fallback)",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestGenerateFallbackDenied"},
+				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateFallbackDenied"},
 				{Package: pkgAI, Name: "TestCloudProviderRoutesByPrefix"},
 			},
 		},
@@ -451,7 +451,7 @@ func runtimeChecklist() []checklistItemSpec {
 			Requirement: "local-runtime and token-api routing regression",
 			Tests: []testRef{
 				{Package: pkgAI, Name: "TestCloudProviderRoutesByPrefix"},
-				{Package: pkgAI, Name: "TestGenerateSuccess"},
+				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateSuccess"},
 			},
 		},
 		{
@@ -487,13 +487,12 @@ func runtimeChecklist() []checklistItemSpec {
 		},
 		{
 			ID:          "RS-11-27",
-			Requirement: "media job reason code coverage",
+			Requirement: "scenario job reason code coverage",
 			Tests: []testRef{
-				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/GetMediaJob_NotFound_ReasonCode"},
-				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/CancelMediaJob_NotFound_ReasonCode"},
-				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/CancelMediaJob_NotCancellable_ReasonCode"},
-				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/SubmitMediaJob_SpecInvalid_MissingSpec"},
-				{Package: pkgAI, Name: "TestMediaJobReasonCodeClassification/SubmitMediaJob_OptionUnsupported_ImageN"},
+				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/GetScenarioJob_NotFound_ReasonCode"},
+				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/CancelScenarioJob_NotFound_ReasonCode"},
+				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/CancelScenarioJob_NotCancellable_ReasonCode"},
+				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/SubmitScenarioJob_OptionUnsupported_ImageN"},
 			},
 		},
 		{

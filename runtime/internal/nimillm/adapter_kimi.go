@@ -19,17 +19,17 @@ const AdapterKimiChatMultimodal = "kimi_chat_multimodal_adapter"
 func ExecuteKimiImageChatMultimodal(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitMediaJobRequest,
+	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
-) ([]*runtimev1.MediaArtifact, *runtimev1.UsageStats, string, error) {
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	if req.GetModal() != runtimev1.Modal_MODAL_IMAGE {
+	if scenarioModal(req) != runtimev1.Modal_MODAL_IMAGE {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	spec := req.GetImageSpec()
+	spec := scenarioImageSpec(req)
 	if spec == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -47,7 +47,7 @@ func ExecuteKimiImageChatMultimodal(
 	if mimeType == "" {
 		mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
 	}
-	providerRaw := map[string]any{
+	artifactMeta := map[string]any{
 		"adapter":          AdapterKimiChatMultimodal,
 		"response":         responsePayload,
 		"prompt":           strings.TrimSpace(spec.GetPrompt()),
@@ -59,20 +59,20 @@ func ExecuteKimiImageChatMultimodal(
 		"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 		"reference_images": append([]string(nil), spec.GetReferenceImages()...),
 		"mask":             strings.TrimSpace(spec.GetMask()),
-		"provider_options": StructToMap(spec.GetProviderOptions()),
+		"extensions": StructToMap(nil),
 	}
 	if artifactURI != "" {
-		providerRaw["uri"] = artifactURI
+		artifactMeta["uri"] = artifactURI
 	}
-	artifact := BinaryArtifact(mimeType, artifactBytes, providerRaw)
+	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 	ApplyImageSpecMetadata(artifact, spec)
-	return []*runtimev1.MediaArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
+	return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetPrompt(), artifactBytes, 180), "", nil
 }
 
 // buildKimiImageChatPayload constructs the chat-completions payload for Kimi
 // image generation, building a multimodal message with text and reference
 // images.
-func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenerationSpec) map[string]any {
+func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenerateScenarioSpec) map[string]any {
 	resolvedModelID := StripProviderModelPrefix(modelResolved, "kimi", "moonshot")
 	contentParts := make([]any, 0, 1+len(spec.GetReferenceImages()))
 	contentParts = append(contentParts, map[string]any{
@@ -134,8 +134,8 @@ func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenera
 	if mask := strings.TrimSpace(spec.GetMask()); mask != "" {
 		payload["mask"] = mask
 	}
-	if options := StructToMap(spec.GetProviderOptions()); len(options) > 0 {
-		payload["provider_options"] = options
+	if options := StructToMap(nil); len(options) > 0 {
+		payload["extensions"] = options
 	}
 	return payload
 }
