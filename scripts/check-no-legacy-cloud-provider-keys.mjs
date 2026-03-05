@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, resolve, relative } from 'node:path';
 
 const repoRoot = resolve(new URL('..', import.meta.url).pathname);
@@ -119,15 +119,26 @@ function checkNoLegacyAliasAcceptance() {
 
   const routeFiles = [
     'runtime/internal/services/ai/provider_helpers.go',
-    'runtime/internal/services/ai/media_job_methods.go',
-    'runtime/internal/services/ai/service_speech.go',
+    'runtime/internal/services/ai/scenario_media_helpers.go',
+    'runtime/internal/services/ai/scenario_sync_handlers.go',
+    'runtime/internal/services/ai/scenario_stream_handlers.go',
+    'runtime/internal/services/ai/scenario_job_store.go',
   ];
   const routeLegacyPattern = /(aliyun\/|alibaba\/|bytedance\/|byte\/|moonshot\/|zhipu\/|bigmodel\/)/;
+  let checkedRouteFileCount = 0;
   for (const relPath of routeFiles) {
-    const content = readFileSync(resolve(repoRoot, relPath), 'utf8');
+    const absPath = resolve(repoRoot, relPath);
+    if (!existsSync(absPath)) {
+      continue;
+    }
+    checkedRouteFileCount += 1;
+    const content = readFileSync(absPath, 'utf8');
     if (routeLegacyPattern.test(content)) {
       failures.push(`${relPath}: legacy model-id prefixes must not be accepted in routing logic`);
     }
+  }
+  if (checkedRouteFileCount === 0) {
+    failures.push('runtime/internal/services/ai: failed to locate scenario routing files for legacy prefix verification');
   }
 }
 
