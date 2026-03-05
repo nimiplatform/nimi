@@ -23,6 +23,9 @@ capabilities:
   - data.query.data-api.world.lorebooks.list
   - data.query.data-api.world.lorebooks.batch-upsert
   - data.query.data-api.world.lorebooks.delete
+  - data.query.data-api.world.visual-bindings.list
+  - data.query.data-api.world.visual-bindings.batch-upsert
+  - data.query.data-api.world.visual-bindings.delete
   - data.query.data-api.world.drafts.list
   - data.query.data-api.world.worlds.mine
   - data.query.data-api.world.mutations.list

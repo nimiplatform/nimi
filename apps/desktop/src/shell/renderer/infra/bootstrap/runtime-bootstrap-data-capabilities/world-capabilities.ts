@@ -204,6 +204,24 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return toObjectOr(payload, { worldId, items: [] });
   });
 
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.visualBindingsList, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    if (!worldId) return { worldId: '', items: [] };
+    const payload = await requestObject({
+      method: 'GET',
+      url: '/api/worlds/{worldId}/visual-bindings',
+      path: { worldId },
+      query: {
+        ...(record.targetType ? { targetType: record.targetType } : {}),
+        ...(record.targetId ? { targetId: record.targetId } : {}),
+        ...(record.slot ? { slot: record.slot } : {}),
+        ...(record.take != null ? { take: record.take } : {}),
+      },
+    });
+    return toObjectOr(payload, { worldId, items: [] });
+  });
+
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.scenesList, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
@@ -323,6 +341,22 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     });
   });
 
+  await registerCoreDataCapability(
+    WORLD_DATA_API_CAPABILITIES.visualBindingsBatchUpsert,
+    async (query) => {
+      const record = toRecord(query);
+      const worldId = String(record.worldId || '').trim();
+      if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+      return requestObject({
+        method: 'POST',
+        url: '/api/worlds/{worldId}/visual-bindings/batch-upsert',
+        path: { worldId },
+        body: toRecord(record.payload),
+        mediaType: 'application/json',
+      });
+    },
+  );
+
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksDelete, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
@@ -344,6 +378,18 @@ export async function registerWorldDataCapabilities(): Promise<void> {
       method: 'DELETE',
       url: '/api/worlds/{worldId}/events/{eventId}',
       path: { worldId, eventId },
+    });
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.visualBindingsDelete, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    const bindingId = String(record.bindingId || '').trim();
+    if (!worldId || !bindingId) throw new Error('WORLD_ID_AND_BINDING_ID_REQUIRED');
+    return requestObject({
+      method: 'DELETE',
+      url: '/api/worlds/{worldId}/visual-bindings/{bindingId}',
+      path: { worldId, bindingId },
     });
   });
 

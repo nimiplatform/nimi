@@ -4094,6 +4094,57 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/worlds/{worldId}/visual-bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List world visual bindings */
+        get: operations["WorldControlController_listWorldVisualBindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/visual-bindings/batch-upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch upsert world visual bindings */
+        post: operations["WorldControlController_batchUpsertWorldVisualBindings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/visual-bindings/{bindingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete world visual binding */
+        delete: operations["WorldControlController_deleteWorldVisualBinding"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -4293,6 +4344,10 @@ export type components = {
         };
         BatchUpsertWorldLorebooksDto: {
             lorebookUpserts: components["schemas"]["WorldLorebookUpsertDto"][];
+            reason?: string;
+        };
+        BatchUpsertWorldVisualBindingsDto: {
+            bindingUpserts: components["schemas"]["WorldVisualBindingUpsertDto"][];
             reason?: string;
         };
         BindEmailDto: {
@@ -5975,6 +6030,24 @@ export type components = {
         };
         /** @enum {string} */
         Visibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+        VisualAssetCreateDto: {
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            label?: string;
+            /** @enum {string} */
+            mediaType: "IMAGE" | "VIDEO";
+            mimeType?: string;
+            /** @enum {string} */
+            provenance?: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
+            /** @enum {string} */
+            provider?: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            sizeBytes?: number;
+            sourceRef?: string;
+            storageRef: string;
+            tags?: string[];
+            width?: number;
+        };
         WalletBindDto: {
             /** @description Chain ID */
             chainId?: number;
@@ -6452,6 +6525,66 @@ export type components = {
         };
         WorldSummaryListDto: {
             items: components["schemas"]["WorldSummaryDto"][];
+        };
+        WorldVisualAssetDetailDto: {
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            id: string;
+            label?: string;
+            /** @enum {string} */
+            mediaType: "IMAGE" | "VIDEO";
+            mimeType?: string;
+            /** @enum {string} */
+            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
+            /** @enum {string} */
+            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            sizeBytes?: number;
+            sourceRef?: string;
+            storageRef: string;
+            tags: string[];
+            url: string;
+            width?: number;
+        };
+        WorldVisualBindingDetailDto: {
+            asset: components["schemas"]["WorldVisualAssetDetailDto"];
+            assetId: string;
+            conditionHash: string;
+            conditions?: {
+                [key: string]: string;
+            };
+            createdAt: string;
+            createdBy: string;
+            id: string;
+            intentPrompt?: string;
+            priority: number;
+            scopeWorldId: string;
+            /** @enum {string} */
+            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "SCENE_BACKGROUND" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE";
+            tags: string[];
+            targetId: string;
+            /** @enum {string} */
+            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+            updatedAt: string;
+        };
+        WorldVisualBindingListDto: {
+            items: components["schemas"]["WorldVisualBindingDetailDto"][];
+            worldId: string;
+        };
+        WorldVisualBindingUpsertDto: {
+            asset?: components["schemas"]["VisualAssetCreateDto"];
+            assetId?: string;
+            conditions?: {
+                [key: string]: string;
+            };
+            intentPrompt?: string;
+            priority?: number;
+            /** @enum {string} */
+            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "SCENE_BACKGROUND" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE";
+            tags?: string[];
+            targetId: string;
+            /** @enum {string} */
+            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
         };
         WorldviewDetailDto: {
             causality: components["schemas"]["CausalityModelDto"];

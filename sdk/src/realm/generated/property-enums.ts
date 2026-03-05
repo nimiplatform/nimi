@@ -484,6 +484,31 @@ export const VerifySyntheticMemoryStatus = {
 
 export type VerifySyntheticMemoryStatus = (typeof VerifySyntheticMemoryStatus)[keyof typeof VerifySyntheticMemoryStatus];
 
+export const VisualAssetCreateMediaType = {
+  IMAGE: "IMAGE",
+  VIDEO: "VIDEO",
+} as const satisfies Record<string, components['schemas']['VisualAssetCreateDto']['mediaType']>;
+
+export type VisualAssetCreateMediaType = (typeof VisualAssetCreateMediaType)[keyof typeof VisualAssetCreateMediaType];
+
+export const VisualAssetCreateProvenance = {
+  UPLOADED: "UPLOADED",
+  GENERATED: "GENERATED",
+  IMPORTED: "IMPORTED",
+  REFERENCE: "REFERENCE",
+} as const satisfies Record<string, components['schemas']['VisualAssetCreateDto']['provenance']>;
+
+export type VisualAssetCreateProvenance = (typeof VisualAssetCreateProvenance)[keyof typeof VisualAssetCreateProvenance];
+
+export const VisualAssetCreateProvider = {
+  CF_IMAGE: "CF_IMAGE",
+  CF_STREAM: "CF_STREAM",
+  S3_OBJECT: "S3_OBJECT",
+  EXTERNAL_URL: "EXTERNAL_URL",
+} as const satisfies Record<string, components['schemas']['VisualAssetCreateDto']['provider']>;
+
+export type VisualAssetCreateProvider = (typeof VisualAssetCreateProvider)[keyof typeof VisualAssetCreateProvider];
+
 export const WorldAccessRecordMaintainRole = {
   OWNER: "OWNER",
   MAINTAINER: "MAINTAINER",
@@ -736,3 +761,80 @@ export const WorldviewPatchLifecycle = {
 } as const satisfies Record<string, components['schemas']['WorldviewPatchDto']['lifecycle']>;
 
 export type WorldviewPatchLifecycle = (typeof WorldviewPatchLifecycle)[keyof typeof WorldviewPatchLifecycle];
+
+export const WorldVisualAssetDetailMediaType = {
+  IMAGE: "IMAGE",
+  VIDEO: "VIDEO",
+} as const satisfies Record<string, components['schemas']['WorldVisualAssetDetailDto']['mediaType']>;
+
+export type WorldVisualAssetDetailMediaType = (typeof WorldVisualAssetDetailMediaType)[keyof typeof WorldVisualAssetDetailMediaType];
+
+export const WorldVisualAssetDetailProvenance = {
+  UPLOADED: "UPLOADED",
+  GENERATED: "GENERATED",
+  IMPORTED: "IMPORTED",
+  REFERENCE: "REFERENCE",
+} as const satisfies Record<string, components['schemas']['WorldVisualAssetDetailDto']['provenance']>;
+
+export type WorldVisualAssetDetailProvenance = (typeof WorldVisualAssetDetailProvenance)[keyof typeof WorldVisualAssetDetailProvenance];
+
+export const WorldVisualAssetDetailProvider = {
+  CF_IMAGE: "CF_IMAGE",
+  CF_STREAM: "CF_STREAM",
+  S3_OBJECT: "S3_OBJECT",
+  EXTERNAL_URL: "EXTERNAL_URL",
+} as const satisfies Record<string, components['schemas']['WorldVisualAssetDetailDto']['provider']>;
+
+export type WorldVisualAssetDetailProvider = (typeof WorldVisualAssetDetailProvider)[keyof typeof WorldVisualAssetDetailProvider];
+
+export const WorldVisualBindingDetailSlot = {
+  WORLD_ICON: "WORLD_ICON",
+  WORLD_BANNER: "WORLD_BANNER",
+  WORLD_GALLERY: "WORLD_GALLERY",
+  SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  EVENT_CG: "EVENT_CG",
+  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
+  AGENT_AVATAR: "AGENT_AVATAR",
+  AGENT_PORTRAIT: "AGENT_PORTRAIT",
+  AGENT_EXPRESSION: "AGENT_EXPRESSION",
+  AGENT_OUTFIT: "AGENT_OUTFIT",
+  AGENT_CANDIDATE: "AGENT_CANDIDATE",
+} as const satisfies Record<string, components['schemas']['WorldVisualBindingDetailDto']['slot']>;
+
+export type WorldVisualBindingDetailSlot = (typeof WorldVisualBindingDetailSlot)[keyof typeof WorldVisualBindingDetailSlot];
+
+export const WorldVisualBindingDetailTargetType = {
+  WORLD: "WORLD",
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+  WORLD_EVENT: "WORLD_EVENT",
+  WORLDVIEW: "WORLDVIEW",
+} as const satisfies Record<string, components['schemas']['WorldVisualBindingDetailDto']['targetType']>;
+
+export type WorldVisualBindingDetailTargetType = (typeof WorldVisualBindingDetailTargetType)[keyof typeof WorldVisualBindingDetailTargetType];
+
+export const WorldVisualBindingUpsertSlot = {
+  WORLD_ICON: "WORLD_ICON",
+  WORLD_BANNER: "WORLD_BANNER",
+  WORLD_GALLERY: "WORLD_GALLERY",
+  SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  EVENT_CG: "EVENT_CG",
+  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
+  AGENT_AVATAR: "AGENT_AVATAR",
+  AGENT_PORTRAIT: "AGENT_PORTRAIT",
+  AGENT_EXPRESSION: "AGENT_EXPRESSION",
+  AGENT_OUTFIT: "AGENT_OUTFIT",
+  AGENT_CANDIDATE: "AGENT_CANDIDATE",
+} as const satisfies Record<string, components['schemas']['WorldVisualBindingUpsertDto']['slot']>;
+
+export type WorldVisualBindingUpsertSlot = (typeof WorldVisualBindingUpsertSlot)[keyof typeof WorldVisualBindingUpsertSlot];
+
+export const WorldVisualBindingUpsertTargetType = {
+  WORLD: "WORLD",
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+  WORLD_EVENT: "WORLD_EVENT",
+  WORLDVIEW: "WORLDVIEW",
+} as const satisfies Record<string, components['schemas']['WorldVisualBindingUpsertDto']['targetType']>;
+
+export type WorldVisualBindingUpsertTargetType = (typeof WorldVisualBindingUpsertTargetType)[keyof typeof WorldVisualBindingUpsertTargetType];
