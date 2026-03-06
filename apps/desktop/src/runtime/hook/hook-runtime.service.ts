@@ -47,6 +47,7 @@ import type {
   HookActionVerifyResult,
   HookActionResult,
 } from './contracts/action.js';
+import type { RuntimeCanonicalCapability } from '@nimiplatform/sdk/mod/runtime-route';
 
 export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   private readonly agentProfileReadFilters = new Map<string, {
@@ -181,7 +182,11 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
       startedAt: Date.now(),
     });
   }
-  getModAiDependencySnapshot(input: { modId: string; capability?: string; routeSourceHint?: 'token-api' | 'local-runtime'; }): Promise<HookModAiDependencySnapshot> {
+  getModAiDependencySnapshot(input: {
+    modId: string;
+    capability?: RuntimeCanonicalCapability;
+    routeSourceHint?: 'token-api' | 'local-runtime';
+  }): Promise<HookModAiDependencySnapshot> {
     return this.modAiDependencySnapshotService.getSnapshot(input);
   }
   suspendMod(modId: string): void { this.lifecycleService.suspendMod(modId); }

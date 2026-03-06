@@ -8,6 +8,7 @@ import type {
   MissingDataCapabilityResolver,
   TurnHookPoint,
 } from './types.js';
+import type { RuntimeCanonicalCapability } from '@nimiplatform/sdk/mod/runtime-route';
 import type {
   HookActionAuditFilter,
   HookActionAuditRecord,
@@ -26,7 +27,7 @@ import type {
 export type HookModAiDependencyEntry = {
   dependencyId: string;
   kind: 'model' | 'service' | 'node';
-  capability?: string;
+  capability?: RuntimeCanonicalCapability;
   required: boolean;
   selected: boolean;
   preferred: boolean;
@@ -44,7 +45,7 @@ export type HookModAiDependencyRepairAction = {
   label: string;
   reasonCode: string;
   dependencyId?: string;
-  capability?: string;
+  capability?: RuntimeCanonicalCapability;
 };
 
 export type HookModAiDependencySnapshot = {
@@ -61,7 +62,7 @@ export type HookModAiDependencySnapshot = {
 
 export type HookModAiDependencySnapshotResolver = (input: {
   modId: string;
-  capability?: string;
+  capability?: RuntimeCanonicalCapability;
   routeSourceHint?: 'token-api' | 'local-runtime';
 }) => Promise<HookModAiDependencySnapshot>;
 
@@ -78,7 +79,7 @@ export interface DesktopHookRuntimeFacade {
   setModAiDependencySnapshotResolver(resolver: HookModAiDependencySnapshotResolver | null): void;
   getModAiDependencySnapshot(input: {
     modId: string;
-    capability?: string;
+    capability?: RuntimeCanonicalCapability;
     routeSourceHint?: 'token-api' | 'local-runtime';
   }): Promise<HookModAiDependencySnapshot>;
   suspendMod(modId: string): void;

@@ -72,13 +72,38 @@ function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.filter((item) => String(item || '').trim().length > 0)));
 }
 
+function mapCanonicalCapabilityToLocalAi(
+  capability: RuntimeCanonicalCapability | undefined,
+): string | undefined {
+  if (!capability) return undefined;
+  if (capability === 'text.generate') return 'chat';
+  if (capability === 'text.embed') return 'embedding';
+  if (capability === 'image.generate') return 'image';
+  if (capability === 'video.generate') return 'video';
+  if (capability === 'audio.synthesize') return 'tts';
+  if (capability === 'audio.transcribe') return 'stt';
+  return undefined;
+}
+
+function mapLocalAiCapabilityToCanonical(capability: unknown): RuntimeCanonicalCapability | undefined {
+  const normalized = String(capability || '').trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === 'text.generate' || normalized === 'chat') return 'text.generate';
+  if (normalized === 'text.embed' || normalized === 'embedding') return 'text.embed';
+  if (normalized === 'image.generate' || normalized === 'image') return 'image.generate';
+  if (normalized === 'video.generate' || normalized === 'video') return 'video.generate';
+  if (normalized === 'audio.synthesize' || normalized === 'tts' || normalized === 'speech.synthesize') return 'audio.synthesize';
+  if (normalized === 'audio.transcribe' || normalized === 'stt' || normalized === 'speech.transcribe') return 'audio.transcribe';
+  return undefined;
+}
+
 function toDependencyEntries(
   dependencies: LocalAiDependencyResolutionPlan['dependencies'],
 ): ModRuntimeDependencySnapshot['dependencies'] {
   return dependencies.map((item: LocalAiDependencyDescriptor) => ({
     dependencyId: item.dependencyId,
     kind: item.kind,
-    capability: item.capability,
+    capability: mapLocalAiCapabilityToCanonical(item.capability),
     required: item.required,
     selected: item.selected,
     preferred: item.preferred,
@@ -90,6 +115,30 @@ function toDependencyEntries(
     reasonCode: item.reasonCode,
     warnings: Array.isArray(item.warnings) ? item.warnings : [],
   }));
+}
+
+function toDependencyEntry(
+  item: LocalAiDependencyDescriptor,
+  input?: {
+    reasonCode?: string;
+    warnings?: string[];
+  },
+): ModRuntimeDependencySnapshot['dependencies'][number] {
+  return {
+    dependencyId: item.dependencyId,
+    kind: item.kind,
+    capability: mapLocalAiCapabilityToCanonical(item.capability),
+    required: item.required,
+    selected: item.selected,
+    preferred: item.preferred,
+    modelId: item.modelId,
+    repo: item.repo,
+    engine: item.engine,
+    serviceId: item.serviceId,
+    nodeId: item.nodeId,
+    reasonCode: input?.reasonCode ?? item.reasonCode,
+    warnings: input?.warnings ?? (Array.isArray(item.warnings) ? item.warnings : []),
+  };
 }
 
 type DependencyReadiness = 'ready' | 'degraded' | 'missing';
@@ -111,7 +160,7 @@ function buildDependencyRepairAction(input: {
     label: input.label,
     reasonCode: input.reasonCode,
     dependencyId: input.dependency.dependencyId,
-    capability: input.dependency.capability,
+    capability: mapLocalAiCapabilityToCanonical(input.dependency.capability),
   };
 }
 
@@ -199,11 +248,10 @@ function assessDependencyRuntimeState(input: {
       repairActions.push(selectedDependencyInstallAction(dependency, reasonCode));
     }
     return {
-      entry: {
-        ...dependency,
+      entry: toDependencyEntry(dependency, {
         reasonCode,
         warnings: uniqueStrings(warnings),
-      },
+      }),
       readiness,
       repairActions,
     };
@@ -306,11 +354,10 @@ function assessDependencyRuntimeState(input: {
   }
 
   return {
-    entry: {
-      ...dependency,
+    entry: toDependencyEntry(dependency, {
       reasonCode,
       warnings: uniqueStrings(warnings),
-    },
+    }),
     readiness,
     repairActions,
   };
@@ -350,7 +397,7 @@ function buildRepairActionsFromPlan(
       label: dependencyRepairLabel(dep),
       reasonCode: dep.reasonCode || 'LOCAL_AI_DEPENDENCY_NOT_SELECTED',
       dependencyId: dep.dependencyId,
-      capability: dep.capability,
+      capability: mapLocalAiCapabilityToCanonical(dep.capability),
     });
   }
   for (const decision of plan.preflightDecisions) {
@@ -373,11 +420,12 @@ function buildRepairActionsFromPlan(
 }
 
 export function createModAiDependencySnapshotResolver(): (
-  input: { modId: string; capability?: string; routeSourceHint?: 'token-api' | 'local-runtime' },
+  input: { modId: string; capability?: RuntimeCanonicalCapability; routeSourceHint?: 'token-api' | 'local-runtime' },
 ) => Promise<ModRuntimeDependencySnapshot> {
   return async (input) => {
     const modId = String(input.modId || '').trim();
-    const capability = String(input.capability || '').trim() || undefined;
+    const capability = input.capability;
+    const localAiCapability = mapCanonicalCapabilityToLocalAi(capability);
     const routeSourceHint = input.routeSourceHint;
 
     // When the caller indicates that the effective route for this capability
@@ -433,7 +481,7 @@ export function createModAiDependencySnapshotResolver(): (
     const deviceProfile = await localAiRuntime.collectDeviceProfile();
     const plan = await localAiRuntime.resolveDependencies({
       modId,
-      capability,
+      capability: localAiCapability,
       dependencies,
       deviceProfile,
     });
@@ -446,7 +494,7 @@ export function createModAiDependencySnapshotResolver(): (
       [models, services, nodes] = await Promise.all([
         localAiRuntime.list(),
         localAiRuntime.listServices(),
-        localAiRuntime.listNodesCatalog(capability ? { capability } : undefined),
+        localAiRuntime.listNodesCatalog(localAiCapability ? { capability: localAiCapability } : undefined),
       ]);
     } catch (error) {
       inventoryWarnings.push(
