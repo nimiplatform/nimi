@@ -20,10 +20,6 @@
       "enforced": true,
       "reason": "Mod uses @nimiplatform/sdk/mod i18n namespace and must keep en/zh parity."
     },
-    "meeting-scribe": {
-      "enforced": false,
-      "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
-    },
     "mint-you": {
       "enforced": false,
       "reason": "Locales are still TS modules (en.ts/zh.ts), not JSON parity-managed yet."
