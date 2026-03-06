@@ -147,34 +147,31 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - `status=UNSPECIFIED` 非法
 - `api_key` 与 `label` 显式空串非法
 - 合法请求一律刷新 `updated_at`
-- `api_key/endpoint` 变化时必须失效 remote model cache
 
 ## K-RPC-009 DeleteConnector 补偿契约
 
 `DeleteConnector` 必须满足：
 
 - 级联删除 credential
-- 清理 remote model cache
 - 执行 `DELETE_PENDING` 补偿流程（可重试、可启动恢复）
 
 ## K-RPC-010 Remote 探测/发现前置校验契约
 
 - `TestConnector(remote)` 出站前必须通过 owner/status/credential 校验
-- `ListConnectorModels(remote)` 缓存命中路径不得出站，也不得做 endpoint 校验
+- `ListConnectorModels(remote)` 必须只读 active catalog snapshot，不得出站，也不得承担 endpoint 探测
 
 ## K-RPC-011 Connector 状态机锚点
 
 `tables/state-transitions.yaml` 中 connector 相关状态机（`connector_status` 与 `remote_connector_delete_flow`）必须以本 Rule ID 作为来源锚点。
 
-## K-RPC-012 Remote Model Cache 策略
+## K-RPC-012 Connector Model Catalog Read Semantics
 
-`ListConnectorModels` 的 remote model 缓存规则：
+`ListConnectorModels` 的 remote 读路径固定为：
 
-- **缓存 TTL**：5 分钟。
-- **隔离粒度**：按 `connector_id` 隔离，不同 connector 独立缓存。
-- **立即失效触发**：`UpdateConnector` 中 `api_key` 或 `endpoint` 变化时、`DeleteConnector` 执行时。
-- **强制刷新**：调用方可通过 `ListConnectorModels(force_refresh=true)` 绕过缓存，强制出站查询。
-- **缓存未命中**：正常出站查询并回填缓存。
+- 数据来源：active catalog snapshot
+- `force_refresh=true`：允许但必须是 no-op
+- 返回结果：不得因为 provider live `/models` 差异而改变
+- `TestConnector(remote)`：是唯一保留的非 scenario 出站探测入口，但其结果不得回填 `ListConnectorModels`
 
 ## K-RPC-013 ListPresetVoices 字段契约
 

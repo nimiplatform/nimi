@@ -18,11 +18,11 @@
 | `UpdateConnector` | `api_key` | `explicit_empty_string_is_invalid` | `K-RPC-008` |
 | `UpdateConnector` | `label` | `explicit_empty_string_is_invalid` | `K-RPC-008` |
 | `UpdateConnector` | `updated_at` | `refresh_on_any_legal_mutation_request` | `K-RPC-008` |
-| `UpdateConnector` | `cache` | `invalidate_remote_model_cache_when_api_key_or_endpoint_changes` | `K-RPC-008` |
+| `UpdateConnector` | `catalog_read` | `api_key_or_endpoint_changes_must_not_change_yaml_derived_model_inventory` | `K-RPC-008` |
 | `DeleteConnector` | `credential` | `cascade_delete` | `K-RPC-009` |
-| `DeleteConnector` | `cache` | `cleanup_remote_model_cache_entry` | `K-RPC-009` |
+| `DeleteConnector` | `catalog_read` | `delete_must_not_require_remote_model_cache_cleanup` | `K-RPC-009` |
 | `DeleteConnector` | `deletion_flow` | `use_delete_pending_compensation_flow` | `K-RPC-009` |
 | `TestConnector` | `remote_precheck` | `owner_status_credential_must_pass_before_probe` | `K-RPC-010` |
-| `ListConnectorModels` | `remote_cache_hit` | `no_outbound_and_no_endpoint_validation_on_cache_hit` | `K-RPC-010` |
+| `ListConnectorModels` | `remote_catalog_read` | `yaml_snapshot_only_force_refresh_is_noop_and_no_outbound` | `K-RPC-010` |
 | `ListConnectorModels` | `page_size/page_token` | `request_fields_must_be_supported_with_default_50_max_200` | `K-CONN-014` |
 | `ListConnectorModels` | `next_page_token` | `response_must_return_next_page_token_empty_on_last_page` | `K-CONN-014` |

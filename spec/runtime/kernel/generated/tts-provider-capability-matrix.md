@@ -4,12 +4,14 @@
 > Source: `spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml`
 | Provider ID | Runtime Plane | Synthesize | V2V | T2V | Timing Alignment | Voice Discovery Mode | Activation State | Source Rule |
 |---|---|---|---|---|---|---|---|---|
+| `aws_polly` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
+| `azure_speech` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
 | `dashscope` | `remote` | `true` | `true` | `true` | `false` | `mixed` | `active` | `K-MCAT-023` |
+| `elevenlabs` | `remote` | `true` | `true` | `true` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
+| `fish_audio` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
+| `google_cloud_tts` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
+| `local` | `local` | `true` | `false` | `false` | `false` | `mixed` | `active` | `K-MCAT-023` |
 | `openai` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
+| `playht` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
+| `stepfun` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `volcengine` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
-| `elevenlabs` | `remote` | `true` | `true` | `true` | `true` | `dynamic_global` | `active` | `K-MCAT-023` |
-| `local` | `local` | `true` | `true` | `true` | `false` | `mixed` | `active` | `K-MCAT-023` |
-| `azure_speech` | `remote` | `true` | `false` | `false` | `true` | `dynamic_global` | `active` | `K-MCAT-023` |
-| `google_cloud_tts` | `remote` | `true` | `false` | `false` | `true` | `dynamic_global` | `active` | `K-MCAT-023` |
-| `aws_polly` | `remote` | `true` | `false` | `false` | `true` | `dynamic_global` | `active` | `K-MCAT-023` |
-| `playht` | `remote` | `true` | `true` | `false` | `false` | `dynamic_global` | `active` | `K-MCAT-023` |

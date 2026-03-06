@@ -1,142 +1,422 @@
 version: 1
 providers:
-  - provider: local
-    runtime_plane: local
-    execution_module: local-model
-    managed_connector_supported: true
-    inline_supported: false
-    endpoint_requirement: empty_string_only
-    sources: [K-LOCAL-001, K-LOCAL-002]
-  - provider: gemini
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: openai
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
   - provider: anthropic
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: dashscope
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: volcengine
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: nimillm
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: aws_polly
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: minimax
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: kimi
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: glm
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: deepseek
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: openrouter
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: openai_compatible
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: explicit_required
-    sources: [K-RPC-007, K-KEYSRC-008, K-KEYSRC-001, K-RPC-001]
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: azure
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: mistral
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: azure_speech
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: bedrock
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: cohere
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: dashscope
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: deepseek
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: elevenlabs
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: fireworks
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: fish_audio
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: flux
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: gemini
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: glm
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: google_cloud_tts
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: google_veo
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: groq
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: xai
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
-  - provider: qianfan
-    runtime_plane: remote
-    execution_module: nimillm
-    managed_connector_supported: true
-    inline_supported: true
-    endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: hunyuan
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: ideogram
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: kimi
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: kling
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: local
+    runtime_plane: local
+    execution_module: local-model
+    managed_connector_supported: true
+    inline_supported: false
+    endpoint_requirement: empty_string_only
+    sources:
+      - K-MCAT-027
+      - K-LOCAL-001
+      - K-LOCAL-002
+  - provider: luma
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: minimax
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: mistral
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: nimillm
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: openai
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: openai_compatible
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: openrouter
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: perplexity
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: pika
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: playht
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: qianfan
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: runway
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: siliconflow
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
   - provider: spark
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    sources: [K-RPC-007, K-KEYSRC-001, K-RPC-001]
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: stability
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: stepfun
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: together
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: explicit_required
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: volcengine
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: volcengine_openspeech
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: xai
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001

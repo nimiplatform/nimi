@@ -18,9 +18,13 @@ UpdateConnector 必须校验可变字段集合；凭据或 endpoint 变化必须
 
 DeleteConnector 必须执行级联清理与可恢复补偿流程。
 
-## K-CONN-005 Model Cache Policy
+## K-CONN-005 YAML-First Model Listing
 
-远端模型缓存必须具备 TTL、按 connector 隔离、显式强制刷新入口。
+`ListConnectorModels` 必须是 catalog read：
+
+- 远端 connector 的模型列表只能来自 active catalog snapshot
+- `force_refresh` 字段保留但语义为 no-op
+- 非 scenario 路径不得把 provider `/models` 探测结果当作模型清单真相
 
 ## K-CONN-006 Probe Preconditions
 
@@ -28,7 +32,7 @@ DeleteConnector 必须执行级联清理与可恢复补偿流程。
 
 ## K-CONN-007 List Models Boundaries
 
-缓存命中路径不得触发出站探测；缓存未命中路径必须记录可观测信息。
+`TestConnector(remote)` 可以出站做连通性 / 凭据有效性探测，但不得承担模型发现、voice discovery 或 catalog 预热职责。
 
 ## K-CONN-008 Provider Canonical Domain
 

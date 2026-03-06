@@ -7,7 +7,7 @@
 ## 1. 目标
 
 本目录是 Nimi 平台未来能力的结构化 backlog。
-所有条目从研究报告中提取，经审计后进入 backlog，按优先级和类别组织，成熟后毕业到 `spec/runtime/` 或 `spec/sdk/`。
+所有条目从研究报告中提取，经审计后进入 backlog，按优先级和类别组织，成熟后毕业到现有 spec 域（`spec/runtime/`、`spec/sdk/`、`spec/desktop/`）。面向 Web 的条目不单独创建 `spec/web/`，而是毕业到 `spec/desktop/web-adapter.md` 或相关 Desktop 投影文档。
 
 ## 2. 目录结构
 

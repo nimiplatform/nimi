@@ -4,23 +4,45 @@
 > Source: `spec/runtime/kernel/tables/provider-capabilities.yaml`
 | Provider | Plane | Execution Module | Managed Connector | Inline | Endpoint Requirement | Sources |
 |---|---|---|---|---|---|---|
-| `local` | `local` | `local-model` | `true` | `false` | `empty_string_only` | `K-LOCAL-001`, `K-LOCAL-002` |
-| `gemini` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `openai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `anthropic` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `dashscope` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `nimillm` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `minimax` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `kimi` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `glm` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `deepseek` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `openai_compatible` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-008`, `K-KEYSRC-001`, `K-RPC-001` |
-| `azure` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `mistral` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `qianfan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `hunyuan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
-| `spark` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-RPC-007`, `K-KEYSRC-001`, `K-RPC-001` |
+| `anthropic` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `aws_polly` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `azure` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `azure_speech` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `bedrock` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `cohere` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `dashscope` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `deepseek` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `elevenlabs` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `fireworks` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `fish_audio` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `flux` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `gemini` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `glm` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `google_cloud_tts` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `google_veo` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `groq` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `hunyuan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `ideogram` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `kimi` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `kling` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `local` | `local` | `local-model` | `true` | `false` | `empty_string_only` | `K-MCAT-027`, `K-LOCAL-001`, `K-LOCAL-002` |
+| `luma` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `minimax` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `mistral` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `nimillm` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `openai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `openai_compatible` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `openrouter` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `perplexity` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `pika` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `playht` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `qianfan` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `runway` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `siliconflow` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `spark` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `stability` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `stepfun` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `together` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `volcengine_openspeech` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

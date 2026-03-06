@@ -32,6 +32,8 @@
 - 错误码与 actionHint：`kernel/tables/protocol-error-codes.yaml`。
 - 原语字段合同：`kernel/tables/protocol-primitives.yaml`。
 - 合规测试矩阵：`kernel/tables/compliance-test-matrix.yaml`。
+- 审计事件字典：`kernel/tables/audit-events.yaml`。
+- App 授权预设：`kernel/tables/app-authorization-presets.yaml`。
 - 参与方画像与 app 模式：`kernel/tables/participant-profiles.yaml`。
 
 ## 4. 非目标

@@ -121,7 +121,7 @@ provider 原生两段式创建流程（例如 `preview -> create`）必须封装
 
 Catalog `voice.discovery_mode` 与发现接口职责必须严格对应：
 
-- `static_catalog|dynamic_global`：预置音色发现由 `ListPresetVoices` 承担。
+- `static_catalog`：预置音色发现由 `ListPresetVoices` 承担，返回值来自 YAML catalog snapshot 或显式本地 custom YAML。
 - `dynamic_user_scoped`：用户资产发现由 `ListVoiceAssets` 承担。
 
 provider 同时支持全局预置与用户资产时，允许同时暴露两条通道，但不得混流返回。

@@ -2,7 +2,7 @@
 
 > Status: Draft
 > Date: 2026-03-01
-> Scope: Backlog 条目毕业到 spec/runtime 或 spec/sdk 的条件、流程与跟踪。
+> Scope: Backlog 条目毕业到现有 spec 域的条件、流程与跟踪。
 
 ## F-GRAD-001 毕业条件
 
@@ -12,11 +12,12 @@
 2. 已确定目标 spec 路径（`target_spec_path`）。
 3. 已有明确的 kernel Rule ID 分配方案。
 4. 已完成架构影响评估（`architecture_notes` 非空且具体）。
-5. 目标 spec 域的 CI 一致性检查必须通过（对应 `check:<domain>-spec-kernel-consistency`）。此条件确保毕业后的 spec 不会破坏已有的一致性守护。
+5. 目标 spec 域的 mandatory verification commands 必须通过，至少包含 `check:<domain>-spec-kernel-consistency` 与 `check:<domain>-spec-kernel-docs-drift`。此条件确保毕业后的 spec 不会破坏已有的一致性守护。
+6. `target_layers` 包含 `web` 时，不创建独立 `spec/web/` 域；必须毕业到现有 `spec/desktop/` 投影文档（优先 `spec/desktop/web-adapter.md`）并沿用 `desktop` 域检查。
 
 ## F-GRAD-002 毕业流程
 
-1. 在目标 spec 域（`spec/runtime/` 或 `spec/sdk/`）创建或扩展对应文档。
+1. 在目标 spec 域（`spec/runtime/`、`spec/sdk/` 或 `spec/desktop/`）创建或扩展对应文档。
 2. 在 `graduation-log.yaml` 追加一条毕业记录。
 3. 在 `backlog-items.yaml` 中将条目 `status` 更新为 `spec-drafted`。
 4. 以上三步必须在同一次变更中完成。
