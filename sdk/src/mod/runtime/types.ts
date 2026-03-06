@@ -179,7 +179,7 @@ export type ModRuntimeClient = {
 export type ModRuntimeDependencyEntry = {
   dependencyId: string;
   kind: 'model' | 'service' | 'node';
-  capability?: string;
+  capability?: RuntimeCanonicalCapability;
   required: boolean;
   selected: boolean;
   preferred: boolean;
@@ -197,7 +197,7 @@ export type ModRuntimeRepairAction = {
   label: string;
   reasonCode: string;
   dependencyId?: string;
-  capability?: string;
+  capability?: RuntimeCanonicalCapability;
 };
 
 export type ModRuntimeDependencySnapshot = {
@@ -214,8 +214,8 @@ export type ModRuntimeDependencySnapshot = {
 
 export type ModRuntimeInspector = {
   getDependencySnapshot: (
-    capability?: string,
+    capability?: RuntimeCanonicalCapability,
     routeSourceHint?: 'token-api' | 'local-runtime',
   ) => Promise<ModRuntimeDependencySnapshot>;
-  getRepairActions: (capability?: string) => Promise<ModRuntimeRepairAction[]>;
+  getRepairActions: (capability?: RuntimeCanonicalCapability) => Promise<ModRuntimeRepairAction[]>;
 };

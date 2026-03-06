@@ -47,14 +47,14 @@ import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
   RuntimeRouteOptionsSnapshot,
-} from '../runtime-route';
+} from '../runtime-route.js';
 
 export type ModRuntimeHost = {
   checkLocalLlmHealth: (input: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult>;
   getRuntimeHookRuntime: () => RuntimeHookRuntimeFacade;
   getModAiDependencySnapshot: (input: {
     modId: string;
-    capability?: string;
+    capability?: RuntimeCanonicalCapability;
     routeSourceHint?: 'token-api' | 'local-runtime';
   }) => Promise<ModRuntimeDependencySnapshot>;
   route: {

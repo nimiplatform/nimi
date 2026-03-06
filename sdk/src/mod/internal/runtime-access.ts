@@ -11,6 +11,7 @@ import type {
   ModRuntimeHost,
 } from '../types/runtime-mod';
 import type { ModRuntimeDependencySnapshot } from '../runtime/types';
+import type { RuntimeCanonicalCapability } from '../runtime-route.js';
 
 export function getRuntimeHost(): ModRuntimeHost {
   return getModSdkHost().runtime;
@@ -41,12 +42,12 @@ export function resolveModRuntimeContext(input?: ModRuntimeContextInput): ModRun
 
 export async function getModAiDependencySnapshot(input: {
   modId: string;
-  capability?: string;
+  capability?: RuntimeCanonicalCapability;
   routeSourceHint?: 'token-api' | 'local-runtime';
 }, context?: ModRuntimeContextInput): Promise<ModRuntimeDependencySnapshot> {
   return resolveRuntimeHost(context).getModAiDependencySnapshot({
     modId: String(input.modId || '').trim(),
-    capability: String(input.capability || '').trim() || undefined,
+    capability: input.capability,
     routeSourceHint: input.routeSourceHint,
   });
 }

@@ -5,6 +5,7 @@ import type {
   ModRuntimeInspector,
   ModRuntimeRepairAction,
 } from './types.js';
+import type { RuntimeCanonicalCapability } from '../runtime-route.js';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
@@ -21,17 +22,17 @@ export function createModRuntimeInspector(
   const runtimeContext = resolveModRuntimeContext(context);
 
   const getDependencySnapshot = async (
-    capability?: string,
+    capability?: RuntimeCanonicalCapability,
     routeSourceHint?: 'token-api' | 'local-runtime',
   ): Promise<ModRuntimeDependencySnapshot> => {
     return runtimeContext.runtimeHost.getModAiDependencySnapshot({
       modId: normalizedModId,
-      capability: String(capability || '').trim() || undefined,
+      capability,
       routeSourceHint,
     });
   };
 
-  const getRepairActions = async (capability?: string): Promise<ModRuntimeRepairAction[]> => {
+  const getRepairActions = async (capability?: RuntimeCanonicalCapability): Promise<ModRuntimeRepairAction[]> => {
     const snapshot = await getDependencySnapshot(capability);
     return snapshot.repairActions;
   };
