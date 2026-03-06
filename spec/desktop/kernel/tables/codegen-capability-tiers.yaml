@@ -1,25 +1,105 @@
 entries:
   - tier: T0
-    capability: llm.text.generate
+    capability: runtime.ai.text.generate
     policy: auto_allow
     source_rule: D-CODEGEN-020
   - tier: T0
-    capability: llm.text.stream
+    capability: runtime.ai.text.stream
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T0
+    capability: ui.register.ui-extension.app.*
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T0
+    capability: data.register.data-api.user-*.*.*
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T0
+    capability: data.query.data-api.user-*.*.*
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T0
+    capability: audit.read.self
+    policy: auto_allow
+    source_rule: D-CODEGEN-020
+  - tier: T0
+    capability: meta.read.self
     policy: auto_allow
     source_rule: D-CODEGEN-020
   - tier: T1
-    capability: llm.image.generate
+    capability: runtime.media.image.*
     policy: require_consent
     source_rule: D-CODEGEN-021
   - tier: T1
-    capability: llm.speech.*
+    capability: runtime.media.video.*
     policy: require_consent
     source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: runtime.ai.embedding.generate
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: runtime.media.tts.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: runtime.media.stt.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: runtime.voice.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: runtime.route.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T1
+    capability: data.query.data-api.core.*
+    policy: require_consent
+    source_rule: D-CODEGEN-021
+  - tier: T2
+    capability: turn.register.*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: inter-mod.*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: network*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: filesystem*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: process*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: economy-write*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: identity-write*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: platform-cloud-write*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
   - tier: T2
     capability: audit.read.all
     policy: hard_deny
     source_rule: D-CODEGEN-022
   - tier: T2
     capability: action.*
+    policy: hard_deny
+    source_rule: D-CODEGEN-022
+  - tier: T2
+    capability: meta.read.all
     policy: hard_deny
     source_rule: D-CODEGEN-022

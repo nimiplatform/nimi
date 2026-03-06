@@ -33,3 +33,6 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 - `pnpm check:desktop-spec-kernel-docs-drift`
 - `pnpm --filter @nimiplatform/desktop lint`
 - `pnpm --filter @nimiplatform/desktop test`
+- `pnpm check:desktop-mods-smoke --all`
+- `pnpm check:local-chat-e2e`
+- `pnpm check:local-chat-live-smoke`

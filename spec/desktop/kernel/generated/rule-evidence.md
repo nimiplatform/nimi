@@ -9,7 +9,7 @@
 | `desktop_kernel_consistency` | `static_gate` | `pnpm check:desktop-spec-kernel-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
-| `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke:local-chat` | `scripts/check-desktop-mods-smoke.mjs` | Desktop hook runtime can discover/build/sync local-chat mod resources. |
+| `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop hook runtime can discover/build/sync all desktop-loadable first-party mod resources. |
 | `local_chat_e2e_gate` | `e2e_gate` | `pnpm check:local-chat-e2e` | `nimi-mods/local-chat/test/local-chat-run-text-turn.e2e.test.ts` | Deterministic local-chat turn pipeline e2e coverage for planner/fallback semantics. |
 | `local_chat_live_smoke_gate` | `live_gate` | `pnpm check:local-chat-live-smoke` | `nimi-mods/local-chat/test/local-chat-live-smoke.test.ts` | Live local-chat e2e gate for real provider routing and trace continuity. |
 

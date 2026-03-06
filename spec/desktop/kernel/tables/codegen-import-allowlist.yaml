@@ -1,5 +1,8 @@
 imports:
-  - path: '@nimiplatform/sdk/mod/ai'
+  - path: '@nimiplatform/sdk/mod/runtime'
+    policy: allow
+    source_rule: D-CODEGEN-030
+  - path: '@nimiplatform/sdk/mod/runtime-route'
     policy: allow
     source_rule: D-CODEGEN-030
   - path: '@nimiplatform/sdk/mod/hook'

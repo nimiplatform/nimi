@@ -17,9 +17,9 @@ evidence_catalog:
     description: Desktop quality + unit tests for behavior regression coverage.
   desktop_mods_smoke_gate:
     type: smoke_gate
-    command: pnpm check:desktop-mods-smoke:local-chat
+    command: pnpm check:desktop-mods-smoke --all
     path: scripts/check-desktop-mods-smoke.mjs
-    description: Desktop hook runtime can discover/build/sync local-chat mod resources.
+    description: Desktop hook runtime can discover/build/sync all desktop-loadable first-party mod resources.
   local_chat_e2e_gate:
     type: e2e_gate
     command: pnpm check:local-chat-e2e

@@ -4,7 +4,8 @@
 > Source: `spec/desktop/kernel/tables/codegen-import-allowlist.yaml`
 | Path | Policy | Source Rule |
 |---|---|---|
-| `@nimiplatform/sdk/mod/ai` | `allow` | `D-CODEGEN-030` |
+| `@nimiplatform/sdk/mod/runtime` | `allow` | `D-CODEGEN-030` |
+| `@nimiplatform/sdk/mod/runtime-route` | `allow` | `D-CODEGEN-030` |
 | `@nimiplatform/sdk/mod/hook` | `allow` | `D-CODEGEN-030` |
 | `@nimiplatform/sdk/mod/types` | `allow` | `D-CODEGEN-030` |
 | `@nimiplatform/sdk/mod/host` | `deny` | `D-CODEGEN-031` |

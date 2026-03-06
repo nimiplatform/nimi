@@ -64,10 +64,10 @@ Capability key 采用点分层级格式：`<subsystem>.<action>.<target>`。
 5 种 source types 按信任级别递减排列：
 
 1. `core`：全权限 `*`。
-2. `builtin`：完整 5 子系统 + LLM + action + audit/meta（含 `meta.read.all`）。
-3. `injected`：完整 event/data/ui/inter-mod + 受限 turn hook（仅 pre-model, post-state）+ 完整 LLM + action + audit/meta（无 `meta.read.all`、无 `inter-mod.provide`）。
-4. `sideload`：event.publish + data.query + ui.register + inter-mod.request + 完整 LLM + action + audit/meta（无 event.subscribe、无 data.register、无 turn hook、无 inter-mod.provide）。
-5. `codegen`：最小权限（text LLM + `ui-extension.app.*` 槽位 + `data-api.user-*` 数据 API + audit/meta.read.self）。
+2. `builtin`：完整 5 子系统 + runtime facade + action + audit/meta（含 `meta.read.all`）。
+3. `injected`：完整 event/data/ui/inter-mod + 受限 turn hook（仅 pre-model, post-state）+ 完整 runtime facade + action + audit/meta（无 `meta.read.all`、无 `inter-mod.provide`）。
+4. `sideload`：event.publish + data.query + ui.register + inter-mod.request + 完整 runtime facade + action + audit/meta（无 event.subscribe、无 data.register、无 turn hook、无 `inter-mod.provide`）。
+5. `codegen`：最小权限（runtime text facade + `ui-extension.app.*` 槽位 + `data-api.user-*` 数据 API + audit/meta.read.self）。
 
 Capability 检查流程：
 1. 解析请求的 capability key。
@@ -75,14 +75,26 @@ Capability 检查流程：
 3. 遍历该 source type 的 allowlist。
 4. `capabilityMatches(pattern, key)` 判定。
 
-## D-HOOK-008 — LLM Capability 域
+**两层语义必须分离**：
 
-所有非 codegen source types 共享完整 LLM 能力集：
+- Hook permission key 负责授权 mod 是否可以调用某个 desktop/runtime facade 方法。
+- Runtime canonical capability token 负责在 `runtime.route.listOptions/resolve/checkHealth` 中判定 connector/model/workflow 的支持面。
+- Hook permission key 不是 provider/model 能力真相；Desktop 不得用 `runtime.*` permission 反推 `text.generate` / `audio.synthesize` / `voice_workflow.tts_v2v` 等 runtime canonical capability。
 
-- `llm.text.generate` / `llm.text.stream`
-- `llm.image.generate` / `llm.video.generate` / `llm.embedding.generate`
-- `llm.lifecycle.read`
-- `llm.speech.*`（providers.list、voices.list、synthesize、stream.*、transcribe）
+## D-HOOK-008 — Runtime Capability 域
+
+所有非 codegen source types 共享完整 runtime facade 能力集：
+
+- `runtime.ai.text.generate` / `runtime.ai.text.stream`
+- `runtime.ai.embedding.generate`
+- `runtime.media.image.generate` / `runtime.media.image.stream`
+- `runtime.media.video.generate` / `runtime.media.video.stream`
+- `runtime.media.tts.list.voices` / `runtime.media.tts.synthesize` / `runtime.media.tts.stream`
+- `runtime.media.stt.transcribe`
+- `runtime.media.jobs.submit|get|cancel|subscribe|get.artifacts`
+- `runtime.voice.get.asset|list.assets|delete.asset|list.preset.voices`
+- `runtime.route.list.options|resolve|check.health`
+- `runtime.profile.read.agent`
 
 ## D-HOOK-009 — Action Capability 域
 
