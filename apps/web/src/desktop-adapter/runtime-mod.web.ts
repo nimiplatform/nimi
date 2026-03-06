@@ -1,3 +1,9 @@
+import {
+  CODEGEN_T0_CAPABILITY_PATTERNS as DESKTOP_CODEGEN_T0_CAPABILITY_PATTERNS,
+  CODEGEN_T1_CAPABILITY_PATTERNS as DESKTOP_CODEGEN_T1_CAPABILITY_PATTERNS,
+  CODEGEN_T2_CAPABILITY_PATTERNS as DESKTOP_CODEGEN_T2_CAPABILITY_PATTERNS,
+} from '@runtime/mod/codegen/capability-catalog';
+
 const emptyArray = Object.freeze([]) as [];
 
 const runtimeHookRuntimeStub = {
@@ -15,37 +21,11 @@ const runtimeHookRuntimeStub = {
   setMissingDataCapabilityResolver: (_resolver: unknown): void => {},
 };
 
-export const CODEGEN_T0_CAPABILITY_PATTERNS = [
-  'llm.text.generate',
-  'llm.text.stream',
-  'ui.register.ui-extension.app.*',
-  'data.register.data-api.user-*.*.*',
-  'data.query.data-api.user-*.*.*',
-  'audit.read.self',
-  'meta.read.self',
-] as const;
+export const CODEGEN_T0_CAPABILITY_PATTERNS = DESKTOP_CODEGEN_T0_CAPABILITY_PATTERNS;
 
-export const CODEGEN_T1_CAPABILITY_PATTERNS = [
-  'llm.image.generate',
-  'llm.video.generate',
-  'llm.embedding.generate',
-  'llm.speech.*',
-  'data.query.data-api.core.*',
-] as const;
+export const CODEGEN_T1_CAPABILITY_PATTERNS = DESKTOP_CODEGEN_T1_CAPABILITY_PATTERNS;
 
-export const CODEGEN_T2_CAPABILITY_PATTERNS = [
-  'turn.register.*',
-  'inter-mod.*',
-  'action.*',
-  'network*',
-  'filesystem*',
-  'process*',
-  'economy-write*',
-  'identity-write*',
-  'platform-cloud-write*',
-  'audit.read.all',
-  'meta.read.all',
-] as const;
+export const CODEGEN_T2_CAPABILITY_PATTERNS = DESKTOP_CODEGEN_T2_CAPABILITY_PATTERNS;
 
 export function getRuntimeHookRuntime() {
   return runtimeHookRuntimeStub;

@@ -6,6 +6,7 @@ import { extname, relative, resolve } from 'node:path';
 const repoRoot = resolve(new URL('..', import.meta.url).pathname);
 
 const scanRoots = [
+  'apps/web/src/desktop-adapter',
   'sdk/src/mod',
   'sdk/README.md',
   'spec/sdk',
@@ -14,6 +15,8 @@ const scanRoots = [
   'apps/desktop/scripts',
   'apps/desktop/test',
   'apps/desktop/src-tauri/resources/default-mods',
+  'runtime/cmd/nimi',
+  'examples/mods',
   'nimi-mods/AGENTS.md',
   'nimi-mods/audio-book/mod.manifest.yaml',
   'nimi-mods/audio-book/src',
