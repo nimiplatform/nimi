@@ -123,8 +123,16 @@ func TestRunRuntimeModCreateBuildDevJSON(t *testing.T) {
 	if !strings.Contains(createOutput, "world.nimi.math-quiz") {
 		t.Fatalf("create output missing mod id: %s", createOutput)
 	}
-	if _, statErr := os.Stat(filepath.Join(projectDir, "mod.manifest.yaml")); statErr != nil {
+	manifestPath := filepath.Join(projectDir, "mod.manifest.yaml")
+	if _, statErr := os.Stat(manifestPath); statErr != nil {
 		t.Fatalf("manifest missing: %v", statErr)
+	}
+	manifestRaw, readErr := os.ReadFile(manifestPath)
+	if readErr != nil {
+		t.Fatalf("read manifest: %v", readErr)
+	}
+	if !strings.Contains(string(manifestRaw), "runtime.ai.text.generate") {
+		t.Fatalf("create manifest should use canonical capability: %s", string(manifestRaw))
 	}
 
 	buildOutput, err := captureStdoutFromRun(func() error {
@@ -184,6 +192,37 @@ func TestRunRuntimeModInstallJSON(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeModBuildRejectsLegacyManifestCapability(t *testing.T) {
+	modDir := filepath.Join(t.TempDir(), "legacy-build")
+	createLegacyTestModProject(t, modDir, "world.nimi.legacy-build", "Legacy Build Mod")
+
+	err := runRuntimeMod([]string{"build", "--dir", modDir})
+	if err == nil {
+		t.Fatalf("expected legacy manifest capability reject on build")
+	}
+	if !strings.Contains(err.Error(), "MOD_MANIFEST_LEGACY_CAPABILITY_UNSUPPORTED") {
+		t.Fatalf("missing legacy capability reason code: %v", err)
+	}
+}
+
+func TestRunRuntimeModInstallRejectsLegacyManifestCapability(t *testing.T) {
+	sourceDir := filepath.Join(t.TempDir(), "legacy-install")
+	modsDir := filepath.Join(t.TempDir(), "installed")
+	createLegacyTestModProject(t, sourceDir, "world.nimi.legacy-install", "Legacy Install Mod")
+
+	err := runRuntimeMod([]string{
+		"install",
+		sourceDir,
+		"--mods-dir", modsDir,
+	})
+	if err == nil {
+		t.Fatalf("expected legacy manifest capability reject on install")
+	}
+	if !strings.Contains(err.Error(), "MOD_MANIFEST_LEGACY_CAPABILITY_UNSUPPORTED") {
+		t.Fatalf("missing legacy capability reason code: %v", err)
+	}
+}
+
 func TestRunRuntimeModInstallFromGitHubTarball(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "ghp_install_token")
 	modsDir := filepath.Join(t.TempDir(), "installed")
@@ -196,7 +235,7 @@ func TestRunRuntimeModInstallFromGitHubTarball(t *testing.T) {
 			"entry: ./dist/index.js",
 			"license: MIT",
 			"capabilities:",
-			"  - llm.text.generate",
+			"  - runtime.ai.text.generate",
 			"",
 		}, "\n"),
 		"mods/math-quiz/src/index.ts": "export const value = 1;\n",
@@ -688,10 +727,34 @@ func createTestModProject(t *testing.T, dir string, modID string, name string) {
 		Version:      "0.1.0",
 		Description:  "test mod",
 		License:      "MIT",
-		Capabilities: []string{"llm.text.generate"},
+		Capabilities: []string{"runtime.ai.text.generate"},
 	}
 	if err := writeManifestYAML(filepath.Join(dir, "mod.manifest.yaml"), manifest); err != nil {
 		t.Fatalf("write manifest: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "src", "index.ts"), []byte("export const value = 1;\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+}
+
+func createLegacyTestModProject(t *testing.T, dir string, modID string, name string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(dir, "src"), 0o755); err != nil {
+		t.Fatalf("mkdir src: %v", err)
+	}
+	manifestRaw := strings.Join([]string{
+		"id: " + modID,
+		"name: " + name,
+		"version: 0.1.0",
+		"description: legacy test mod",
+		"entry: ./dist/index.js",
+		"license: MIT",
+		"capabilities:",
+		"  - llm.text.generate",
+		"",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(dir, "mod.manifest.yaml"), []byte(manifestRaw), 0o644); err != nil {
+		t.Fatalf("write legacy manifest: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "src", "index.ts"), []byte("export const value = 1;\n"), 0o644); err != nil {
 		t.Fatalf("write source: %v", err)

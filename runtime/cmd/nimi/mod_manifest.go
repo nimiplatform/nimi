@@ -80,7 +80,11 @@ func loadManifest(modDir string) (modManifest, error) {
 		if parseErr != nil {
 			return modManifest{}, parseErr
 		}
-		return normalizeManifest(manifest, modDir), nil
+		manifest = normalizeManifest(manifest, modDir)
+		if validateErr := validateManifestCapabilities(manifest); validateErr != nil {
+			return modManifest{}, validateErr
+		}
+		return manifest, nil
 	}
 
 	yamlCandidates := []string{
@@ -89,11 +93,41 @@ func loadManifest(modDir string) (modManifest, error) {
 	}
 	for _, candidate := range yamlCandidates {
 		if raw, err := os.ReadFile(candidate); err == nil {
-			manifest := parseManifestYAML(raw)
-			return normalizeManifest(manifest, modDir), nil
+			manifest := normalizeManifest(parseManifestYAML(raw), modDir)
+			if validateErr := validateManifestCapabilities(manifest); validateErr != nil {
+				return modManifest{}, validateErr
+			}
+			return manifest, nil
 		}
 	}
 	return modManifest{}, fmt.Errorf("manifest not found in %s", modDir)
+}
+
+func validateManifestCapabilities(manifest modManifest) error {
+	for _, capability := range manifest.Capabilities {
+		trimmed := strings.TrimSpace(capability)
+		if trimmed == "" {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(trimmed, "llm."):
+			return fmt.Errorf(
+				"MOD_MANIFEST_LEGACY_CAPABILITY_UNSUPPORTED: actionHint=replace_with_runtime_dot_capability capability=%s",
+				trimmed,
+			)
+		case trimmed == "hook.agent-profile.read":
+			return fmt.Errorf(
+				"MOD_MANIFEST_LEGACY_CAPABILITY_UNSUPPORTED: actionHint=replace_with_runtime_profile_read_agent capability=%s",
+				trimmed,
+			)
+		case trimmed == "data.query.data-api.runtime.route.options":
+			return fmt.Errorf(
+				"MOD_MANIFEST_LEGACY_CAPABILITY_UNSUPPORTED: actionHint=replace_with_runtime_route_list_options capability=%s",
+				trimmed,
+			)
+		}
+	}
+	return nil
 }
 
 func parseManifestJSON(raw []byte) (modManifest, error) {
@@ -191,6 +225,9 @@ func normalizeManifest(manifest modManifest, modDir string) modManifest {
 
 func writeManifestYAML(path string, manifest modManifest) error {
 	manifest = normalizeManifest(manifest, filepath.Dir(path))
+	if err := validateManifestCapabilities(manifest); err != nil {
+		return err
+	}
 	lines := []string{
 		"id: " + manifest.ID,
 		"name: " + manifest.Name,
