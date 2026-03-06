@@ -12,6 +12,7 @@ import {
   toRecord,
 } from '../runtime-bootstrap-utils';
 import { registerCoreDataCapability } from './shared';
+import { loadCachedRuntimeRouteQueryContext } from './runtime-route-query-context.js';
 
 function safeLogRuntimeRouteOptionsQuery(payload: Parameters<typeof logRendererEvent>[0]): void {
   try {
@@ -86,6 +87,121 @@ async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
   }
 }
 
+type RuntimeRouteConnectorDescriptor = {
+  id: string;
+  label: string;
+  vendor: string;
+  endpoint: string;
+  models: string[];
+  modelCapabilities: Record<string, string[]>;
+  modelProfiles: unknown[];
+  status: string;
+};
+
+type RuntimeRouteLocalSnapshotModel = {
+  localModelId: string;
+  engine: string;
+  model: string;
+  endpoint: string;
+  capabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>;
+  status: 'installed' | 'active' | 'unhealthy' | 'removed';
+};
+
+type RuntimeRouteQueryContext = {
+  connectors: RuntimeRouteConnectorDescriptor[];
+  localSnapshot: {
+    models: RuntimeRouteLocalSnapshotModel[];
+    error: ReturnType<typeof asNimiError> | null;
+  };
+};
+
+async function buildRuntimeRouteQueryContext(): Promise<RuntimeRouteQueryContext> {
+  const { sdkListConnectors, sdkListConnectorModelDescriptors } = await import(
+    '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
+  );
+  const sdkConnectors = await sdkListConnectors();
+  const connectors = await Promise.all(sdkConnectors.map(async (connector) => {
+    let sdkModels: string[] = [];
+    let modelCapabilities: Record<string, string[]> = {};
+    try {
+      const descriptors = await sdkListConnectorModelDescriptors(
+        connector.id,
+      );
+      sdkModels = descriptors.map((item) => item.modelId);
+      modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
+        if (item.capabilities.length > 0) {
+          accumulator[item.modelId] = item.capabilities;
+        }
+        return accumulator;
+      }, {});
+    } catch (error) {
+      const normalized = asNimiError(error, {
+        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+        actionHint: 'check_connector_config',
+        source: 'runtime',
+      });
+      safeLogRuntimeRouteOptionsQuery({
+        level: 'warn',
+        area: 'mods-test-diag',
+        message: '[MODS-TEST-DIAG] runtime-route-options connector-models failed',
+        details: {
+          connectorId: connector.id,
+          isSystemOwned: connector.isSystemOwned,
+          reasonCode: normalized.reasonCode,
+          actionHint: normalized.actionHint,
+          traceId: normalized.traceId || null,
+          retryable: normalized.retryable,
+          message: normalized.message,
+        },
+      });
+    }
+    return {
+      id: connector.id,
+      label: connector.label || '',
+      vendor: connector.vendor || '',
+      endpoint: connector.endpoint || '',
+      models: sdkModels,
+      modelCapabilities,
+      modelProfiles: [],
+      status: connector.status || 'idle',
+    };
+  }));
+
+  try {
+    const localSnapshot = await pollLocalRuntimeSnapshotWithTimeout();
+    return {
+      connectors,
+      localSnapshot: {
+        models: localSnapshot.models
+          .filter((item) => item.status !== 'removed')
+          .map((item) => ({
+            localModelId: item.localModelId,
+            engine: item.engine,
+            model: item.modelId,
+            endpoint: item.endpoint,
+            capabilities: item.capabilities
+              .map((capability) => normalizeCapability(capability))
+              .filter((capability): capability is 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' => Boolean(capability)),
+            status: item.status,
+          })),
+        error: null,
+      },
+    };
+  } catch (error) {
+    return {
+      connectors,
+      localSnapshot: {
+        models: [],
+        error: asNimiError(error, {
+          reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+          actionHint: 'check_runtime_daemon_health',
+          source: 'runtime',
+        }),
+      },
+    };
+  }
+}
+
 export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.runtimeRouteOptions, async (query) => {
     const payload = toRecord(query);
@@ -115,92 +231,14 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
         engine: source === 'local-runtime' ? 'localai' : '',
       };
       const resolvedDefault = { ...selected };
-
-      // Load connectors from SDK
-      const { sdkListConnectors } = await import(
-        '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
-      );
-      const sdkConnectors = await sdkListConnectors();
-      const connectors = await Promise.all(sdkConnectors.map(async (connector) => {
-        let sdkModels: string[] = [];
-        let modelCapabilities: Record<string, string[]> = {};
-        try {
-          const { sdkListConnectorModelDescriptors } = await import(
-            '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
-          );
-          const descriptors = await sdkListConnectorModelDescriptors(
-            connector.id,
-          );
-          sdkModels = descriptors.map((item) => item.modelId);
-          modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
-            if (item.capabilities.length > 0) {
-              accumulator[item.modelId] = item.capabilities;
-            }
-            return accumulator;
-          }, {});
-        } catch (error) {
-          const normalized = asNimiError(error, {
-            reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-            actionHint: 'check_connector_config',
-            source: 'runtime',
-          });
-          safeLogRuntimeRouteOptionsQuery({
-            level: 'warn',
-            area: 'mods-test-diag',
-            message: '[MODS-TEST-DIAG] runtime-route-options connector-models failed',
-            details: {
-              connectorId: connector.id,
-              isSystemOwned: connector.isSystemOwned,
-              reasonCode: normalized.reasonCode,
-              actionHint: normalized.actionHint,
-              traceId: normalized.traceId || null,
-              retryable: normalized.retryable,
-              message: normalized.message,
-            },
-          });
-        }
-        return {
-          id: connector.id,
-          label: connector.label || '',
-          vendor: connector.vendor || '',
-          endpoint: connector.endpoint || '',
-          models: sdkModels,
-          modelCapabilities,
-          modelProfiles: [],
-          status: connector.status || 'idle',
-        };
-      }));
-
-      let snapshotModels: Array<{
-        localModelId: string;
-        engine: string;
-        model: string;
-        endpoint: string;
-        capabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>;
-        status: 'installed' | 'active' | 'unhealthy' | 'removed';
-      }> = [];
-      try {
-        const localSnapshot = await pollLocalRuntimeSnapshotWithTimeout();
-        snapshotModels = localSnapshot.models
-          .filter((item) => item.status !== 'removed')
-          .map((item) => ({
-            localModelId: item.localModelId,
-            engine: item.engine,
-            model: item.modelId,
-            endpoint: item.endpoint,
-            capabilities: item.capabilities
-              .map((c) => normalizeCapability(c))
-              .filter((c): c is 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' => Boolean(c)),
-            status: item.status,
-          }));
-      } catch (error) {
-        const localRuntimeError = asNimiError(error, {
-          reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
-          actionHint: 'check_runtime_daemon_health',
-          source: 'runtime',
-        });
+      const context = await loadCachedRuntimeRouteQueryContext({
+        load: buildRuntimeRouteQueryContext,
+      });
+      const connectors = context.connectors;
+      const snapshotModels = context.localSnapshot.models;
+      if (context.localSnapshot.error) {
         if (selected.source === 'local-runtime') {
-          throw localRuntimeError;
+          throw context.localSnapshot.error;
         }
         safeLogRuntimeRouteOptionsQuery({
           level: 'warn',
@@ -210,11 +248,11 @@ export async function registerRuntimeRouteDataCapabilities(): Promise<void> {
             capability,
             modId: modId || null,
             selectedSource: selected.source,
-            reasonCode: localRuntimeError.reasonCode,
-            actionHint: localRuntimeError.actionHint,
-            traceId: localRuntimeError.traceId || null,
-            retryable: localRuntimeError.retryable,
-            message: localRuntimeError.message,
+            reasonCode: context.localSnapshot.error.reasonCode,
+            actionHint: context.localSnapshot.error.actionHint,
+            traceId: context.localSnapshot.error.traceId || null,
+            retryable: context.localSnapshot.error.retryable,
+            message: context.localSnapshot.error.message,
           },
         });
       }
