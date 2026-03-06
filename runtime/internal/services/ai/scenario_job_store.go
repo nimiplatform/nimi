@@ -446,6 +446,12 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterGeminiOperation:
 			cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, modelResolved, extractScenarioExtensions)
+		case adapterDashScopeChatSTT:
+			cfg := s.resolveNativeAdapterConfig("dashscope", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteDashScopeTranscribe(ctx, cfg, req, modelResolved)
+		case adapterGeminiChatSTT:
+			cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiTranscribe(ctx, cfg, req, modelResolved)
 		case adapterMiniMaxTask:
 			cfg := s.resolveNativeAdapterConfig("minimax", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, modelResolved, extractScenarioExtensions)

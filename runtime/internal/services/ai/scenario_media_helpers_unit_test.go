@@ -183,6 +183,21 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_TTS, "dashscope"); got != adapterAlibabaNative {
 		t.Fatalf("unexpected adapter: %s", got)
 	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "dashscope"); got != adapterDashScopeChatSTT {
+		t.Fatalf("unexpected dashscope stt adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "gemini"); got != adapterGeminiChatSTT {
+		t.Fatalf("unexpected gemini stt adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "glm"); got != adapterGLMNative {
+		t.Fatalf("unexpected glm stt adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "openai"); got != adapterOpenAICompat {
+		t.Fatalf("unexpected openai stt adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != adapterOpenAICompat {
+		t.Fatalf("unexpected groq stt adapter: %s", got)
+	}
 	if got := resolveMediaAdapterName("localai/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterLocalAINative {
 		t.Fatalf("unexpected adapter: %s", got)
 	}

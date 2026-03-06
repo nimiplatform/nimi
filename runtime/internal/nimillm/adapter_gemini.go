@@ -20,8 +20,8 @@ import (
 const AdapterGeminiOperation = "gemini_operation_adapter"
 
 // ExecuteGeminiOperation executes a Gemini operation adapter request across
-// all supported modalities (image, video, TTS, STT). It submits a job to
-// the Gemini /operations endpoint, then polls until completion.
+// Gemini async modalities (image, video, TTS). STT uses the dedicated
+// chat/completions adapter path and bypasses /operations.
 //
 // extractScenarioExtensions is passed as a function parameter because it is
 // defined in services/ai and extracts provider options from different spec
@@ -40,6 +40,9 @@ func ExecuteGeminiOperation(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
+	if scenarioModal(req) == runtimev1.Modal_MODAL_STT {
+		return ExecuteGeminiTranscribe(ctx, cfg, req, modelResolved)
+	}
 
 	submitPayload := map[string]any{
 		"model": modelResolved,
@@ -49,9 +52,6 @@ func ExecuteGeminiOperation(
 	prompt := ""
 	defaultMIME := ""
 	computeMs := int64(180)
-	transcriptionAudioBytes := []byte(nil)
-	transcriptionAudioURI := ""
-	transcriptionMIME := ""
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
 		spec := scenarioImageSpec(req)
@@ -119,32 +119,6 @@ func ExecuteGeminiOperation(
 			submitPayload["audio_format"] = format
 			submitPayload["response_format"] = format
 		}
-	case runtimev1.Modal_MODAL_STT:
-		spec := scenarioSpeechTranscribeSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
-		if err != nil {
-			return nil, nil, "", err
-		}
-		prompt = spec.GetPrompt()
-		defaultMIME = ResolveTranscriptionArtifactMIME(spec)
-		computeMs = MaxInt64(10, int64(len(audioBytes)/64))
-		transcriptionAudioBytes = audioBytes
-		transcriptionAudioURI = audioURI
-		transcriptionMIME = mimeType
-		submitPayload["audio_base64"] = base64.StdEncoding.EncodeToString(audioBytes)
-		submitPayload["mime_type"] = mimeType
-		submitPayload["language"] = spec.GetLanguage()
-		submitPayload["timestamps"] = spec.GetTimestamps()
-		submitPayload["diarization"] = spec.GetDiarization()
-		submitPayload["speaker_count"] = spec.GetSpeakerCount()
-		submitPayload["prompt"] = spec.GetPrompt()
-		submitPayload["response_format"] = spec.GetResponseFormat()
-		if strings.TrimSpace(audioURI) != "" {
-			submitPayload["audio_uri"] = audioURI
-		}
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -207,10 +181,6 @@ func ExecuteGeminiOperation(
 		if artifactURI != "" {
 			artifactMeta["uri"] = artifactURI
 		}
-		if scenarioModal(req) == runtimev1.Modal_MODAL_STT {
-			artifactMeta["audio_uri"] = transcriptionAudioURI
-			artifactMeta["mime_type"] = transcriptionMIME
-		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
 		var usage *runtimev1.UsageStats
 		if scenarioImageSpec(req) != nil {
@@ -232,36 +202,86 @@ func ExecuteGeminiOperation(
 			}
 			usage = ArtifactUsage(spec.GetText(), artifactBytes, computeMs)
 		}
-		if scenarioSpeechTranscribeSpec(req) != nil {
-			spec := scenarioSpeechTranscribeSpec(req)
-			text := strings.TrimSpace(FirstNonEmpty(
-				ValueAsString(pollResp["artifact_text"]),
-				ValueAsString(pollResp["text"]),
-				ValueAsString(MapField(pollResp["result"], "text")),
-				string(artifactBytes),
-			))
-			artifactMeta["text"] = text
-			artifactMeta["language"] = strings.TrimSpace(spec.GetLanguage())
-			artifactMeta["timestamps"] = spec.GetTimestamps()
-			artifactMeta["diarization"] = spec.GetDiarization()
-			artifactMeta["speaker_count"] = spec.GetSpeakerCount()
-			artifactMeta["response_format"] = strings.TrimSpace(spec.GetResponseFormat())
-			artifactMeta["extensions"] = scenarioExtensions
-			ApplyTranscriptionSpecMetadata(artifact, spec, transcriptionAudioURI)
-			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "text/") &&
-				!strings.EqualFold(strings.TrimSpace(artifact.GetMimeType()), "application/json") {
-				artifact.MimeType = ResolveTranscriptionArtifactMIME(spec)
-			}
-			usage = &runtimev1.UsageStats{
-				InputTokens:  MaxInt64(1, int64(len(transcriptionAudioBytes)/256)),
-				OutputTokens: EstimateTokens(text),
-				ComputeMs:    computeMs,
-			}
-		}
 		if usage == nil {
 			usage = ArtifactUsage(prompt, artifactBytes, computeMs)
 		}
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, providerJobID, nil
 	}
+}
+
+func ExecuteGeminiTranscribe(
+	ctx context.Context,
+	cfg MediaAdapterConfig,
+	req *runtimev1.SubmitScenarioJobRequest,
+	modelResolved string,
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+
+	spec := scenarioSpeechTranscribeSpec(req)
+	if spec == nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if err := validateCoreTranscriptionOnly("gemini", spec); err != nil {
+		return nil, nil, "", err
+	}
+
+	audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	payload := map[string]any{
+		"model": modelResolved,
+		"messages": []map[string]any{
+			{
+				"role": "user",
+				"content": []map[string]any{
+					{
+						"type": "text",
+						"text": buildCoreTranscriptionInstruction(spec),
+					},
+					{
+						"type": "input_audio",
+						"input_audio": map[string]any{
+							"data":   base64AudioString(audioBytes),
+							"format": resolveInlineAudioFormat(mimeType, audioBytes),
+						},
+					},
+				},
+			},
+		},
+		"stream": false,
+	}
+
+	responsePayload := map[string]any{}
+	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, "/chat/completions"), strings.TrimSpace(cfg.APIKey), payload, &responsePayload); err != nil {
+		return nil, nil, "", err
+	}
+
+	text := extractChatCompletionMessageText(responsePayload)
+	if text == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	usage := usageFromChatCompletionTranscription(responsePayload, audioBytes, text)
+	artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
+		"text":            text,
+		"adapter":         AdapterGeminiChatTranscribe,
+		"endpoint":        "/chat/completions",
+		"language":        strings.TrimSpace(spec.GetLanguage()),
+		"prompt":          strings.TrimSpace(spec.GetPrompt()),
+		"response_format": strings.TrimSpace(spec.GetResponseFormat()),
+		"mime_type":       resolveInlineAudioMIME(mimeType, audioBytes),
+		"audio_uri":       audioURI,
+		"response":        responsePayload,
+	})
+	ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+}
+
+func base64AudioString(audio []byte) string {
+	return base64.StdEncoding.EncodeToString(audio)
 }

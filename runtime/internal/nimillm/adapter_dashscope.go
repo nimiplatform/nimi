@@ -39,7 +39,8 @@ func ExecuteAlibabaNative(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	baseURL := nativeOriginURL(strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/"))
+	compatibleBaseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	baseURL := nativeOriginURL(compatibleBaseURL)
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -259,43 +260,107 @@ func ExecuteAlibabaNative(
 		ApplySpeechSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
 	case runtimev1.Modal_MODAL_STT:
-		spec := scenarioSpeechTranscribeSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
-		audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
-		if err != nil {
-			return nil, nil, "", err
-		}
-		endpoint := resolveAlibabaSTTPath(scenarioExtensions)
-		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, endpoint), apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
-		if err != nil {
-			return nil, nil, "", err
-		}
-		usage := &runtimev1.UsageStats{
-			InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
-			OutputTokens: EstimateTokens(text),
-			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
-		}
-		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
-			"text":            text,
-			"adapter":         AdapterAlibabaNative,
-			"endpoint":        endpoint,
-			"language":        strings.TrimSpace(spec.GetLanguage()),
-			"timestamps":      spec.GetTimestamps(),
-			"diarization":     spec.GetDiarization(),
-			"speaker_count":   spec.GetSpeakerCount(),
-			"response_format": strings.TrimSpace(spec.GetResponseFormat()),
-			"mime_type":       mimeType,
-			"audio_uri":       audioURI,
-			"extensions":      scenarioExtensionPayloadForScenario(req),
-		})
-		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+		return ExecuteDashScopeTranscribe(ctx, cfg, req, modelResolved)
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+}
+
+func ExecuteDashScopeTranscribe(
+	ctx context.Context,
+	cfg MediaAdapterConfig,
+	req *runtimev1.SubmitScenarioJobRequest,
+	modelResolved string,
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	if baseURL == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+
+	spec := scenarioSpeechTranscribeSpec(req)
+	if spec == nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if err := validateCoreTranscriptionOnly("dashscope", spec); err != nil {
+		return nil, nil, "", err
+	}
+
+	scenarioExtensions := scenarioExtensionPayloadForScenario(req)
+	audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	audioPayload := map[string]any{
+		"data": strings.TrimSpace(audioURI),
+	}
+	if audioPayload["data"] == "" {
+		audioPayload["data"] = encodeInlineAudioDataURI(audioBytes, mimeType)
+		audioPayload["format"] = resolveInlineAudioFormat(mimeType, audioBytes)
+	}
+
+	systemMessage := buildCoreTranscriptionInstruction(spec)
+	messages := []map[string]any{
+		{
+			"role":    "system",
+			"content": systemMessage,
+		},
+		{
+			"role": "user",
+			"content": []map[string]any{
+				{
+					"type":        "input_audio",
+					"input_audio": audioPayload,
+				},
+			},
+		},
+	}
+	payload := map[string]any{
+		"model":    modelResolved,
+		"messages": messages,
+		"stream":   false,
+	}
+	asrOptions := map[string]any{}
+	if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
+		asrOptions["language"] = language
+	}
+	if value, ok := scenarioExtensions["enable_itn"]; ok {
+		asrOptions["enable_itn"] = ValueAsBool(value)
+	}
+	if len(asrOptions) > 0 {
+		payload["extra_body"] = map[string]any{
+			"asr_options": asrOptions,
+		}
+	}
+
+	endpoint := resolveAlibabaSTTPath(scenarioExtensions)
+	responsePayload := map[string]any{}
+	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), strings.TrimSpace(cfg.APIKey), payload, &responsePayload); err != nil {
+		return nil, nil, "", err
+	}
+
+	text := extractChatCompletionMessageText(responsePayload)
+	if text == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	usage := usageFromChatCompletionTranscription(responsePayload, audioBytes, text)
+	artifactMeta := map[string]any{
+		"text":            text,
+		"adapter":         AdapterDashScopeChatTranscribe,
+		"endpoint":        endpoint,
+		"language":        strings.TrimSpace(spec.GetLanguage()),
+		"prompt":          strings.TrimSpace(spec.GetPrompt()),
+		"response_format": strings.TrimSpace(spec.GetResponseFormat()),
+		"mime_type":       resolveInlineAudioMIME(mimeType, audioBytes),
+		"audio_uri":       audioURI,
+		"response":        responsePayload,
+	}
+	if len(scenarioExtensions) > 0 {
+		artifactMeta["extensions"] = scenarioExtensions
+	}
+	artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
+	ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
+	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +408,6 @@ func resolveAlibabaSTTPath(scenarioExtensions map[string]any) string {
 		scenarioExtensions,
 		[]string{"stt_path", "transcription_path"},
 		[]string{"stt_paths", "transcription_paths"},
-		[]string{"/api/v1/services/audio/asr/transcription"},
+		[]string{"/chat/completions"},
 	)
 }

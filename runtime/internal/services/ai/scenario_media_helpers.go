@@ -32,6 +32,8 @@ const (
 	adapterBytedanceARKTask    = "bytedance_ark_task_adapter"
 	adapterAlibabaNative       = "alibaba_native_adapter"
 	adapterGeminiOperation     = "gemini_operation_adapter"
+	adapterGeminiChatSTT       = "gemini_chat_transcribe_adapter"
+	adapterDashScopeChatSTT    = "dashscope_chat_transcribe_adapter"
 	adapterMiniMaxTask         = "minimax_task_adapter"
 	adapterGLMTask             = "glm_task_adapter"
 	adapterGLMNative           = "glm_native_adapter"
@@ -89,13 +91,13 @@ var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
 		Image: adapterAlibabaNative,
 		Video: adapterAlibabaNative,
 		TTS:   adapterAlibabaNative,
-		STT:   adapterAlibabaNative,
+		STT:   adapterDashScopeChatSTT,
 	},
 	"gemini": {
 		Image: adapterGeminiOperation,
 		Video: adapterGeminiOperation,
 		TTS:   adapterGeminiOperation,
-		STT:   adapterGeminiOperation,
+		STT:   adapterGeminiChatSTT,
 	},
 	"minimax": {
 		Image: adapterMiniMaxTask,
