@@ -13,6 +13,50 @@ import { ExternalAgentAccessPanel } from '../panels/setup/external-agent-access'
 import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';
 import { Button, Input, StatusBadge } from '../panels/primitives';
 
+// Icon Button Component
+function IconButton({
+  icon,
+  title,
+  disabled,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// Plus Icon
+function PlusIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+// Key Icon
+function KeyIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </svg>
+  );
+}
+
 type RuntimePageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
@@ -20,7 +64,7 @@ type RuntimePageProps = {
 
 // SurfaceCard component matching Overview page style
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 export function RuntimePage({ model, state }: RuntimePageProps) {
@@ -233,58 +277,59 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
           Capability Summary
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {capabilitySummary.map((item) => {
               const sourceLabel = item.localAvailable
                 ? `local-runtime${item.localProvider ? ` (${item.localProvider})` : ''}`
                 : item.cloudAvailable
                   ? 'cloud API fallback'
                   : 'unavailable';
+              const toneClass = item.localAvailable
+                ? {
+                    shell: 'bg-mint-50/60 ring-1 ring-mint-100',
+                    title: 'text-gray-900',
+                    meta: 'text-mint-700',
+                  }
+                : item.cloudAvailable
+                  ? {
+                      shell: 'bg-amber-50/80 ring-1 ring-amber-100',
+                      title: 'text-gray-900',
+                      meta: 'text-amber-700',
+                    }
+                  : {
+                      shell: 'bg-[#F7F9FC] ring-1 ring-black/5',
+                      title: 'text-gray-800',
+                      meta: 'text-gray-500',
+                    };
               return (
                 <div
                   key={`cap-runtime-${item.capability}`}
-                  className={`flex items-center justify-between rounded-xl border p-3 ${
-                    item.localAvailable
-                      ? 'border-emerald-200 bg-emerald-50'
-                      : item.cloudAvailable
-                        ? 'border-amber-200 bg-amber-50'
-                        : 'border-gray-200 bg-gray-50'
-                  }`}
+                  className={`rounded-2xl p-4 ${toneClass.shell}`}
                 >
-                  <div>
-                    <span
-                      className={`text-sm font-medium ${
-                        item.localAvailable ? 'text-emerald-900' : item.cloudAvailable ? 'text-amber-900' : 'text-gray-600'
-                      }`}
-                    >
-                      {item.capability}
-                    </span>
-                    <span
-                      className={`ml-2 text-[11px] ${
-                        item.localAvailable ? 'text-emerald-700' : item.cloudAvailable ? 'text-amber-700' : 'text-gray-500'
-                      }`}
-                    >
-                      {sourceLabel}
-                    </span>
-                  </div>
-                  {!item.localAvailable && !item.cloudAvailable ? (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => model.onChangePage('local')}
-                        className="text-xs font-medium text-mint-600 hover:text-mint-700"
-                      >
-                        Install Model
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => model.onChangePage('cloud')}
-                        className="text-xs font-medium text-mint-600 hover:text-mint-700"
-                      >
-                        Add API Key
-                      </button>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium ${toneClass.title}`}>
+                        {item.capability}
+                      </p>
+                      <p className={`mt-1 text-[11px] ${toneClass.meta}`}>
+                        {sourceLabel}
+                      </p>
                     </div>
-                  ) : null}
+                    {!item.localAvailable && !item.cloudAvailable ? (
+                      <div className="flex items-center gap-1.5">
+                        <IconButton
+                          icon={<PlusIcon />}
+                          title="Install Model"
+                          onClick={() => model.onChangePage('local')}
+                        />
+                        <IconButton
+                          icon={<KeyIcon />}
+                          title="Add API Key"
+                          onClick={() => model.onChangePage('cloud')}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}
@@ -301,13 +346,13 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             <StatusBadge status={state.localRuntime.status} />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
               <p className="text-xs text-gray-500">Last Check</p>
               <p className="text-sm font-medium text-gray-800">
                 {state.localRuntime.lastCheckedAt ? formatLocaleDateTime(state.localRuntime.lastCheckedAt) : '-'}
               </p>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 md:col-span-2">
+            <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5 md:col-span-2">
               <p className="text-xs text-gray-500">Detail</p>
               <p className="text-sm font-medium text-gray-800">{state.localRuntime.lastDetail || '-'}</p>
             </div>
@@ -328,7 +373,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             <span className="text-xs text-gray-500">{nodeMatrixExpanded ? 'Collapse' : 'Expand'}</span>
           </button>
           {providerStatusSummary.length > 0 ? (
-            <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3 mb-3">
+            <div className="mb-3 space-y-2 rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
               {providerStatusSummary.map((summary) => (
                 <p key={`provider-summary-${summary.provider}`} className="text-[11px] text-gray-700">
                   provider={summary.provider}
@@ -352,7 +397,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                   typeof nexaGate?.policyGateAllowsNpu === 'boolean' ||
                   typeof nexaGate?.npuUsable === 'boolean';
                 return (
-                  <div key={`node-matrix-${row.nodeId}`} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <div key={`node-matrix-${row.nodeId}`} className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
                     <p className="text-xs font-medium text-gray-900">
                       {row.capability} · {row.nodeId}
                     </p>

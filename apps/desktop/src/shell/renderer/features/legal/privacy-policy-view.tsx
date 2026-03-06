@@ -1,15 +1,17 @@
+import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
+
 export function PrivacyPolicyView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-gray-50">
       <div className="mx-auto max-w-3xl px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Privacy Policy</h1>
+          <h1 className={APP_PAGE_TITLE_CLASS}>Privacy Policy</h1>
           <p className="mt-2 text-sm text-gray-500">Last Updated: 2025-12-29</p>
         </div>
 
         <div className="space-y-8 text-sm leading-relaxed text-gray-700">
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">1. Introduction</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>1. Introduction</h2>
             <p>
               Welcome to Nimi (&ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;). We value your privacy and are committed to
               protecting your personal data. This Privacy Policy explains how we collect, use,
@@ -23,7 +25,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">2. Information We Collect</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>2. Information We Collect</h2>
             <p>We collect information in the following ways:</p>
 
             <div className="mt-4 space-y-4">
@@ -81,7 +83,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               3. How We Use Your Information
             </h2>
             <p>We use the collected information to:</p>
@@ -99,7 +101,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               4. Disclosure of Your Information
             </h2>
             <p>
@@ -129,7 +131,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               5. The Nature of Blockchain &amp; Privacy
             </h2>
             <p>You acknowledge that:</p>
@@ -152,7 +154,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               6. Third-Party Wallets and Links
             </h2>
             <p>
@@ -164,7 +166,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">7. Data Security</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>7. Data Security</h2>
             <p>
               We use administrative, technical, and physical security measures to help protect your
               personal information. However, please remember that no method of transmission over the
@@ -174,7 +176,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">8. Your Data Rights</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>8. Your Data Rights</h2>
             <p>
               Depending on your jurisdiction (e.g., GDPR for EU users, CCPA for California users), you
               may have the right to:
@@ -191,7 +193,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">9. Children&apos;s Privacy</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>9. Children&apos;s Privacy</h2>
             <p>
               Nimi is not intended for individuals under the age of 13. We do not knowingly collect
               personal information from children under 13.
@@ -199,7 +201,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">10. Changes to This Policy</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>10. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of any changes
               by updating the &ldquo;Last Updated&rdquo; date at the top of this policy. You are advised to review
@@ -208,7 +210,7 @@ export function PrivacyPolicyView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">11. Contact Us</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>11. Contact Us</h2>
             <p>If you have any questions about this Privacy Policy, please contact us at:</p>
             <p className="mt-2 font-medium text-gray-900">Email: support@nimi.xyz</p>
           </section>

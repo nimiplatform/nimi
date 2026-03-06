@@ -1,8 +1,15 @@
 import React from 'react';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactRecord } from './contacts-model.js';
-import { getContactInitial } from './contacts-model.js';
 
-// ---------- Blocked users list (inside category accordion) ----------
+function getBlockedContactPalette(contact: ContactRecord) {
+  return getSemanticAgentPalette({
+    description: contact.bio,
+    worldName: contact.worldName,
+    tags: contact.tags,
+  });
+}
 
 export function BlockedUsersList({
   contacts,
@@ -22,60 +29,71 @@ export function BlockedUsersList({
   return (
     <>
       {contacts.map((contact) => (
-        <button
+        <BlockedContactRow
           key={contact.id}
-          type="button"
-          onClick={() => onSelect(contact)}
-          className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
-            currentContactId === contact.id
-              ? 'bg-green-100 text-green-800'
-              : 'hover:bg-green-50/50 text-gray-700'
-          }`}
-        >
-          {contact.avatarUrl ? (
-            <img
-              src={contact.avatarUrl}
-              alt={contact.displayName}
-              className="h-10 w-10 rounded-lg object-cover"
-              style={contact.isAgent ? {
-                boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-              } : undefined}
-            />
-          ) : (
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                contact.isAgent
-                  ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
-                  : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-              }`}
-              style={contact.isAgent ? {
-                boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-              } : undefined}
-            >
-              {getContactInitial(contact.displayName)}
-            </div>
-          )}
-          <div className="flex-1 min-w-0 text-left">
-            <div className="text-[15px] text-gray-900 truncate">{contact.displayName}</div>
-          </div>
-          {/* 恢复按钮 */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUnblock(contact);
-            }}
-            className="px-3 py-1.5 text-xs font-medium bg-[#4ECCA3] text-white rounded-lg hover:bg-[#3DBA92] transition-colors"
-          >
-            Restore
-          </button>
-        </button>
+          contact={contact}
+          isSelected={currentContactId === contact.id}
+          onSelect={() => onSelect(contact)}
+          onUnblock={() => onUnblock(contact)}
+        />
       ))}
     </>
   );
 }
 
-// ---------- Block confirmation dialog ----------
+function BlockedContactRow({
+  contact,
+  isSelected,
+  onSelect,
+  onUnblock,
+}: {
+  contact: ContactRecord;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUnblock: () => void;
+}) {
+  const palette = getBlockedContactPalette(contact);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`mx-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150 ${
+        isSelected
+          ? 'bg-mint-50 text-mint-700'
+          : 'text-gray-700 hover:bg-mint-50/50'
+      }`}
+    >
+      <EntityAvatar
+        imageUrl={contact.avatarUrl}
+        name={contact.displayName}
+        kind={contact.isAgent ? 'agent' : 'human'}
+        sizeClassName="h-10 w-10"
+        radiusClassName={contact.isAgent ? 'rounded-[10px]' : undefined}
+        innerRadiusClassName={contact.isAgent ? 'rounded-[8px]' : undefined}
+        textClassName="text-sm font-medium"
+      />
+      <div className="min-w-0 flex-1 text-left">
+        <div className="truncate text-[15px] text-gray-900">{contact.displayName}</div>
+        {contact.isAgent && contact.worldName ? (
+          <div className="truncate text-xs" style={{ color: palette.accent }}>
+            {contact.worldName}
+          </div>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onUnblock();
+        }}
+        className="rounded-lg bg-[#4ECCA3] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3DBA92]"
+      >
+        Restore
+      </button>
+    </button>
+  );
+}
 
 export function BlockConfirmDialog({
   contact,
@@ -89,22 +107,22 @@ export function BlockConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Block Contact</h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <h3 className="mb-2 text-lg font-semibold text-gray-900">Block Contact</h3>
+        <p className="mb-6 text-sm text-gray-500">
           Are you sure you want to block <span className="font-medium text-gray-700">{contact.displayName}</span>? They will be moved to Blocks.
         </p>
         <div className="flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-5 py-2 rounded-full text-sm font-medium bg-gray-700 text-white hover:bg-gray-800 transition-colors"
+            className="rounded-full bg-gray-700 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
             Block
           </button>
@@ -113,8 +131,6 @@ export function BlockConfirmDialog({
     </div>
   );
 }
-
-// ---------- Unblock / restore confirmation dialog ----------
 
 export function UnblockConfirmDialog({
   contact,
@@ -128,22 +144,22 @@ export function UnblockConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Restore Contact</h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <h3 className="mb-2 text-lg font-semibold text-gray-900">Restore Contact</h3>
+        <p className="mb-6 text-sm text-gray-500">
           Restore <span className="font-medium text-gray-700">{contact.displayName}</span> to their previous category?
         </p>
         <div className="flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-5 py-2 rounded-lg text-sm font-medium bg-[#4ECCA3] text-white hover:bg-[#3DBA92] transition-colors"
+            className="rounded-lg bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3DBA92]"
           >
             Restore
           </button>

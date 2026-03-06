@@ -55,7 +55,7 @@ export function AuthMenuHeader(props: {
         >
           ?
         </button>
-        <h1 className="text-[24px] font-semibold tracking-tight" style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif' }}>{t('Auth.connectToNimi')}</h1>
+        <h1 className="text-[24px] font-semibold tracking-tight" style={{ color: '#1A1A1A', fontFamily: 'var(--font-ui)' }}>{t('Auth.connectToNimi')}</h1>
         <button
           type="button"
           className={`${buttonBase} ${buttonGhost} h-auto w-auto p-0 text-xl leading-none text-muted-foreground hover:text-foreground`}
@@ -90,7 +90,7 @@ export function AuthMenuHeader(props: {
       >
         ←
       </button>
-      <h2 className='text-[20px] font-semibold tracking-tight' style={{ color: '#1A1A1A', fontFamily: 'Inter, sans-serif' }}>{title}</h2>
+      <h2 className='text-[20px] font-semibold tracking-tight' style={{ color: '#1A1A1A', fontFamily: 'var(--font-ui)' }}>{title}</h2>
       <button
         type="button"
         className={`${buttonBase} ${buttonGhost} h-7 w-7 rounded-full px-0 text-sm text-muted-foreground hover:text-foreground`}

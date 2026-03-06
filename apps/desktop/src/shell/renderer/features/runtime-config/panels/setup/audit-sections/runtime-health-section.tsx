@@ -4,7 +4,7 @@ import type {
   AIProviderHealthSnapshot,
   AIProviderSubHealth,
 } from '@nimiplatform/sdk/runtime';
-import { Button, Card } from '../../primitives.js';
+import { Card } from '../../primitives.js';
 import {
   runtimeHealthStatusLabel,
   runtimeHealthStatusColor,
@@ -15,6 +15,43 @@ import {
   relativeTimeShort,
 } from '../../../domain/diagnostics/global-audit-view-model.js';
 import { useRuntimeHealthStream } from '../use-runtime-health-stream.js';
+
+// Icon Button Component
+function IconButton({
+  icon,
+  title,
+  disabled,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// Refresh Icon
+function RefreshIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+      <path d="M16 16h5v5" />
+    </svg>
+  );
+}
 
 type RuntimeHealthSectionProps = {
   runtimeHealth: GetRuntimeHealthResponse | null;
@@ -31,7 +68,7 @@ export function RuntimeHealthSection({
   error,
   onRefresh,
 }: RuntimeHealthSectionProps) {
-  const [liveEnabled, setLiveEnabled] = useState(false);
+  const [liveEnabled] = useState(true);
   const stream = useRuntimeHealthStream(liveEnabled);
 
   const health = stream.latestHealth
@@ -64,20 +101,26 @@ export function RuntimeHealthSection({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">Runtime Health</h3>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={loading} onClick={onRefresh}>
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-          <button
-            type="button"
-            onClick={() => setLiveEnabled((p) => !p)}
-            className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
-              liveEnabled
-                ? 'border-green-300 bg-green-50 text-green-700'
-                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              stream.streaming
+                ? 'bg-green-100 text-green-700'
+                : liveEnabled
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-gray-100 text-gray-600'
             }`}
           >
-            {stream.streaming ? 'Live' : liveEnabled ? 'Connecting...' : 'Live'}
-          </button>
+            <span className={`h-1.5 w-1.5 rounded-full ${
+              stream.streaming ? 'bg-green-500' : liveEnabled ? 'bg-yellow-500' : 'bg-gray-400'
+            }`} />
+            {stream.streaming ? 'Live' : liveEnabled ? 'Connecting...' : 'Off'}
+          </span>
+          <IconButton
+            icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
+            title="Refresh"
+            disabled={loading}
+            onClick={onRefresh}
+          />
         </div>
       </div>
 
@@ -163,7 +206,7 @@ function ProviderRow({
   return (
     <>
       <tr
-        className="border-b border-gray-50 cursor-pointer hover:bg-gray-50"
+        className="cursor-pointer border-b border-gray-200/70 hover:bg-white/80"
         onClick={onToggle}
       >
         <td className="py-1.5 pr-3 font-medium text-gray-800">
@@ -185,7 +228,7 @@ function ProviderRow({
       </tr>
       {expanded && provider.subHealth.length > 0 ? (
         provider.subHealth.map((sub: AIProviderSubHealth) => (
-          <tr key={sub.providerName} className="bg-gray-50/50 border-b border-gray-50">
+          <tr key={sub.providerName} className="border-b border-gray-200/70 bg-white/60">
             <td className="py-1 pr-3 pl-6 text-gray-600">{sub.providerName}</td>
             <td className={`py-1 pr-3 font-medium ${providerStateColor(sub.state)}`}>
               {sub.state}

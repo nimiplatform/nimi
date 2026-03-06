@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData } from '../profile-model';
-import { getProfileInitial } from '../profile-model';
 
 type ProfileHeaderProps = {
   profile: ProfileData;
@@ -29,31 +29,15 @@ export function ProfileHeader({
     <div className="flex flex-col items-center">
       {/* Avatar */}
       <div className="relative">
-        {profile.avatarUrl ? (
-          <img
-            src={profile.avatarUrl}
-            alt={profile.displayName}
-            className={`h-24 w-24 object-cover rounded-2xl ${
-              profile.isAgent ? '' : 'ring-4 ring-mint-100'
-            }`}
-            style={profile.isAgent ? {
-              boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
-            } : undefined}
-          />
-        ) : (
-          <div 
-            className={`flex h-24 w-24 items-center justify-center text-2xl font-bold rounded-2xl ${
-              profile.isAgent 
-                ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
-                : 'bg-gradient-to-br from-mint-400 to-mint-500 text-white ring-4 ring-mint-100'
-            }`}
-            style={profile.isAgent ? {
-              boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
-            } : undefined}
-          >
-            {getProfileInitial(profile.displayName)}
-          </div>
-        )}
+        <EntityAvatar
+          imageUrl={profile.avatarUrl}
+          name={profile.displayName}
+          kind={profile.isAgent ? 'agent' : 'human'}
+          sizeClassName="h-24 w-24"
+          className={profile.isAgent ? undefined : 'ring-4 ring-mint-100'}
+          fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-mint-400 to-mint-500 text-white'}
+          textClassName="text-2xl font-bold"
+        />
         {profile.isOnline ? (
           <span className="absolute -right-1 -bottom-1 h-5 w-5 rounded-full border-3 border-white bg-green-400" />
         ) : null}

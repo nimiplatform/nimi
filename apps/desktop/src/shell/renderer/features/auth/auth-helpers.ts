@@ -76,6 +76,7 @@ export type AuthMenuProps = {
   logoErrorText?: string | null;
   logoDisabled?: boolean;
   enableAuthModal?: boolean;
+  logoLoading?: boolean;
 };
 
 // ---------------------------------------------------------------------------

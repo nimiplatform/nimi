@@ -100,8 +100,8 @@ export function MarketplaceRow({
       className={`
         group relative flex items-start gap-4 px-5 py-4 transition-all cursor-pointer 
         rounded-2xl border border-transparent bg-transparent
-        hover:border-brand-300 hover:bg-brand-50
-        ${isSelected ? 'border-brand-300 bg-brand-50 ring-1 ring-brand-200' : ''}
+        hover:border-mint-200 hover:bg-mint-50/30
+        ${isSelected ? 'border-mint-300 bg-mint-50 ring-1 ring-mint-200' : ''}
       `}
       onClick={() => onSelectMod?.(isSelected ? null : mod.id)}
     >

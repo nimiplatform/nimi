@@ -6,8 +6,9 @@ import type { MessageViewDto } from '@nimiplatform/sdk/realm';
 import type { ChatViewDto } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
-import { toProfileData, getProfileInitial, formatProfileDate } from '@renderer/features/profile/profile-model';
+import { toProfileData, formatProfileDate } from '@renderer/features/profile/profile-model';
 import { PostsTab } from '@renderer/features/profile/components/posts-tab';
 import { TurnInput } from './turn-input';
 import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
@@ -143,10 +144,6 @@ function ChatMessageImage(input: {
       className="max-h-[320px] max-w-[260px] rounded-xl object-contain"
     />
   );
-}
-
-function getInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
 }
 
 function toMessageTimestamp(message: MessageViewDto): number {
@@ -586,6 +583,7 @@ export function MessageTimeline() {
               const imageUrl = isImageMessage ? resolveImageMessageUrl(message, realmBaseUrl) : '';
               const videoUrl = isVideoMessage ? resolveVideoMessageUrl(message, realmBaseUrl) : '';
               const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
+              const messageAvatarKind = !isMe && otherUser?.isAgent ? 'agent' : 'human';
               const diagnostics = extractMessageDiagnostics(message);
               const hasDiagnosticData = Boolean(
                 diagnostics.interactionKind
@@ -603,44 +601,23 @@ export function MessageTimeline() {
                   ) : null}
                 <div className={`flex items-start gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                   {/* Avatar */}
-                  {isMe && currentUserAvatarUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className={`${avatarMarginTopClass} shrink-0 rounded-full`}
-                      aria-label={profilePanelTarget === messageProfileTarget
-                        ? t('ChatTimeline.collapseMyProfile')
-                        : t('ChatTimeline.viewMyProfile')}
-                    >
-                      <img src={currentUserAvatarUrl} alt="You" className="h-8 w-8 rounded-full object-cover" />
-                    </button>
-                  ) : !isMe && contactAvatarUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className={`${avatarMarginTopClass} shrink-0 rounded-full`}
-                      aria-label={profilePanelTarget === messageProfileTarget
-                        ? t('ChatTimeline.collapseUserProfile')
-                        : t('ChatTimeline.viewUserProfile')}
-                    >
-                      <img src={contactAvatarUrl} alt={contactName} className="h-8 w-8 rounded-full object-cover" />
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => toggleProfilePanel(messageProfileTarget)}
-                      className={`${avatarMarginTopClass} shrink-0 rounded-full`}
-                      aria-label={profilePanelTarget === messageProfileTarget
-                        ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
-                        : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
-                    >
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
-                        isMe ? 'bg-[#0066CC] text-white' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {getInitial(senderName)}
-                      </div>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleProfilePanel(messageProfileTarget)}
+                    className={`${avatarMarginTopClass} shrink-0`}
+                    aria-label={profilePanelTarget === messageProfileTarget
+                      ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
+                      : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
+                  >
+                    <EntityAvatar
+                      imageUrl={isMe ? currentUserAvatarUrl : contactAvatarUrl}
+                      name={senderName}
+                      kind={isMe ? 'human' : messageAvatarKind}
+                      sizeClassName="h-8 w-8"
+                      textClassName="text-xs font-medium"
+                      fallbackClassName={isMe ? 'bg-[#0066CC] text-white' : undefined}
+                    />
+                  </button>
                   {/* Bubble */}
                   <div className={`max-w-[75%] ${isMe ? 'text-right' : ''}`}>
                     <div className={`inline-block rounded-[18px] text-[15px] leading-snug ${
@@ -734,13 +711,13 @@ export function MessageTimeline() {
           {/* Streaming indicator */}
           {streamState && isStreaming && (
             <div className="flex gap-2">
-              {contactAvatarUrl ? (
-                <img src={contactAvatarUrl} alt={contactName} className="mt-1 h-8 w-8 shrink-0 rounded-full object-cover" />
-              ) : (
-                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
-                  {getInitial(contactName)}
-                </div>
-              )}
+              <EntityAvatar
+                imageUrl={contactAvatarUrl}
+                name={contactName}
+                kind={otherUser?.isAgent ? 'agent' : 'human'}
+                sizeClassName="mt-1 h-8 w-8 shrink-0"
+                textClassName="text-xs font-medium"
+              />
               <div className="max-w-[75%]">
                 <div className="inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900">
                   {streamState.partialText || (
@@ -767,13 +744,13 @@ export function MessageTimeline() {
           {/* Stream interrupted / error indicator */}
           {streamState && (streamState.phase === 'error' || streamState.phase === 'cancelled') && streamState.interrupted && (
             <div className="flex gap-2">
-              {contactAvatarUrl ? (
-                <img src={contactAvatarUrl} alt={contactName} className="mt-1 h-8 w-8 shrink-0 rounded-full object-cover" />
-              ) : (
-                <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
-                  {getInitial(contactName)}
-                </div>
-              )}
+              <EntityAvatar
+                imageUrl={contactAvatarUrl}
+                name={contactName}
+                kind={otherUser?.isAgent ? 'agent' : 'human'}
+                sizeClassName="mt-1 h-8 w-8 shrink-0"
+                textClassName="text-xs font-medium"
+              />
               <div className="max-w-[75%]">
                 <div className="inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900">
                   {streamState.partialText}
@@ -866,21 +843,16 @@ function ChatProfileCard({ profileData, onViewFullProfile, viewFullProfileLabel 
       <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
       
       <div className="relative flex flex-col items-center">
-        {/* Avatar with glass effect */}
         <div className="relative">
-          <div className="rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1">
-            {profileData.avatarUrl ? (
-              <img
-                src={profileData.avatarUrl}
-                alt={profileData.displayName}
-                className="h-20 w-20 rounded-2xl object-cover"
-              />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-2xl font-bold text-[#4ECCA3]">
-                {getProfileInitial(profileData.displayName)}
-              </div>
-            )}
-          </div>
+          <EntityAvatar
+            imageUrl={profileData.avatarUrl}
+            name={profileData.displayName}
+            kind={profileData.isAgent ? 'agent' : 'human'}
+            sizeClassName="h-20 w-20"
+            className={profileData.isAgent ? undefined : 'ring-2 ring-white/70'}
+            fallbackClassName={profileData.isAgent ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+            textClassName="text-2xl font-bold"
+          />
           {profileData.isOnline && (
             <span className="absolute right-0.5 bottom-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
           )}

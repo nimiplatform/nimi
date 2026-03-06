@@ -268,7 +268,6 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
         .logo {
             width: 140px;
             height: 140px;
-            filter: drop-shadow(0 10px 20px rgba(102, 126, 234, 0.3));
         }
         .status_wrapper {
             display: flex;
@@ -372,7 +371,6 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
             <h1>Authentication Complete!</h1>
         </div>
         <p>You have successfully signed in to Nimi.</p>
-        <p>This window will close automatically.</p>
         <div class="auto_close">
             You can close this window now
             <span class="dots">

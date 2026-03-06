@@ -3,6 +3,7 @@ import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
@@ -387,16 +388,15 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     };
   }, [settingsMenuOpen]);
 
-  const avatarNode = props.userAvatarUrl ? (
-    <img
-      src={props.userAvatarUrl}
-      alt={props.displayName}
-      className="h-8 w-8 shrink-0 rounded-full object-cover"
+  const avatarNode = (
+    <EntityAvatar
+      imageUrl={props.userAvatarUrl}
+      name={props.displayName}
+      kind="human"
+      sizeClassName="h-8 w-8"
+      className="shrink-0"
+      textClassName="text-xs"
     />
-  ) : (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
-      {props.displayName.charAt(0).toUpperCase()}
-    </div>
   );
   const nimiHomeNode = (
     <img

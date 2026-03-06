@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData, ProfileTab } from './profile-model';
-import { formatProfileDate, getProfileInitial } from './profile-model';
+import { formatProfileDate } from './profile-model';
 import { PostsTab } from './components/posts-tab';
 import { MediaTab } from './components/media-tab';
 import { CollectionsTab } from './components/collections-tab';
@@ -182,269 +184,277 @@ export function ProfileView(props: ProfileViewProps) {
   const { profile } = props;
   const friendCount = profile.stats?.friendsCount ?? 0;
   const postCount = profile.stats?.postsCount ?? 0;
-  const useAgentSidebar = props.sidebarStyleVariant === 'agent';
+  const likesCount = profile.stats?.likesCount ?? 0;
+  const agentPalette = getSemanticAgentPalette({
+    category: profile.agentCategory,
+    origin: profile.agentOrigin,
+    description: profile.bio,
+    tags: profile.tags,
+  });
+  const agentHeaderStyle = profile.worldBannerUrl
+    ? {
+        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.18)), url(${profile.worldBannerUrl})`,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+      }
+    : { background: agentPalette.ring };
+  const locationLabel = profile.city && profile.countryCode
+    ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
+    : profile.city || profile.countryCode?.toUpperCase() || 'Unknown region';
+  const languageLabel = profile.languages.length > 0 ? profile.languages.join(', ') : 'No language set';
+  const relationshipLabel = profile.isAgent ? 'AI Agent Profile' : 'Contact Profile';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
-      {/* Top bar */}
-      <div className="flex h-14 shrink-0 items-center gap-3 bg-white/70 px-6 backdrop-blur-xl">
-        <h1 className="text-lg font-medium tracking-tight text-gray-800">{t('ProfileView.title')}</h1>
-      </div>
-
-      {/* Main Content - Two Column Layout */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-6 py-6">
-          <div className="flex gap-6">
-            {/* Left Sidebar - Sticky */}
-            <div className="w-72 shrink-0">
-              <div className="sticky top-6">
-                {/* Combined Profile Card */}
-                <div
-                  className={`relative overflow-hidden ${
-                    useAgentSidebar
-                      ? 'rounded-[24px] bg-white shadow-lg'
-                      : 'rounded-3xl border border-white/60 bg-white/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl'
-                  }`}
-                >
-                  {useAgentSidebar ? (
-                    <div className="h-28 w-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400" />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-[#4ECCA3]/5 pointer-events-none" />
-                  )}
-                  
-                  {/* More Options Menu */}
-                  {!props.isOwnProfile && (
-                    <div className="absolute top-4 right-4 z-10">
+        <div className="mx-auto max-w-7xl px-5 py-5">
+          <div className="overflow-hidden rounded-[28px] border border-[#dbe3ea] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <div className="relative h-[190px] w-full overflow-hidden" style={agentHeaderStyle}>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#191f2d]/16 via-transparent to-[#ffffff]/10" />
+              <div className="absolute inset-x-0 top-0 h-px bg-white/70" />
+
+              <button
+                type="button"
+                onClick={props.onBack}
+                className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
+                title="Close"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+
+              {!props.isOwnProfile ? (
+                <div className="absolute right-5 top-5 z-10">
+                  <button
+                    ref={menuButtonRef}
+                    type="button"
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-white/16 text-white backdrop-blur-md transition hover:bg-white/24"
+                    title="More options"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="6" r="2" />
+                      <circle cx="12" cy="12" r="2" />
+                      <circle cx="12" cy="18" r="2" />
+                    </svg>
+                  </button>
+                  {showMenu && (
+                    <div
+                      ref={menuRef}
+                      className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-[0_18px_50px_rgba(15,23,42,0.16)]"
+                    >
                       <button
-                        ref={menuButtonRef}
                         type="button"
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100/50 hover:text-gray-600"
-                        title="More options"
+                        onClick={handleBlock}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50"
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                          <circle cx="12" cy="6" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="12" cy="18" r="2" />
-                        </svg>
+                        <AlertIcon className="h-4 w-4 text-gray-400" />
+                        Block
                       </button>
-                      
-                      {/* Dropdown Menu */}
-                      {showMenu && (
-                        <div
-                          ref={menuRef}
-                          className="absolute right-0 top-full mt-1 w-40 rounded-xl border border-gray-100 bg-white py-1 shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-                        >
-                          <button
-                            type="button"
-                            onClick={handleBlock}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-                              <circle cx="12" cy="12" r="10" />
-                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                            </svg>
-                            Block
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleDelete}
-                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                            Delete Friend
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Delete Friend
+                      </button>
                     </div>
                   )}
-                  
-                  <div className={`relative flex flex-col items-center ${useAgentSidebar ? '-mt-12 px-6 pb-6' : ''}`}>
-                    {/* Avatar with agent glow effect */}
-                    <div className="relative">
-                      <div className={useAgentSidebar ? 'h-24 w-24 rounded-2xl bg-white p-1 shadow-md' : `${profile.isAgent ? '' : 'rounded-3xl bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] p-1'}`}>
-                        {profile.avatarUrl ? (
-                          <img
-                            src={profile.avatarUrl}
-                            alt={profile.displayName}
-                            className={`h-24 w-24 object-cover rounded-2xl ${profile.isAgent ? '' : ''}`}
-                            style={profile.isAgent ? {
-                              boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
-                            } : undefined}
-                          />
-                        ) : (
-                          <div 
-                            className={`flex h-24 w-24 items-center justify-center rounded-2xl text-3xl font-bold ${
-                              profile.isAgent 
-                                ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
-                                : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#4ECCA3]'
-                            }`}
-                            style={useAgentSidebar ? {
-                              ...(profile.isAgent ? {
-                                boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
-                              } : {})
-                            } : (profile.isAgent ? {
-                              boxShadow: '0 0 0 2px #a855f7, 0 0 12px 4px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(124, 58, 237, 0.3)'
-                            } : undefined)}
-                          >
-                            {getProfileInitial(profile.displayName)}
-                          </div>
-                        )}
-                      </div>
-                      {profile.isOnline && (
-                        <span className={`absolute h-4 w-4 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm ${profile.isAgent ? 'right-0 bottom-0' : 'right-1 bottom-1'}`} />
-                      )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="relative border-b border-[#edf2f6] bg-white px-7 pb-6 pt-0">
+              <div className="-mt-14 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                <div className="flex min-w-0 flex-1 gap-5">
+                  <div className="relative shrink-0">
+                    <div className="rounded-[26px] border border-white/80 bg-white p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.16)]">
+                      <EntityAvatar
+                        imageUrl={profile.avatarUrl}
+                        name={profile.displayName}
+                        kind={profile.isAgent ? 'agent' : 'human'}
+                        sizeClassName="h-24 w-24"
+                        textClassName="text-3xl font-bold"
+                        fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#4ECCA3]'}
+                      />
                     </div>
+                    {profile.isOnline ? (
+                      <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
+                    ) : null}
+                  </div>
 
-                    {/* Name */}
-                    <h2 className="mt-4 text-lg font-semibold tracking-tight text-gray-800">
-                      {profile.displayName}
-                    </h2>
-                    <p className="text-sm text-gray-500">{profile.handle}</p>
-
-                    {/* Type Badge */}
-                    <span className="mt-2 inline-flex items-center rounded-full bg-[#4ECCA3]/10 px-3 py-1 text-xs font-medium text-[#2A9D8F]">
-                      {profile.isAgent ? 'Agent' : 'Human'}
-                    </span>
-
-                    {/* Bio */}
-                    {profile.bio && (
-                      <p className="mt-3 text-center text-sm text-gray-600 leading-relaxed">{profile.bio}</p>
-                    )}
-
-                    {/* Stats */}
-                    <div className={`mt-4 flex items-center ${useAgentSidebar ? 'w-full justify-around rounded-2xl bg-gray-50 px-4 py-4' : 'gap-8'}`}>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-gray-800">{friendCount}</p>
-                        <p className="text-xs text-gray-500">Friends</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-gray-800">{postCount}</p>
-                        <p className="text-xs text-gray-500">Posts</p>
-                      </div>
+                  <div className="min-w-0 flex-1 pt-14 xl:pt-10">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-[#1f2937]">
+                        {profile.displayName}
+                      </h1>
+                      <span className="inline-flex items-center rounded-full border border-[#d9e3ec] bg-[#f8fbfd] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#728094]">
+                        {relationshipLabel}
+                      </span>
                     </div>
-
-                    {/* Action Buttons - Icon Only */}
-                    <div className="mt-5 flex items-center justify-center gap-3">
-                      {props.showMessageButton !== false && (
-                        <button
-                          type="button"
-                          onClick={props.onMessage}
-                          title="Chat"
-                          className={useAgentSidebar
-                            ? 'flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200 active:scale-95'
-                            : 'flex h-11 w-11 items-center justify-center rounded-2xl bg-[#4ECCA3] text-white shadow-[0_4px_14px_rgba(78,204,163,0.35)] transition-all hover:bg-[#3DBA92] hover:shadow-[0_6px_20px_rgba(78,204,163,0.45)] active:scale-95'}
-                        >
-                          <MessageIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      {!props.isOwnProfile && (
-                        <button
-                          type="button"
-                          onClick={props.onSendGift}
-                          title="Send Gift"
-                          className={useAgentSidebar
-                            ? 'flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200 active:scale-95'
-                            : 'flex h-11 w-11 items-center justify-center rounded-2xl border border-[#4ECCA3]/30 bg-white/60 text-[#2A9D8F] backdrop-blur-sm transition-all hover:bg-[#4ECCA3]/10 active:scale-95'}
-                        >
-                          <GiftIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Add Friend Hint */}
-                    {props.addFriendHint && (
-                      <p className="mt-2 text-xs text-amber-600">{props.addFriendHint}</p>
-                    )}
-
-                    {/* Divider */}
-                    <div className="my-5 w-full border-t border-white/60" />
-
-                    {/* About Section */}
-                    <div className="w-full">
-                      <h3 className="text-sm font-semibold text-gray-800">About</h3>
-                      
-                      <div className="mt-4 space-y-3">
-                        <AboutRow 
-                          icon={<CalendarIcon className="h-4 w-4" />}
-                          label={`Joined ${formatProfileDate(profile.createdAt)}`}
-                        />
-                        <AboutRow 
-                          icon={<LocationIcon className="h-4 w-4" />}
-                          label={profile.city && profile.countryCode 
-                            ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
-                            : profile.city || profile.countryCode?.toUpperCase() || '-'
-                          }
-                        />
-                        <AboutRow 
-                          icon={<UserIcon className="h-4 w-4" />}
-                          label={profile.gender || '-'}
-                        />
-                        <AboutRow 
-                          icon={<LanguageIcon className="h-4 w-4" />}
-                          label={profile.languages.join(', ') || '-'}
-                        />
-                      </div>
-
-                      {/* Tags */}
-                      {profile.tags.length > 0 && (
-                        <div className="mt-5 pt-4 border-t border-white/60">
-                          <h3 className="text-sm font-semibold text-gray-800 mb-3">Tags</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {profile.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-xl bg-[#4ECCA3]/15 px-3 py-1.5 text-xs font-medium text-[#2A9D8F] backdrop-blur-sm transition hover:bg-[#4ECCA3]/25"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    <p className="mt-1 text-[15px] font-medium text-[#667085]">{profile.handle}</p>
+                    <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f6b7a]">
+                      {profile.bio || 'No profile description has been added yet.'}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2.5">
+                      <ProfileChip icon={<CalendarIcon className="h-3.5 w-3.5" />}>
+                        {formatProfileDate(profile.createdAt) || 'Unknown joined date'}
+                      </ProfileChip>
+                      <ProfileChip icon={<LocationIcon className="h-3.5 w-3.5" />}>
+                        {locationLabel}
+                      </ProfileChip>
+                      <ProfileChip icon={<LanguageIcon className="h-3.5 w-3.5" />}>
+                        {languageLabel}
+                      </ProfileChip>
+                      <ProfileChip icon={<UserIcon className="h-3.5 w-3.5" />}>
+                        {profile.isAgent ? 'Agent' : 'Human'}
+                      </ProfileChip>
                     </div>
                   </div>
+                </div>
+
+                <div className="flex shrink-0 flex-col items-end gap-3">
+                  <div className="flex flex-wrap gap-3">
+                    <StatBadge value={friendCount} label="Friends" />
+                    <StatBadge value={postCount} label="Posts" />
+                    <StatBadge value={likesCount} label="Likes" />
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-2 w-full">
+                    {props.showMessageButton !== false ? (
+                      <ActionButton
+                        label="Message"
+                        icon={<MessageIcon className="h-4 w-4" />}
+                        onClick={props.onMessage}
+                        variant="primary"
+                      />
+                    ) : null}
+                    {!props.isOwnProfile ? (
+                      <ActionButton
+                        label="Send Gift"
+                        icon={<GiftIcon className="h-4 w-4" />}
+                        onClick={props.onSendGift}
+                        variant="secondary"
+                      />
+                    ) : null}
+                  </div>
+                  {props.addFriendHint ? (
+                    <p className="text-xs text-amber-600">{props.addFriendHint}</p>
+                  ) : null}
                 </div>
               </div>
             </div>
 
-            {/* Right Content */}
-            <div className="min-w-0 flex-1">
-              {/* Tab Bar - Enhanced Style */}
-              <div className="sticky top-0 z-10 mb-6 flex rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100/50 overflow-hidden">
-                {TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`relative flex-1 px-4 py-4 text-[15px] font-semibold tracking-wide transition-all duration-200 ${
-                      activeTab === tab
-                        ? 'text-[#4ECCA3] bg-[#4ECCA3]/5'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tab}
-                    {activeTab === tab && (
-                      <span className="absolute bottom-0 left-4 right-4 h-[3px] rounded-full bg-[#4ECCA3]" />
-                    )}
-                  </button>
-                ))}
+            {/* Tabs Navigation */}
+            <div className="border-b border-[#edf2f6] bg-white px-6">
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1">
+                  {TABS.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`relative px-4 py-3 text-sm font-medium transition-all ${
+                        activeTab === tab
+                          ? 'text-[#111827]'
+                          : 'text-[#6b7280] hover:text-[#374151]'
+                      }`}
+                    >
+                      {tab}
+                      {activeTab === tab ? (
+                        <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-[#4ECCA3]" />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                {/* Tab Title & Count */}
+                <div className="text-xs text-gray-500">
+                  {activeTab === 'Posts' && (profile.stats?.postsCount ?? 0) > 0 && `${profile.stats?.postsCount} posts`}
+                  {activeTab === 'Media' && 'Photos & Videos'}
+                  {activeTab === 'Collections' && 'Saved items'}
+                  {activeTab === 'Gifts' && (profile.giftStats ? Object.values(profile.giftStats).reduce((a, b) => a + b, 0) : 0) > 0 && `${Object.values(profile.giftStats).reduce((a, b) => a + b, 0)} gifts`}
+                </div>
               </div>
+            </div>
 
-              {/* Tab Content - Clean Cards */}
-              <div className="space-y-4">
-                {activeTab === 'Posts' && <PostsTab profileId={profile.id} />}
-                {activeTab === 'Media' && (
-                  <MediaTab
-                    profileId={profile.id}
-                    onMediaClick={(post, idx) => setSelectedMedia({ post, mediaIndex: idx })}
-                  />
-                )}
-                {activeTab === 'Collections' && <CollectionsTab profileId={profile.id} />}
-                {activeTab === 'Gifts' && <GiftsTab giftStats={profile.giftStats} />}
+            <div className="bg-[#f7f9fc] px-6 py-6">
+              <div className="grid gap-6 xl:grid-cols-[300px,minmax(0,1fr)]">
+                <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+                  <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+                    <h3 className="text-sm font-semibold text-[#111827]">Profile Details</h3>
+                    <p className="mt-1 text-xs leading-5 text-[#8a94a6]">
+                      Reference details and profile attributes for this contact.
+                    </p>
+                    <div className="mt-5 space-y-3.5">
+                      <InfoTile icon={<CalendarIcon className="h-4 w-4" />} label="Joined" value={formatProfileDate(profile.createdAt) || 'Unknown'} />
+                      <InfoTile icon={<LocationIcon className="h-4 w-4" />} label="Location" value={locationLabel} />
+                      <InfoTile icon={<UserIcon className="h-4 w-4" />} label="Gender" value={profile.gender || 'Not set'} />
+                      <InfoTile icon={<LanguageIcon className="h-4 w-4" />} label="Languages" value={languageLabel} />
+                    </div>
+                  </section>
+
+                  <section className="rounded-[24px] border border-[#e7edf3] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+                    <h3 className="text-sm font-semibold text-[#111827]">Status</h3>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <StatusPill active={profile.isOnline}>{profile.isOnline ? 'Online now' : 'Offline'}</StatusPill>
+                      <StatusPill>{profile.isAgent ? 'Agent identity' : 'Human account'}</StatusPill>
+                      {profile.agentTier ? <StatusPill>{profile.agentTier}</StatusPill> : null}
+                      {profile.agentState ? <StatusPill>{profile.agentState}</StatusPill> : null}
+                    </div>
+                    {profile.tags.length > 0 ? (
+                      <>
+                        <div className="mt-5 h-px bg-[#edf2f6]" />
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {profile.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-full border border-[#d8efe8] bg-[#eefaf6] px-3 py-1 text-xs font-medium text-[#2f7d6b]"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
+                  </section>
+                </aside>
+
+                {/* Content Area */}
+                <section className="min-w-0">
+                  <div className="rounded-[24px] border border-[#e7edf3] bg-white p-6 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+                    {/* Tab Header */}
+                    <div className="mb-5 flex items-center justify-between">
+                      <h3 className="text-base font-semibold text-[#111827]">
+                        {activeTab === 'Posts' && 'Recent Posts'}
+                        {activeTab === 'Media' && 'Media Gallery'}
+                        {activeTab === 'Collections' && 'Collections'}
+                        {activeTab === 'Gifts' && 'Gift Wall'}
+                      </h3>
+                      {activeTab === 'Posts' && (profile.stats?.postsCount ?? 0) > 0 && (
+                        <span className="text-xs text-gray-500">{profile.stats?.postsCount} total</span>
+                      )}
+                      {activeTab === 'Gifts' && (
+                        <span className="text-xs text-gray-500">
+                          {Object.values(profile.giftStats || {}).reduce((a, b) => a + b, 0)} received
+                        </span>
+                      )}
+                    </div>
+                    {activeTab === 'Posts' && <PostsTab profileId={profile.id} />}
+                    {activeTab === 'Media' && (
+                      <MediaTab
+                        profileId={profile.id}
+                        onMediaClick={(post, idx) => setSelectedMedia({ post, mediaIndex: idx })}
+                      />
+                    )}
+                    {activeTab === 'Collections' && <CollectionsTab profileId={profile.id} />}
+                    {activeTab === 'Gifts' && <GiftsTab giftStats={profile.giftStats} />}
+                  </div>
+                </section>
               </div>
             </div>
           </div>
@@ -535,25 +545,81 @@ export function ProfileView(props: ProfileViewProps) {
   );
 }
 
-// About Row Component
-function AboutRow({ icon, label }: { icon: React.ReactNode; label: string }) {
+function ProfileChip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#4ECCA3]/10 text-[#4ECCA3]">
-        {icon}
-      </span>
-      <span className="text-gray-600">{label}</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#dbe6ee] bg-[#fbfdff] px-3.5 py-2 text-xs font-medium text-[#526071]">
+      <span className="text-[#8091a7]">{icon}</span>
+      <span>{children}</span>
+    </span>
+  );
+}
+
+function StatBadge({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="min-w-[92px] rounded-[18px] border border-[#dce6ee] bg-[#fbfdff] px-4 py-3 text-center">
+      <div className="text-xl font-semibold tracking-[-0.02em] text-[#111827]">{value}</div>
+      <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[#8a94a6]">{label}</div>
     </div>
   );
 }
 
-// Info Row Component
-function _InfoRow({ label, value }: { label: string; value: string }) {
+function ActionButton({
+  label,
+  icon,
+  onClick,
+  variant,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  variant: 'primary' | 'secondary';
+}) {
+  const classes = variant === 'primary'
+    ? 'border-[#2563eb] bg-[#2563eb] text-white hover:bg-[#1d4ed8]'
+    : 'border-[#d8e1ea] bg-white text-[#4b5563] hover:bg-[#f8fafc]';
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium text-gray-800">{value}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition ${classes}`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function InfoTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-[18px] bg-[#f8fbfd] px-3.5 py-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-[#4ECCA3] shadow-[0_2px_8px_rgba(78,204,163,0.12)]">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">{label}</div>
+        <div className="mt-1 text-sm leading-5 text-[#334155]">{value}</div>
+      </div>
     </div>
+  );
+}
+
+function StatusPill({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ${
+        active ? 'bg-[#e8f8f2] text-[#1f8f69]' : 'bg-[#f3f6fa] text-[#607086]'
+      }`}
+    >
+      {children}
+    </span>
   );
 }
 

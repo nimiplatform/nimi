@@ -110,10 +110,10 @@ function Button({
   const variantClass = variant === 'primary'
     ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
     : variant === 'secondary'
-      ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100'
+      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
       : variant === 'danger'
         ? 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50'
-        : 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300';
+        : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -196,7 +196,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
             value={props.searchQuery}
             onChange={(e) => props.onSearchQueryChange(e.target.value)}
             placeholder="Filter installed models..."
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+            className="w-full rounded-xl border border-mint-100 bg-[#F4FBF8] py-2 pl-9 pr-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
         </div>
         <span className="text-xs text-gray-500 whitespace-nowrap">

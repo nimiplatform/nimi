@@ -80,6 +80,100 @@ function extractAgentWorldId(profile: Record<string, unknown>): string | null {
   return null;
 }
 
+function extractWorldBannerUrl(profile: Record<string, unknown>): string | null {
+  const direct = toNonEmptyString(profile.worldBannerUrl);
+  if (direct) {
+    return direct;
+  }
+
+  const world = profile.world && typeof profile.world === 'object'
+    ? (profile.world as Record<string, unknown>)
+    : null;
+  const fromWorld = toNonEmptyString(world?.bannerUrl);
+  if (fromWorld) {
+    return fromWorld;
+  }
+
+  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
+    ? (profile.agentProfile as Record<string, unknown>)
+    : null;
+  const fromAgentProfile = toNonEmptyString(agentProfile?.worldBannerUrl);
+  if (fromAgentProfile) {
+    return fromAgentProfile;
+  }
+
+  return null;
+}
+
+function extractWorldName(profile: Record<string, unknown>): string | null {
+  const direct = toNonEmptyString(profile.worldName);
+  if (direct) {
+    return direct;
+  }
+
+  const world = profile.world && typeof profile.world === 'object'
+    ? (profile.world as Record<string, unknown>)
+    : null;
+  const fromWorld = toNonEmptyString(world?.name);
+  if (fromWorld) {
+    return fromWorld;
+  }
+
+  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
+    ? (profile.agentProfile as Record<string, unknown>)
+    : null;
+  const fromAgentProfile = toNonEmptyString(agentProfile?.worldName);
+  if (fromAgentProfile) {
+    return fromAgentProfile;
+  }
+
+  return null;
+}
+
+async function enrichProfileWithWorldBanner(
+  callApi: DataSyncApiCaller,
+  profile: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const existingBannerUrl = extractWorldBannerUrl(profile);
+  const existingWorldName = extractWorldName(profile);
+  if (existingBannerUrl && existingWorldName) {
+    return profile;
+  }
+
+  const worldId = extractAgentWorldId(profile);
+  if (!worldId) {
+    return profile;
+  }
+
+  try {
+    const world = await callApi(
+      (realm) => realm.services.WorldsService.worldControllerGetWorld(worldId),
+      'Failed to load world detail',
+    );
+    const worldRecord = world && typeof world === 'object' && !Array.isArray(world)
+      ? (world as Record<string, unknown>)
+      : null;
+    if (!worldRecord) {
+      return profile;
+    }
+
+    return {
+      ...profile,
+      worldName: existingWorldName || toNullableString(worldRecord.name),
+      worldBannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
+      world: profile.world && typeof profile.world === 'object'
+        ? {
+            ...(profile.world as Record<string, unknown>),
+            ...worldRecord,
+            bannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
+          }
+        : worldRecord,
+    };
+  } catch {
+    return profile;
+  }
+}
+
 function toPendingRequestMap(items: PendingFriendRequestDto[] | undefined): Map<string, string | null> {
   const normalized = new Map<string, string | null>();
   for (const item of items || []) {
@@ -361,7 +455,10 @@ export async function loadUserProfileById(
       (realm) => realm.services.UserService.getUser(id),
       '获取用户资料失败',
     );
-    return profile;
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+      return profile;
+    }
+    return await enrichProfileWithWorldBanner(callApi, profile as Record<string, unknown>) as UserProfileDto;
   } catch (error) {
     emitDataSyncError('load-user-profile', error, { id });
     throw error;

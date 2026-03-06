@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { changeLocale, getCurrentLocale, SUPPORTED_LOCALES, getLocaleLabel, type SupportedLocale } from '@renderer/i18n';
@@ -283,17 +284,15 @@ export function ProfilePage() {
           <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
           <div className="relative flex items-center gap-5">
             <div className="relative">
-              {userAvatarUrl ? (
-                <img 
-                  src={userAvatarUrl} 
-                  alt={displayName} 
-                  className="h-24 w-24 rounded-2xl object-cover ring-4 ring-white/20" 
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white/20 text-3xl font-bold ring-4 ring-white/20 backdrop-blur-sm">
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <EntityAvatar
+                imageUrl={userAvatarUrl}
+                name={displayName}
+                kind="human"
+                sizeClassName="h-24 w-24"
+                className="ring-4 ring-white/20"
+                textClassName="text-3xl font-bold"
+                fallbackClassName="bg-white/20 text-white backdrop-blur-sm"
+              />
               <button
                 type="button"
                 className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white text-mint-600 shadow-lg transition-transform hover:scale-110"

@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { dataSync } from '@runtime/data-sync';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
-import { ProfileView } from '@renderer/features/profile/profile-view';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
@@ -12,9 +13,11 @@ import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.j
 import { FriendRequestDetail, FriendRequestsList } from './contacts-friend-requests.js';
 import { BlockConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-users.js';
 import { ContactsSearchResults, ContactsCategoryAccordion } from './contacts-category-list.js';
+import { ContactDetailView } from './contact-detail-view.js';
 
 export function ContactsView(props: ContactsViewProps) {
   const { t } = useTranslation();
+  const flags = getShellFeatureFlags();
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
@@ -189,7 +192,9 @@ export function ContactsView(props: ContactsViewProps) {
     queryFn: async () => {
       if (!selectedContact) return null;
       try {
-        const result = await dataSync.loadUserProfile(selectedContact.id);
+        const result = selectedContact.isAgent
+          ? await dataSync.loadAgentDetails(selectedContact.handle || selectedContact.id)
+          : await dataSync.loadUserProfile(selectedContact.id);
         return toProfileData(result as Record<string, unknown>);
       } catch (_error) {
         // 如果 API 失败，使用联系人数据构建基础 Profile
@@ -207,6 +212,8 @@ export function ContactsView(props: ContactsViewProps) {
           city: selectedContact.location || null,
           countryCode: null,
           gender: selectedContact.gender || null,
+          worldName: selectedContact.worldName || null,
+          worldBannerUrl: selectedContact.worldBannerUrl || null,
         } as Record<string, unknown>);
       }
     },
@@ -238,6 +245,8 @@ export function ContactsView(props: ContactsViewProps) {
       city: selectedContact.location || null,
       countryCode: null,
       gender: selectedContact.gender || null,
+      worldName: selectedContact.worldName || null,
+      worldBannerUrl: selectedContact.worldBannerUrl || null,
     } as Record<string, unknown>);
   }, [selectedContact, profileQuery.data]);
 
@@ -267,7 +276,7 @@ export function ContactsView(props: ContactsViewProps) {
       <aside className="w-[320px] flex flex-col bg-[#F8F9FB] border-r border-gray-200">
         {/* 顶部标题 */}
         <div className="flex h-14 items-center px-4 shrink-0">
-          <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
+          <h1 className={APP_PAGE_TITLE_CLASS}>Contacts</h1>
         </div>
 
         {/* 搜索框 */}
@@ -307,7 +316,7 @@ export function ContactsView(props: ContactsViewProps) {
             <button
               type="button"
               onClick={props.onOpenAddContact}
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white border-2 border-[#4ECCA3] text-[#4ECCA3] hover:bg-[#4ECCA3]/5 transition-colors shadow-sm"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-[#4ECCA3] text-[#4ECCA3] hover:bg-[#4ECCA3]/5 transition-colors shadow-sm"
               title="Add Friend"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -319,7 +328,7 @@ export function ContactsView(props: ContactsViewProps) {
         </div>
 
         {/* 可展开的分类列表或搜索结果 */}
-        <div className="flex-1 overflow-y-auto py-2 space-y-1">
+        <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5">
           {props.searchText.trim() ? (
             <ContactsSearchResults
               searchText={props.searchText}
@@ -388,21 +397,16 @@ export function ContactsView(props: ContactsViewProps) {
             }}
           />
         ) : selectedContact ? (
-          // 联系人 Profile - 使用 ProfileView
-          <ProfileView
+          <ContactDetailView
             profile={selectedProfile!}
-            isOwnProfile={false}
             loading={profileLoading}
             error={profileError}
-            onBack={() => setSelectedContact(null)}
+            onClose={() => setSelectedContact(null)}
             onMessage={() => {
               if (selectedContact) {
                 props.onMessage(selectedContact);
               }
             }}
-            onAddFriend={() => {}}
-            canAddFriend={false}
-            addFriendHint={null}
             onSendGift={() => {
               // 打开送礼物模态框
               if (selectedContact) {
@@ -410,8 +414,9 @@ export function ContactsView(props: ContactsViewProps) {
                 setGiftModalOpen(true);
               }
             }}
-            showMessageButton={!selectedContact?.isAgent}
-            sidebarStyleVariant="agent"
+            onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
+            onRemove={selectedContact ? () => props.onRemoveFriend(selectedContact) : undefined}
+            showMessageButton={Boolean(selectedContact?.isAgent && flags.mode === 'desktop')}
           />
         ) : (
           // 空状态 - 显示 Nimi Logo

@@ -37,11 +37,9 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
 
-  const desktopLogoHintText = desktopAuthPending
-    ? t('Auth.desktopBrowserOpened')
-    : desktopAuthError
-      ? t('Auth.desktopAuthFailed')
-      : undefined;
+  const desktopLogoHintText = desktopAuthError
+    ? t('Auth.desktopAuthFailed')
+    : undefined;
 
   const handleDesktopLogoClick = () => {
     const myAttempt = ++desktopAttemptRef.current;
@@ -177,6 +175,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
         logoErrorText={mode === 'desktop-browser' ? desktopAuthError : null}
         logoDisabled={false}
         enableAuthModal={mode !== 'desktop-browser'}
+        logoLoading={mode === 'desktop-browser' ? desktopAuthPending : false}
       />
     </main>
   );

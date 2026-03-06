@@ -245,12 +245,12 @@ export function ModSettingsPage() {
                     key={mod.id}
                     type="button"
                     onClick={() => setSelectedModId(mod.id)}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
-                      active ? 'bg-brand-50' : 'hover:bg-gray-50'
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-all ${
+                      active ? 'bg-mint-50 ring-1 ring-inset ring-mint-200' : 'hover:bg-mint-50/30'
                     }`}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-sm ${active ? 'font-semibold text-brand-700' : 'font-medium text-gray-900'}`}>{mod.name}</p>
+                      <p className={`truncate text-sm ${active ? 'font-semibold text-mint-700' : 'font-medium text-gray-900'}`}>{mod.name}</p>
                       <p className="truncate text-xs text-gray-500">{mod.description}</p>
                     </div>
                     <div className="flex items-center gap-2">

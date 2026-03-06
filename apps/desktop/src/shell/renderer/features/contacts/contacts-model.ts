@@ -11,6 +11,7 @@ export type ContactRecord = {
   // World info
   worldId?: string | null;
   worldName?: string | null;
+  worldBannerUrl?: string | null;
   // Extended profile fields
   age?: number | null;
   gender?: 'male' | 'female' | 'other' | null;
@@ -132,6 +133,13 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
     typeof worldData?.id === 'string' ? worldData.id : null;
   const worldName = typeof item.worldName === 'string' ? item.worldName : 
     typeof worldData?.name === 'string' ? worldData.name : null;
+  const worldBannerUrl = typeof item.worldBannerUrl === 'string'
+    ? item.worldBannerUrl
+    : typeof agentProfile?.worldBannerUrl === 'string'
+      ? agentProfile.worldBannerUrl
+      : typeof worldData?.bannerUrl === 'string'
+        ? worldData.bannerUrl
+        : null;
   
   return {
     id: String(item.id || ''),
@@ -144,6 +152,7 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
     friendsSince: typeof item.friendsSince === 'string' ? item.friendsSince : null,
     worldId,
     worldName,
+    worldBannerUrl,
     age,
     gender,
     location: typeof item.location === 'string' ? item.location : null,
@@ -167,6 +176,13 @@ export function toDeveloperAgentContact(item: Record<string, unknown>): ContactR
     typeof worldData?.id === 'string' ? worldData.id : null;
   const worldName = typeof item.worldName === 'string' ? item.worldName : 
     typeof worldData?.name === 'string' ? worldData.name : null;
+  const worldBannerUrl = typeof item.worldBannerUrl === 'string'
+    ? item.worldBannerUrl
+    : typeof agentProfile?.worldBannerUrl === 'string'
+      ? agentProfile.worldBannerUrl
+      : typeof worldData?.bannerUrl === 'string'
+        ? worldData.bannerUrl
+        : null;
 
   return {
     id: String(item.id || ''),
@@ -180,6 +196,7 @@ export function toDeveloperAgentContact(item: Record<string, unknown>): ContactR
     agentCreatorId: agentCreatorIdRaw || null,
     worldId,
     worldName,
+    worldBannerUrl,
   };
 }
 

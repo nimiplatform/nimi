@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
 import { C, ICON_CHEVRON_RIGHT, getSettingsMenuSections } from './settings-assets';
 
 const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
@@ -60,7 +61,7 @@ export function PageShell({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-14 shrink-0 items-center bg-white px-6">
-        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <h2 className={APP_PAGE_TITLE_CLASS}>{title}</h2>
       </div>
       <div className="flex-1 overflow-y-auto bg-gray-50">
         <div className="mx-auto max-w-2xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -75,7 +76,7 @@ export function PageShell({
 export function SectionTitle({ children, description }: { children: ReactNode; description?: string }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-900">{children}</h3>
+      <h3 className={APP_SECTION_TITLE_CLASS}>{children}</h3>
       {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
     </div>
   );
@@ -210,15 +211,15 @@ export function SidebarNav({
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors ${
+                    className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-all ${
                       active
-                        ? 'bg-brand-50 font-medium text-brand-700'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-mint-50 font-medium text-mint-700 ring-1 ring-mint-200'
+                        : 'text-gray-600 hover:bg-mint-50/50'
                     }`}
                   >
-                    <span className={active ? 'text-brand-600' : 'text-gray-400'}>{item.icon}</span>
+                    <span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>
                     <span>{itemTitle}</span>
-                    {active && <span className="ml-auto text-brand-600">{ICON_CHEVRON_RIGHT}</span>}
+                    {active && <span className="ml-auto text-mint-600">{ICON_CHEVRON_RIGHT}</span>}
                   </button>
                 );
               })}

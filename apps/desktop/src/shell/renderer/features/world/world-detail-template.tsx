@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 
 // World 数据类型定义（与 WorldDetailDto 对应）
 export type WorldDetailData = {
@@ -134,10 +136,11 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
   const statusStyle = statusStyles[props.world.status] || statusStyles.DRAFT;
   const creationState = creationStateLabels[props.world.nativeCreationState] || creationStateLabels.OPEN;
 
-  // 获取智能体头像首字母
-  const getInitials = (name: string) => {
-    return name.replace(/·/g, '').slice(0, 2);
-  };
+  const getAgentPalette = (agent: WorldAgent) => getSemanticAgentPalette({
+    description: agent.bio || props.world.description,
+    worldName: props.world.name,
+    tags: props.world.themes || undefined,
+  });
 
   // 格式化 EWMA 仪表盘角度
   const ewmaDegree = useMemo(() => {
@@ -536,29 +539,29 @@ export function WorldDetailTemplate(props: WorldDetailTemplateProps) {
             {props.agents.map((agent) => (
               <article 
                 key={agent.id}
-                className="relative p-5 rounded-3xl bg-white/95 border border-[rgba(47,163,106,0.12)] overflow-hidden"
+                className="relative overflow-hidden rounded-3xl border border-[rgba(47,163,106,0.12)] bg-white/95 p-5"
               >
                 {/* 底部装饰渐变 */}
                 <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[rgba(47,163,106,0.04)] to-transparent pointer-events-none" />
                 
-                <div className="relative z-10 flex gap-3.5 items-center mb-3.5">
-                  <div 
-                    className="w-13 h-13 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shrink-0"
-                    style={{ 
-                      boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.5), 0 0 15px 6px rgba(124, 58, 237, 0.3)'
-                    }}
-                  >
-                    {agent.avatarUrl ? (
-                      <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full rounded-2xl object-cover" />
-                    ) : (
-                      <div className="w-full h-full rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#a855f7]/20 to-[#7c3aed]/10 text-[#a855f7]">
-                        {getInitials(agent.name)}
-                      </div>
-                    )}
-                  </div>
+                <div className="relative z-10 mb-3.5 flex items-center gap-3.5">
+                  <EntityAvatar
+                    imageUrl={agent.avatarUrl}
+                    name={agent.name}
+                    kind="agent"
+                    sizeClassName="h-13 w-13"
+                    radiusClassName="rounded-[10px]"
+                    innerRadiusClassName="rounded-[8px]"
+                    textClassName="text-lg font-extrabold"
+                  />
                   <div className="min-w-0">
                     <strong className="block text-base tracking-tight truncate">{agent.name}</strong>
-                    <span className="block text-[13px] text-[#5f7a69] font-semibold mt-1 truncate">{agent.handle}</span>
+                    <span
+                      className="mt-1 block truncate text-[13px] font-semibold"
+                      style={{ color: getAgentPalette(agent).accent }}
+                    >
+                      {agent.handle}
+                    </span>
                   </div>
                 </div>
 

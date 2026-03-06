@@ -68,7 +68,7 @@ function ProgressBar({ percent, color }: { percent: number; color: string }) {
 }
 
 function SurfaceCard({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 function StatTile({
@@ -302,7 +302,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                     <button
                       type="button"
                       onClick={() => model.onChangePage('local')}
-                      className="text-xs font-medium text-brand-600 hover:text-brand-700"
+                      className="text-xs font-medium text-mint-700 hover:text-mint-800"
                     >
                       Setup
                     </button>

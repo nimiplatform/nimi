@@ -1,4 +1,6 @@
 import type { WorldDetailData, WorldAgent, WorldEvent } from './world-detail-template';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { TimeFlowDynamics } from './time-flow-dynamics';
 import { WorldScoringMatrix } from './world-scoring-matrix';
 
@@ -158,6 +160,11 @@ const displayValue = (value: unknown, fallback = 'N/A') => {
 
 export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
   const world = props.world;
+  const getAgentPalette = (agent: WorldAgent) => getSemanticAgentPalette({
+    description: agent.bio || world.description,
+    worldName: world.name,
+    tags: world.themes || undefined,
+  });
   const formatDateTime = (d: string) => {
     const date = new Date(d);
     if (Number.isNaN(date.getTime())) return d;
@@ -523,32 +530,25 @@ export function XianxiaWorldTemplate(props: XianxiaWorldTemplateProps) {
                 props.agents.map((agent) => (
                   <article
                     key={agent.id}
-                    className="relative w-full min-w-0 p-4 rounded-xl bg-[#0a0f0c]/60 border border-[#4ECCA3]/10 overflow-hidden"
+                    className="relative w-full min-w-0 overflow-hidden rounded-xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/60 p-4"
                   >
                     {/* Agent header */}
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="relative">
-                        {agent.avatarUrl ? (
-                          <img
-                            src={agent.avatarUrl}
-                            alt={agent.name}
-                            className="w-14 h-14 rounded-xl object-cover"
-                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.3)' }}
-                          />
-                        ) : (
-                          <div 
-                            className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-serif text-[#a855f7] bg-gradient-to-br from-[#a855f7]/10 to-transparent"
-                            style={{ boxShadow: '0 0 0 2px #a855f7, 0 0 8px 4px rgba(168, 85, 247, 0.3)' }}
-                          >
-                            {agent.name ? agent.name.charAt(0) : '修'}
-                          </div>
-                        )}
-                      </div>
+                      {/* Theme exception: xianxia cards intentionally keep a tighter silhouette. */}
+                      <EntityAvatar
+                        imageUrl={agent.avatarUrl}
+                        name={agent.name || '修'}
+                        kind="agent"
+                        sizeClassName="h-14 w-14"
+                        radiusClassName="rounded-[10px]"
+                        innerRadiusClassName="rounded-[8px]"
+                        textClassName="text-lg font-serif"
+                      />
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-bold text-[#e8f5ee] truncate">
                           {displayValue(agent.name)}
                         </h4>
-                        <div className="text-xs text-[#4ECCA3] truncate">
+                        <div className="text-xs truncate" style={{ color: getAgentPalette(agent).accent }}>
                           {displayValue(agent.handle)}
                         </div>
                       </div>

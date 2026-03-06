@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { AgentDetailData } from './agent-detail-model';
-import { getAgentInitial, getStateBadgeColor } from './agent-detail-model';
+import { getStateBadgeColor } from './agent-detail-model';
 
 type AgentDetailViewProps = {
   agent: AgentDetailData;
@@ -119,6 +122,12 @@ export function AgentDetailView(props: AgentDetailViewProps) {
   }
 
   const { agent } = props;
+  const palette = getSemanticAgentPalette({
+    category: agent.category,
+    origin: agent.origin,
+    description: agent.bio || agent.category,
+    tags: agent.tags,
+  });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
@@ -133,7 +142,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <h1 className="text-lg font-semibold tracking-tight text-gray-900">{t('AgentDetail.title')}</h1>
+        <h1 className={APP_PAGE_TITLE_CLASS}>{t('AgentDetail.title')}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -149,7 +158,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400" />
+                <div className="w-full h-full" style={{ background: palette.ring }} />
               )}
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20" />
@@ -157,7 +166,10 @@ export function AgentDetailView(props: AgentDetailViewProps) {
               {/* Tag Pill - Top Left */}
               {agent.tags.length > 0 && (
                 <div className="absolute top-4 left-4">
-                  <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm">
+                  <span
+                    className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium shadow-sm backdrop-blur-sm"
+                    style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
+                  >
                     {agent.tags[0]}
                   </span>
                 </div>
@@ -188,26 +200,13 @@ export function AgentDetailView(props: AgentDetailViewProps) {
             <div className="relative -mt-12 flex flex-col items-center px-6">
               {/* Avatar with gradient ring */}
               <div className="relative">
-                <div 
-                  className="h-24 w-24 rounded-full p-1"
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-                  }}
-                >
-                  <div className="h-full w-full rounded-full bg-white p-1">
-                    {agent.avatarUrl ? (
-                      <img
-                        src={agent.avatarUrl}
-                        alt={agent.displayName}
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 via-cyan-100 to-violet-100 text-2xl font-semibold text-violet-600">
-                        {getAgentInitial(agent.displayName)}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <EntityAvatar
+                  imageUrl={agent.avatarUrl}
+                  name={agent.displayName}
+                  kind="agent"
+                  sizeClassName="h-24 w-24"
+                  textClassName="text-2xl font-semibold"
+                />
                 <OnlineIndicator isOnline={agent.isOnline} />
               </div>
 
@@ -235,7 +234,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
 
               {/* Category & Origin */}
               {(agent.category || agent.origin) && (
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-2 text-xs" style={{ color: palette.accent }}>
                   {agent.category}{agent.category && agent.origin ? ' • ' : ''}{agent.origin ? `Origin: ${agent.origin}` : ''}
                 </p>
               )}

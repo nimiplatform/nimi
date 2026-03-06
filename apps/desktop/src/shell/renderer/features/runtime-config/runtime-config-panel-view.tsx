@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
 import { RuntimeSidebar } from './panels/sidebar';
 import { StatusBadge, DaemonStatusBadge } from './panels/primitives';
@@ -87,10 +88,13 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1">
-      <aside className="relative flex shrink-0 flex-col overflow-y-auto bg-white" style={{ width: `${sidebarWidth}px` }}>
+    <div ref={containerRef} className="flex min-h-0 flex-1 bg-[#F8F9FB]">
+      <aside
+        className="relative flex shrink-0 flex-col overflow-y-auto bg-[#F8F9FB]"
+        style={{ width: `${sidebarWidth}px` }}
+      >
         <div className="flex h-14 shrink-0 items-center px-5">
-          <h1 className="text-lg font-semibold text-gray-900">AI Runtime</h1>
+          <h1 className={APP_PAGE_TITLE_CLASS}>AI Runtime</h1>
         </div>
         <RuntimeSidebar
           activePage={activePage}
@@ -111,10 +115,10 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         />
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-gray-50">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex w-full items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">{pageMeta.name}</h2>
+            <h2 className={APP_PAGE_TITLE_CLASS}>{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
               <DaemonStatusBadge running={daemonRunning} />
               <StatusBadge status={runtimeStatus} />
@@ -122,7 +126,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="flex-1 overflow-y-auto bg-white">
           {activePage === 'local' ? (
             <LocalPage model={model} state={state} />
           ) : (

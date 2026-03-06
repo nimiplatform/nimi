@@ -54,8 +54,8 @@ function Button({
   const variantClass = variant === 'primary'
     ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
     : variant === 'secondary'
-      ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100'
-      : 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300';
+      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
+      : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -97,10 +97,10 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
   );
 
   return (
-    <div className="rounded-xl border border-sky-100 bg-sky-50/30 p-4 space-y-3">
+    <div className="rounded-xl border border-mint-100 bg-mint-50/30 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <PackageIcon className="h-4 w-4 text-sky-600" />
+          <PackageIcon className="h-4 w-4 text-mint-600" />
           <p className="text-sm font-semibold text-gray-900">
             {props.isModMode ? 'Model Dependencies' : 'Mod Dependencies'}
           </p>
@@ -124,7 +124,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
             {props.dependencySelectionLocked ? (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">Runtime Mod</label>
-                <div className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 flex items-center">
+                <div className="flex h-11 w-full items-center rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-sm text-gray-900">
                   {props.selectedDependencyTarget?.modName || props.selectedDependencyModId || 'Unknown runtime mod'}
                 </div>
               </div>
@@ -159,7 +159,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
           {props.selectedDependencyTarget ? (
             <div className="flex flex-wrap gap-1.5">
               {(props.selectedDependencyTarget.consumeCapabilities || ['chat']).map((cap) => (
-                <span key={cap} className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                <span key={cap} className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-medium text-mint-700">
                   {cap}
                 </span>
               ))}
@@ -176,9 +176,9 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
               Resolving dependency plan...
             </div>
           ) : props.dependencyPlanPreview ? (
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm space-y-3">
+            <div className="space-y-3 rounded-xl border border-mint-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
                   <CheckIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -205,7 +205,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
                           </span>
                         )}
                         {dep.required && (
-                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                          <span className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-medium text-mint-700">
                             Required
                           </span>
                         )}
@@ -243,7 +243,7 @@ export function ModelCenterDependencySection(props: ModelCenterDependencySection
               </Button>
 
               {dependencyApplySummary ? (
-                <p className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2">{dependencyApplySummary}</p>
+                <p className="rounded-lg bg-mint-50/60 px-3 py-2 text-xs text-mint-800">{dependencyApplySummary}</p>
               ) : null}
             </div>
           ) : null}

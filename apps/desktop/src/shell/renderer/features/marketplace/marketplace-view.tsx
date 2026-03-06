@@ -1,4 +1,5 @@
 import { MarketplaceRow } from './marketplace-row';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { MarketplacePageModel } from './marketplace-controller';
 
 const ICON_SEARCH = (
@@ -36,7 +37,7 @@ export function MarketplaceView(model: MarketplacePageModel) {
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       {/* Header */}
       <div className="flex h-14 shrink-0 items-center justify-between bg-gray-50 px-6">
-        <h1 className="text-lg font-semibold text-gray-900">Mod Marketplace</h1>
+        <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
         <div className="flex items-center gap-2 text-gray-400">
           {ICON_LIST}
         </div>

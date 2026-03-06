@@ -1,15 +1,17 @@
+import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
+
 export function TermsOfServiceView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-gray-50">
       <div className="mx-auto max-w-3xl px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
+          <h1 className={APP_PAGE_TITLE_CLASS}>Terms of Service</h1>
           <p className="mt-2 text-sm text-gray-500">Last Updated: 2024-12-30</p>
         </div>
 
         <div className="space-y-8 text-sm leading-relaxed text-gray-700">
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">1. Introduction</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>1. Introduction</h2>
             <p>
               Welcome to Nimi (&ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;). By accessing or using our website, mobile
               application, and smart contracts (collectively, the &ldquo;Service&rdquo;), you agree to be bound by
@@ -21,7 +23,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">2. Eligibility</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>2. Eligibility</h2>
             <p>
               You must be at least 13 years old (or the minimum legal age in your jurisdiction) to use
               Nimi. By using Nimi, you represent that:
@@ -39,7 +41,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               3. Web3 &amp; Wallet Interactions
             </h2>
             <div className="space-y-4">
@@ -68,7 +70,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">4. User Accounts &amp; Identity</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>4. User Accounts &amp; Identity</h2>
             <p>
               To access certain features, you may be required to connect a compatible third-party
               wallet (e.g., MetaMask, WalletConnect). Your wallet address functions as your identity
@@ -84,7 +86,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">5. User Conduct</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>5. User Conduct</h2>
             <p>Nimi is a social space. You agree NOT to:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6">
               <li>Post illegal, hateful, harassing, or sexually explicit content.</li>
@@ -98,7 +100,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               6. Intellectual Property &amp; Content
             </h2>
             <div className="space-y-4">
@@ -135,7 +137,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>
               7. Disclaimers &amp; Risk Assumptions
             </h2>
             <p className="mb-2 font-medium uppercase text-red-600">
@@ -159,7 +161,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">8. Limitation of Liability</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>8. Limitation of Liability</h2>
             <p>
               To the maximum extent permitted by law, Nimi shall not be liable for any indirect,
               incidental, special, consequential, or punitive damages, or any loss of profits or
@@ -176,7 +178,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">9. Indemnification</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>9. Indemnification</h2>
             <p>
               You agree to indemnify and hold harmless Nimi and its officers, directors, employees,
               and agents from any claims, disputes, demands, liabilities, damages, losses, and costs
@@ -186,7 +188,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">10. Governing Law</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>10. Governing Law</h2>
             <p>
               These Terms shall be governed by and construed in accordance with the laws of Singapore,
               without regard to its conflict of law principles.
@@ -194,7 +196,7 @@ export function TermsOfServiceView() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">11. Changes to Terms</h2>
+            <h2 className={`${APP_SECTION_TITLE_CLASS} mb-3`}>11. Changes to Terms</h2>
             <p>
               We may modify these Terms at any time. We will provide notice of such changes by
               updating the &ldquo;Last Updated&rdquo; date. Your continued use of the Service confirms your

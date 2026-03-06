@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import type { ChatViewDto } from '@nimiplatform/sdk/realm';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 
 function getChatTitle(chat: ChatViewDto): string {
@@ -32,6 +34,19 @@ function getAvatarUrl(chat: ChatViewDto): string | null {
   return chat.otherUser?.avatarUrl || null;
 }
 
+function getIsAgent(chat: ChatViewDto): boolean {
+  const record = chat as unknown as Record<string, unknown>;
+  const otherUser =
+    record.otherUser && typeof record.otherUser === 'object'
+      ? (record.otherUser as Record<string, unknown>)
+      : null;
+  if (otherUser?.isAgent === true) {
+    return true;
+  }
+  const handle = String(otherUser?.handle || '').trim();
+  return handle.startsWith('~');
+}
+
 function resolveChatSortTime(chat: ChatViewDto): number {
   const primary = Date.parse(String(chat.lastMessageAt || ''));
   if (Number.isFinite(primary)) {
@@ -57,10 +72,6 @@ function compareChatsByRecency(left: ChatViewDto, right: ChatViewDto): number {
     return delta;
   }
   return String(right.id || '').localeCompare(String(left.id || ''));
-}
-
-function getInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
 }
 
 function formatChatTime(isoString: string | null | undefined): string {
@@ -125,7 +136,7 @@ export function ChatList() {
     <div className="flex h-full flex-col bg-[#F8F9FB]">
       {/* Header */}
       <div className="flex h-14 items-center justify-between px-4 shrink-0">
-        <h1 className="text-lg font-semibold text-gray-900">{t('Chat.title')}</h1>
+        <h1 className={APP_PAGE_TITLE_CLASS}>{t('Chat.title')}</h1>
       </div>
 
       {/* Top row: search only */}
@@ -158,10 +169,10 @@ export function ChatList() {
             return (
               <div
                 key={chat.id}
-                className={`flex w-full gap-3 rounded-lg p-3 text-left transition-all cursor-pointer ${
+                className={`flex w-full cursor-pointer gap-3 rounded-lg border p-3 text-left transition-all ${
                   active 
-                    ? 'bg-mint-50 shadow-sm' 
-                    : 'hover:bg-mint-50/50'
+                    ? 'border-transparent bg-mint-50 shadow-sm' 
+                    : 'border-transparent hover:bg-mint-50/50'
                 }`}
                 onClick={() => {
                   // Check if avatar was clicked, if so, don't process this click
@@ -188,17 +199,14 @@ export function ChatList() {
                   className="relative shrink-0 cursor-pointer z-10"
                   title="View profile"
                 >
-                  {getAvatarUrl(chat) ? (
-                    <img
-                      src={getAvatarUrl(chat)!}
-                      alt={title}
-                      className="h-12 w-12 rounded-full object-cover hover:ring-2 hover:ring-[#4ECCA3]/50 transition-all"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-sm font-medium text-gray-600 hover:ring-2 hover:ring-[#4ECCA3]/50 transition-all">
-                      {getInitial(title)}
-                    </div>
-                  )}
+                  <EntityAvatar
+                    imageUrl={getAvatarUrl(chat)}
+                    name={title}
+                    kind={getIsAgent(chat) ? 'agent' : 'human'}
+                    sizeClassName="h-12 w-12"
+                    className="transition-all"
+                    textClassName="text-sm font-medium"
+                  />
                   {unread > 0 ? (
                     <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#34C759] px-1.5 text-[11px] font-semibold text-white shadow-sm">
                       {unread > 99 ? '99+' : unread}

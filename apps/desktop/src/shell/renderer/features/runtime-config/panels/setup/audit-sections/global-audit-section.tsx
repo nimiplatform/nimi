@@ -9,6 +9,54 @@ import {
   structToRecord,
 } from '../../../domain/diagnostics/global-audit-view-model.js';
 
+// Icon Button Component
+function IconButton({
+  icon,
+  title,
+  disabled,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// Refresh Icon
+function RefreshIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+      <path d="M16 16h5v5" />
+    </svg>
+  );
+}
+
+// Export Icon
+function ExportIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
 type GlobalAuditSectionProps = {
   events: AuditEventRecord[];
   loading: boolean;
@@ -42,12 +90,17 @@ export function GlobalAuditSection({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">Global Audit Events</h3>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={loading} onClick={onRefresh}>
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => onExport('json')}>
-            Export
-          </Button>
+          <IconButton
+            icon={<RefreshIcon className={loading ? 'animate-spin' : ''} />}
+            title="Refresh"
+            disabled={loading}
+            onClick={onRefresh}
+          />
+          <IconButton
+            icon={<ExportIcon />}
+            title="Export JSON"
+            onClick={() => onExport('json')}
+          />
         </div>
       </div>
 
@@ -59,13 +112,13 @@ export function GlobalAuditSection({
           value={filters.domain}
           onChange={(e) => onUpdateFilters({ domain: e.target.value })}
           placeholder="Filter domain..."
-          className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
         <RuntimeSelect
           value={String(filters.callerKind)}
           onChange={(nextCallerKind) => onUpdateFilters({ callerKind: Number(nextCallerKind) })}
           size="sm"
-          className="w-40"
+          className="w-52"
           options={[
             { value: String(0), label: 'All callers' },
             { value: String(CallerKind.DESKTOP_CORE), label: 'Desktop Core' },
@@ -78,18 +131,18 @@ export function GlobalAuditSection({
           type="datetime-local"
           value={filters.timeFrom}
           onChange={(e) => onUpdateFilters({ timeFrom: e.target.value })}
-          className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
         <input
           type="datetime-local"
           value={filters.timeTo}
           onChange={(e) => onUpdateFilters({ timeTo: e.target.value })}
-          className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-800"
+          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
       </div>
 
       {/* Event List */}
-      <div className="max-h-[calc(100vh-32rem)] overflow-y-auto rounded-lg border border-gray-100">
+      <div className="max-h-[calc(100vh-32rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white/60">
         {events.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-gray-500">
             {loading ? 'Loading audit events...' : 'No audit events matching current filters.'}
@@ -118,15 +171,15 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
   const ts = timestampToIso(event.timestamp);
 
   return (
-    <div className="border-b border-gray-50 last:border-b-0">
+    <div className="border-b border-gray-200/70 last:border-b-0">
       <div
-        className="flex items-start justify-between gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50"
+        className="flex cursor-pointer items-start justify-between gap-3 px-4 py-2.5 hover:bg-white/80"
         onClick={() => setExpanded((p) => !p)}
       >
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
           <span className="text-gray-400">{expanded ? '\u25BC' : '\u25B6'}</span>
           <span className="font-mono text-gray-400">{event.auditId.slice(0, 8)}...</span>
-          <span className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-medium text-blue-700">
+          <span className="rounded-md border border-mint-200 bg-mint-50 px-1.5 py-0.5 font-medium text-mint-700">
             {event.domain}
           </span>
           <span className="text-gray-700">{event.operation}</span>
@@ -140,7 +193,7 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
         </span>
       </div>
       {expanded ? (
-        <div className="bg-gray-50/50 px-4 py-3 space-y-2">
+        <div className="space-y-2 bg-white/60 px-4 py-3">
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
             <FieldRow label="Audit ID" value={event.auditId} />
             <FieldRow label="App ID" value={event.appId} />
@@ -168,7 +221,7 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
           {event.payload ? (
             <div>
               <p className="text-[11px] font-medium text-gray-500 mb-1">Payload</p>
-              <pre className="rounded-md bg-gray-100 p-2 text-[10px] text-gray-700 overflow-x-auto max-h-40">
+              <pre className="max-h-40 overflow-x-auto rounded-md border border-gray-200 bg-white/80 p-2 text-[10px] text-gray-700">
                 {JSON.stringify(structToRecord(event.payload as { fields: Record<string, unknown> }), null, 2)}
               </pre>
             </div>

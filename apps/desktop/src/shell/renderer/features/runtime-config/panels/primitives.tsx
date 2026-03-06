@@ -16,7 +16,7 @@ export function Card({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={`rounded-[10px] border border-gray-200 bg-white ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 export function Button({
@@ -33,10 +33,10 @@ export function Button({
   size?: 'sm' | 'md';
 }) {
   const variantClass = variant === 'primary'
-    ? 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-gray-300'
+    ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
     : variant === 'secondary'
-      ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100'
-      : 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300';
+      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
+      : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -76,7 +76,7 @@ export function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="h-[46px] w-full rounded-[10px] border border-gray-200 bg-gray-50 px-3 text-sm text-gray-900 outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500 disabled:opacity-60"
+        className="h-[46px] w-full rounded-[10px] border border-mint-100 bg-[#F4FBF8] px-3 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60"
       />
     </div>
   );
@@ -128,9 +128,9 @@ export function RuntimeSelect({
         type="button"
         onClick={() => !disabled && setOpen((prev) => !prev)}
         disabled={disabled}
-        className={`flex w-full items-center justify-between border border-gray-200 bg-white text-gray-900 outline-none transition-all hover:border-mint-300 focus:border-mint-400 focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${triggerClass}`}
+        className={`flex w-full items-center justify-between border border-mint-100 bg-[#F4FBF8] text-gray-900 outline-none transition-all hover:border-mint-300 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${triggerClass}`}
       >
-        <span className="truncate">{selectedLabel}</span>
+        <span className="min-w-0 flex-1 truncate text-left" title={selectedLabel}>{selectedLabel}</span>
         <svg
           width="16"
           height="16"
@@ -146,7 +146,7 @@ export function RuntimeSelect({
         </svg>
       </button>
       {open ? (
-        <div className={`absolute z-50 mt-1 max-h-72 w-full overflow-auto border border-gray-100 bg-white py-1 shadow-lg ${menuClass}`}>
+        <div className={`absolute z-50 mt-1 min-w-full max-w-[min(28rem,calc(100vw-2rem))] overflow-auto border border-mint-100 bg-white py-1 shadow-lg ${menuClass}`}>
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -158,7 +158,7 @@ export function RuntimeSelect({
                   setOpen(false);
                 }}
                 className={`flex w-full items-center gap-2 text-left transition-colors ${
-                  selected ? 'bg-mint-50 font-medium text-mint-700' : 'text-gray-700 hover:bg-gray-50'
+                  selected ? 'bg-mint-50 font-medium text-mint-700' : 'text-gray-700 hover:bg-mint-50/60'
                 } ${itemClass}`}
               >
                 {selected ? (
@@ -178,7 +178,7 @@ export function RuntimeSelect({
                 ) : (
                   <span className="w-4 shrink-0" />
                 )}
-                <span className="truncate">{option.label}</span>
+                <span className="whitespace-normal break-words text-left">{option.label}</span>
               </button>
             );
           })}
@@ -291,7 +291,7 @@ export function renderModelChips(models: string[], prefix: string) {
   return (
     <div className="mt-2 flex flex-wrap gap-1.5">
       {models.map((model) => (
-        <span key={`${prefix}-${model}`} className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] text-gray-700">
+        <span key={`${prefix}-${model}`} className="rounded-md border border-mint-100 bg-mint-50/60 px-2 py-0.5 text-[11px] text-mint-800">
           {model}
         </span>
       ))}

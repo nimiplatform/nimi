@@ -52,6 +52,17 @@ const SlotHost = lazy(async () => {
   return { default: mod.SlotHost };
 });
 
+// Loading Spinner Component
+function LoadingSpinner({ className = '' }: { className?: string }) {
+  return (
+    <div className={`flex items-center justify-center gap-1 ${className}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-[#4ECCA3] animate-bounce" style={{ animationDelay: '0ms' }} />
+      <span className="h-1.5 w-1.5 rounded-full bg-[#4ECCA3] animate-bounce" style={{ animationDelay: '150ms' }} />
+      <span className="h-1.5 w-1.5 rounded-full bg-[#4ECCA3] animate-bounce" style={{ animationDelay: '300ms' }} />
+    </div>
+  );
+}
+
 export function AuthMenu({
   onLogoHoverChange,
   onLogoClick,
@@ -59,6 +70,7 @@ export function AuthMenu({
   logoErrorText,
   logoDisabled = false,
   enableAuthModal = true,
+  logoLoading = false,
 }: AuthMenuProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
@@ -284,7 +296,7 @@ export function AuthMenu({
   const effectiveLogoHintText = logoHintText || (enableAuthModal
     ? t('Auth.clickToConnect')
     : t('Auth.clickToAuthorize'));
-  const shouldShowLogoHint = isHoveringLogo || Boolean(logoHintText) || Boolean(logoErrorText);
+  const shouldShowLogoHint = isHoveringLogo || Boolean(logoHintText) || Boolean(logoErrorText) || logoLoading;
 
   return (
     <>
@@ -304,12 +316,6 @@ export function AuthMenu({
             disabled={pending || logoDisabled}
             className="relative group cursor-pointer focus:outline-none"
           >
-            <div
-              className={`
-                absolute inset-0 -z-10 rounded-full bg-[#4ECCA3] opacity-30 blur-2xl transition-all duration-1000
-                ${isHoveringLogo ? 'scale-150 opacity-40' : 'scale-110 animate-pulse'}
-              `}
-            />
             <img src={logoUrl} alt="Nimi Logo" className="h-32 w-32 rounded-full object-cover transition-transform duration-200 group-hover:scale-105" />
           </button>
 
@@ -317,14 +323,20 @@ export function AuthMenu({
             <h1 className="mb-3 text-[13px] font-medium uppercase tracking-[0.38em] text-[#7a7366]">
               {t('Auth.nimiNetwork')}
             </h1>
-            <p
-              className={`
-                text-xs text-[#8a8579] transition-opacity duration-500
-                ${shouldShowLogoHint ? 'opacity-100' : 'opacity-0'}
-              `}
-            >
-              {effectiveLogoHintText}
-            </p>
+            {logoLoading ? (
+              <div className={`transition-opacity duration-500 ${shouldShowLogoHint ? 'opacity-100' : 'opacity-0'}`}>
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <p
+                className={`
+                  text-xs text-[#8a8579] transition-opacity duration-500
+                  ${shouldShowLogoHint ? 'opacity-100' : 'opacity-0'}
+                `}
+              >
+                {effectiveLogoHintText}
+              </p>
+            )}
             {logoErrorText ? <p className="mt-2 text-xs text-destructive">{logoErrorText}</p> : null}
           </div>
         </div>
