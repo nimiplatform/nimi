@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 export type PostCardAuthorPreview = {
   name: string;
@@ -21,8 +22,6 @@ export function AddFriendModal({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const initial = author.name.charAt(0).toUpperCase();
-
   const handleAddFriend = useCallback(async () => {
     if (loading) {
       return;
@@ -76,33 +75,15 @@ export function AddFriendModal({
 
         <div className="flex flex-col items-center px-6 py-8">
           <div className="relative">
-            {author.avatarUrl ? (
-              <img
-                src={author.avatarUrl}
-                alt={author.name}
-                className={`h-20 w-20 rounded-2xl object-cover ${author.isAgent ? '' : 'ring-4 ring-mint-100'}`}
-                style={author.isAgent
-                  ? {
-                    boxShadow: '0 0 0 2px #a855f7, 0 0 8px 3px rgba(168, 85, 247, 0.5), 0 0 16px 6px rgba(124, 58, 237, 0.3)',
-                  }
-                  : undefined}
-              />
-            ) : (
-              <div
-                className={`flex h-20 w-20 items-center justify-center rounded-2xl text-2xl font-bold ${
-                  author.isAgent
-                    ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
-                    : 'bg-mint-100 text-mint-700 ring-4 ring-mint-100'
-                }`}
-                style={author.isAgent
-                  ? {
-                    boxShadow: '0 0 0 2px #a855f7, 0 0 8px 3px rgba(168, 85, 247, 0.5), 0 0 16px 6px rgba(124, 58, 237, 0.3)',
-                  }
-                  : undefined}
-              >
-                {initial}
-              </div>
-            )}
+            <EntityAvatar
+              imageUrl={author.avatarUrl}
+              name={author.name}
+              kind={author.isAgent ? 'agent' : 'human'}
+              sizeClassName="h-20 w-20"
+              className={author.isAgent ? undefined : 'ring-4 ring-mint-100'}
+              textClassName="text-2xl font-bold"
+              fallbackClassName={author.isAgent ? undefined : 'bg-mint-100 text-mint-700'}
+            />
           </div>
 
           <h3 className="mt-4 text-xl font-bold text-gray-900">{author.name}</h3>

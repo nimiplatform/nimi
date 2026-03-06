@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import {
   DEFAULT_OPENAI_ENDPOINT_V11,
@@ -56,12 +57,10 @@ function TrashIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function TestTubeIcon({ className = '' }: { className?: string }) {
+function BoltIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.5 2v17.5a2.5 2.5 0 0 1-5 0V2" />
-      <path d="M8.5 2h7" />
-      <path d="M14.5 16h-5" />
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   );
 }
@@ -142,7 +141,7 @@ function PageShell({
       {title && (
         <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex items-end gap-3">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <h2 className={APP_PAGE_TITLE_CLASS}>{title}</h2>
             {description && <p className="text-xs text-gray-500 pb-[3px]">{description}</p>}
           </div>
         </div>
@@ -155,7 +154,7 @@ function PageShell({
 function SectionTitle({ children, description }: { children: React.ReactNode; description?: string }) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-900">{children}</h3>
+      <h3 className={APP_SECTION_TITLE_CLASS}>{children}</h3>
       {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
     </div>
   );
@@ -173,7 +172,7 @@ function SettingRow({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
+    <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/80">
       <div className="flex items-center gap-4">
         {icon && (
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
@@ -209,10 +208,10 @@ function Button({
   const variantClass = variant === 'primary'
     ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
     : variant === 'secondary'
-      ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100'
+      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
       : variant === 'danger'
         ? 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50'
-        : 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300';
+        : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -262,7 +261,7 @@ function Input({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`h-11 w-full rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
+          className={`h-11 w-full rounded-xl border border-mint-100 bg-[#F4FBF8] text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
         />
       </div>
     </div>
@@ -468,7 +467,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
         <SectionTitle description="Manage your cloud API connectors">
           Cloud API Connectors
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
           <SettingRow
             icon={<CloudIcon className="h-5 w-5" />}
             title="Available Connectors"
@@ -483,20 +482,20 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 >
                   Add
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
+                <button
+                  type="button"
                   disabled={model.testingConnector || !selectedConnector}
                   onClick={() => void model.testSelectedConnector()}
-                  icon={<TestTubeIcon />}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  <BoltIcon className="text-mint-500" />
                   {model.testingConnector ? 'Testing...' : 'Test'}
-                </Button>
+                </button>
               </div>
             }
           />
 
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="mx-5 h-px bg-gray-200/70" />
 
           {/* Connector Chips */}
           <div className="px-5 py-4">
@@ -521,7 +520,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                       className={`rounded-xl border px-4 py-2.5 text-left text-xs transition-all ${
                         active
                           ? 'border-mint-300 bg-mint-50 ring-1 ring-mint-200'
-                          : 'border-gray-200 bg-white hover:border-mint-200 hover:bg-mint-50/30'
+                          : 'border-gray-200 bg-white/90 hover:border-mint-200 hover:bg-mint-50/30'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -551,7 +550,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
           <SectionTitle description="Configure the selected connector">
             Connector Configuration
           </SectionTitle>
-          <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+          <div className="mt-3 space-y-4 rounded-2xl bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             {/* Name and Vendor */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
@@ -589,7 +588,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
               {isSystemOwned ? (
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">API Key</label>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                  <div className="rounded-xl bg-[#F7F9FC] px-4 py-3 ring-1 ring-black/5">
                     <p className="text-xs text-gray-500">
                       {selectedConnector.hasCredential
                         ? 'Managed by runtime (environment variable)'
@@ -664,7 +663,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
               )}
             </div>
 
-            <div className="h-px bg-gray-50" />
+            <div className="h-px bg-gray-200/70" />
 
             {/* Models Section */}
             <div className="space-y-3">
@@ -683,9 +682,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
           </div>
         </section>
       ) : (
-        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+        <div className="rounded-2xl bg-white p-8 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
           <div className="flex flex-col items-center justify-center text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
               <CloudIcon className="h-6 w-6 text-gray-400" />
             </div>
             <p className="text-sm font-medium text-gray-900">No Connector Selected</p>

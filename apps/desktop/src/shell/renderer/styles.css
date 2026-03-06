@@ -39,6 +39,25 @@
   --color-accent-700: #1240cc;
 }
 
+:root {
+  --font-ui: "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Noto Sans SC", "Source Han Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
+}
+
+html,
+body,
+#root {
+  font-family: var(--font-ui);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 /* ---- Custom utilities ---- */
 
 @utility brand-gradient {

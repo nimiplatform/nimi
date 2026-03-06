@@ -93,6 +93,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
           </svg>
           <span>{props.balancesPending ? '--' : formatMetricValue(props.gemBalance)}</span>
         </button>
+        <div className="w-2" />
         <button
           type="button"
           data-mod-tab-interactive="true"
@@ -101,9 +102,9 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
           title={t('Navigation.notifications')}
           aria-label={t('Common.openNotifications')}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-            <path d="M10 21a2 2 0 0 0 4 0" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
           </svg>
           {props.unreadCount > 0 ? (
             <span className="absolute right-1 top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-[10px] leading-[16px] text-white">

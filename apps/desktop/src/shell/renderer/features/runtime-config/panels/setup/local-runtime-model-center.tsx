@@ -430,13 +430,13 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     });
     const hasUnavailable = capabilityStatuses.some((item) => !item.localAvailable);
     return (
-      <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+      <div className="flex min-h-0 flex-1 flex-col bg-white">
         <div className="flex h-14 shrink-0 items-center bg-white px-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Local Models</h2>
         </div>
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
-            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+            <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
               <div>
                 <h4 className="text-sm font-semibold text-gray-900">
                   {props.runtimeDependencyTargets.find((item) => item.modId === selectedDependencyModId)?.modName || selectedDependencyModId || 'Runtime Mod'}
@@ -497,7 +497,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const healthTooltip = formatLastCheckedAgo(props.state.localRuntime.lastCheckedAt);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -531,7 +531,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             </div>
           </div>
           {/* Unified Model Manager - Search + Installed */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-visible">
+          <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             {/* Header */}
             <div className="px-4 py-4 border-b border-gray-100">
               <div className="flex items-center gap-3 mb-3">
@@ -552,13 +552,13 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search models by name, repo, or task..."
-                    className="w-full h-10 pl-9 pr-4 rounded-lg border border-gray-200 text-sm focus:border-mint-400 focus:ring-2 focus:ring-mint-100 outline-none"
+                    className="h-10 w-full rounded-lg border border-mint-100 bg-[#F4FBF8] pl-9 pr-4 text-sm outline-none focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
                   />
                 </div>
                 <RuntimeSelect
                   value={catalogCapability}
                   onChange={(nextCapability) => setCatalogCapability((nextCapability || 'all') as 'all' | CapabilityOption)}
-                  className="w-40"
+                  className="w-52"
                   options={[
                     { value: 'all', label: 'All Capabilities' },
                     ...CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability })),
@@ -568,7 +568,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             </div>
 
             {/* Installed Models Section - Inside the same card */}
-            <div className="bg-gray-50/50">
+            <div className="rounded-b-xl bg-white/60">
               <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2">
                 <PackageIcon className="w-4 h-4 text-gray-400" />
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -576,9 +576,9 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                 </span>
               </div>
               {filteredInstalledModels.length > 0 ? (
-                <div className="divide-y divide-gray-100 bg-white">
+                <div className="divide-y divide-gray-200/80">
                   {filteredInstalledModels.map((model) => (
-                    <div key={model.localModelId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <div key={model.localModelId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
                       <ModelIcon engine={model.engine} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -613,7 +613,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                   ))}
                 </div>
               ) : (
-                <div className="px-4 py-8 text-center bg-white">
+                <div className="px-4 py-8 text-center">
                   <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400 mb-3">
                     <PackageIcon className="w-6 h-6" />
                   </div>
@@ -626,14 +626,14 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
 
             {/* Search results shown directly under installed models */}
             {hasSearchQuery && (
-              <div className="bg-gray-50/50 border-t border-gray-100">
-                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
+              <div className="border-t border-gray-200 bg-white/60">
+                <div className="px-4 py-2 border-b border-gray-200 bg-white/70">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available to Install</span>
                 </div>
-                <div className="divide-y divide-gray-100 bg-white">
+                <div className="divide-y divide-gray-200/80">
                   {/* Verified Models */}
                   {verifiedModels.map((item) => (
-                    <div key={item.templateId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <div key={item.templateId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
                         <StarIcon className="w-4 h-4" />
                       </div>
@@ -668,13 +668,13 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                   ))}
                   {/* Catalog Results */}
                   {catalogItems.map((item) => (
-                    <div key={item.itemId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <div key={item.itemId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
                       <ModelIcon engine={item.engine} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.engine}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">Hugging Face</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-mint-50 text-mint-700">Hugging Face</span>
                         </div>
                         <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
                       </div>
@@ -704,12 +704,12 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                   ))}
                 </div>
                 {catalogItems.length === 0 && verifiedModels.length === 0 && !loadingCatalog && (
-                  <div className="px-4 py-8 text-center bg-white">
+                  <div className="px-4 py-8 text-center">
                     <p className="text-sm text-gray-500">No models found matching your search</p>
                   </div>
                 )}
                 {loadingCatalog && (
-                  <div className="px-4 py-8 text-center bg-white">
+                  <div className="px-4 py-8 text-center">
                     <p className="text-sm text-gray-500">Searching...</p>
                   </div>
                 )}
@@ -730,7 +730,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                 const canCancel = event.state !== 'completed' && event.state !== 'cancelled';
 
                 return (
-                  <div key={event.installSessionId} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
                     <div className="flex items-center gap-3 mb-2">
                       <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-red-100 text-red-600' : 'bg-mint-100 text-mint-600'}`}>
                         <DownloadIcon className="w-4 h-4" />

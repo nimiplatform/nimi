@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 export const EXPLORE_COLORS = {
   brand50: '#ecfeff',
@@ -183,25 +185,13 @@ export function ExploreAgentCard({
           className="shrink-0 cursor-pointer disabled:cursor-default" 
           onClick={handleOpen}
         >
-          {agent.avatarUrl ? (
-            <img
-              src={agent.avatarUrl}
-              alt={agent.name}
-              className="h-12 w-12 rounded-lg object-cover"
-              style={{
-                boxShadow: '0 0 0 1.5px #a855f7, 0 0 6px 2px rgba(168, 85, 247, 0.4), 0 0 10px 3px rgba(124, 58, 237, 0.2)',
-              }}
-            />
-          ) : (
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-slate-700"
-              style={{
-                boxShadow: '0 0 0 1.5px #a855f7, 0 0 6px 2px rgba(168, 85, 247, 0.4), 0 0 10px 3px rgba(124, 58, 237, 0.2)',
-              }}
-            >
-              {agent.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <EntityAvatar
+            imageUrl={agent.avatarUrl}
+            name={agent.name}
+            kind="agent"
+            sizeClassName="h-12 w-12"
+            textClassName="text-sm font-bold"
+          />
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
@@ -258,11 +248,25 @@ export function AgentRecommendationCard({
   onAddFriend?: () => void;
   onOpen?: () => void;
 }) {
+  const palette = getSemanticAgentPalette({
+    category: agent.category,
+    origin: agent.origin,
+    description: agent.bio || agent.description,
+    worldName: agent.worldName,
+    tags: agent.tags,
+  });
+  const bioText = agent.bio || agent.description || 'No bio yet';
+  const worldText = agent.worldName || agent.origin || agent.category || 'Unknown world';
+  const themeLabel = agent.category || agent.tags[0] || agent.origin || 'General';
+
   return (
     <div 
-      className="group relative w-[176px] flex-shrink-0 cursor-pointer rounded-2xl bg-white px-4 pb-4 pt-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+      className="group relative w-full min-w-0 cursor-pointer overflow-hidden rounded-2xl border border-white/70 px-4 pb-3 pt-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+      style={{ background: palette.background }}
       onClick={() => onOpen?.()}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.7),transparent_42%)]" />
+
       {/* Add Button - Top Right */}
       <button
         type="button"
@@ -270,7 +274,7 @@ export function AgentRecommendationCard({
           e.stopPropagation();
           onAddFriend?.();
         }}
-        className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-110 hover:bg-mint-600"
+        className="absolute right-3 top-3 z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-mint-500 text-white shadow-sm transition-all hover:scale-110 hover:bg-mint-600"
         aria-label="Add friend"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -279,28 +283,26 @@ export function AgentRecommendationCard({
         </svg>
       </button>
 
-      {/* Avatar */}
-      <div className="relative mx-auto mb-3 flex justify-center">
-        <div
-          className="h-[72px] w-[72px] rounded-2xl p-0.5 shadow-md"
-          style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-          }}
-        >
-          <div className="h-full w-full rounded-2xl bg-white p-0.5">
-            {agent.avatarUrl ? (
-              <img
-                src={agent.avatarUrl}
-                alt={agent.name}
-                className="h-full w-full rounded-2xl object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 text-lg font-semibold text-purple-600">
-                {agent.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
+      <div className="relative z-[1]">
+        <div className="mb-2.5 flex items-start justify-between gap-2">
+          <span
+            className="inline-flex max-w-[132px] truncate rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+            style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
+          >
+            {themeLabel}
+          </span>
+          {agent.isPublic !== false && <PublicBadge size="small" />}
         </div>
+
+      {/* Avatar */}
+      <div className="relative mx-auto mb-2.5 flex justify-center">
+        <EntityAvatar
+          imageUrl={agent.avatarUrl}
+          name={agent.name}
+          kind="agent"
+          sizeClassName="h-16 w-16"
+          textClassName="text-lg font-semibold"
+        />
         <OnlineIndicator isOnline={agent.isOnline} />
       </div>
 
@@ -308,20 +310,20 @@ export function AgentRecommendationCard({
       <div className="text-center">
         <h3 className="truncate text-[15px] font-bold text-gray-900 transition-colors group-hover:text-mint-600">{agent.name}</h3>
         <p className="mt-1 truncate text-[12px] font-mono text-gray-500">{agent.handle}</p>
-        
-        {/* World */}
-        {agent.worldName && (
-          <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-gray-400">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M2 12h20" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            <span className="truncate max-w-[120px]">{agent.worldName}</span>
-          </div>
-        )}
-        
-        {/* Badges */}
+
+        <div className="mt-1.5 flex items-center justify-center gap-1 text-[11px] text-gray-500">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span className="truncate max-w-[148px]">{worldText}</span>
+        </div>
+
+        <p className="mt-2 line-clamp-2 min-h-[34px] text-[12px] leading-[17px] text-gray-600">
+          {bioText}
+        </p>
+
         <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
           {agent.state && (
             <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] font-medium text-green-600">
@@ -335,28 +337,9 @@ export function AgentRecommendationCard({
           )}
         </div>
       </div>
+      </div>
     </div>
   );
-}
-
-// Default gradient backgrounds for agents without world banner
-// Updated to match the design: teal/cyan to pink gradient
-const DEFAULT_AGENT_BACKGROUNDS = [
-  'linear-gradient(135deg, #5ee7c0 0%, #f5c6d6 100%)',  // Teal to pink (matches attachment)
-  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-  'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
-  'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
-];
-
-function getDefaultBackgroundForAgent(agentId: string): string {
-  // Use agentId to deterministically pick a background
-  const index = agentId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % DEFAULT_AGENT_BACKGROUNDS.length;
-  return DEFAULT_AGENT_BACKGROUNDS[index] || DEFAULT_AGENT_BACKGROUNDS[0]!;
 }
 
 // World score progress bar with rainbow gradient
@@ -459,12 +442,22 @@ export function TopAgentCard({
   onSendGift?: () => void;
   onOpen?: () => void;
 }) {
-  const backgroundUrl = agent.worldBannerUrl || getDefaultBackgroundForAgent(agent.id);
+  const palette = getSemanticAgentPalette({
+    category: agent.category,
+    origin: agent.origin,
+    description: agent.bio || agent.description,
+    worldName: agent.worldName,
+    tags: agent.tags,
+  });
+  const backgroundUrl = agent.worldBannerUrl;
   const friendsCount = typeof agent.friendsCount === 'number' ? agent.friendsCount : 0;
   const postsCount = typeof agent.postsCount === 'number' ? agent.postsCount : 0;
   const likesCount = typeof agent.likesCount === 'number' ? agent.likesCount : 0;
   const worldScore = agent.worldScoreEwma ?? 0;
-  const topLeftLabel = agent.tags[0] || agent.category || agent.origin || 'community';
+  const themeLabel = agent.tags[0] || agent.category || agent.origin || 'community';
+  const bioText = agent.bio || agent.description || 'No bio yet';
+  const worldText = agent.worldName || 'Unknown world';
+  const originText = agent.origin || agent.category || 'GENERAL';
 
   const formatNumber = (num: number | null): string => {
     if (num === null) return '--';
@@ -473,18 +466,20 @@ export function TopAgentCard({
     return num.toString();
   };
 
-  const isImageUrl = backgroundUrl.startsWith('http') || backgroundUrl.startsWith('/') || backgroundUrl.startsWith('data:');
-  const backgroundStyle = isImageUrl
+  const backgroundStyle = backgroundUrl
     ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: backgroundUrl };
+    : { background: palette.ring };
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="relative h-32" style={backgroundStyle}>
-        {topLeftLabel && (
+        {themeLabel && (
           <div className="absolute top-3 left-3">
-            <span className="rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-medium capitalize text-gray-700 backdrop-blur-sm">
-              {topLeftLabel}
+            <span
+              className="rounded-full px-2.5 py-1 text-[10px] font-medium capitalize backdrop-blur-sm"
+              style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
+            >
+              {themeLabel}
             </span>
           </div>
         )}
@@ -514,31 +509,19 @@ export function TopAgentCard({
           }}
           className="relative inline-block cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
         >
-          <div
-            className="h-24 w-24 rounded-full p-1 shadow-lg"
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-            }}
-          >
-            <div className="h-full w-full rounded-full bg-white p-1">
-              {agent.avatarUrl ? (
-                <img
-                  src={agent.avatarUrl}
-                  alt={agent.name}
-                  className="h-full w-full rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100 text-2xl font-semibold text-purple-600">
-                  {agent.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <OnlineIndicator isOnline={agent.isOnline} />
-            </div>
-          </div>
+          <EntityAvatar
+            imageUrl={agent.avatarUrl}
+            name={agent.name}
+            kind="agent"
+            sizeClassName="h-24 w-24"
+            textClassName="text-2xl font-semibold"
+            className="shadow-lg"
+          />
+          <OnlineIndicator isOnline={agent.isOnline} />
         </button>
       </div>
 
-      <div className="px-6 pb-7 pt-4">
+      <div className="px-5 pb-5 pt-4">
         <div className="flex flex-wrap items-center justify-center gap-2">
           <button
             type="button"
@@ -567,53 +550,66 @@ export function TopAgentCard({
             }}
             className="m-0 cursor-pointer border-0 bg-transparent p-0 disabled:cursor-default"
           >
-            <p className="mt-0.5 font-mono text-sm text-gray-500 transition-colors hover:text-mint-500">{agent.handle}</p>
+            <p className="mt-0.5 font-mono text-sm transition-colors hover:text-mint-500" style={{ color: palette.accent }}>
+              {agent.handle}
+            </p>
           </button>
           <OwnershipBadge ownershipType={agent.ownershipType} />
         </div>
 
-        {agent.bio && (
-          <p className="mx-auto mt-3 line-clamp-2 max-w-[88%] text-center text-sm text-gray-600">{agent.bio}</p>
-        )}
+        <div className="mt-2.5 flex items-center justify-center gap-1 text-[11px] font-medium" style={{ color: palette.accent }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span className="max-w-[168px] truncate">{worldText}</span>
+        </div>
 
-        {(agent.category || agent.origin || agent.worldName) && (
-          <div className="mt-2 flex items-center justify-center gap-2 text-[11px] font-medium text-gray-400">
-            <span>{agent.category || 'GENERAL'}</span>
-            <span>·</span>
-            <span>Origin: {agent.origin || agent.worldName || 'COMMUNITY'}</span>
-          </div>
-        )}
+        <p className="mx-auto mt-2 line-clamp-2 min-h-[38px] max-w-[90%] text-center text-[13px] leading-[19px] text-gray-600">
+          {bioText}
+        </p>
 
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-2 flex items-center justify-center gap-2 text-[11px] font-medium" style={{ color: palette.badgeText }}>
+          <span>{originText}</span>
+          {agent.category && agent.category !== originText ? (
+            <>
+              <span>|</span>
+              <span>{agent.category}</span>
+            </>
+          ) : null}
+        </div>
+
+        <div className="mt-3.5 flex items-center gap-3">
           <span className="whitespace-nowrap text-xs font-medium text-gray-500">Score</span>
           <ScoreProgressBar score={worldScore} />
         </div>
 
-        <div className="mt-4 flex items-center justify-around rounded-2xl bg-gray-50 px-4 py-4">
+        <div className="mt-3.5 flex items-center justify-around rounded-2xl bg-gray-50 px-3 py-3">
           <div className="flex-1 text-center">
-            <div className="text-xl font-bold text-gray-900">{formatNumber(friendsCount)}</div>
+            <div className="text-lg font-bold text-gray-900">{formatNumber(friendsCount)}</div>
             <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Friends</div>
           </div>
-          <div className="h-10 w-px bg-gray-200" />
+          <div className="h-8 w-px bg-gray-200" />
           <div className="flex-1 text-center">
-            <div className="text-xl font-bold text-gray-900">{formatNumber(postsCount)}</div>
+            <div className="text-lg font-bold text-gray-900">{formatNumber(postsCount)}</div>
             <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Posts</div>
           </div>
-          <div className="h-10 w-px bg-gray-200" />
+          <div className="h-8 w-px bg-gray-200" />
           <div className="flex-1 text-center">
-            <div className="text-xl font-bold text-gray-900">{formatNumber(likesCount)}</div>
+            <div className="text-lg font-bold text-gray-900">{formatNumber(likesCount)}</div>
             <div className="mt-0.5 text-[10px] uppercase tracking-wider text-gray-400">Likes</div>
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-4">
+        <div className="mt-4 flex items-center justify-center gap-3">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onAddFriend?.();
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
             title="Add Friend"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -627,7 +623,7 @@ export function TopAgentCard({
               e.stopPropagation();
               onSendGift?.();
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition-colors hover:bg-gray-200"
             title="Send Gift"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -642,3 +638,4 @@ export function TopAgentCard({
     </div>
   );
 }
+

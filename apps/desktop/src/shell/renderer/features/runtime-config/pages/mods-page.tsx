@@ -15,7 +15,7 @@ type CapabilityOption = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'
 
 // SurfaceCard component matching Overview page style
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 export function ModsPage({ model, state }: ModsPageProps) {

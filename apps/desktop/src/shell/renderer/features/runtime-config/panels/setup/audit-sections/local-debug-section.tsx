@@ -40,7 +40,7 @@ function relativeTime(isoString: string): string {
 
 // SurfaceCard component matching Overview page style
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 type LocalDebugSectionProps = {
@@ -276,7 +276,7 @@ function LocalDebugContent() {
               void loadAudits({ reasonCode: next });
             }}
             placeholder="Filter reasonCode..."
-            className="h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
+            className="h-9 rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
           <input
             type="datetime-local"
@@ -286,7 +286,7 @@ function LocalDebugContent() {
               setAuditTimeFrom(next);
               void loadAudits({ timeFrom: next });
             }}
-            className="h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
+            className="h-9 rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
           <input
             type="datetime-local"
@@ -296,7 +296,7 @@ function LocalDebugContent() {
               setAuditTimeTo(next);
               void loadAudits({ timeTo: next });
             }}
-            className="h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
+            className="h-9 rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-xs text-gray-800 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
         </div>
       </div>

@@ -136,7 +136,7 @@ function Input({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`h-11 w-full rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
+          className={`h-11 w-full rounded-xl border border-mint-100 bg-[#F4FBF8] text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
         />
       </div>
     </div>
@@ -341,8 +341,8 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                   onClick={() => setSelectedCatalogItemId(item.itemId)}
                   className={`w-full rounded-xl border p-3 text-left transition-all ${
                     selected
-                      ? 'border-mint-300 bg-white ring-1 ring-mint-200'
-                      : 'border-gray-100 bg-white hover:border-mint-200 hover:bg-mint-50/30'
+                      ? 'border-mint-300 bg-mint-50/40 ring-1 ring-mint-200'
+                      : 'border-mint-100 bg-white hover:border-mint-200 hover:bg-mint-50/30'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -374,7 +374,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
 
       {/* Install Plan Confirmation */}
       {selectedCatalogItem ? (
-        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-mint-100 bg-white p-4 shadow-sm">
           <p className="text-sm font-semibold text-gray-900 mb-3">Install Plan</p>
           {loadingPlanPreview ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -460,7 +460,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
             {filteredVerifiedModels.map((item) => {
               const installing = installingVerifiedTemplateId === item.templateId;
               return (
-                <div key={`verified-model-${item.templateId}`} className="rounded-xl border border-gray-100 bg-white p-3 hover:border-mint-200 transition-colors">
+                <div key={`verified-model-${item.templateId}`} className="rounded-xl border border-mint-100 bg-white p-3 transition-colors hover:border-mint-200 hover:bg-mint-50/20">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900">{item.title}</p>

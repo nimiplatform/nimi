@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { WorldData, WorldAgent } from './world-detail-model';
 import {
   formatWorldDate,
@@ -121,6 +124,14 @@ function TransitStatusBadge({ status }: { status: WorldTransitDetail['status'] }
   );
 }
 
+function getWorldAgentPalette(agent: WorldAgent, world: WorldData) {
+  return getSemanticAgentPalette({
+    description: agent.bio || world.description,
+    worldName: world.name,
+    tags: world.themes,
+  });
+}
+
 export function WorldDetailView(props: WorldDetailViewProps) {
   const { t } = useTranslation();
   const [checkpointName, setCheckpointName] = useState('');
@@ -185,7 +196,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
     <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
       {/* Top bar - 使用 Profile 风格 */}
       <div className="flex h-14 shrink-0 items-center bg-white/70 px-6 backdrop-blur-xl">
-        <h1 className="text-lg font-semibold tracking-tight text-gray-800">World</h1>
+        <h1 className={APP_PAGE_TITLE_CLASS}>World</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -427,43 +438,7 @@ export function WorldDetailView(props: WorldDetailViewProps) {
                   ) : (
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {props.worldAgents.map((agent) => (
-                        <div
-                          key={agent.id}
-                          className="flex items-center gap-3 p-2 rounded-xl border border-white/60 bg-white/60 hover:bg-white/80 transition-colors"
-                        >
-                          {agent.avatarUrl ? (
-                            <img
-                              src={agent.avatarUrl}
-                              alt={agent.displayName}
-                              className="h-10 w-10 rounded-xl object-cover"
-                              style={{ boxShadow: '0 0 0 1.5px #a855f7, 0 0 6px 2px rgba(168, 85, 247, 0.4), 0 0 10px 3px rgba(124, 58, 237, 0.2)' }}
-                            />
-                          ) : (
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#a855f7]/20 to-[#a855f7]/5 text-sm font-bold text-[#a855f7]"
-                              style={{ boxShadow: '0 0 0 1.5px #a855f7, 0 0 6px 2px rgba(168, 85, 247, 0.4), 0 0 10px 3px rgba(124, 58, 237, 0.2)' }}
-                            >
-                              {agent.displayName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-800 truncate">
-                                {agent.displayName}
-                              </span>
-                              {agent.tier && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600">
-                                  {agent.tier}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-gray-500">@{agent.handle}</span>
-                          </div>
-                          {agent.isPublic && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-600">
-                              Public
-                            </span>
-                          )}
-                        </div>
+                        <WorldAgentRow key={agent.id} agent={agent} world={world} />
                       ))}
                     </div>
                   )}
@@ -642,5 +617,52 @@ export function WorldDetailView(props: WorldDetailViewProps) {
           </div>
         </div>
       </div>
+  );
+}
+
+function WorldAgentRow({ agent, world }: { agent: WorldAgent; world: WorldData }) {
+  const palette = getWorldAgentPalette(agent, world);
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-white/60 bg-white/60 p-2 transition-colors hover:bg-white/80">
+      <EntityAvatar
+        imageUrl={agent.avatarUrl}
+        name={agent.displayName}
+        kind="agent"
+        sizeClassName="h-10 w-10"
+        radiusClassName="rounded-[10px]"
+        innerRadiusClassName="rounded-[8px]"
+        textClassName="text-sm font-bold"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-gray-800">
+            {agent.displayName}
+          </span>
+          {agent.tier && (
+            <span
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+              style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
+            >
+              {agent.tier}
+            </span>
+          )}
+        </div>
+        <span className="text-xs" style={{ color: palette.accent }}>@{agent.handle}</span>
+        {agent.bio ? (
+          <p className="mt-1 truncate text-[11px] text-gray-500">
+            {agent.bio}
+          </p>
+        ) : null}
+      </div>
+      {agent.isPublic && (
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+          style={{ backgroundColor: palette.badgeBg, color: palette.badgeText }}
+        >
+          Public
+        </span>
+      )}
+    </div>
   );
 }

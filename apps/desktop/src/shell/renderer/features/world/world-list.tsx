@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
 import { isMainWorldType } from './shared.js';
@@ -198,7 +199,7 @@ export function WorldList() {
     <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F7F8FA' }}>
       {/* Header bar */}
       <div className="flex h-auto shrink-0 flex-col justify-center gap-1 px-6 py-4" style={{ backgroundColor: '#F7F8FA' }}>
-        <h1 className="text-lg font-semibold tracking-tight" style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
+        <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
         <span className="text-xs" style={{ color: '#888888' }}>Synced from Desktop</span>
         <div className="mt-3">
           <input
@@ -220,7 +221,7 @@ export function WorldList() {
           {/* Main World Card */}
           {mainWorld && !searchText && (
             <div className="mb-8">
-              <h2 className="text-[19px] font-semibold leading-7 mb-4" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif', color: '#1A1A1A' }}>{t('World.mainWorld')}</h2>
+              <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#1A1A1A' }}>{t('World.mainWorld')}</h2>
               <div
                 onClick={() => openWorldDetail(mainWorld.id)}
                 className="group cursor-pointer rounded-3xl bg-white p-6 transition-all duration-300 hover:-translate-y-1"
@@ -359,7 +360,7 @@ export function WorldList() {
 
           {/* Sub Worlds Grid */}
           <div>
-            <h2 className="text-[19px] font-semibold leading-7 mb-4" style={{ fontFamily: '"Noto Sans SC", "Source Han Sans SC", sans-serif', color: '#1A1A1A' }}>
+            <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#1A1A1A' }}>
               {searchText ? t('World.searchResults') : t('World.subWorlds')}
             </h2>
             {subWorlds.length === 0 ? (

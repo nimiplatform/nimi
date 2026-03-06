@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 type SendGiftModalProps = {
   open: boolean;
@@ -12,8 +13,8 @@ type SendGiftModalProps = {
   onSent?: () => void;
 };
 
-function getProfileInitial(name: string): string {
-  return name.charAt(0).toUpperCase();
+function isAgentReceiver(handle?: string): boolean {
+  return String(handle || '').trim().startsWith('~');
 }
 
 export function SendGiftModal(props: SendGiftModalProps) {
@@ -93,17 +94,15 @@ export function SendGiftModal(props: SendGiftModalProps) {
           {/* User Info */}
           <div className="flex flex-col items-center pb-6">
             <div className="relative">
-              {props.receiverAvatarUrl ? (
-                <img
-                  src={props.receiverAvatarUrl}
-                  alt={props.receiverName}
-                  className="h-20 w-20 rounded-full object-cover ring-4 ring-[#E0F7F4]"
-                />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-2xl font-bold text-[#4ECCA3] ring-4 ring-[#E0F7F4]">
-                  {getProfileInitial(props.receiverName)}
-                </div>
-              )}
+              <EntityAvatar
+                imageUrl={props.receiverAvatarUrl}
+                name={props.receiverName}
+                kind={isAgentReceiver(props.receiverHandle) ? 'agent' : 'human'}
+                sizeClassName="h-20 w-20"
+                className={isAgentReceiver(props.receiverHandle) ? undefined : 'ring-4 ring-[#E0F7F4]'}
+                textClassName="text-2xl font-bold"
+                fallbackClassName={isAgentReceiver(props.receiverHandle) ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+              />
             </div>
             <h3 className="mt-3 text-lg font-semibold text-gray-900">{props.receiverName}</h3>
             <p className="text-sm text-gray-500">{props.receiverHandle || ''}</p>

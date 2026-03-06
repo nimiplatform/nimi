@@ -120,59 +120,41 @@ function getBadge(
 }
 
 export function RuntimeSidebar(props: RuntimeSidebarProps) {
-  const sections: Array<{ label: 'Core' | 'Connectors' | 'Operations' }> = [
-    { label: 'Core' },
-    { label: 'Connectors' },
-    { label: 'Operations' },
-  ];
-
   return (
-    <nav className="flex flex-col px-3 pt-2" style={{ gap: '20px' }}>
-      {sections.map((section) => {
-        const sectionItems = SIDEBAR_ITEMS.filter((item) => item.section === section.label);
+    <nav className="flex flex-col gap-0.5 px-3 pt-2">
+      {SIDEBAR_ITEMS.map((item) => {
+        const active = item.id === props.activePage;
+        const badge = getBadge(item, props);
+        const showDaemonDot = item.id === 'runtime';
         return (
-          <div key={`runtime-sidebar-${section.label}`}>
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.6px] text-gray-400">
-              {section.label}
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {sectionItems.map((item) => {
-                const active = item.id === props.activePage;
-                const badge = getBadge(item, props);
-                const showDaemonDot = item.id === 'runtime';
-                return (
-                  <button
-                    key={`sidebar-${item.id}`}
-                    type="button"
-                    onClick={() => props.onSelectPage(item.id)}
-                    className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors ${
-                      active ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className={active ? 'text-brand-600' : 'text-gray-400'}>{item.icon}</span>
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {showDaemonDot ? (
-                      <span
-                        className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                          props.daemonRunning ? 'bg-emerald-500' : 'bg-red-400'
-                        }`}
-                      />
-                    ) : null}
-                    {badge ? (
-                      <span
-                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
-                          active ? 'bg-brand-100 text-brand-800' : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {badge}
-                      </span>
-                    ) : null}
-                    {active ? <span className="ml-0.5 shrink-0 text-brand-600">{ICON_CHEVRON_RIGHT}</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <button
+            key={`sidebar-${item.id}`}
+            type="button"
+            onClick={() => props.onSelectPage(item.id)}
+            className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors ${
+              active ? 'bg-mint-50 font-medium text-mint-700' : 'text-gray-600 hover:bg-mint-50/50'
+            }`}
+          >
+            <span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {showDaemonDot ? (
+              <span
+                className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                  props.daemonRunning ? 'bg-emerald-500' : 'bg-red-400'
+                }`}
+              />
+            ) : null}
+            {badge ? (
+              <span
+                className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                  active ? 'bg-mint-100 text-mint-800' : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                {badge}
+              </span>
+            ) : null}
+            {active ? <span className="ml-0.5 shrink-0 text-mint-600">{ICON_CHEVRON_RIGHT}</span> : null}
+          </button>
         );
       })}
     </nav>

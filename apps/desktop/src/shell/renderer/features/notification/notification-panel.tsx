@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ReviewRating } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -422,7 +424,7 @@ export function NotificationPanel() {
     <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
       {/* Header */}
       <div className="flex h-16 shrink-0 items-center justify-between bg-white px-6">
-        <h1 className="flex items-center gap-2 text-xl font-bold text-gray-900">
+        <h1 className={`${APP_PAGE_TITLE_CLASS} flex items-center gap-2`}>
           Notifications
           {unreadCount > 0 ? (
             <span className="rounded-full bg-mint-500 px-2 py-0.5 text-xs font-semibold text-white">
@@ -498,19 +500,15 @@ export function NotificationPanel() {
               <div className="flex gap-4">
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  {item.actorAvatarUrl ? (
-                    <img
-                      src={item.actorAvatarUrl}
-                      alt={item.actorName}
-                      className="h-12 w-12 rounded-full object-cover ring-2 ring-gray-100"
-                    />
-                  ) : (
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold ring-2 ring-gray-100 ${
-                      item.isRead ? 'bg-gray-100 text-gray-500' : 'bg-mint-100 text-mint-700'
-                    }`}>
-                      {(item.actorName.charAt(0) || 'N').toUpperCase()}
-                    </div>
-                  )}
+                  <EntityAvatar
+                    imageUrl={item.actorAvatarUrl}
+                    name={item.actorName}
+                    kind={item.actorIsAgent ? 'agent' : 'human'}
+                    sizeClassName="h-12 w-12"
+                    className={item.actorIsAgent ? undefined : 'ring-2 ring-gray-100'}
+                    fallbackClassName={item.actorIsAgent ? undefined : (item.isRead ? 'bg-gray-100 text-gray-500 ring-2 ring-gray-100' : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100')}
+                    textClassName="text-sm font-semibold"
+                  />
                   {/* Status Badge */}
                   {item.type === 'gift_received' && (
                     <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-mint-500 text-white">

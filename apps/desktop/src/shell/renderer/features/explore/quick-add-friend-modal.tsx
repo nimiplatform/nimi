@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ExploreAgentCardData } from './explore-cards';
 
 type QuickAddFriendModalProps = {
@@ -91,17 +92,13 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
           {/* Agent Info */}
           <div className="flex flex-col items-center">
             {/* Avatar */}
-            {agent.avatarUrl ? (
-              <img
-                src={agent.avatarUrl}
-                alt={agent.name}
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-purple-200"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-mint-100 to-mint-50 text-xl font-bold text-mint-600 ring-2 ring-purple-200">
-                {agent.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <EntityAvatar
+              imageUrl={agent.avatarUrl}
+              name={agent.name}
+              kind="agent"
+              sizeClassName="h-16 w-16"
+              textClassName="text-xl font-bold"
+            />
             
             {/* Name */}
             <h3 className="mt-3 text-lg font-bold text-gray-900">{agent.name}</h3>
