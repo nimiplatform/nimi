@@ -9,6 +9,9 @@ import { useRuntimeConfigRouteInitEffect } from './effects/route-init';
 import { useRuntimeConfigSetupAutodiscoverEffect } from './effects/setup-autodiscover';
 import { checkLocalRuntimeHealth } from './domain/provider-connectors/discovery';
 
+const LOCAL_RUNTIME_SNAPSHOT_POLL_INTERVAL_MS = 30_000;
+const LOCAL_RUNTIME_HEALTH_POLL_INTERVAL_MS = 30_000;
+
 type RuntimeConfigPanelEffectsInput = {
   bootstrapReady: boolean;
   hydrated: boolean;
@@ -90,7 +93,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
   useEffect(() => {
     if (!input.hydrated) return;
     const stop = startLocalAiRuntimePolling({
-      intervalMs: 5000,
+      intervalMs: LOCAL_RUNTIME_SNAPSHOT_POLL_INTERVAL_MS,
       onSnapshot: (snapshot) => {
         input.setState((previous) => {
           if (!previous) return previous;
@@ -131,7 +134,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
     void runHealthCheck();
     const timer = setInterval(() => {
       void runHealthCheck();
-    }, 5000);
+    }, LOCAL_RUNTIME_HEALTH_POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;

@@ -13,6 +13,8 @@ import { useRuntimeConfigBridgeSync } from './runtime-config-panel-controller-br
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
+const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
+
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
@@ -129,7 +131,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     void daemon.refreshRuntimeDaemonStatus();
     const timer = setInterval(() => {
       void daemon.refreshRuntimeDaemonStatus();
-    }, 5000);
+    }, RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS);
     return () => {
       clearInterval(timer);
     };
