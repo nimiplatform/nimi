@@ -95,24 +95,16 @@ func classifyScenarioExtensions(scenarioType runtimev1.ScenarioType, items []*ru
 		return nil, nil
 	}
 	allowedNamespaces := scenarioExtensionRegistry[scenarioType]
-	ignored := make([]*runtimev1.IgnoredScenarioExtension, 0, len(items))
 	for _, item := range items {
 		namespace := strings.TrimSpace(item.GetNamespace())
 		if namespace == "" {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		strategy, ok := allowedNamespaces[namespace]
-		if !ok {
+		if _, ok := allowedNamespaces[namespace]; !ok {
 			return nil, unsupportedScenarioExtensionError(scenarioType)
 		}
-		if strategy == scenarioExtensionStrategyBestEffort {
-			ignored = append(ignored, &runtimev1.IgnoredScenarioExtension{
-				Namespace: namespace,
-				Reason:    "best_effort_ignored",
-			})
-		}
 	}
-	return ignored, nil
+	return nil, nil
 }
 
 func unsupportedScenarioExtensionError(scenarioType runtimev1.ScenarioType) error {

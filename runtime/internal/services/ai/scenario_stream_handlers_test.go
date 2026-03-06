@@ -2,10 +2,12 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -229,6 +231,72 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 	}
 	if totalBytes != len(largePayload) {
 		t.Fatalf("payload bytes mismatch: got=%d want=%d", totalBytes, len(largePayload))
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeForwardsScenarioExtensions(t *testing.T) {
+	var capturedExtensions map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		defer r.Body.Close()
+
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode speech request: %v", err)
+		}
+		ext, ok := payload["extensions"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected extensions map in request, got=%T", payload["extensions"])
+		}
+		capturedExtensions = ext
+
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("speech-audio-payload"))
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"localai": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Extensions: []*runtimev1.ScenarioExtension{
+			{
+				Namespace: "nimi.scenario.speech_synthesize.request",
+				Payload: mustStructPB(t, map[string]any{
+					"voice_style": "warm",
+					"latency":     "low",
+				}),
+			},
+		},
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "hello world",
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario speech synthesize: %v", err)
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(capturedExtensions["voice_style"])); got != "warm" {
+		t.Fatalf("expected stream extension to reach backend, got=%q", got)
 	}
 }
 

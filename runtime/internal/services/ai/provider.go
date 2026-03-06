@@ -2,13 +2,17 @@ package ai
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -57,30 +61,47 @@ type Config struct {
 }
 
 // cloudProviderEnvBindings maps canonical provider IDs to their environment variable pairs.
-var cloudProviderEnvBindings = []struct {
+var cloudProviderEnvBindings = buildCloudProviderEnvBindings()
+
+func providerEnvToken(providerID string) string {
+	token := strings.TrimSpace(strings.ToUpper(providerID))
+	token = strings.ReplaceAll(token, "-", "_")
+	token = strings.ReplaceAll(token, ".", "_")
+	token = strings.ReplaceAll(token, " ", "_")
+	for strings.Contains(token, "__") {
+		token = strings.ReplaceAll(token, "__", "_")
+	}
+	return strings.Trim(token, "_")
+}
+
+func buildCloudProviderEnvBindings() []struct {
 	id      string
 	baseEnv string
 	keyEnv  string
-}{
-	{"nimillm", "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"},
-	{"openai", "NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL", "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY"},
-	{"anthropic", "NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL", "NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY"},
-	{"dashscope", "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL", "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"},
-	{"volcengine", "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"},
-	{"volcengine_openspeech", "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY"},
-	{"gemini", "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"},
-	{"minimax", "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"},
-	{"kimi", "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", "NIMI_RUNTIME_CLOUD_KIMI_API_KEY"},
-	{"glm", "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
-	{"deepseek", "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"},
-	{"openrouter", "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
-	{"azure", "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL", "NIMI_RUNTIME_CLOUD_AZURE_API_KEY"},
-	{"mistral", "NIMI_RUNTIME_CLOUD_MISTRAL_BASE_URL", "NIMI_RUNTIME_CLOUD_MISTRAL_API_KEY"},
-	{"groq", "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL", "NIMI_RUNTIME_CLOUD_GROQ_API_KEY"},
-	{"xai", "NIMI_RUNTIME_CLOUD_XAI_BASE_URL", "NIMI_RUNTIME_CLOUD_XAI_API_KEY"},
-	{"qianfan", "NIMI_RUNTIME_CLOUD_QIANFAN_BASE_URL", "NIMI_RUNTIME_CLOUD_QIANFAN_API_KEY"},
-	{"hunyuan", "NIMI_RUNTIME_CLOUD_HUNYUAN_BASE_URL", "NIMI_RUNTIME_CLOUD_HUNYUAN_API_KEY"},
-	{"spark", "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL", "NIMI_RUNTIME_CLOUD_SPARK_API_KEY"},
+} {
+	ids := append([]string(nil), providerregistry.RemoteProviders...)
+	sort.Strings(ids)
+	out := make([]struct {
+		id      string
+		baseEnv string
+		keyEnv  string
+	}, 0, len(ids))
+	for _, providerID := range ids {
+		token := providerEnvToken(providerID)
+		if token == "" {
+			continue
+		}
+		out = append(out, struct {
+			id      string
+			baseEnv string
+			keyEnv  string
+		}{
+			id:      providerID,
+			baseEnv: fmt.Sprintf("NIMI_RUNTIME_CLOUD_%s_BASE_URL", token),
+			keyEnv:  fmt.Sprintf("NIMI_RUNTIME_CLOUD_%s_API_KEY", token),
+		})
+	}
+	return out
 }
 
 func loadConfigFromEnv() Config {

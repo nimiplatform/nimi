@@ -56,7 +56,7 @@ func ExecuteBytedanceOpenSpeech(
 		if spec.GetAudioFormat() != "" {
 			payload["format"] = spec.GetAudioFormat()
 		}
-		if opts := StructToMap(nil); len(opts) > 0 {
+		if opts := scenarioExtensionPayloadForScenario(req); len(opts) > 0 {
 			payload["extensions"] = opts
 		}
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v1/tts"), apiKey, payload)
@@ -64,12 +64,12 @@ func ExecuteBytedanceOpenSpeech(
 			return nil, nil, "", err
 		}
 		artifact := BinaryArtifact(ResolveSpeechArtifactMIME(spec, body.Bytes), body.Bytes, map[string]any{
-			"adapter":          AdapterBytedanceOpenSpeech,
-			"voice":            scenarioVoiceRef(spec),
-			"language":         spec.GetLanguage(),
-			"emotion":          spec.GetEmotion(),
-			"extensions": StructToMap(nil),
-			"mime_type":        body.MIME,
+			"adapter":    AdapterBytedanceOpenSpeech,
+			"voice":      scenarioVoiceRef(spec),
+			"language":   spec.GetLanguage(),
+			"emotion":    spec.GetEmotion(),
+			"extensions": scenarioExtensionPayloadForScenario(req),
+			"mime_type":  body.MIME,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), body.Bytes, 120), "", nil
@@ -83,20 +83,20 @@ func ExecuteBytedanceOpenSpeech(
 		if resolveErr != nil {
 			return nil, nil, "", resolveErr
 		}
-		scenarioExtensions := StructToMap(nil)
+		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 		if shouldUseBytedanceOpenSpeechWS(spec, scenarioExtensions) {
 			text, wsRaw, wsErr := executeBytedanceOpenSpeechWS(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
 			if wsErr != nil {
 				return nil, nil, "", wsErr
 			}
 			artifactMeta := map[string]any{
-				"text":             text,
-				"adapter":          AdapterBytedanceOpenSpeech,
-				"transport":        "ws",
-				"mime_type":        mimeType,
-				"audio_uri":        audioURI,
-				"response_format":  spec.GetResponseFormat(),
-				"extensions": scenarioExtensions,
+				"text":            text,
+				"adapter":         AdapterBytedanceOpenSpeech,
+				"transport":       "ws",
+				"mime_type":       mimeType,
+				"audio_uri":       audioURI,
+				"response_format": spec.GetResponseFormat(),
+				"extensions":      scenarioExtensions,
 			}
 			if len(wsRaw) > 0 {
 				artifactMeta["ws_response"] = wsRaw
@@ -135,12 +135,12 @@ func ExecuteBytedanceOpenSpeech(
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
-			"text":             text,
-			"adapter":          AdapterBytedanceOpenSpeech,
-			"mime_type":        mimeType,
-			"audio_uri":        audioURI,
-			"response_format":  spec.GetResponseFormat(),
-			"extensions": scenarioExtensions,
+			"text":            text,
+			"adapter":         AdapterBytedanceOpenSpeech,
+			"mime_type":       mimeType,
+			"audio_uri":       audioURI,
+			"response_format": spec.GetResponseFormat(),
+			"extensions":      scenarioExtensions,
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.ScenarioArtifact{artifact}, &runtimev1.UsageStats{
@@ -222,16 +222,16 @@ func executeBytedanceOpenSpeechWS(
 
 	chunks := transcriptionAudioChunks(spec, audioBytes)
 	startPayload := map[string]any{
-		"event":            "start",
-		"model":            modelResolved,
-		"mime_type":        mimeType,
-		"language":         strings.TrimSpace(spec.GetLanguage()),
-		"timestamps":       spec.GetTimestamps(),
-		"diarization":      spec.GetDiarization(),
-		"speaker_count":    spec.GetSpeakerCount(),
-		"prompt":           strings.TrimSpace(spec.GetPrompt()),
-		"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-		"extensions": scenarioExtensions,
+		"event":           "start",
+		"model":           modelResolved,
+		"mime_type":       mimeType,
+		"language":        strings.TrimSpace(spec.GetLanguage()),
+		"timestamps":      spec.GetTimestamps(),
+		"diarization":     spec.GetDiarization(),
+		"speaker_count":   spec.GetSpeakerCount(),
+		"prompt":          strings.TrimSpace(spec.GetPrompt()),
+		"response_format": strings.TrimSpace(spec.GetResponseFormat()),
+		"extensions":      scenarioExtensions,
 	}
 	if err := websocket.JSON.Send(connection, startPayload); err != nil {
 		return "", nil, MapProviderRequestError(err)

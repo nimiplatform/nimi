@@ -9,6 +9,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,15 +38,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		traceID := ulid.Make().String()
-		job, asset := s.voiceAssets.submit(req.GetHead(), req.GetScenarioType(), req.GetSpec(), traceID)
-		if job == nil || asset == nil {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
-		}
-		if len(ignored) > 0 {
-			job.IgnoredExtensions = cloneIgnoredScenarioExtensions(ignored)
-		}
-		return &runtimev1.SubmitScenarioJobResponse{Job: job, Asset: asset}, nil
+		return s.submitVoiceWorkflowJob(ctx, req, ignored)
 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
@@ -55,6 +48,115 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+}
+
+func (s *Service) submitVoiceWorkflowJob(
+	ctx context.Context,
+	req *runtimev1.SubmitScenarioJobRequest,
+	ignored []*runtimev1.IgnoredScenarioExtension,
+) (*runtimev1.SubmitScenarioJobResponse, error) {
+	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
+		return nil, err
+	}
+
+	parsed := parseKeySource(ctx, req.GetHead().GetConnectorId())
+	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
+		return nil, err
+	}
+	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.validateLocalModelRequest(ctx, req.GetHead().GetModelId(), remoteTarget); err != nil {
+		return nil, err
+	}
+
+	release, acquireResult, acquireErr := s.scheduler.Acquire(ctx, req.GetHead().GetAppId())
+	if acquireErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	defer release()
+	s.attachQueueWaitUnary(ctx, acquireResult)
+	s.logQueueWait("submit_voice_workflow_job", req.GetHead().GetAppId(), acquireResult)
+
+	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
+		ctx,
+		req.GetHead().GetRoutePolicy(),
+		req.GetHead().GetFallback(),
+		req.GetHead().GetModelId(),
+		remoteTarget,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+		return nil, err
+	}
+	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider)
+	if err := s.validateCatalogAwareScenarioSupport(req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
+		return nil, err
+	}
+	s.recordRouteAutoSwitch(
+		req.GetHead().GetAppId(),
+		req.GetHead().GetSubjectUserId(),
+		req.GetHead().GetModelId(),
+		modelResolved,
+		routeInfo,
+	)
+
+	workflowType := workflowTypeFromScenarioType(req.GetScenarioType())
+	workflowResolution, err := s.resolveVoiceWorkflow(providerType, modelResolved, workflowType)
+	if err != nil {
+		if errors.Is(err, catalog.ErrModelNotFound) {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
+		}
+		if errors.Is(err, catalog.ErrVoiceWorkflowUnsupported) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+		}
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	if _, err := resolveVoiceWorkflowExtensionPayload(req, workflowResolution.Provider); err != nil {
+		return nil, err
+	}
+
+	traceID := ulid.Make().String()
+	job, asset := s.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head:              req.GetHead(),
+		ScenarioType:      req.GetScenarioType(),
+		Spec:              req.GetSpec(),
+		TraceID:           traceID,
+		RouteDecision:     routeDecision,
+		ModelResolved:     modelResolved,
+		Provider:          workflowResolution.Provider,
+		WorkflowModelID:   workflowResolution.WorkflowModelID,
+		OutputPersistence: workflowResolution.OutputPersistence,
+		IgnoredExtensions: ignored,
+	})
+	if job == nil || asset == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	adapterCfg := s.resolveNativeAdapterConfig(workflowResolution.Provider, remoteTarget)
+
+	timeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
+	jobCtx := context.Background()
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
+	} else {
+		jobCtx, cancel = context.WithCancel(jobCtx)
+	}
+	go func() {
+		defer cancel()
+		s.executeVoiceWorkflowJob(jobCtx, job.GetJobId(), asset.GetVoiceAssetId(), workflowResolution, cloneSubmitScenarioJobRequest(req), adapterCfg)
+	}()
+
+	return &runtimev1.SubmitScenarioJobResponse{
+		Job:   job,
+		Asset: asset,
+	}, nil
 }
 
 func (s *Service) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
@@ -241,6 +343,9 @@ func (s *Service) submitScenarioAsyncJob(
 	if err != nil {
 		return nil, err
 	}
+	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+		return nil, err
+	}
 	s.recordRouteAutoSwitch(
 		req.GetHead().GetAppId(),
 		req.GetHead().GetSubjectUserId(),
@@ -353,6 +458,51 @@ func (s *Service) executeScenarioAsyncJob(
 		case adapterKimiChatMultimodal:
 			cfg := s.resolveNativeAdapterConfig("kimi", remoteTarget)
 			artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
+		case adapterElevenLabsNative:
+			cfg := s.resolveNativeAdapterConfig("elevenlabs", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteElevenLabsTTS(ctx, cfg, req, modelResolved)
+		case adapterFishAudioNative:
+			cfg := s.resolveNativeAdapterConfig("fish_audio", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteFishAudioTTS(ctx, cfg, req, modelResolved)
+		case adapterPlayHTNative:
+			cfg := s.resolveNativeAdapterConfig("playht", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecutePlayHTTTS(ctx, cfg, req, modelResolved)
+		case adapterAWSPollyNative:
+			cfg := s.resolveNativeAdapterConfig("aws_polly", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteAWSPollyTTS(ctx, cfg, req, modelResolved)
+		case adapterAzureSpeechNative:
+			cfg := s.resolveNativeAdapterConfig("azure_speech", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteAzureSpeechTTS(ctx, cfg, req, modelResolved)
+		case adapterGoogleCloudTTS:
+			cfg := s.resolveNativeAdapterConfig("google_cloud_tts", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGoogleCloudTTS(ctx, cfg, req, modelResolved)
+		case adapterFluxNative:
+			cfg := s.resolveNativeAdapterConfig("flux", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteFluxImage(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterIdeogramNative:
+			cfg := s.resolveNativeAdapterConfig("ideogram", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteIdeogramImage(ctx, cfg, req, modelResolved)
+		case adapterStabilityNative:
+			cfg := s.resolveNativeAdapterConfig("stability", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityImage(ctx, cfg, req, modelResolved)
+		case adapterKlingTask:
+			cfg := s.resolveNativeAdapterConfig("kling", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteKlingTask(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterLumaTask:
+			cfg := s.resolveNativeAdapterConfig("luma", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteLumaTask(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterPikaTask:
+			cfg := s.resolveNativeAdapterConfig("pika", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecutePikaTask(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterRunwayTask:
+			cfg := s.resolveNativeAdapterConfig("runway", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteRunwayTask(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterGoogleVeoOperation:
+			cfg := s.resolveNativeAdapterConfig("google_veo", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGoogleVeoOperation(ctx, cfg, s, jobID, req, modelResolved)
+		case adapterStepFunNative:
+			cfg := s.resolveNativeAdapterConfig("stepfun", remoteTarget)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteStepFunMedia(ctx, cfg, req, modelResolved)
 		default:
 			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
 		}

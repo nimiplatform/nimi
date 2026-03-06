@@ -18,14 +18,8 @@ func TestClassifyScenarioExtensionsBestEffort(t *testing.T) {
 	if err != nil {
 		t.Fatalf("classify scenario extensions: %v", err)
 	}
-	if len(ignored) != 1 {
-		t.Fatalf("ignored extension count mismatch: got=%d want=1", len(ignored))
-	}
-	if ignored[0].GetNamespace() != "nimi.scenario.image.request" {
-		t.Fatalf("ignored namespace mismatch: %q", ignored[0].GetNamespace())
-	}
-	if ignored[0].GetReason() != "best_effort_ignored" {
-		t.Fatalf("ignored reason mismatch: %q", ignored[0].GetReason())
+	if len(ignored) != 0 {
+		t.Fatalf("best-effort extension should be accepted without synthetic ignored entry, got=%d", len(ignored))
 	}
 }
 

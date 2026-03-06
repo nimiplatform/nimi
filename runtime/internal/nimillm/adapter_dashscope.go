@@ -51,8 +51,8 @@ func ExecuteAlibabaNative(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		scenarioExtensions := StructToMap(nil)
-		submitPath := resolveAlibabaImageSubmitPath(spec)
+		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
+		submitPath := resolveAlibabaImageSubmitPath(scenarioExtensions)
 		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(scenarioExtensions)
 		submitPayload := map[string]any{
 			"model":           modelResolved,
@@ -93,10 +93,10 @@ func ExecuteAlibabaNative(
 				mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
 			}
 			artifactMeta := map[string]any{
-				"adapter":          AdapterAlibabaNative,
-				"submit_endpoint":  submitPath,
-				"response":         submitResp,
-				"extensions": scenarioExtensions,
+				"adapter":         AdapterAlibabaNative,
+				"submit_endpoint": submitPath,
+				"response":        submitResp,
+				"extensions":      scenarioExtensions,
 			}
 			if artifactURI != "" {
 				artifactMeta["uri"] = artifactURI
@@ -211,7 +211,7 @@ func ExecuteAlibabaNative(
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
-		scenarioExtensions := StructToMap(nil)
+		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 		payload := map[string]any{
 			"model": modelResolved,
 			"input": map[string]any{
@@ -235,7 +235,8 @@ func ExecuteAlibabaNative(
 		if len(scenarioExtensions) > 0 {
 			payload["extensions"] = scenarioExtensions
 		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, resolveAlibabaTTSPath(spec)), apiKey, payload)
+		ttsPath := resolveAlibabaTTSPath(scenarioExtensions)
+		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, ttsPath), apiKey, payload)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -247,13 +248,13 @@ func ExecuteAlibabaNative(
 			mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
 		}
 		artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-			"adapter":          AdapterAlibabaNative,
-			"endpoint":         resolveAlibabaTTSPath(spec),
-			"voice":            requestedVoice,
-			"language":         strings.TrimSpace(spec.GetLanguage()),
-			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
-			"emotion":          strings.TrimSpace(spec.GetEmotion()),
-			"extensions": scenarioExtensions,
+			"adapter":      AdapterAlibabaNative,
+			"endpoint":     ttsPath,
+			"voice":        requestedVoice,
+			"language":     strings.TrimSpace(spec.GetLanguage()),
+			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
+			"emotion":      strings.TrimSpace(spec.GetEmotion()),
+			"extensions":   scenarioExtensions,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
@@ -262,12 +263,13 @@ func ExecuteAlibabaNative(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
+		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 		audioBytes, mimeType, audioURI, err := ResolveTranscriptionAudioSource(ctx, spec)
 		if err != nil {
 			return nil, nil, "", err
 		}
-		endpoint := resolveAlibabaSTTPath(spec)
-		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, endpoint), apiKey, modelResolved, spec, audioBytes, mimeType)
+		endpoint := resolveAlibabaSTTPath(scenarioExtensions)
+		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, endpoint), apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -277,17 +279,17 @@ func ExecuteAlibabaNative(
 			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
-			"text":             text,
-			"adapter":          AdapterAlibabaNative,
-			"endpoint":         endpoint,
-			"language":         strings.TrimSpace(spec.GetLanguage()),
-			"timestamps":       spec.GetTimestamps(),
-			"diarization":      spec.GetDiarization(),
-			"speaker_count":    spec.GetSpeakerCount(),
-			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-			"mime_type":        mimeType,
-			"audio_uri":        audioURI,
-			"extensions": StructToMap(nil),
+			"text":            text,
+			"adapter":         AdapterAlibabaNative,
+			"endpoint":        endpoint,
+			"language":        strings.TrimSpace(spec.GetLanguage()),
+			"timestamps":      spec.GetTimestamps(),
+			"diarization":     spec.GetDiarization(),
+			"speaker_count":   spec.GetSpeakerCount(),
+			"response_format": strings.TrimSpace(spec.GetResponseFormat()),
+			"mime_type":       mimeType,
+			"audio_uri":       audioURI,
+			"extensions":      scenarioExtensionPayloadForScenario(req),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
@@ -300,11 +302,7 @@ func ExecuteAlibabaNative(
 // Alibaba-specific path resolvers (package-private)
 // ---------------------------------------------------------------------------
 
-func resolveAlibabaImageSubmitPath(spec *runtimev1.ImageGenerateScenarioSpec) string {
-	scenarioExtensions := map[string]any{}
-	if spec != nil {
-		scenarioExtensions = StructToMap(nil)
-	}
+func resolveAlibabaImageSubmitPath(scenarioExtensions map[string]any) string {
 	return FirstProviderEndpointPath(
 		scenarioExtensions,
 		[]string{"image_path", "image_submit_path"},
@@ -331,11 +329,7 @@ func resolveAlibabaTaskQueryPathTemplate(scenarioExtensions map[string]any) stri
 	)
 }
 
-func resolveAlibabaTTSPath(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
-	scenarioExtensions := map[string]any{}
-	if spec != nil {
-		scenarioExtensions = StructToMap(nil)
-	}
+func resolveAlibabaTTSPath(scenarioExtensions map[string]any) string {
 	return FirstProviderEndpointPath(
 		scenarioExtensions,
 		[]string{"tts_path", "speech_path"},
@@ -344,11 +338,7 @@ func resolveAlibabaTTSPath(spec *runtimev1.SpeechSynthesizeScenarioSpec) string 
 	)
 }
 
-func resolveAlibabaSTTPath(spec *runtimev1.SpeechTranscribeScenarioSpec) string {
-	scenarioExtensions := map[string]any{}
-	if spec != nil {
-		scenarioExtensions = StructToMap(nil)
-	}
+func resolveAlibabaSTTPath(scenarioExtensions map[string]any) string {
 	return FirstProviderEndpointPath(
 		scenarioExtensions,
 		[]string{"stt_path", "transcription_path"},

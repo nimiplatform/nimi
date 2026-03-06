@@ -401,7 +401,8 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		TimingMode:       spec.GetTimingMode(),
 		VoiceRenderHints: spec.GetVoiceRenderHints(),
 	}
-	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, speechSpec)
+	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
+	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, speechSpec, scenarioExtensions)
 	if synthErr != nil {
 		return failAndStop(synthErr)
 	}

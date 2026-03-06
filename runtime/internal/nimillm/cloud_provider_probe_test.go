@@ -3,29 +3,18 @@ package nimillm
 import (
 	"testing"
 
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
-	validCases := map[string]string{
-		"":                        "nimillm",
-		"nimillm":                 "nimillm",
-		"dashscope":               "dashscope",
-		"volcengine":              "volcengine",
-		"volcengine_openspeech":   "volcengine_openspeech",
-		"gemini":                  "gemini",
-		"minimax":                 "minimax",
-		"kimi":                    "kimi",
-		"glm":                     "glm",
-		"deepseek":                "deepseek",
-		"openrouter":              "openrouter",
-		"openai":                  "openai",
-		"anthropic":               "anthropic",
-		"openai_compatible":       "openai_compatible",
-		"cloud-dashscope":         "dashscope",
-		"cloud_openai_compatible": "openai_compatible",
+	validCases := map[string]string{"": "nimillm"}
+	for _, providerID := range providerregistry.RemoteProviders {
+		validCases[providerID] = providerID
 	}
+	validCases["cloud-dashscope"] = "dashscope"
+	validCases["cloud_openai_compatible"] = "openai_compatible"
 	for raw, want := range validCases {
 		got, err := NormalizeTokenProviderID(raw)
 		if err != nil {

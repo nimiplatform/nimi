@@ -64,6 +64,9 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
+	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+		return nil, err
+	}
 	s.recordRouteAutoSwitch(
 		req.GetHead().GetAppId(),
 		req.GetHead().GetSubjectUserId(),
@@ -178,6 +181,9 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		remoteTarget,
 	)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.validateScenarioCapability(req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	s.recordRouteAutoSwitch(

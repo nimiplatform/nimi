@@ -52,25 +52,25 @@ func ExecuteGLMTask(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	submitPayload := map[string]any{
-		"model":           modelResolved,
-		"mode":            strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_")),
-		"prompt":          VideoPrompt(spec),
-		"negative_prompt": VideoNegativePrompt(spec),
-		"content":         contentPayload,
-		"duration_sec":    VideoDurationSec(spec),
-		"frames":          VideoFrames(spec),
-		"fps":             VideoFPS(spec),
-		"resolution":      VideoResolution(spec),
-		"aspect_ratio":    VideoRatio(spec),
-		"seed":            VideoSeed(spec),
-		"first_frame_uri": VideoFirstFrameURI(spec),
-		"last_frame_uri":  VideoLastFrameURI(spec),
-		"reference_images": VideoReferenceImageURIs(spec),
-		"camera_fixed":     VideoCameraFixed(spec),
-		"watermark":        VideoWatermark(spec),
-		"generate_audio":   VideoGenerateAudio(spec),
-		"draft":            VideoDraft(spec),
-		"service_tier":     VideoServiceTier(spec),
+		"model":                       modelResolved,
+		"mode":                        strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_")),
+		"prompt":                      VideoPrompt(spec),
+		"negative_prompt":             VideoNegativePrompt(spec),
+		"content":                     contentPayload,
+		"duration_sec":                VideoDurationSec(spec),
+		"frames":                      VideoFrames(spec),
+		"fps":                         VideoFPS(spec),
+		"resolution":                  VideoResolution(spec),
+		"aspect_ratio":                VideoRatio(spec),
+		"seed":                        VideoSeed(spec),
+		"first_frame_uri":             VideoFirstFrameURI(spec),
+		"last_frame_uri":              VideoLastFrameURI(spec),
+		"reference_images":            VideoReferenceImageURIs(spec),
+		"camera_fixed":                VideoCameraFixed(spec),
+		"watermark":                   VideoWatermark(spec),
+		"generate_audio":              VideoGenerateAudio(spec),
+		"draft":                       VideoDraft(spec),
+		"service_tier":                VideoServiceTier(spec),
 		"execution_expires_after_sec": VideoExecutionExpiresAfterSec(spec),
 		"return_last_frame":           VideoReturnLastFrame(spec),
 	}
@@ -173,7 +173,7 @@ func ExecuteGLMNative(
 		if n := spec.GetN(); n > 0 {
 			payload["n"] = n
 		}
-		if options := StructToMap(nil); len(options) > 0 {
+		if options := scenarioExtensionPayloadForScenario(req); len(options) > 0 {
 			payload["extensions"] = options
 		}
 		responsePayload := map[string]any{}
@@ -202,7 +202,7 @@ func ExecuteGLMNative(
 			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
 			"mask":             strings.TrimSpace(spec.GetMask()),
-			"extensions": StructToMap(nil),
+			"extensions":       scenarioExtensionPayloadForScenario(req),
 		}
 		if artifactURI != "" {
 			artifactMeta["uri"] = artifactURI
@@ -228,7 +228,7 @@ func ExecuteGLMNative(
 		if speed := spec.GetSpeed(); speed > 0 {
 			payload["speed"] = speed
 		}
-		if options := StructToMap(nil); len(options) > 0 {
+		if options := scenarioExtensionPayloadForScenario(req); len(options) > 0 {
 			payload["extensions"] = options
 		}
 		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/speech")), apiKey, payload)
@@ -243,12 +243,12 @@ func ExecuteGLMNative(
 			mimeType = normalized
 		}
 		artifact := BinaryArtifact(mimeType, body.Bytes, map[string]any{
-			"adapter":          AdapterGLMNative,
-			"voice":            strings.TrimSpace(scenarioVoiceRef(spec)),
-			"language":         strings.TrimSpace(spec.GetLanguage()),
-			"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
-			"emotion":          strings.TrimSpace(spec.GetEmotion()),
-			"extensions": StructToMap(nil),
+			"adapter":      AdapterGLMNative,
+			"voice":        strings.TrimSpace(scenarioVoiceRef(spec)),
+			"language":     strings.TrimSpace(spec.GetLanguage()),
+			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
+			"emotion":      strings.TrimSpace(spec.GetEmotion()),
+			"extensions":   scenarioExtensionPayloadForScenario(req),
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), body.Bytes, 120), "", nil
@@ -261,7 +261,7 @@ func ExecuteGLMNative(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/transcriptions")), apiKey, modelResolved, spec, audioBytes, mimeType)
+		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, resolveGLMAPIPath(baseURL, "audio/transcriptions")), apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensionPayloadForScenario(req))
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -271,16 +271,16 @@ func ExecuteGLMNative(
 			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
-			"text":             text,
-			"adapter":          AdapterGLMNative,
-			"language":         strings.TrimSpace(spec.GetLanguage()),
-			"timestamps":       spec.GetTimestamps(),
-			"diarization":      spec.GetDiarization(),
-			"speaker_count":    spec.GetSpeakerCount(),
-			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-			"mime_type":        mimeType,
-			"audio_uri":        audioURI,
-			"extensions": StructToMap(nil),
+			"text":            text,
+			"adapter":         AdapterGLMNative,
+			"language":        strings.TrimSpace(spec.GetLanguage()),
+			"timestamps":      spec.GetTimestamps(),
+			"diarization":     spec.GetDiarization(),
+			"speaker_count":   spec.GetSpeakerCount(),
+			"response_format": strings.TrimSpace(spec.GetResponseFormat()),
+			"mime_type":       mimeType,
+			"audio_uri":       audioURI,
+			"extensions":      scenarioExtensionPayloadForScenario(req),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
@@ -299,6 +299,7 @@ func ExecuteGLMTranscribe(
 	spec *runtimev1.SpeechTranscribeScenarioSpec,
 	audio []byte,
 	mimeType string,
+	scenarioExtensions map[string]any,
 ) (string, error) {
 	if len(audio) == 0 {
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -344,8 +345,8 @@ func ExecuteGLMTranscribe(
 				return "", MapProviderRequestError(err)
 			}
 		}
-		if options := StructToMap(nil); len(options) > 0 {
-			raw, marshalErr := json.Marshal(options)
+		if len(scenarioExtensions) > 0 {
+			raw, marshalErr := json.Marshal(scenarioExtensions)
 			if marshalErr != nil {
 				return "", MapProviderRequestError(marshalErr)
 			}

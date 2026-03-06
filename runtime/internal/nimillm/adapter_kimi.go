@@ -34,7 +34,7 @@ func ExecuteKimiImageChatMultimodal(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
-	payload := buildKimiImageChatPayload(modelResolved, spec)
+	payload := buildKimiImageChatPayload(modelResolved, spec, scenarioExtensionPayloadForScenario(req))
 	responsePayload := map[string]any{}
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, "/v1/chat/completions"), apiKey, payload, &responsePayload); err != nil {
 		return nil, nil, "", err
@@ -59,7 +59,7 @@ func ExecuteKimiImageChatMultimodal(
 		"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 		"reference_images": append([]string(nil), spec.GetReferenceImages()...),
 		"mask":             strings.TrimSpace(spec.GetMask()),
-		"extensions": StructToMap(nil),
+		"extensions":       scenarioExtensionPayloadForScenario(req),
 	}
 	if artifactURI != "" {
 		artifactMeta["uri"] = artifactURI
@@ -72,7 +72,7 @@ func ExecuteKimiImageChatMultimodal(
 // buildKimiImageChatPayload constructs the chat-completions payload for Kimi
 // image generation, building a multimodal message with text and reference
 // images.
-func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenerateScenarioSpec) map[string]any {
+func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) map[string]any {
 	resolvedModelID := StripProviderModelPrefix(modelResolved, "kimi", "moonshot")
 	contentParts := make([]any, 0, 1+len(spec.GetReferenceImages()))
 	contentParts = append(contentParts, map[string]any{
@@ -134,8 +134,8 @@ func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenera
 	if mask := strings.TrimSpace(spec.GetMask()); mask != "" {
 		payload["mask"] = mask
 	}
-	if options := StructToMap(nil); len(options) > 0 {
-		payload["extensions"] = options
+	if len(scenarioExtensions) > 0 {
+		payload["extensions"] = scenarioExtensions
 	}
 	return payload
 }

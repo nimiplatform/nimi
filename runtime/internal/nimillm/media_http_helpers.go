@@ -127,6 +127,146 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	return nil
 }
 
+// DoJSONRequestWithHeaders performs a JSON request like DoJSONRequest, with
+// optional extra headers for provider-native auth/routing requirements.
+func DoJSONRequestWithHeaders(
+	ctx context.Context,
+	method string,
+	targetURL string,
+	apiKey string,
+	body any,
+	target *map[string]any,
+	headers map[string]string,
+) error {
+	var requestBody io.Reader
+	if body != nil {
+		raw, err := json.Marshal(body)
+		if err != nil {
+			return MapProviderRequestError(err)
+		}
+		requestBody = strings.NewReader(string(raw))
+	}
+	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, requestBody)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Accept", "application/json")
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	if strings.TrimSpace(apiKey) != "" {
+		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	}
+	for key, value := range headers {
+		headerName := strings.TrimSpace(key)
+		if headerName == "" {
+			continue
+		}
+		headerValue := strings.TrimSpace(value)
+		if headerValue == "" {
+			continue
+		}
+		request.Header.Set(headerName, headerValue)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var payload map[string]any
+		_ = json.NewDecoder(response.Body).Decode(&payload)
+		return MapProviderHTTPError(response.StatusCode, payload)
+	}
+	if target == nil {
+		return nil
+	}
+	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	return nil
+}
+
+// doCustomHeaderJSONOrBinaryRequest performs an HTTP request like
+// DoJSONOrBinaryRequest but with additional custom headers. This is useful for
+// providers that require non-standard auth headers (e.g. X-USER-ID for PlayHT,
+// xi-api-key for ElevenLabs).
+func doCustomHeaderJSONOrBinaryRequest(
+	ctx context.Context,
+	method string,
+	targetURL string,
+	apiKey string,
+	body any,
+	headers map[string]string,
+) (*JSONOrBinaryBody, error) {
+	requestBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, MapProviderRequestError(err)
+	}
+	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, strings.NewReader(string(requestBody)))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	if strings.TrimSpace(apiKey) != "" {
+		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	}
+	for key, value := range headers {
+		headerName := strings.TrimSpace(key)
+		if headerName == "" {
+			continue
+		}
+		headerValue := strings.TrimSpace(value)
+		if headerValue == "" {
+			continue
+		}
+		request.Header.Set(headerName, headerValue)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var payload map[string]any
+		_ = json.NewDecoder(response.Body).Decode(&payload)
+		return nil, MapProviderHTTPError(response.StatusCode, payload)
+	}
+	raw, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
+	looksLikeJSON := len(raw) > 0 && (raw[0] == '{' || raw[0] == '[')
+	if strings.Contains(contentType, "application/json") || looksLikeJSON {
+		parsed := map[string]any{}
+		if unmarshalErr := json.Unmarshal(raw, &parsed); unmarshalErr == nil {
+			if text := strings.TrimSpace(FirstNonEmpty(
+				ValueAsString(parsed["text"]),
+				ValueAsString(MapField(parsed["result"], "text")),
+			)); text != "" {
+				return &JSONOrBinaryBody{Bytes: []byte(text), Text: text, MIME: contentType}, nil
+			}
+			if b64 := strings.TrimSpace(FirstNonEmpty(
+				ValueAsString(parsed["audio"]),
+				ValueAsString(parsed["audio_base64"]),
+				ValueAsString(parsed["b64_json"]),
+				ValueAsString(MapField(parsed["result"], "audio")),
+				ValueAsString(MapField(parsed["result"], "audio_base64")),
+				ValueAsString(MapField(parsed["data"], "audio")),
+				ValueAsString(MapField(parsed["data"], "audio_base64")),
+				ValueAsString(MapField(parsed["output"], "audio")),
+			)); b64 != "" {
+				decoded, decodeErr := base64.StdEncoding.DecodeString(b64)
+				if decodeErr == nil {
+					return &JSONOrBinaryBody{Bytes: decoded, MIME: contentType}, nil
+				}
+			}
+		}
+	}
+	return &JSONOrBinaryBody{Bytes: raw, MIME: contentType}, nil
+}
+
 // JoinURL joins a base URL with a suffix path. If the suffix is already an
 // absolute URL it is returned as-is.
 func JoinURL(baseURL string, suffix string) string {

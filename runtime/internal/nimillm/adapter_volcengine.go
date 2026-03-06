@@ -26,6 +26,7 @@ func ExecuteBytedanceARKTask(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
+	scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
@@ -33,8 +34,7 @@ func ExecuteBytedanceARKTask(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		scenarioExtensions := StructToMap(nil)
-		submitPath := resolveBytedanceARKImagePath(spec)
+		submitPath := resolveBytedanceARKImagePath(scenarioExtensions)
 		submitPayload := map[string]any{
 			"model":           modelResolved,
 			"prompt":          spec.GetPrompt(),
@@ -86,7 +86,7 @@ func ExecuteBytedanceARKTask(
 			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
 			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
 			"mask":             strings.TrimSpace(spec.GetMask()),
-			"extensions": scenarioExtensions,
+			"extensions":       scenarioExtensions,
 		}
 		if artifactURI != "" {
 			artifactMeta["uri"] = artifactURI
@@ -178,7 +178,7 @@ func ExecuteBytedanceARKTask(
 				ApplyVideoSpecMetadata(artifact, spec)
 			},
 			map[string]any{
-				"mode":              spec.GetMode().String(),
+				"mode":               spec.GetMode().String(),
 				"content_item_count": len(contentPayload),
 			},
 		)
@@ -189,11 +189,7 @@ func ExecuteBytedanceARKTask(
 
 // Provider-specific path resolvers (package-private)
 
-func resolveBytedanceARKImagePath(spec *runtimev1.ImageGenerateScenarioSpec) string {
-	scenarioExtensions := map[string]any{}
-	if spec != nil {
-		scenarioExtensions = StructToMap(nil)
-	}
+func resolveBytedanceARKImagePath(scenarioExtensions map[string]any) string {
 	return FirstProviderEndpointPath(
 		scenarioExtensions,
 		[]string{"image_path", "image_submit_path"},

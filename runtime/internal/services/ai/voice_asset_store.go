@@ -5,18 +5,33 @@ import (
 	"sync"
 	"time"
 
-	"github.com/oklog/ulid/v2"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type voiceScenarioJobRecord struct {
 	job         *runtimev1.ScenarioJob
+	assetID     string
 	events      []*runtimev1.ScenarioJobEvent
 	subscribers map[uint64]chan *runtimev1.ScenarioJobEvent
 	nextSubID   uint64
 	nextSeq     uint64
+}
+
+type voiceWorkflowSubmitInput struct {
+	Head              *runtimev1.ScenarioRequestHead
+	ScenarioType      runtimev1.ScenarioType
+	Spec              *runtimev1.ScenarioSpec
+	TraceID           string
+	RouteDecision     runtimev1.RoutePolicy
+	ModelResolved     string
+	Provider          string
+	WorkflowModelID   string
+	OutputPersistence string
+	IgnoredExtensions []*runtimev1.IgnoredScenarioExtension
 }
 
 type voiceAssetStore struct {
@@ -54,9 +69,16 @@ func inferVoiceAssetProvider(modelID string) string {
 	}
 }
 
-func (s *voiceAssetStore) submit(head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, spec *runtimev1.ScenarioSpec, traceID string) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
-	if head == nil || spec == nil {
+func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
+	if input == nil || input.Head == nil || input.Spec == nil {
 		return nil, nil
+	}
+	head := input.Head
+	scenarioType := input.ScenarioType
+	spec := input.Spec
+	traceID := strings.TrimSpace(input.TraceID)
+	if traceID == "" {
+		traceID = ulid.Make().String()
 	}
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
@@ -71,9 +93,17 @@ func (s *voiceAssetStore) submit(head *runtimev1.ScenarioRequestHead, scenarioTy
 		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_TTS_T2V
 		targetModelID = strings.TrimSpace(spec.GetVoiceDesign().GetTargetModelId())
 	}
-	provider := inferVoiceAssetProvider(head.GetModelId())
+	provider := strings.TrimSpace(input.Provider)
+	if provider == "" {
+		provider = inferVoiceAssetProvider(head.GetModelId())
+	}
 	if provider == "" {
 		provider = "local"
+	}
+	persistence := runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL
+	switch strings.ToLower(strings.TrimSpace(input.OutputPersistence)) {
+	case "provider_persistent":
+		persistence = runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
 	}
 	asset := &runtimev1.VoiceAsset{
 		VoiceAssetId:     assetID,
@@ -83,40 +113,52 @@ func (s *voiceAssetStore) submit(head *runtimev1.ScenarioRequestHead, scenarioTy
 		Provider:         provider,
 		ModelId:          head.GetModelId(),
 		TargetModelId:    targetModelID,
-		ProviderVoiceRef: "voice_asset:" + assetID,
-		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL,
+		ProviderVoiceRef: "",
+		Persistence:      persistence,
 		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
+	if strings.TrimSpace(input.WorkflowModelID) != "" {
+		asset.Metadata = structFromMap(map[string]any{
+			"workflow_model_id": strings.TrimSpace(input.WorkflowModelID),
+			"model_resolved":    strings.TrimSpace(input.ModelResolved),
+		})
+	}
 	job := &runtimev1.ScenarioJob{
-		JobId:          jobID,
-		Head:           cloneScenarioHead(head),
-		ScenarioType:   scenarioType,
-		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		RouteDecision:  head.GetRoutePolicy(),
-		ModelResolved:  head.GetModelId(),
-		Status:         runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
-		ReasonCode:     runtimev1.ReasonCode_ACTION_EXECUTED,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-		TraceId:        traceID,
-		ProviderJobId:  "voice-job:" + jobID,
-		ReasonDetail:   "",
-		RetryCount:     0,
-		Artifacts:      nil,
-		Usage:          nil,
-		NextPollAt:     nil,
-		IgnoredExtensions: nil,
+		JobId:             jobID,
+		Head:              cloneScenarioHead(head),
+		ScenarioType:      scenarioType,
+		ExecutionMode:     runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RouteDecision:     input.RouteDecision,
+		ModelResolved:     strings.TrimSpace(input.ModelResolved),
+		Status:            runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+		TraceId:           traceID,
+		ProviderJobId:     "",
+		ReasonDetail:      "",
+		RetryCount:        0,
+		Artifacts:         nil,
+		Usage:             nil,
+		NextPollAt:        nil,
+		IgnoredExtensions: cloneIgnoredScenarioExtensions(input.IgnoredExtensions),
+	}
+	if job.ModelResolved == "" {
+		job.ModelResolved = head.GetModelId()
+	}
+	if job.RouteDecision == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		job.RouteDecision = head.GetRoutePolicy()
 	}
 	record := &voiceScenarioJobRecord{
 		job:         cloneScenarioJob(job),
+		assetID:     assetID,
 		events:      make([]*runtimev1.ScenarioJobEvent, 0, 4),
 		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
 	}
 	s.mu.Lock()
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
-	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED)
 	s.jobs[jobID] = record
 	s.assets[assetID] = cloneVoiceAsset(asset)
 	s.mu.Unlock()
@@ -159,10 +201,94 @@ func (s *voiceAssetStore) cancelJob(jobID string, reason string) (*runtimev1.Sce
 	record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 	record.job.ReasonDetail = strings.TrimSpace(reason)
 	record.job.UpdatedAt = timestamppb.New(time.Now().UTC())
+	if asset := s.assets[record.assetID]; asset != nil {
+		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
+		asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
 	return job, true
+}
+
+func (s *voiceAssetStore) queueJob(jobID string) bool {
+	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil)
+}
+
+func (s *voiceAssetStore) runJob(jobID string) bool {
+	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil)
+}
+
+func (s *voiceAssetStore) completeJob(jobID string, providerJobID string, providerVoiceRef string, metadata map[string]any, usage *runtimev1.UsageStats) bool {
+	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(record *voiceScenarioJobRecord) {
+		record.job.ProviderJobId = strings.TrimSpace(providerJobID)
+		record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
+		record.job.ReasonDetail = ""
+		record.job.Usage = usage
+		asset := s.assets[record.assetID]
+		if asset != nil {
+			asset.ProviderVoiceRef = strings.TrimSpace(providerVoiceRef)
+			if len(metadata) > 0 {
+				asset.Metadata = structFromMap(metadata)
+			}
+			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
+			asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+		}
+	})
+}
+
+func (s *voiceAssetStore) failJob(jobID string, reasonCode runtimev1.ReasonCode, detail string) bool {
+	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(record *voiceScenarioJobRecord) {
+		record.job.ReasonCode = reasonCode
+		record.job.ReasonDetail = strings.TrimSpace(detail)
+		asset := s.assets[record.assetID]
+		if asset != nil {
+			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
+			asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+		}
+	})
+}
+
+func (s *voiceAssetStore) timeoutJob(jobID string, reasonCode runtimev1.ReasonCode, detail string) bool {
+	return s.transitionJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT, func(record *voiceScenarioJobRecord) {
+		record.job.ReasonCode = reasonCode
+		record.job.ReasonDetail = strings.TrimSpace(detail)
+		asset := s.assets[record.assetID]
+		if asset != nil {
+			asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
+			asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+		}
+	})
+}
+
+func (s *voiceAssetStore) transitionJob(
+	jobID string,
+	status runtimev1.ScenarioJobStatus,
+	eventType runtimev1.ScenarioJobEventType,
+	mutate func(record *voiceScenarioJobRecord),
+) bool {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return false
+	}
+	s.mu.Lock()
+	record, ok := s.jobs[id]
+	if !ok {
+		s.mu.Unlock()
+		return false
+	}
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		s.mu.Unlock()
+		return false
+	}
+	record.job.Status = status
+	record.job.UpdatedAt = timestamppb.New(time.Now().UTC())
+	if mutate != nil {
+		mutate(record)
+	}
+	s.publishLocked(record, eventType)
+	s.mu.Unlock()
+	return true
 }
 
 func (s *voiceAssetStore) subscribe(jobID string, buffer int) (uint64, <-chan *runtimev1.ScenarioJobEvent, []*runtimev1.ScenarioJobEvent, bool, bool) {
@@ -335,6 +461,17 @@ func cloneScenarioHead(input *runtimev1.ScenarioRequestHead) *runtimev1.Scenario
 	cloned := proto.Clone(input)
 	out, ok := cloned.(*runtimev1.ScenarioRequestHead)
 	if !ok {
+		return nil
+	}
+	return out
+}
+
+func structFromMap(values map[string]any) *structpb.Struct {
+	if len(values) == 0 {
+		return nil
+	}
+	out, err := structpb.NewStruct(values)
+	if err != nil {
 		return nil
 	}
 	return out

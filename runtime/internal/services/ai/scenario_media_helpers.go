@@ -16,9 +16,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 )
 
@@ -34,7 +36,134 @@ const (
 	adapterGLMTask             = "glm_task_adapter"
 	adapterGLMNative           = "glm_native_adapter"
 	adapterKimiChatMultimodal  = "kimi_chat_multimodal_adapter"
+	adapterElevenLabsNative    = "elevenlabs_native_adapter"
+	adapterFishAudioNative     = "fish_audio_native_adapter"
+	adapterPlayHTNative        = "playht_native_adapter"
+	adapterAWSPollyNative      = "aws_polly_native_adapter"
+	adapterAzureSpeechNative   = "azure_speech_native_adapter"
+	adapterGoogleCloudTTS      = "google_cloud_tts_adapter"
+	adapterFluxNative          = "flux_native_adapter"
+	adapterIdeogramNative      = "ideogram_native_adapter"
+	adapterStabilityNative     = "stability_native_adapter"
+	adapterKlingTask           = "kling_task_adapter"
+	adapterLumaTask            = "luma_task_adapter"
+	adapterPikaTask            = "pika_task_adapter"
+	adapterRunwayTask          = "runway_task_adapter"
+	adapterGoogleVeoOperation  = "google_veo_operation_adapter"
+	adapterStepFunNative       = "stepfun_native_adapter"
 )
+
+type mediaAdapterStrategy struct {
+	Image string
+	Video string
+	TTS   string
+	STT   string
+}
+
+func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
+	switch modal {
+	case runtimev1.Modal_MODAL_IMAGE:
+		return strings.TrimSpace(s.Image)
+	case runtimev1.Modal_MODAL_VIDEO:
+		return strings.TrimSpace(s.Video)
+	case runtimev1.Modal_MODAL_TTS:
+		return strings.TrimSpace(s.TTS)
+	case runtimev1.Modal_MODAL_STT:
+		return strings.TrimSpace(s.STT)
+	default:
+		return ""
+	}
+}
+
+var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
+	// --- Existing native adapters ---
+	"volcengine_openspeech": {
+		TTS: adapterBytedanceOpenSpeech,
+		STT: adapterBytedanceOpenSpeech,
+	},
+	"volcengine": {
+		Image: adapterBytedanceARKTask,
+		Video: adapterBytedanceARKTask,
+	},
+	"dashscope": {
+		Image: adapterAlibabaNative,
+		Video: adapterAlibabaNative,
+		TTS:   adapterAlibabaNative,
+		STT:   adapterAlibabaNative,
+	},
+	"gemini": {
+		Image: adapterGeminiOperation,
+		Video: adapterGeminiOperation,
+		TTS:   adapterGeminiOperation,
+		STT:   adapterGeminiOperation,
+	},
+	"minimax": {
+		Image: adapterMiniMaxTask,
+		Video: adapterMiniMaxTask,
+		TTS:   adapterMiniMaxTask,
+		STT:   adapterMiniMaxTask,
+	},
+	"glm": {
+		Image: adapterGLMNative,
+		Video: adapterGLMTask,
+		TTS:   adapterGLMNative,
+		STT:   adapterGLMNative,
+	},
+	"kimi": {
+		Image: adapterKimiChatMultimodal,
+	},
+	// --- TTS-only native adapters ---
+	"elevenlabs": {
+		TTS: adapterElevenLabsNative,
+	},
+	"fish_audio": {
+		TTS: adapterFishAudioNative,
+	},
+	"playht": {
+		TTS: adapterPlayHTNative,
+	},
+	"aws_polly": {
+		TTS: adapterAWSPollyNative,
+	},
+	"azure_speech": {
+		TTS: adapterAzureSpeechNative,
+	},
+	"google_cloud_tts": {
+		TTS: adapterGoogleCloudTTS,
+	},
+	// --- Image-only native adapters ---
+	"flux": {
+		Image: adapterFluxNative,
+	},
+	"ideogram": {
+		Image: adapterIdeogramNative,
+	},
+	"stability": {
+		Image: adapterStabilityNative,
+	},
+	// --- Video native adapters ---
+	"kling": {
+		Image: adapterKlingTask,
+		Video: adapterKlingTask,
+	},
+	"luma": {
+		Video: adapterLumaTask,
+	},
+	"pika": {
+		Video: adapterPikaTask,
+	},
+	"runway": {
+		Video: adapterRunwayTask,
+	},
+	"google_veo": {
+		Video: adapterGoogleVeoOperation,
+	},
+	// --- Mixed native adapters ---
+	"stepfun": {
+		Image: adapterStepFunNative,
+		TTS:   adapterStepFunNative,
+	},
+}
 
 func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
 	switch scenarioType {
@@ -326,8 +455,39 @@ func cloneSubmitScenarioJobRequest(input *runtimev1.SubmitScenarioJobRequest) *r
 	return copied
 }
 
-func extractScenarioExtensions(_ *runtimev1.SubmitScenarioJobRequest) *structpb.Struct {
+func extractScenarioExtensions(req *runtimev1.SubmitScenarioJobRequest) *structpb.Struct {
+	if req == nil {
+		return nil
+	}
+	namespace := mediaScenarioExtensionNamespace(req.GetScenarioType())
+	if namespace == "" {
+		return nil
+	}
+	for _, ext := range req.GetExtensions() {
+		if strings.TrimSpace(ext.GetNamespace()) != namespace {
+			continue
+		}
+		if ext.GetPayload() == nil || len(ext.GetPayload().GetFields()) == 0 {
+			return nil
+		}
+		return ext.GetPayload()
+	}
 	return nil
+}
+
+func mediaScenarioExtensionNamespace(scenarioType runtimev1.ScenarioType) string {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return "nimi.scenario.image.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return "nimi.scenario.video.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return "nimi.scenario.speech_synthesize.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return "nimi.scenario.speech_transcribe.request"
+	default:
+		return ""
+	}
 }
 
 // executeBackendSyncMedia routes sync media operations through the underlying
@@ -360,6 +520,7 @@ func executeBackendSyncMedia(
 	if backendModelID == "" {
 		backendModelID = modelResolved
 	}
+	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
 
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
@@ -374,9 +535,9 @@ func executeBackendSyncMedia(
 			compat  *nimillm.LocalAIImageCompat
 		)
 		if adapterName == adapterLocalAINative {
-			payload, usage, compat, err = backend.GenerateImageLocalAI(ctx, backendModelID, spec)
+			payload, usage, compat, err = backend.GenerateImageLocalAI(ctx, backendModelID, spec, scenarioExtensions)
 		} else {
-			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec)
+			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)
 		}
 		if err != nil {
 			return nil, nil, "", err
@@ -393,6 +554,9 @@ func executeBackendSyncMedia(
 			"reference_images": stringSliceToAny(spec.GetReferenceImages()),
 			"mask":             strings.TrimSpace(spec.GetMask()),
 		}
+		if len(scenarioExtensions) > 0 {
+			artifactMeta["extensions"] = scenarioExtensions
+		}
 		if compat != nil {
 			artifactMeta["localai_prompt"] = compat.LocalAIPrompt
 			artifactMeta["source_image"] = compat.SourceImage
@@ -407,7 +571,7 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		payload, usage, err := backend.GenerateVideo(ctx, backendModelID, spec)
+		payload, usage, err := backend.GenerateVideo(ctx, backendModelID, spec, scenarioExtensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -431,6 +595,9 @@ func executeBackendSyncMedia(
 			"execution_expires_after_sec": nimillm.VideoExecutionExpiresAfterSec(spec),
 			"return_last_frame":           nimillm.VideoReturnLastFrame(spec),
 		}
+		if len(scenarioExtensions) > 0 {
+			artifactMeta["extensions"] = scenarioExtensions
+		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveVideoArtifactMIME(spec, payload), payload, artifactMeta)
 		nimillm.ApplyVideoSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
@@ -443,17 +610,21 @@ func executeBackendSyncMedia(
 		if err := validateConnectorTTSModelSupport(ctx, logger, req, backendModelID, remoteTarget, cloudProvider, voiceCatalog); err != nil {
 			return nil, nil, "", err
 		}
-		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec)
+		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec, scenarioExtensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
-		artifact := nimillm.BinaryArtifact(nimillm.ResolveSpeechArtifactMIME(spec, payload), payload, map[string]any{
+		artifactMeta := map[string]any{
 			"adapter":      adapterName,
 			"voice_ref":    resolveScenarioVoiceRef(spec),
 			"language":     strings.TrimSpace(spec.GetLanguage()),
 			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
 			"emotion":      strings.TrimSpace(spec.GetEmotion()),
-		})
+		}
+		if len(scenarioExtensions) > 0 {
+			artifactMeta["extensions"] = scenarioExtensions
+		}
+		artifact := nimillm.BinaryArtifact(nimillm.ResolveSpeechArtifactMIME(spec, payload), payload, artifactMeta)
 		nimillm.ApplySpeechSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 
@@ -466,11 +637,11 @@ func executeBackendSyncMedia(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text, usage, err := backend.Transcribe(ctx, backendModelID, spec, audioBytes, mimeType)
+		text, usage, err := backend.Transcribe(ctx, backendModelID, spec, audioBytes, mimeType, scenarioExtensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
-		artifact := nimillm.BinaryArtifact(nimillm.ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
+		artifactMeta := map[string]any{
 			"text":            text,
 			"adapter":         adapterName,
 			"language":        strings.TrimSpace(spec.GetLanguage()),
@@ -480,7 +651,11 @@ func executeBackendSyncMedia(
 			"response_format": strings.TrimSpace(spec.GetResponseFormat()),
 			"mime_type":       mimeType,
 			"audio_uri":       audioURI,
-		})
+		}
+		if len(scenarioExtensions) > 0 {
+			artifactMeta["extensions"] = scenarioExtensions
+		}
+		artifact := nimillm.BinaryArtifact(nimillm.ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
 		nimillm.ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 
@@ -507,58 +682,8 @@ func validateConnectorTTSModelSupport(
 	if remoteTarget == nil {
 		return nil
 	}
-	providerType := strings.TrimSpace(remoteTarget.ProviderType)
 
 	requestedVoice := resolveScenarioVoiceRef(req.GetSpec().GetSpeechSynthesize())
-	if shouldUseDashScopeCatalog(providerType, resolvedModelID) {
-		voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(
-			ctx,
-			strings.TrimSpace(resolvedModelID),
-			providerType,
-			nil,
-			voiceCatalog,
-		)
-		if err != nil {
-			return err
-		}
-		if catalogVersion == "" {
-			catalogVersion = "n/a"
-		}
-		if logger != nil {
-			logger.Debug(
-				"voice-list-resolved",
-				"source", string(source),
-				"catalog_version", catalogVersion,
-				"model_resolved", strings.TrimSpace(resolvedModelID),
-				"provider_type", providerType,
-				"connector_id", strings.TrimSpace(req.GetHead().GetConnectorId()),
-			)
-		}
-		if !isSpeechVoiceSupported(requestedVoice, voices) {
-			providerMessage := fmt.Sprintf("voice %q is not supported by model %q", requestedVoice, strings.TrimSpace(resolvedModelID))
-			if logger != nil {
-				logger.Warn(
-					"voice-validation-failed",
-					"voice", requestedVoice,
-					"model_resolved", strings.TrimSpace(resolvedModelID),
-					"connector_id", strings.TrimSpace(req.GetHead().GetConnectorId()),
-					"source", string(source),
-				)
-			}
-			return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-				ActionHint: "adjust_tts_voice_or_audio_options",
-				Message:    providerMessage,
-				Metadata: map[string]string{
-					"provider_message":     providerMessage,
-					"voice_catalog_source": string(source),
-					"catalog_version":      catalogVersion,
-					"requested_voice":      requestedVoice,
-				},
-			})
-		}
-		return nil
-	}
-
 	if cloudProvider == nil {
 		return nil
 	}
@@ -597,10 +722,8 @@ func validateConnectorTTSModelSupport(
 	}
 
 	voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(
-		ctx,
 		strings.TrimSpace(matchedModelID),
 		strings.TrimSpace(remoteTarget.ProviderType),
-		probeBackend,
 		voiceCatalog,
 	)
 	if err != nil {
@@ -672,8 +795,7 @@ func modelIDBase(value string) string {
 
 func supportsTTSCapability(capabilities []string) bool {
 	for _, capability := range capabilities {
-		normalized := strings.ToLower(strings.TrimSpace(capability))
-		if normalized == "audio_synthesize" || normalized == "tts" {
+		if aicapabilities.NormalizeCatalogCapability(capability) == aicapabilities.AudioSynthesize {
 			return true
 		}
 	}
@@ -683,41 +805,16 @@ func supportsTTSCapability(capabilities []string) bool {
 func resolveMediaAdapterName(modelID string, modelResolved string, modal runtimev1.Modal, providerType string) string {
 	resolvedLower := strings.ToLower(strings.TrimSpace(modelResolved))
 	providerLower := strings.ToLower(strings.TrimSpace(providerType))
-	switch providerLower {
-	case "volcengine_openspeech":
-		if modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
-			return adapterBytedanceOpenSpeech
-		}
-	case "volcengine":
-		if modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO {
-			return adapterBytedanceARKTask
-		}
-	case "dashscope", "alibaba":
-		if modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO || modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
-			return adapterAlibabaNative
-		}
-	case "gemini":
-		if modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO || modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
-			return adapterGeminiOperation
-		}
-	case "minimax":
-		if modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO || modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
-			return adapterMiniMaxTask
-		}
-	case "glm", "zhipu", "bigmodel":
-		if modal == runtimev1.Modal_MODAL_VIDEO {
-			return adapterGLMTask
-		}
-		if modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_TTS || modal == runtimev1.Modal_MODAL_STT {
-			return adapterGLMNative
-		}
-	case "kimi", "moonshot":
-		if modal == runtimev1.Modal_MODAL_IMAGE {
-			return adapterKimiChatMultimodal
+	lowerModel := strings.ToLower(strings.TrimSpace(modelID))
+	if providerLower == "" {
+		if idx := strings.Index(resolvedLower, "/"); idx > 0 {
+			candidate := strings.TrimSpace(resolvedLower[:idx])
+			if providerregistry.Contains(candidate) {
+				providerLower = candidate
+			}
 		}
 	}
 
-	lowerModel := strings.ToLower(strings.TrimSpace(modelID))
 	switch {
 	case strings.HasPrefix(lowerModel, "localai/"):
 		return adapterLocalAINative
@@ -725,13 +822,45 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 		return adapterNexaNative
 	}
 
+	if strategy, ok := mediaAdapterStrategiesByProvider[providerLower]; ok {
+		if adapter := strategy.forModal(modal); adapter != "" {
+			return adapter
+		}
+	}
+	if providerLower != "" {
+		if record, ok := providerregistry.Lookup(providerLower); ok {
+			if mediaScenarioSupportedByProviderRecord(record, modal) {
+				// Default to OpenAI-compatible adapter for providers without
+				// provider-specific native strategy overrides.
+				return adapterOpenAICompat
+			}
+		}
+	}
+
+	// Last-resort compatibility heuristics for custom model prefixes.
 	if modal == runtimev1.Modal_MODAL_VIDEO && strings.Contains(resolvedLower, "glm") {
 		return adapterGLMTask
 	}
 	if modal == runtimev1.Modal_MODAL_IMAGE && strings.Contains(resolvedLower, "kimi") {
 		return adapterKimiChatMultimodal
 	}
+	// Default remote adapter path: OpenAI-compatible JSON/binary media routes.
 	return adapterOpenAICompat
+}
+
+func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderRecord, modal runtimev1.Modal) bool {
+	switch modal {
+	case runtimev1.Modal_MODAL_IMAGE:
+		return record.SupportsImage
+	case runtimev1.Modal_MODAL_VIDEO:
+		return record.SupportsVideo
+	case runtimev1.Modal_MODAL_TTS:
+		return record.SupportsTTS
+	case runtimev1.Modal_MODAL_STT:
+		return record.SupportsSTT
+	default:
+		return false
+	}
 }
 
 func inferMediaProviderTypeFromSelectedBackend(selectedProvider provider, modelResolved string) string {

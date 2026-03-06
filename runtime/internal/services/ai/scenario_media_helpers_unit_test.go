@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -218,10 +219,10 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := modelIDBase("plain-model"); got != "plain-model" {
 		t.Fatalf("unexpected plain model base: %q", got)
 	}
-	if !supportsTTSCapability([]string{"chat", "audio_synthesize"}) {
-		t.Fatalf("tts capability should be detected from audio_synthesize")
+	if !supportsTTSCapability([]string{"text.generate", "audio.synthesize"}) {
+		t.Fatalf("tts capability should be detected from audio.synthesize")
 	}
-	if supportsTTSCapability([]string{"chat", "vision"}) {
+	if supportsTTSCapability([]string{"text.generate", "image.generate"}) {
 		t.Fatalf("tts capability should be false for non-tts capabilities")
 	}
 
@@ -270,8 +271,22 @@ func TestMediaRoutingHelpers(t *testing.T) {
 		t.Fatalf("unexpected poll state update: %#v", updated)
 	}
 
-	if extractScenarioExtensions(baseScenarioJobRequest()) != nil {
-		t.Fatalf("extractScenarioExtensions currently should return nil")
+	req := baseScenarioJobRequest()
+	req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+	req.Extensions = []*runtimev1.ScenarioExtension{
+		{
+			Namespace: "nimi.scenario.image.request",
+			Payload: mustStructPB(t, map[string]any{
+				"quality_hint": "high",
+			}),
+		},
+	}
+	extracted := extractScenarioExtensions(req)
+	if extracted == nil {
+		t.Fatalf("extractScenarioExtensions should return the scenario namespace payload")
+	}
+	if got := extracted.GetFields()["quality_hint"].GetStringValue(); got != "high" {
+		t.Fatalf("unexpected extracted extension payload: %q", got)
 	}
 }
 
@@ -312,4 +327,13 @@ func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
 func init() {
 	// Compile-time guard for timeout constants to ensure tests cover helper defaults.
 	_ = []time.Duration{defaultGenerateTimeout, defaultGenerateImageTimeout, defaultGenerateVideoTimeout, defaultSynthesizeTimeout, defaultTranscribeTimeout}
+}
+
+func mustStructPB(t *testing.T, values map[string]any) *structpb.Struct {
+	t.Helper()
+	out, err := structpb.NewStruct(values)
+	if err != nil {
+		t.Fatalf("structpb.NewStruct: %v", err)
+	}
+	return out
 }

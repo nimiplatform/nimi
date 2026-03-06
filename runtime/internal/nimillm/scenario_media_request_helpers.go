@@ -69,15 +69,40 @@ func scenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
 	}
 }
 
-func scenarioExtensionPayload(req *runtimev1.SubmitScenarioJobRequest, namespace string) map[string]any {
-	if req == nil || namespace == "" {
+func scenarioExtensionNamespaceForType(scenarioType runtimev1.ScenarioType) string {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return "nimi.scenario.image.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return "nimi.scenario.video.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return "nimi.scenario.speech_synthesize.request"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return "nimi.scenario.speech_transcribe.request"
+	default:
+		return ""
+	}
+}
+
+// ScenarioExtensionPayloadForType returns the namespaced scenario extension
+// payload for the given scenario type.
+func ScenarioExtensionPayloadForType(scenarioType runtimev1.ScenarioType, extensions []*runtimev1.ScenarioExtension) map[string]any {
+	namespace := scenarioExtensionNamespaceForType(scenarioType)
+	if namespace == "" {
 		return nil
 	}
-	for _, ext := range req.GetExtensions() {
+	for _, ext := range extensions {
 		if strings.TrimSpace(ext.GetNamespace()) != namespace {
 			continue
 		}
 		return StructToMap(ext.GetPayload())
 	}
 	return nil
+}
+
+func scenarioExtensionPayloadForScenario(req *runtimev1.SubmitScenarioJobRequest) map[string]any {
+	if req == nil {
+		return nil
+	}
+	return ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
 }

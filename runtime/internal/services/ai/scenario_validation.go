@@ -2,6 +2,7 @@ package ai
 
 import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -43,6 +44,32 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 			runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
+	default:
+		return nil
+	}
+}
+
+// scenarioRequiredCapabilities lists the catalog capabilities that can satisfy
+// each scenario type. Voice workflows are represented by synthetic capability
+// markers and resolved by the catalog layer.
+func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		return []string{aicapabilities.TextGenerate}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		return []string{aicapabilities.TextEmbed}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return []string{aicapabilities.ImageGenerate}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return []string{aicapabilities.VideoGenerate}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return []string{aicapabilities.AudioSynthesize}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return []string{aicapabilities.AudioTranscribe}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		return []string{aicapabilities.VoiceWorkflowTTSV2V}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		return []string{aicapabilities.VoiceWorkflowTTST2V}
 	default:
 		return nil
 	}

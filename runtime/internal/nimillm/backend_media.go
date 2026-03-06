@@ -91,6 +91,7 @@ func (b *Backend) Transcribe(
 	spec *runtimev1.SpeechTranscribeScenarioSpec,
 	audio []byte,
 	mimeType string,
+	scenarioExtensions map[string]any,
 ) (string, *runtimev1.UsageStats, error) {
 	if len(audio) == 0 {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -137,7 +138,7 @@ func (b *Backend) Transcribe(
 				return "", nil, MapProviderRequestError(err)
 			}
 		}
-		if options := StructToMap(nil); len(options) > 0 {
+		if options := scenarioExtensions; len(options) > 0 {
 			raw, marshalErr := json.Marshal(options)
 			if marshalErr != nil {
 				return "", nil, MapProviderRequestError(marshalErr)
@@ -206,25 +207,25 @@ type LocalAIImageCompat struct {
 // GenerateImageLocalAI sends a LocalAI-optimized image generation request.
 // It supports the minimal t2i/i2i workflow (file/files/ref_images) and best-effort
 // Nexa parameter compatibility (steps->step, method->mode).
-func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec) ([]byte, *runtimev1.UsageStats, *LocalAIImageCompat, error) {
+func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, *LocalAIImageCompat, error) {
 	type imageRequest struct {
-		Model           string         `json:"model"`
-		Prompt          string         `json:"prompt"`
-		NegativePrompt  string         `json:"negative_prompt,omitempty"`
-		N               int32          `json:"n,omitempty"`
-		Size            string         `json:"size,omitempty"`
-		AspectRatio     string         `json:"aspect_ratio,omitempty"`
-		Quality         string         `json:"quality,omitempty"`
-		Style           string         `json:"style,omitempty"`
-		Seed            int64          `json:"seed,omitempty"`
-		Mask            string         `json:"mask,omitempty"`
-		ResponseFormat  string         `json:"response_format,omitempty"`
-		Extensions map[string]any `json:"extensions,omitempty"`
-		File            string         `json:"file,omitempty"`
-		Files           []string       `json:"files,omitempty"`
-		RefImages       []string       `json:"ref_images,omitempty"`
-		Step            int32          `json:"step,omitempty"`
-		Mode            string         `json:"mode,omitempty"`
+		Model          string         `json:"model"`
+		Prompt         string         `json:"prompt"`
+		NegativePrompt string         `json:"negative_prompt,omitempty"`
+		N              int32          `json:"n,omitempty"`
+		Size           string         `json:"size,omitempty"`
+		AspectRatio    string         `json:"aspect_ratio,omitempty"`
+		Quality        string         `json:"quality,omitempty"`
+		Style          string         `json:"style,omitempty"`
+		Seed           int64          `json:"seed,omitempty"`
+		Mask           string         `json:"mask,omitempty"`
+		ResponseFormat string         `json:"response_format,omitempty"`
+		Extensions     map[string]any `json:"extensions,omitempty"`
+		File           string         `json:"file,omitempty"`
+		Files          []string       `json:"files,omitempty"`
+		RefImages      []string       `json:"ref_images,omitempty"`
+		Step           int32          `json:"step,omitempty"`
+		Mode           string         `json:"mode,omitempty"`
 	}
 	type imageResponse struct {
 		Data []struct {
@@ -244,7 +245,6 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	seed := int64(0)
 	mask := ""
 	referenceImages := []string{}
-	scenarioExtensions := map[string]any(nil)
 	if spec != nil {
 		prompt = strings.TrimSpace(spec.GetPrompt())
 		negativePrompt = strings.TrimSpace(spec.GetNegativePrompt())
@@ -258,7 +258,6 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 		style = strings.TrimSpace(spec.GetStyle())
 		seed = spec.GetSeed()
 		mask = strings.TrimSpace(spec.GetMask())
-		scenarioExtensions = StructToMap(nil)
 		for _, image := range spec.GetReferenceImages() {
 			trimmed := strings.TrimSpace(image)
 			if trimmed != "" {
@@ -301,18 +300,18 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 	}
 
 	requestBody := imageRequest{
-		Model:           modelID,
-		Prompt:          localPrompt,
-		NegativePrompt:  negativePrompt,
-		N:               n,
-		Size:            size,
-		AspectRatio:     aspectRatio,
-		Quality:         quality,
-		Style:           style,
-		Seed:            seed,
-		Mask:            mask,
-		ResponseFormat:  responseFormat,
-		Extensions: scenarioExtensions,
+		Model:          modelID,
+		Prompt:         localPrompt,
+		NegativePrompt: negativePrompt,
+		N:              n,
+		Size:           size,
+		AspectRatio:    aspectRatio,
+		Quality:        quality,
+		Style:          style,
+		Seed:           seed,
+		Mask:           mask,
+		ResponseFormat: responseFormat,
+		Extensions:     scenarioExtensions,
 	}
 	if sourceImage != "" {
 		requestBody.File = sourceImage
@@ -356,7 +355,7 @@ func (b *Backend) GenerateImageLocalAI(ctx context.Context, modelID string, spec
 }
 
 // GenerateImage sends an image generation request.
-func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
 	type imageRequest struct {
 		Model           string         `json:"model"`
 		Prompt          string         `json:"prompt"`
@@ -370,7 +369,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		ReferenceImages []string       `json:"reference_images,omitempty"`
 		Mask            string         `json:"mask,omitempty"`
 		ResponseFormat  string         `json:"response_format,omitempty"`
-		Extensions map[string]any `json:"extensions,omitempty"`
+		Extensions      map[string]any `json:"extensions,omitempty"`
 	}
 	type imageResponse struct {
 		Data []struct {
@@ -402,7 +401,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		ReferenceImages: append([]string(nil), spec.GetReferenceImages()...),
 		Mask:            strings.TrimSpace(spec.GetMask()),
 		ResponseFormat:  responseFormat,
-		Extensions: StructToMap(nil),
+		Extensions:      scenarioExtensions,
 	}, &respBody)
 	if err != nil {
 		return nil, nil, err
@@ -420,7 +419,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 }
 
 // GenerateVideo sends a video generation request.
-func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerateScenarioSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runtimev1.VideoGenerateScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
 	type videoRequest struct {
 		Model                    string           `json:"model"`
 		Prompt                   string           `json:"prompt"`
@@ -440,6 +439,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 		ServiceTier              string           `json:"service_tier,omitempty"`
 		ExecutionExpiresAfterSec int32            `json:"execution_expires_after_sec,omitempty"`
 		ReturnLastFrame          bool             `json:"return_last_frame,omitempty"`
+		Extensions               map[string]any   `json:"extensions,omitempty"`
 	}
 	type videoResponse struct {
 		Data []struct {
@@ -483,6 +483,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 			ServiceTier:              VideoServiceTier(spec),
 			ExecutionExpiresAfterSec: VideoExecutionExpiresAfterSec(spec),
 			ReturnLastFrame:          VideoReturnLastFrame(spec),
+			Extensions:               scenarioExtensions,
 		}, &respBody)
 		if err == nil {
 			break
@@ -515,19 +516,19 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 }
 
 // SynthesizeSpeech sends a text-to-speech request.
-func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec) ([]byte, *runtimev1.UsageStats, error) {
+func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
 	type speechRequest struct {
-		Model           string         `json:"model"`
-		Input           string         `json:"input"`
-		Voice           string         `json:"voice,omitempty"`
-		Language        string         `json:"language,omitempty"`
-		AudioFormat     string         `json:"audio_format,omitempty"`
-		SampleRateHz    int32          `json:"sample_rate_hz,omitempty"`
-		Speed           float32        `json:"speed,omitempty"`
-		Pitch           float32        `json:"pitch,omitempty"`
-		Volume          float32        `json:"volume,omitempty"`
-		Emotion         string         `json:"emotion,omitempty"`
-		Extensions map[string]any `json:"extensions,omitempty"`
+		Model        string         `json:"model"`
+		Input        string         `json:"input"`
+		Voice        string         `json:"voice,omitempty"`
+		Language     string         `json:"language,omitempty"`
+		AudioFormat  string         `json:"audio_format,omitempty"`
+		SampleRateHz int32          `json:"sample_rate_hz,omitempty"`
+		Speed        float32        `json:"speed,omitempty"`
+		Pitch        float32        `json:"pitch,omitempty"`
+		Volume       float32        `json:"volume,omitempty"`
+		Emotion      string         `json:"emotion,omitempty"`
+		Extensions   map[string]any `json:"extensions,omitempty"`
 	}
 	text := ""
 	requestedVoice := ""
@@ -536,17 +537,17 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 		requestedVoice = strings.TrimSpace(scenarioVoiceRef(spec))
 	}
 	payload, err := b.postRaw(ctx, "/v1/audio/speech", speechRequest{
-		Model:           modelID,
-		Input:           text,
-		Voice:           requestedVoice,
-		Language:        strings.TrimSpace(spec.GetLanguage()),
-		AudioFormat:     strings.TrimSpace(spec.GetAudioFormat()),
-		SampleRateHz:    spec.GetSampleRateHz(),
-		Speed:           spec.GetSpeed(),
-		Pitch:           spec.GetPitch(),
-		Volume:          spec.GetVolume(),
-		Emotion:         strings.TrimSpace(spec.GetEmotion()),
-		Extensions: StructToMap(nil),
+		Model:        modelID,
+		Input:        text,
+		Voice:        requestedVoice,
+		Language:     strings.TrimSpace(spec.GetLanguage()),
+		AudioFormat:  strings.TrimSpace(spec.GetAudioFormat()),
+		SampleRateHz: spec.GetSampleRateHz(),
+		Speed:        spec.GetSpeed(),
+		Pitch:        spec.GetPitch(),
+		Volume:       spec.GetVolume(),
+		Emotion:      strings.TrimSpace(spec.GetEmotion()),
+		Extensions:   scenarioExtensions,
 	})
 	if err != nil {
 		return nil, nil, err

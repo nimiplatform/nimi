@@ -41,7 +41,7 @@ func ExecuteMiniMaxTask(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		scenarioExtensions := StructToMap(nil)
+		scenarioExtensions := StructToMap(extractScenarioExtensions(req))
 		miniMaxPayload := map[string]any{
 			"model":  modelResolved,
 			"text":   strings.TrimSpace(spec.GetText()),
@@ -105,7 +105,7 @@ func ExecuteMiniMaxTask(
 		if len(scenarioExtensions) > 0 {
 			openAIPayload["extensions"] = scenarioExtensions
 		}
-		paths := resolveMiniMaxSpeechPaths(spec)
+		paths := resolveMiniMaxSpeechPaths(scenarioExtensions)
 		var lastErr error
 		for _, endpointPath := range paths {
 			payload := openAIPayload
@@ -129,13 +129,13 @@ func ExecuteMiniMaxTask(
 				mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
 			}
 			artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-				"adapter":          AdapterMiniMaxTask,
-				"endpoint":         endpointPath,
-				"voice":            strings.TrimSpace(scenarioVoiceRef(spec)),
-				"language":         strings.TrimSpace(spec.GetLanguage()),
-				"audio_format":     strings.TrimSpace(spec.GetAudioFormat()),
-				"emotion":          strings.TrimSpace(spec.GetEmotion()),
-				"extensions": scenarioExtensions,
+				"adapter":      AdapterMiniMaxTask,
+				"endpoint":     endpointPath,
+				"voice":        strings.TrimSpace(scenarioVoiceRef(spec)),
+				"language":     strings.TrimSpace(spec.GetLanguage()),
+				"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
+				"emotion":      strings.TrimSpace(spec.GetEmotion()),
+				"extensions":   scenarioExtensions,
 			})
 			ApplySpeechSpecMetadata(artifact, spec)
 			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
@@ -156,7 +156,7 @@ func ExecuteMiniMaxTask(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text, endpointPath, err := ExecuteMiniMaxTranscribe(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType)
+		text, endpointPath, err := ExecuteMiniMaxTranscribe(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, StructToMap(extractScenarioExtensions(req)))
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -166,17 +166,17 @@ func ExecuteMiniMaxTask(
 			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
 		}
 		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
-			"text":             text,
-			"adapter":          AdapterMiniMaxTask,
-			"endpoint":         endpointPath,
-			"language":         strings.TrimSpace(spec.GetLanguage()),
-			"timestamps":       spec.GetTimestamps(),
-			"diarization":      spec.GetDiarization(),
-			"speaker_count":    spec.GetSpeakerCount(),
-			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-			"mime_type":        mimeType,
-			"audio_uri":        audioURI,
-			"extensions": StructToMap(nil),
+			"text":            text,
+			"adapter":         AdapterMiniMaxTask,
+			"endpoint":        endpointPath,
+			"language":        strings.TrimSpace(spec.GetLanguage()),
+			"timestamps":      spec.GetTimestamps(),
+			"diarization":     spec.GetDiarization(),
+			"speaker_count":   spec.GetSpeakerCount(),
+			"response_format": strings.TrimSpace(spec.GetResponseFormat()),
+			"mime_type":       mimeType,
+			"audio_uri":       audioURI,
+			"extensions":      StructToMap(extractScenarioExtensions(req)),
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
@@ -333,14 +333,15 @@ func ExecuteMiniMaxTranscribe(
 	spec *runtimev1.SpeechTranscribeScenarioSpec,
 	audioBytes []byte,
 	mimeType string,
+	scenarioExtensions map[string]any,
 ) (string, string, error) {
-	paths := resolveMiniMaxTranscriptionPaths(spec)
+	paths := resolveMiniMaxTranscriptionPaths(scenarioExtensions)
 	if len(paths) == 0 {
 		return "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	var lastErr error
 	for _, endpointPath := range paths {
-		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, endpointPath), apiKey, modelResolved, spec, audioBytes, mimeType)
+		text, err := ExecuteGLMTranscribe(ctx, JoinURL(baseURL, endpointPath), apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
 		if err == nil {
 			return text, endpointPath, nil
 		}
@@ -378,11 +379,7 @@ func isMiniMaxTaskFailedStatus(statusText string) bool {
 	}
 }
 
-func resolveMiniMaxSpeechPaths(spec *runtimev1.SpeechSynthesizeScenarioSpec) []string {
-	scenarioExtensions := map[string]any{}
-	if spec != nil {
-		scenarioExtensions = StructToMap(nil)
-	}
+func resolveMiniMaxSpeechPaths(scenarioExtensions map[string]any) []string {
 	return ResolveProviderEndpointPaths(
 		scenarioExtensions,
 		[]string{"tts_path", "speech_path", "audio_speech_path"},
@@ -391,11 +388,7 @@ func resolveMiniMaxSpeechPaths(spec *runtimev1.SpeechSynthesizeScenarioSpec) []s
 	)
 }
 
-func resolveMiniMaxTranscriptionPaths(spec *runtimev1.SpeechTranscribeScenarioSpec) []string {
-	scenarioExtensions := map[string]any{}
-	if spec != nil {
-		scenarioExtensions = StructToMap(nil)
-	}
+func resolveMiniMaxTranscriptionPaths(scenarioExtensions map[string]any) []string {
 	return ResolveProviderEndpointPaths(
 		scenarioExtensions,
 		[]string{"stt_path", "transcription_path", "audio_transcriptions_path"},

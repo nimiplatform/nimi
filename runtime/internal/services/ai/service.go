@@ -67,12 +67,8 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	svc := newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
 	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
-		Logger:          logger,
-		CustomDir:       daemonCfg.ModelCatalogCustomDir,
-		RemoteEnabled:   daemonCfg.ModelCatalogRemoteEnabled,
-		RemoteURL:       daemonCfg.ModelCatalogRemoteURL,
-		RefreshInterval: daemonCfg.ModelCatalogRefreshInterval,
-		CachePath:       daemonCfg.ModelCatalogCachePath,
+		Logger:    logger,
+		CustomDir: daemonCfg.ModelCatalogCustomDir,
 	})
 	if err != nil {
 		if logger != nil {

@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -74,20 +75,31 @@ func TestScenarioJobStoreCancelAndArtifactsPaths(t *testing.T) {
 }
 
 func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
+		},
+	})
 	ctx := context.Background()
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/qwen3-tts",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			ModelId:       "dashscope/qwen3-tts-vd",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{TargetModelId: "local/qwen3-tts"}},
+			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
+				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+					TargetModelId: "dashscope/qwen3-tts-vd",
+					Input: &runtimev1.VoiceT2VInput{
+						InstructionText: "calm female voice",
+					},
+				},
+			},
 		},
 	})
 	if err != nil {
@@ -295,5 +307,44 @@ func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
 
 	if len(collector.events) == 0 {
 		t.Fatalf("expected at least one event from voice stream branch")
+	}
+}
+
+func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "voice-subscribe-terminal"
+	now := time.Now().UTC()
+
+	svc.voiceAssets.mu.Lock()
+	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
+		job: &runtimev1.ScenarioJob{
+			JobId:      jobID,
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			TraceId:    "trace-voice-terminal",
+			CreatedAt:  timestamppb.New(now),
+			UpdatedAt:  timestamppb.New(now),
+			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		},
+		events: []*runtimev1.ScenarioJobEvent{
+			{
+				EventType: runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+				Timestamp: timestamppb.New(now),
+				Job: &runtimev1.ScenarioJob{
+					JobId:  jobID,
+					Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+				},
+			},
+		},
+		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+	}
+	svc.voiceAssets.mu.Unlock()
+
+	collector := &scenarioJobEventCollector{ctx: context.Background()}
+	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector); err != nil {
+		t.Fatalf("subscribe voice terminal backlog branch returned error: %v", err)
+	}
+	if len(collector.events) != 1 || collector.events[0].GetEventType() != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED {
+		t.Fatalf("expected completed backlog event, got %#v", collector.events)
 	}
 }

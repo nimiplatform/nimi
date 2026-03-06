@@ -20,17 +20,23 @@ func ExtractTaskIDFromPayload(payload map[string]any) string {
 		return ""
 	}
 	return strings.TrimSpace(FirstNonEmpty(
+		ValueAsString(payload["job_id"]),
+		ValueAsString(payload["jobId"]),
 		ValueAsString(payload["task_id"]),
 		ValueAsString(payload["taskId"]),
 		ValueAsString(payload["id"]),
 		ValueAsString(MapField(payload["task"], "id")),
 		ValueAsString(MapField(payload["task"], "task_id")),
+		ValueAsString(MapField(payload["task"], "job_id")),
 		ValueAsString(MapField(payload["result"], "id")),
 		ValueAsString(MapField(payload["result"], "task_id")),
+		ValueAsString(MapField(payload["result"], "job_id")),
 		ValueAsString(MapField(payload["data"], "id")),
 		ValueAsString(MapField(payload["data"], "task_id")),
+		ValueAsString(MapField(payload["data"], "job_id")),
 		ValueAsString(MapField(payload["output"], "id")),
 		ValueAsString(MapField(payload["output"], "task_id")),
+		ValueAsString(MapField(payload["output"], "job_id")),
 	))
 }
 
