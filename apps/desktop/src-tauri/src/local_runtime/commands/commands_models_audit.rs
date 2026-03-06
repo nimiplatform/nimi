@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn local_ai_models_remove(
+pub fn runtime_local_models_remove(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<LocalAiModelRecord, String> {
@@ -7,7 +7,7 @@ pub fn local_ai_models_remove(
 }
 
 #[tauri::command]
-pub fn local_ai_models_start(
+pub fn runtime_local_models_start(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<LocalAiModelRecord, String> {
@@ -15,7 +15,7 @@ pub fn local_ai_models_start(
 }
 
 #[tauri::command]
-pub fn local_ai_models_stop(
+pub fn runtime_local_models_stop(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<LocalAiModelRecord, String> {
@@ -23,7 +23,7 @@ pub fn local_ai_models_stop(
 }
 
 #[tauri::command]
-pub fn local_ai_models_health(
+pub fn runtime_local_models_health(
     app: AppHandle,
     payload: Option<LocalAiModelsHealthPayload>,
 ) -> Result<LocalAiModelsHealthResult, String> {
@@ -35,7 +35,7 @@ pub fn local_ai_models_health(
 }
 
 #[tauri::command]
-pub fn local_ai_append_inference_audit(
+pub fn runtime_local_append_inference_audit(
     app: AppHandle,
     payload: LocalAiInferenceAuditPayload,
 ) -> Result<(), String> {
@@ -105,7 +105,7 @@ pub fn local_ai_append_inference_audit(
 }
 
 #[tauri::command]
-pub fn local_ai_append_runtime_audit(
+pub fn runtime_local_append_runtime_audit(
     app: AppHandle,
     payload: LocalAiRuntimeAuditPayload,
 ) -> Result<(), String> {
@@ -120,7 +120,7 @@ pub fn local_ai_append_runtime_audit(
 }
 
 #[tauri::command]
-pub fn local_ai_models_reveal_in_folder(
+pub fn runtime_local_models_reveal_in_folder(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<(), String> {
@@ -136,4 +136,3 @@ pub fn local_ai_models_reveal_in_folder(
     };
     reveal_path_in_os(target)
 }
-

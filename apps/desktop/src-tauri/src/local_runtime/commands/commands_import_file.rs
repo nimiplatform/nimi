@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn local_ai_models_import_file(
+pub fn runtime_local_models_import_file(
     app: AppHandle,
     payload: LocalAiModelsImportFilePayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {

@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn local_ai_models_install(
+pub fn runtime_local_models_install(
     app: AppHandle,
     payload: LocalAiModelsInstallPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
@@ -42,7 +42,7 @@ pub fn local_ai_models_install(
 }
 
 #[tauri::command]
-pub fn local_ai_models_install_verified(
+pub fn runtime_local_models_install_verified(
     app: AppHandle,
     payload: LocalAiModelsInstallVerifiedPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
@@ -100,14 +100,14 @@ fn validated_install_session_id(payload: &LocalAiDownloadControlPayload) -> Resu
 }
 
 #[tauri::command]
-pub fn local_ai_downloads_list(
+pub fn runtime_local_downloads_list(
     app: AppHandle,
 ) -> Result<Vec<LocalAiDownloadSessionSummary>, String> {
     download_manager::list_download_sessions(&app)
 }
 
 #[tauri::command]
-pub fn local_ai_downloads_pause(
+pub fn runtime_local_downloads_pause(
     app: AppHandle,
     payload: LocalAiDownloadControlPayload,
 ) -> Result<LocalAiDownloadSessionSummary, String> {
@@ -116,7 +116,7 @@ pub fn local_ai_downloads_pause(
 }
 
 #[tauri::command]
-pub fn local_ai_downloads_resume(
+pub fn runtime_local_downloads_resume(
     app: AppHandle,
     payload: LocalAiDownloadControlPayload,
 ) -> Result<LocalAiDownloadSessionSummary, String> {
@@ -125,7 +125,7 @@ pub fn local_ai_downloads_resume(
 }
 
 #[tauri::command]
-pub fn local_ai_downloads_cancel(
+pub fn runtime_local_downloads_cancel(
     app: AppHandle,
     payload: LocalAiDownloadControlPayload,
 ) -> Result<LocalAiDownloadSessionSummary, String> {

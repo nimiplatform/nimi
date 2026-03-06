@@ -91,7 +91,7 @@ pub fn remove_model(app: &AppHandle, local_model_id: &str) -> Result<LocalAiMode
 #[cfg(test)]
 mod tests {
     use super::{find_model_index, rebuild_capability_index};
-    use crate::local_ai_runtime::types::{
+    use crate::local_runtime::types::{
         LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
     };
     use std::collections::HashMap;

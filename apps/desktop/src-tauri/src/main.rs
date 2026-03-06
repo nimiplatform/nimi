@@ -13,7 +13,7 @@ use serde_json::json;
 use tauri::Manager;
 
 mod external_agent_gateway;
-mod local_ai_runtime;
+mod local_runtime;
 mod runtime_bridge;
 mod runtime_mod;
 

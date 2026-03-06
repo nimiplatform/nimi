@@ -584,7 +584,7 @@ mod tests {
 
     #[test]
     fn manifest_to_model_record_generates_installed_status() {
-        use crate::local_ai_runtime::types::{
+        use crate::local_runtime::types::{
             ImportedModelManifest, ImportedModelSource, LocalAiModelStatus,
         };
         use std::collections::HashMap;

@@ -1,10 +1,10 @@
 #[tauri::command]
-pub fn local_ai_models_list(app: AppHandle) -> Result<Vec<LocalAiModelRecord>, String> {
+pub fn runtime_local_models_list(app: AppHandle) -> Result<Vec<LocalAiModelRecord>, String> {
     list_models(&app)
 }
 
 #[tauri::command]
-pub fn local_ai_audits_list(
+pub fn runtime_local_audits_list(
     app: AppHandle,
     payload: Option<LocalAiAuditsListPayload>,
 ) -> Result<Vec<LocalAiAuditEvent>, String> {
@@ -129,7 +129,7 @@ pub fn local_ai_audits_list(
 }
 
 #[tauri::command]
-pub fn local_ai_pick_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
+pub fn runtime_local_pick_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
     let models_root = runtime_models_dir(&app)?;
     let selected = rfd::FileDialog::new()
         .set_directory(models_root)

@@ -1138,7 +1138,7 @@ pub fn check_engine_health(model: &LocalAiModelRecord) -> LocalAiModelHealth {
 #[cfg(test)]
 mod tests {
     use super::{check_engine_health, preflight_engine_install_with, start_engine};
-    use crate::local_ai_runtime::types::{
+    use crate::local_runtime::types::{
         LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
     };
     use std::collections::HashMap;

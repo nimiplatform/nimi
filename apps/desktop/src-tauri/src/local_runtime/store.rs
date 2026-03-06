@@ -136,7 +136,7 @@ pub fn save_state(app: &AppHandle, state: &LocalAiRuntimeState) -> Result<(), St
 #[cfg(test)]
 mod tests {
     use super::{load_state_from_path, save_state_to_path};
-    use crate::local_ai_runtime::types::{
+    use crate::local_runtime::types::{
         LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
     };
     use std::collections::HashMap;

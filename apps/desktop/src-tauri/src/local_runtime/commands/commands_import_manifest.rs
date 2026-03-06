@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn local_ai_models_import(
+pub fn runtime_local_models_import(
     app: AppHandle,
     payload: LocalAiModelsImportPayload,
 ) -> Result<LocalAiModelRecord, String> {
@@ -45,7 +45,7 @@ pub fn local_ai_models_import(
 }
 
 #[tauri::command]
-pub fn local_ai_pick_model_file(app: AppHandle) -> Result<Option<String>, String> {
+pub fn runtime_local_pick_model_file(app: AppHandle) -> Result<Option<String>, String> {
     let start_dir =
         dirs::home_dir().unwrap_or_else(|| runtime_models_dir(&app).unwrap_or_default());
     let selected = rfd::FileDialog::new()

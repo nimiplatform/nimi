@@ -7,7 +7,7 @@ mod tests {
         normalize_relative_file_path, resolve_expected_file_hash, sha256_hex,
         sha256_hex_streaming, HfDownloadControl,
     };
-    use crate::local_ai_runtime::types::LocalAiInstallRequest;
+    use crate::local_runtime::types::LocalAiInstallRequest;
     use std::io::Write;
 
     #[test]

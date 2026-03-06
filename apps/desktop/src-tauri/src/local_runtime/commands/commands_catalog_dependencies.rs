@@ -1,10 +1,10 @@
 #[tauri::command]
-pub fn local_ai_models_verified_list() -> Result<Vec<LocalAiVerifiedModelDescriptor>, String> {
+pub fn runtime_local_models_verified_list() -> Result<Vec<LocalAiVerifiedModelDescriptor>, String> {
     Ok(verified_model_list())
 }
 
 #[tauri::command]
-pub fn local_ai_models_catalog_search(
+pub fn runtime_local_models_catalog_search(
     app: AppHandle,
     payload: Option<LocalAiModelsCatalogSearchPayload>,
 ) -> Result<Vec<LocalAiCatalogItemDescriptor>, String> {
@@ -54,7 +54,7 @@ pub fn local_ai_models_catalog_search(
 }
 
 #[tauri::command]
-pub fn local_ai_models_catalog_resolve_install_plan(
+pub fn runtime_local_models_catalog_resolve_install_plan(
     payload: LocalAiModelsCatalogResolveInstallPlanPayload,
 ) -> Result<LocalAiInstallPlanDescriptor, String> {
     resolve_catalog_install_plan(LocalAiCatalogResolveInput {
@@ -75,7 +75,7 @@ pub fn local_ai_models_catalog_resolve_install_plan(
 }
 
 #[tauri::command]
-pub fn local_ai_dependencies_resolve(
+pub fn runtime_local_dependencies_resolve(
     app: AppHandle,
     payload: LocalAiDependenciesResolvePayload,
 ) -> Result<LocalAiDependencyResolutionPlan, String> {
@@ -114,7 +114,7 @@ pub fn local_ai_dependencies_resolve(
 }
 
 #[tauri::command]
-pub fn local_ai_device_profile_collect(app: AppHandle) -> Result<LocalAiDeviceProfile, String> {
+pub fn runtime_local_device_profile_collect(app: AppHandle) -> Result<LocalAiDeviceProfile, String> {
     Ok(collect_device_profile(&app))
 }
 

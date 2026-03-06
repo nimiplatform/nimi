@@ -305,8 +305,8 @@ pub fn health(
 #[cfg(test)]
 mod tests {
     use super::{is_llama_cpp_engine, preflight_model_start, should_mark_engine_crashed};
-    use crate::local_ai_runtime::types::LocalAiModelStatus;
-    use crate::local_ai_runtime::types::{LocalAiModelRecord, LocalAiModelSource};
+    use crate::local_runtime::types::LocalAiModelStatus;
+    use crate::local_runtime::types::{LocalAiModelRecord, LocalAiModelSource};
     use std::collections::HashMap;
 
     fn model_fixture() -> LocalAiModelRecord {

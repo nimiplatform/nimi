@@ -863,7 +863,7 @@ mod tests {
         normalize_hf_repo_slug, normalize_install_limit, normalize_search_query,
         runtime_mode_for_engine, select_entry_file, HfModelSibling,
     };
-    use crate::local_ai_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
+    use crate::local_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
     use std::collections::HashMap;
 
     fn sibling(name: &str) -> HfModelSibling {

@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn local_ai_dependencies_apply(
+pub fn runtime_local_dependencies_apply(
     app: AppHandle,
     payload: LocalAiDependenciesApplyPayload,
 ) -> Result<LocalAiDependencyApplyResult, String> {
@@ -55,7 +55,7 @@ pub fn local_ai_dependencies_apply(
 }
 
 #[tauri::command]
-pub fn local_ai_services_list(app: AppHandle) -> Result<Vec<LocalAiServiceDescriptor>, String> {
+pub fn runtime_local_services_list(app: AppHandle) -> Result<Vec<LocalAiServiceDescriptor>, String> {
     let mut state = load_state(&app)?;
     let mut changed = false;
     for service in &mut state.services {
@@ -82,7 +82,7 @@ pub fn local_ai_services_list(app: AppHandle) -> Result<Vec<LocalAiServiceDescri
 }
 
 #[tauri::command]
-pub fn local_ai_services_install(
+pub fn runtime_local_services_install(
     app: AppHandle,
     payload: LocalAiServicesInstallPayload,
 ) -> Result<LocalAiServiceDescriptor, String> {
@@ -146,7 +146,7 @@ pub fn local_ai_services_install(
 }
 
 #[tauri::command]
-pub fn local_ai_services_start(
+pub fn runtime_local_services_start(
     app: AppHandle,
     payload: LocalAiServiceIdPayload,
 ) -> Result<LocalAiServiceDescriptor, String> {
@@ -176,7 +176,7 @@ pub fn local_ai_services_start(
 }
 
 #[tauri::command]
-pub fn local_ai_services_stop(
+pub fn runtime_local_services_stop(
     app: AppHandle,
     payload: LocalAiServiceIdPayload,
 ) -> Result<LocalAiServiceDescriptor, String> {
@@ -198,7 +198,7 @@ pub fn local_ai_services_stop(
 }
 
 #[tauri::command]
-pub fn local_ai_services_health(
+pub fn runtime_local_services_health(
     app: AppHandle,
     payload: Option<LocalAiServiceIdPayload>,
 ) -> Result<Vec<LocalAiServiceDescriptor>, String> {
@@ -251,7 +251,7 @@ pub fn local_ai_services_health(
 }
 
 #[tauri::command]
-pub fn local_ai_services_remove(
+pub fn runtime_local_services_remove(
     app: AppHandle,
     payload: LocalAiServiceIdPayload,
 ) -> Result<LocalAiServiceDescriptor, String> {
@@ -266,7 +266,7 @@ pub fn local_ai_services_remove(
 }
 
 #[tauri::command]
-pub fn local_ai_nodes_catalog_list(
+pub fn runtime_local_nodes_catalog_list(
     app: AppHandle,
     payload: Option<LocalAiNodesCatalogListPayload>,
 ) -> Result<Vec<LocalAiNodeDescriptor>, String> {

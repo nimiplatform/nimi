@@ -26,7 +26,7 @@ fn reveal_path_in_os(path: &std::path::Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{copy_and_hash_file, extract_reason_code, run_install_preflight_with};
-    use crate::local_ai_runtime::types::LocalAiInstallRequest;
+    use crate::local_runtime::types::LocalAiInstallRequest;
 
     fn install_request_fixture(engine: Option<&str>) -> LocalAiInstallRequest {
         LocalAiInstallRequest {

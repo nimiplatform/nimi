@@ -63,7 +63,7 @@ pub fn append_audit_event(
 #[cfg(test)]
 mod tests {
     use super::{append_audit_event, MAX_AUDIT_EVENTS};
-    use crate::local_ai_runtime::types::LocalAiRuntimeState;
+    use crate::local_runtime::types::LocalAiRuntimeState;
 
     #[test]
     fn append_audit_event_keeps_ring_buffer_size() {
