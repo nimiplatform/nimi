@@ -7,8 +7,10 @@ entry: ./dist/mods/textplay/index.js
 description: >
   Narrative text renderer mod for player-interactive story progression.
 capabilities:
-  - llm.text.generate
-  - data.query.data-api.runtime.route.options
+  - runtime.ai.text.generate
+  - runtime.route.list.options
+  - runtime.route.resolve
+  - runtime.route.check.health
   - data.query.data-api.world.access.me
   - data.query.data-api.world.worlds.mine
   - data.query.data-api.world.events.list

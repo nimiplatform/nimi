@@ -19,9 +19,20 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
-import type { AiRuntimeDependencySnapshot } from '@nimiplatform/sdk/mod/ai';
 import type { RuntimeLlmHealthInput, RuntimeLlmHealthResult } from '@nimiplatform/sdk/mod/types';
-import { createResolveRouteBinding } from './runtime-bootstrap-route-resolvers';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
+import type {
+  ModRuntimeDependencySnapshot,
+  ModRuntimeResolvedBinding,
+} from '@nimiplatform/sdk/mod/runtime';
+import type {
+  RuntimeCanonicalCapability,
+  RuntimeRouteBinding,
+} from '@nimiplatform/sdk/mod/runtime-route';
+import { getPlatformClient } from '@runtime/platform-client';
+import { buildRuntimeRequestMetadata } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
+import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
 import type { WireModSdkHostInput } from './runtime-bootstrap-host';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -63,7 +74,7 @@ function uniqueStrings(values: string[]): string[] {
 
 function toDependencyEntries(
   dependencies: LocalAiDependencyResolutionPlan['dependencies'],
-): AiRuntimeDependencySnapshot['dependencies'] {
+): ModRuntimeDependencySnapshot['dependencies'] {
   return dependencies.map((item: LocalAiDependencyDescriptor) => ({
     dependencyId: item.dependencyId,
     kind: item.kind,
@@ -84,9 +95,9 @@ function toDependencyEntries(
 type DependencyReadiness = 'ready' | 'degraded' | 'missing';
 
 type DependencyRuntimeAssessment = {
-  entry: AiRuntimeDependencySnapshot['dependencies'][number];
+  entry: ModRuntimeDependencySnapshot['dependencies'][number];
   readiness: DependencyReadiness;
-  repairActions: AiRuntimeDependencySnapshot['repairActions'];
+  repairActions: ModRuntimeDependencySnapshot['repairActions'];
 };
 
 function buildDependencyRepairAction(input: {
@@ -94,7 +105,7 @@ function buildDependencyRepairAction(input: {
   dependency: LocalAiDependencyDescriptor;
   reasonCode: string;
   label: string;
-}): AiRuntimeDependencySnapshot['repairActions'][number] {
+}): ModRuntimeDependencySnapshot['repairActions'][number] {
   return {
     actionId: input.actionId,
     label: input.label,
@@ -159,7 +170,7 @@ function findNodeForDependency(
 function selectedDependencyInstallAction(
   dependency: LocalAiDependencyDescriptor,
   reasonCode: string,
-): AiRuntimeDependencySnapshot['repairActions'][number] {
+): ModRuntimeDependencySnapshot['repairActions'][number] {
   return buildDependencyRepairAction({
     actionId: `install:${dependency.dependencyId}`,
     dependency,
@@ -176,7 +187,7 @@ function assessDependencyRuntimeState(input: {
 }): DependencyRuntimeAssessment {
   const { dependency, models, services, nodes } = input;
   const warnings = [...(Array.isArray(dependency.warnings) ? dependency.warnings : [])];
-  const repairActions: AiRuntimeDependencySnapshot['repairActions'] = [];
+  const repairActions: ModRuntimeDependencySnapshot['repairActions'] = [];
   let readiness: DependencyReadiness = 'ready';
   let reasonCode = String(dependency.reasonCode || '').trim() || undefined;
 
@@ -306,9 +317,9 @@ function assessDependencyRuntimeState(input: {
 }
 
 function dedupeRepairActions(
-  actions: AiRuntimeDependencySnapshot['repairActions'],
-): AiRuntimeDependencySnapshot['repairActions'] {
-  const dedupe = new Map<string, AiRuntimeDependencySnapshot['repairActions'][number]>();
+  actions: ModRuntimeDependencySnapshot['repairActions'],
+): ModRuntimeDependencySnapshot['repairActions'] {
+  const dedupe = new Map<string, ModRuntimeDependencySnapshot['repairActions'][number]>();
   for (const action of actions) {
     const actionId = String(action.actionId || '').trim();
     if (!actionId) continue;
@@ -330,8 +341,8 @@ function isDependencyRequiredById(
 
 function buildRepairActionsFromPlan(
   plan: LocalAiDependencyResolutionPlan,
-): AiRuntimeDependencySnapshot['repairActions'] {
-  const actions: AiRuntimeDependencySnapshot['repairActions'] = [];
+): ModRuntimeDependencySnapshot['repairActions'] {
+  const actions: ModRuntimeDependencySnapshot['repairActions'] = [];
   for (const dep of plan.dependencies) {
     if (!dep.required || dep.selected) continue;
     actions.push({
@@ -363,7 +374,7 @@ function buildRepairActionsFromPlan(
 
 export function createModAiDependencySnapshotResolver(): (
   input: { modId: string; capability?: string; routeSourceHint?: 'token-api' | 'local-runtime' },
-) => Promise<AiRuntimeDependencySnapshot> {
+) => Promise<ModRuntimeDependencySnapshot> {
   return async (input) => {
     const modId = String(input.modId || '').trim();
     const capability = String(input.capability || '').trim() || undefined;
@@ -473,8 +484,8 @@ export function createModAiDependencySnapshotResolver(): (
     const warnings = uniqueStrings([...plan.warnings, ...inventoryWarnings, ...runtimeEntries.flatMap((item) => item.warnings)]);
     const hasMissingRequired = hasMissingRequiredInRuntime || Boolean(failedRequiredPreflight);
     const hasDegraded = hasDegradedInRuntime || hasFailedPreflight || warnings.length > 0;
-    const status: AiRuntimeDependencySnapshot['status'] = hasMissingRequired ? 'missing' : (hasDegraded ? 'degraded' : 'ready');
-    const routeSource: AiRuntimeDependencySnapshot['routeSource'] = !hasAnySelectedRuntimeDependency
+    const status: ModRuntimeDependencySnapshot['status'] = hasMissingRequired ? 'missing' : (hasDegraded ? 'degraded' : 'ready');
+    const routeSource: ModRuntimeDependencySnapshot['routeSource'] = !hasAnySelectedRuntimeDependency
       ? 'token-api'
       : status === 'ready'
         ? 'local-runtime'
@@ -514,9 +525,82 @@ function getRuntimeFieldsFromStore() {
   };
 }
 
+function toResolvedBinding(
+  capability: RuntimeCanonicalCapability,
+  resolved: Awaited<ReturnType<ReturnType<typeof createResolveRuntimeBinding>>>,
+): ModRuntimeResolvedBinding {
+  return {
+    capability,
+    source: resolved.source,
+    provider: String(resolved.provider || '').trim(),
+    model: String(resolved.model || '').trim(),
+    connectorId: String(resolved.connectorId || '').trim(),
+    endpoint: String(resolved.endpoint || '').trim() || undefined,
+    localModelId: 'localModelId' in resolved ? String(resolved.localModelId || '').trim() || undefined : undefined,
+    engine: 'engine' in resolved ? String(resolved.engine || '').trim() || undefined : undefined,
+    adapter: String(resolved.adapter || '').trim() || undefined,
+    localProviderEndpoint: 'localProviderEndpoint' in resolved ? String(resolved.localProviderEndpoint || '').trim() || undefined : undefined,
+    localOpenAiEndpoint: String(resolved.localOpenAiEndpoint || '').trim() || undefined,
+  };
+}
+
+function toRouteHealthResult(
+  result: RuntimeLlmHealthResult,
+  provider: string,
+  source: 'local-runtime' | 'token-api',
+): RuntimeLlmHealthResult & {
+  provider: string;
+  reasonCode: string;
+  actionHint: 'none' | 'install-local-model' | 'switch-to-token-api' | 'verify-connector' | 'retry';
+} {
+  const status = String(result.status || '').trim().toLowerCase();
+  const reasonCode = status === 'healthy'
+    ? 'RUNTIME_ROUTE_HEALTHY'
+    : status === 'degraded'
+      ? 'RUNTIME_ROUTE_DEGRADED'
+      : 'RUNTIME_ROUTE_UNAVAILABLE';
+  const actionHint = status === 'healthy'
+    ? 'none'
+    : source === 'local-runtime'
+      ? (status === 'degraded' ? 'install-local-model' : 'switch-to-token-api')
+      : (status === 'degraded' ? 'retry' : 'verify-connector');
+  return {
+    ...result,
+    healthy: status === 'healthy' || status === 'degraded',
+    provider,
+    reasonCode,
+    actionHint,
+  };
+}
+
+function requireModel(model: unknown, reasonCode: string): string {
+  const normalized = String(model || '').trim();
+  if (!normalized) {
+    throw createNimiError({
+      message: 'runtime model is required',
+      reasonCode,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+  return normalized;
+}
+
 export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireModSdkHostInput {
   const hookRuntime = input.getRuntimeHookRuntime();
   hookRuntime.setModAiDependencySnapshotResolver(createModAiDependencySnapshotResolver());
+  const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
+  const authorizeRuntimeCapability = (payload: {
+    modId: string;
+    capabilityKey: string;
+    target?: string;
+  }) => {
+    hookRuntime.authorizeRuntimeCapability({
+      modId: payload.modId,
+      capabilityKey: payload.capabilityKey,
+      target: payload.target,
+    });
+  };
 
   const toHealthInput = (payload: RuntimeLlmHealthInput): CheckLlmHealthInput | null => {
     const runtime = getRuntimeFieldsFromStore();
@@ -532,6 +616,39 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
       connectorId: payload.connectorId || runtime.connectorId,
     };
   };
+
+  const resolveRuntimeRoute = async (payload: {
+    modId: string;
+    capability: RuntimeCanonicalCapability;
+    binding?: RuntimeRouteBinding;
+  }): Promise<ModRuntimeResolvedBinding> => {
+    let effectiveBinding = payload.binding;
+    const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
+    if (!effectiveBinding || !hasModel) {
+      const options = await loadRuntimeRouteOptions({
+        capability: payload.capability,
+        modId: payload.modId,
+      });
+      effectiveBinding = options.selected;
+    }
+    const resolved = await resolveRuntimeBinding({
+      modId: payload.modId,
+      binding: effectiveBinding,
+    });
+    return toResolvedBinding(payload.capability, resolved);
+  };
+
+  const buildMetadata = async (inputValue: {
+    source: 'local-runtime' | 'token-api';
+    connectorId?: string;
+    endpoint?: string;
+  }): Promise<Record<string, string>> => buildRuntimeRequestMetadata({
+    source: inputValue.source,
+    connectorId: inputValue.connectorId,
+    providerEndpoint: inputValue.endpoint,
+  });
+
+  const getRuntimeClient = () => getPlatformClient().runtime;
 
   const toKernelTurnInput = (
     payload: WireModSdkHostInput['runtime']['executeLocalKernelTurn'] extends (input: infer T) => Promise<unknown>
@@ -587,8 +704,420 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
         task: () => Promise<T>,
       ) => input.withOpenApiContextLock<T>(context, task),
       getRuntimeHookRuntime: () => hookRuntime,
-      resolveRouteBinding: createResolveRouteBinding(() => getRuntimeFieldsFromStore()),
       getModAiDependencySnapshot: (payload) => hookRuntime.getModAiDependencySnapshot(payload),
+      route: {
+        listOptions: async ({ capability, modId }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.route.list.options',
+          });
+          return loadRuntimeRouteOptions({ capability, modId });
+        },
+        resolve: async ({ capability, modId, binding }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.route.resolve',
+          });
+          return resolveRuntimeRoute({ capability, modId, binding });
+        },
+        checkHealth: async ({ capability, modId, binding }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.route.check.health',
+          });
+          const resolved = await resolveRuntimeRoute({ capability, modId, binding });
+          const result = await input.checkLocalLlmHealth({
+            provider: resolved.provider,
+            localProviderEndpoint: resolved.localProviderEndpoint || resolved.endpoint,
+            localProviderModel: resolved.model,
+            localOpenAiEndpoint: resolved.localOpenAiEndpoint || resolved.endpoint,
+            connectorId: resolved.connectorId,
+          });
+          return toRouteHealthResult(result, resolved.provider, resolved.source);
+        },
+      },
+      ai: {
+        text: {
+          generate: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.ai.text.generate',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'text.generate',
+              binding,
+            });
+            return getRuntimeClient().ai.text.generate({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TEXT_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+          stream: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.ai.text.stream',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'text.generate',
+              binding,
+            });
+            return getRuntimeClient().ai.text.stream({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TEXT_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+        },
+        embedding: {
+          generate: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.ai.embedding.generate',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'text.embed',
+              binding,
+            });
+            return getRuntimeClient().ai.embedding.generate({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_EMBEDDING_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+        },
+      },
+      media: {
+        image: {
+          generate: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.image.generate',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'image.generate',
+              binding,
+            });
+            return getRuntimeClient().media.image.generate({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+          stream: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.image.stream',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'image.generate',
+              binding,
+            });
+            return getRuntimeClient().media.image.stream({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+        },
+        video: {
+          generate: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.video.generate',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'video.generate',
+              binding,
+            });
+            return getRuntimeClient().media.video.generate({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+          stream: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.video.stream',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'video.generate',
+              binding,
+            });
+            return getRuntimeClient().media.video.stream({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+        },
+        tts: {
+          synthesize: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.tts.synthesize',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'audio.synthesize',
+              binding,
+            });
+            return getRuntimeClient().media.tts.synthesize({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+          stream: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.tts.stream',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'audio.synthesize',
+              binding,
+            });
+            return getRuntimeClient().media.tts.stream({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+          listVoices: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.tts.list.voices',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'audio.synthesize',
+              binding,
+            });
+            return getRuntimeClient().media.tts.listVoices({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+        },
+        stt: {
+          transcribe: async (payload) => {
+            const { modId, binding, ...request } = payload;
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.stt.transcribe',
+            });
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability: 'audio.transcribe',
+              binding,
+            });
+            return getRuntimeClient().media.stt.transcribe({
+              ...request,
+              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_STT_MODEL_REQUIRED'),
+              route: resolved.source,
+              fallback: 'deny',
+              connectorId: resolved.connectorId || undefined,
+              metadata: {
+                ...(request.metadata || {}),
+                ...(await buildMetadata({
+                  source: resolved.source,
+                  connectorId: resolved.connectorId || undefined,
+                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                })),
+              },
+            });
+          },
+        },
+        jobs: {
+          get: async ({ modId, jobId }) => {
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.jobs.get',
+            });
+            return getRuntimeClient().media.jobs.get(jobId);
+          },
+          cancel: async ({ modId, jobId, reason }) => {
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.jobs.cancel',
+            });
+            return getRuntimeClient().media.jobs.cancel({ jobId, reason });
+          },
+          subscribe: async ({ modId, jobId }) => {
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.jobs.subscribe',
+            });
+            return getRuntimeClient().media.jobs.subscribe(jobId);
+          },
+          getArtifacts: async ({ modId, jobId }) => {
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.jobs.get.artifacts',
+            });
+            return getRuntimeClient().media.jobs.getArtifacts(jobId);
+          },
+        },
+      },
+      voice: {
+        getAsset: async ({ modId, request }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.voice.get.asset',
+          });
+          return getRuntimeClient().ai.getVoiceAsset(request);
+        },
+        listAssets: async ({ modId, request }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.voice.list.assets',
+          });
+          return getRuntimeClient().ai.listVoiceAssets(request);
+        },
+        deleteAsset: async ({ modId, request }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.voice.delete.asset',
+          });
+          return getRuntimeClient().ai.deleteVoiceAsset(request);
+        },
+        listPresetVoices: async ({ modId, binding, modelId, connectorId, ...request }) => {
+          authorizeRuntimeCapability({
+            modId,
+            capabilityKey: 'runtime.voice.list.preset.voices',
+          });
+          const resolved = await resolveRuntimeRoute({
+            modId,
+            capability: 'audio.synthesize',
+            binding,
+          });
+          return getRuntimeClient().ai.listPresetVoices({
+            ...request,
+            modelId: requireModel(modelId || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
+            connectorId: connectorId || resolved.connectorId || '',
+          });
+        },
+      },
     },
     ui: {
       useAppStore: <T>(selector: (state: unknown) => T): T =>

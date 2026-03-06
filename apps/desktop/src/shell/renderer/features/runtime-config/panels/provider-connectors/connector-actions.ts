@@ -1,5 +1,4 @@
 import {
-  VENDOR_CATALOGS_V11,
   type ApiVendor,
   type ApiConnector,
   type RuntimeConfigStateV11,
@@ -8,13 +7,6 @@ import {
 export function inferVendorFromEndpoint(endpoint: string): ApiVendor | null {
   const normalized = String(endpoint || '').trim().toLowerCase().replace(/\/+$/, '');
   if (!normalized) return null;
-  const entries = Object.entries(VENDOR_CATALOGS_V11) as Array<[ApiVendor, { defaultEndpoint: string }]>;
-  for (const [vendor, catalog] of entries) {
-    const catalogEndpoint = catalog.defaultEndpoint.toLowerCase().replace(/\/+$/, '');
-    if (normalized === catalogEndpoint || normalized.startsWith(catalogEndpoint)) {
-      return vendor;
-    }
-  }
   const hostPatterns: Array<[string, ApiVendor]> = [
     ['api.deepseek.com', 'deepseek'],
     ['api.openai.com', 'gpt'],

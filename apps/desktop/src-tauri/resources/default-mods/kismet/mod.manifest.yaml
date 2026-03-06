@@ -8,9 +8,10 @@ description: >
   BaZi destiny analysis workbench. Generates KismetResult via any
   available chat model and renders candlestick chart visualization.
 capabilities:
-  - llm.text.generate
-  - llm.text.stream
-  - data.query.data-api.runtime.route.options
+  - runtime.ai.text.generate
+  - runtime.route.list.options
+  - runtime.route.resolve
+  - runtime.route.check.health
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes
 ai:

@@ -6,12 +6,11 @@ entry: ./dist/mods/audio-book/index.js
 description: >
   多角色 AI 有声书生成工作室。
 capabilities:
-  - llm.text.generate
-  - llm.text.stream
-  - llm.speech.voices.list
-  - llm.speech.providers.list
-  - llm.speech.synthesize
-  - data.query.data-api.runtime.route.options
+  - runtime.ai.text.generate
+  - runtime.media.tts.list.voices
+  - runtime.media.tts.synthesize
+  - runtime.route.list.options
+  - runtime.route.resolve
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes
   - event.publish.ab:synthesis:progress

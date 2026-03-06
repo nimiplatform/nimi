@@ -1,10 +1,11 @@
 import type {
+  AgentProfileReadFilterInput,
+  AgentProfileReadFilterResult,
   AuditStats,
   HookCallRecord,
   HookRegistration,
   HookSourceType,
   MissingDataCapabilityResolver,
-  SpeechRouteResolver,
   TurnHookPoint,
 } from './types.js';
 import type {
@@ -21,10 +22,6 @@ import type {
   HookActionVerifyResult,
   HookActionResult,
 } from './action.js';
-
-export type HookLlmStreamEvent =
-  | { type: 'text_delta'; textDelta: string }
-  | { type: 'done' };
 
 export type HookModAiDependencyEntry = {
   dependencyId: string;
@@ -77,7 +74,6 @@ export interface DesktopHookRuntimeFacade {
   clearGrantCapabilities(modId: string): void;
   setDenialCapabilities(modId: string, capabilities: string[]): void;
   clearDenialCapabilities(modId: string): void;
-  setSpeechRouteResolver(resolver: SpeechRouteResolver | null): void;
   setMissingDataCapabilityResolver(resolver: MissingDataCapabilityResolver | null): void;
   setModAiDependencySnapshotResolver(resolver: HookModAiDependencySnapshotResolver | null): void;
   getModAiDependencySnapshot(input: {
@@ -188,194 +184,6 @@ export interface DesktopHookRuntimeFacade {
   }>;
   discoverInterModChannels(): Array<{ channel: string; providers: string[] }>;
 
-  generateModText(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    prompt: string;
-    mode?: 'STORY' | 'SCENE_TURN';
-    worldId?: string;
-    agentId?: string;
-    abortSignal?: AbortSignal;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ text: string; promptTraceId: string; traceId: string }>;
-  streamModText(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    prompt: string;
-    mode?: 'STORY' | 'SCENE_TURN';
-    worldId?: string;
-    agentId?: string;
-    abortSignal?: AbortSignal;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): AsyncIterable<HookLlmStreamEvent>;
-  generateModImage(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    prompt: string;
-    negativePrompt?: string;
-    model?: string;
-    size?: string;
-    aspectRatio?: string;
-    quality?: string;
-    style?: string;
-    seed?: number;
-    n?: number;
-    referenceImages?: string[];
-    mask?: string;
-    responseFormat?: 'url' | 'base64';
-    extensions?: Record<string, unknown>;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }>;
-  generateModVideo(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
-    prompt?: string;
-    negativePrompt?: string;
-    model?: string;
-    content: Array<
-      | {
-        type: 'text';
-        role?: 'prompt';
-        text: string;
-      }
-      | {
-        type: 'image_url';
-        role: 'first_frame' | 'last_frame' | 'reference_image';
-        imageUrl: string;
-      }
-    >;
-    options?: {
-      resolution?: string;
-      ratio?: string;
-      durationSec?: number;
-      frames?: number;
-      fps?: number;
-      seed?: number;
-      cameraFixed?: boolean;
-      watermark?: boolean;
-      generateAudio?: boolean;
-      draft?: boolean;
-      serviceTier?: string;
-      executionExpiresAfterSec?: number;
-      returnLastFrame?: boolean;
-    };
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }>;
-  generateModEmbedding(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    input: string | string[];
-    model?: string;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ embeddings: number[][]; traceId: string }>;
-
-  listSpeechProviders(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-  }): Promise<Array<{
-    id: string;
-    name: string;
-    status: 'available' | 'unavailable';
-    capabilities?: string[];
-    voiceCount?: number;
-    ownerModId?: string;
-  }>>;
-  listSpeechVoices(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    connectorId?: string;
-    model?: string;
-  }): Promise<Array<{
-    id: string;
-    providerId: string;
-    name: string;
-    lang?: string;
-    langs?: string[];
-    sampleAudioUri?: string;
-    modelResolved?: string;
-    voiceCatalogSource?: string;
-    voiceCatalogVersion?: string;
-  }>>;
-  synthesizeModSpeech(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    text: string;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    voiceId: string;
-    format?: 'mp3' | 'wav' | 'opus' | 'pcm';
-    speakingRate?: number;
-    pitch?: number;
-    sampleRateHz?: number;
-    language?: string;
-    stylePrompt?: string;
-    targetId?: string;
-    sessionId?: string;
-  }): Promise<{
-    audioUri: string;
-    mimeType: string;
-    durationMs?: number;
-    sampleRateHz?: number;
-    traceId: string;
-    providerTraceId?: string;
-    cacheKey?: string;
-  }>;
-  openSpeechStream(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    text: string;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    voiceId: string;
-    format?: 'mp3' | 'wav' | 'opus' | 'pcm';
-    sampleRateHz?: number;
-    language?: string;
-    stylePrompt?: string;
-    targetId?: string;
-    sessionId?: string;
-  }): Promise<{
-    streamId: string;
-    eventTopic: string;
-    format: 'mp3' | 'wav' | 'opus' | 'pcm';
-    sampleRateHz: number;
-    channels: number;
-    providerTraceId?: string;
-  }>;
-  controlSpeechStream(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    streamId: string;
-    action: 'pause' | 'resume' | 'cancel';
-  }): Promise<{ ok: boolean }>;
-  closeSpeechStream(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    streamId: string;
-  }): Promise<{ ok: boolean }>;
-
   registerActionV1(input: HookActionRegistrationInput): HookActionDescriptorView;
   subscribeActionRegistryChanges(
     listener: (event: HookActionRegistryChangeEvent) => void,
@@ -386,19 +194,17 @@ export interface DesktopHookRuntimeFacade {
   verifyAction(input: HookActionVerifyRequest): Promise<HookActionVerifyResult>;
   commitAction(input: HookActionCommitRequest): Promise<HookActionCommitResult>;
   queryActionAudit(filter?: HookActionAuditFilter): Promise<HookActionAuditRecord[]>;
-  transcribeModSpeech(input: {
+  registerAgentProfileReadFilter(input: {
     modId: string;
     sourceType?: HookSourceType;
-    provider: string;
-    audioUri?: string;
-    audioBase64?: string;
-    mimeType?: string;
-    language?: string;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ text: string; traceId: string }>;
+    handler: (
+      input: AgentProfileReadFilterInput,
+    ) => Promise<AgentProfileReadFilterResult> | AgentProfileReadFilterResult;
+  }): Promise<void>;
+  unregisterAgentProfileReadFilter(input: {
+    modId: string;
+  }): boolean;
+  invokeAgentProfileReadFilters(input: AgentProfileReadFilterInput): Promise<Record<string, unknown>>;
 
   getAudit(filter?: {
     modId?: string;

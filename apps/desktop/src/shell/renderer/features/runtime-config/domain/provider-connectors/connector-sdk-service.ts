@@ -2,7 +2,7 @@ import { getPlatformClient } from '@runtime/platform-client';
 import { createNimiError, RuntimeReasonCode, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
-  VENDOR_CATALOGS_V11,
+  getVendorLabelV11,
   type ApiConnector,
   type ApiVendor,
 } from '@renderer/features/runtime-config/state/types';
@@ -86,16 +86,17 @@ export function sdkConnectorToApiConnector(
     kind: number;
     status: number;
   },
+  providerCatalog: ProviderCatalogEntry[],
   models?: string[],
 ): ApiConnector {
   const vendor = providerToVendor(connector.provider);
-  const catalog = VENDOR_CATALOGS_V11[vendor];
+  const defaultEndpoint = resolveProviderEndpoint(connector.provider, providerCatalog);
   return {
     id: connector.connectorId,
-    label: connector.label || `${catalog.label} Connector`,
+    label: connector.label || `${getVendorLabelV11(vendor)} Connector`,
     vendor,
     provider: connector.provider,
-    endpoint: connector.endpoint || catalog.defaultEndpoint,
+    endpoint: connector.endpoint || defaultEndpoint,
     hasCredential: connector.hasCredential,
     isSystemOwned: connector.ownerType === CONNECTOR_OWNER_TYPE_SYSTEM,
     models: models && models.length > 0 ? models : [],
@@ -107,6 +108,7 @@ export function sdkConnectorToApiConnector(
 
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
   const runtime = getPlatformClient().runtime;
+  const providerCatalog = await sdkListProviderCatalog();
   const response = await runtime.connector.listConnectors(
     { pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
     CONNECTOR_CALL_OPTIONS,
@@ -114,7 +116,7 @@ export async function sdkListConnectors(): Promise<ApiConnector[]> {
   const remoteConnectors = (response.connectors || []).filter(
     (c) => c.kind === CONNECTOR_KIND_REMOTE_MANAGED,
   );
-  return remoteConnectors.map((c) => sdkConnectorToApiConnector(c));
+  return remoteConnectors.map((c) => sdkConnectorToApiConnector(c, providerCatalog));
 }
 
 export async function sdkCreateConnector(input: {
@@ -131,7 +133,8 @@ export async function sdkCreateConnector(input: {
     apiKey: input.apiKey,
   }, CONNECTOR_CALL_OPTIONS);
   if (!response.connector) return null;
-  return sdkConnectorToApiConnector(response.connector);
+  const providerCatalog = await sdkListProviderCatalog();
+  return sdkConnectorToApiConnector(response.connector, providerCatalog);
 }
 
 export async function sdkUpdateConnector(input: {
@@ -149,7 +152,8 @@ export async function sdkUpdateConnector(input: {
     status: 0,
   }, CONNECTOR_CALL_OPTIONS);
   if (!response.connector) return null;
-  return sdkConnectorToApiConnector(response.connector);
+  const providerCatalog = await sdkListProviderCatalog();
+  return sdkConnectorToApiConnector(response.connector, providerCatalog);
 }
 
 export async function sdkDeleteConnector(connectorId: string): Promise<void> {

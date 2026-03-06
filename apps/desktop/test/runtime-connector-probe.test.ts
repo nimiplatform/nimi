@@ -8,6 +8,7 @@ import {
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service';
 import { initializePlatformClient } from '../src/runtime/platform-client';
+import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 
 type TauriInvokeCall = {
   command: string;
@@ -77,6 +78,33 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
   };
 }
 
+const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
+  {
+    provider: 'openrouter',
+    defaultEndpoint: 'https://openrouter.ai/api/v1',
+    requiresExplicitEndpoint: false,
+    runtimePlane: 'cloud',
+    supportsManaged: true,
+    supportsInline: true,
+  },
+  {
+    provider: 'deepseek',
+    defaultEndpoint: 'https://api.deepseek.com/v1',
+    requiresExplicitEndpoint: false,
+    runtimePlane: 'cloud',
+    supportsManaged: true,
+    supportsInline: true,
+  },
+  {
+    provider: 'gemini',
+    defaultEndpoint: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    requiresExplicitEndpoint: false,
+    runtimePlane: 'cloud',
+    supportsManaged: true,
+    supportsInline: true,
+  },
+];
+
 test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () => {
   const sdkConnector = {
     connectorId: 'conn-123',
@@ -89,7 +117,7 @@ test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () =
     status: 1,
   };
 
-  const result = sdkConnectorToApiConnector(sdkConnector);
+  const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG);
 
   assert.equal(result.id, 'conn-123');
   assert.equal(result.label, 'My OpenRouter');
@@ -114,7 +142,7 @@ test('sdkConnectorToApiConnector marks system-owned connectors', () => {
     status: 1,
   };
 
-  const result = sdkConnectorToApiConnector(sdkConnector);
+  const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG);
   assert.equal(result.isSystemOwned, true);
   assert.equal(result.vendor, 'gemini');
 });
@@ -132,7 +160,7 @@ test('sdkConnectorToApiConnector uses provided models over catalog defaults', ()
   };
 
   const customModels = ['deepseek-chat', 'deepseek-coder'];
-  const result = sdkConnectorToApiConnector(sdkConnector, customModels);
+  const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG, customModels);
 
   assert.deepEqual(result.models, ['deepseek-chat', 'deepseek-coder']);
 });
@@ -149,7 +177,7 @@ test('sdkConnectorToApiConnector keeps model list empty when runtime has no mode
     status: 0,
   };
 
-  const result = sdkConnectorToApiConnector(sdkConnector, []);
+  const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG, []);
   assert.deepEqual(result.models, []);
 });
 
@@ -165,7 +193,7 @@ test('sdkConnectorToApiConnector uses default endpoint from catalog when connect
     status: 0,
   };
 
-  const result = sdkConnectorToApiConnector(sdkConnector);
+  const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG);
   assert.ok(result.endpoint.length > 0, 'should have a fallback endpoint');
 });
 

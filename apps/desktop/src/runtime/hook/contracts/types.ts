@@ -3,30 +3,22 @@
 // ---------------------------------------------------------------------------
 
 export type HookDecision = 'ALLOW' | 'ALLOW_WITH_WARNING' | 'DENY';
-export type HookType = 'event-bus' | 'data-api' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'llm' | 'action';
+export type HookType = 'event-bus' | 'data-api' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'runtime' | 'action';
 export type HookSourceType = 'builtin' | 'injected' | 'sideload' | 'core' | 'codegen';
 export type TurnHookPoint = 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
 
-export type SpeechRouteResolution = {
-  source: 'local-runtime' | 'token-api';
-  provider?: string;
-  adapter?: 'openai_compat_adapter' | 'localai_native_adapter' | string;
-  engine?: string;
-  localProviderEndpoint: string;
-  localOpenAiEndpoint: string;
-  connectorId: string;
-  model: string;
+export type MissingDataCapabilityResolver = (capability: string) => Promise<boolean> | boolean;
+
+export type AgentProfileReadFilterInput = {
+  viewerUserId?: string;
+  ownerAgentId: string;
+  worldId?: string;
+  profile: Record<string, unknown>;
 };
 
-export type SpeechRouteResolver = (input: {
-  modId: string;
-  providerId?: string;
-  routeSource?: 'auto' | 'local-runtime' | 'token-api';
-  connectorId?: string;
-  model?: string;
-}) => Promise<SpeechRouteResolution>;
-
-export type MissingDataCapabilityResolver = (capability: string) => Promise<boolean> | boolean;
+export type AgentProfileReadFilterResult = {
+  referenceImageUrl?: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // Audit

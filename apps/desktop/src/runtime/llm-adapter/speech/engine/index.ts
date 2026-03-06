@@ -4,7 +4,6 @@ import type {
   SpeechStreamOpenResult,
   SpeechSynthesizeRequest,
   SpeechVoiceDescriptor,
-  SpeechProviderDescriptor,
 } from '../types';
 import { openSpeechStream } from './open-stream';
 import { getRuntimeClient, buildRuntimeRequestMetadata } from '../../execution/runtime-ai-bridge';
@@ -74,30 +73,30 @@ export class NimiSpeechEngine {
     this.fetchImpl = fn;
   }
 
-  listProviders(): SpeechProviderDescriptor[] {
-    return [];
-  }
-
   async listVoices(input?: ListVoicesInput): Promise<SpeechVoiceDescriptor[]> {
-    if (!input?.model) return [];
-    const routeSource = input.routeSource === 'local-runtime' ? 'local-runtime' : 'token-api';
-    const model = ensureRouteSpeechModelId(input.model, routeSource);
+    const normalizedInput = input || {};
+    const requestedModel = String(normalizedInput.model || '').trim();
+    if (!requestedModel) {
+      throw new Error('SPEECH_MODEL_REQUIRED: listVoices requires a resolved route model');
+    }
+    const routeSource = normalizedInput.routeSource === 'local-runtime' ? 'local-runtime' : 'token-api';
+    const model = ensureRouteSpeechModelId(requestedModel, routeSource);
     const runtime = this.resolveRuntimeClient();
     const metadata = await this.buildMetadata({
       source: routeSource,
-      connectorId: input.connectorId,
-      providerEndpoint: input.providerEndpoint,
+      connectorId: normalizedInput.connectorId,
+      providerEndpoint: normalizedInput.providerEndpoint,
     });
     const result = await runtime.media.tts.listVoices({
       model,
       route: routeSource,
       fallback: 'deny',
-      connectorId: input.connectorId,
+      connectorId: normalizedInput.connectorId,
       metadata,
     });
     return result.voices.map(v => ({
       id: v.voiceId,
-      providerId: input.providerId || 'openai-compatible',
+      providerId: normalizedInput.providerId || 'openai-compatible',
       name: v.name,
       lang: v.lang,
       langs: v.supportedLangs,

@@ -14,7 +14,7 @@ test('reload triggers teardown without leaking previous registration', async () 
   await registerRuntimeMod({
     modId: 'world.nimi.codegen.reload',
     sourceType: 'codegen',
-    capabilities: ['llm.text.generate'],
+    capabilities: ['runtime.ai.text.generate'],
     setup: () => {},
     teardown: () => {
       teardownCount += 1;
@@ -24,7 +24,7 @@ test('reload triggers teardown without leaking previous registration', async () 
   await registerRuntimeMod({
     modId: 'world.nimi.codegen.reload',
     sourceType: 'codegen',
-    capabilities: ['llm.text.generate'],
+    capabilities: ['runtime.ai.text.generate'],
     setup: () => {},
     teardown: () => {
       teardownCount += 1;

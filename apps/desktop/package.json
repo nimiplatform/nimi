@@ -16,7 +16,7 @@
     "dev:renderer:with-mods": "pnpm exec concurrently \"pnpm run dev:renderer\" \"pnpm run dev:mods:watch\"",
     "dev:shell": "pnpm run env:check:dev && tauri dev --config src-tauri/tauri.conf.json",
     "dev:shell:clean": "pnpm run clean:src-js && pnpm run dev:shell",
-    "smoke:mods": "pnpm run env:check:dev && node scripts/dev-mods-smoke.mjs",
+    "smoke:mods": "pnpm run env:check:dev && node scripts/dev-mods-smoke.mjs --all",
     "smoke:mod:local-chat": "pnpm run env:check:dev && node scripts/dev-mods-smoke.mjs --mod local-chat",
     "debug:dashscope-tts-voices": "node scripts/debug-dashscope-tts-voices.mjs",
     "clean:src-js": "find src -type f -name '*.js' -delete",

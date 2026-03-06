@@ -8,11 +8,14 @@ description: >
   Episode-based narrative video production workbench.
   Consumes canonical narrative windows and outputs publish-ready release packages.
 capabilities:
-  - llm.text.generate
-  - llm.image.generate
-  - llm.video.generate
-  - llm.speech.synthesize
-  - data.query.data-api.runtime.route.options
+  - runtime.ai.text.generate
+  - runtime.media.image.generate
+  - runtime.media.video.generate
+  - runtime.media.tts.list.voices
+  - runtime.media.tts.synthesize
+  - runtime.route.list.options
+  - runtime.route.resolve
+  - runtime.route.check.health
   - data.query.data-api.world.events.list
   - data.query.data-api.world.lorebooks.list
   - data.query.data-api.world.scenes.list

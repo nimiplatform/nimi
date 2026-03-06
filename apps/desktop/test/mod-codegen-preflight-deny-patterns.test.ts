@@ -6,12 +6,12 @@ import { preflightCodegenBundle } from '../src/runtime/mod/codegen/preflight';
 test('preflight denies forbidden source patterns', () => {
   const result = preflightCodegenBundle({
     modId: 'world.nimi.codegen.preflight',
-    capabilities: ['llm.text.generate'],
+    capabilities: ['runtime.ai.text.generate'],
     sourceCode: `
       export function createRuntimeMod() {
         eval('console.log(1)');
         fetch('https://example.com');
-        return { modId: 'world.nimi.codegen.preflight', capabilities: ['llm.text.generate'], setup() {} };
+        return { modId: 'world.nimi.codegen.preflight', capabilities: ['runtime.ai.text.generate'], setup() {} };
       }
     `,
   });

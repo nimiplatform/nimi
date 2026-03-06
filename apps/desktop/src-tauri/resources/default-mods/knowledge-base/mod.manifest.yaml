@@ -7,9 +7,10 @@ description: >
   Private local knowledge base with document import, semantic search, and RAG-powered Q&A.
 capabilities:
   # AI
-  - llm.text.generate
-  - llm.text.stream
-  - llm.embedding.generate
+  - runtime.ai.text.generate
+  - runtime.ai.text.stream
+  - runtime.ai.embedding.generate
+  - runtime.route.list.options
   # Data register + query pairs (8 APIs)
   - data.register.data-api.knowledge-base.documents.list
   - data.query.data-api.knowledge-base.documents.list
@@ -27,8 +28,6 @@ capabilities:
   - data.query.data-api.knowledge-base.conversations.upsert
   - data.register.data-api.knowledge-base.conversations.delete
   - data.query.data-api.knowledge-base.conversations.delete
-  # Route
-  - data.query.data-api.runtime.route.options
   # UI
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes

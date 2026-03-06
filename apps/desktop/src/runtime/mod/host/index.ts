@@ -1,5 +1,7 @@
 import { DesktopExecutionKernelService } from '@runtime/execution-kernel';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   RegisterRuntimeModOptions,
   RuntimeHttpContext,
@@ -72,6 +74,12 @@ export function getRuntimeHttpContext(): RuntimeHttpContext {
 
 function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
   const hookRuntime = getOrCreateHookRuntime();
+  const notReady = () => createNimiError({
+    message: 'runtime mod sdk context provider is not ready',
+    reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+    actionHint: 'ensure_mod_host_initialized',
+    source: 'runtime',
+  });
   return {
     runtime: hookRuntime,
     runtimeHost: {
@@ -81,9 +89,6 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
         detail: 'runtime mod sdk context provider is not ready',
       }),
       getRuntimeHookRuntime: () => hookRuntime,
-      resolveRouteBinding: async () => {
-        throw new Error('RUNTIME_MOD_SDK_CONTEXT_NOT_READY');
-      },
       getModAiDependencySnapshot: async (input: { modId: string }) => ({
         modId: String(input.modId || '').trim(),
         status: 'missing',
@@ -93,6 +98,57 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
         repairActions: [],
         updatedAt: new Date().toISOString(),
       }),
+      route: {
+        listOptions: async () => { throw notReady(); },
+        resolve: async () => { throw notReady(); },
+        checkHealth: async () => ({
+          healthy: false,
+          status: 'unavailable',
+          detail: 'runtime mod sdk context provider is not ready',
+          provider: '',
+          reasonCode: 'RUNTIME_ROUTE_UNAVAILABLE',
+          actionHint: 'verify-connector',
+        }),
+      },
+      ai: {
+        text: {
+          generate: async () => { throw notReady(); },
+          stream: async () => { throw notReady(); },
+        },
+        embedding: {
+          generate: async () => { throw notReady(); },
+        },
+      },
+      media: {
+        image: {
+          generate: async () => { throw notReady(); },
+          stream: async () => { throw notReady(); },
+        },
+        video: {
+          generate: async () => { throw notReady(); },
+          stream: async () => { throw notReady(); },
+        },
+        tts: {
+          synthesize: async () => { throw notReady(); },
+          stream: async () => { throw notReady(); },
+          listVoices: async () => { throw notReady(); },
+        },
+        stt: {
+          transcribe: async () => { throw notReady(); },
+        },
+        jobs: {
+          get: async () => { throw notReady(); },
+          cancel: async () => { throw notReady(); },
+          subscribe: async () => { throw notReady(); },
+          getArtifacts: async () => { throw notReady(); },
+        },
+      },
+      voice: {
+        getAsset: async () => { throw notReady(); },
+        listAssets: async () => { throw notReady(); },
+        deleteAsset: async () => { throw notReady(); },
+        listPresetVoices: async () => { throw notReady(); },
+      },
     },
   };
 }

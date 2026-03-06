@@ -10,12 +10,12 @@ description: >
   represents their social personality. Includes photo trust-unlock
   for mutual identity reveal between matched users.
 capabilities:
-  - llm.text.generate
+  - runtime.ai.text.generate
+  - runtime.route.list.options
   - data.query.data-api.creator.agents.create
   - data.query.data-api.world.access.me
   - data.query.data-api.world.oasis.get
-  - data.query.data-api.runtime.route.options
-  - hook.agent-profile.read
+  - runtime.profile.read.agent
   - data.store.mod-state
   - ui.register.ui-extension.app.sidebar.mods
   - ui.register.ui-extension.app.content.routes

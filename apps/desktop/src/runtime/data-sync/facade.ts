@@ -115,6 +115,7 @@ export class DataSync {
     clearAuth: () => this.authCallbacks?.clearAuth(),
     stopAllPolling: () => this.stopAllPolling(),
     isFriend: (userId) => this.isFriend(userId),
+    getCurrentUser: () => this.authCallbacks?.getCurrentUser() || null,
   });
 
   constructor() {

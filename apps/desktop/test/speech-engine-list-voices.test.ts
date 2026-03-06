@@ -36,22 +36,37 @@ function createEngineForListVoicesTest(input: {
   });
 }
 
-test('listVoices without model returns empty array', async () => {
+test('listVoices without model fails close', async () => {
   const engine = new NimiSpeechEngine();
-  const voices = await engine.listVoices({});
-  assert.deepEqual(voices, []);
+  await assert.rejects(
+    () => engine.listVoices({}),
+    (error: Error) => {
+      assert.ok(error.message.includes('SPEECH_MODEL_REQUIRED'));
+      return true;
+    },
+  );
 });
 
-test('listVoices with undefined input returns empty array', async () => {
+test('listVoices with undefined input fails close', async () => {
   const engine = new NimiSpeechEngine();
-  const voices = await engine.listVoices();
-  assert.deepEqual(voices, []);
+  await assert.rejects(
+    () => engine.listVoices(),
+    (error: Error) => {
+      assert.ok(error.message.includes('SPEECH_MODEL_REQUIRED'));
+      return true;
+    },
+  );
 });
 
-test('listVoices with empty model string returns empty array', async () => {
+test('listVoices with empty model string fails close', async () => {
   const engine = new NimiSpeechEngine();
-  const voices = await engine.listVoices({ model: '' });
-  assert.deepEqual(voices, []);
+  await assert.rejects(
+    () => engine.listVoices({ model: '' }),
+    (error: Error) => {
+      assert.ok(error.message.includes('SPEECH_MODEL_REQUIRED'));
+      return true;
+    },
+  );
 });
 
 test('listVoices token-api sends cloud-prefixed model and token route', async () => {
@@ -83,11 +98,6 @@ test('listVoices local-runtime keeps model id and local route', async () => {
   assert.equal(capture[0]?.model, 'local/tts-qwen');
   assert.equal(capture[0]?.route, 'local-runtime');
   assert.equal(capture[0]?.fallback, 'deny');
-});
-
-test('listProviders returns empty array', () => {
-  const engine = new NimiSpeechEngine();
-  assert.deepEqual(engine.listProviders(), []);
 });
 
 test('openStream throws when no publisher configured', async () => {

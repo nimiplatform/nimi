@@ -29,9 +29,6 @@ import {
   safeErrorMessage,
 } from './runtime-bootstrap-utils';
 import {
-  createSpeechRouteResolver,
-} from './runtime-bootstrap-route-resolvers';
-import {
   buildRuntimeHostCapabilities,
 } from './runtime-bootstrap-host-capabilities';
 import { syncRuntimeJwtConfig } from './runtime-bootstrap-jwt-sync';
@@ -252,20 +249,6 @@ export function bootstrapRuntime(): Promise<void> {
       }));
 
       const hookRuntime = getRuntimeHookRuntime();
-      hookRuntime.setSpeechFetchImpl(proxyFetch);
-      hookRuntime.setSpeechRouteResolver(
-        createSpeechRouteResolver(() => {
-          const runtime = useAppStore.getState().runtimeFields;
-          return {
-            provider: runtime.provider,
-            runtimeModelType: runtime.runtimeModelType,
-            localProviderEndpoint: runtime.localProviderEndpoint,
-            localProviderModel: runtime.localProviderModel,
-            localOpenAiEndpoint: runtime.localOpenAiEndpoint,
-            connectorId: runtime.connectorId,
-          };
-        }),
-      );
       hookRuntime.setMissingDataCapabilityResolver(async (capability) => {
         if (!isCoreWorldDataCapability(capability)) {
           return false;

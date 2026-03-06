@@ -21,8 +21,8 @@ test('grade3 math prompt can generate/install/register in codegen happy path', a
     slug: 'math-quiz',
     prompt: '给我三年级孩子做一个每日数学题测试',
     capabilities: [
-      'llm.text.generate',
-      'llm.text.stream',
+      'runtime.ai.text.generate',
+      'runtime.ai.text.stream',
       'ui.register.ui-extension.app.content.routes',
       'data.register.data-api.user-math-quiz.records.upsert',
       'data.query.data-api.user-math-quiz.records.list',

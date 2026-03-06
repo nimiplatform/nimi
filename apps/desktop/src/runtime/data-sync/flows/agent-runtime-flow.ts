@@ -2,6 +2,7 @@ import type { Realm } from '@nimiplatform/sdk/realm';
 import type { DesktopChatRouteRequestDto, DesktopChatRouteResultDto } from '@runtime/chat';
 import { resolveChatRouteByPolicy } from '@runtime/chat';
 import { isDesktopChatRouteResultLike } from '@runtime/chat';
+import { getRuntimeHookRuntime } from '@runtime/mod';
 import {
   fetchAgentCoreMemorySlice,
   fetchAgentE2EMemorySlice,
@@ -39,6 +40,39 @@ function cacheGet(key: string): unknown | null {
 
 function cacheSet(key: string, value: unknown, ttlMs: number) {
   profileCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
+async function applyAgentProfileReadFilters(input: {
+  emitDataSyncError: DataSyncErrorEmitter;
+  viewerUserId?: string;
+  worldId?: string;
+  profile: Record<string, unknown>;
+}): Promise<Record<string, unknown>> {
+  const ownerAgentId = toNonEmptyString(input.profile.id);
+  if (!ownerAgentId) {
+    return {
+      ...input.profile,
+    };
+  }
+  try {
+    return await getRuntimeHookRuntime().invokeAgentProfileReadFilters({
+      viewerUserId: input.viewerUserId,
+      ownerAgentId,
+      worldId: input.worldId || toNonEmptyString(input.profile.worldId),
+      profile: {
+        ...input.profile,
+      },
+    });
+  } catch (error) {
+    input.emitDataSyncError('load-agent-details:profile-read-filter', error, {
+      ownerAgentId,
+      viewerUserId: input.viewerUserId || null,
+    });
+    return {
+      ...input.profile,
+      referenceImageUrl: null,
+    };
+  }
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -118,6 +152,10 @@ export async function loadAgentDetails(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   agentIdentifier: string,
+  context?: {
+    viewerUserId?: string;
+    worldId?: string;
+  },
 ) {
   const normalizedIdentifier = toNonEmptyString(agentIdentifier);
   if (!normalizedIdentifier) {
@@ -128,7 +166,12 @@ export async function loadAgentDetails(
     const cacheKey = `agent-profile:${normalizedIdentifier}`;
     const cached = cacheGet(cacheKey);
     if (cached && typeof cached === 'object') {
-      return cached;
+      return applyAgentProfileReadFilters({
+        emitDataSyncError,
+        viewerUserId: context?.viewerUserId,
+        worldId: context?.worldId,
+        profile: cached as Record<string, unknown>,
+      });
     }
 
     let profile: Record<string, unknown> | null = null;
@@ -169,7 +212,12 @@ export async function loadAgentDetails(
       }
     }
     cacheSet(cacheKey, profile, 5 * 60 * 1000);
-    return profile;
+    return applyAgentProfileReadFilters({
+      emitDataSyncError,
+      viewerUserId: context?.viewerUserId,
+      worldId: context?.worldId,
+      profile,
+    });
   } catch (error) {
     emitDataSyncError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
     throw error;

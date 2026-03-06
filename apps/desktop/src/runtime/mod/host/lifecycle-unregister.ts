@@ -82,6 +82,7 @@ export function unregisterRuntimeModState(input: {
   input.hookRuntime.clearGrantCapabilities(targetModId);
   input.hookRuntime.clearDenialCapabilities(targetModId);
   input.hookRuntime.clearCapabilityBaseline(targetModId);
+  input.hookRuntime.unregisterAgentProfileReadFilter({ modId: targetModId });
   input.registeredMods.delete(targetModId);
   const nextDefaultPrivateExecutionModId =
     input.defaultPrivateExecutionModId === targetModId

@@ -25,7 +25,7 @@ test('codegen registration denies T2 and enforces T1 consent', async () => {
     () => registerRuntimeMod({
       modId: 'world.nimi.codegen.t1-missing-consent',
       sourceType: 'codegen',
-      capabilities: ['llm.image.generate'],
+      capabilities: ['runtime.media.image.generate'],
       setup: () => {},
     }),
     /CODEGEN_T1_CONSENT_REQUIRED/,
@@ -34,8 +34,8 @@ test('codegen registration denies T2 and enforces T1 consent', async () => {
   await registerRuntimeMod({
     modId: 'world.nimi.codegen.t1-with-consent',
     sourceType: 'codegen',
-    capabilities: ['llm.image.generate'],
-    grantCapabilities: ['llm.image.generate'],
+    capabilities: ['runtime.media.image.generate'],
+    grantCapabilities: ['runtime.media.image.generate'],
     setup: () => {},
   });
 

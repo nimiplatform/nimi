@@ -6,8 +6,8 @@ import {
 export type CodegenCapabilityTier = 'T0' | 'T1' | 'T2' | 'UNKNOWN';
 
 export const CODEGEN_T0_CAPABILITY_PATTERNS = [
-  'llm.text.generate',
-  'llm.text.stream',
+  'runtime.ai.text.generate',
+  'runtime.ai.text.stream',
   'ui.register.ui-extension.app.*',
   'data.register.data-api.user-*.*.*',
   'data.query.data-api.user-*.*.*',
@@ -16,10 +16,13 @@ export const CODEGEN_T0_CAPABILITY_PATTERNS = [
 ] as const;
 
 export const CODEGEN_T1_CAPABILITY_PATTERNS = [
-  'llm.image.generate',
-  'llm.video.generate',
-  'llm.embedding.generate',
-  'llm.speech.*',
+  'runtime.media.image.*',
+  'runtime.media.video.*',
+  'runtime.ai.embedding.generate',
+  'runtime.media.tts.*',
+  'runtime.media.stt.*',
+  'runtime.voice.*',
+  'runtime.route.*',
   'data.query.data-api.core.*',
 ] as const;
 

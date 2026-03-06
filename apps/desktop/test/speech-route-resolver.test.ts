@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createSpeechRouteResolver } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-resolvers';
+import { createResolveRuntimeBinding } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-resolvers';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod/runtime-route';
 
 function createMockFields(overrides: Partial<{
   provider: string;
@@ -22,57 +23,74 @@ function createMockFields(overrides: Partial<{
   };
 }
 
-test('createSpeechRouteResolver reads source/model/connectorId from RuntimeFields', async () => {
+test('createResolveRuntimeBinding reads source/model/connectorId from RuntimeFields', async () => {
   const fields = createMockFields({
-    provider: 'localai',
+    provider: 'openai',
     localProviderModel: 'tts-1',
     connectorId: 'conn-123',
   });
-  const resolve = createSpeechRouteResolver(() => fields);
+  const resolve = createResolveRuntimeBinding(() => fields);
   const result = await resolve({ modId: 'test-mod' });
 
-  assert.equal(result.source, 'local-runtime');
+  assert.equal(result.source, 'token-api');
   assert.equal(result.model, 'tts-1');
   assert.equal(result.connectorId, 'conn-123');
   assert.equal(result.adapter, 'openai_compat_adapter');
 });
 
-test('createSpeechRouteResolver routeSource override takes priority over inferred source', async () => {
+test('createResolveRuntimeBinding binding source takes priority over inferred source', async () => {
   const fields = createMockFields({ provider: 'localai' });
-  const resolve = createSpeechRouteResolver(() => fields);
-  const result = await resolve({ modId: 'test-mod', routeSource: 'token-api' });
+  const resolve = createResolveRuntimeBinding(() => fields);
+  const result = await resolve({
+    modId: 'test-mod',
+    binding: {
+      source: 'token-api',
+      connectorId: '',
+      model: '',
+    },
+  });
 
   assert.equal(result.source, 'token-api');
 });
 
-test('createSpeechRouteResolver connectorId override takes priority over fields.connectorId', async () => {
+test('createResolveRuntimeBinding connector binding takes priority over fields.connectorId', async () => {
   const fields = createMockFields({ connectorId: 'field-conn' });
-  const resolve = createSpeechRouteResolver(() => fields);
-  const result = await resolve({ modId: 'test-mod', connectorId: 'override-conn' });
+  const resolve = createResolveRuntimeBinding(() => fields);
+  const binding: RuntimeRouteBinding = {
+    source: 'token-api',
+    connectorId: 'override-conn',
+    model: '',
+  };
+  const result = await resolve({ modId: 'test-mod', binding });
 
   assert.equal(result.connectorId, 'override-conn');
 });
 
-test('createSpeechRouteResolver model override takes priority over fields.localProviderModel', async () => {
+test('createResolveRuntimeBinding model binding takes priority over fields.localProviderModel', async () => {
   const fields = createMockFields({ localProviderModel: 'default-model' });
-  const resolve = createSpeechRouteResolver(() => fields);
-  const result = await resolve({ modId: 'test-mod', model: 'custom-model' });
+  const resolve = createResolveRuntimeBinding(() => fields);
+  const binding: RuntimeRouteBinding = {
+    source: 'token-api',
+    connectorId: 'override-conn',
+    model: 'custom-model',
+  };
+  const result = await resolve({ modId: 'test-mod', binding });
 
-  assert.equal(result.model, 'cloud/custom-model');
+  assert.equal(result.model, 'custom-model');
 });
 
-test('createSpeechRouteResolver infers local-runtime source for localai provider', async () => {
+test('createResolveRuntimeBinding infers local-runtime source for localai provider', async () => {
   const fields = createMockFields({ provider: 'localai' });
-  const resolve = createSpeechRouteResolver(() => fields);
+  const resolve = createResolveRuntimeBinding(() => fields);
   const result = await resolve({ modId: 'test-mod' });
 
   assert.equal(result.source, 'local-runtime');
   assert.equal(result.engine, 'localai');
 });
 
-test('createSpeechRouteResolver infers token-api source for cloud provider', async () => {
+test('createResolveRuntimeBinding infers token-api source for cloud provider', async () => {
   const fields = createMockFields({ provider: 'openai' });
-  const resolve = createSpeechRouteResolver(() => fields);
+  const resolve = createResolveRuntimeBinding(() => fields);
   const result = await resolve({ modId: 'test-mod' });
 
   assert.equal(result.source, 'token-api');

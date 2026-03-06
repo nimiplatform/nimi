@@ -150,6 +150,7 @@ type CreateDataSyncActionsInput = {
   clearAuth: () => void;
   stopAllPolling: () => void;
   isFriend: (userId: string) => boolean;
+  getCurrentUser: () => Record<string, unknown> | null;
 };
 
 export function createDataSyncActions(input: CreateDataSyncActionsInput) {
@@ -413,7 +414,9 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     ): Promise<RequestAccountDeletionOutput> =>
       requestAccountDeletion(input.callApiTask, input.emitFacadeError, payload),
     loadAgentDetails: async (agentIdentifier: string) =>
-      loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier),
+      loadAgentDetails(input.callApiTask, input.emitFacadeError, agentIdentifier, {
+        viewerUserId: String(input.getCurrentUser()?.id || '').trim() || undefined,
+      }),
     recallAgentMemoryForEntity: async (inputPayload: {
       agentId: string;
       entityId: string;

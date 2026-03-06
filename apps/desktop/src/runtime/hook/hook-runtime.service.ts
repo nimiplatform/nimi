@@ -1,18 +1,17 @@
-import { NimiSpeechEngine } from '../llm-adapter';
 import type {
   DesktopHookRuntimeFacade,
-  HookLlmStreamEvent,
   HookModAiDependencySnapshot,
   HookModAiDependencySnapshotResolver,
 } from './contracts/facade.js';
 import type {
+  AgentProfileReadFilterInput,
+  AgentProfileReadFilterResult,
+  HookType,
   HookSourceType,
   MissingDataCapabilityResolver,
-  SpeechRouteResolver,
   TurnHookPoint,
 } from './contracts/types.js';
 import { HookContractRegistry } from './contracts/contract-registry.js';
-import { createHookError } from './contracts/errors.js';
 import { DataApi } from './data-api/data-api.js';
 import { EventBus } from './event-bus/event-bus.js';
 import { InterModBroker } from './inter-mod/inter-mod.js';
@@ -23,10 +22,8 @@ import { HookRuntimeDataService } from './services/data-service.js';
 import { HookRuntimeEventService } from './services/event-service.js';
 import { HookRuntimeInterModService } from './services/inter-mod-service.js';
 import { HookRuntimeLifecycleService } from './services/lifecycle-service.js';
-import { HookRuntimeLlmService } from './services/llm-service.js';
 import { HookRuntimeMetaService } from './services/meta-service.js';
 import { HookRuntimePermissionService } from './services/permission-service.js';
-import { HookRuntimeSpeechService } from './services/speech-service.js';
 import { HookRuntimeActionService } from './services/action-service.js';
 import { HookRuntimeModAiDependencySnapshotService } from './services/mod-ai-dependency-snapshot-service.js';
 import { HookActionSocialPreconditionService } from './services/action-social-precondition.js';
@@ -52,6 +49,13 @@ import type {
 } from './contracts/action.js';
 
 export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
+  private readonly agentProfileReadFilters = new Map<string, {
+    modId: string;
+    sourceType: HookSourceType;
+    handler: (
+      input: AgentProfileReadFilterInput,
+    ) => Promise<AgentProfileReadFilterResult> | AgentProfileReadFilterResult;
+  }>();
   private readonly audit = new HookAuditTrail();
   private readonly registry = new HookRegistry();
   private readonly permissions = new PermissionGateway();
@@ -60,11 +64,6 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   private readonly interMod = new InterModBroker();
   private readonly uiExtension = new UiExtensionGateway();
   private readonly contracts = new HookContractRegistry();
-  private readonly speechEngine = new NimiSpeechEngine({
-    publish: async (topic, payload) => {
-      this.eventBus.emit(topic, payload);
-    },
-  });
   private readonly turnHook = new TurnHookOrchestrator(this.registry);
   private readonly permissionService: HookRuntimePermissionService;
   private readonly eventService: HookRuntimeEventService;
@@ -73,12 +72,9 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   private readonly uiService: HookRuntimeUiService;
   private readonly interModService: HookRuntimeInterModService;
   private readonly lifecycleService: HookRuntimeLifecycleService;
-  private readonly llmService: HookRuntimeLlmService;
-  private readonly speechService: HookRuntimeSpeechService;
   private readonly metaService: HookRuntimeMetaService;
   private readonly actionService: HookRuntimeActionService;
   private readonly modAiDependencySnapshotService = new HookRuntimeModAiDependencySnapshotService();
-  private speechRouteResolver: SpeechRouteResolver | null = null;
   private missingDataCapabilityResolver: MissingDataCapabilityResolver | null = null;
   constructor() {
     this.permissions.setSourceType('core:runtime', 'core');
@@ -131,28 +127,6 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
       uiExtension: this.uiExtension,
       permissions: this.permissions,
     });
-    this.llmService = new HookRuntimeLlmService({
-      audit: this.audit,
-      evaluatePermission,
-    });
-    this.speechService = new HookRuntimeSpeechService({
-      speechEngine: this.speechEngine,
-      audit: this.audit,
-      evaluatePermission,
-      resolveRoute: async ({ modId, providerId, routeSource, connectorId, model }) => {
-        if (!this.speechRouteResolver) {
-          throw createHookError(
-            'HOOK_LLM_SPEECH_PROVIDER_UNAVAILABLE',
-            'speech route resolver unavailable',
-            { modId, providerId: providerId || null },
-          );
-        }
-        return this.speechRouteResolver({ modId, providerId, routeSource, connectorId, model });
-      },
-      ensureEventTopic: (topic) => {
-        this.contracts.ensureEventTopic(topic);
-      },
-    });
     this.metaService = new HookRuntimeMetaService({
       audit: this.audit,
       registry: this.registry,
@@ -187,10 +161,26 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   clearGrantCapabilities(modId: string): void { this.lifecycleService.clearGrantCapabilities(modId); }
   setDenialCapabilities(modId: string, capabilities: string[]): void { this.lifecycleService.setDenialCapabilities(modId, capabilities); }
   clearDenialCapabilities(modId: string): void { this.lifecycleService.clearDenialCapabilities(modId); }
-  setSpeechFetchImpl(fn: typeof fetch): void { this.speechEngine.setFetchImpl(fn); }
-  setSpeechRouteResolver(resolver: SpeechRouteResolver | null): void { this.speechRouteResolver = resolver; }
   setMissingDataCapabilityResolver(resolver: MissingDataCapabilityResolver | null): void { this.missingDataCapabilityResolver = resolver; }
   setModAiDependencySnapshotResolver(resolver: HookModAiDependencySnapshotResolver | null): void { this.modAiDependencySnapshotService.setResolver(resolver); }
+  authorizeRuntimeCapability(input: {
+    modId: string;
+    sourceType?: HookSourceType;
+    capabilityKey: string;
+    target?: string;
+  }): {
+    sourceType: HookSourceType;
+    reasonCodes: string[];
+  } {
+    return this.permissionService.evaluate({
+      modId: input.modId,
+      sourceType: input.sourceType,
+      hookType: 'runtime',
+      target: String(input.target || input.capabilityKey || '').trim(),
+      capabilityKey: String(input.capabilityKey || '').trim(),
+      startedAt: Date.now(),
+    });
+  }
   getModAiDependencySnapshot(input: { modId: string; capability?: string; routeSourceHint?: 'token-api' | 'local-runtime'; }): Promise<HookModAiDependencySnapshot> {
     return this.modAiDependencySnapshotService.getSnapshot(input);
   }
@@ -328,214 +318,6 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   discoverInterModChannels(): Array<{ channel: string; providers: string[] }> {
     return this.interModService.discoverInterModChannels();
   }
-  generateModText(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    prompt: string;
-    mode?: 'STORY' | 'SCENE_TURN';
-    worldId?: string;
-    agentId?: string;
-    abortSignal?: AbortSignal;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ text: string; promptTraceId: string; traceId: string }> {
-    return this.llmService.generateModText(input);
-  }
-  streamModText(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    prompt: string;
-    mode?: 'STORY' | 'SCENE_TURN';
-    worldId?: string;
-    agentId?: string;
-    abortSignal?: AbortSignal;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): AsyncIterable<HookLlmStreamEvent> {
-    return this.llmService.streamModText(input);
-  }
-  generateModImage(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    prompt: string;
-    negativePrompt?: string;
-    model?: string;
-    size?: string;
-    aspectRatio?: string;
-    quality?: string;
-    style?: string;
-    seed?: number;
-    n?: number;
-    referenceImages?: string[];
-    mask?: string;
-    responseFormat?: 'url' | 'base64';
-    extensions?: Record<string, unknown>;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }> {
-    return this.llmService.generateModImage(input);
-  }
-  generateModVideo(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
-    prompt?: string;
-    negativePrompt?: string;
-    model?: string;
-    content: Array<
-      | {
-        type: 'text';
-        role?: 'prompt';
-        text: string;
-      }
-      | {
-        type: 'image_url';
-        role: 'first_frame' | 'last_frame' | 'reference_image';
-        imageUrl: string;
-      }
-    >;
-    options?: {
-      resolution?: string;
-      ratio?: string;
-      durationSec?: number;
-      frames?: number;
-      fps?: number;
-      seed?: number;
-      cameraFixed?: boolean;
-      watermark?: boolean;
-      generateAudio?: boolean;
-      draft?: boolean;
-      serviceTier?: string;
-      executionExpiresAfterSec?: number;
-      returnLastFrame?: boolean;
-    };
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }> {
-    return this.llmService.generateModVideo(input);
-  }
-  generateModEmbedding(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    provider: string;
-    input: string | string[];
-    model?: string;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ embeddings: number[][]; traceId: string }> {
-    return this.llmService.generateModEmbedding(input);
-  }
-  listSpeechProviders(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-  }): Promise<Array<{
-    id: string;
-    name: string;
-    status: 'available' | 'unavailable';
-    capabilities?: string[];
-    voiceCount?: number;
-    ownerModId?: string;
-  }>> {
-    return this.speechService.listSpeechProviders(input);
-  }
-  listSpeechVoices(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    connectorId?: string;
-    model?: string;
-  }): Promise<Array<{
-    id: string;
-    providerId: string;
-    name: string;
-    lang?: string;
-    langs?: string[];
-    sampleAudioUri?: string;
-    modelResolved?: string;
-    voiceCatalogSource?: string;
-    voiceCatalogVersion?: string;
-  }>> {
-    return this.speechService.listSpeechVoices(input);
-  }
-  synthesizeModSpeech(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    text: string;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    voiceId: string;
-    format?: 'mp3' | 'wav' | 'opus' | 'pcm';
-    speakingRate?: number;
-    pitch?: number;
-    sampleRateHz?: number;
-    language?: string;
-    stylePrompt?: string;
-    targetId?: string;
-    sessionId?: string;
-  }): Promise<{
-    audioUri: string;
-    mimeType: string;
-    durationMs?: number;
-    sampleRateHz?: number;
-    traceId: string;
-    providerTraceId?: string;
-    cacheKey?: string;
-  }> {
-    return this.speechService.synthesizeModSpeech(input);
-  }
-  openSpeechStream(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    text: string;
-    providerId?: string;
-    routeSource?: 'auto' | 'local-runtime' | 'token-api';
-    voiceId: string;
-    format?: 'mp3' | 'wav' | 'opus' | 'pcm';
-    sampleRateHz?: number;
-    language?: string;
-    stylePrompt?: string;
-    targetId?: string;
-    sessionId?: string;
-  }): Promise<{
-    streamId: string;
-    eventTopic: string;
-    format: 'mp3' | 'wav' | 'opus' | 'pcm';
-    sampleRateHz: number;
-    channels: number;
-    providerTraceId?: string;
-  }> {
-    return this.speechService.openSpeechStream(input);
-  }
-  controlSpeechStream(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    streamId: string;
-    action: 'pause' | 'resume' | 'cancel';
-  }): Promise<{ ok: boolean }> {
-    return this.speechService.controlSpeechStream(input);
-  }
-  closeSpeechStream(input: {
-    modId: string;
-    sourceType?: HookSourceType;
-    streamId: string;
-  }): Promise<{ ok: boolean }> {
-    return this.speechService.closeSpeechStream(input);
-  }
   registerActionV1(input: HookActionRegistrationInput): HookActionDescriptorView { return this.actionService.registerActionV1(input); }
   subscribeActionRegistryChanges(listener: (event: HookActionRegistryChangeEvent) => void): () => void {
     return this.actionService.subscribeActionRegistryChanges(listener);
@@ -546,24 +328,53 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
   verifyAction(input: HookActionVerifyRequest): Promise<HookActionVerifyResult> { return this.actionService.verifyAction(input); }
   commitAction(input: HookActionCommitRequest): Promise<HookActionCommitResult> { return this.actionService.commitAction(input); }
   queryActionAudit(filter?: HookActionAuditFilter) { return this.actionService.queryActionAudit(filter); }
-  transcribeModSpeech(input: {
+  async registerAgentProfileReadFilter(input: {
     modId: string;
     sourceType?: HookSourceType;
-    provider: string;
-    audioUri?: string;
-    audioBase64?: string;
-    mimeType?: string;
-    language?: string;
-    localProviderEndpoint?: string;
-    localProviderModel?: string;
-    localOpenAiEndpoint?: string;
-    connectorId?: string;
-  }): Promise<{ text: string; traceId: string }> {
-    return this.llmService.transcribeModSpeech(input);
+    handler: (
+      input: AgentProfileReadFilterInput,
+    ) => Promise<AgentProfileReadFilterResult> | AgentProfileReadFilterResult;
+  }): Promise<void> {
+    const startedAt = Date.now();
+    const permission = this.permissionService.evaluate({
+      modId: input.modId,
+      sourceType: input.sourceType,
+      hookType: 'runtime',
+      target: 'runtime.profile.read.agent',
+      capabilityKey: 'runtime.profile.read.agent',
+      startedAt,
+    });
+    this.agentProfileReadFilters.set(input.modId, {
+      modId: input.modId,
+      sourceType: permission.sourceType,
+      handler: input.handler,
+    });
+  }
+  unregisterAgentProfileReadFilter(input: { modId: string }): boolean {
+    return this.agentProfileReadFilters.delete(String(input.modId || '').trim());
+  }
+  async invokeAgentProfileReadFilters(input: AgentProfileReadFilterInput): Promise<Record<string, unknown>> {
+    const nextProfile = {
+      ...input.profile,
+    };
+    for (const filter of this.agentProfileReadFilters.values()) {
+      const result = await filter.handler({
+        viewerUserId: input.viewerUserId,
+        ownerAgentId: input.ownerAgentId,
+        worldId: input.worldId,
+        profile: {
+          ...nextProfile,
+        },
+      });
+      if (result && Object.prototype.hasOwnProperty.call(result, 'referenceImageUrl')) {
+        nextProfile.referenceImageUrl = result.referenceImageUrl ?? null;
+      }
+    }
+    return nextProfile;
   }
   getAudit(filter?: {
     modId?: string;
-    hookType?: 'event-bus' | 'data-api' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'llm' | 'action';
+    hookType?: HookType;
     target?: string;
     decision?: 'ALLOW' | 'ALLOW_WITH_WARNING' | 'DENY';
     since?: string;

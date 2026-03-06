@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import {
   DEFAULT_OPENAI_ENDPOINT_V11,
-  VENDOR_CATALOGS_V11,
+  getVendorLabelV11,
   VENDOR_ORDER_V11,
   randomIdV11,
   type ApiVendor,
@@ -312,7 +312,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     const provider = vendorToProvider(vendor);
     const runtimeCatalog = await sdkListProviderCatalog();
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog)
-      || VENDOR_CATALOGS_V11[vendor].defaultEndpoint;
+      || DEFAULT_OPENAI_ENDPOINT_V11;
     const draft = {
       id: randomIdV11('draft'),
       label: `API Connector ${state.connectors.length + 1}`,
@@ -422,11 +422,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
     if (!selectedConnector || selectedConnector.isSystemOwned) return;
     const previousConnector = selectedConnector;
     const normalizedVendor = vendor as typeof selectedConnector.vendor;
-    const catalog = VENDOR_CATALOGS_V11[normalizedVendor];
-    if (!catalog) return;
     const provider = vendorToProvider(normalizedVendor);
     const runtimeCatalog = await sdkListProviderCatalog();
-    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog) || catalog.defaultEndpoint;
+    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog) || DEFAULT_OPENAI_ENDPOINT_V11;
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
       vendor: normalizedVendor, endpoint, models: [], provider,
     }));
@@ -535,7 +533,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                           <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-600">draft</span>
                         ) : null}
                       </div>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{VENDOR_CATALOGS_V11[connector.vendor].label}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
                     </button>
                   );
                 })}
@@ -571,7 +569,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   className="w-full"
                   options={VENDOR_ORDER_V11.map((vendor) => ({
                     value: vendor,
-                    label: VENDOR_CATALOGS_V11[vendor].label,
+                    label: getVendorLabelV11(vendor),
                   }))}
                 />
               </div>

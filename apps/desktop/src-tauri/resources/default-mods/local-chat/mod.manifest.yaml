@@ -9,17 +9,16 @@ description: >
   agent friend target loading for desktop local chat.
   This mod is optional and does not change desktop core cloud routing.
 capabilities:
-  - llm.text.generate
-  - llm.text.stream
-  - llm.image.generate
-  - llm.video.generate
-  - llm.speech.providers.list
-  - llm.speech.voices.list
-  - llm.speech.synthesize
-  - llm.speech.stream.open
-  - llm.speech.stream.control
-  - llm.speech.stream.close
-  - llm.speech.transcribe
+  - runtime.ai.text.generate
+  - runtime.ai.text.stream
+  - runtime.media.image.generate
+  - runtime.media.video.generate
+  - runtime.media.tts.list.voices
+  - runtime.media.tts.synthesize
+  - runtime.media.stt.transcribe
+  - runtime.route.list.options
+  - runtime.route.resolve
+  - runtime.route.check.health
   - data.register.data-api.local-chat.chat-targets.list
   - data.query.data-api.local-chat.chat-targets.list
   - data.register.data-api.local-chat.chat-target.detail
@@ -32,7 +31,6 @@ capabilities:
   - data.query.data-api.local-chat.sessions.upsert
   - data.register.data-api.local-chat.sessions.delete
   - data.query.data-api.local-chat.sessions.delete
-  - data.query.data-api.runtime.route.options
   - data.query.data-api.core.social.friends-with-details.list
   - data.query.data-api.core.user.by-id.get
   - data.query.data-api.core.user.by-handle.get

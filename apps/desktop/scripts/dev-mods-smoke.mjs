@@ -17,6 +17,7 @@ const desktopRoot = path.resolve(__dirname, '..');
 function parseArgs(argv) {
   const options = {
     mod: 'local-chat',
+    all: false,
     skipPrepare: false,
   };
 
@@ -34,6 +35,10 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (token === '--all') {
+      options.all = true;
+      continue;
+    }
     if (token === '--skip-prepare-default-resources') {
       options.skipPrepare = true;
       continue;
@@ -42,9 +47,11 @@ function parseArgs(argv) {
       process.stdout.write(
         [
           'Usage: node scripts/dev-mods-smoke.mjs [--mod <id>] [--skip-prepare-default-resources]',
+          '       node scripts/dev-mods-smoke.mjs --all [--skip-prepare-default-resources]',
           '',
           'Options:',
           '  --mod <id>                         Target mod id, default: local-chat',
+          '  --all                              Run smoke preparation for all desktop-loadable first-party mods',
           '  --skip-prepare-default-resources   Skip desktop default-mod resources copy step',
           '',
         ].join('\n'),
@@ -56,6 +63,18 @@ function parseArgs(argv) {
 
   return options;
 }
+
+const LOADABLE_MOD_IDS = [
+  'audio-book',
+  'kismet',
+  'knowledge-base',
+  'local-chat',
+  'mint-you',
+  'test-chat-tts',
+  'textplay',
+  'videoplay',
+  'world-studio',
+];
 
 function ensureFile(filePath, label) {
   if (!existsSync(filePath)) {
@@ -97,21 +116,7 @@ function runNodeScript(scriptPath, args, cwd) {
   }
 }
 
-function main() {
-  const options = parseArgs(process.argv.slice(2));
-  const modsRoot = resolveModsRoot({ required: true, mustExist: true });
-  const runtimeModsDir = resolveRuntimeModsDir({ required: true, mustExist: true });
-
-  if (!sameNormalizedPath(modsRoot, runtimeModsDir)) {
-    throw new Error(
-      [
-        'NIMI_RUNTIME_MODS_DIR must equal NIMI_MODS_ROOT in local joint-debug.',
-        `NIMI_MODS_ROOT=${modsRoot}`,
-        `NIMI_RUNTIME_MODS_DIR=${runtimeModsDir}`,
-      ].join('\n'),
-    );
-  }
-
+function smokeSingleMod(options, modsRoot, runtimeModsDir) {
   const modDir = path.join(modsRoot, options.mod);
   ensureDir(modDir, `mod directory (${options.mod})`);
   const manifestPath = findManifestPath(modDir);
@@ -158,10 +163,35 @@ function main() {
     process.stdout.write(`[dev-mods-smoke] resources manifest ok: ${copiedManifestPath}\n`);
     process.stdout.write(`[dev-mods-smoke] resources dist ok: ${copiedDistEntry}\n`);
   }
+}
+
+function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const modsRoot = resolveModsRoot({ required: true, mustExist: true });
+  const runtimeModsDir = resolveRuntimeModsDir({ required: true, mustExist: true });
+
+  if (!sameNormalizedPath(modsRoot, runtimeModsDir)) {
+    throw new Error(
+      [
+        'NIMI_RUNTIME_MODS_DIR must equal NIMI_MODS_ROOT in local joint-debug.',
+        `NIMI_MODS_ROOT=${modsRoot}`,
+        `NIMI_RUNTIME_MODS_DIR=${runtimeModsDir}`,
+      ].join('\n'),
+    );
+  }
+
+  const targetMods = options.all ? LOADABLE_MOD_IDS : [options.mod];
+  for (const modId of targetMods) {
+    smokeSingleMod({
+      ...options,
+      mod: modId,
+    }, modsRoot, runtimeModsDir);
+  }
 
   process.stdout.write(
     [
       '[dev-mods-smoke] smoke check passed.',
+      `mods=${targetMods.join(', ')}`,
       `next: pnpm -C ${desktopRoot} run dev:shell`,
       '',
     ].join('\n'),
