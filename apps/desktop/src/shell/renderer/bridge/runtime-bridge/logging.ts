@@ -1,4 +1,8 @@
-import { hasTauriInvoke, RENDERER_DEBUG_ENABLED } from './env';
+import {
+  hasTauriInvoke,
+  RENDERER_DEBUG_ENABLED,
+  shouldForwardRendererLogLevel,
+} from './env';
 import type { RendererLogLevel, RendererLogMessage, RendererLogPayload } from './types';
 
 const MAX_RENDERER_DEBUG_LOGS = 80;
@@ -146,6 +150,10 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
       ...normalized,
       area: `${normalized.area}.console-mirror`,
     });
+  }
+
+  if (!shouldForwardRendererLogLevel(normalized.level)) {
+    return;
   }
 
   if (!hasTauriInvoke()) {

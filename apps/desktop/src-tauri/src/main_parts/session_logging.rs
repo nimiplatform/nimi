@@ -75,6 +75,9 @@ fn append_diag_log_entry(
         flow_id: flow,
         details,
     };
+    if !should_echo_diag_log(source, level) {
+        return;
+    }
     let line = match serde_json::to_string(&entry) {
         Ok(value) => value,
         Err(error) => {
@@ -122,6 +125,34 @@ fn env_flag(name: &str) -> bool {
 
 fn debug_boot_enabled() -> bool {
     env_flag("NIMI_DEBUG_BOOT") || env_flag("VITE_NIMI_DEBUG_BOOT")
+}
+
+fn verbose_renderer_logs_enabled() -> bool {
+    debug_boot_enabled()
+        || env_flag("NIMI_VERBOSE_RENDERER_LOGS")
+        || env_flag("VITE_NIMI_VERBOSE_RENDERER_LOGS")
+}
+
+fn should_echo_renderer_log(level: &str) -> bool {
+    match level.trim().to_ascii_lowercase().as_str() {
+        "warn" | "error" => true,
+        "debug" | "info" => verbose_renderer_logs_enabled(),
+        _ => verbose_renderer_logs_enabled(),
+    }
+}
+
+fn should_echo_diag_log(source: &str, level: &str) -> bool {
+    let normalized_source = source.trim().to_ascii_lowercase();
+    if normalized_source == "renderer-log" {
+        return should_echo_renderer_log(level);
+    }
+    if normalized_source == "boot" {
+        return verbose_renderer_logs_enabled();
+    }
+    match level.trim().to_ascii_lowercase().as_str() {
+        "warn" | "error" => true,
+        _ => verbose_renderer_logs_enabled(),
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -229,4 +260,3 @@ fn install_panic_hook() {
         );
     }));
 }
-

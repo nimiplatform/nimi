@@ -90,12 +90,16 @@ fn runtime_defaults() -> RuntimeDefaults {
     };
 
     #[cfg(debug_assertions)]
-    eprintln!(
-        "[desktop] runtime_defaults loaded: realm_base_url={}, jwks_url={}, access_token_len={}",
-        defaults.realm.realm_base_url,
-        defaults.realm.jwks_url,
-        defaults.realm.access_token.len()
-    );
+    {
+        if verbose_renderer_logs_enabled() {
+            eprintln!(
+                "[desktop] runtime_defaults loaded: realm_base_url={}, jwks_url={}, access_token_len={}",
+                defaults.realm.realm_base_url,
+                defaults.realm.jwks_url,
+                defaults.realm.access_token.len()
+            );
+        }
+    }
 
     defaults
 }
@@ -129,10 +133,7 @@ fn read_command_output(program: &str, args: &[&str]) -> Option<String> {
 }
 
 fn parse_df_root_bytes(raw: &str) -> Option<(u64, u64)> {
-    let row = raw
-        .lines()
-        .skip(1)
-        .find(|line| !line.trim().is_empty())?;
+    let row = raw.lines().skip(1).find(|line| !line.trim().is_empty())?;
     let columns = row.split_whitespace().collect::<Vec<_>>();
     if columns.len() < 3 {
         return None;
@@ -292,7 +293,13 @@ fn collect_temperature_celsius() -> Option<f64> {
 fn read_powershell_output(script: &str) -> Option<String> {
     read_command_output(
         "powershell",
-        &["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        &[
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ],
     )
 }
 
@@ -724,6 +731,7 @@ fn log_renderer_event(payload: RendererLogPayload) {
     if level == "debug" && !debug_boot_enabled() {
         return;
     }
+    let should_echo = should_echo_renderer_log(level.as_str());
     let flow_id = payload.flow_id.clone().unwrap_or_else(|| "-".to_string());
     let trace_id = payload.trace_id.unwrap_or_else(|| flow_id.clone());
     let source = payload.source.unwrap_or_else(|| "-".to_string());
@@ -738,15 +746,17 @@ fn log_renderer_event(payload: RendererLogPayload) {
         .and_then(|result| result.ok())
         .unwrap_or_else(|| "-".to_string());
     let detail_text = preview_text_utf8_safe(&detail_text_raw, 1000);
-    eprintln!(
-        "[renderer-log][{}] {} flow_id={} source={}{} message={} details={}",
-        level, area, flow_id, source, cost_ms, payload.message, detail_text,
-    );
-    if trace_id != flow_id {
+    if should_echo {
         eprintln!(
-            "[renderer-log][{}] {} trace_id={} (flow_id={}) source={}{} message={} details={}",
-            level, area, trace_id, flow_id, source, cost_ms, payload.message, detail_text,
+            "[renderer-log][{}] {} flow_id={} source={}{} message={} details={}",
+            level, area, flow_id, source, cost_ms, payload.message, detail_text,
         );
+        if trace_id != flow_id {
+            eprintln!(
+                "[renderer-log][{}] {} trace_id={} (flow_id={}) source={}{} message={} details={}",
+                level, area, trace_id, flow_id, source, cost_ms, payload.message, detail_text,
+            );
+        }
     }
 
     let session_trace_id = session_trace_id_from_details(&payload.details)
@@ -762,16 +772,18 @@ fn log_renderer_event(payload: RendererLogPayload) {
     } else {
         Some(flow_id.as_str())
     };
-    append_diag_log_entry(
-        "renderer-log",
-        level.as_str(),
-        area,
-        payload.message.as_str(),
-        Some(session_trace_id.as_str()),
-        trace_id_for_diag,
-        flow_id_for_diag,
-        details,
-    );
+    if should_echo_diag_log("renderer-log", level.as_str()) {
+        append_diag_log_entry(
+            "renderer-log",
+            level.as_str(),
+            area,
+            payload.message.as_str(),
+            Some(session_trace_id.as_str()),
+            trace_id_for_diag,
+            flow_id_for_diag,
+            details,
+        );
+    }
 }
 
 #[tauri::command]
