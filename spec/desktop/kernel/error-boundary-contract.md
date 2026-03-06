@@ -187,9 +187,9 @@ runtime-config 关键链路（connector discovery、provider/model 列表、rout
 
 Runtime 不可用时，用户操作必须显式失败，不允许伪成功。
 
-## D-ERR-010 — LLM Adapter 主码规则
+## D-ERR-010 — Desktop Runtime Invoke Bridge 主码规则
 
-Desktop LLM adapter（`invoke-{text,stream,image,video,embedding,transcribe}`）错误处理必须遵循：
+Desktop runtime invoke bridge（保留中的 `invoke-text` 私有 kernel turn 入口，以及 `runtime-bootstrap-host-capabilities.ts` 注册的 mod/runtime host 能力桥）错误处理必须遵循：
 
 - 统一抛出 `NimiError`，禁止 `throw new Error(normalizedError)` 降维
 - 主判定码使用 Runtime `reasonCode`
