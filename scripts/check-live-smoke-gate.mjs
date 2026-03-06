@@ -174,7 +174,14 @@ function evaluateLayer(input) {
       continue;
     }
 
-    for (const iface of input.requiredInterfaces) {
+    const requiredInterfaces = Array.isArray(input.requiredInterfacesPerProvider?.get(provider))
+      ? input.requiredInterfacesPerProvider.get(provider)
+      : input.requiredInterfaces;
+    const effectiveInterfaces = Array.isArray(requiredInterfaces) && requiredInterfaces.length > 0
+      ? requiredInterfaces
+      : Object.keys(providerRecord);
+
+    for (const iface of effectiveInterfaces) {
       const cell = providerRecord[iface];
       if (!cell || typeof cell !== 'object') {
         failures.push(`${input.layer}:${provider}:${iface}:missing_cell`);
@@ -243,11 +250,11 @@ function main() {
 
   const runtimeRequiredInterfaces = toStringArray(
     baseline?.runtime?.required_interfaces,
-    ['generate'],
+    [],
   );
   const sdkRequiredInterfaces = toStringArray(
     baseline?.sdk?.required_interfaces,
-    ['generate'],
+    [],
   );
 
   const runtimeRequiredProviders = new Set([
@@ -261,6 +268,17 @@ function main() {
     ...changedProviders,
   ]);
 
+  if (runtimeRequiredProviders.size === 0) {
+    for (const provider of runtimeProvidersInReport) {
+      runtimeRequiredProviders.add(provider);
+    }
+  }
+  if (sdkRequiredProviders.size === 0) {
+    for (const provider of sdkProvidersInReport) {
+      sdkRequiredProviders.add(provider);
+    }
+  }
+
   for (const provider of runtimeExemptions) {
     runtimeRequiredProviders.delete(provider);
   }
@@ -273,6 +291,9 @@ function main() {
     matrix: runtimeMatrix,
     requiredProviders: toSortedArray(runtimeRequiredProviders),
     requiredInterfaces: runtimeRequiredInterfaces,
+    requiredInterfacesPerProvider: new Map(
+      Object.entries(runtimeMatrix).map(([provider, cells]) => [provider, Object.keys(cells || {})]),
+    ),
     requireRelease: options.requireRelease,
   });
   const sdkEvaluation = evaluateLayer({
@@ -280,6 +301,9 @@ function main() {
     matrix: sdkMatrix,
     requiredProviders: toSortedArray(sdkRequiredProviders),
     requiredInterfaces: sdkRequiredInterfaces,
+    requiredInterfacesPerProvider: new Map(
+      Object.entries(sdkMatrix).map(([provider, cells]) => [provider, Object.keys(cells || {})]),
+    ),
     requireRelease: options.requireRelease,
   });
 

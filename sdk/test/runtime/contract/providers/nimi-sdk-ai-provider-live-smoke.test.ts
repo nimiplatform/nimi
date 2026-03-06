@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import net from 'node:net';
 import { dirname, resolve } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import YAML from 'yaml';
 
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
 import { Runtime, createRuntimeClient } from '../../../../src/runtime/index.js';
+import { ExecutionMode, FallbackPolicy, RoutePolicy, ScenarioType, ScenarioJobStatus } from '../../../../src/runtime/generated/runtime/v1/ai.js';
 
 const APP_ID = 'nimi.desktop.sdk.ai.live';
 const SUBJECT_USER_ID = 'user-sdk-live';
@@ -488,3 +490,383 @@ test('nimi sdk ai-provider live smoke: volcengine generate text', {
     throw new Error(`sdk volcengine live smoke failed: ${detail}; output=${outputText}`);
   }
 });
+
+type ProviderCapability =
+  | 'generate'
+  | 'embed'
+  | 'image'
+  | 'video'
+  | 'tts'
+  | 'stt'
+  | 'voice_clone'
+  | 'voice_design';
+
+type ProviderCapabilityMatrix = Map<string, Set<ProviderCapability>>;
+
+function canonicalCapability(value: string): ProviderCapability | null {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'text.generate') {
+    return 'generate';
+  }
+  if (normalized === 'text.embed') {
+    return 'embed';
+  }
+  if (normalized === 'image.generate') {
+    return 'image';
+  }
+  if (normalized === 'video.generate') {
+    return 'video';
+  }
+  if (normalized === 'audio.synthesize') {
+    return 'tts';
+  }
+  if (normalized === 'audio.transcribe') {
+    return 'stt';
+  }
+  return null;
+}
+
+function providerEnvToken(provider: string): string {
+  return String(provider || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function loadSourceProviderCapabilityMatrix(): ProviderCapabilityMatrix {
+  const runtimeDir = resolveRuntimeDir();
+  const sourceDir = resolve(runtimeDir, 'catalog', 'source', 'providers');
+  const matrix: ProviderCapabilityMatrix = new Map();
+  const files = readdirSync(sourceDir)
+    .filter((entry) => entry.endsWith('.source.yaml'))
+    .sort((left, right) => left.localeCompare(right));
+
+  for (const file of files) {
+    const doc = YAML.parse(readFileSync(resolve(sourceDir, file), 'utf8')) || {};
+    const provider = String(doc.provider || file.replace(/\.source\.yaml$/, '')).trim().toLowerCase();
+    if (!provider) {
+      continue;
+    }
+    const set = matrix.get(provider) || new Set<ProviderCapability>();
+    const defaults = Array.isArray(doc?.defaults?.capabilities) ? doc.defaults.capabilities : [];
+    const models = Array.isArray(doc?.models) ? doc.models : [];
+
+    for (const model of models) {
+      const capabilities = Array.isArray(model?.capabilities) && model.capabilities.length > 0
+        ? model.capabilities
+        : defaults;
+      for (const rawCapability of capabilities) {
+        const mapped = canonicalCapability(String(rawCapability || ''));
+        if (mapped) {
+          set.add(mapped);
+        }
+      }
+    }
+
+    const workflowModels = Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : [];
+    for (const workflowModel of workflowModels) {
+      const workflowType = String(workflowModel?.workflow_type || '').trim().toLowerCase();
+      if (workflowType === 'tts_v2v') {
+        set.add('voice_clone');
+      }
+      if (workflowType === 'tts_t2v') {
+        set.add('voice_design');
+      }
+    }
+
+    matrix.set(provider, set);
+  }
+
+  return matrix;
+}
+
+function envValue(keys: string[]): string {
+  for (const key of keys) {
+    const value = String(process.env[key] || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function requiredAnyEnvOrSkip(t: { skip: (msg?: string) => void }, keys: string[]): string | null {
+  const value = envValue(keys);
+  if (!value) {
+    t.skip(`set one of ${keys.join(', ')} to run live smoke test`);
+    return null;
+  }
+  return value;
+}
+
+function sdkRoutePolicy(provider: string): 'local-runtime' | 'token-api' {
+  return provider === 'local' ? 'local-runtime' : 'token-api';
+}
+
+function runtimeRoutePolicy(provider: string): RoutePolicy {
+  return provider === 'local' ? RoutePolicy.LOCAL_RUNTIME : RoutePolicy.TOKEN_API;
+}
+
+function createRuntimeModule(endpoint: string): Runtime {
+  return new Runtime({
+    appId: APP_ID,
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
+    defaults: {
+      callerKind: 'desktop-core',
+      callerId: 'sdk-ai-live-smoke-matrix',
+    },
+  });
+}
+
+async function waitForScenarioJobDone(runtime: Runtime, jobId: string, timeoutMs: number): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const response = await runtime.ai.getScenarioJob({ jobId });
+    const status = response.job?.status ?? ScenarioJobStatus.UNSPECIFIED;
+    if (
+      status === ScenarioJobStatus.COMPLETED
+      || status === ScenarioJobStatus.FAILED
+      || status === ScenarioJobStatus.CANCELED
+      || status === ScenarioJobStatus.TIMEOUT
+    ) {
+      return status;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`scenario job timeout waiting terminal status: ${jobId}`);
+    }
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 500));
+  }
+}
+
+function buildRuntimeEnvForProvider(t: { skip: (msg?: string) => void }, provider: string): Record<string, string> | null {
+  const token = providerEnvToken(provider);
+  if (provider === 'local') {
+    const baseURL = requiredEnvOrSkip(t, 'NIMI_LIVE_LOCAL_BASE_URL');
+    if (!baseURL) {
+      return null;
+    }
+    const apiKey = String(process.env.NIMI_LIVE_LOCAL_API_KEY || '').trim();
+    return {
+      NIMI_RUNTIME_LOCAL_AI_BASE_URL: baseURL,
+      ...(apiKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: apiKey } : {}),
+    };
+  }
+
+  const apiKey = requiredEnvOrSkip(t, `NIMI_LIVE_${token}_API_KEY`);
+  if (!apiKey) {
+    return null;
+  }
+  const baseURL = envValue([`NIMI_LIVE_${token}_BASE_URL`]);
+  return {
+    ...(baseURL ? { [`NIMI_RUNTIME_CLOUD_${token}_BASE_URL`]: baseURL } : {}),
+    [`NIMI_RUNTIME_CLOUD_${token}_API_KEY`]: apiKey,
+  };
+}
+
+function capabilityModelID(t: { skip: (msg?: string) => void }, provider: string, capability: ProviderCapability): string | null {
+  const token = providerEnvToken(provider);
+  switch (capability) {
+    case 'generate':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'embed':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_EMBED_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'image':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_IMAGE_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'video':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VIDEO_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'tts':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_TTS_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'stt':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_STT_MODEL_ID`, `NIMI_LIVE_${token}_MODEL_ID`]);
+    case 'voice_clone':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VOICE_CLONE_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
+    case 'voice_design':
+      return requiredAnyEnvOrSkip(t, [`NIMI_LIVE_${token}_VOICE_DESIGN_MODEL_ID`, `NIMI_LIVE_${token}_TTS_MODEL_ID`]);
+    default:
+      return null;
+  }
+}
+
+async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, capability: ProviderCapability, modelId: string): Promise<void> {
+  const route = sdkRoutePolicy(provider);
+  const runtime = createRuntimeModule(endpoint);
+
+  if (capability === 'generate') {
+    const model = createSdkTextModel(endpoint, route, modelId);
+    const generated = await model.doGenerate({
+      prompt: promptFromText('Nimi SDK matrix live smoke generate text'),
+      providerOptions: {},
+    });
+    const outputText = generated.content
+      .filter((item) => item.type === 'text')
+      .map((item) => item.text)
+      .join('')
+      .trim();
+    assert.ok(outputText.length > 0, 'matrix generate output should not be empty');
+    return;
+  }
+
+  if (capability === 'embed') {
+    const output = await runtime.ai.embedding.generate({
+      model: modelId,
+      input: 'Nimi SDK matrix live smoke embed',
+      route,
+      fallback: 'deny',
+      timeoutMs: 45_000,
+    });
+    assert.ok(output.vectors.length > 0, 'matrix embed vectors should not be empty');
+    return;
+  }
+
+  if (capability === 'image') {
+    const output = await runtime.media.image.generate({
+      model: modelId,
+      prompt: 'A minimal icon of a moon over the ocean.',
+      route,
+      fallback: 'deny',
+      timeoutMs: 180_000,
+    });
+    assert.ok((output.job?.jobId || '').length > 0, 'matrix image job id should not be empty');
+    return;
+  }
+
+  if (capability === 'video') {
+    const output = await runtime.media.video.generate({
+      model: modelId,
+      mode: 't2v',
+      content: [{ type: 'text', text: 'A short sunrise cinematic shot.' }],
+      options: { durationSec: 1, fps: 24 },
+      route,
+      fallback: 'deny',
+      timeoutMs: 240_000,
+    });
+    assert.ok((output.job?.jobId || '').length > 0, 'matrix video job id should not be empty');
+    return;
+  }
+
+  if (capability === 'tts') {
+    const output = await runtime.media.tts.synthesize({
+      model: modelId,
+      text: 'Nimi SDK matrix live smoke speech synthesis.',
+      route,
+      fallback: 'deny',
+      timeoutMs: 180_000,
+    });
+    assert.ok((output.job?.jobId || '').length > 0, 'matrix tts job id should not be empty');
+    return;
+  }
+
+  if (capability === 'stt') {
+    const audioUri = envValue(['NIMI_LIVE_STT_AUDIO_URI']);
+    if (!audioUri) {
+      throw new Error('NIMI_LIVE_STT_AUDIO_URI is required for stt live smoke');
+    }
+    const output = await runtime.media.stt.transcribe({
+      model: modelId,
+      audio: { kind: 'url', url: audioUri },
+      mimeType: 'audio/wav',
+      route,
+      fallback: 'deny',
+      timeoutMs: 180_000,
+    });
+    assert.ok((output.job?.jobId || '').length > 0, 'matrix stt job id should not be empty');
+    return;
+  }
+
+  const targetModelId = envValue([
+    `NIMI_LIVE_${providerEnvToken(provider)}_${capability === 'voice_clone' ? 'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID' : 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID'}`,
+  ]) || modelId;
+
+  const scenarioSpec = capability === 'voice_clone'
+    ? {
+      oneofKind: 'voiceClone' as const,
+      voiceClone: {
+        targetModelId,
+        input: {
+          referenceAudioUri: envValue([`NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`, 'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI']),
+        },
+      },
+    }
+    : {
+      oneofKind: 'voiceDesign' as const,
+      voiceDesign: {
+        targetModelId,
+        input: {
+          instructionText: 'Warm and calm natural voice.',
+        },
+      },
+    };
+
+  if (capability === 'voice_clone' && !scenarioSpec.voiceClone.input.referenceAudioUri) {
+    throw new Error('NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI is required for voice_clone live smoke');
+  }
+
+  const submit = await runtime.ai.submitScenarioJob({
+    head: {
+      appId: APP_ID,
+      subjectUserId: SUBJECT_USER_ID,
+      modelId,
+      routePolicy: runtimeRoutePolicy(provider),
+      fallback: FallbackPolicy.DENY,
+      timeoutMs: 180_000,
+      connectorId: '',
+    },
+    scenarioType: capability === 'voice_clone' ? ScenarioType.VOICE_CLONE : ScenarioType.VOICE_DESIGN,
+    executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: scenarioSpec },
+    requestId: '',
+    idempotencyKey: '',
+    labels: {},
+    extensions: [],
+  });
+  assert.ok((submit.job?.jobId || '').length > 0, 'matrix voice workflow job id should not be empty');
+  const status = await waitForScenarioJobDone(runtime, submit.job?.jobId || '', 180_000);
+  assert.equal(status, ScenarioJobStatus.COMPLETED, 'matrix voice workflow should complete');
+}
+
+function registerSdkProviderCapabilityMatrixTests() {
+  const matrix = loadSourceProviderCapabilityMatrix();
+  const orderedProviders = [...matrix.keys()].sort((left, right) => left.localeCompare(right));
+  const orderedCapabilities: ProviderCapability[] = ['generate', 'embed', 'image', 'video', 'tts', 'stt', 'voice_clone', 'voice_design'];
+
+  for (const provider of orderedProviders) {
+    const capabilitySet = matrix.get(provider) || new Set<ProviderCapability>();
+    for (const capability of orderedCapabilities) {
+      if (!capabilitySet.has(capability)) {
+        continue;
+      }
+      test(`nimi sdk ai-provider live smoke: ${provider} ${capability}`, {
+        skip: process.env.NIMI_SDK_LIVE !== '1',
+        timeout: 300_000,
+      }, async (t) => {
+        const runtimeEnv = buildRuntimeEnvForProvider(t, provider);
+        if (!runtimeEnv) {
+          return;
+        }
+        const modelId = capabilityModelID(t, provider, capability);
+        if (!modelId) {
+          return;
+        }
+        if (capability === 'stt' && !envValue(['NIMI_LIVE_STT_AUDIO_URI'])) {
+          t.skip('set NIMI_LIVE_STT_AUDIO_URI to run stt live smoke');
+          return;
+        }
+        if (capability === 'voice_clone' && !envValue([`NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI`, 'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI'])) {
+          t.skip(`set NIMI_LIVE_${providerEnvToken(provider)}_VOICE_REFERENCE_AUDIO_URI or NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI`);
+          return;
+        }
+
+        await withRuntimeDaemon(runtimeEnv, async (endpoint) => {
+          await runSdkCapabilityLiveSmoke(endpoint, provider, capability, modelId);
+        });
+      });
+    }
+  }
+}
+
+registerSdkProviderCapabilityMatrixTests();

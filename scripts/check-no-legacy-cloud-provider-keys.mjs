@@ -100,13 +100,13 @@ function walk(absPath) {
 function checkNoLegacyAliasAcceptance() {
   const cloudProviderPath = resolve(repoRoot, 'runtime/internal/nimillm/cloud_provider.go');
   const cloudProviderContent = readFileSync(cloudProviderPath, 'utf8');
-  const prefixMapMatch = cloudProviderContent.match(/var\s+prefixToProvider\s*=\s*map\[string\]string\s*\{([\s\S]*?)\n\}/m);
-  if (!prefixMapMatch) {
-    failures.push('runtime/internal/nimillm/cloud_provider.go: failed to locate prefixToProvider map');
+  const prefixBuilderMatch = cloudProviderContent.match(/func\s+buildPrefixToProvider\(\)\s+map\[string\]string\s*\{([\s\S]*?)\n\}/m);
+  if (!prefixBuilderMatch) {
+    failures.push('runtime/internal/nimillm/cloud_provider.go: failed to locate buildPrefixToProvider function');
   } else {
-    const legacyPrefixInCanonicalMap = /"(?:alibaba|aliyun|bytedance|byte|moonshot|zhipu|bigmodel)"\s*:/.test(prefixMapMatch[1]);
+    const legacyPrefixInCanonicalMap = /"(?:alibaba|aliyun|bytedance|byte|moonshot|zhipu|bigmodel)"/.test(prefixBuilderMatch[1]);
     if (legacyPrefixInCanonicalMap) {
-      failures.push('runtime/internal/nimillm/cloud_provider.go: prefixToProvider must not accept legacy provider prefixes');
+      failures.push('runtime/internal/nimillm/cloud_provider.go: buildPrefixToProvider must not accept legacy provider prefixes');
     }
   }
 

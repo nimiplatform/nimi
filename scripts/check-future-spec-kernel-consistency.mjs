@@ -307,6 +307,8 @@ for (const item of items) {
   }
 }
 
+checkGraduationContractParity();
+
 if (failed) process.exit(1);
 console.log('future-spec-kernel-consistency: OK');
 
@@ -334,5 +336,24 @@ function checkNoRuleDefinitionHeadings(content, rel) {
   let match;
   while ((match = bannedHeadingPattern.exec(content)) !== null) {
     fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
+  }
+}
+
+function checkGraduationContractParity() {
+  const graduationContractPath = path.join(cwd, 'spec/future/kernel/graduation-contract.md');
+  const futureIndexPath = path.join(cwd, 'spec/future/index.md');
+  const graduationContract = fs.readFileSync(graduationContractPath, 'utf8');
+  const futureIndex = fs.readFileSync(futureIndexPath, 'utf8');
+
+  for (const token of ['check:<domain>-spec-kernel-consistency', 'check:<domain>-spec-kernel-docs-drift', 'spec/desktop/', 'spec/desktop/web-adapter.md']) {
+    if (!graduationContract.includes(token)) {
+      fail(`graduation-contract.md must mention ${token}`);
+    }
+  }
+
+  for (const token of ['spec/runtime/', 'spec/sdk/', 'spec/desktop/', 'spec/desktop/web-adapter.md']) {
+    if (!futureIndex.includes(token)) {
+      fail(`spec/future/index.md must mention ${token}`);
+    }
   }
 }

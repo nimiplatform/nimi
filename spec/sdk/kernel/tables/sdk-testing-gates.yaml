@@ -2,6 +2,9 @@ gates:
   - gate: unit_module
     command: pnpm --filter @nimiplatform/sdk test
     source_rule: S-GATE-010
+  - gate: consumer_smoke
+    command: pnpm check:sdk-consumer-smoke
+    source_rule: S-GATE-010
   - gate: boundary_checks
     command: pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming
     source_rule: S-GATE-020
@@ -18,14 +21,20 @@ gates:
     command: pnpm check:sdk-coverage
     source_rule: S-GATE-060
   - gate: provider_alignment
-    command: pnpm check:sdk-spec-kernel-consistency
+    command: pnpm check:live-provider-invariants
     source_rule: S-GATE-070
   - gate: live_smoke
-    command: node scripts/run-live-test-matrix.mjs && pnpm check:live-provider-invariants && pnpm check:live-smoke-gate
+    command: node scripts/run-live-test-matrix.mjs && pnpm check:live-smoke-gate
     source_rule: S-GATE-080
+  - gate: version_matrix
+    command: pnpm check:sdk-version-matrix
+    source_rule: S-GATE-090
   - gate: release_parity
     command: pnpm check:live-smoke-gate --require-release
     source_rule: S-GATE-090
+  - gate: spec_consistency
+    command: pnpm check:sdk-spec-kernel-consistency
+    source_rule: S-GATE-091
   - gate: docs_drift
     command: pnpm check:sdk-spec-kernel-docs-drift
     source_rule: S-GATE-091

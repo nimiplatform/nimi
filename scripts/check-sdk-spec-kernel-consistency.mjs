@@ -222,6 +222,7 @@ if (!hasRealmErrorFamily) {
 }
 
 // ── Check: testing-gates provider names vs provider-catalog alignment ──
+checkSdkTestingGateCoverage(sdkKernelRules);
 checkProviderNameAlignment();
 
 if (failed) process.exit(1);
@@ -329,6 +330,76 @@ function checkProviderNameAlignment() {
     const mappingReport = read(mappingReportPath);
     if (!mappingReport.includes('provider-catalog.yaml')) {
       fail('dev/report/sdk-provider-compatibility.md must reference provider-catalog.yaml');
+    }
+  }
+}
+
+function checkSdkTestingGateCoverage(sdkKernelRules) {
+  const tablePath = 'spec/sdk/kernel/tables/sdk-testing-gates.yaml';
+  const table = readYaml(tablePath);
+  const gates = Array.isArray(table?.gates) ? table.gates : [];
+  if (gates.length === 0) {
+    fail(`${tablePath} must define at least one gate`);
+    return;
+  }
+
+  const gateMap = new Map();
+  for (const gateEntry of gates) {
+    const gate = String(gateEntry?.gate || '').trim();
+    const command = String(gateEntry?.command || '').trim();
+    const sourceRule = String(gateEntry?.source_rule || '').trim();
+    if (!gate) {
+      fail(`${tablePath} contains gate entry with empty gate id`);
+      continue;
+    }
+    if (gateMap.has(gate)) {
+      fail(`${tablePath} contains duplicate gate id: ${gate}`);
+      continue;
+    }
+    gateMap.set(gate, gateEntry);
+    if (!command) {
+      fail(`${tablePath} gate ${gate} must declare command`);
+    }
+    if (!/^S-[A-Z]+-\d{3}$/u.test(sourceRule)) {
+      fail(`${tablePath} gate ${gate} has invalid source_rule: ${sourceRule}`);
+      continue;
+    }
+    if (!sdkKernelRules.has(sourceRule)) {
+      fail(`${tablePath} gate ${gate} references undefined sdk kernel Rule ID: ${sourceRule}`);
+    }
+  }
+
+  const requiredGates = [
+    ['unit_module', 'S-GATE-010', ['pnpm --filter @nimiplatform/sdk test']],
+    ['consumer_smoke', 'S-GATE-010', ['pnpm check:sdk-consumer-smoke']],
+    ['boundary_checks', 'S-GATE-020', ['pnpm check:sdk-import-boundary', 'pnpm check:sdk-public-naming']],
+    ['vnext_matrix', 'S-GATE-030', ['pnpm check:sdk-vnext-matrix']],
+    ['mod_scope', 'S-GATE-040', ['pnpm check:mods-no-runtime-sdk']],
+    ['runtime_projection', 'S-GATE-050', ['pnpm check:runtime-bridge-method-drift']],
+    ['coverage', 'S-GATE-060', ['pnpm check:sdk-coverage']],
+    ['provider_alignment', 'S-GATE-070', ['pnpm check:live-provider-invariants']],
+    ['live_smoke', 'S-GATE-080', ['node scripts/run-live-test-matrix.mjs', 'pnpm check:live-smoke-gate']],
+    ['version_matrix', 'S-GATE-090', ['pnpm check:sdk-version-matrix']],
+    ['release_parity', 'S-GATE-090', ['pnpm check:live-smoke-gate --require-release']],
+    ['spec_consistency', 'S-GATE-091', ['pnpm check:sdk-spec-kernel-consistency']],
+    ['docs_drift', 'S-GATE-091', ['pnpm check:sdk-spec-kernel-docs-drift']],
+  ];
+
+  for (const [gate, expectedRule, expectedTokens] of requiredGates) {
+    const gateEntry = gateMap.get(gate);
+    if (!gateEntry) {
+      fail(`${tablePath} missing required gate: ${gate}`);
+      continue;
+    }
+    const sourceRule = String(gateEntry?.source_rule || '').trim();
+    if (sourceRule !== expectedRule) {
+      fail(`${tablePath} gate ${gate} must use source_rule ${expectedRule}, got ${sourceRule || '<empty>'}`);
+    }
+    const command = String(gateEntry?.command || '').trim();
+    for (const token of expectedTokens) {
+      if (!command.includes(token)) {
+        fail(`${tablePath} gate ${gate} command must include: ${token}`);
+      }
     }
   }
 }

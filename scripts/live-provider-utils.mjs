@@ -4,17 +4,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 
-export const RUNTIME_INTERFACE_ORDER = [
+export const CAPABILITY_INTERFACE_ORDER = [
   'generate',
   'embed',
   'image',
   'video',
   'tts',
   'stt',
+  'voice_clone',
+  'voice_design',
+];
+
+export const RUNTIME_INTERFACE_ORDER = [
+  ...CAPABILITY_INTERFACE_ORDER,
   'connector_tts',
 ];
 
-export const SDK_INTERFACE_ORDER = ['generate'];
+export const SDK_INTERFACE_ORDER = [...CAPABILITY_INTERFACE_ORDER];
 
 const PROVIDER_ALIASES = {
   local: 'local',
@@ -23,9 +29,7 @@ const PROVIDER_ALIASES = {
   openai: 'openai',
   anthropic: 'anthropic',
   dashscope: 'dashscope',
-  alibaba: 'dashscope',
   volcengine: 'volcengine',
-  bytedance: 'volcengine',
   gemini: 'gemini',
   minimax: 'minimax',
   kimi: 'kimi',
@@ -41,6 +45,11 @@ const PROVIDER_ALIASES = {
   spark: 'spark',
   openaicompatible: 'openai_compatible',
   volcengineopenspeech: 'volcengine_openspeech',
+  awspolly: 'aws_polly',
+  azurespeech: 'azure_speech',
+  googlecloudtts: 'google_cloud_tts',
+  googleveo: 'google_veo',
+  fishaudio: 'fish_audio',
 };
 
 export function canonicalProviderId(raw) {
@@ -86,6 +95,104 @@ export function loadProviderCatalog(providerCatalogPath) {
   return set;
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const out = [];
+  const seen = new Set();
+  for (const item of value) {
+    const normalized = String(item || '').trim();
+    if (!normalized) {
+      continue;
+    }
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(normalized);
+  }
+  return out;
+}
+
+function capabilityFromModelCapability(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) {
+    return '';
+  }
+  if (normalized === 'text.generate') {
+    return 'generate';
+  }
+  if (normalized === 'text.embed') {
+    return 'embed';
+  }
+  if (normalized === 'image.generate') {
+    return 'image';
+  }
+  if (normalized === 'video.generate') {
+    return 'video';
+  }
+  if (normalized === 'audio.synthesize') {
+    return 'tts';
+  }
+  if (normalized === 'audio.transcribe') {
+    return 'stt';
+  }
+  return '';
+}
+
+function workflowCapability(workflowType) {
+  const normalized = String(workflowType || '').trim().toLowerCase();
+  if (normalized === 'tts_v2v') {
+    return 'voice_clone';
+  }
+  if (normalized === 'tts_t2v') {
+    return 'voice_design';
+  }
+  return '';
+}
+
+export function loadSourceProviderCapabilityMatrix(sourceProviderDir) {
+  const matrix = new Map();
+  const entries = fs.readdirSync(sourceProviderDir, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.source.yaml'))
+    .map((entry) => path.join(sourceProviderDir, entry.name))
+    .sort((left, right) => left.localeCompare(right));
+
+  for (const file of files) {
+    const doc = readYamlFile(file);
+    const provider = canonicalProviderId(doc?.provider || path.basename(file, '.source.yaml'));
+    if (!provider) {
+      continue;
+    }
+    const set = matrix.get(provider) || new Set();
+    const defaults = normalizeStringArray(doc?.defaults?.capabilities);
+    const models = Array.isArray(doc?.models) ? doc.models : [];
+    for (const model of models) {
+      const caps = normalizeStringArray(model?.capabilities);
+      const effectiveCaps = caps.length > 0 ? caps : defaults;
+      for (const capability of effectiveCaps) {
+        const mapped = capabilityFromModelCapability(capability);
+        if (mapped) {
+          set.add(mapped);
+        }
+      }
+    }
+    const workflows = Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : [];
+    for (const workflow of workflows) {
+      const mapped = workflowCapability(workflow?.workflow_type);
+      if (mapped) {
+        set.add(mapped);
+      }
+    }
+    matrix.set(provider, set);
+  }
+
+  return matrix;
+}
+
 export function parseCloudProviderEnvBindings(providerGoPath) {
   const source = fs.readFileSync(providerGoPath, 'utf8');
   const blockMatch = source.match(/var\s+cloudProviderEnvBindings\s*=\s*\[\]struct\s*\{[\s\S]*?\}\s*\{([\s\S]*?)\n\}/m);
@@ -107,6 +214,25 @@ export function parseCloudProviderEnvBindings(providerGoPath) {
     });
   }
 
+  return out;
+}
+
+export function parseProviderRegistryProviders(generatedGoPath, variableName) {
+  const source = fs.readFileSync(generatedGoPath, 'utf8');
+  const pattern = new RegExp(`var\\s+${variableName}\\s*=\\s*\\[\\]string\\s*\\{([\\s\\S]*?)\\n\\}`, 'm');
+  const match = source.match(pattern);
+  const out = new Set();
+  if (!match?.[1]) {
+    return out;
+  }
+  const itemRegex = /"([^"]+)"/g;
+  let itemMatch;
+  while ((itemMatch = itemRegex.exec(match[1])) !== null) {
+    const provider = canonicalProviderId(itemMatch[1]);
+    if (provider) {
+      out.add(provider);
+    }
+  }
   return out;
 }
 
@@ -167,7 +293,24 @@ function normalizeMediaModality(value) {
 
 export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
   const source = fs.readFileSync(runtimeLiveSmokePath, 'utf8');
+  const repoRoot = resolveRepoRoot(import.meta.url);
+  const sourceProviderDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
   const definitions = new Map();
+
+  if (source.includes('TestLiveSmokeProviderCapabilityMatrix')) {
+    const matrix = loadSourceProviderCapabilityMatrix(sourceProviderDir);
+    for (const [provider, capabilities] of matrix.entries()) {
+      for (const iface of capabilities) {
+        ensureNestedMapSet(
+          definitions,
+          provider,
+          iface,
+          `TestLiveSmokeProviderCapabilityMatrix/${provider}/${iface}`,
+        );
+      }
+    }
+  }
+
   const fnRegex = /func\s+(TestLiveSmoke(?:Connector)?[A-Za-z0-9]+(?:GenerateText|Embed|SubmitScenarioJobModalities|TTS))\s*\(/g;
   let match;
 
@@ -234,7 +377,22 @@ export function parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath) {
 
 export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
   const source = fs.readFileSync(sdkLiveSmokePath, 'utf8');
+  const repoRoot = resolveRepoRoot(import.meta.url);
+  const sourceProviderDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
   const definitions = new Map();
+  if (source.includes('registerSdkProviderCapabilityMatrixTests')) {
+    const matrix = loadSourceProviderCapabilityMatrix(sourceProviderDir);
+    for (const [provider, capabilities] of matrix.entries()) {
+      for (const iface of capabilities) {
+        ensureNestedMapSet(
+          definitions,
+          provider,
+          iface,
+          `nimi sdk ai-provider live smoke: ${provider} ${iface}`,
+        );
+      }
+    }
+  }
   const testRegex = /test\(\s*['"]nimi sdk ai-provider live smoke:\s*([^'"]+?)\s+generate text['"]/g;
   let match;
   while ((match = testRegex.exec(source)) !== null) {
@@ -246,12 +404,38 @@ export function parseSdkLiveTestDefinitions(sdkLiveSmokePath) {
     const testName = `nimi sdk ai-provider live smoke: ${label} generate text`;
     ensureNestedMapSet(definitions, provider, 'generate', testName);
   }
+  const capabilityRegex = /test\(\s*['"]nimi sdk ai-provider live smoke:\s*([^'"]+?)\s+(generate|embed|image|video|tts|stt|voice_clone|voice_design)['"]/g;
+  while ((match = capabilityRegex.exec(source)) !== null) {
+    const providerLabel = String(match[1] || '').trim();
+    const provider = canonicalProviderId(providerLabel);
+    const iface = String(match[2] || '').trim().toLowerCase();
+    if (!provider || !iface) {
+      continue;
+    }
+    const testName = `nimi sdk ai-provider live smoke: ${providerLabel} ${iface}`;
+    ensureNestedMapSet(definitions, provider, iface, testName);
+  }
   return definitions;
 }
 
 export function parseLiveEnvTemplateProviders(envTemplatePath) {
   const source = fs.readFileSync(envTemplatePath, 'utf8');
   const providers = new Map();
+  const suffixCandidates = [
+    'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID',
+    'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID',
+    'VOICE_REFERENCE_AUDIO_URI',
+    'VOICE_DESIGN_MODEL_ID',
+    'VOICE_CLONE_MODEL_ID',
+    'EMBED_MODEL_ID',
+    'IMAGE_MODEL_ID',
+    'VIDEO_MODEL_ID',
+    'TTS_MODEL_ID',
+    'STT_MODEL_ID',
+    'MODEL_ID',
+    'BASE_URL',
+    'API_KEY',
+  ];
 
   for (const line of source.split(/\r?\n/)) {
     const trimmed = String(line || '').trim();
@@ -264,13 +448,18 @@ export function parseLiveEnvTemplateProviders(envTemplatePath) {
     }
 
     const variable = variableMatch[1];
-    const tokenMatch = variable.match(/^NIMI_LIVE_([A-Z0-9]+)_/);
-    if (!tokenMatch?.[1]) {
+    if (variable === 'NIMI_LIVE_STT_AUDIO_URI' || variable === 'NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI') {
       continue;
     }
-
-    const token = String(tokenMatch[1] || '').trim().toUpperCase();
-    if (!token || token === 'STT') {
+    const raw = variable.slice('NIMI_LIVE_'.length);
+    let token = '';
+    for (const suffix of suffixCandidates) {
+      if (raw.endsWith(`_${suffix}`) && raw.length > suffix.length + 1) {
+        token = raw.slice(0, raw.length - suffix.length - 1);
+        break;
+      }
+    }
+    if (!token) {
       continue;
     }
 

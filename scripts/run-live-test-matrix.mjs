@@ -22,7 +22,7 @@ const repoRoot = resolveRepoRoot(import.meta.url);
 const runtimeDir = path.join(repoRoot, 'runtime');
 const runtimeLiveSmokeFile = path.join(
   repoRoot,
-  'runtime/internal/services/ai/live_provider_smoke_test.go',
+  'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
 );
 const sdkTestFile = path.join(
   repoRoot,
@@ -265,6 +265,13 @@ function countSummary(runtimeMatrix, sdkMatrix) {
   return summary;
 }
 
+function orderedInterfacesForProvider(definitions, order) {
+  const ifaceSet = new Set(definitions.keys());
+  const prioritized = order.filter((iface) => ifaceSet.has(iface));
+  const extras = [...ifaceSet].filter((iface) => !order.includes(iface)).sort((a, b) => a.localeCompare(b));
+  return [...prioritized, ...extras];
+}
+
 function main() {
   const skipRuntime = process.argv.includes('--skip-runtime');
   const skipSdk = process.argv.includes('--skip-sdk');
@@ -305,7 +312,7 @@ function main() {
   for (const provider of providers) {
     const runtimeProviderDefinitions = runtimeDefinitions.get(provider) || new Map();
     runtimeMatrix[provider] = {};
-    for (const iface of RUNTIME_INTERFACE_ORDER) {
+    for (const iface of orderedInterfacesForProvider(runtimeProviderDefinitions, RUNTIME_INTERFACE_ORDER)) {
       runtimeMatrix[provider][iface] = resolveGoCellStatus(
         runtimeGoResults,
         runtimeProviderDefinitions.get(iface),
@@ -314,7 +321,7 @@ function main() {
 
     const sdkProviderDefinitions = sdkDefinitions.get(provider) || new Map();
     sdkMatrix[provider] = {};
-    for (const iface of SDK_INTERFACE_ORDER) {
+    for (const iface of orderedInterfacesForProvider(sdkProviderDefinitions, SDK_INTERFACE_ORDER)) {
       sdkMatrix[provider][iface] = resolveNodeCellStatus(
         sdkNodeResults,
         sdkProviderDefinitions.get(iface),

@@ -22,8 +22,8 @@ gates:
     source_rule: K-GATE-030
   - gate: G3
     name: provider_coverage
-    objective: provider routing and capability coverage verified
-    command: pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants
+    objective: provider routing and runtime service coverage baselines verified
+    command: pnpm check:runtime-go-coverage && pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants
     blocking: hard_block
     evidence_route: dev/report/live-test-coverage.yaml
     source_rule: K-GATE-040

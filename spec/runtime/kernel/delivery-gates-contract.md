@@ -26,10 +26,11 @@ SDK 投影、边界、错误语义与文档漂移检查必须通过。
 
 ## K-GATE-040 G3 Provider Gate
 
-provider 覆盖矩阵、可用性探测、错误映射必须满足基线。
+provider 覆盖矩阵、runtime Go statements coverage、可用性探测、错误映射必须满足基线。
 
 执行命令（PR 必须通过）：
 
+- `pnpm check:runtime-go-coverage`
 - `pnpm check:no-legacy-cloud-provider-keys`
 - `pnpm check:runtime-ai-scenario-coverage`
 - `pnpm check:live-provider-invariants`

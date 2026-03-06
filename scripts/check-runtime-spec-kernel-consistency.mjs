@@ -8,7 +8,7 @@ const runtimeRoot = path.join(cwd, 'spec/runtime');
 const sdkRoot = path.join(cwd, 'spec/sdk');
 const protoRoot = path.join(cwd, 'proto/runtime/v1');
 const runtimeCatalogProvidersDir = path.join(cwd, 'runtime/catalog/providers');
-const requiredCatalogProviders = ['dashscope', 'elevenlabs', 'local', 'openai', 'volcengine'];
+const runtimeCatalogSourceProvidersDir = path.join(cwd, 'runtime/catalog/source/providers');
 
 const kernelFiles = [
   'spec/runtime/kernel/index.md',
@@ -105,6 +105,63 @@ function readYaml(rel) {
   return YAML.parse(read(rel));
 }
 
+function listSourceProviderIDs() {
+  if (!fs.existsSync(runtimeCatalogSourceProvidersDir)) {
+    return [];
+  }
+  return fs.readdirSync(runtimeCatalogSourceProvidersDir)
+    .filter((name) => name.endsWith('.source.yaml') || name.endsWith('.source.yml'))
+    .map((name) => normalizeProviderName(name.replace(/\.source\.ya?ml$/iu, '')))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function listSourceProviderDocs() {
+  if (!fs.existsSync(runtimeCatalogSourceProvidersDir)) {
+    return [];
+  }
+  return fs.readdirSync(runtimeCatalogSourceProvidersDir)
+    .filter((name) => name.endsWith('.source.yaml') || name.endsWith('.source.yml'))
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => {
+      const relPath = path.join('runtime/catalog/source/providers', name);
+      const parsed = YAML.parse(fs.readFileSync(path.join(cwd, relPath), 'utf8')) || {};
+      return {
+        relPath,
+        provider: normalizeProviderName(parsed?.provider || name.replace(/\.source\.ya?ml$/iu, '')),
+        parsed,
+      };
+    })
+    .filter((entry) => entry.provider);
+}
+
+function listTtsProvidersFromSnapshots() {
+  if (!fs.existsSync(runtimeCatalogProvidersDir)) {
+    return [];
+  }
+  const providers = [];
+  const files = fs.readdirSync(runtimeCatalogProvidersDir)
+    .filter((name) => /\.(yaml|yml)$/iu.test(name))
+    .sort((a, b) => a.localeCompare(b));
+  for (const fileName of files) {
+    const parsed = YAML.parse(fs.readFileSync(path.join(runtimeCatalogProvidersDir, fileName), 'utf8'));
+    const provider = normalizeProviderName(parsed?.provider || fileName.replace(/\.(yaml|yml)$/iu, ''));
+    if (!provider) continue;
+    const models = Array.isArray(parsed?.models) ? parsed.models : [];
+    const hasTts = models.some((model) => {
+      const capabilities = Array.isArray(model?.capabilities) ? model.capabilities : [];
+      return capabilities.some((capability) => {
+        const normalized = String(capability || '').trim().toLowerCase();
+        return normalized === 'audio.synthesize';
+      });
+    });
+    if (hasTts) {
+      providers.push(provider);
+    }
+  }
+  return providers.sort((a, b) => a.localeCompare(b));
+}
+
 for (const rel of kernelFiles) {
   if (!fs.existsSync(path.join(cwd, rel))) {
     fail(`missing kernel file: ${rel}`);
@@ -136,6 +193,7 @@ checkLegacyDesignReferenceDrift();
 checkReasonCodeNumericAssignments();
 checkBannedExternalRpcNames();
 checkProviderTableParity();
+checkSourceProviderCoverage();
 checkModelCatalogTables();
 checkTtsProviderCapabilityMatrix(kernelRuleDefinitions);
 checkRuntimeCatalogLoaderIsolation();
@@ -159,6 +217,7 @@ checkProbeTargetProviderCoverage();
 checkRpcMethodsSourceTraceability(kernelRuleDefinitions);
 checkProviderCatalogSourceTraceability(kernelRuleDefinitions);
 checkReasonCodeSourceTraceability(kernelRuleDefinitions);
+checkRuntimeDeliveryGateCoverage(kernelRuleDefinitions);
 
 if (failed) process.exit(1);
 console.log('runtime-spec-kernel-consistency: OK');
@@ -216,9 +275,82 @@ function checkBannedExternalRpcNames() {
   }
 }
 
+function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
+  const tablePath = 'spec/runtime/kernel/tables/runtime-delivery-gates.yaml';
+  const table = readYaml(tablePath);
+  const gates = Array.isArray(table?.gates) ? table.gates : [];
+  if (gates.length === 0) {
+    fail(`${tablePath} must define at least one gate`);
+    return;
+  }
+
+  const gateMap = new Map();
+  for (const gateEntry of gates) {
+    const gate = String(gateEntry?.gate || '').trim();
+    const command = String(gateEntry?.command || '').trim();
+    const sourceRule = String(gateEntry?.source_rule || '').trim();
+    if (!gate) {
+      fail(`${tablePath} contains gate entry with empty gate id`);
+      continue;
+    }
+    if (gateMap.has(gate)) {
+      fail(`${tablePath} contains duplicate gate id: ${gate}`);
+      continue;
+    }
+    gateMap.set(gate, gateEntry);
+    if (!command) {
+      fail(`${tablePath} gate ${gate} must declare command`);
+    }
+    if (!/^K-[A-Z]+-\d{3}$/u.test(sourceRule)) {
+      fail(`${tablePath} gate ${gate} has invalid source_rule: ${sourceRule}`);
+      continue;
+    }
+    if (!kernelRuleSet.has(sourceRule)) {
+      fail(`${tablePath} gate ${gate} references undefined kernel Rule ID: ${sourceRule}`);
+    }
+  }
+
+  const requiredGates = [
+    ['G0', 'K-GATE-010', ['pnpm check:ai-scenario-hardcut-drift', 'pnpm check:runtime-spec-kernel-consistency', 'pnpm check:runtime-spec-kernel-docs-drift']],
+    ['G1', 'K-GATE-020', ['pnpm proto:lint', 'pnpm proto:breaking', 'pnpm proto:drift-check']],
+    ['G2', 'K-GATE-030', ['pnpm check:sdk-spec-kernel-consistency', 'pnpm check:sdk-spec-kernel-docs-drift', 'pnpm check:runtime-bridge-method-drift']],
+    ['G3', 'K-GATE-040', ['pnpm check:runtime-go-coverage', 'pnpm check:no-legacy-cloud-provider-keys', 'pnpm check:runtime-ai-scenario-coverage', 'pnpm check:live-provider-invariants']],
+    ['G4', 'K-GATE-050', ['go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1']],
+    ['G5', 'K-GATE-060', ['node scripts/run-live-test-matrix.mjs']],
+    ['G6', 'K-GATE-070', ['go run ./cmd/runtime-compliance --gate']],
+    ['G7', 'K-GATE-080', ['pnpm check:live-smoke-gate --require-release']],
+  ];
+
+  for (const [gate, expectedRule, expectedTokens] of requiredGates) {
+    const gateEntry = gateMap.get(gate);
+    if (!gateEntry) {
+      fail(`${tablePath} missing required gate: ${gate}`);
+      continue;
+    }
+    const sourceRule = String(gateEntry?.source_rule || '').trim();
+    if (sourceRule !== expectedRule) {
+      fail(`${tablePath} gate ${gate} must use source_rule ${expectedRule}, got ${sourceRule || '<empty>'}`);
+    }
+    const command = String(gateEntry?.command || '').trim();
+    for (const token of expectedTokens) {
+      if (!command.includes(token)) {
+        fail(`${tablePath} gate ${gate} command must include: ${token}`);
+      }
+    }
+  }
+
+  for (const gate of ['G3', 'G5', 'G7']) {
+    const evidenceRoute = String(gateMap.get(gate)?.evidence_route || '').trim();
+    if (evidenceRoute !== 'dev/report/live-test-coverage.yaml') {
+      fail(`${tablePath} gate ${gate} must use evidence_route dev/report/live-test-coverage.yaml`);
+    }
+  }
+}
+
 function checkProviderTableParity() {
   const catalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
   const capabilities = readYaml('spec/runtime/kernel/tables/provider-capabilities.yaml');
+  const sourceDocs = listSourceProviderDocs();
 
   const catalogProviders = new Set(
     (Array.isArray(catalog?.providers) ? catalog.providers : [])
@@ -274,6 +406,103 @@ function checkProviderTableParity() {
     if (!explicitRequired && endpointRequirement === 'explicit_required') {
       fail(`provider-capabilities ${provider} endpoint_requirement conflicts with provider-catalog default endpoint`);
     }
+  }
+
+  const catalogByProvider = new Map(
+    (Array.isArray(catalog?.providers) ? catalog.providers : [])
+      .map((item) => [normalizeProviderName(item?.provider), item]),
+  );
+  const capabilitiesByProvider = new Map(
+    (Array.isArray(capabilities?.providers) ? capabilities.providers : [])
+      .map((item) => [normalizeProviderName(item?.provider), item]),
+  );
+
+  for (const { relPath, provider, parsed } of sourceDocs) {
+    const runtime = parsed?.runtime && typeof parsed.runtime === 'object' ? parsed.runtime : {};
+    const runtimePlane = String(runtime?.runtime_plane || '').trim();
+    const managed = Boolean(runtime?.managed_connector_supported);
+    const inline = Boolean(runtime?.inline_supported);
+    const defaultEndpoint = String(runtime?.default_endpoint || '').trim();
+    const explicit = Boolean(runtime?.requires_explicit_endpoint);
+
+    if (runtimePlane !== 'local' && runtimePlane !== 'remote') {
+      fail(`${relPath} runtime.runtime_plane must be local or remote`);
+      continue;
+    }
+
+    const capabilityEntry = capabilitiesByProvider.get(provider);
+    if (!capabilityEntry) {
+      fail(`${relPath} provider ${provider} missing provider-capabilities entry`);
+      continue;
+    }
+    if (String(capabilityEntry?.runtime_plane || '').trim() !== runtimePlane) {
+      fail(`${relPath} provider ${provider} runtime_plane mismatch with provider-capabilities`);
+    }
+    if (Boolean(capabilityEntry?.managed_connector_supported) !== managed) {
+      fail(`${relPath} provider ${provider} managed_connector_supported mismatch with provider-capabilities`);
+    }
+    if (Boolean(capabilityEntry?.inline_supported) !== inline) {
+      fail(`${relPath} provider ${provider} inline_supported mismatch with provider-capabilities`);
+    }
+    const expectedRequirement = runtimePlane === 'local'
+      ? 'empty_string_only'
+      : explicit
+        ? 'explicit_required'
+        : 'default_or_explicit';
+    if (String(capabilityEntry?.endpoint_requirement || '').trim() !== expectedRequirement) {
+      fail(`${relPath} provider ${provider} endpoint_requirement mismatch with provider-capabilities`);
+    }
+
+    const catalogEntry = catalogByProvider.get(provider);
+    if (runtimePlane === 'local') {
+      if (catalogEntry) {
+        fail(`${relPath} local provider must not appear in provider-catalog.yaml`);
+      }
+      continue;
+    }
+    if (!catalogEntry) {
+      fail(`${relPath} remote provider ${provider} missing provider-catalog entry`);
+      continue;
+    }
+    if (String(catalogEntry?.default_endpoint || '').trim() !== defaultEndpoint) {
+      fail(`${relPath} provider ${provider} default_endpoint mismatch with provider-catalog`);
+    }
+    if (Boolean(catalogEntry?.requires_explicit_endpoint) !== explicit) {
+      fail(`${relPath} provider ${provider} requires_explicit_endpoint mismatch with provider-catalog`);
+    }
+  }
+}
+
+function checkSourceProviderCoverage() {
+  const sourceProviders = new Set(listSourceProviderIDs());
+  if (sourceProviders.size === 0) {
+    fail('runtime/catalog/source/providers must include at least one provider');
+    return;
+  }
+
+  const providerCatalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
+  const providerCapabilities = readYaml('spec/runtime/kernel/tables/provider-capabilities.yaml');
+
+  const catalogProviders = new Set(
+    (Array.isArray(providerCatalog?.providers) ? providerCatalog.providers : [])
+      .map((item) => normalizeProviderName(item?.provider))
+      .filter(Boolean),
+  );
+  const capabilityProviders = new Set(
+    (Array.isArray(providerCapabilities?.providers) ? providerCapabilities.providers : [])
+      .map((item) => normalizeProviderName(item?.provider))
+      .filter(Boolean),
+  );
+
+  const remoteSourceProviders = [...sourceProviders].filter((provider) => provider !== 'local');
+  const missingRemoteCatalog = remoteSourceProviders.filter((provider) => !catalogProviders.has(provider));
+  if (missingRemoteCatalog.length > 0) {
+    fail(`provider-catalog missing source remote providers: ${missingRemoteCatalog.join(', ')}`);
+  }
+
+  const missingCapabilities = [...sourceProviders].filter((provider) => !capabilityProviders.has(provider));
+  if (missingCapabilities.length > 0) {
+    fail(`provider-capabilities missing source providers: ${missingCapabilities.join(', ')}`);
   }
 }
 
@@ -344,7 +573,7 @@ function checkModelCatalogTables() {
       const requiresVoice = voiceSetID
         || capabilities.some((capability) => {
           const normalized = String(capability || '').trim().toLowerCase();
-          return normalized === 'tts' || normalized === 'llm.speech.synthesize';
+          return normalized === 'audio.synthesize';
         });
       if (modelProvider !== provider) {
         fail(`${path.relative(cwd, absPath)} model ${modelID || '<unknown>'} provider mismatch: ${modelProvider}`);
@@ -354,13 +583,13 @@ function checkModelCatalogTables() {
         continue;
       }
       if (requiresVoice && !voiceSetID) {
-        fail(`${path.relative(cwd, absPath)} model entry must include voice_set_id when tts capability is present`);
+        fail(`${path.relative(cwd, absPath)} model entry must include voice_set_id when audio.synthesize capability is present`);
       }
       if (requiresVoice && !voiceDiscoveryMode) {
-        fail(`${path.relative(cwd, absPath)} model entry must include voice_discovery_mode when tts capability is present`);
+        fail(`${path.relative(cwd, absPath)} model entry must include voice_discovery_mode when audio.synthesize capability is present`);
       }
       if (voiceDiscoveryMode) {
-        const allowedVoiceDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'dynamic_global']);
+        const allowedVoiceDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
         if (!allowedVoiceDiscoveryModes.has(voiceDiscoveryMode)) {
           fail(`${path.relative(cwd, absPath)} model ${modelID} has invalid voice_discovery_mode: ${voiceDiscoveryMode}`);
         }
@@ -369,20 +598,11 @@ function checkModelCatalogTables() {
         fail(`${path.relative(cwd, absPath)} model ${modelID} static_catalog requires voice_set_id`);
       }
       if (requiresVoice && voiceRefKinds.length === 0) {
-        fail(`${path.relative(cwd, absPath)} model ${modelID} must include voice_ref_kinds when tts capability is present`);
+        fail(`${path.relative(cwd, absPath)} model ${modelID} must include voice_ref_kinds when audio.synthesize capability is present`);
       }
       if (voiceDiscoveryMode === 'dynamic_user_scoped' && !voiceRefKinds.includes('voice_asset_id')) {
         fail(`${path.relative(cwd, absPath)} model ${modelID} dynamic_user_scoped must include voice_ref_kinds.voice_asset_id`);
       }
-      if (voiceDiscoveryMode === 'dynamic_global') {
-        if (!voiceRefKinds.includes('preset_voice_id')) {
-          fail(`${path.relative(cwd, absPath)} model ${modelID} dynamic_global must include voice_ref_kinds.preset_voice_id`);
-        }
-        if (!voiceRefKinds.includes('provider_voice_ref')) {
-          fail(`${path.relative(cwd, absPath)} model ${modelID} dynamic_global must include voice_ref_kinds.provider_voice_ref`);
-        }
-      }
-
       const modelKey = `${provider}:${modelID}`;
       if (modelKeySet.has(modelKey)) {
         fail(`${path.relative(cwd, absPath)} has duplicate model entry: ${modelKey}`);
@@ -402,7 +622,7 @@ function checkModelCatalogTables() {
       }
       const hasVideoCapability = capabilities.some((capability) => {
         const normalized = String(capability || '').trim().toLowerCase();
-        return normalized === 'video_generation' || normalized === 'llm.video.generate' || normalized === 'video';
+        return normalized === 'video.generate';
       });
       if (hasVideoCapability) {
         const videoGeneration = model?.video_generation;
@@ -453,7 +673,7 @@ function checkModelCatalogTables() {
     }
 
     if (requiredVoiceModels.size > 0 && voices.length === 0) {
-      fail(`${path.relative(cwd, absPath)} must include voices when tts models exist`);
+      fail(`${path.relative(cwd, absPath)} must include voices when audio.synthesize models exist`);
     }
 
     const voiceSetToVoiceIDs = new Map();
@@ -544,7 +764,7 @@ function checkModelCatalogTables() {
     }
   }
 
-  for (const provider of requiredCatalogProviders) {
+  for (const provider of listSourceProviderIDs()) {
     if (!seenProviders.has(provider)) {
       fail(`runtime/catalog/providers missing required provider file: ${provider}.yaml`);
     }
@@ -577,7 +797,7 @@ function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
 
   const allowedRuntimePlanes = new Set(['remote', 'local']);
   const allowedActivationStates = new Set(['active']);
-  const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'dynamic_global', 'mixed']);
+  const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'mixed']);
   const seenProviderIDs = new Set();
   const activeProviders = new Set();
 
@@ -681,7 +901,7 @@ function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
       const capabilities = Array.isArray(model?.capabilities) ? model.capabilities : [];
       return capabilities.some((capability) => {
         const normalized = String(capability || '').trim().toLowerCase();
-        return normalized === 'tts' || normalized === 'llm.speech.synthesize';
+        return normalized === 'audio.synthesize';
       });
     });
     const inferredSupportsSynthesize = ttsModels.length > 0;
@@ -693,7 +913,7 @@ function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
       ttsModels.map((model) => String(model?.voice_discovery_mode || '').trim()).filter(Boolean),
     );
     if (inferredSupportsSynthesize && discoverySet.size === 0) {
-      fail(`${tablePath} provider ${providerID} tts models must include voice_discovery_mode`);
+      fail(`${tablePath} provider ${providerID} audio.synthesize models must include voice_discovery_mode`);
     } else if (discoverySet.size > 0) {
       const inferredDiscoveryMode = discoverySet.size === 1 ? [...discoverySet][0] : 'mixed';
       if (discoveryMode !== inferredDiscoveryMode) {
@@ -710,18 +930,10 @@ function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
       if (modelDiscovery === 'dynamic_user_scoped' && !modelVoiceKinds.includes('voice_asset_id')) {
         fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_user_scoped must include voice_ref_kinds.voice_asset_id`);
       }
-      if (modelDiscovery === 'dynamic_global') {
-        if (!modelVoiceKinds.includes('preset_voice_id')) {
-          fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_global must include voice_ref_kinds.preset_voice_id`);
-        }
-        if (!modelVoiceKinds.includes('provider_voice_ref')) {
-          fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_global must include voice_ref_kinds.provider_voice_ref`);
-        }
-      }
     }
   }
 
-  for (const providerID of requiredCatalogProviders) {
+  for (const providerID of listTtsProvidersFromSnapshots()) {
     if (!activeProviders.has(providerID)) {
       fail(`${tablePath} missing active provider entry: ${providerID}`);
     }
