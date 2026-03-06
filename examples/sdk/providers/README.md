@@ -40,6 +40,8 @@ npx tsx examples/sdk/providers/nimillm.ts
 | [glm.ts](./glm.ts) | cloud video + image + tts (+ optional stt) | `NIMI_RUNTIME_CLOUD_GLM_API_KEY` | mp4 + png + mp3 |
 | [kimi.ts](./kimi.ts) | cloud chat-multimodal image | `NIMI_RUNTIME_CLOUD_KIMI_API_KEY` | text + png |
 
+`deepseek-chat.ts` and `bytedance-tts.ts` intentionally use the raw `Runtime` client surface instead of the provider wrapper. The other tutorials use `createNimiAiProvider`.
+
 ## Run
 
 ```bash

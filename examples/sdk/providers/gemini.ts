@@ -63,9 +63,17 @@ async function run(): Promise<void> {
 
   const videoResult = await provider.video(videoModel).generate({
     prompt: env('NIMI_GEMINI_VIDEO_PROMPT', 'A drone fly-through of a neon city at dawn'),
-    durationSec: Number(env('NIMI_GEMINI_VIDEO_DURATION_SEC', '6')),
-    fps: Number(env('NIMI_GEMINI_VIDEO_FPS', '24')),
-    providerOptions: {},
+    mode: 't2v',
+    content: [
+      {
+        type: 'text',
+        text: env('NIMI_GEMINI_VIDEO_PROMPT', 'A drone fly-through of a neon city at dawn'),
+      },
+    ],
+    options: {
+      durationSec: Number(env('NIMI_GEMINI_VIDEO_DURATION_SEC', '6')),
+      fps: Number(env('NIMI_GEMINI_VIDEO_FPS', '24')),
+    },
   });
   const videoBytes = videoResult.artifacts[0]?.bytes;
   if (!videoBytes) {

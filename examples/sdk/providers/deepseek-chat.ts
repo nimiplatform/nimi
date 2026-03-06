@@ -1,5 +1,5 @@
 /**
- * DeepSeek Chat Tutorial (single-file, no wrapper)
+ * DeepSeek Chat Tutorial (single-file runtime client, no provider wrapper)
  *
  * Flow:
  * 1) save api key -> connectorId
@@ -18,12 +18,8 @@
  * - NIMI_DEEPSEEK_CHAT_PROMPT="Explain runtime credential flow"
  */
 
-import { Runtime } from '@nimiplatform/sdk';
 import { randomUUID } from 'node:crypto';
-
-const MODAL_TEXT = 1;
-const ROUTE_POLICY_TOKEN_API = 2;
-const FALLBACK_POLICY_DENY = 1;
+import { Runtime } from '@nimiplatform/sdk';
 
 type SavedConnector = {
   connectorId: string;
@@ -76,44 +72,6 @@ function resolveConnector(connectorId: string): SavedConnector {
   return connector;
 }
 
-function extractText(output: unknown): string {
-  const content = (output as {
-    fields?: {
-      content?: {
-        listValue?: {
-          values?: Array<{
-            structValue?: {
-              fields?: {
-                text?: { stringValue?: string };
-              };
-            };
-          }>;
-        };
-      };
-      text?: {
-        stringValue?: string;
-        kind?: {
-          stringValue?: string;
-        };
-      };
-    };
-  })?.fields;
-  const directText = String(content?.text?.stringValue || content?.text?.kind?.stringValue || '').trim();
-  if (directText) {
-    return directText;
-  }
-  const values = content?.content?.listValue?.values || [];
-  const joined = values
-    .map((item) => String(item?.structValue?.fields?.text?.stringValue || '').trim())
-    .filter((value) => value.length > 0)
-    .join(' ')
-    .trim();
-  if (joined) {
-    return joined;
-  }
-  return '';
-}
-
 async function main(): Promise<void> {
   const endpoint = env('NIMI_RUNTIME_GRPC_ENDPOINT', '127.0.0.1:46371');
   const appId = env('NIMI_APP_ID', 'example.providers.deepseek');
@@ -139,37 +97,28 @@ async function main(): Promise<void> {
   });
 
   const connector = resolveConnector(connectorId);
-  const response = await runtime.ai.generate({
-    appId,
+  const response = await runtime.ai.text.generate({
+    model,
     subjectUserId,
     connectorId,
-    modelId: model,
-    modal: MODAL_TEXT,
-    input: [{ role: 'user', content: prompt, name: '' }],
-    systemPrompt: '',
-    tools: [],
-    temperature: 0.7,
-    topP: 1,
-    maxTokens: 512,
-    routePolicy: ROUTE_POLICY_TOKEN_API,
-    fallback: FALLBACK_POLICY_DENY,
+    input: prompt,
+    route: 'token-api',
+    fallback: 'deny',
     timeoutMs: 120000,
-  }, {
     metadata: {
       keySource: 'inline',
       providerEndpoint: connector.endpoint,
       providerApiKey: connector.apiKey,
-    } as any,
+    },
   });
-  const text = extractText(response.output);
-  if (!text) {
+  if (!response.text.trim()) {
     throw new Error('deepseek chat returned empty text');
   }
 
   log(`[deepseek-chat] runtime grpc endpoint: ${endpoint}`);
   log(`[deepseek-chat] connectorId: ${connectorId}`);
   log(`[deepseek-chat] model: ${model}`);
-  log(`[deepseek-chat][output] ${text}`);
+  log(`[deepseek-chat][output] ${response.text}`);
 }
 
 try {

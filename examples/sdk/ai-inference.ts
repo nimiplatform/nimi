@@ -66,6 +66,17 @@ async function videoGenerate() {
     model: 'local/video-default',
     subjectUserId: 'local-user',
     prompt: 'A cat playing piano',
+    mode: 't2v',
+    content: [
+      {
+        type: 'text',
+        text: 'A cat playing piano',
+      },
+    ],
+    options: {
+      durationSec: 6,
+      fps: 24,
+    },
     route: 'local-runtime',
     fallback: 'deny',
     timeoutMs: 300000,

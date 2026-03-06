@@ -10,7 +10,7 @@ Runnable code lives in the repository root `examples/` package.
 - AI provider bridge: `examples/sdk/ai-provider.ts`
 - App auth lifecycle: `examples/sdk/app-auth.ts`
 - Workflow DAG: `examples/sdk/workflow-dag.ts`
-- Mod baseline: `examples/mods/mod-basic.ts`
+- Mod baseline (`createHookClient` + `createModRuntimeClient`): `examples/mods/mod-basic.ts`
 - Runtime CLI path: `examples/runtime/cli-quickstart.sh`
 
 ## Run

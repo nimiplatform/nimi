@@ -30,4 +30,4 @@ export NIMI_RUNTIME_MODS_DIR="$NIMI_MODS_ROOT"
 pnpm -C apps/desktop run smoke:mod:local-chat
 ```
 
-For runnable mod SDK samples, see [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts).
+For a runnable mod SDK sample using `setModSdkHost()`, `createHookClient()`, and `createModRuntimeClient()`, see [`examples/mods/mod-basic.ts`](../../examples/mods/mod-basic.ts).

@@ -50,7 +50,16 @@ async function run(): Promise<void> {
 
   const videoResult = await provider.video(env('NIMI_GLM_VIDEO_MODEL', 'glm/cogvideox-3')).generate({
     prompt: env('NIMI_GLM_VIDEO_PROMPT', 'A smooth flyover of a modern city'),
-    durationSec: Number(env('NIMI_GLM_VIDEO_DURATION_SEC', '6')),
+    mode: 't2v',
+    content: [
+      {
+        type: 'text',
+        text: env('NIMI_GLM_VIDEO_PROMPT', 'A smooth flyover of a modern city'),
+      },
+    ],
+    options: {
+      durationSec: Number(env('NIMI_GLM_VIDEO_DURATION_SEC', '6')),
+    },
   });
   const videoBytes = videoResult.artifacts[0]?.bytes;
   if (!videoBytes) {

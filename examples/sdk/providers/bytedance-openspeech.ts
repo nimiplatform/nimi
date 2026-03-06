@@ -66,7 +66,7 @@ async function run(): Promise<void> {
   const sttResult = await provider.stt(sttModel).transcribe({
     audioBytes: new Uint8Array(audioBytes),
     mimeType: env('NIMI_BYTEDANCE_STT_MIME', 'audio/wav'),
-    providerOptions: {
+    extensions: {
       transport,
     },
   });

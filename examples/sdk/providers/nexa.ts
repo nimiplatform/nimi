@@ -81,6 +81,16 @@ async function run(): Promise<void> {
   try {
     await provider.video(env('NIMI_NEXA_VIDEO_MODEL', 'nexa/video')).generate({
       prompt: 'test unsupported path',
+      mode: 't2v',
+      content: [
+        {
+          type: 'text',
+          text: 'test unsupported path',
+        },
+      ],
+      options: {
+        durationSec: 4,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error || 'unknown error');

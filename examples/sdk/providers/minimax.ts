@@ -63,7 +63,14 @@ async function run(): Promise<void> {
 
   const videoResult = await provider.video(videoModel).generate({
     prompt: env('NIMI_MINIMAX_VIDEO_PROMPT', 'Ocean sunset with gentle camera motion'),
-    providerOptions: {},
+    mode: 't2v',
+    content: [
+      {
+        type: 'text',
+        text: env('NIMI_MINIMAX_VIDEO_PROMPT', 'Ocean sunset with gentle camera motion'),
+      },
+    ],
+    options: {},
   });
   const videoBytes = videoResult.artifacts[0]?.bytes;
   if (!videoBytes) {
