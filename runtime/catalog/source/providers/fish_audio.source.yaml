@@ -2,11 +2,17 @@ schema_version: 3
 provider: fish_audio
 catalog_version: 2026-03-05-fish-audio-v1
 generated_target: runtime/catalog/providers/fish_audio.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 resolution_mode: model_anchor_v2
 defaults:
   provider: fish_audio
   model_type: tts
-  capabilities: [tts, llm.speech.synthesize]
+  capabilities: [audio.synthesize]
   pricing:
     unit: request
     input: unknown
@@ -28,15 +34,28 @@ sources:
 language_profiles:
   short_multilingual_v1: [en, zh, ja, ko, fr, de, es, pt, it, ru]
 
-voice_sets: []
+voice_sets:
+  - voice_set_id: default-voices-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [fish_audio_api_doc, fish_audio_models_doc]
+    voices:
+      - voice_id: bf322df2096a46f18c579d0baa36f41d
+        name: Adrian
+        langs: [en]
+      - voice_id: 8ef4a238714b45718ce04243307c57a7
+        name: E-Girl Voice
+        langs: [en]
+      - voice_id: 7f92f8afb8ec43bf81429cc1c9199cb1
+        name: Playground Voice
+        langs: [en]
 
 models:
   - model_id: fish-speech-1.5
     updated_at: 2026-03-05
     source_ids: [fish_audio_api_doc, fish_audio_models_doc]
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: fish_audio_dynamic_global_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
       langs_ref: short_multilingual_v1
     aliases:
@@ -46,8 +65,8 @@ models:
     updated_at: 2026-03-05
     source_ids: [fish_audio_api_doc, fish_audio_models_doc]
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: fish_audio_dynamic_global_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
       langs_ref: short_multilingual_v1
 

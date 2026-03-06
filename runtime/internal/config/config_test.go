@@ -64,16 +64,6 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.LocalAuditCapacity != 5000 {
 		t.Fatalf("localAuditCapacity default mismatch: got=%d want=5000", cfg.LocalAuditCapacity)
 	}
-	if cfg.ModelCatalogRemoteEnabled {
-		t.Fatalf("modelCatalogRemoteEnabled default should be false")
-	}
-	if cfg.ModelCatalogRefreshInterval != 15*time.Minute {
-		t.Fatalf("modelCatalogRefreshInterval default mismatch: got=%s want=15m", cfg.ModelCatalogRefreshInterval)
-	}
-	expectedCatalogCachePath := filepath.Join(homeDir, defaultModelCatalogCacheRelPath)
-	if cfg.ModelCatalogCachePath != expectedCatalogCachePath {
-		t.Fatalf("model catalog cache path mismatch: got=%q want=%q", cfg.ModelCatalogCachePath, expectedCatalogCachePath)
-	}
 	expectedCatalogCustomDir := filepath.Join(homeDir, defaultModelCatalogCustomRelPath)
 	if cfg.ModelCatalogCustomDir != expectedCatalogCustomDir {
 		t.Fatalf("model catalog custom dir mismatch: got=%q want=%q", cfg.ModelCatalogCustomDir, expectedCatalogCustomDir)
@@ -606,7 +596,7 @@ func TestLoadEnvOverridesNewFields(t *testing.T) {
 	}
 }
 
-func TestLoadModelCatalogConfigAndEnvOverrides(t *testing.T) {
+func TestLoadRejectsRemovedModelCatalogRemoteConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -625,50 +615,40 @@ func TestLoadModelCatalogConfigAndEnvOverrides(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected removed model catalog remote config to be rejected")
 	}
-	if !cfg.ModelCatalogRemoteEnabled {
-		t.Fatalf("modelCatalogRemoteEnabled should be true from config")
+	if !strings.Contains(err.Error(), "modelCatalogRemoteEnabled is removed") {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.ModelCatalogRemoteURL != "https://catalog.config.test/model-catalog.yaml" {
-		t.Fatalf("modelCatalogRemoteURL mismatch: %q", cfg.ModelCatalogRemoteURL)
-	}
-	if cfg.ModelCatalogRefreshInterval != 120*time.Second {
-		t.Fatalf("modelCatalogRefreshInterval mismatch: %s", cfg.ModelCatalogRefreshInterval)
-	}
-	if cfg.ModelCatalogCachePath != filepath.Join(homeDir, "runtime/model-catalog-cache.yaml") {
-		t.Fatalf("modelCatalogCachePath mismatch: %q", cfg.ModelCatalogCachePath)
-	}
-	if cfg.ModelCatalogCustomDir != filepath.Join(homeDir, "runtime/model-catalog/providers") {
-		t.Fatalf("modelCatalogCustomDir mismatch: %q", cfg.ModelCatalogCustomDir)
+}
+
+func TestLoadRejectsRemovedModelCatalogRemoteEnv(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "modelCatalogCustomDir": "~/runtime/model-catalog/providers"
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
 	}
 
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED", "false")
 	t.Setenv("NIMI_RUNTIME_MODEL_CATALOG_REMOTE_URL", "https://catalog.env.test/model-catalog.yaml")
 	t.Setenv("NIMI_RUNTIME_MODEL_CATALOG_REFRESH_INTERVAL", "5m")
 	t.Setenv("NIMI_RUNTIME_MODEL_CATALOG_CACHE_PATH", "~/runtime/env-cache.yaml")
-	t.Setenv("NIMI_RUNTIME_MODEL_CATALOG_CUSTOM_DIR", "~/runtime/custom/providers")
 
-	cfg, err = Load()
-	if err != nil {
-		t.Fatalf("Load returned error with env overrides: %v", err)
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected removed model catalog remote env to be rejected")
 	}
-	if cfg.ModelCatalogRemoteEnabled {
-		t.Fatalf("modelCatalogRemoteEnabled env override should set false")
-	}
-	if cfg.ModelCatalogRemoteURL != "https://catalog.env.test/model-catalog.yaml" {
-		t.Fatalf("modelCatalogRemoteURL env override mismatch: %q", cfg.ModelCatalogRemoteURL)
-	}
-	if cfg.ModelCatalogRefreshInterval != 5*time.Minute {
-		t.Fatalf("modelCatalogRefreshInterval env override mismatch: %s", cfg.ModelCatalogRefreshInterval)
-	}
-	if cfg.ModelCatalogCachePath != filepath.Join(homeDir, "runtime/env-cache.yaml") {
-		t.Fatalf("modelCatalogCachePath env override mismatch: %q", cfg.ModelCatalogCachePath)
-	}
-	if cfg.ModelCatalogCustomDir != filepath.Join(homeDir, "runtime/custom/providers") {
-		t.Fatalf("modelCatalogCustomDir env override mismatch: %q", cfg.ModelCatalogCustomDir)
+	if !strings.Contains(err.Error(), "NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED is removed") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -517,41 +516,14 @@ func TestTestConnectorDisabled(t *testing.T) {
 	}
 }
 
-func TestModelCacheSetGetAndInvalidation(t *testing.T) {
-	cache := NewModelCache()
-
-	models := []*runtimev1.ConnectorModelDescriptor{
-		{ModelId: "gpt-4", Available: true},
-	}
-
-	cache.Set("conn-1", models)
-
-	got := cache.Get("conn-1")
-	if len(got) != 1 {
-		t.Fatalf("expected 1 cached model, got %d", len(got))
-	}
-
-	cache.Invalidate("conn-1")
-	got = cache.Get("conn-1")
-	if got != nil {
-		t.Error("expected nil after invalidation")
-	}
-}
-
-func TestListConnectorModelsConcurrentRequestsShareSingleRemoteFetch(t *testing.T) {
+func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/models" {
-			http.NotFound(w, r)
-			return
-		}
 		hits.Add(1)
-		time.Sleep(120 * time.Millisecond)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"data":[{"id":"qwen-plus","name":"qwen-plus"}]}`)
+		http.NotFound(w, r)
 	}))
 	t.Cleanup(server.Close)
 
@@ -575,64 +547,124 @@ func TestListConnectorModelsConcurrentRequestsShareSingleRemoteFetch(t *testing.
 		t.Fatalf("expected connector id")
 	}
 
-	const workers = 8
-	start := make(chan struct{})
-	errCh := make(chan error, workers)
-	var wg sync.WaitGroup
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			<-start
-			resp, callErr := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
-				ConnectorId: connectorID,
-				PageSize:    20,
-			})
-			if callErr != nil {
-				errCh <- callErr
-				return
-			}
-			if len(resp.GetModels()) != 1 || resp.GetModels()[0].GetModelId() != "qwen-plus" {
-				errCh <- status.Errorf(codes.Internal, "unexpected models payload: %+v", resp.GetModels())
-			}
-		}()
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
 	}
-
-	close(start)
-	wg.Wait()
-	close(errCh)
-	for callErr := range errCh {
-		if callErr != nil {
-			t.Fatalf("ListConnectorModels concurrent call failed: %v", callErr)
+	if len(resp.GetModels()) == 0 {
+		t.Fatalf("expected catalog-derived model list")
+	}
+	foundGPTAudio := false
+	for _, model := range resp.GetModels() {
+		if model.GetModelId() == "gpt-audio" {
+			foundGPTAudio = true
+			break
 		}
 	}
-
-	if got := hits.Load(); got != 1 {
-		t.Fatalf("expected exactly one upstream /v1/models call, got %d", got)
+	if !foundGPTAudio {
+		t.Fatalf("expected openai catalog model gpt-audio in response")
+	}
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected zero upstream calls for YAML-only model listing, got %d", got)
 	}
 }
 
-func TestModelCacheIsolation(t *testing.T) {
-	cache := NewModelCache()
+func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
 
-	cache.Set("conn-1", []*runtimev1.ConnectorModelDescriptor{{ModelId: "m1"}})
-	cache.Set("conn-2", []*runtimev1.ConnectorModelDescriptor{{ModelId: "m2"}})
+	var hits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(server.Close)
 
-	got1 := cache.Get("conn-1")
-	got2 := cache.Get("conn-2")
-	if len(got1) != 1 || got1[0].ModelId != "m1" {
-		t.Error("conn-1 cache corrupted")
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
+		},
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Endpoint: server.URL,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
 	}
-	if len(got2) != 1 || got2[0].ModelId != "m2" {
-		t.Error("conn-2 cache corrupted")
+	connectorID := created.GetConnector().GetConnectorId()
+
+	first, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels first: %v", err)
+	}
+	refreshed, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId:  connectorID,
+		PageSize:     200,
+		ForceRefresh: true,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels force_refresh: %v", err)
+	}
+	if len(first.GetModels()) != len(refreshed.GetModels()) {
+		t.Fatalf("force_refresh should return same catalog-derived model count: first=%d refreshed=%d", len(first.GetModels()), len(refreshed.GetModels()))
+	}
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("force_refresh must not trigger outbound discovery, got %d upstream calls", got)
+	}
+}
+
+func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	var hits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		hits.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"data":[{"id":"gpt-audio","name":"gpt-audio"}]}`)
+	}))
+	t.Cleanup(server.Close)
+
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"openai": {BaseURL: server.URL, APIKey: "cloud-key"},
+		},
+		HTTPTimeout: 5 * time.Second,
+	}, nil, nil))
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Endpoint: server.URL,
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
 	}
 
-	cache.Invalidate("conn-1")
-	if cache.Get("conn-1") != nil {
-		t.Error("conn-1 should be invalidated")
+	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{
+		ConnectorId: created.GetConnector().GetConnectorId(),
+	})
+	if err != nil {
+		t.Fatalf("TestConnector: %v", err)
 	}
-	if cache.Get("conn-2") == nil {
-		t.Error("conn-2 should still be cached")
+	if !resp.GetAck().GetOk() {
+		t.Fatalf("expected probe success")
+	}
+	if got := hits.Load(); got != 1 {
+		t.Fatalf("expected exactly one outbound probe during TestConnector, got %d", got)
 	}
 }
 
@@ -809,7 +841,7 @@ models:
     model_id: qwen3-tts-instruct-flash-2026-01-26
     model_type: tts
     updated_at: "2026-01-26"
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     pricing:
       unit: char
       input: "unknown"
@@ -818,6 +850,8 @@ models:
       as_of: "2026-03-05"
       notes: custom test
     voice_set_id: dashscope:qwen3-tts-system-v1
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds: [preset_voice_id, provider_voice_ref]
     source_ref:
       url: https://example.com/model
       retrieved_at: "2026-03-05"

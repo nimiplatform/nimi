@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"context"
 	"errors"
 	"strings"
 
@@ -9,25 +8,20 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/ai/catalog"
 )
 
 type speechVoiceCatalogSource string
 
 const (
-	speechVoiceSourceProviderLive   speechVoiceCatalogSource = "provider_live"
 	speechVoiceSourceCatalogBuiltin speechVoiceCatalogSource = "catalog_builtin_snapshot"
 	speechVoiceSourceCatalogCustom  speechVoiceCatalogSource = "catalog_custom_dir"
-	speechVoiceSourceCatalogRemote  speechVoiceCatalogSource = "catalog_remote_cache"
 )
 
 func mapCatalogSource(source catalog.CatalogSource) speechVoiceCatalogSource {
 	switch source {
 	case catalog.SourceCustomDir:
 		return speechVoiceSourceCatalogCustom
-	case catalog.SourceRemoteCache:
-		return speechVoiceSourceCatalogRemote
 	case catalog.SourceBuiltinSnapshot:
 		fallthrough
 	default:
@@ -35,81 +29,11 @@ func mapCatalogSource(source catalog.CatalogSource) speechVoiceCatalogSource {
 	}
 }
 
-func shouldUseDashScopeCatalog(providerType string, modelResolved string) bool {
-	provider := strings.ToLower(strings.TrimSpace(providerType))
-	if provider == "dashscope" {
-		return true
-	}
-	model := strings.ToLower(strings.TrimSpace(modelResolved))
-	model = strings.TrimPrefix(model, "cloud/")
-	model = strings.TrimPrefix(model, "token/")
-	model = strings.TrimPrefix(model, "local/")
-	return strings.HasPrefix(model, "dashscope/") || strings.Contains(model, "qwen3-tts") || strings.Contains(model, "qwen-tts")
-}
-
-func resolveSpeechVoiceBackend(
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	selectedProvider provider,
-	cloudProvider *nimillm.CloudProvider,
-) *nimillm.Backend {
-	if cloudProvider != nil {
-		if remoteTarget != nil {
-			backend, _ := cloudProvider.ResolveMediaBackendWithTarget(modelResolved, remoteTarget)
-			if backend != nil {
-				return backend
-			}
-		} else {
-			backend, _ := cloudProvider.ResolveMediaBackend(modelResolved)
-			if backend != nil {
-				return backend
-			}
-		}
-	}
-
-	mediaProvider, ok := selectedProvider.(nimillm.MediaBackendProvider)
-	if !ok || mediaProvider == nil {
-		return nil
-	}
-	backend, _ := mediaProvider.ResolveMediaBackend(modelResolved)
-	return backend
-}
-
-func resolveSpeechVoicesForModel(
-	ctx context.Context,
-	modelResolved string,
-	remoteTarget *nimillm.RemoteTarget,
-	backend *nimillm.Backend,
-	voiceCatalog *catalog.Resolver,
-) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
-	providerType := ""
-	if remoteTarget != nil {
-		providerType = strings.TrimSpace(remoteTarget.ProviderType)
-	}
-	return resolveSpeechVoicesForModelWithProviderType(ctx, modelResolved, providerType, backend, voiceCatalog)
-}
-
 func resolveSpeechVoicesForModelWithProviderType(
-	ctx context.Context,
 	modelResolved string,
 	providerType string,
-	backend *nimillm.Backend,
 	voiceCatalog *catalog.Resolver,
 ) ([]*runtimev1.VoicePresetDescriptor, speechVoiceCatalogSource, string, error) {
-	if shouldUseDashScopeCatalog(providerType, modelResolved) {
-		return resolveCatalogVoices(modelResolved, providerType, voiceCatalog)
-	}
-
-	if backend != nil {
-		voices, err := backend.ListSpeechVoices(ctx, modelResolved)
-		if err == nil && len(voices) > 0 {
-			return voices, speechVoiceSourceProviderLive, "", nil
-		}
-		if err != nil && (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
-			return nil, "", "", err
-		}
-	}
-
 	return resolveCatalogVoices(modelResolved, providerType, voiceCatalog)
 }
 

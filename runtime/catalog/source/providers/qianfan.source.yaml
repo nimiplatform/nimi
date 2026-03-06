@@ -2,6 +2,12 @@ schema_version: 3
 provider: qianfan
 catalog_version: 2026-03-05-qianfan-v1
 generated_target: runtime/catalog/providers/qianfan.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://qianfan.baidubce.com/v2
+  requires_explicit_endpoint: false
 defaults:
   provider: qianfan
   model_type: chat
@@ -28,7 +34,7 @@ models:
   - model_id: ernie-5.0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -41,7 +47,7 @@ models:
   - model_id: ernie-4.5-turbo-128k
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -54,7 +60,7 @@ models:
   - model_id: embedding-v1
     model_type: embedding
     updated_at: 2026-03-05
-    capabilities: [embedding, text.embed, llm.embed]
+    capabilities: [text.embed]
     pricing:
       unit: token
       input: unknown

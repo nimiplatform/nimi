@@ -1,30 +1,25 @@
 package catalog
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
-	"time"
-)
 
-const (
-	defaultRefreshInterval  = 15 * time.Minute
-	defaultHTTPTimeout      = 10 * time.Second
-	defaultMaxRemotePayload = int64(2 * 1024 * 1024) // 2 MiB
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
 type indexedSnapshot struct {
-	catalogVersion string
-	models         map[string]map[string]ModelEntry
-	voicesBySet    map[string][]VoiceEntry
+	catalogVersion   string
+	models           map[string]map[string]ModelEntry
+	voicesBySet      map[string][]VoiceEntry
+	workflowModels   map[string]map[string]VoiceWorkflowModel
+	workflowBindings map[string]map[string]ModelWorkflowBinding
 }
 
 type Resolver struct {
@@ -36,20 +31,10 @@ type Resolver struct {
 	source            CatalogSource
 	builtInProviders  map[string]ProviderDocument
 	customProviders   map[string]ProviderDocument
-	remoteProviders   map[string]ProviderDocument
 	effective         map[string]ProviderDocument
 	sourcesByProvider map[string]ProviderSource
 
 	customDir string
-
-	remoteETag  string
-	cachePath   string
-	remoteURL   string
-	httpClient  *http.Client
-	maxBodySize int64
-
-	refreshInterval time.Duration
-	remoteEnabled   bool
 }
 
 func NewResolver(cfg ResolverConfig) (*Resolver, error) {
@@ -63,33 +48,13 @@ func NewResolver(cfg ResolverConfig) (*Resolver, error) {
 		return nil, err
 	}
 
-	refreshInterval := cfg.RefreshInterval
-	if refreshInterval <= 0 {
-		refreshInterval = defaultRefreshInterval
-	}
-	httpTimeout := cfg.HTTPTimeout
-	if httpTimeout <= 0 {
-		httpTimeout = defaultHTTPTimeout
-	}
-	maxBodySize := cfg.MaxRemotePayloadLen
-	if maxBodySize <= 0 {
-		maxBodySize = defaultMaxRemotePayload
-	}
-
 	resolver := &Resolver{
 		logger:            logger,
 		builtInProviders:  builtInProviders,
 		customProviders:   map[string]ProviderDocument{},
-		remoteProviders:   map[string]ProviderDocument{},
 		effective:         map[string]ProviderDocument{},
 		sourcesByProvider: map[string]ProviderSource{},
 		customDir:         strings.TrimSpace(cfg.CustomDir),
-		cachePath:         strings.TrimSpace(cfg.CachePath),
-		remoteURL:         strings.TrimSpace(cfg.RemoteURL),
-		httpClient:        &http.Client{Timeout: httpTimeout},
-		maxBodySize:       maxBodySize,
-		refreshInterval:   refreshInterval,
-		remoteEnabled:     cfg.RemoteEnabled,
 	}
 
 	if resolver.customDir != "" {
@@ -103,31 +68,6 @@ func NewResolver(cfg ResolverConfig) (*Resolver, error) {
 
 	if err := resolver.recomputeSnapshotLocked(); err != nil {
 		return nil, err
-	}
-
-	if resolver.remoteEnabled {
-		if resolver.cachePath != "" {
-			if cacheRaw, readErr := os.ReadFile(resolver.cachePath); readErr == nil {
-				if remoteProviders, parseErr := parseRemoteBundleYAML(cacheRaw); parseErr == nil {
-					resolver.remoteProviders = remoteProviders
-					if recomputeErr := resolver.recomputeSnapshotLocked(); recomputeErr != nil {
-						resolver.logger.Warn("catalog remote cache ignored", "path", resolver.cachePath, "error", recomputeErr)
-						resolver.remoteProviders = map[string]ProviderDocument{}
-						_ = resolver.recomputeSnapshotLocked()
-					}
-				} else {
-					resolver.logger.Warn("catalog remote cache parse failed", "path", resolver.cachePath, "error", parseErr)
-				}
-			} else if !os.IsNotExist(readErr) {
-				resolver.logger.Warn("catalog remote cache load failed", "path", resolver.cachePath, "error", readErr)
-			}
-			resolver.remoteETag = strings.TrimSpace(loadCachedETag(resolver.cachePath))
-		}
-		if resolver.remoteURL == "" {
-			resolver.logger.Warn("catalog remote enabled but url is empty")
-		} else {
-			go resolver.runRemoteRefreshLoop()
-		}
 	}
 
 	return resolver, nil
@@ -151,16 +91,7 @@ func (r *Resolver) ResolveVoices(providerType string, modelID string) (ResolveVo
 		return ResolveVoicesResult{}, ErrModelNotFound
 	}
 
-	providerModels := snapshot.models[provider]
-	if len(providerModels) == 0 {
-		return ResolveVoicesResult{}, ErrModelNotFound
-	}
-
-	modelEntry, ok := providerModels[normalizedModel]
-	if !ok {
-		base := modelIDBase(normalizedModel)
-		modelEntry, ok = providerModels[base]
-	}
+	modelEntry, ok := resolveModelEntry(snapshot, provider, normalizedModel)
 	if !ok {
 		return ResolveVoicesResult{}, ErrModelNotFound
 	}
@@ -199,6 +130,221 @@ func (r *Resolver) ResolveVoices(providerType string, modelID string) (ResolveVo
 		Source:         source,
 		Voices:         voices,
 	}, nil
+}
+
+// ResolveModelEntry resolves a model entry from the active catalog snapshot.
+func (r *Resolver) ResolveModelEntry(providerType string, modelID string) (ModelEntry, error) {
+	provider := normalizeProvider(providerType)
+	normalizedModel := normalizeLookupModelID(modelID, provider)
+	if provider == "" {
+		provider = inferProviderFromModel(normalizedModel)
+	}
+	if provider == "" || normalizedModel == "" {
+		return ModelEntry{}, ErrModelNotFound
+	}
+
+	r.mu.RLock()
+	snapshot := r.snapshot
+	r.mu.RUnlock()
+	if snapshot == nil {
+		return ModelEntry{}, ErrModelNotFound
+	}
+	modelEntry, ok := resolveModelEntry(snapshot, provider, normalizedModel)
+	if !ok {
+		return ModelEntry{}, ErrModelNotFound
+	}
+	return modelEntry, nil
+}
+
+// ListModelsForProvider returns the active catalog models for one canonical provider.
+func (r *Resolver) ListModelsForProvider(providerType string) ([]ModelEntry, CatalogSource, error) {
+	provider := normalizeProvider(providerType)
+	if provider == "" {
+		return nil, SourceBuiltinSnapshot, ErrProviderUnsupported
+	}
+
+	r.mu.RLock()
+	doc, ok := r.effective[provider]
+	source := r.source
+	r.mu.RUnlock()
+	if !ok {
+		return nil, source, ErrProviderUnsupported
+	}
+
+	models := append([]ModelEntry(nil), doc.Models...)
+	sort.Slice(models, func(i, j int) bool {
+		if models[i].ModelID == models[j].ModelID {
+			return models[i].UpdatedAt > models[j].UpdatedAt
+		}
+		return models[i].ModelID < models[j].ModelID
+	})
+	return models, source, nil
+}
+
+// ResolveVoiceWorkflow resolves the workflow model bound to a provider/model/workflow_type tuple.
+func (r *Resolver) ResolveVoiceWorkflow(providerType string, modelID string, workflowType string) (ResolveVoiceWorkflowResult, error) {
+	provider := normalizeProvider(providerType)
+	normalizedModel := normalizeLookupModelID(modelID, provider)
+	if provider == "" {
+		provider = inferProviderFromModel(normalizedModel)
+	}
+	if provider == "" || normalizedModel == "" {
+		return ResolveVoiceWorkflowResult{}, ErrModelNotFound
+	}
+	normalizedWorkflowType := normalizeWorkflowType(workflowType)
+	if normalizedWorkflowType == "" {
+		return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
+	}
+
+	r.mu.RLock()
+	snapshot := r.snapshot
+	source := r.source
+	r.mu.RUnlock()
+	if snapshot == nil {
+		return ResolveVoiceWorkflowResult{}, ErrModelNotFound
+	}
+
+	modelEntry, ok := resolveModelEntry(snapshot, provider, normalizedModel)
+	if !ok {
+		return ResolveVoiceWorkflowResult{}, ErrModelNotFound
+	}
+	binding, ok := resolveModelWorkflowBinding(snapshot, provider, normalizedModel)
+	if !ok {
+		return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
+	}
+	if !bindingSupportsWorkflowType(binding, normalizedWorkflowType) {
+		return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
+	}
+	for _, workflowModelRef := range binding.WorkflowModelRefs {
+		workflowModel, workflowModelOK := resolveWorkflowModel(snapshot, provider, workflowModelRef)
+		if !workflowModelOK {
+			continue
+		}
+		if normalizeWorkflowType(workflowModel.WorkflowType) != normalizedWorkflowType {
+			continue
+		}
+		return ResolveVoiceWorkflowResult{
+			Provider:          provider,
+			ModelID:           strings.TrimSpace(modelEntry.ModelID),
+			WorkflowType:      normalizedWorkflowType,
+			WorkflowModelID:   strings.TrimSpace(workflowModel.WorkflowModelID),
+			OutputPersistence: strings.TrimSpace(workflowModel.OutputPersistence),
+			CatalogVersion:    snapshot.catalogVersion,
+			Source:            source,
+		}, nil
+	}
+	return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
+}
+
+// SupportsScenario reports whether a provider/model pair declares the capability
+// needed by scenarioType in catalog metadata.
+func (r *Resolver) SupportsScenario(providerType string, modelID string, scenarioType runtimev1.ScenarioType) (bool, error) {
+	model, err := r.ResolveModelEntry(providerType, modelID)
+	if err != nil {
+		return false, err
+	}
+	capabilities := make(map[string]struct{}, len(model.Capabilities))
+	for _, capability := range model.Capabilities {
+		normalized := aicapabilities.NormalizeCatalogCapability(capability)
+		if normalized == "" {
+			continue
+		}
+		capabilities[normalized] = struct{}{}
+	}
+	hasAny := func(values ...string) bool {
+		for _, value := range values {
+			if _, ok := capabilities[value]; ok {
+				return true
+			}
+		}
+		return false
+	}
+
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
+		return hasAny(aicapabilities.TextGenerate), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		return hasAny(aicapabilities.TextEmbed), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+		return hasAny(aicapabilities.ImageGenerate), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+		return hasAny(aicapabilities.VideoGenerate), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return hasAny(aicapabilities.AudioSynthesize), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
+		return hasAny(aicapabilities.AudioTranscribe), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
+		_, workflowErr := r.ResolveVoiceWorkflow(providerType, modelID, "tts_v2v")
+		if workflowErr == nil {
+			return true, nil
+		}
+		if workflowErr == ErrVoiceWorkflowUnsupported {
+			return false, nil
+		}
+		return false, workflowErr
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		_, workflowErr := r.ResolveVoiceWorkflow(providerType, modelID, "tts_t2v")
+		if workflowErr == nil {
+			return true, nil
+		}
+		if workflowErr == ErrVoiceWorkflowUnsupported {
+			return false, nil
+		}
+		return false, workflowErr
+	default:
+		return false, nil
+	}
+}
+
+func resolveModelEntry(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelEntry, bool) {
+	providerModels := snapshot.models[provider]
+	if len(providerModels) == 0 {
+		return ModelEntry{}, false
+	}
+	modelEntry, ok := providerModels[normalizedModel]
+	if ok {
+		return modelEntry, true
+	}
+	base := modelIDBase(normalizedModel)
+	modelEntry, ok = providerModels[base]
+	return modelEntry, ok
+}
+
+func resolveModelWorkflowBinding(snapshot *indexedSnapshot, provider string, normalizedModel string) (ModelWorkflowBinding, bool) {
+	providerBindings := snapshot.workflowBindings[provider]
+	if len(providerBindings) == 0 {
+		return ModelWorkflowBinding{}, false
+	}
+	binding, ok := providerBindings[normalizedModel]
+	if ok {
+		return binding, true
+	}
+	base := modelIDBase(normalizedModel)
+	binding, ok = providerBindings[base]
+	return binding, ok
+}
+
+func resolveWorkflowModel(snapshot *indexedSnapshot, provider string, workflowModelID string) (VoiceWorkflowModel, bool) {
+	providerModels := snapshot.workflowModels[provider]
+	if len(providerModels) == 0 {
+		return VoiceWorkflowModel{}, false
+	}
+	normalizedWorkflowModelID := normalizeID(workflowModelID)
+	workflowModel, ok := providerModels[normalizedWorkflowModelID]
+	return workflowModel, ok
+}
+
+func bindingSupportsWorkflowType(binding ModelWorkflowBinding, workflowType string) bool {
+	normalizedWorkflowType := normalizeWorkflowType(workflowType)
+	if normalizedWorkflowType == "" {
+		return false
+	}
+	for _, item := range binding.WorkflowTypes {
+		if normalizeWorkflowType(item) == normalizedWorkflowType {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Resolver) SupportsVoice(providerType string, modelID string, voiceID string) (ResolveVoicesResult, bool, error) {
@@ -331,7 +477,7 @@ func (r *Resolver) recordForProviderLocked(provider string) CatalogProviderRecor
 }
 
 func (r *Resolver) recomputeSnapshotLocked() error {
-	merged := mergeProviderDocuments(r.builtInProviders, r.customProviders, r.remoteProviders)
+	merged := mergeProviderDocuments(r.builtInProviders, r.customProviders)
 	snapshot, err := buildSnapshotFromProviderDocuments(merged)
 	if err != nil {
 		return err
@@ -347,19 +493,13 @@ func (r *Resolver) recomputeSnapshotLocked() error {
 	for provider := range r.customProviders {
 		sources[provider] = ProviderSourceCustom
 	}
-	for provider := range r.remoteProviders {
-		sources[provider] = ProviderSourceRemote
-	}
 
 	r.snapshot = indexed
 	r.effective = merged
 	r.sourcesByProvider = sources
-	switch {
-	case len(r.remoteProviders) > 0:
-		r.source = SourceRemoteCache
-	case len(r.customProviders) > 0:
+	if len(r.customProviders) > 0 {
 		r.source = SourceCustomDir
-	default:
+	} else {
 		r.source = SourceBuiltinSnapshot
 	}
 	return nil
@@ -370,9 +510,11 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 		return nil, err
 	}
 	indexed := &indexedSnapshot{
-		catalogVersion: strings.TrimSpace(snapshot.CatalogVersion),
-		models:         make(map[string]map[string]ModelEntry),
-		voicesBySet:    make(map[string][]VoiceEntry),
+		catalogVersion:   strings.TrimSpace(snapshot.CatalogVersion),
+		models:           make(map[string]map[string]ModelEntry),
+		voicesBySet:      make(map[string][]VoiceEntry),
+		workflowModels:   make(map[string]map[string]VoiceWorkflowModel),
+		workflowBindings: make(map[string]map[string]ModelWorkflowBinding),
 	}
 	if indexed.catalogVersion == "" {
 		indexed.catalogVersion = "unknown"
@@ -399,6 +541,56 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 		}
 		setKey := provider + ":" + voiceSetID
 		indexed.voicesBySet[setKey] = append(indexed.voicesBySet[setKey], voice)
+	}
+
+	for _, workflowModel := range snapshot.VoiceWorkflowModels {
+		provider := inferProviderFromWorkflowModelID(workflowModel.WorkflowModelID, workflowModel.TargetModelRefs, map[string]ModelEntry{})
+		if provider == "" {
+			for _, targetModelRaw := range workflowModel.TargetModelRefs {
+				targetModelID := normalizeLookupModelID(targetModelRaw, "")
+				for candidateProvider, modelMap := range indexed.models {
+					if _, ok := modelMap[targetModelID]; ok {
+						provider = candidateProvider
+						break
+					}
+					if _, ok := modelMap[modelIDBase(targetModelID)]; ok {
+						provider = candidateProvider
+						break
+					}
+				}
+				if provider != "" {
+					break
+				}
+			}
+		}
+		provider = normalizeProvider(provider)
+		if provider == "" {
+			continue
+		}
+		if indexed.workflowModels[provider] == nil {
+			indexed.workflowModels[provider] = make(map[string]VoiceWorkflowModel)
+		}
+		indexed.workflowModels[provider][normalizeID(workflowModel.WorkflowModelID)] = workflowModel
+	}
+
+	for _, binding := range snapshot.ModelWorkflowBindings {
+		modelID := normalizeLookupModelID(binding.ModelID, "")
+		if modelID == "" {
+			continue
+		}
+		for provider, modelMap := range indexed.models {
+			if _, ok := modelMap[modelID]; !ok {
+				if _, baseOK := modelMap[modelIDBase(modelID)]; !baseOK {
+					continue
+				}
+			}
+			if indexed.workflowBindings[provider] == nil {
+				indexed.workflowBindings[provider] = make(map[string]ModelWorkflowBinding)
+			}
+			indexed.workflowBindings[provider][modelID] = binding
+			indexed.workflowBindings[provider][modelIDBase(modelID)] = binding
+			break
+		}
 	}
 	return indexed, nil
 }
@@ -427,25 +619,23 @@ func modelIDBase(value string) string {
 
 func inferProviderFromModel(modelID string) string {
 	normalized := strings.TrimSpace(strings.ToLower(modelID))
+	if idx := strings.Index(normalized, "/"); idx > 0 {
+		prefix := strings.TrimSpace(normalized[:idx])
+		if providerregistry.Contains(prefix) {
+			return prefix
+		}
+	}
 	switch {
 	case strings.HasPrefix(normalized, "local/"):
 		return "local"
 	case normalized == "qwen3-tts-local", normalized == "qwen3-tts", strings.Contains(normalized, "qwen/qwen3-tts-8b"):
 		return "local"
-	case strings.HasPrefix(normalized, "dashscope/"):
-		return "dashscope"
 	case strings.Contains(normalized, "qwen3-tts"), strings.Contains(normalized, "qwen-tts"):
 		return "dashscope"
-	case strings.HasPrefix(normalized, "openai/"):
-		return "openai"
 	case strings.Contains(normalized, "gpt-audio"), strings.HasPrefix(normalized, "tts-1"):
 		return "openai"
-	case strings.HasPrefix(normalized, "volcengine/"):
-		return "volcengine"
 	case strings.Contains(normalized, "doubao-tts"), strings.Contains(normalized, "bv001_streaming"), strings.Contains(normalized, "bv002_streaming"):
 		return "volcengine"
-	case strings.HasPrefix(normalized, "elevenlabs/"):
-		return "elevenlabs"
 	case strings.HasPrefix(normalized, "eleven_"), strings.HasPrefix(normalized, "eleven-"):
 		return "elevenlabs"
 	default:
@@ -493,125 +683,4 @@ func voiceMatchesModel(entry VoiceEntry, modelID string) bool {
 		}
 	}
 	return false
-}
-
-func (r *Resolver) runRemoteRefreshLoop() {
-	if err := r.refreshRemote(context.Background()); err != nil {
-		r.logger.Warn("catalog remote refresh failed", "error", err)
-	}
-
-	ticker := time.NewTicker(r.refreshInterval)
-	defer ticker.Stop()
-	for range ticker.C {
-		if err := r.refreshRemote(context.Background()); err != nil {
-			r.logger.Warn("catalog remote refresh failed", "error", err)
-		}
-	}
-}
-
-func (r *Resolver) refreshRemote(ctx context.Context) error {
-	parsedURL, err := url.Parse(r.remoteURL)
-	if err != nil {
-		return fmt.Errorf("parse remote url: %w", err)
-	}
-	if !strings.EqualFold(strings.TrimSpace(parsedURL.Scheme), "https") {
-		return fmt.Errorf("remote catalog url must use https")
-	}
-	if strings.TrimSpace(parsedURL.Host) == "" {
-		return fmt.Errorf("remote catalog url must include host")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
-	if err != nil {
-		return fmt.Errorf("build remote request: %w", err)
-	}
-
-	r.mu.RLock()
-	etag := strings.TrimSpace(r.remoteETag)
-	r.mu.RUnlock()
-	if etag != "" {
-		req.Header.Set("If-None-Match", etag)
-	}
-
-	resp, err := r.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("remote request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotModified {
-		return nil
-	}
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return fmt.Errorf("remote request returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, r.maxBodySize+1))
-	if err != nil {
-		return fmt.Errorf("read remote body: %w", err)
-	}
-	if int64(len(body)) > r.maxBodySize {
-		return fmt.Errorf("remote payload exceeds limit %d bytes", r.maxBodySize)
-	}
-
-	remoteProviders, err := parseRemoteBundleYAML(body)
-	if err != nil {
-		return fmt.Errorf("parse remote catalog: %w", err)
-	}
-
-	r.mu.Lock()
-	r.remoteProviders = remoteProviders
-	if err := r.recomputeSnapshotLocked(); err != nil {
-		r.mu.Unlock()
-		return fmt.Errorf("apply remote catalog: %w", err)
-	}
-	newETag := strings.TrimSpace(resp.Header.Get("ETag"))
-	r.remoteETag = newETag
-	r.mu.Unlock()
-
-	if r.cachePath != "" {
-		if writeErr := writeCacheFile(r.cachePath, body); writeErr != nil {
-			r.logger.Warn("catalog cache write failed", "path", r.cachePath, "error", writeErr)
-		}
-		if newETag != "" {
-			if writeErr := writeCachedETag(r.cachePath, newETag); writeErr != nil {
-				r.logger.Warn("catalog etag cache write failed", "path", r.cachePath, "error", writeErr)
-			}
-		}
-	}
-
-	return nil
-}
-
-func writeCacheFile(path string, body []byte) error {
-	if strings.TrimSpace(path) == "" {
-		return nil
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(path, body, 0o600)
-}
-
-func etagCachePath(cachePath string) string {
-	return cachePath + ".etag"
-}
-
-func writeCachedETag(cachePath string, etag string) error {
-	if strings.TrimSpace(cachePath) == "" {
-		return nil
-	}
-	return os.WriteFile(etagCachePath(cachePath), []byte(strings.TrimSpace(etag)), 0o600)
-}
-
-func loadCachedETag(cachePath string) string {
-	if strings.TrimSpace(cachePath) == "" {
-		return ""
-	}
-	content, err := os.ReadFile(etagCachePath(cachePath))
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(content))
 }

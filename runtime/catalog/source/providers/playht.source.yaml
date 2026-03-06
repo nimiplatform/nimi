@@ -2,11 +2,17 @@ schema_version: 3
 provider: playht
 catalog_version: 2026-03-05-playht-v1
 generated_target: runtime/catalog/providers/playht.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 resolution_mode: model_anchor_v2
 defaults:
   provider: playht
   model_type: tts
-  capabilities: [tts, llm.speech.synthesize]
+  capabilities: [audio.synthesize]
   pricing:
     unit: request
     input: unknown
@@ -28,15 +34,31 @@ sources:
 language_profiles:
   short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
 
-voice_sets: []
+voice_sets:
+  - voice_set_id: default-voices-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [playht_tts_stream_doc]
+    voices:
+      - voice_id: s3://voice-cloning-zero-shot/d82d246c-148b-457f-9668-37b789520891/adolfosaad/manifest.json
+        name: Adolfo
+        langs: [en-US]
+      - voice_id: s3://voice-cloning-zero-shot/a59cb96d-bba8-4e24-81f2-e60b888a0275/charlottenarrativesaad/manifest.json
+        name: Charlotte (Narrative)
+        langs: [en-CA]
+      - voice_id: s3://voice-cloning-zero-shot/1afba232-fae0-4b69-9675-7f1aac69349f/delilahsaad/manifest.json
+        name: Delilah
+        langs: [en-US]
+      - voice_id: s3://voice-cloning-zero-shot/2879ab87-3775-4992-a228-7e4f551658c2/fredericksaad2/manifest.json
+        name: Frederick
+        langs: [en-GB]
 
 models:
   - model_id: playht-tts-2.0
     updated_at: 2026-03-05
     source_ids: [playht_tts_stream_doc, playht_voice_clone_doc]
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: playht_dynamic_global_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
       langs_ref: short_multilingual_v1
 

@@ -2,6 +2,12 @@ schema_version: 3
 provider: openrouter
 catalog_version: 2026-03-05-openrouter-v1
 generated_target: runtime/catalog/providers/openrouter.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://openrouter.ai/api/v1
+  requires_explicit_endpoint: false
 defaults:
   provider: openrouter
   model_type: chat
@@ -28,7 +34,7 @@ models:
   - model_id: openrouter/auto
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown

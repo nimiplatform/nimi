@@ -2,6 +2,12 @@ schema_version: 3
 provider: luma
 catalog_version: 2026-03-05-luma-v1
 generated_target: runtime/catalog/providers/luma.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: luma
   model_type: video
@@ -28,7 +34,7 @@ models:
   - model_id: ray-3
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [luma_video_generation_doc, luma_create_generation_api_doc]
     video_generation:
       modes: [t2v, i2v_first_frame, i2v_first_last]
@@ -48,7 +54,7 @@ models:
   - model_id: ray-2
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [luma_video_generation_doc, luma_create_generation_api_doc]
     video_generation:
       modes: [t2v, i2v_first_frame, i2v_first_last]
@@ -68,7 +74,7 @@ models:
   - model_id: ray-flash-2
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [luma_video_generation_doc, luma_create_generation_api_doc]
     video_generation:
       modes: [t2v, i2v_first_frame, i2v_first_last]

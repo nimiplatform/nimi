@@ -7,8 +7,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -30,8 +29,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -51,8 +49,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -72,8 +69,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -95,8 +91,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -118,8 +113,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -141,8 +135,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -154,8 +147,8 @@ models:
       url: https://github.com/rhasspy/piper
       retrieved_at: 2026-03-05
       note: Piper repository.
-    voice_set_id: local:local_piper_dynamic_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: local:piper-defaults-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -164,8 +157,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -177,12 +169,96 @@ models:
       url: https://github.com/hexgrad/kokoro
       retrieved_at: 2026-03-05
       note: Kokoro repository.
-    voice_set_id: local:local_kokoro_dynamic_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: local:kokoro-defaults-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
 voices:
+  - voice_id: en_US-lessac-medium
+    voice_set_id: local:piper-defaults-v1
+    provider: local
+    name: Lessac
+    langs:
+      - en-US
+    model_ids:
+      - piper-local
+    source_ref:
+      url: https://github.com/rhasspy/piper
+      retrieved_at: 2026-03-05
+      note: Piper repository.
+  - voice_id: en_GB-alan-medium
+    voice_set_id: local:piper-defaults-v1
+    provider: local
+    name: Alan
+    langs:
+      - en-GB
+    model_ids:
+      - piper-local
+    source_ref:
+      url: https://github.com/rhasspy/piper
+      retrieved_at: 2026-03-05
+      note: Piper repository.
+  - voice_id: fr_FR-siwis-medium
+    voice_set_id: local:piper-defaults-v1
+    provider: local
+    name: Siwis
+    langs:
+      - fr-FR
+    model_ids:
+      - piper-local
+    source_ref:
+      url: https://github.com/rhasspy/piper
+      retrieved_at: 2026-03-05
+      note: Piper repository.
+  - voice_id: af_bella
+    voice_set_id: local:kokoro-defaults-v1
+    provider: local
+    name: Bella
+    langs:
+      - en-US
+    model_ids:
+      - kokoro-local
+    source_ref:
+      url: https://github.com/hexgrad/kokoro
+      retrieved_at: 2026-03-05
+      note: Kokoro repository.
+  - voice_id: af_sarah
+    voice_set_id: local:kokoro-defaults-v1
+    provider: local
+    name: Sarah
+    langs:
+      - en-US
+    model_ids:
+      - kokoro-local
+    source_ref:
+      url: https://github.com/hexgrad/kokoro
+      retrieved_at: 2026-03-05
+      note: Kokoro repository.
+  - voice_id: am_adam
+    voice_set_id: local:kokoro-defaults-v1
+    provider: local
+    name: Adam
+    langs:
+      - en-US
+    model_ids:
+      - kokoro-local
+    source_ref:
+      url: https://github.com/hexgrad/kokoro
+      retrieved_at: 2026-03-05
+      note: Kokoro repository.
+  - voice_id: bm_george
+    voice_set_id: local:kokoro-defaults-v1
+    provider: local
+    name: George
+    langs:
+      - en-GB
+    model_ids:
+      - kokoro-local
+    source_ref:
+      url: https://github.com/hexgrad/kokoro
+      retrieved_at: 2026-03-05
+      note: Kokoro repository.
   - voice_id: user-custom
     voice_set_id: local:qwen3-tts-local-dynamic
     provider: local
@@ -269,45 +345,3 @@ voices:
       url: https://github.com/SWivid/F5-TTS
       retrieved_at: 2026-03-05
       note: F5-TTS repository.
-  - voice_id: preset-dynamic
-    voice_set_id: local:local_piper_dynamic_voice_set
-    provider: local
-    name: Dynamic Preset Voices
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - piper-local
-    source_ref:
-      url: https://github.com/rhasspy/piper
-      retrieved_at: 2026-03-05
-      note: Piper repository.
-  - voice_id: preset-dynamic
-    voice_set_id: local:local_kokoro_dynamic_voice_set
-    provider: local
-    name: Dynamic Preset Voices
-    langs:
-      - zh
-      - en
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
-    model_ids:
-      - kokoro-local
-    source_ref:
-      url: https://github.com/hexgrad/kokoro
-      retrieved_at: 2026-03-05
-      note: Kokoro repository.

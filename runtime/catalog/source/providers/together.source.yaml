@@ -2,6 +2,12 @@ schema_version: 3
 provider: together
 catalog_version: 2026-03-05-together-v1
 generated_target: runtime/catalog/providers/together.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: together
   model_type: chat
@@ -24,7 +30,7 @@ models:
   - model_id: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -39,7 +45,7 @@ models:
   - model_id: meta-llama/Llama-4-Scout-17B-16E-Instruct
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -54,7 +60,7 @@ models:
   - model_id: deepseek-ai/DeepSeek-R1
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -69,7 +75,7 @@ models:
   - model_id: Qwen/Qwen3-235B-A22B-fp8
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown

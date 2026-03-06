@@ -124,8 +124,8 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 	if remoteTarget != nil {
 		providerType = strings.TrimSpace(remoteTarget.ProviderType)
 	}
-	backend := resolveSpeechVoiceBackend(modelResolved, remoteTarget, selectedProvider, s.selector.cloudProvider)
-	voices, source, catalogVersion, err := resolveSpeechVoicesForModel(ctx, modelResolved, remoteTarget, backend, s.speechCatalog)
+	_ = selectedProvider
+	voices, source, catalogVersion, err := resolveSpeechVoicesForModelWithProviderType(modelResolved, providerType, s.speechCatalog)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,12 @@ schema_version: 3
 provider: groq
 catalog_version: 2026-03-05-groq-v1
 generated_target: runtime/catalog/providers/groq.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.groq.com/openai/v1
+  requires_explicit_endpoint: false
 defaults:
   provider: groq
   model_type: chat
@@ -24,7 +30,7 @@ models:
   - model_id: meta-llama/llama-4-scout-17b-16e-instruct
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -39,7 +45,7 @@ models:
   - model_id: meta-llama/llama-4-maverick-17b-128e-instruct
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -54,7 +60,7 @@ models:
   - model_id: deepseek-r1-distill-llama-70b
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -67,7 +73,7 @@ models:
   - model_id: llama-3.3-70b-versatile
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown

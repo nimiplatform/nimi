@@ -2,6 +2,12 @@ schema_version: 3
 provider: openai
 catalog_version: 2026-03-05-openai-v1
 generated_target: runtime/catalog/providers/openai.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.openai.com/v1
+  requires_explicit_endpoint: false
 resolution_mode: model_anchor_v2
 defaults:
   provider: openai
@@ -20,6 +26,10 @@ sources:
     url: https://platform.openai.com/docs/guides/text-to-speech
     retrieved_at: 2026-03-05
     note: OpenAI text-to-speech documentation.
+  - source_id: openai_speech_to_text_doc
+    url: https://platform.openai.com/docs/guides/speech-to-text
+    retrieved_at: 2026-03-05
+    note: OpenAI speech-to-text documentation.
   - source_id: openai_models_doc
     url: https://platform.openai.com/docs/models
     retrieved_at: 2026-03-05
@@ -67,7 +77,7 @@ voice_sets:
 models:
   - model_id: gpt-audio
     updated_at: 2026-03-05
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     source_ids: [openai_tts_doc]
     voice:
       discovery_mode: static_catalog
@@ -77,7 +87,7 @@ models:
 
   - model_id: gpt-audio-mini
     updated_at: 2026-03-05
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     source_ids: [openai_tts_doc]
     voice:
       discovery_mode: static_catalog
@@ -87,7 +97,7 @@ models:
 
   - model_id: tts-1
     updated_at: 2026-03-05
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     source_ids: [openai_tts_doc]
     pricing:
       unit: token
@@ -102,10 +112,49 @@ models:
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
 
+  - model_id: gpt-4o-transcribe
+    model_type: stt
+    updated_at: 2026-03-05
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Speech-to-text pricing varies by audio token volume and contract tier.
+    source_ids: [openai_speech_to_text_doc, openai_models_doc]
+
+  - model_id: gpt-4o-mini-transcribe
+    model_type: stt
+    updated_at: 2026-03-05
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Speech-to-text pricing varies by audio token volume and contract tier.
+    source_ids: [openai_speech_to_text_doc, openai_models_doc]
+
+  - model_id: whisper-1
+    model_type: stt
+    updated_at: 2026-03-05
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-05
+      notes: Legacy speech-to-text pricing varies by audio token volume and contract tier.
+    source_ids: [openai_speech_to_text_doc, openai_models_doc]
+
   - model_id: gpt-5.2
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -120,7 +169,7 @@ models:
   - model_id: gpt-5.2-pro
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -133,7 +182,7 @@ models:
   - model_id: text-embedding-3-large
     model_type: embedding
     updated_at: 2026-03-05
-    capabilities: [embedding, text.embed, llm.embed]
+    capabilities: [text.embed]
     pricing:
       unit: token
       input: unknown
@@ -146,7 +195,7 @@ models:
   - model_id: gpt-image-1.5
     model_type: image
     updated_at: 2026-03-05
-    capabilities: [image, image.generate, llm.image.generate]
+    capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
@@ -161,7 +210,7 @@ models:
   - model_id: o3
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -174,7 +223,7 @@ models:
   - model_id: o3-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -187,7 +236,7 @@ models:
   - model_id: gpt-5.3-codex
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -200,7 +249,7 @@ models:
   - model_id: sora-2
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     pricing:
       unit: request
       input: unknown

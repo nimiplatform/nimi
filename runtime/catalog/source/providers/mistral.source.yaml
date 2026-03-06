@@ -2,6 +2,12 @@ schema_version: 3
 provider: mistral
 catalog_version: 2026-03-05-mistral-v1
 generated_target: runtime/catalog/providers/mistral.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.mistral.ai/v1
+  requires_explicit_endpoint: false
 defaults:
   provider: mistral
   model_type: chat
@@ -32,7 +38,7 @@ models:
   - model_id: mistral-large-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -45,7 +51,7 @@ models:
   - model_id: mistral-medium-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -58,7 +64,7 @@ models:
   - model_id: mistral-small-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -71,7 +77,7 @@ models:
   - model_id: codestral-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -84,7 +90,7 @@ models:
   - model_id: mistral-embed
     model_type: embedding
     updated_at: 2026-03-05
-    capabilities: [embedding, text.embed, llm.embed]
+    capabilities: [text.embed]
     pricing:
       unit: token
       input: unknown

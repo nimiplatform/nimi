@@ -7,8 +7,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -20,27 +19,54 @@ models:
       url: https://cloud.google.com/text-to-speech/docs
       retrieved_at: 2026-03-05
       note: Google Cloud Text-to-Speech documentation.
-    voice_set_id: google_cloud_tts:google_dynamic_global_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
 voices:
-  - voice_id: preset-dynamic
-    voice_set_id: google_cloud_tts:google_dynamic_global_voice_set
+  - voice_id: en-US-Chirp3-HD-Charon
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
     provider: google_cloud_tts
-    name: Dynamic Preset Voices
+    name: Charon
     langs:
-      - en
-      - zh
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
+      - en-US
+    model_ids:
+      - chirp-3-hd
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs
+      retrieved_at: 2026-03-05
+      note: Google Cloud Text-to-Speech documentation.
+  - voice_id: en-US-Chirp3-HD-Kore
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    provider: google_cloud_tts
+    name: Kore
+    langs:
+      - en-US
+    model_ids:
+      - chirp-3-hd
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs
+      retrieved_at: 2026-03-05
+      note: Google Cloud Text-to-Speech documentation.
+  - voice_id: ja-JP-Chirp3-HD-Leda
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    provider: google_cloud_tts
+    name: Leda
+    langs:
+      - ja-JP
+    model_ids:
+      - chirp-3-hd
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs
+      retrieved_at: 2026-03-05
+      note: Google Cloud Text-to-Speech documentation.
+  - voice_id: cmn-CN-Chirp3-HD-Orus
+    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    provider: google_cloud_tts
+    name: Orus
+    langs:
+      - cmn-CN
     model_ids:
       - chirp-3-hd
     source_ref:

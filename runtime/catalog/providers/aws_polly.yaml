@@ -7,8 +7,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -20,27 +19,66 @@ models:
       url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
       retrieved_at: 2026-03-05
       note: AWS Polly API reference root.
-    voice_set_id: aws_polly:aws_polly_dynamic_global_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: aws_polly:neural-defaults-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
 voices:
-  - voice_id: preset-dynamic
-    voice_set_id: aws_polly:aws_polly_dynamic_global_voice_set
+  - voice_id: Joanna
+    voice_set_id: aws_polly:neural-defaults-v1
     provider: aws_polly
-    name: Dynamic Preset Voices
+    name: Joanna
     langs:
-      - en
-      - zh
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
+      - en-US
+    model_ids:
+      - polly-neural-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
+      retrieved_at: 2026-03-05
+      note: AWS Polly API reference root.
+  - voice_id: Matthew
+    voice_set_id: aws_polly:neural-defaults-v1
+    provider: aws_polly
+    name: Matthew
+    langs:
+      - en-US
+    model_ids:
+      - polly-neural-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
+      retrieved_at: 2026-03-05
+      note: AWS Polly API reference root.
+  - voice_id: Amy
+    voice_set_id: aws_polly:neural-defaults-v1
+    provider: aws_polly
+    name: Amy
+    langs:
+      - en-GB
+    model_ids:
+      - polly-neural-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
+      retrieved_at: 2026-03-05
+      note: AWS Polly API reference root.
+  - voice_id: Brian
+    voice_set_id: aws_polly:neural-defaults-v1
+    provider: aws_polly
+    name: Brian
+    langs:
+      - en-GB
+    model_ids:
+      - polly-neural-tts
+    source_ref:
+      url: https://docs.aws.amazon.com/polly/latest/dg/API_Reference.html
+      retrieved_at: 2026-03-05
+      note: AWS Polly API reference root.
+  - voice_id: Zhiyu
+    voice_set_id: aws_polly:neural-defaults-v1
+    provider: aws_polly
+    name: Zhiyu
+    langs:
+      - cmn-CN
     model_ids:
       - polly-neural-tts
     source_ref:

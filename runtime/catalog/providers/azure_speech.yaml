@@ -7,8 +7,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -20,27 +19,54 @@ models:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
       retrieved_at: 2026-03-05
       note: Azure Speech text-to-speech baseline capability.
-    voice_set_id: azure_speech:azure_dynamic_global_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: azure_speech:neural-defaults-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
 voices:
-  - voice_id: preset-dynamic
-    voice_set_id: azure_speech:azure_dynamic_global_voice_set
+  - voice_id: en-US-JennyNeural
+    voice_set_id: azure_speech:neural-defaults-v1
     provider: azure_speech
-    name: Dynamic Preset Voices
+    name: Jenny
     langs:
-      - en
-      - zh
-      - de
-      - it
-      - pt
-      - es
-      - ja
-      - ko
-      - fr
-      - ru
+      - en-US
+    model_ids:
+      - azure-neural-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
+      retrieved_at: 2026-03-05
+      note: Azure Speech text-to-speech baseline capability.
+  - voice_id: en-US-GuyNeural
+    voice_set_id: azure_speech:neural-defaults-v1
+    provider: azure_speech
+    name: Guy
+    langs:
+      - en-US
+    model_ids:
+      - azure-neural-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
+      retrieved_at: 2026-03-05
+      note: Azure Speech text-to-speech baseline capability.
+  - voice_id: zh-CN-XiaoxiaoNeural
+    voice_set_id: azure_speech:neural-defaults-v1
+    provider: azure_speech
+    name: Xiaoxiao
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-neural-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
+      retrieved_at: 2026-03-05
+      note: Azure Speech text-to-speech baseline capability.
+  - voice_id: ja-JP-NanamiNeural
+    voice_set_id: azure_speech:neural-defaults-v1
+    provider: azure_speech
+    name: Nanami
+    langs:
+      - ja-JP
     model_ids:
       - azure-neural-tts
     source_ref:

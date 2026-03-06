@@ -2,6 +2,12 @@ schema_version: 3
 provider: perplexity
 catalog_version: 2026-03-05-perplexity-v1
 generated_target: runtime/catalog/providers/perplexity.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: perplexity
   model_type: chat
@@ -24,7 +30,7 @@ models:
   - model_id: sonar-pro
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -37,7 +43,7 @@ models:
   - model_id: sonar
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -50,7 +56,7 @@ models:
   - model_id: sonar-reasoning-pro
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -63,7 +69,7 @@ models:
   - model_id: sonar-reasoning
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown

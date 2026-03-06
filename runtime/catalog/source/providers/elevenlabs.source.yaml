@@ -2,11 +2,17 @@ schema_version: 3
 provider: elevenlabs
 catalog_version: 2026-03-05-elevenlabs-v1
 generated_target: runtime/catalog/providers/elevenlabs.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 resolution_mode: model_anchor_v2
 defaults:
   provider: elevenlabs
   model_type: tts
-  capabilities: [tts, llm.speech.synthesize]
+  capabilities: [audio.synthesize]
   pricing:
     unit: request
     input: unknown
@@ -48,38 +54,50 @@ sources:
 language_profiles:
   short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
 
-voice_sets: []
+voice_sets:
+  - voice_set_id: default-voices-v1
+    langs: [en]
+    source_ids: [elevenlabs_voices]
+    voices:
+      - voice_id: 21m00Tcm4TlvDq8ikWAM
+        name: Rachel
+      - voice_id: AZnzlk1XvdvUeBnXmlld
+        name: Domi
+      - voice_id: EXAVITQu4vr4xnSDxMaL
+        name: Bella
+      - voice_id: TxGEqnHWrfWFTfGW9XjX
+        name: Josh
 
 models:
   - model_id: eleven_v3
     updated_at: 2026-03-05
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_multilingual_v2
     updated_at: 2026-03-05
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_flash_v2_5
     updated_at: 2026-03-05
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]
   - model_id: eleven_turbo_v2_5
     updated_at: 2026-03-05
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: elevenlabs_shared_dynamic_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
       supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
       langs_ref: short_multilingual_v1
     source_ids: [elevenlabs_models, elevenlabs_tts_convert, elevenlabs_voices]

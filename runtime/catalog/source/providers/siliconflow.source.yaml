@@ -2,6 +2,12 @@ schema_version: 3
 provider: siliconflow
 catalog_version: 2026-03-05-siliconflow-v1
 generated_target: runtime/catalog/providers/siliconflow.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: siliconflow
   model_type: chat
@@ -24,7 +30,7 @@ models:
   - model_id: deepseek-ai/DeepSeek-V3
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -39,7 +45,7 @@ models:
   - model_id: deepseek-ai/DeepSeek-R1
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -54,7 +60,7 @@ models:
   - model_id: Qwen/Qwen3-235B-A22B
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -69,7 +75,7 @@ models:
   - model_id: THUDM/GLM-4-32B
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -84,7 +90,7 @@ models:
   - model_id: BAAI/bge-m3
     model_type: embedding
     updated_at: 2026-03-05
-    capabilities: [embedding, text.embed, llm.embed]
+    capabilities: [text.embed]
     pricing:
       unit: token
       input: unknown

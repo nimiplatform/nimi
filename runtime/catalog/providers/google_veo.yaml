@@ -7,10 +7,7 @@ models:
     model_type: video
     updated_at: 2026-03-05
     capabilities:
-      - video_generation
-      - llm.video.generate
-      - t2v
-      - i2v
+      - video.generate
     pricing:
       unit: request
       input: unknown
@@ -50,10 +47,7 @@ models:
     model_type: video
     updated_at: 2026-03-05
     capabilities:
-      - video_generation
-      - llm.video.generate
-      - t2v
-      - i2v
+      - video.generate
     pricing:
       unit: request
       input: unknown

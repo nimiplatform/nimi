@@ -19,6 +19,14 @@ const sourceDir = path.join(
 );
 const scopeLabel = 'active';
 const generateCommand = 'pnpm generate:runtime-catalog';
+const canonicalModelCapabilities = new Set([
+  'text.generate',
+  'text.embed',
+  'image.generate',
+  'video.generate',
+  'audio.synthesize',
+  'audio.transcribe',
+]);
 
 function normalizeProvider(value) {
   return String(value || '').trim().toLowerCase();
@@ -176,6 +184,11 @@ function resolveCapabilities(defaultCaps, overrideCaps) {
   if (merged.length === 0) {
     throw new Error('capabilities must not be empty');
   }
+  for (const capability of merged) {
+    if (!canonicalModelCapabilities.has(capability.toLowerCase())) {
+      throw new Error(`capabilities must use canonical capability tokens only, got: ${capability}`);
+    }
+  }
   return merged;
 }
 
@@ -251,7 +264,7 @@ function parseVoiceDefinition(rawVoice, setLangs) {
 function modelRequiresVoiceSupport(capabilities, discoveryMode, voiceSetRef) {
   const capabilityRequiresVoice = capabilities.some((capability) => {
     const normalized = normalizeString(capability).toLowerCase();
-    return normalized === 'tts' || normalized === 'llm.speech.synthesize';
+    return normalized === 'audio.synthesize';
   });
   return capabilityRequiresVoice || normalizeString(discoveryMode) !== '' || normalizeString(voiceSetRef) !== '';
 }
@@ -316,6 +329,17 @@ function normalizeVideoGeneration(raw) {
   };
 }
 
+function normalizeWorkflowType(value) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!normalized) {
+    return '';
+  }
+  if (normalized === 'tts_v2v' || normalized === 'tts_t2v') {
+    return normalized;
+  }
+  throw new Error(`voice workflow type must be tts_v2v or tts_t2v, got: ${normalized}`);
+}
+
 function generateProviderCatalog(doc) {
   const provider = normalizeProvider(doc?.provider);
   if (!provider) {
@@ -372,7 +396,7 @@ function generateProviderCatalog(doc) {
     const supportsVoiceRefKinds = normalizeStringArray(voiceConfig.supports_voice_ref_kinds || model?.supports_voice_ref_kinds);
     const voiceLangsRef = normalizeString(voiceConfig.langs_ref || model?.langs_ref);
     const staticVoiceSetRef = normalizeString(voiceConfig.voice_set_ref || model?.preset_voice_set_ref || model?.voice_set_id);
-    const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'dynamic_global']);
+    const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
     if (discoveryMode && !allowedDiscoveryModes.has(discoveryMode)) {
       throw new Error(`${provider} model ${canonicalModelID} has unsupported voice discovery_mode: ${discoveryMode}`);
     }
@@ -537,13 +561,11 @@ function generateProviderCatalog(doc) {
       modelToVoiceCount.set(modelID.toLowerCase(), (modelToVoiceCount.get(modelID.toLowerCase()) || 0) + 1);
     }
 
-    const discoveryMode = normalizeString(aggregate.discoveryMode) || 'dynamic_user_scoped';
-    const isDynamicGlobal = discoveryMode === 'dynamic_global';
     voicesOut.push({
-      voice_id: isDynamicGlobal ? 'preset-dynamic' : 'user-custom',
+      voice_id: 'user-custom',
       voice_set_id: setID,
       provider,
-      name: isDynamicGlobal ? 'Dynamic Preset Voices' : 'User Custom Voice',
+      name: 'User Custom Voice',
       langs: [...langs],
       model_ids: [...modelIDs],
       source_ref: resolveSourceRef(aggregate.sourceIDs, sourceIndex, fallbackSourceRef),
@@ -552,10 +574,7 @@ function generateProviderCatalog(doc) {
 
   for (const model of modelsOut) {
     const capabilities = normalizeStringArray(model.capabilities);
-    const requiresVoice = capabilities.some((capability) => {
-      const normalized = normalizeString(capability).toLowerCase();
-      return normalized === 'tts' || normalized === 'llm.speech.synthesize';
-    });
+    const requiresVoice = capabilities.some((capability) => normalizeString(capability).toLowerCase() === 'audio.synthesize');
     if (!requiresVoice) {
       continue;
     }
@@ -565,13 +584,110 @@ function generateProviderCatalog(doc) {
     }
   }
 
-  return {
+  const workflowModelTypeByID = new Map();
+  const workflowModelsOut = [];
+  for (const workflowModel of Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : []) {
+    const workflowModelID = normalizeString(workflowModel?.workflow_model_id);
+    if (!workflowModelID) {
+      throw new Error(`${provider} voice_workflow_models entry missing workflow_model_id`);
+    }
+    const workflowType = normalizeWorkflowType(workflowModel?.workflow_type);
+    if (!workflowType) {
+      throw new Error(`${provider} workflow model ${workflowModelID} missing workflow_type`);
+    }
+    const workflowKey = workflowModelID.toLowerCase();
+    if (workflowModelTypeByID.has(workflowKey)) {
+      throw new Error(`${provider} duplicate workflow_model_id: ${workflowModelID}`);
+    }
+
+    const targetModelRefs = normalizeStringArray(workflowModel?.target_model_refs);
+    if (targetModelRefs.length === 0) {
+      throw new Error(`${provider} workflow model ${workflowModelID} must include target_model_refs`);
+    }
+    for (const modelID of targetModelRefs) {
+      if (!modelIDsSeen.has(modelID.toLowerCase())) {
+        throw new Error(`${provider} workflow model ${workflowModelID} references unknown target model ${modelID}`);
+      }
+    }
+
+    const inputContractRef = normalizeString(workflowModel?.input_contract_ref);
+    const outputPersistence = normalizeString(workflowModel?.output_persistence);
+    const langs = resolveLangs(workflowModel, languageProfiles, []);
+    const sourceRef = resolveSourceRef(workflowModel?.source_ids, sourceIndex, fallbackSourceRef);
+
+    const entry = {
+      workflow_model_id: workflowModelID,
+      workflow_type: workflowType,
+      input_contract_ref: inputContractRef,
+      output_persistence: outputPersistence,
+      target_model_refs: targetModelRefs,
+      source_ref: sourceRef,
+    };
+    if (langs.length > 0) {
+      entry.langs = langs;
+    }
+    workflowModelsOut.push(entry);
+    workflowModelTypeByID.set(workflowKey, workflowType);
+  }
+
+  const modelWorkflowBindingsOut = [];
+  for (const binding of Array.isArray(doc?.model_workflow_bindings) ? doc.model_workflow_bindings : []) {
+    const modelID = normalizeString(binding?.model_id);
+    if (!modelID) {
+      throw new Error(`${provider} model_workflow_bindings entry missing model_id`);
+    }
+    if (!modelIDsSeen.has(modelID.toLowerCase())) {
+      throw new Error(`${provider} model_workflow_bindings references unknown model ${modelID}`);
+    }
+
+    const workflowModelRefs = normalizeStringArray(binding?.workflow_model_refs);
+    if (workflowModelRefs.length === 0) {
+      throw new Error(`${provider} model_workflow_bindings for ${modelID} must include workflow_model_refs`);
+    }
+
+    const inferredTypes = [];
+    for (const workflowRef of workflowModelRefs) {
+      const workflowType = workflowModelTypeByID.get(workflowRef.toLowerCase());
+      if (!workflowType) {
+        throw new Error(`${provider} model_workflow_bindings for ${modelID} references unknown workflow model ${workflowRef}`);
+      }
+      inferredTypes.push(workflowType);
+    }
+
+    const declaredWorkflowTypes = normalizeStringArray(binding?.workflow_types).map((value) => normalizeWorkflowType(value));
+    const workflowTypes = declaredWorkflowTypes.length > 0
+      ? normalizeStringArray(declaredWorkflowTypes)
+      : normalizeStringArray(inferredTypes);
+    if (workflowTypes.length === 0) {
+      throw new Error(`${provider} model_workflow_bindings for ${modelID} has empty workflow_types`);
+    }
+    for (const workflowType of workflowTypes) {
+      if (!inferredTypes.includes(workflowType)) {
+        throw new Error(`${provider} model_workflow_bindings for ${modelID} declares workflow_type ${workflowType} not covered by workflow_model_refs`);
+      }
+    }
+
+    modelWorkflowBindingsOut.push({
+      model_id: modelID,
+      workflow_model_refs: workflowModelRefs,
+      workflow_types: workflowTypes,
+    });
+  }
+
+  const result = {
     version: 1,
     provider,
     catalog_version: catalogVersion,
     models: modelsOut,
     voices: voicesOut,
   };
+  if (workflowModelsOut.length > 0) {
+    result.voice_workflow_models = workflowModelsOut;
+  }
+  if (modelWorkflowBindingsOut.length > 0) {
+    result.model_workflow_bindings = modelWorkflowBindingsOut;
+  }
+  return result;
 }
 
 async function loadSourceFiles() {

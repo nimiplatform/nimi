@@ -2,6 +2,12 @@ schema_version: 3
 provider: stepfun
 catalog_version: 2026-03-05-stepfun-v1
 generated_target: runtime/catalog/providers/stepfun.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.stepfun.com/v1
+  requires_explicit_endpoint: false
 resolution_mode: model_anchor_v2
 defaults:
   provider: stepfun
@@ -189,7 +195,7 @@ models:
   - model_id: step-3.5-flash
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -202,7 +208,7 @@ models:
   - model_id: step-3
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -215,7 +221,7 @@ models:
   - model_id: step-r1-v-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -228,7 +234,7 @@ models:
   - model_id: step-2-mini
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -251,7 +257,7 @@ models:
   - model_id: step-tts-2
     model_type: tts
     updated_at: 2026-03-05
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: tts_2_voice_set
@@ -269,7 +275,7 @@ models:
   - model_id: step-tts-mini
     model_type: tts
     updated_at: 2026-03-05
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: tts_mini_voice_set
@@ -287,7 +293,7 @@ models:
   - model_id: step-tts-vivid
     model_type: tts
     updated_at: 2026-03-05
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: tts_vivid_voice_set
@@ -306,7 +312,7 @@ models:
   - model_id: step-1x-medium
     model_type: image
     updated_at: 2026-03-05
-    capabilities: [image, image.generate, llm.image.generate]
+    capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
@@ -319,7 +325,7 @@ models:
   - model_id: step-1x-edit
     model_type: image
     updated_at: 2026-03-05
-    capabilities: [image, image.generate, llm.image.generate]
+    capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
@@ -332,7 +338,7 @@ models:
   - model_id: step-2x-large
     model_type: image
     updated_at: 2026-03-05
-    capabilities: [image, image.generate, llm.image.generate]
+    capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown

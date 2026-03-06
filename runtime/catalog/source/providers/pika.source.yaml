@@ -2,6 +2,12 @@ schema_version: 3
 provider: pika
 catalog_version: 2026-03-05-pika-v1
 generated_target: runtime/catalog/providers/pika.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: pika
   model_type: video
@@ -24,7 +30,7 @@ models:
   - model_id: pika-2.2
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [pika_api_doc]
     video_generation:
       modes: [t2v, i2v_first_frame]
@@ -42,7 +48,7 @@ models:
   - model_id: pika-2.2-fast
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [pika_api_doc]
     video_generation:
       modes: [t2v, i2v_first_frame]

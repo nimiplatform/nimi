@@ -2,6 +2,12 @@ schema_version: 3
 provider: google_veo
 catalog_version: 2026-03-05-google-veo-v1
 generated_target: runtime/catalog/providers/google_veo.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: google_veo
   model_type: video
@@ -24,7 +30,7 @@ models:
   - model_id: veo-3
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [google_veo_doc]
     video_generation:
       modes: [t2v, i2v_first_frame]
@@ -42,7 +48,7 @@ models:
   - model_id: veo-3-fast
     model_type: video
     updated_at: 2026-03-05
-    capabilities: [video_generation, llm.video.generate, t2v, i2v]
+    capabilities: [video.generate]
     source_ids: [google_veo_doc]
     video_generation:
       modes: [t2v, i2v_first_frame]

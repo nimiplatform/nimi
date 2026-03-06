@@ -7,9 +7,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -26,9 +24,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -45,9 +41,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -64,9 +58,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -83,9 +75,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -102,9 +92,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -121,9 +109,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -140,9 +126,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -159,9 +143,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -178,9 +160,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -197,9 +177,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -216,9 +194,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -235,8 +211,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -258,8 +233,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -281,8 +255,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -304,9 +277,7 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities:
-      - image
       - image.generate
-      - llm.image.generate
     pricing:
       unit: request
       input: unknown
@@ -323,9 +294,7 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities:
-      - image
       - image.generate
-      - llm.image.generate
     pricing:
       unit: request
       input: unknown
@@ -342,9 +311,7 @@ models:
     model_type: image
     updated_at: 2026-03-05
     capabilities:
-      - image
       - image.generate
-      - llm.image.generate
     pricing:
       unit: request
       input: unknown
@@ -1267,3 +1234,36 @@ voices:
       url: https://platform.stepfun.com/docs/audio/tts
       retrieved_at: 2026-03-05
       note: StepFun TTS API reference with preset voices and emotion/style parameters.
+voice_workflow_models:
+  - workflow_model_id: stepfun-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: stepfun_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - step-tts-2
+      - step-tts-mini
+      - step-tts-vivid
+    source_ref:
+      url: https://platform.stepfun.com/docs/audio/voice-clone
+      retrieved_at: 2026-03-05
+      note: StepFun voice cloning API for creating custom voice IDs.
+    langs:
+      - zh
+      - en
+      - ja
+model_workflow_bindings:
+  - model_id: step-tts-2
+    workflow_model_refs:
+      - stepfun-voice-clone
+    workflow_types:
+      - tts_v2v
+  - model_id: step-tts-mini
+    workflow_model_refs:
+      - stepfun-voice-clone
+    workflow_types:
+      - tts_v2v
+  - model_id: step-tts-vivid
+    workflow_model_refs:
+      - stepfun-voice-clone
+    workflow_types:
+      - tts_v2v

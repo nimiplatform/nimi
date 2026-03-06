@@ -7,8 +7,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -20,8 +19,8 @@ models:
       url: https://docs.fish.audio/api-reference/tts
       retrieved_at: 2026-03-05
       note: Fish Audio TTS API reference.
-    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: fish_audio:default-voices-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds: &a1
       - preset_voice_id
       - provider_voice_ref
@@ -31,8 +30,7 @@ models:
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -44,16 +42,15 @@ models:
       url: https://docs.fish.audio/api-reference/tts
       retrieved_at: 2026-03-05
       note: Fish Audio TTS API reference.
-    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: fish_audio:default-voices-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds: *a1
   - model_id: fish-agent-v1
     provider: fish_audio
     model_type: tts
     updated_at: 2026-03-05
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: request
       input: unknown
@@ -65,17 +62,67 @@ models:
       url: https://docs.fish.audio/api-reference/tts
       retrieved_at: 2026-03-05
       note: Fish Audio TTS API reference.
-    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
-    voice_discovery_mode: dynamic_global
+    voice_set_id: fish_audio:default-voices-v1
+    voice_discovery_mode: static_catalog
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
       - voice_asset_id
 voices:
-  - voice_id: preset-dynamic
-    voice_set_id: fish_audio:fish_audio_dynamic_global_voice_set
+  - voice_id: bf322df2096a46f18c579d0baa36f41d
+    voice_set_id: fish_audio:default-voices-v1
     provider: fish_audio
-    name: Dynamic Preset Voices
+    name: Adrian
+    langs:
+      - en
+    model_ids:
+      - fish-speech-1.5
+      - fish-speech
+      - fish-agent-v1
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
+  - voice_id: 8ef4a238714b45718ce04243307c57a7
+    voice_set_id: fish_audio:default-voices-v1
+    provider: fish_audio
+    name: E-Girl Voice
+    langs:
+      - en
+    model_ids:
+      - fish-speech-1.5
+      - fish-speech
+      - fish-agent-v1
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
+  - voice_id: 7f92f8afb8ec43bf81429cc1c9199cb1
+    voice_set_id: fish_audio:default-voices-v1
+    provider: fish_audio
+    name: Playground Voice
+    langs:
+      - en
+    model_ids:
+      - fish-speech-1.5
+      - fish-speech
+      - fish-agent-v1
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
+voice_workflow_models:
+  - workflow_model_id: fish-audio-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: fish_audio_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - fish-speech-1.5
+      - fish-agent-v1
+    source_ref:
+      url: https://docs.fish.audio/api-reference/tts
+      retrieved_at: 2026-03-05
+      note: Fish Audio TTS API reference.
     langs:
       - en
       - zh
@@ -87,11 +134,14 @@ voices:
       - pt
       - it
       - ru
-    model_ids:
-      - fish-speech-1.5
-      - fish-speech
-      - fish-agent-v1
-    source_ref:
-      url: https://docs.fish.audio/api-reference/tts
-      retrieved_at: 2026-03-05
-      note: Fish Audio TTS API reference.
+model_workflow_bindings:
+  - model_id: fish-speech-1.5
+    workflow_model_refs:
+      - fish-audio-voice-clone
+    workflow_types:
+      - tts_v2v
+  - model_id: fish-agent-v1
+    workflow_model_refs:
+      - fish-audio-voice-clone
+    workflow_types:
+      - tts_v2v

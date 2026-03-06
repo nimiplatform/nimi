@@ -7,9 +7,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -26,9 +24,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -45,9 +41,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -64,9 +58,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown

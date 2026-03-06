@@ -2,6 +2,12 @@ schema_version: 3
 provider: bedrock
 catalog_version: 2026-03-05-bedrock-v1
 generated_target: runtime/catalog/providers/bedrock.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 defaults:
   provider: bedrock
   model_type: chat
@@ -24,7 +30,7 @@ models:
   - model_id: anthropic.claude-sonnet-4-6-v1:0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -39,7 +45,7 @@ models:
   - model_id: anthropic.claude-haiku-4-5-v1:0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -54,7 +60,7 @@ models:
   - model_id: amazon.nova-pro-v1:0
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown

@@ -21,7 +21,6 @@ const (
 	defaultGRPCAddr                 = "127.0.0.1:46371"
 	defaultHTTPAddr                 = "127.0.0.1:46372"
 	defaultLocalRuntimeStateRelPath = ".nimi/runtime/local-runtime-state.json"
-	defaultModelCatalogCacheRelPath = ".nimi/runtime/model-catalog-cache.yaml"
 	defaultModelCatalogCustomRelPath = ".nimi/runtime/model-catalog/providers"
 	defaultRuntimeConfigRelPath     = ".nimi/config.json"
 	defaultCloudGeminiBaseURL       = "https://generativelanguage.googleapis.com/v1beta/openai"
@@ -108,21 +107,6 @@ type Config struct {
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
 
-	// ModelCatalogRemoteEnabled enables background remote catalog refresh.
-	// Default: false.
-	ModelCatalogRemoteEnabled bool
-
-	// ModelCatalogRemoteURL is the HTTPS endpoint for remote catalog payload.
-	ModelCatalogRemoteURL string
-
-	// ModelCatalogRefreshInterval controls remote refresh cadence.
-	// Default: 15m.
-	ModelCatalogRefreshInterval time.Duration
-
-	// ModelCatalogCachePath stores last-known-good remote catalog payload.
-	// Default: ~/.nimi/runtime/model-catalog-cache.yaml
-	ModelCatalogCachePath string
-
 	// ModelCatalogCustomDir points to an optional writable directory that
 	// stores provider-level custom catalog YAML files.
 	// Default: ~/.nimi/runtime/model-catalog/providers
@@ -171,8 +155,6 @@ type FileConfig struct {
 	WorkerMode                         *bool  `json:"workerMode,omitempty"`
 	AIHealthIntervalSeconds            *int   `json:"aiHealthIntervalSeconds,omitempty"`
 	AIHTTPTimeoutSeconds               *int   `json:"aiHttpTimeoutSeconds,omitempty"`
-	ModelCatalogRemoteEnabled          *bool  `json:"modelCatalogRemoteEnabled,omitempty"`
-	ModelCatalogRefreshIntervalSeconds *int   `json:"modelCatalogRefreshIntervalSeconds,omitempty"`
 	GlobalConcurrencyLimit             *int   `json:"globalConcurrencyLimit,omitempty"`
 	PerAppConcurrencyLimit             *int   `json:"perAppConcurrencyLimit,omitempty"`
 	IdempotencyCapacity                *int   `json:"idempotencyCapacity,omitempty"`
@@ -182,8 +164,6 @@ type FileConfig struct {
 	LocalAuditCapacity                 *int   `json:"localAuditCapacity,omitempty"`
 	SessionTTLMinSeconds               *int   `json:"sessionTtlMinSeconds,omitempty"`
 	SessionTTLMaxSeconds               *int   `json:"sessionTtlMaxSeconds,omitempty"`
-	ModelCatalogRemoteURL              string `json:"modelCatalogRemoteUrl,omitempty"`
-	ModelCatalogCachePath              string `json:"modelCatalogCachePath,omitempty"`
 	ModelCatalogCustomDir              string `json:"modelCatalogCustomDir,omitempty"`
 	LogLevel                           string `json:"logLevel,omitempty"`
 
@@ -239,8 +219,6 @@ func DefaultFileConfig() FileConfig {
 		WorkerMode:                         boolPtr(false),
 		AIHealthIntervalSeconds:            intPtr(8),
 		AIHTTPTimeoutSeconds:               intPtr(30),
-		ModelCatalogRemoteEnabled:          boolPtr(false),
-		ModelCatalogRefreshIntervalSeconds: intPtr(900),
 		GlobalConcurrencyLimit:             intPtr(8),
 		PerAppConcurrencyLimit:             intPtr(2),
 		IdempotencyCapacity:                intPtr(10000),
@@ -250,7 +228,6 @@ func DefaultFileConfig() FileConfig {
 		LocalAuditCapacity:                 intPtr(5000),
 		SessionTTLMinSeconds:               intPtr(60),
 		SessionTTLMaxSeconds:               intPtr(86400),
-		ModelCatalogCachePath:              "~/" + defaultModelCatalogCacheRelPath,
 		ModelCatalogCustomDir:              "~/" + defaultModelCatalogCustomRelPath,
 		Providers:                          map[string]RuntimeFileTarget{},
 	}
@@ -259,6 +236,9 @@ func DefaultFileConfig() FileConfig {
 // Load resolves configuration from environment with sane defaults.
 // Priority: env var > FileConfig field > default value. (K-DAEMON-009)
 func Load() (Config, error) {
+	if err := rejectRemovedModelCatalogRemoteEnv(); err != nil {
+		return Config{}, err
+	}
 	fileCfg, err := loadRuntimeFileConfig()
 	if err != nil {
 		return Config{}, err
@@ -282,10 +262,6 @@ func Load() (Config, error) {
 		WorkerMode:                    readBoolWithFileConfigFallback("NIMI_RUNTIME_WORKER_MODE", fileCfg.WorkerMode, false),
 		AIHealthIntervalSeconds:       readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", fileCfg.AIHealthIntervalSeconds, 8),
 		AIHTTPTimeoutSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", fileCfg.AIHTTPTimeoutSeconds, 30),
-		ModelCatalogRemoteEnabled:     readBoolWithFileConfigFallback("NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED", fileCfg.ModelCatalogRemoteEnabled, false),
-		ModelCatalogRemoteURL:         readStringWithFileConfigFallback("NIMI_RUNTIME_MODEL_CATALOG_REMOTE_URL", fileCfg.ModelCatalogRemoteURL, ""),
-		ModelCatalogRefreshInterval:   readDurationWithFileConfigFallback("NIMI_RUNTIME_MODEL_CATALOG_REFRESH_INTERVAL", fileCfg.ModelCatalogRefreshIntervalSeconds, 15*time.Minute),
-		ModelCatalogCachePath:         resolveModelCatalogCachePath(fileCfg),
 		ModelCatalogCustomDir:         resolveModelCatalogCustomDir(fileCfg),
 		GlobalConcurrencyLimit:        readIntWithFileConfigFallback("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", fileCfg.GlobalConcurrencyLimit, 8),
 		PerAppConcurrencyLimit:        readIntWithFileConfigFallback("NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT", fileCfg.PerAppConcurrencyLimit, 2),
@@ -369,24 +345,6 @@ func readBoolWithFileConfigFallback(envKey string, fileValue *bool, fallback boo
 	}
 }
 
-// readDurationWithFileConfigFallback implements three-level fallback:
-// env (duration string or seconds int) > fileConfig seconds > default duration.
-func readDurationWithFileConfigFallback(envKey string, fileValue *int, fallback time.Duration) time.Duration {
-	raw := strings.TrimSpace(os.Getenv(envKey))
-	if raw != "" {
-		if parsed, err := time.ParseDuration(raw); err == nil && parsed > 0 {
-			return parsed
-		}
-		if seconds, err := strconv.Atoi(raw); err == nil && seconds > 0 {
-			return time.Duration(seconds) * time.Second
-		}
-	}
-	if fileValue != nil && *fileValue > 0 {
-		return time.Duration(*fileValue) * time.Second
-	}
-	return fallback
-}
-
 func isBoolEnvValueExplicit(envKey string) bool {
 	raw, ok := os.LookupEnv(envKey)
 	if !ok {
@@ -411,6 +369,21 @@ func isIntEnvValueExplicit(envKey string) bool {
 	}
 	_, err := strconv.Atoi(raw)
 	return err == nil
+}
+
+func rejectRemovedModelCatalogRemoteEnv() error {
+	removedKeys := []string{
+		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED",
+		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_URL",
+		"NIMI_RUNTIME_MODEL_CATALOG_REFRESH_INTERVAL",
+		"NIMI_RUNTIME_MODEL_CATALOG_CACHE_PATH",
+	}
+	for _, key := range removedKeys {
+		if value, ok := os.LookupEnv(key); ok && strings.TrimSpace(value) != "" {
+			return fmt.Errorf("%s is removed; non-scenario catalog metadata is YAML-only", key)
+		}
+	}
+	return nil
 }
 
 func inferLoopbackLocalAIPort(baseURL string) (int, bool) {
@@ -543,20 +516,6 @@ func resolveLocalRuntimeStatePath(fileCfg FileConfig) string {
 	return filepath.Join(home, defaultLocalRuntimeStateRelPath)
 }
 
-func resolveModelCatalogCachePath(fileCfg FileConfig) string {
-	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_MODEL_CATALOG_CACHE_PATH")); value != "" {
-		return expandUserPath(value)
-	}
-	if value := strings.TrimSpace(fileCfg.ModelCatalogCachePath); value != "" {
-		return expandUserPath(value)
-	}
-	home, err := os.UserHomeDir()
-	if err != nil || strings.TrimSpace(home) == "" {
-		return ""
-	}
-	return filepath.Join(home, defaultModelCatalogCacheRelPath)
-}
-
 func resolveModelCatalogCustomDir(fileCfg FileConfig) string {
 	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_MODEL_CATALOG_CUSTOM_DIR")); value != "" {
 		return expandUserPath(value)
@@ -631,6 +590,18 @@ func LoadFileConfig(path string) (FileConfig, error) {
 		if _, legacyCatalogOverride := root["modelCatalogOverridePath"]; legacyCatalogOverride {
 			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogOverridePath is removed; use modelCatalogCustomDir", path)
 		}
+		if _, removedRemoteEnabled := root["modelCatalogRemoteEnabled"]; removedRemoteEnabled {
+			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogRemoteEnabled is removed; non-scenario catalog metadata is YAML-only", path)
+		}
+		if _, removedRemoteURL := root["modelCatalogRemoteUrl"]; removedRemoteURL {
+			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogRemoteUrl is removed; non-scenario catalog metadata is YAML-only", path)
+		}
+		if _, removedRefreshInterval := root["modelCatalogRefreshIntervalSeconds"]; removedRefreshInterval {
+			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogRefreshIntervalSeconds is removed; non-scenario catalog metadata is YAML-only", path)
+		}
+		if _, removedCachePath := root["modelCatalogCachePath"]; removedCachePath {
+			return FileConfig{}, fmt.Errorf("parse runtime config file %q: modelCatalogCachePath is removed; non-scenario catalog metadata is YAML-only", path)
+		}
 	}
 	var parsed FileConfig
 	decoder := json.NewDecoder(bytes.NewReader(content))
@@ -674,21 +645,6 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 			if strings.TrimSpace(parsed.Host) == "" {
 				return fmt.Errorf("auth.jwt.jwksUrl must include host")
 			}
-		}
-	}
-	if fileCfg.ModelCatalogRefreshIntervalSeconds != nil && *fileCfg.ModelCatalogRefreshIntervalSeconds <= 0 {
-		return fmt.Errorf("modelCatalogRefreshIntervalSeconds must be > 0")
-	}
-	if remoteURL := strings.TrimSpace(fileCfg.ModelCatalogRemoteURL); remoteURL != "" {
-		parsed, err := url.Parse(remoteURL)
-		if err != nil {
-			return fmt.Errorf("modelCatalogRemoteUrl invalid: %w", err)
-		}
-		if strings.TrimSpace(parsed.Host) == "" {
-			return fmt.Errorf("modelCatalogRemoteUrl must include host")
-		}
-		if parsed.Scheme != "https" {
-			return fmt.Errorf("modelCatalogRemoteUrl must use https scheme")
 		}
 	}
 	return nil

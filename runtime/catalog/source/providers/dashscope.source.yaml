@@ -2,6 +2,12 @@ schema_version: 3
 provider: dashscope
 catalog_version: 2026-03-05-dashscope-v2
 generated_target: runtime/catalog/providers/dashscope.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://dashscope.aliyuncs.com/compatible-mode/v1
+  requires_explicit_endpoint: false
 resolution_mode: model_anchor_v2
 defaults:
   provider: dashscope
@@ -28,6 +34,10 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/developer-reference/qwen-long-text-embedding
     retrieved_at: 2026-03-05
     note: DashScope long text embedding documentation.
+  - source_id: dashscope_asr_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
+    retrieved_at: 2026-03-05
+    note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
   - source_id: dashscope_voice_cloning_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
     retrieved_at: 2026-03-05
@@ -220,7 +230,7 @@ voice_sets:
 models:
   - model_id: qwen-tts
     updated_at: 2025-04-10
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: tts_voice_set
@@ -232,7 +242,7 @@ models:
       - qwen-tts-latest
   - model_id: qwen3-tts-instruct-flash
     updated_at: 2026-01-26
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: instruct_flash_voice_set
@@ -242,7 +252,7 @@ models:
       - qwen3-tts-instruct-flash-2026-01-26
   - model_id: qwen3-tts-flash
     updated_at: 2025-11-27
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: flash_voice_set
@@ -253,7 +263,7 @@ models:
       - qwen3-tts-flash-2025-11-27
   - model_id: qwen3-tts-vc
     updated_at: 2026-01-22
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -262,7 +272,7 @@ models:
       - qwen3-tts-vc-2026-01-22
   - model_id: qwen3-tts-vd
     updated_at: 2026-01-26
-    capabilities: [tts, llm.speech.synthesize]
+    capabilities: [audio.synthesize]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -273,7 +283,7 @@ models:
   - model_id: qwen3-max
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -286,7 +296,7 @@ models:
   - model_id: qwen3.5-plus
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -299,7 +309,7 @@ models:
   - model_id: qwen3.5-flash
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -312,7 +322,7 @@ models:
   - model_id: qwen-plus-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -327,7 +337,7 @@ models:
   - model_id: qwen-vl-max-latest
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -340,7 +350,7 @@ models:
   - model_id: text-embedding-v4
     model_type: embedding
     updated_at: 2026-03-05
-    capabilities: [embedding, text.embed, llm.embed]
+    capabilities: [text.embed]
     pricing:
       unit: token
       input: unknown
@@ -350,10 +360,25 @@ models:
       notes: Embedding pricing varies by token usage and account plan.
     source_ids: [dashscope_embedding_doc]
 
+  - model_id: qwen3-asr-flash
+    model_type: stt
+    updated_at: 2026-03-05
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Speech-to-text pricing varies by audio duration, request shape, and account tier.
+    source_ids: [dashscope_asr_doc, dashscope_models_pricing_doc]
+    aliases:
+      - qwen3-asr-flash-2025-09-08
+
   - model_id: wan2.6-t2i
     model_type: image
     updated_at: 2026-03-05
-    capabilities: [image, image.generate, llm.image.generate]
+    capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown

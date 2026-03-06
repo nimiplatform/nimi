@@ -7,8 +7,7 @@ models:
     model_type: tts
     updated_at: 2025-04-10
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -30,8 +29,7 @@ models:
     model_type: tts
     updated_at: 2025-04-10
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -51,8 +49,7 @@ models:
     model_type: tts
     updated_at: 2025-05-22
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -72,8 +69,7 @@ models:
     model_type: tts
     updated_at: 2025-04-10
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -93,8 +89,7 @@ models:
     model_type: tts
     updated_at: 2026-01-26
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -116,8 +111,7 @@ models:
     model_type: tts
     updated_at: 2026-01-26
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -137,8 +131,7 @@ models:
     model_type: tts
     updated_at: 2025-11-27
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -160,8 +153,7 @@ models:
     model_type: tts
     updated_at: 2025-09-18
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -181,8 +173,7 @@ models:
     model_type: tts
     updated_at: 2025-11-27
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -202,8 +193,7 @@ models:
     model_type: tts
     updated_at: 2026-01-22
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -225,8 +215,7 @@ models:
     model_type: tts
     updated_at: 2026-01-22
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -246,8 +235,7 @@ models:
     model_type: tts
     updated_at: 2026-01-26
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -269,8 +257,7 @@ models:
     model_type: tts
     updated_at: 2026-01-26
     capabilities:
-      - tts
-      - llm.speech.synthesize
+      - audio.synthesize
     pricing:
       unit: char
       input: unknown
@@ -290,9 +277,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -309,9 +294,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -328,9 +311,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -347,9 +328,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -366,9 +345,7 @@ models:
     model_type: chat
     updated_at: 2025-12-01
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -385,9 +362,7 @@ models:
     model_type: chat
     updated_at: 2026-03-05
     capabilities:
-      - chat
       - text.generate
-      - llm.text.generate
     pricing:
       unit: token
       input: unknown
@@ -404,9 +379,7 @@ models:
     model_type: embedding
     updated_at: 2026-03-05
     capabilities:
-      - embedding
       - text.embed
-      - llm.embed
     pricing:
       unit: token
       input: unknown
@@ -418,14 +391,46 @@ models:
       url: https://help.aliyun.com/zh/model-studio/developer-reference/qwen-long-text-embedding
       retrieved_at: 2026-03-05
       note: DashScope long text embedding documentation.
+  - model_id: qwen3-asr-flash
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-03-05
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Speech-to-text pricing varies by audio duration, request shape, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
+      retrieved_at: 2026-03-05
+      note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
+  - model_id: qwen3-asr-flash-2025-09-08
+    provider: dashscope
+    model_type: stt
+    updated_at: 2025-09-08
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Speech-to-text pricing varies by audio duration, request shape, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
+      retrieved_at: 2026-03-05
+      note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
   - model_id: wan2.6-t2i
     provider: dashscope
     model_type: image
     updated_at: 2026-03-05
     capabilities:
-      - image
       - image.generate
-      - llm.image.generate
     pricing:
       unit: request
       input: unknown
@@ -2327,3 +2332,69 @@ voices:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+voice_workflow_models:
+  - workflow_model_id: qwen-voice-enrollment
+    workflow_type: tts_v2v
+    input_contract_ref: dashscope_tts_v2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - qwen3-tts-vc
+      - qwen3-tts-vc-2026-01-22
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
+      retrieved_at: 2026-03-05
+      note: qwen tts voice cloning documentation
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+  - workflow_model_id: qwen-voice-design
+    workflow_type: tts_t2v
+    input_contract_ref: dashscope_tts_t2v_input_v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - qwen3-tts-vd
+      - qwen3-tts-vd-2026-01-26
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
+      retrieved_at: 2026-03-05
+      note: qwen tts voice design documentation
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+model_workflow_bindings:
+  - model_id: qwen3-tts-vc
+    workflow_model_refs:
+      - qwen-voice-enrollment
+    workflow_types:
+      - tts_v2v
+  - model_id: qwen3-tts-vc-2026-01-22
+    workflow_model_refs:
+      - qwen-voice-enrollment
+    workflow_types:
+      - tts_v2v
+  - model_id: qwen3-tts-vd
+    workflow_model_refs:
+      - qwen-voice-design
+    workflow_types:
+      - tts_t2v
+  - model_id: qwen3-tts-vd-2026-01-26
+    workflow_model_refs:
+      - qwen-voice-design
+    workflow_types:
+      - tts_t2v

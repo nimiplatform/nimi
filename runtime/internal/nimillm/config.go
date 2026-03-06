@@ -3,6 +3,8 @@ package nimillm
 import (
 	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
 // ProviderCredentials holds base URL and API key for a single cloud provider.
@@ -29,11 +31,18 @@ type CloudConfig struct {
 
 // ResolveProviderAlias returns the canonical provider ID for a given name.
 func ResolveProviderAlias(name string) string {
-	switch strings.TrimSpace(strings.ToLower(name)) {
-	case "nimillm", "openai", "anthropic", "dashscope", "volcengine", "volcengine_openspeech", "gemini", "minimax", "kimi", "glm", "deepseek", "openrouter", "openai_compatible",
-		"azure", "mistral", "groq", "xai", "qianfan", "hunyuan", "spark":
-		return strings.TrimSpace(strings.ToLower(name))
-	default:
+	normalized := strings.TrimSpace(strings.ToLower(name))
+	if normalized == "" {
 		return ""
 	}
+	normalized = strings.ReplaceAll(normalized, "-", "_")
+	normalized = strings.ReplaceAll(normalized, " ", "_")
+	for strings.Contains(normalized, "__") {
+		normalized = strings.ReplaceAll(normalized, "__", "_")
+	}
+	record, ok := providerregistry.Lookup(normalized)
+	if !ok || record.RuntimePlane != "remote" {
+		return ""
+	}
+	return normalized
 }

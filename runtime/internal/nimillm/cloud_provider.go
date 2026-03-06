@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 
@@ -12,37 +13,58 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
 // knownProviders lists the canonical provider IDs in priority order for default routing.
-var knownProviders = []string{
-	"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter",
-	"minimax", "kimi", "glm",
-	"mistral", "groq", "xai", "azure", "qianfan", "hunyuan", "spark",
-	"openai", "anthropic", "openai_compatible",
-}
+var knownProviders = buildKnownProviders()
 
 // prefixToProvider maps model-ID prefix segments to canonical provider IDs.
-var prefixToProvider = map[string]string{
-	"nimillm":           "nimillm",
-	"dashscope":         "dashscope",
-	"volcengine":        "volcengine",
-	"gemini":            "gemini",
-	"minimax":           "minimax",
-	"kimi":              "kimi",
-	"glm":               "glm",
-	"deepseek":          "deepseek",
-	"openrouter":        "openrouter",
-	"openai":            "openai",
-	"anthropic":         "anthropic",
-	"openai_compatible": "openai_compatible",
-	"azure":             "azure",
-	"mistral":           "mistral",
-	"groq":              "groq",
-	"xai":               "xai",
-	"qianfan":           "qianfan",
-	"hunyuan":           "hunyuan",
-	"spark":             "spark",
+var prefixToProvider = buildPrefixToProvider()
+
+func buildKnownProviders() []string {
+	// Keep historical priority first, then append newly onboarded providers.
+	preferred := []string{
+		"nimillm", "dashscope", "volcengine", "gemini", "deepseek", "openrouter",
+		"minimax", "kimi", "glm",
+		"mistral", "groq", "xai", "azure", "qianfan", "hunyuan", "spark",
+		"openai", "anthropic", "openai_compatible", "volcengine_openspeech",
+	}
+	seen := make(map[string]struct{}, len(providerregistry.RemoteProviders))
+	out := make([]string, 0, len(providerregistry.RemoteProviders))
+	for _, providerID := range preferred {
+		record, ok := providerregistry.Lookup(providerID)
+		if !ok || record.RuntimePlane != "remote" {
+			continue
+		}
+		if _, exists := seen[providerID]; exists {
+			continue
+		}
+		seen[providerID] = struct{}{}
+		out = append(out, providerID)
+	}
+	rest := make([]string, 0, len(providerregistry.RemoteProviders))
+	for _, providerID := range providerregistry.RemoteProviders {
+		if _, exists := seen[providerID]; exists {
+			continue
+		}
+		record, ok := providerregistry.Lookup(providerID)
+		if !ok || record.RuntimePlane != "remote" {
+			continue
+		}
+		rest = append(rest, providerID)
+	}
+	sort.Strings(rest)
+	out = append(out, rest...)
+	return out
+}
+
+func buildPrefixToProvider() map[string]string {
+	lookup := make(map[string]string, len(knownProviders))
+	for _, providerID := range knownProviders {
+		lookup[providerID] = providerID
+	}
+	return lookup
 }
 
 // forbiddenPrefixToProvider maps legacy/non-canonical prefixes to the provider

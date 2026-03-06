@@ -2,11 +2,17 @@ schema_version: 3
 provider: aws_polly
 catalog_version: 2026-03-05-aws-polly-v1
 generated_target: runtime/catalog/providers/aws_polly.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: null
+  requires_explicit_endpoint: true
 resolution_mode: model_anchor_v2
 defaults:
   provider: aws_polly
   model_type: tts
-  capabilities: [tts, llm.speech.synthesize]
+  capabilities: [audio.synthesize]
   pricing:
     unit: request
     input: unknown
@@ -28,15 +34,34 @@ sources:
 language_profiles:
   short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
 
-voice_sets: []
+voice_sets:
+  - voice_set_id: neural-defaults-v1
+    langs_ref: short_multilingual_v1
+    source_ids: [aws_polly_api_ref, aws_polly_synthesize]
+    voices:
+      - voice_id: Joanna
+        name: Joanna
+        langs: [en-US]
+      - voice_id: Matthew
+        name: Matthew
+        langs: [en-US]
+      - voice_id: Amy
+        name: Amy
+        langs: [en-GB]
+      - voice_id: Brian
+        name: Brian
+        langs: [en-GB]
+      - voice_id: Zhiyu
+        name: Zhiyu
+        langs: [cmn-CN]
 
 models:
   - model_id: polly-neural-tts
     updated_at: 2026-03-05
     source_ids: [aws_polly_api_ref, aws_polly_synthesize]
     voice:
-      discovery_mode: dynamic_global
-      dynamic_voice_set_ref: aws_polly_dynamic_global_voice_set
+      discovery_mode: static_catalog
+      voice_set_ref: neural-defaults-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_multilingual_v1
 

@@ -2,6 +2,12 @@ schema_version: 3
 provider: spark
 catalog_version: 2026-03-05-spark-v1
 generated_target: runtime/catalog/providers/spark.yaml
+runtime:
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://spark-api-open.xf-yun.com/v1
+  requires_explicit_endpoint: false
 defaults:
   provider: spark
   model_type: chat
@@ -28,7 +34,7 @@ models:
   - model_id: spark-x1
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown
@@ -41,7 +47,7 @@ models:
   - model_id: spark-lite-max
     model_type: chat
     updated_at: 2026-03-05
-    capabilities: [chat, text.generate, llm.text.generate]
+    capabilities: [text.generate]
     pricing:
       unit: token
       input: unknown

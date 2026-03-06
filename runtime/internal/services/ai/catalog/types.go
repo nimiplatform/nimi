@@ -3,15 +3,13 @@ package catalog
 import (
 	"errors"
 	"log/slog"
-	"time"
 )
 
 type CatalogSource string
 
 const (
 	SourceBuiltinSnapshot CatalogSource = "builtin_snapshot"
-	SourceCustomDir      CatalogSource = "custom_dir"
-	SourceRemoteCache    CatalogSource = "remote_cache"
+	SourceCustomDir       CatalogSource = "custom_dir"
 )
 
 type ProviderSource string
@@ -19,14 +17,14 @@ type ProviderSource string
 const (
 	ProviderSourceBuiltin ProviderSource = "builtin"
 	ProviderSourceCustom  ProviderSource = "custom"
-	ProviderSourceRemote  ProviderSource = "remote"
 )
 
 var (
-	ErrModelNotFound          = errors.New("model catalog entry not found")
-	ErrVoiceSetEmpty          = errors.New("voice set has no entries")
-	ErrProviderUnsupported    = errors.New("catalog provider is not supported")
-	ErrCatalogMutationDisabled = errors.New("catalog custom directory is not configured")
+	ErrModelNotFound            = errors.New("model catalog entry not found")
+	ErrVoiceSetEmpty            = errors.New("voice set has no entries")
+	ErrProviderUnsupported      = errors.New("catalog provider is not supported")
+	ErrCatalogMutationDisabled  = errors.New("catalog custom directory is not configured")
+	ErrVoiceWorkflowUnsupported = errors.New("voice workflow is not supported by model")
 )
 
 type Pricing struct {
@@ -44,16 +42,36 @@ type SourceRef struct {
 	Note        string `yaml:"note" json:"note"`
 }
 
+type VideoGenerationOptions struct {
+	Supports    []string       `yaml:"supports" json:"supports"`
+	Constraints map[string]any `yaml:"constraints" json:"constraints"`
+}
+
+type VideoGenerationOutputs struct {
+	VideoURL     bool `yaml:"video_url,omitempty" json:"video_url,omitempty"`
+	LastFrameURL bool `yaml:"last_frame_url,omitempty" json:"last_frame_url,omitempty"`
+}
+
+type VideoGenerationCapability struct {
+	Modes      []string               `yaml:"modes" json:"modes"`
+	InputRoles map[string][]string    `yaml:"input_roles" json:"input_roles"`
+	Limits     map[string]any         `yaml:"limits" json:"limits"`
+	Options    VideoGenerationOptions `yaml:"options" json:"options"`
+	Outputs    VideoGenerationOutputs `yaml:"outputs" json:"outputs"`
+}
+
 type ModelEntry struct {
-	Provider        string         `yaml:"provider" json:"provider"`
-	ModelID         string         `yaml:"model_id" json:"model_id"`
-	ModelType       string         `yaml:"model_type" json:"model_type"`
-	UpdatedAt       string         `yaml:"updated_at" json:"updated_at"`
-	Capabilities    []string       `yaml:"capabilities" json:"capabilities"`
-	Pricing         Pricing        `yaml:"pricing" json:"pricing"`
-	VoiceSetID      string         `yaml:"voice_set_id,omitempty" json:"voice_set_id,omitempty"`
-	VideoGeneration map[string]any `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
-	SourceRef       SourceRef      `yaml:"source_ref" json:"source_ref"`
+	Provider           string                     `yaml:"provider" json:"provider"`
+	ModelID            string                     `yaml:"model_id" json:"model_id"`
+	ModelType          string                     `yaml:"model_type" json:"model_type"`
+	UpdatedAt          string                     `yaml:"updated_at" json:"updated_at"`
+	Capabilities       []string                   `yaml:"capabilities" json:"capabilities"`
+	Pricing            Pricing                    `yaml:"pricing" json:"pricing"`
+	VoiceSetID         string                     `yaml:"voice_set_id,omitempty" json:"voice_set_id,omitempty"`
+	VoiceDiscoveryMode string                     `yaml:"voice_discovery_mode,omitempty" json:"voice_discovery_mode,omitempty"`
+	VoiceRefKinds      []string                   `yaml:"voice_ref_kinds,omitempty" json:"voice_ref_kinds,omitempty"`
+	VideoGeneration    *VideoGenerationCapability `yaml:"video_generation,omitempty" json:"video_generation,omitempty"`
+	SourceRef          SourceRef                  `yaml:"source_ref" json:"source_ref"`
 }
 
 type VoiceEntry struct {
@@ -66,26 +84,40 @@ type VoiceEntry struct {
 	SourceRef  SourceRef `yaml:"source_ref" json:"source_ref"`
 }
 
+type VoiceWorkflowModel struct {
+	WorkflowModelID   string    `yaml:"workflow_model_id" json:"workflow_model_id"`
+	WorkflowType      string    `yaml:"workflow_type" json:"workflow_type"`
+	InputContractRef  string    `yaml:"input_contract_ref,omitempty" json:"input_contract_ref,omitempty"`
+	OutputPersistence string    `yaml:"output_persistence,omitempty" json:"output_persistence,omitempty"`
+	TargetModelRefs   []string  `yaml:"target_model_refs" json:"target_model_refs"`
+	Langs             []string  `yaml:"langs,omitempty" json:"langs,omitempty"`
+	SourceRef         SourceRef `yaml:"source_ref" json:"source_ref"`
+}
+
+type ModelWorkflowBinding struct {
+	ModelID           string   `yaml:"model_id" json:"model_id"`
+	WorkflowModelRefs []string `yaml:"workflow_model_refs" json:"workflow_model_refs"`
+	WorkflowTypes     []string `yaml:"workflow_types" json:"workflow_types"`
+}
+
 type ProviderDocument struct {
-	Version        int          `yaml:"version" json:"version"`
-	Provider       string       `yaml:"provider" json:"provider"`
-	CatalogVersion string       `yaml:"catalog_version" json:"catalog_version"`
-	Models         []ModelEntry `yaml:"models" json:"models"`
-	Voices         []VoiceEntry `yaml:"voices,omitempty" json:"voices,omitempty"`
+	Version               int                    `yaml:"version" json:"version"`
+	Provider              string                 `yaml:"provider" json:"provider"`
+	CatalogVersion        string                 `yaml:"catalog_version" json:"catalog_version"`
+	Models                []ModelEntry           `yaml:"models" json:"models"`
+	Voices                []VoiceEntry           `yaml:"voices,omitempty" json:"voices,omitempty"`
+	VoiceWorkflowModels   []VoiceWorkflowModel   `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`
+	ModelWorkflowBindings []ModelWorkflowBinding `yaml:"model_workflow_bindings,omitempty" json:"model_workflow_bindings,omitempty"`
 
 	RawYAML string `yaml:"-" json:"raw_yaml"`
 }
 
-type RemoteBundle struct {
-	Version        int                `yaml:"version" json:"version"`
-	CatalogVersion string             `yaml:"catalog_version" json:"catalog_version"`
-	Providers      []ProviderDocument `yaml:"providers" json:"providers"`
-}
-
 type Snapshot struct {
-	CatalogVersion string
-	Models         []ModelEntry
-	Voices         []VoiceEntry
+	CatalogVersion        string
+	Models                []ModelEntry
+	Voices                []VoiceEntry
+	VoiceWorkflowModels   []VoiceWorkflowModel
+	ModelWorkflowBindings []ModelWorkflowBinding
 }
 
 type VoiceDescriptor struct {
@@ -103,6 +135,16 @@ type ResolveVoicesResult struct {
 	Voices         []VoiceDescriptor
 }
 
+type ResolveVoiceWorkflowResult struct {
+	Provider          string
+	ModelID           string
+	WorkflowType      string
+	WorkflowModelID   string
+	OutputPersistence string
+	CatalogVersion    string
+	Source            CatalogSource
+}
+
 type CatalogProviderRecord struct {
 	Provider       string
 	Version        int
@@ -114,12 +156,6 @@ type CatalogProviderRecord struct {
 }
 
 type ResolverConfig struct {
-	Logger              *slog.Logger
-	CustomDir           string
-	RemoteEnabled       bool
-	RemoteURL           string
-	RefreshInterval     time.Duration
-	CachePath           string
-	MaxRemotePayloadLen int64
-	HTTPTimeout         time.Duration
+	Logger    *slog.Logger
+	CustomDir string
 }

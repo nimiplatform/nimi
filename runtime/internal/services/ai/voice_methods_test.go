@@ -37,14 +37,18 @@ func TestListPresetVoicesReturnsCatalogVoices(t *testing.T) {
 }
 
 func TestVoiceAssetMethodsLifecycle(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
+		},
+	})
 
 	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
-			ModelId:       "local/qwen3-tts-local",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
@@ -52,7 +56,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		Spec: &runtimev1.ScenarioSpec{
 			Spec: &runtimev1.ScenarioSpec_VoiceClone{
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
-					TargetModelId: "local/cosyvoice2-local",
+					TargetModelId: "dashscope/qwen3-tts-vc",
 					Input: &runtimev1.VoiceV2VInput{
 						ReferenceAudioUri: "file://sample.wav",
 					},
