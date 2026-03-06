@@ -19,7 +19,7 @@ import (
 const (
 	localHealthProbeTimeout             = 5 * time.Second
 	localRecoverySuccessThreshold       = 3
-	localRecoveryDefaultProbeInterval   = 8 * time.Second
+	localRecoveryDefaultProbeInterval   = 30 * time.Second
 	localRecoverySlowProbeInterval      = 60 * time.Second
 	localRecoveryLongFailProbeInterval  = 5 * time.Minute
 	localRecoverySlowFailureThreshold   = 720
