@@ -29,13 +29,13 @@
       "types": "./dist/ai-provider/index.d.ts",
       "default": "./dist/ai-provider/index.js"
     },
-    "./mod/ai": {
-      "types": "./dist/mod/ai/index.d.ts",
-      "default": "./dist/mod/ai/index.js"
-    },
     "./mod/hook": {
       "types": "./dist/mod/hook/index.d.ts",
       "default": "./dist/mod/hook/index.js"
+    },
+    "./mod/runtime": {
+      "types": "./dist/mod/runtime/index.d.ts",
+      "default": "./dist/mod/runtime/index.js"
     },
     "./mod/types": {
       "types": "./dist/mod/types/index.d.ts",

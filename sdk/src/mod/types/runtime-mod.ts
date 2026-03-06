@@ -1,27 +1,117 @@
 import type { HookSourceType, RuntimeHttpContext } from './runtime-hook';
 import type { RuntimeHookRuntimeFacade } from './runtime-hook/runtime-facade';
 import type {
-  ResolvedRuntimeRouteBinding,
   RuntimeLlmHealthInput,
   RuntimeLlmHealthResult,
-  RuntimeRouteHint,
-  RuntimeRouteOverride,
+  RuntimeRouteHealthResult,
 } from './llm';
-import type { AiRuntimeDependencySnapshot } from '../ai/types';
+import type {
+  ModRuntimeBoundEmbeddingGenerateInput,
+  ModRuntimeDependencySnapshot,
+  ModRuntimeBoundImageGenerateInput,
+  ModRuntimeBoundSpeechListVoicesInput,
+  ModRuntimeBoundSpeechSynthesizeInput,
+  ModRuntimeBoundSpeechTranscribeInput,
+  ModRuntimeBoundTextGenerateInput,
+  ModRuntimeBoundTextStreamInput,
+  ModRuntimeBoundVideoGenerateInput,
+  ModRuntimeListPresetVoicesInput,
+  ModRuntimeResolvedBinding,
+} from '../runtime/types';
+import type {
+  ArtifactChunk,
+  ScenarioArtifact,
+  ScenarioJob,
+  ScenarioJobEvent,
+} from '../../runtime/generated/runtime/v1/ai';
+import type {
+  DeleteVoiceAssetRequest,
+  DeleteVoiceAssetResponse,
+  GetVoiceAssetRequest,
+  GetVoiceAssetResponse,
+  ListPresetVoicesResponse,
+  ListVoiceAssetsRequest,
+  ListVoiceAssetsResponse,
+} from '../../runtime/generated/runtime/v1/voice';
+import type {
+  EmbeddingGenerateOutput,
+  ImageGenerateOutput,
+  SpeechListVoicesOutput,
+  SpeechSynthesizeOutput,
+  SpeechTranscribeOutput,
+  TextGenerateOutput,
+  TextStreamOutput,
+  VideoGenerateOutput,
+} from '../../runtime/types';
+import type {
+  RuntimeCanonicalCapability,
+  RuntimeRouteBinding,
+  RuntimeRouteOptionsSnapshot,
+} from '../runtime-route';
 
 export type ModRuntimeHost = {
   checkLocalLlmHealth: (input: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult>;
   getRuntimeHookRuntime: () => RuntimeHookRuntimeFacade;
-  resolveRouteBinding: (input: {
-    routeHint: RuntimeRouteHint;
-    modId?: string;
-    routeOverride?: RuntimeRouteOverride;
-  }) => Promise<ResolvedRuntimeRouteBinding>;
   getModAiDependencySnapshot: (input: {
     modId: string;
     capability?: string;
     routeSourceHint?: 'token-api' | 'local-runtime';
-  }) => Promise<AiRuntimeDependencySnapshot>;
+  }) => Promise<ModRuntimeDependencySnapshot>;
+  route: {
+    listOptions: (input: {
+      modId: string;
+      capability: RuntimeCanonicalCapability;
+    }) => Promise<RuntimeRouteOptionsSnapshot>;
+    resolve: (input: {
+      modId: string;
+      capability: RuntimeCanonicalCapability;
+      binding?: RuntimeRouteBinding;
+    }) => Promise<ModRuntimeResolvedBinding>;
+    checkHealth: (input: {
+      modId: string;
+      capability: RuntimeCanonicalCapability;
+      binding?: RuntimeRouteBinding;
+    }) => Promise<RuntimeRouteHealthResult>;
+  };
+  ai: {
+    text: {
+      generate: (input: ModRuntimeBoundTextGenerateInput & { modId: string }) => Promise<TextGenerateOutput>;
+      stream: (input: ModRuntimeBoundTextStreamInput & { modId: string }) => Promise<TextStreamOutput>;
+    };
+    embedding: {
+      generate: (input: ModRuntimeBoundEmbeddingGenerateInput & { modId: string }) => Promise<EmbeddingGenerateOutput>;
+    };
+  };
+  media: {
+    image: {
+      generate: (input: ModRuntimeBoundImageGenerateInput & { modId: string }) => Promise<ImageGenerateOutput>;
+      stream: (input: ModRuntimeBoundImageGenerateInput & { modId: string }) => Promise<AsyncIterable<ArtifactChunk>>;
+    };
+    video: {
+      generate: (input: ModRuntimeBoundVideoGenerateInput & { modId: string }) => Promise<VideoGenerateOutput>;
+      stream: (input: ModRuntimeBoundVideoGenerateInput & { modId: string }) => Promise<AsyncIterable<ArtifactChunk>>;
+    };
+    tts: {
+      synthesize: (input: ModRuntimeBoundSpeechSynthesizeInput & { modId: string }) => Promise<SpeechSynthesizeOutput>;
+      stream: (input: ModRuntimeBoundSpeechSynthesizeInput & { modId: string }) => Promise<AsyncIterable<ArtifactChunk>>;
+      listVoices: (input: ModRuntimeBoundSpeechListVoicesInput & { modId: string }) => Promise<SpeechListVoicesOutput>;
+    };
+    stt: {
+      transcribe: (input: ModRuntimeBoundSpeechTranscribeInput & { modId: string }) => Promise<SpeechTranscribeOutput>;
+    };
+    jobs: {
+      get: (input: { modId: string; jobId: string }) => Promise<ScenarioJob>;
+      cancel: (input: { modId: string; jobId: string; reason?: string }) => Promise<ScenarioJob>;
+      subscribe: (input: { modId: string; jobId: string }) => Promise<AsyncIterable<ScenarioJobEvent>>;
+      getArtifacts: (input: { modId: string; jobId: string }) => Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }>;
+    };
+  };
+  voice: {
+    getAsset: (input: { modId: string; request: GetVoiceAssetRequest }) => Promise<GetVoiceAssetResponse>;
+    listAssets: (input: { modId: string; request: ListVoiceAssetsRequest }) => Promise<ListVoiceAssetsResponse>;
+    deleteAsset: (input: { modId: string; request: DeleteVoiceAssetRequest }) => Promise<DeleteVoiceAssetResponse>;
+    listPresetVoices: (input: ModRuntimeListPresetVoicesInput & { modId: string }) => Promise<ListPresetVoicesResponse>;
+  };
 };
 
 export type ModRuntimeContext = {

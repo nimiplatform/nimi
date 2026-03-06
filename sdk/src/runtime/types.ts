@@ -577,6 +577,7 @@ export type TextGenerateInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
 };
 
@@ -608,6 +609,7 @@ export type EmbeddingGenerateInput = {
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
+  connectorId?: string;
   metadata?: Record<string, string>;
 };
 

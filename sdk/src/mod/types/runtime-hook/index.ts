@@ -2,11 +2,11 @@ import type { HookDataClient } from './data';
 import type { HookActionClient } from './action';
 import type { HookEventClient } from './event';
 import type { HookInterModClient } from './inter-mod';
-import type { HookLlmClient } from './llm';
 import type {
   HookAuditClient,
   HookMetaClient,
 } from './meta';
+import type { HookProfileClient } from './profile';
 import type { HookTurnClient } from './turn';
 import type { HookUiClient } from './ui';
 
@@ -17,8 +17,8 @@ export type * from './data';
 export type * from './turn';
 export type * from './ui';
 export type * from './inter-mod';
-export type * from './llm';
 export type * from './meta';
+export type * from './profile';
 
 export type HookClient = {
   action: HookActionClient;
@@ -27,7 +27,7 @@ export type HookClient = {
   turn: HookTurnClient;
   ui: HookUiClient;
   interMod: HookInterModClient;
-  llm: HookLlmClient;
+  profile: HookProfileClient;
   audit: HookAuditClient;
   meta: HookMetaClient;
 };

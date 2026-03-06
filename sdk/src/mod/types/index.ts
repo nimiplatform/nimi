@@ -1,6 +1,7 @@
 export type * from './llm';
 export type * from './speech';
 export type * from './runtime-mod';
+export type * from '../runtime/types.js';
 export type { HookClient } from './runtime-hook/index';
 export type {
   HookActionClient,
@@ -29,12 +30,14 @@ export type {
   HookInterModClient,
 } from './runtime-hook/inter-mod';
 export type {
-  HookLlmClient,
-} from './runtime-hook/llm';
-export type {
   HookAuditClient,
   HookMetaClient,
 } from './runtime-hook/meta';
+export type {
+  HookProfileClient,
+  RuntimeHookAgentProfileReadInput,
+  RuntimeHookAgentProfileReadResult,
+} from './runtime-hook/profile';
 export type {
   HookTurnClient,
 } from './runtime-hook/turn';

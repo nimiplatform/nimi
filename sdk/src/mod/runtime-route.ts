@@ -2,6 +2,15 @@ import { asRecord } from './json-utils';
 
 export type RuntimeRouteSource = 'local-runtime' | 'token-api';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';
+export type RuntimeCanonicalCapability =
+  | 'text.generate'
+  | 'text.embed'
+  | 'image.generate'
+  | 'video.generate'
+  | 'audio.synthesize'
+  | 'audio.transcribe'
+  | 'voice_workflow.tts_v2v'
+  | 'voice_workflow.tts_t2v';
 
 export type RuntimeRouteBinding = {
   source: RuntimeRouteSource;
@@ -38,6 +47,7 @@ export type RuntimeRouteLocalRuntimeOption = {
 };
 
 export type RuntimeRouteOptionsSnapshot = {
+  capability?: RuntimeCanonicalCapability;
   selected: RuntimeRouteBinding;
   resolvedDefault?: RuntimeRouteBinding;
   localRuntime: {
@@ -49,6 +59,23 @@ export type RuntimeRouteOptionsSnapshot = {
 
 export function normalizeRuntimeRouteSource(value: unknown): RuntimeRouteSource {
   return String(value || '').trim() === 'token-api' ? 'token-api' : 'local-runtime';
+}
+
+export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonicalCapability | null {
+  const normalized = String(value || '').trim();
+  if (
+    normalized === 'text.generate'
+    || normalized === 'text.embed'
+    || normalized === 'image.generate'
+    || normalized === 'video.generate'
+    || normalized === 'audio.synthesize'
+    || normalized === 'audio.transcribe'
+    || normalized === 'voice_workflow.tts_v2v'
+    || normalized === 'voice_workflow.tts_t2v'
+  ) {
+    return normalized;
+  }
+  return null;
 }
 
 export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | null {
@@ -158,6 +185,7 @@ export function parseRuntimeRouteOptions(
   options?: { includeResolvedDefault?: boolean },
 ): RuntimeRouteOptionsSnapshot | null {
   const record = asRecord(value);
+  const capability = parseRuntimeCanonicalCapability(record.capability) || undefined;
   const selected = parseRuntimeRouteBinding(record.selected);
   if (!selected) return null;
 
@@ -184,6 +212,7 @@ export function parseRuntimeRouteOptions(
     .filter((item) => item.id);
 
   return {
+    ...(capability ? { capability } : {}),
     selected,
     ...(options?.includeResolvedDefault ? { resolvedDefault: resolvedDefault || selected } : {}),
     localRuntime: {

@@ -2,8 +2,8 @@ import type { RuntimeHookDataFacade } from './data';
 import type { RuntimeHookActionFacade } from './action';
 import type { RuntimeHookEventFacade } from './event';
 import type { RuntimeHookInterModFacade } from './inter-mod';
-import type { RuntimeHookLlmFacade } from './llm';
 import type { RuntimeHookAuditFacade, RuntimeHookMetaFacade } from './meta';
+import type { RuntimeHookProfileFacade } from './profile';
 import type { RuntimeHookTurnFacade } from './turn';
 import type { RuntimeHookUiFacade } from './ui';
 
@@ -14,6 +14,6 @@ export type RuntimeHookRuntimeFacade =
   & RuntimeHookTurnFacade
   & RuntimeHookUiFacade
   & RuntimeHookInterModFacade
-  & RuntimeHookLlmFacade
+  & RuntimeHookProfileFacade
   & RuntimeHookAuditFacade
   & RuntimeHookMetaFacade;

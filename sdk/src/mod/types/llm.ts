@@ -1,17 +1,5 @@
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
 
-export type RuntimeRouteHint =
-  | 'chat/default'
-  | 'chat/coarse'
-  | 'chat/fine'
-  | 'chat/retry-low-temp'
-  | 'image/default'
-  | 'video/default'
-  | 'tts/default'
-  | 'stt/default'
-  | 'embedding/default'
-  | string;
-
 export type LocalRuntimeEngine = 'localai' | 'nexa' | string;
 
 export type LocalAiProviderAdapter = 'openai_compat_adapter' | 'localai_native_adapter' | string;
@@ -72,14 +60,6 @@ export type TokenApiRouteBinding = {
 };
 
 export type ResolvedRuntimeRouteBinding = LocalRuntimeRouteBinding | TokenApiRouteBinding;
-
-export type RuntimeRouteOverride = {
-  source?: 'local-runtime' | 'token-api';
-  connectorId?: string;
-  model?: string;
-  localModelId?: string;
-  engine?: LocalRuntimeEngine;
-};
 
 export type RuntimeLlmHealthInput = {
   provider?: string;

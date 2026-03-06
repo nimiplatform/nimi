@@ -6,7 +6,7 @@ import { createDataClient } from './data-client';
 import { createTurnClient } from './turn-client';
 import { createUiClient } from './ui-client';
 import { createInterModClient } from './inter-mod-client';
-import { createLlmClient } from './llm-client';
+import { createProfileClient } from './profile-client';
 import { getHookRuntimes, normalizeHookModId } from './shared';
 import type { ModRuntimeContextInput } from '../types/runtime-mod';
 
@@ -39,9 +39,8 @@ export function createHookClient(modId: string, context?: ModRuntimeContextInput
       modId: normalizedModId,
       runtime,
     }),
-    llm: createLlmClient({
+    profile: createProfileClient({
       modId: normalizedModId,
-      runtimeHost,
       runtime,
     }),
     audit: createAuditClient({

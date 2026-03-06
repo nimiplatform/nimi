@@ -13,8 +13,8 @@ SDK 已完成单包收敛：
 - `@nimiplatform/sdk/types`
 - `@nimiplatform/sdk/scope`
 - `@nimiplatform/sdk/ai-provider`
-- `@nimiplatform/sdk/mod/ai`
 - `@nimiplatform/sdk/mod/hook`
+- `@nimiplatform/sdk/mod/runtime`
 - `@nimiplatform/sdk/mod/types`
 - `@nimiplatform/sdk/mod/ui`
 - `@nimiplatform/sdk/mod/logging`

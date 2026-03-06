@@ -1,28 +1,29 @@
-import {
-  resolveModRuntimeContext,
-} from '../internal/runtime-access';
-import type { ModRuntimeContextInput } from '../types/runtime-mod';
+import { resolveModRuntimeContext } from '../internal/runtime-access.js';
+import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
 import type {
-  AiRuntimeDependencySnapshot,
-  AiRuntimeRepairAction,
-  ModAiRuntimeInspector,
-} from './types';
+  ModRuntimeDependencySnapshot,
+  ModRuntimeInspector,
+  ModRuntimeRepairAction,
+} from './types.js';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
 }
 
-export function createAiRuntimeInspector(
+export function createModRuntimeInspector(
   modId: string,
   context?: ModRuntimeContextInput,
-): ModAiRuntimeInspector {
+): ModRuntimeInspector {
   const normalizedModId = normalizeModId(modId);
   if (!normalizedModId) {
-    throw new Error('AI_RUNTIME_INSPECTOR_MOD_ID_REQUIRED');
+    throw new Error('MOD_RUNTIME_INSPECTOR_MOD_ID_REQUIRED');
   }
   const runtimeContext = resolveModRuntimeContext(context);
 
-  const getDependencySnapshot = async (capability?: string, routeSourceHint?: 'token-api' | 'local-runtime'): Promise<AiRuntimeDependencySnapshot> => {
+  const getDependencySnapshot = async (
+    capability?: string,
+    routeSourceHint?: 'token-api' | 'local-runtime',
+  ): Promise<ModRuntimeDependencySnapshot> => {
     return runtimeContext.runtimeHost.getModAiDependencySnapshot({
       modId: normalizedModId,
       capability: String(capability || '').trim() || undefined,
@@ -30,7 +31,7 @@ export function createAiRuntimeInspector(
     });
   };
 
-  const getRepairActions = async (capability?: string): Promise<AiRuntimeRepairAction[]> => {
+  const getRepairActions = async (capability?: string): Promise<ModRuntimeRepairAction[]> => {
     const snapshot = await getDependencySnapshot(capability);
     return snapshot.repairActions;
   };

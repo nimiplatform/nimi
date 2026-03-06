@@ -8,7 +8,7 @@ export type RuntimeHttpContext = {
 
 export type HookSourceType = 'builtin' | 'injected' | 'sideload' | 'core' | 'codegen';
 export type TurnHookPoint = 'pre-policy' | 'pre-model' | 'post-state' | 'pre-commit';
-export type HookType = 'event-bus' | 'data-api' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'llm' | 'action';
+export type HookType = 'event-bus' | 'data-api' | 'ui-extension' | 'turn-hook' | 'inter-mod' | 'runtime' | 'action';
 
 export type HookRegistrationRecord = {
   registrationId: string;
