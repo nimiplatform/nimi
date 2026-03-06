@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   RealmDefaults,
   RuntimeBridgeDaemonStatus,
@@ -64,7 +65,7 @@ test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQ
         writtenConfig = configJson;
         return {
           path: '/tmp/config.json',
-          reasonCode: 'CONFIG_RESTART_REQUIRED',
+          reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
           config: JSON.parse(configJson) as Record<string, unknown>,
         };
@@ -105,7 +106,7 @@ test('syncRuntimeJwtConfig does not restart when daemon is managed but stopped',
       async setRuntimeBridgeConfig(configJson: string) {
         return {
           path: '/tmp/config.json',
-          reasonCode: 'CONFIG_RESTART_REQUIRED',
+          reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
           actionHint: 'restart runtime to apply config changes',
           config: JSON.parse(configJson) as Record<string, unknown>,
         };
@@ -140,7 +141,7 @@ test('syncRuntimeJwtConfig throws for unmanaged running daemon when restart requ
         async setRuntimeBridgeConfig(configJson: string) {
           return {
             path: '/tmp/config.json',
-            reasonCode: 'CONFIG_RESTART_REQUIRED',
+            reasonCode: ReasonCode.CONFIG_RESTART_REQUIRED,
             actionHint: 'please restart external runtime manually',
             config: JSON.parse(configJson) as Record<string, unknown>,
           };
@@ -185,7 +186,7 @@ test('syncRuntimeJwtConfig skips write when config already matches', async () =>
         setCalls += 1;
         return {
           path: '/tmp/config.json',
-          reasonCode: 'CONFIG_APPLIED',
+          reasonCode: ReasonCode.CONFIG_APPLIED,
           config: {},
         };
       },

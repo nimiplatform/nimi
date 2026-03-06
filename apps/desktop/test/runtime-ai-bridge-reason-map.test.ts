@@ -9,7 +9,7 @@ import {
 
 test('runtime ai bridge keeps model-not-found reason distinguishable', () => {
   const mapped = toLocalAiReasonCode({
-    reasonCode: 'AI_MODEL_NOT_FOUND',
+    reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
     actionHint: 'switch_model',
     traceId: 'trace-1',
     retryable: false,
@@ -25,7 +25,7 @@ test('runtime ai bridge maps modality and media option numeric reason codes', ()
 
 test('runtime ai bridge keeps media-option reason distinguishable', () => {
   const mapped = toLocalAiReasonCode({
-    reasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED',
+    reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
     actionHint: 'adjust_tts_voice_or_audio_options',
     traceId: 'trace-2',
     retryable: false,
@@ -36,7 +36,7 @@ test('runtime ai bridge keeps media-option reason distinguishable', () => {
 
 test('runtime ai bridge no longer collapses AI_INPUT_INVALID to LOCAL_AI_CAPABILITY_MISSING', () => {
   const mapped = toLocalAiReasonCode({
-    reasonCode: 'AI_INPUT_INVALID',
+    reasonCode: ReasonCode.AI_INPUT_INVALID,
     actionHint: 'check_tts_input_and_extensions',
     traceId: 'trace-3',
     retryable: false,

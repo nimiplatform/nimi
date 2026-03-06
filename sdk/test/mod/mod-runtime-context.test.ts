@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '../../src/types/index.js';
 import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
 import { createModRuntimeInspector } from '../../src/mod/runtime/inspector.js';
 import { clearModSdkHost } from '../../src/mod/host.js';
@@ -44,7 +45,7 @@ test('mod runtime client uses injected runtime context without global host', asy
         status: 'healthy' as const,
         healthy: true,
         provider: 'localai',
-        reasonCode: 'RUNTIME_ROUTE_HEALTHY',
+        reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
         actionHint: 'none',
       }),
     },
@@ -161,7 +162,7 @@ test('mod runtime client route health uses injected runtime context', async () =
           status: 'healthy',
           healthy: true,
           provider: 'localai',
-          reasonCode: 'RUNTIME_ROUTE_HEALTHY',
+          reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
           actionHint: 'none',
         };
       },
@@ -224,7 +225,7 @@ test('mod runtime client route health uses injected runtime context', async () =
   const routeHealth = await client.route.checkHealth({
     capability: 'text.generate',
   });
-  assert.equal(routeHealth.reasonCode, 'RUNTIME_ROUTE_HEALTHY');
+  assert.equal(routeHealth.reasonCode, ReasonCode.RUNTIME_ROUTE_HEALTHY);
   assert.equal(routeHealth.actionHint, 'none');
   assert.equal(routeHealthCalls.length, 1);
   assert.equal(routeHealthCalls[0]?.modId, 'mod.context.test');
@@ -264,7 +265,7 @@ test('mod runtime inspector forwards canonical dependency capability tokens', as
         status: 'healthy',
         healthy: true,
         provider: 'localai',
-        reasonCode: 'RUNTIME_ROUTE_HEALTHY',
+        reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
         actionHint: 'none',
       }),
     },
@@ -367,7 +368,7 @@ test('mod runtime client image.generate keeps minimal payload', async () => {
         status: 'healthy',
         healthy: true,
         provider: 'localai',
-        reasonCode: 'RUNTIME_ROUTE_HEALTHY',
+        reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
         actionHint: 'none',
       }),
     },

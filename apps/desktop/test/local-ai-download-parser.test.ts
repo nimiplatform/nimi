@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
@@ -18,14 +19,14 @@ test('parseDownloadProgressEvent maps state/reason/retryable', () => {
     etaSeconds: 4,
     message: 'downloading',
     state: 'paused',
-    reasonCode: 'LOCAL_AI_HF_DOWNLOAD_PAUSED',
+    reasonCode: ReasonCode.LOCAL_AI_HF_DOWNLOAD_PAUSED,
     retryable: true,
     done: false,
     success: false,
   });
 
   assert.equal(parsed.state, 'paused');
-  assert.equal(parsed.reasonCode, 'LOCAL_AI_HF_DOWNLOAD_PAUSED');
+  assert.equal(parsed.reasonCode, ReasonCode.LOCAL_AI_HF_DOWNLOAD_PAUSED);
   assert.equal(parsed.retryable, true);
 });
 

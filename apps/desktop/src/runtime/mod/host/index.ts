@@ -106,7 +106,7 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
           status: 'unavailable',
           detail: 'runtime mod sdk context provider is not ready',
           provider: '',
-          reasonCode: 'RUNTIME_ROUTE_UNAVAILABLE',
+          reasonCode: ReasonCode.RUNTIME_ROUTE_UNAVAILABLE,
           actionHint: 'verify-connector',
         }),
       },

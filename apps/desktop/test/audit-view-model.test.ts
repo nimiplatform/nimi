@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   resolveAuditSource,
   resolveAuditModality,
@@ -17,6 +18,11 @@ import {
 } from '../src/shell/renderer/features/runtime-config/domain/diagnostics/audit-view-model';
 
 type AuditEvent = Parameters<typeof resolveAuditSource>[0];
+
+const TEST_REASON_TIMEOUT = 'TIMEOUT';
+const TEST_REASON_OK = 'OK';
+const TEST_REASON_A_ERROR = 'A_ERROR';
+const TEST_REASON_B_ERROR = 'B_ERROR';
 
 function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
   return {
@@ -69,11 +75,11 @@ describe('resolveAuditModality', () => {
 
 describe('resolveAuditReasonCode', () => {
   test('returns event.reasonCode when present', () => {
-    assert.equal(resolveAuditReasonCode(makeEvent({ reasonCode: 'RUNTIME_UNAVAILABLE' })), 'RUNTIME_UNAVAILABLE');
+    assert.equal(resolveAuditReasonCode(makeEvent({ reasonCode: ReasonCode.RUNTIME_UNAVAILABLE })), ReasonCode.RUNTIME_UNAVAILABLE);
   });
 
   test('falls back to payload.reasonCode', () => {
-    assert.equal(resolveAuditReasonCode(makeEvent({ payload: { reasonCode: 'TIMEOUT' } })), 'TIMEOUT');
+    assert.equal(resolveAuditReasonCode(makeEvent({ payload: { reasonCode: TEST_REASON_TIMEOUT } })), TEST_REASON_TIMEOUT);
   });
 
   test('returns "-" when neither present', () => {
@@ -158,8 +164,8 @@ describe('resolveAuditLabel', () => {
 
 describe('filterAuditEvents', () => {
   const events: AuditEvent[] = [
-    makeEvent({ id: '1', eventType: 'inference_invoked', source: 'local-runtime', modality: 'chat', reasonCode: 'OK' }),
-    makeEvent({ id: '2', eventType: 'inference_failed', source: 'token-api', modality: 'image', reasonCode: 'TIMEOUT' }),
+    makeEvent({ id: '1', eventType: 'inference_invoked', source: 'local-runtime', modality: 'chat', reasonCode: TEST_REASON_OK }),
+    makeEvent({ id: '2', eventType: 'inference_failed', source: 'token-api', modality: 'image', reasonCode: TEST_REASON_TIMEOUT }),
     makeEvent({ id: '3', eventType: 'engine_started', source: 'local-runtime' }),
   ];
 
@@ -301,25 +307,25 @@ describe('summarizeAuditModalities', () => {
 describe('summarizeAuditReasons', () => {
   test('counts reason codes correctly', () => {
     const events: AuditEvent[] = [
-      makeEvent({ reasonCode: 'OK' }),
-      makeEvent({ reasonCode: 'OK' }),
-      makeEvent({ reasonCode: 'TIMEOUT' }),
+      makeEvent({ reasonCode: TEST_REASON_OK }),
+      makeEvent({ reasonCode: TEST_REASON_OK }),
+      makeEvent({ reasonCode: TEST_REASON_TIMEOUT }),
     ];
     const result = summarizeAuditReasons(events);
     assert.equal(result.length, 2);
-    assert.equal(result[0].reasonCode, 'OK');
+    assert.equal(result[0].reasonCode, TEST_REASON_OK);
     assert.equal(result[0].count, 2);
   });
 
   test('sorted by count desc then alphabetically', () => {
     const events: AuditEvent[] = [
-      makeEvent({ reasonCode: 'B_ERROR' }),
-      makeEvent({ reasonCode: 'A_ERROR' }),
-      makeEvent({ reasonCode: 'B_ERROR' }),
+      makeEvent({ reasonCode: TEST_REASON_B_ERROR }),
+      makeEvent({ reasonCode: TEST_REASON_A_ERROR }),
+      makeEvent({ reasonCode: TEST_REASON_B_ERROR }),
     ];
     const result = summarizeAuditReasons(events);
-    assert.equal(result[0].reasonCode, 'B_ERROR');
-    assert.equal(result[1].reasonCode, 'A_ERROR');
+    assert.equal(result[0].reasonCode, TEST_REASON_B_ERROR);
+    assert.equal(result[1].reasonCode, TEST_REASON_A_ERROR);
   });
 });
 

@@ -13,6 +13,7 @@ import {
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -73,10 +74,10 @@ function registerModStateDataCapability(): void {
     const op = String(input.op || '').trim().toLowerCase();
     const key = normalizeModStateKey(input.key);
     if (!key) {
-      return { ok: false, reasonCode: 'MOD_STATE_INVALID_KEY' };
+      return { ok: false, reasonCode: ReasonCode.MOD_STATE_INVALID_KEY };
     }
     if (typeof globalThis === 'undefined' || !globalThis.localStorage) {
-      return { ok: false, reasonCode: 'MOD_STATE_UNAVAILABLE' };
+      return { ok: false, reasonCode: ReasonCode.MOD_STATE_UNAVAILABLE };
     }
 
     const storageKey = scopedModStateStorageKey(key);
@@ -88,7 +89,7 @@ function registerModStateDataCapability(): void {
       if (op === 'set') {
         const value = String(input.value || '');
         if (value.length > MOD_STATE_MAX_VALUE_LENGTH) {
-          return { ok: false, reasonCode: 'MOD_STATE_VALUE_TOO_LARGE' };
+          return { ok: false, reasonCode: ReasonCode.MOD_STATE_VALUE_TOO_LARGE };
         }
         globalThis.localStorage.setItem(storageKey, value);
         return { ok: true };
@@ -97,9 +98,9 @@ function registerModStateDataCapability(): void {
         globalThis.localStorage.removeItem(storageKey);
         return { ok: true };
       }
-      return { ok: false, reasonCode: 'MOD_STATE_INVALID_OP' };
+      return { ok: false, reasonCode: ReasonCode.MOD_STATE_INVALID_OP };
     } catch {
-      return { ok: false, reasonCode: 'MOD_STATE_STORAGE_ERROR' };
+      return { ok: false, reasonCode: ReasonCode.MOD_STATE_STORAGE_ERROR };
     }
   });
 }
