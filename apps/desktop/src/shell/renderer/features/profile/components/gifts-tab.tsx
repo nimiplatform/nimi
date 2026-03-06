@@ -126,9 +126,6 @@ export function GiftsTab({ giftStats }: GiftsTabProps) {
 
   return (
     <div>
-      <div className="mb-4 text-center text-sm text-gray-500">
-        {totalGifts} gift{totalGifts !== 1 ? 's' : ''} received
-      </div>
       <div className="grid grid-cols-3 gap-3">
         {giftWall.map((item) => (
           <GiftCard key={item.id} item={item} />

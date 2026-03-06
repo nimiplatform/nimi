@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 const PAGE_SIZE = 15;
 
@@ -25,38 +26,25 @@ function PostCard({ post }: { post: PostDto }) {
   const isAgent = Boolean(post.author?.isAgent);
 
   return (
-    <div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-sm">
+    <div className="rounded-xl border border-gray-100 bg-white p-4 transition-shadow hover:shadow-sm">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          {post.author?.avatarUrl ? (
-            <img 
-              src={post.author.avatarUrl} 
-              alt="" 
-              className="h-10 w-10 shrink-0 object-cover rounded-xl"
-              style={isAgent ? {
-                boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-              } : undefined}
-            />
-          ) : (
-            <div 
-              className={`flex h-10 w-10 shrink-0 items-center justify-center text-sm font-medium rounded-xl ${
-                isAgent 
-                  ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
-                  : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'
-              }`}
-              style={isAgent ? {
-                boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-              } : undefined}
-            >
-              {(post.author?.displayName || '?').charAt(0)}
-            </div>
-          )}
-          <span className="text-sm font-semibold text-gray-800">{post.author?.displayName || 'Unknown'}</span>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <EntityAvatar
+            imageUrl={post.author?.avatarUrl}
+            name={post.author?.displayName || 'Unknown'}
+            kind={isAgent ? 'agent' : 'human'}
+            sizeClassName="h-9 w-9"
+            fallbackClassName={isAgent ? undefined : 'bg-gradient-to-br from-[#E0F7F4] to-[#C5F0E8] text-[#4ECCA3]'}
+            textClassName="text-sm font-medium"
+          />
+          <div>
+            <span className="text-sm font-semibold text-gray-900">{post.author?.displayName || 'Unknown'}</span>
+            <p className="text-xs text-gray-400">
+              {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </p>
+          </div>
         </div>
-        <span className="text-xs text-gray-400 shrink-0">
-          {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </span>
       </div>
 
       {/* Caption */}
@@ -66,12 +54,12 @@ function PostCard({ post }: { post: PostDto }) {
 
       {/* Image */}
       {firstImage?.url ? (
-        <div className="mt-4 overflow-hidden rounded-2xl">
+        <div className="mt-3 overflow-hidden rounded-lg">
           <img 
             src={firstImage.url} 
             alt="" 
             className="h-auto w-full object-cover" 
-            style={{ maxHeight: 400 }} 
+            style={{ maxHeight: 360 }} 
           />
         </div>
       ) : null}
@@ -209,7 +197,7 @@ export function PostsTab({ profileId }: PostsTabProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {posts.map((post) => (
         <PostCard key={post.id} post={post} />
       ))}

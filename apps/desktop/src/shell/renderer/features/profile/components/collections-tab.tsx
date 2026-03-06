@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 
 const PAGE_SIZE = 20;
 
@@ -39,29 +40,14 @@ function LikedPostCard({ post }: { post: PostDto }) {
       )}
       <div className="p-3">
         <div className="flex items-center gap-2">
-          {post.author?.avatarUrl ? (
-            <img 
-              src={post.author.avatarUrl} 
-              alt="" 
-              className="h-5 w-5 object-cover rounded"
-              style={isAgent ? {
-                boxShadow: '0 0 0 1px #a855f7, 0 0 2px 1px rgba(168, 85, 247, 0.4)'
-              } : undefined}
-            />
-          ) : (
-            <div 
-              className={`flex h-5 w-5 items-center justify-center text-[10px] font-medium rounded ${
-                isAgent 
-                  ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white' 
-                  : 'bg-gray-100 text-gray-500'
-              }`}
-              style={isAgent ? {
-                boxShadow: '0 0 0 1px #a855f7, 0 0 2px 1px rgba(168, 85, 247, 0.4)'
-              } : undefined}
-            >
-              {(post.author?.displayName || '?').charAt(0)}
-            </div>
-          )}
+          <EntityAvatar
+            imageUrl={post.author?.avatarUrl}
+            name={post.author?.displayName || 'Unknown'}
+            kind={isAgent ? 'agent' : 'human'}
+            sizeClassName="h-5 w-5"
+            fallbackClassName={isAgent ? undefined : 'bg-gray-100 text-gray-500'}
+            textClassName="text-[10px] font-medium"
+          />
           <span className="truncate text-xs font-medium text-gray-700">{post.author?.displayName || 'Unknown'}</span>
         </div>
         {post.caption ? (

@@ -1,6 +1,6 @@
 import React from 'react';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactRequestRecord } from './contacts-model.js';
-import { getContactInitial } from './contacts-model.js';
 
 // 单个好友请求详情组件
 export function FriendRequestDetail({
@@ -20,13 +20,15 @@ export function FriendRequestDetail({
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
         <div className="flex flex-col items-center">
-          {request.avatarUrl ? (
-            <img src={request.avatarUrl} alt={request.displayName} className="h-20 w-20 rounded-xl object-cover" />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 text-2xl font-medium text-white">
-              {getContactInitial(request.displayName)}
-            </div>
-          )}
+          <EntityAvatar
+            imageUrl={request.avatarUrl}
+            name={request.displayName}
+            kind={request.isAgent ? 'agent' : 'human'}
+            sizeClassName="h-20 w-20"
+            radiusClassName={request.isAgent ? 'rounded-[10px]' : undefined}
+            innerRadiusClassName={request.isAgent ? 'rounded-[8px]' : undefined}
+            textClassName="text-2xl font-medium"
+          />
           <h2 className="mt-4 text-xl font-semibold text-gray-900">{request.displayName}</h2>
           {request.handle && (
             <p className="text-sm text-gray-500">{request.handle}</p>
@@ -125,24 +127,21 @@ export function FriendRequestsList({
                   {sortedRequests.map((request) => {
                     const isAccepted = acceptedRequests.has(request.userId);
                     const isRejected = rejectedRequests.has(request.userId);
-
                     return (
                       <div
                         key={`${request.direction}:${request.userId}`}
                         className="flex items-center gap-4 p-4 rounded-2xl bg-white/60 border border-white/60 transition-all hover:bg-white/80"
                       >
                         {/* 头像 */}
-                        {request.avatarUrl ? (
-                          <img
-                            src={request.avatarUrl}
-                            alt={request.displayName}
-                            className="h-14 w-14 rounded-2xl object-cover bg-gray-100"
-                          />
-                        ) : (
-                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 text-lg font-medium text-white">
-                            {getContactInitial(request.displayName)}
-                          </div>
-                        )}
+                        <EntityAvatar
+                          imageUrl={request.avatarUrl}
+                          name={request.displayName}
+                          kind={request.isAgent ? 'agent' : 'human'}
+                          sizeClassName="h-14 w-14"
+                          radiusClassName={request.isAgent ? 'rounded-[10px]' : undefined}
+                          innerRadiusClassName={request.isAgent ? 'rounded-[8px]' : undefined}
+                          textClassName="text-lg font-medium"
+                        />
 
                         {/* 名字和留言 */}
                         <div className="flex-1 min-w-0">

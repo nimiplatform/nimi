@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
-import { getContactInitial } from './contacts-model.js';
 import { CATEGORIES } from './contacts-view-types.js';
 import { BlockedUsersList } from './contacts-blocked-users.js';
 
@@ -27,6 +28,14 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     parts.push(text.slice(lastIndex));
   }
   return <>{parts}</>;
+}
+
+function getContactPalette(contact: ContactRecord) {
+  return getSemanticAgentPalette({
+    description: contact.bio,
+    worldName: contact.worldName,
+    tags: contact.tags,
+  });
 }
 
 // ---------- Search results panel ----------
@@ -112,61 +121,23 @@ export function ContactsSearchResults({
   return (
     <div className="space-y-4">
       {groups.map((group) => (
-        <div key={`${group.id}-${group.title}`}>
+          <div key={`${group.id}-${group.title}`}>
           {/* 分组标题 */}
-          <div className="px-3 py-1.5 text-xs text-gray-500 font-medium flex items-center justify-between">
+          <div className="px-3 py-1 text-xs text-gray-500 font-medium flex items-center justify-between">
             <span>{group.title}</span>
             <span className="text-gray-400">({group.items.length})</span>
           </div>
           {/* 该分组下的联系人 */}
           <div className="space-y-0.5">
             {group.items.map((contact) => (
-              <button
+              <ContactListItem
                 key={contact.id}
-                type="button"
+                contact={contact}
+                isSelected={selectedContactId === contact.id}
+                secondaryText={group.id === 'world' ? contact.handle : undefined}
+                query={query}
                 onClick={() => onSelectContact(contact, group.id === 'world' ? (contact.isAgent ? 'agents' : 'humans') : group.id)}
-                className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
-                  selectedContactId === contact.id
-                    ? 'bg-green-100 text-green-800'
-                    : 'hover:bg-green-50/50 text-gray-700'
-                }`}
-              >
-                {contact.avatarUrl ? (
-                  <img
-                    src={contact.avatarUrl}
-                    alt={contact.displayName}
-                    className="h-10 w-10 rounded-lg object-cover"
-                    style={contact.isAgent ? {
-                      boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-                    } : undefined}
-                  />
-                ) : (
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                      contact.isAgent
-                        ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
-                        : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-                    }`}
-                    style={contact.isAgent ? {
-                      boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-                    } : undefined}
-                  >
-                    {getContactInitial(contact.displayName)}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[15px] text-gray-900 truncate">
-                    <HighlightText text={contact.displayName} query={query} />
-                  </div>
-                  <div className="text-xs text-gray-400 truncate">
-                    {group.id === 'world' ? (
-                      <span className="text-[#4ECCA3]">{contact.handle}</span>
-                    ) : (
-                      <HighlightText text={contact.handle} query={query} />
-                    )}
-                  </div>
-                </div>
-              </button>
+              />
             ))}
           </div>
         </div>
@@ -264,10 +235,10 @@ export function ContactsCategoryAccordion({
                   onSelectRequests();
                 }
               }}
-              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left rounded-lg transition-all duration-150 ${
+              className={`flex w-full items-center gap-3 px-3 py-2 text-left rounded-lg transition-all duration-150 ${
                 isExpanded
-                  ? 'bg-green-50 text-green-700'
-                  : 'hover:bg-green-50/60 text-gray-700'
+                  ? 'bg-mint-50 text-mint-700'
+                  : 'hover:bg-mint-50/60 text-gray-700'
               }`}
             >
               {/* 展开/折叠箭头 */}
@@ -280,23 +251,23 @@ export function ContactsCategoryAccordion({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={`transition-transform duration-200 ${isExpanded ? 'rotate-90 text-green-600' : 'text-gray-400'}`}
+                className={`transition-transform duration-200 ${isExpanded ? 'rotate-90 text-mint-600' : 'text-gray-400'}`}
               >
                 <polyline points="9 18 15 12 9 6" />
               </svg>
 
               <span className="text-xl">{category.icon}</span>
-              <span className={`flex-1 text-[14px] font-medium ${isExpanded ? 'text-green-800' : 'text-gray-700'}`}>
+              <span className={`flex-1 text-[14px] font-medium ${isExpanded ? 'text-mint-700' : 'text-gray-700'}`}>
                 {category.label}
               </span>
               {count > 0 && (
-                <span className={`text-xs ${isExpanded ? 'text-green-600' : 'text-gray-400'}`}>{count}</span>
+                <span className={`text-xs ${isExpanded ? 'text-mint-600' : 'text-gray-400'}`}>{count}</span>
               )}
             </button>
 
             {/* 展开的列表内容 */}
             {isExpanded && (
-              <div className="mt-1 py-1">
+              <div className="mt-0.5 py-0.5">
                 {isRequests ? (
                   // 新的朋友列表 - 只显示待处理的 received 请求（未接受且未拒绝）
                   (items as ContactRequestRecord[])
@@ -305,16 +276,18 @@ export function ContactsCategoryAccordion({
                     return (
                       <div
                         key={`${request.direction}:${request.userId}`}
-                        className="flex w-full items-center gap-3 px-3 py-2.5 mx-1 rounded-lg transition-all duration-150 hover:bg-green-50/50 text-gray-700"
+                        className="mx-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-700 transition-all duration-150 hover:bg-mint-50/50"
                       >
                         {/* 头像 */}
-                        {request.avatarUrl ? (
-                          <img src={request.avatarUrl} alt={request.displayName} className="h-10 w-10 rounded-lg object-cover" />
-                        ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 text-sm font-medium text-white">
-                            {getContactInitial(request.displayName)}
-                          </div>
-                        )}
+                        <EntityAvatar
+                          imageUrl={request.avatarUrl}
+                          name={request.displayName}
+                          kind={request.isAgent ? 'agent' : 'human'}
+                          sizeClassName="h-10 w-10"
+                          radiusClassName={request.isAgent ? 'rounded-[10px]' : undefined}
+                          innerRadiusClassName={request.isAgent ? 'rounded-[8px]' : undefined}
+                          textClassName="text-sm font-medium"
+                        />
 
                         {/* 名字和留言 */}
                         <div className="flex-1 min-w-0">
@@ -364,48 +337,17 @@ export function ContactsCategoryAccordion({
                     sortedKeys.map((key) => (
                       <div key={key}>
                         {/* 字母分组标题 */}
-                        <div className="px-4 py-1.5 text-xs text-gray-400 font-medium">
+                        <div className="px-4 py-1 text-xs text-gray-400 font-medium">
                           {key}
                         </div>
                         {/* 该字母下的联系人 */}
                         {(groupedItems[key] || []).map((contact) => (
-                          <button
+                          <ContactListItem
                             key={contact.id}
-                            type="button"
+                            contact={contact}
+                            isSelected={currentContactId === contact.id}
                             onClick={() => onSelectContact(contact, category.id)}
-                            className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
-                              currentContactId === contact.id
-                                ? 'bg-green-100 text-green-800'
-                                : 'hover:bg-green-50/50 text-gray-700'
-                            }`}
-                          >
-                            {contact.avatarUrl ? (
-                              <img
-                                src={contact.avatarUrl}
-                                alt={contact.displayName}
-                                className="h-10 w-10 rounded-lg object-cover"
-                                style={contact.isAgent ? {
-                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-                                } : undefined}
-                              />
-                            ) : (
-                              <div
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
-                                  contact.isAgent
-                                    ? 'bg-gradient-to-br from-[#4ECCA3] to-[#3DBB94] text-white'
-                                    : 'bg-gradient-to-br from-green-400 to-green-500 text-white'
-                                }`}
-                                style={contact.isAgent ? {
-                                  boxShadow: '0 0 0 1.5px #a855f7, 0 0 4px 2px rgba(168, 85, 247, 0.4)'
-                                } : undefined}
-                              >
-                                {getContactInitial(contact.displayName)}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0 text-left">
-                              <div className="text-[15px] text-gray-900 truncate">{contact.displayName}</div>
-                            </div>
-                          </button>
+                          />
                         ))}
                       </div>
                     ))
@@ -417,5 +359,53 @@ export function ContactsCategoryAccordion({
         );
       })}
     </>
+  );
+}
+
+function ContactListItem({
+  contact,
+  isSelected,
+  query,
+  secondaryText,
+  onClick,
+}: {
+  contact: ContactRecord;
+  isSelected: boolean;
+  query?: string;
+  secondaryText?: string;
+  onClick: () => void;
+}) {
+  const palette = getContactPalette(contact);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 px-3 py-2.5 mx-1 text-left rounded-lg transition-all duration-150 ${
+        isSelected
+          ? 'bg-mint-50 text-mint-700'
+          : 'hover:bg-mint-50/50 text-gray-700'
+      }`}
+    >
+      <EntityAvatar
+        imageUrl={contact.avatarUrl}
+        name={contact.displayName}
+        kind={contact.isAgent ? 'agent' : 'human'}
+        sizeClassName="h-10 w-10"
+        radiusClassName={contact.isAgent ? 'rounded-[10px]' : undefined}
+        innerRadiusClassName={contact.isAgent ? 'rounded-[8px]' : undefined}
+        textClassName="text-sm font-medium"
+      />
+      <div className="flex-1 min-w-0 text-left">
+        <div className="text-[15px] text-gray-900 truncate">
+          {query ? <HighlightText text={contact.displayName} query={query} /> : contact.displayName}
+        </div>
+        {(secondaryText || contact.worldName) && (
+          <div className="text-xs truncate" style={{ color: contact.isAgent ? palette.accent : undefined }}>
+            {secondaryText || contact.worldName}
+          </div>
+        )}
+      </div>
+    </button>
   );
 }

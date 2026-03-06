@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ContactSearchCandidate } from './contacts-model';
-import { getContactInitial } from './contacts-model';
 
 type AddContactModalProps = {
   open: boolean;
@@ -145,6 +146,9 @@ export function AddContactModal(props: AddContactModalProps) {
   }
 
   const isSelected = selectedCandidate?.id === candidate?.id;
+  const candidatePalette = getSemanticAgentPalette({
+    description: candidate?.displayName,
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm" onClick={props.onClose}>
@@ -261,29 +265,26 @@ export function AddContactModal(props: AddContactModalProps) {
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  {candidate.avatarUrl ? (
-                    <img 
-                      src={candidate.avatarUrl} 
-                      alt={candidate.displayName} 
-                      className={`h-14 w-14 rounded-full object-cover ring-2 ${isSelected ? 'ring-mint-300' : 'ring-gray-100'}`}
-                    />
-                  ) : (
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-full text-sm font-semibold ring-2 ${
-                      isSelected 
-                        ? 'bg-mint-200 text-mint-800 ring-mint-300' 
-                        : 'bg-mint-100 text-mint-700 ring-gray-100'
-                    }`}>
-                      {getContactInitial(candidate.displayName)}
-                    </div>
-                  )}
+                <EntityAvatar
+                  imageUrl={candidate.avatarUrl}
+                  name={candidate.displayName}
+                  kind={candidate.isAgent ? 'agent' : 'human'}
+                  sizeClassName="h-14 w-14"
+                  radiusClassName={candidate.isAgent ? 'rounded-[10px]' : undefined}
+                  innerRadiusClassName={candidate.isAgent ? 'rounded-[8px]' : undefined}
+                  textClassName="text-sm font-semibold"
+                  className={!candidate.isAgent && isSelected ? 'ring-2 ring-mint-300' : undefined}
+                  fallbackClassName={!candidate.isAgent ? (isSelected ? 'bg-mint-200 text-mint-800' : 'bg-mint-100 text-mint-700 ring-2 ring-gray-100') : undefined}
+                />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-base font-bold text-gray-900">{candidate.displayName}</p>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         candidate.isAgent 
-                          ? 'bg-mint-100 text-mint-700' 
+                          ? ''
                           : 'bg-blue-50 text-blue-600'
-                      }`}>
+                      }`}
+                      style={candidate.isAgent ? { backgroundColor: candidatePalette.badgeBg, color: candidatePalette.badgeText } : undefined}>
                         {candidate.isAgent ? 'Agent' : 'Human'}
                       </span>
                     </div>

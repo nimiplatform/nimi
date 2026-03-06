@@ -26,7 +26,7 @@ export type ProfileData = {
   city: string | null;
   countryCode: string | null;
   gender: string | null;
-  stats: { friendsCount: number; postsCount: number } | null;
+  stats: { friendsCount: number; postsCount: number; likesCount: number } | null;
   giftStats: Record<string, number>;
   agentState: string | null;
   agentCategory: string | null;
@@ -37,6 +37,8 @@ export type ProfileData = {
   agentOwnershipType: string | null;
   agentWorldId: string | null;
   agentOwnerWorldId: string | null;
+  worldName: string | null;
+  worldBannerUrl: string | null;
 };
 
 export function toProfileData(raw: Record<string, unknown>): ProfileData {
@@ -69,6 +71,15 @@ export function toProfileData(raw: Record<string, unknown>): ProfileData {
       ? {
           friendsCount: typeof stats.friendsCount === 'number' ? stats.friendsCount : 0,
           postsCount: typeof stats.postsCount === 'number' ? stats.postsCount : 0,
+          likesCount: typeof stats.likesCount === 'number'
+            ? stats.likesCount
+            : typeof stats.likeCount === 'number'
+              ? stats.likeCount
+              : typeof raw.likesCount === 'number'
+                ? raw.likesCount
+                : typeof raw.likeCount === 'number'
+                  ? raw.likeCount
+                  : 0,
         }
       : null,
     giftStats: parsedGiftStats,
@@ -105,6 +116,40 @@ export function toProfileData(raw: Record<string, unknown>): ProfileData {
         && typeof raw.agentProfile === 'object'
         && typeof (raw.agentProfile as Record<string, unknown>).ownerWorldId === 'string'
           ? String((raw.agentProfile as Record<string, unknown>).ownerWorldId)
+          : null
+      )
+    ),
+    worldName: (
+      (typeof raw.worldName === 'string' ? raw.worldName : null)
+      || (
+        raw.agentProfile
+        && typeof raw.agentProfile === 'object'
+        && typeof (raw.agentProfile as Record<string, unknown>).worldName === 'string'
+          ? String((raw.agentProfile as Record<string, unknown>).worldName)
+          : null
+      )
+      || (
+        raw.world
+        && typeof raw.world === 'object'
+        && typeof (raw.world as Record<string, unknown>).name === 'string'
+          ? String((raw.world as Record<string, unknown>).name)
+          : null
+      )
+    ),
+    worldBannerUrl: (
+      (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
+      || (
+        raw.agentProfile
+        && typeof raw.agentProfile === 'object'
+        && typeof (raw.agentProfile as Record<string, unknown>).worldBannerUrl === 'string'
+          ? String((raw.agentProfile as Record<string, unknown>).worldBannerUrl)
+          : null
+      )
+      || (
+        raw.world
+        && typeof raw.world === 'object'
+        && typeof (raw.world as Record<string, unknown>).bannerUrl === 'string'
+          ? String((raw.world as Record<string, unknown>).bannerUrl)
           : null
       )
     ),
