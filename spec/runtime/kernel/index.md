@@ -1,7 +1,5 @@
 # Runtime Kernel Contracts
 
-> Status: Phase 1 Normative — FROZEN (2026-03-01) · Phase 2 — Draft
-> Date: 2026-03-03
 > Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / App / ScriptWorker / Daemon / Config / Connector / Multimodal / Proto Governance）。
 
 ## 1. 目标
@@ -114,4 +112,4 @@ Runtime provider model/voice default data is maintained outside `spec/` at:
 
 ## 8. Scope 与 Deferred
 
-本目录覆盖 Runtime proto 全量服务。服务按 Phase 1（Normative）与 Phase 2（Draft）管理，新增语义必须先入 kernel，再改 domain 与实现。
+本目录覆盖 Runtime proto 全量服务。Phase 1 规则构成当前规范基线；Phase 2 kernel contracts 可先以 draft 形态并存，待语义收敛后再提升为规范基线。新增语义必须先入 kernel，再改 domain 与实现。

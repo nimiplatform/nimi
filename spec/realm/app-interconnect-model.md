@@ -1,8 +1,6 @@
 # Realm App Interconnect Model
 
 > Domain: Realm / App Interconnect Model
-> Status: Frozen
-> Date: 2026-03-03
 
 ## 0. Normative Imports
 

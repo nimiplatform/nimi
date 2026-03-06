@@ -29,6 +29,11 @@ manifest `entry` 固定为 `./dist/index.js`。
 ## D-CODEGEN-012 Capabilities Required
 
 manifest `capabilities` 字段必填。
+`permissions` 字段已退役；codegen 产物与预检链不得输出或接受 legacy permissions 字段。
+
+执行命令：
+
+- `pnpm check:no-legacy-mod-permissions-field`
 
 ## D-CODEGEN-013 Version Window Required
 

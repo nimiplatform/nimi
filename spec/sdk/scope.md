@@ -1,7 +1,5 @@
 # Scope SDK Domain Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: `@nimiplatform/sdk/scope` 主题导引（catalog 生命周期与授权联动边界）。
 > Normative Imports: `spec/sdk/kernel/*`
 

@@ -249,3 +249,11 @@ source provider 的非 scenario 元数据必须通过 `runtime/catalog/source/pr
 - `requires_explicit_endpoint`
 
 `runtime/internal/providerregistry/generated.go`、`tables/provider-catalog.yaml`、`tables/provider-capabilities.yaml` 都必须由该 `runtime` 块投影生成，禁止 spec 表反向充当 runtime endpoint/default endpoint 真相。
+
+## Verification Anchors
+
+- `K-MCAT-005` / `K-MCAT-006` / `K-MCAT-007`：`pnpm check:runtime-catalog-drift`、`pnpm check:runtime-provider-yaml-first-hardcut`
+- `K-MCAT-018`：`pnpm check:runtime-video-capability-block-enforcement`
+- `K-MCAT-022`：`pnpm check:runtime-provider-activation-alignment`
+- `K-MCAT-024`：`pnpm check:runtime-provider-capability-token-canonicalization`
+- `K-MCAT-027`：`pnpm check:runtime-provider-endpoint-ssot`

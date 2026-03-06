@@ -1,21 +1,22 @@
 # SDK Testing Gates Domain Spec
 
-> Status: Active
-> Date: 2026-03-03
 > Scope: SDK 测试治理导引（门禁入口、覆盖范围、证据归档位置）。
 > Normative Imports: `spec/sdk/kernel/*`
 
 ## 0. 权威导入
 
 - `kernel/testing-gates-contract.md`（S-GATE-001, S-GATE-010, S-GATE-020, S-GATE-030, S-GATE-040, S-GATE-050, S-GATE-060, S-GATE-070, S-GATE-080, S-GATE-090, S-GATE-091）
+- `kernel/surface-contract.md`（S-SURFACE-001, S-SURFACE-005）
 - `kernel/transport-contract.md`（S-TRANSPORT-003, S-TRANSPORT-006）
 - `kernel/error-projection.md`（S-ERROR-001, S-ERROR-005）
 - `kernel/boundary-contract.md`（S-BOUNDARY-001, S-BOUNDARY-004）
+- `kernel/mod-contract.md`（S-MOD-004）
 - `kernel/tables/sdk-testing-gates.yaml`
 
 ## 1. 文档定位
 
 本文件是 SDK 测试门禁导引。规范门定义在 kernel，执行计划和结果证据在开发目录维护。
+其中 contract/boundary hard-cut 入口对应 `S-BOUNDARY-004`、`S-SURFACE-001`、`S-SURFACE-005`、`S-ERROR-002`，mod/hook hard-cut 对应 `S-MOD-004`。
 
 ## 2. 门禁入口
 
@@ -24,10 +25,10 @@
 - 文档漂移：`pnpm check:sdk-spec-kernel-docs-drift`。
 - 一致性：`pnpm check:sdk-spec-kernel-consistency`。
 - 覆盖率：`pnpm check:sdk-coverage`。
-- 边界：`pnpm check:sdk-import-boundary`。
+- 合同 / 边界：`pnpm check:sdk-import-boundary`、`pnpm check:sdk-public-naming`、`pnpm check:no-create-nimi-client`、`pnpm check:no-global-openapi-config`、`pnpm check:sdk-realm-legacy-clean`、`pnpm check:reason-code-constants`、`pnpm check:sdk-single-package-layout`。
 - Runtime 投影：`pnpm check:runtime-bridge-method-drift`。
 - vNext 矩阵：`pnpm check:sdk-vnext-matrix`。
-- Mod/Scope 边界：`pnpm check:mods-no-runtime-sdk`。
+- Mod/Scope 边界：`pnpm check:mods-no-runtime-sdk`、`pnpm check:runtime-mod-hook-hardcut`。
 - Provider 对齐：`pnpm check:live-provider-invariants`。
 - Live smoke：`node scripts/run-live-test-matrix.mjs` 与 `pnpm check:live-smoke-gate`。
 - 发布一致性：`pnpm check:sdk-version-matrix` 与 `pnpm check:live-smoke-gate --require-release`。

@@ -1,8 +1,6 @@
 # Platform Protocol
 
 > Domain: Platform / Protocol
-> Status: Frozen
-> Date: 2026-03-03
 
 ## 0. Normative Imports
 
@@ -26,6 +24,7 @@
 2. 授权与 scope：P-PROTO-020、P-PROTO-030、P-PROTO-035、P-PROTO-040。
 3. World-App 与模式边界：P-PROTO-050、P-PROTO-060。
 4. 六原语与一致性：P-PROTO-070、P-PROTO-100–105。
+5. 下游实现锚点：`spec/runtime/kernel/auth-service.md`、`spec/runtime/kernel/grant-service.md`、`spec/sdk/kernel/scope-contract.md`、`spec/realm/kernel/interop-mapping-contract.md`。
 
 ## 3. 事实源映射
 
@@ -35,6 +34,8 @@
 - 审计事件字典：`kernel/tables/audit-events.yaml`。
 - App 授权预设：`kernel/tables/app-authorization-presets.yaml`。
 - 参与方画像与 app 模式：`kernel/tables/participant-profiles.yaml`。
+
+合规矩阵本身由 Platform kernel 管理；实际执行门与测试证据分别落到 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 `dev/report/*`，Platform domain 不复制下游 gate 细节。
 
 ## 4. 非目标
 

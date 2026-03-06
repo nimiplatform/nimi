@@ -1,7 +1,5 @@
 # AI Provider SDK Domain Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: `@nimiplatform/sdk/ai-provider` 主题导引（协议适配、runtime 映射、流行为）。
 > Normative Imports: `spec/sdk/kernel/*`
 

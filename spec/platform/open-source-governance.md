@@ -1,8 +1,6 @@
 # Open Source Governance
 
 > Domain: Platform / Governance
-> Status: Active
-> Date: 2026-03-03
 
 ## 0. Normative Imports
 

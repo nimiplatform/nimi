@@ -21,3 +21,8 @@ Mod SDK 不得绕过 host 注入直接访问 runtime/realm 私有客户端。
 
 - `createNimiClient`
 - 全局 `OpenAPI.BASE` / `OpenAPI.TOKEN` 赋值
+
+执行命令：
+
+- `pnpm check:no-create-nimi-client`
+- `pnpm check:no-global-openapi-config`

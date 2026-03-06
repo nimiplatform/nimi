@@ -1,7 +1,5 @@
 # Local Model Execution Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: 本地模型执行主题导引（LocalAI/Nexa、引擎、适配路由、生命周期）。
 > Normative Imports: `spec/runtime/kernel/*`
 

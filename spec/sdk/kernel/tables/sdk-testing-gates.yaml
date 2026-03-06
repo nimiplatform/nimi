@@ -6,13 +6,13 @@ gates:
     command: pnpm check:sdk-consumer-smoke
     source_rule: S-GATE-010
   - gate: boundary_checks
-    command: pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming
+    command: pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config && pnpm check:sdk-realm-legacy-clean && pnpm check:reason-code-constants && pnpm check:sdk-single-package-layout
     source_rule: S-GATE-020
   - gate: vnext_matrix
     command: pnpm check:sdk-vnext-matrix
     source_rule: S-GATE-030
   - gate: mod_scope
-    command: pnpm check:mods-no-runtime-sdk
+    command: pnpm check:mods-no-runtime-sdk && pnpm check:runtime-mod-hook-hardcut
     source_rule: S-GATE-040
   - gate: runtime_projection
     command: pnpm check:runtime-bridge-method-drift

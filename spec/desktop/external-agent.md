@@ -1,8 +1,6 @@
 # External Agent Domain Spec
 
 > Normative Imports: `spec/desktop/kernel/*`
-> Status: Draft
-> Date: 2026-03-01
 
 ## Scope
 

@@ -1,13 +1,12 @@
 # Future Capabilities
 
-> Status: Draft
-> Date: 2026-03-01
 > Scope: 未来能力规划 backlog，汇总研究报告中可借鉴项，按优先级分类管理。
 
 ## 1. 目标
 
 本目录是 Nimi 平台未来能力的结构化 backlog。
 所有条目从研究报告中提取，经审计后进入 backlog，按优先级和类别组织，成熟后毕业到现有 spec 域（`spec/runtime/`、`spec/sdk/`、`spec/desktop/`）。面向 Web 的条目不单独创建 `spec/web/`，而是毕业到 `spec/desktop/web-adapter.md` 或相关 Desktop 投影文档。
+若条目依赖 `spec/platform/**` 或 `spec/realm/**` 的既有协议、原语、经济或边界词汇，毕业时必须复用那些 kernel 规则与事实表，不得在目标域复制第二份规范正文。
 
 ## 2. 目录结构
 

@@ -1,7 +1,5 @@
 # Multimodal Provider Domain Spec
 
-> Status: Active
-> Date: 2026-03-03
 > Scope: 多模态 provider 主题导引（canonical 字段、任务语义、路由一致性）。
 > Normative Imports: `spec/runtime/kernel/*`
 

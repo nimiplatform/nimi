@@ -1,7 +1,5 @@
 # Runtime Config Domain Spec
 
-> Status: Active
-> Date: 2026-03-03
 > Scope: Runtime 配置读取、路径约束、生效语义与跨端调用边界。
 > Normative Imports: `spec/runtime/kernel/*`
 

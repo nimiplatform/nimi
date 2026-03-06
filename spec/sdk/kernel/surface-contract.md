@@ -12,6 +12,12 @@
 - `@nimiplatform/sdk/scope`
 - `@nimiplatform/sdk/mod`
 
+SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatform/sdk` 包内投影，不得漂移为多 package 或多根布局。
+
+执行命令：
+
+- `pnpm check:sdk-single-package-layout`
+
 ## S-SURFACE-002 Runtime SDK 对外方法投影
 
 Runtime SDK 对外方法投影按服务分组，方法集合必须与 `spec/runtime/kernel/tables/rpc-methods.yaml` 对应服务对齐，采用 design 名称。服务完整列表与方法集合以 `tables/runtime-method-groups.yaml` 为唯一事实源（S-SURFACE-009），每个 group 独立追踪对齐状态与 phase。
@@ -37,6 +43,10 @@ Realm SDK 公开符号（类型名、service 名、公开方法名、property-en
 - 禁止：`*2fa*` / `*2Fa*` / `*2FA*`、`Me2FaService`、`SocialV1DefaultVisibilityService`、`SocialFourDimensionalAttributesService` 等旧命名。
 - 允许保留协议字面量（wire literal）用于与服务端契约对齐，例如路径 `/api/auth/2fa/*`、schema key `Auth2faVerifyDto`、枚举值 `needs_2fa`。
 - 命名归一化必须在 codegen 层完成，不允许在公开 facade 层依赖 legacy → new alias 桥接。
+
+执行命令：
+
+- `pnpm check:sdk-realm-legacy-clean`
 
 ## S-SURFACE-009 Runtime 方法投影表治理
 

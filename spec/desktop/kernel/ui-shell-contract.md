@@ -1,8 +1,6 @@
 # UI Shell Contract
 
 > Authority: Desktop Kernel
-> Status: Draft
-> Date: 2026-03-01
 
 ## Scope
 

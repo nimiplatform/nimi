@@ -30,6 +30,31 @@ evidence_catalog:
     command: pnpm check:local-chat-live-smoke
     path: nimi-mods/local-chat/test/local-chat-live-smoke.test.ts
     description: Live local-chat e2e gate for real provider routing and trace continuity.
+  runtime_mod_hook_hardcut_gate:
+    type: static_gate
+    command: pnpm check:runtime-mod-hook-hardcut
+    path: scripts/check-runtime-mod-hook-hardcut.mjs
+    description: Cross-layer runtime-aligned mod and hook surface hard-cut guard.
+  desktop_token_api_runtime_only_gate:
+    type: static_gate
+    command: pnpm check:desktop-token-api-runtime-only
+    path: scripts/check-desktop-token-api-runtime-only.mjs
+    description: Enforces token-api connector routing through runtime-owned APIs only.
+  desktop_runtime_config_path_gate:
+    type: static_gate
+    command: pnpm check:desktop-no-legacy-runtime-config-path
+    path: package.json
+    description: Forbids desktop fallback to the retired .nimi/runtime/config.json path.
+  desktop_local_ai_bridge_gate:
+    type: static_gate
+    command: pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands
+    path: package.json
+    description: Forbids direct legacy local_ai command literals outside the managed bridge surface.
+  desktop_mod_capabilities_gate:
+    type: static_gate
+    command: pnpm check:no-legacy-mod-permissions-field
+    path: package.json
+    description: Enforces capabilities-only mod manifests and runtime registration surfaces.
 rules:
   - rule_id: D-AUTH-001
     status: covered
@@ -91,6 +116,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_runtime_config_path_gate
   - rule_id: D-BOOT-002
     status: covered
     evidence_refs:
@@ -355,12 +381,14 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - runtime_mod_hook_hardcut_gate
   - rule_id: D-HOOK-008
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - runtime_mod_hook_hardcut_gate
   - rule_id: D-HOOK-009
     status: covered
     evidence_refs:
@@ -391,6 +419,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_runtime_config_path_gate
   - rule_id: D-IPC-004
     status: covered
     evidence_refs:
@@ -439,18 +468,21 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_local_ai_bridge_gate
   - rule_id: D-IPC-012
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_token_api_runtime_only_gate
   - rule_id: D-LLM-001
     status: covered
     evidence_refs:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_token_api_runtime_only_gate
   - rule_id: D-LLM-002
     status: covered
     evidence_refs:
@@ -514,6 +546,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_mod_capabilities_gate
   - rule_id: D-MOD-003
     status: covered
     evidence_refs:
@@ -880,6 +913,7 @@ rules:
       - desktop_kernel_consistency
       - desktop_lint_gate
       - desktop_test_gate
+      - desktop_mod_capabilities_gate
   - rule_id: D-CODEGEN-013
     status: covered
     evidence_refs:

@@ -8,22 +8,22 @@ gates:
     source_rule: K-GATE-010
   - gate: G1
     name: proto_chain
-    objective: lint breaking generate drift all pass
-    command: pnpm proto:lint && pnpm proto:breaking && pnpm proto:drift-check
+    objective: lint breaking generate drift and proto-spec linkage all pass
+    command: pnpm proto:lint && pnpm proto:generate && pnpm proto:breaking && pnpm proto:drift-check && pnpm check:runtime-proto-spec-linkage
     blocking: hard_block
     evidence_route: dev/report/*
     source_rule: K-GATE-020
   - gate: G2
     name: sdk_alignment
-    objective: sdk projection and boundary checks pass
-    command: pnpm check:sdk-spec-kernel-consistency && pnpm check:sdk-spec-kernel-docs-drift && pnpm check:runtime-bridge-method-drift
+    objective: sdk projection, boundary checks, and runtime-aligned mod or hook hard-cuts pass
+    command: pnpm check:sdk-spec-kernel-consistency && pnpm check:sdk-spec-kernel-docs-drift && pnpm check:runtime-bridge-method-drift && pnpm check:runtime-mod-hook-hardcut
     blocking: hard_block
     evidence_route: dev/report/*
     source_rule: K-GATE-030
   - gate: G3
     name: provider_coverage
-    objective: provider routing and runtime service coverage baselines verified
-    command: pnpm check:runtime-go-coverage && pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants
+    objective: provider routing, catalog drift, canonicalization, endpoint ssot, and runtime service coverage baselines verified
+    command: pnpm check:runtime-go-coverage && pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants && pnpm check:runtime-catalog-drift && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-alias-hardcut && pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-provider-endpoint-ssot && pnpm check:runtime-provider-yaml-first-hardcut && pnpm check:runtime-video-capability-block-enforcement
     blocking: hard_block
     evidence_route: dev/report/live-test-coverage.yaml
     source_rule: K-GATE-040

@@ -1,8 +1,6 @@
 # Social Public Boundary
 
 > Domain: Realm / Social
-> Status: Active
-> Date: 2026-03-01
 
 ## 0. Normative Imports
 

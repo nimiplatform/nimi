@@ -1,7 +1,5 @@
 # nimiLLM Remote Execution Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: remote 执行主题导引（provider 适配、流式语义、ScenarioJob 关联）。
 > Normative Imports: `spec/runtime/kernel/*`
 

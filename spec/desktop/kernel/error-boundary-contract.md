@@ -1,8 +1,6 @@
 # Error Boundary Contract
 
 > Authority: Desktop Kernel
-> Status: Draft
-> Date: 2026-03-02
 
 ## Scope
 

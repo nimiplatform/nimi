@@ -1,8 +1,6 @@
 # AI Agent Security Interface
 
 > Domain: Platform / AI Agent Security Interface
-> Status: Frozen
-> Date: 2026-03-03
 
 ## 0. Normative Imports
 

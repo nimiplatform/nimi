@@ -1,7 +1,5 @@
 # Runtime Connector Domain Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: Connector 主题阅读导引（凭据托管、字段约束、探测与路由边界）。
 > Normative Imports: `spec/runtime/kernel/*`
 

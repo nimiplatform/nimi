@@ -1,7 +1,5 @@
 # Capability Backlog
 
-> Status: Draft
-> Date: 2026-03-01
 > Scope: Backlog 条目结构、优先级分类、状态生命周期。
 
 ## F-CAP-001 Backlog 条目必填字段

@@ -1,8 +1,6 @@
 # AI Last Mile
 
 > Domain: Platform / AI Last Mile
-> Status: Active
-> Date: 2026-03-03
 
 ## 0. Normative Imports
 

@@ -1,8 +1,5 @@
 # Realm Kernel Authority
 
-> Status: Draft
-> Date: 2026-03-01
-
 ## Scope
 
 Realm kernel is the single authoritative source for cross-domain realm public boundary rules.

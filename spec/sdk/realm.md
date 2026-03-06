@@ -1,7 +1,5 @@
 # Realm SDK Domain Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: `@nimiplatform/sdk/realm` 主题导引（实例隔离、刷新策略、实时边界）。
 > Normative Imports: `spec/sdk/kernel/*`
 

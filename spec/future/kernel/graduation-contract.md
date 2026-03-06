@@ -1,7 +1,5 @@
 # Graduation Contract
 
-> Status: Draft
-> Date: 2026-03-01
 > Scope: Backlog 条目毕业到现有 spec 域的条件、流程与跟踪。
 
 ## F-GRAD-001 毕业条件
@@ -14,10 +12,12 @@
 4. 已完成架构影响评估（`architecture_notes` 非空且具体）。
 5. 目标 spec 域的 mandatory verification commands 必须通过，至少包含 `check:<domain>-spec-kernel-consistency` 与 `check:<domain>-spec-kernel-docs-drift`。此条件确保毕业后的 spec 不会破坏已有的一致性守护。
 6. `target_layers` 包含 `web` 时，不创建独立 `spec/web/` 域；必须毕业到现有 `spec/desktop/` 投影文档（优先 `spec/desktop/web-adapter.md`）并沿用 `desktop` 域检查。
+7. 如条目语义依赖 `spec/platform/**` 或 `spec/realm/**` 的现有 kernel 规则 / tables，目标文档必须显式 import 并复用这些规则；不得复制协议、原语、经济或边界词汇正文。
 
 ## F-GRAD-002 毕业流程
 
 1. 在目标 spec 域（`spec/runtime/`、`spec/sdk/` 或 `spec/desktop/`）创建或扩展对应文档。
+   其中如涉及 Platform / Realm 既有语义，必须在同次变更中补齐对应 kernel imports 与阅读路径。
 2. 在 `graduation-log.yaml` 追加一条毕业记录。
 3. 在 `backlog-items.yaml` 中将条目 `status` 更新为 `spec-drafted`。
 4. 以上三步必须在同一次变更中完成。

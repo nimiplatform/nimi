@@ -1,7 +1,5 @@
 # Mod Codegen Domain Spec
 
-> Status: Active
-> Date: 2026-03-03
 > Scope: Desktop mod codegen 主题导引（执行内核接入、能力边界、产物关系）。
 > Normative Imports: `spec/desktop/kernel/*`
 

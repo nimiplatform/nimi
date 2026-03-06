@@ -1,8 +1,6 @@
 # Platform Vision
 
 > Domain: Platform / Vision
-> Status: Frozen
-> Date: 2026-03-01
 
 ## 0. Normative Imports
 

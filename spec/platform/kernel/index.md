@@ -1,8 +1,5 @@
 # Platform Kernel Authority
 
-> Status: Frozen
-> Date: 2026-03-01
-
 ## Scope
 
 Platform kernel is the single authoritative source for cross-domain platform protocol rules.

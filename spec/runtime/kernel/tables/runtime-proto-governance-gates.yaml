@@ -8,6 +8,9 @@ gates:
   - gate: proto_drift
     command: pnpm proto:drift-check
     source_rule: K-PROTO-007
+  - gate: proto_spec_linkage
+    command: pnpm check:runtime-proto-spec-linkage
+    source_rule: K-PROTO-010
   - gate: proto_breaking
     command: pnpm proto:breaking
     source_rule: K-PROTO-004

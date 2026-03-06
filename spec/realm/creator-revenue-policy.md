@@ -1,8 +1,6 @@
 # Creator Revenue Policy
 
 > Domain: Realm / Economy
-> Status: Frozen
-> Date: 2026-03-01
 
 ## 0. Normative Imports
 

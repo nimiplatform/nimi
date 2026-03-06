@@ -79,6 +79,10 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 非 canonical 名称（包含历史 alias 与 legacy 名称）在配置校验时拒绝。
 
+执行命令：
+
+- `pnpm check:runtime-provider-alias-hardcut`
+
 **约束点**：`CreateConnector` / `TestConnector` / `ListConnectorModels` 的 provider 输入必须是 canonical 值；ConnectorService 入口统一校验并拒绝 alias。
 
 Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Base URL 时，自动填充 `https://generativelanguage.googleapis.com/v1beta/openai`。不支持 `GEMINI_API_KEY` fallback。

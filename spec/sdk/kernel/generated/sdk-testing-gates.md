@@ -6,9 +6,9 @@
 |---|---|---|
 | `unit_module` | `pnpm --filter @nimiplatform/sdk test` | `S-GATE-010` |
 | `consumer_smoke` | `pnpm check:sdk-consumer-smoke` | `S-GATE-010` |
-| `boundary_checks` | `pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming` | `S-GATE-020` |
+| `boundary_checks` | `pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config && pnpm check:sdk-realm-legacy-clean && pnpm check:reason-code-constants && pnpm check:sdk-single-package-layout` | `S-GATE-020` |
 | `vnext_matrix` | `pnpm check:sdk-vnext-matrix` | `S-GATE-030` |
-| `mod_scope` | `pnpm check:mods-no-runtime-sdk` | `S-GATE-040` |
+| `mod_scope` | `pnpm check:mods-no-runtime-sdk && pnpm check:runtime-mod-hook-hardcut` | `S-GATE-040` |
 | `runtime_projection` | `pnpm check:runtime-bridge-method-drift` | `S-GATE-050` |
 | `coverage` | `pnpm check:sdk-coverage` | `S-GATE-060` |
 | `provider_alignment` | `pnpm check:live-provider-invariants` | `S-GATE-070` |

@@ -1,7 +1,5 @@
 # Desktop Kernel Contracts
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: Desktop 应用全量契约（启动序列 / IPC / 状态 / 会话 / 数据同步 / Hook / Mod 治理 / LLM / UI / 错误 / 遥测 / 网络 / 安全 / 流消费 / Codegen）。
 
 ## 1. 目标

@@ -1,7 +1,5 @@
 # SDK Specification
 
-> Status: Draft
-> Date: 2026-03-01
 > Scope: `@nimiplatform/sdk` 全量规范索引。
 
 ## 1. 范围

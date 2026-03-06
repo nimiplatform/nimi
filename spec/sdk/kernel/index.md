@@ -1,7 +1,5 @@
 # SDK Kernel Contracts
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: `@nimiplatform/sdk` 跨域契约（Runtime / Realm / Scope / Mod / AI Provider / Testing Gates）。
 
 ## 1. 目标

@@ -1,8 +1,6 @@
 # Bootstrap Contract
 
 > Authority: Desktop Kernel
-> Status: Draft
-> Date: 2026-03-01
 
 ## Scope
 
@@ -11,6 +9,8 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 ## D-BOOT-001 — Runtime Defaults 加载
 
 启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model、agent 绑定）。
+
+Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；legacy 路径 `.nimi/runtime/config.json` 已硬切移除，不得在 bootstrap 或 backend fallback 中回流。
 
 - **daemon 就绪前置条件**：Tauri backend 在返回 `runtime_defaults` 前确保 daemon 可达。若 daemon 处于 `STARTING` 状态（K-DAEMON-001），backend 等待 daemon 就绪（最长等待 30s，与 D-IPC-002 启动超时一致）。超时后返回错误，进入 `D-BOOT-008` 错误路径。
 - 失败行为：抛出异常，进入 `D-BOOT-008` 错误路径。
@@ -30,6 +30,10 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 - `CONFIG_RESTART_REQUIRED` 且 daemon `running=true` 且 `managed=true`：Desktop 自动执行 `runtime_bridge_restart` 后继续 bootstrap。
 - `CONFIG_RESTART_REQUIRED` 且 daemon `running=true` 且 `managed=false`：bootstrap fail-close，返回明确错误要求用户手动重启外部 Runtime。
 - `CONFIG_RESTART_REQUIRED` 且 daemon `running=false`：继续 bootstrap（配置已落盘，等待后续启动生效）。
+
+执行命令：
+
+- `pnpm check:desktop-no-legacy-runtime-config-path`
 
 ## D-BOOT-002 — Platform Client 初始化
 

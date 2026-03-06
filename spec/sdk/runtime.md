@@ -1,7 +1,5 @@
 # Runtime SDK Domain Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: `@nimiplatform/sdk/runtime` 主题导引（构造、连接事件、重试与投影）。
 > Normative Imports: `spec/sdk/kernel/*`
 

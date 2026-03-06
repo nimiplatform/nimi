@@ -1,8 +1,6 @@
 # Hook Capability Contract
 
 > Authority: Desktop Kernel
-> Status: Draft
-> Date: 2026-03-01
 
 ## Scope
 
@@ -95,6 +93,12 @@ Capability 检查流程：
 - `runtime.voice.get.asset|list.assets|delete.asset|list.preset.voices`
 - `runtime.route.list.options|resolve|check.health`
 - `runtime.profile.read.agent`
+
+legacy runtime-aligned mod/hook surface 已硬切移除，不得回流旧的 mod AI 专用子路径、旧的 AI client 构造入口与公开类型、旧的 LLM hook capability 键、旧的 runtime route hint / override 字段，或 legacy speech provider-list / stream-control surface。
+
+执行命令：
+
+- `pnpm check:runtime-mod-hook-hardcut`
 
 ## D-HOOK-009 — Action Capability 域
 

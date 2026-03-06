@@ -1,8 +1,6 @@
 # Agent Public Boundary
 
 > Domain: Realm / Agent
-> Status: Active
-> Date: 2026-03-01
 
 ## 0. Normative Imports
 

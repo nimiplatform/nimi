@@ -14,6 +14,10 @@ SDK 错误投影分两层：
 Runtime 相关 ReasonCode 以 `spec/runtime/kernel/tables/reason-codes.yaml` 为权威。
 SDK 文档不得重新分配 Runtime ReasonCode 数值。
 
+执行命令：
+
+- `pnpm check:reason-code-constants`
+
 ## S-ERROR-003 SDK 本地错误码事实源
 
 SDK 本地错误码唯一事实源为 `tables/sdk-error-codes.yaml`。

@@ -1,7 +1,5 @@
 # Source Registry
 
-> Status: Draft
-> Date: 2026-03-01
 > Scope: 研究报告注册与引用规范。
 
 ## F-SRC-001 Source ID 格式

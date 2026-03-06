@@ -17,6 +17,17 @@ mod 子路径不得直连 runtime/realm 私有客户端。
 ## S-MOD-004 Stable Export Surface
 
 mod 导出面必须使用稳定子路径，不允许 root forwarding 壳层扩散。
+以下 legacy surface 已硬切移除，不得回流：
+
+- 旧的 mod AI 专用子路径
+- 旧的 AI client 构造入口与公开类型
+- 旧的 LLM hook capability 键
+- 旧的 runtime route hint / override 字段
+- 旧的 speech provider-list / stream-control surface
+
+执行命令：
+
+- `pnpm check:runtime-mod-hook-hardcut`
 
 ## S-MOD-005 Hook Lifecycle Boundary
 

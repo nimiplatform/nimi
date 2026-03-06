@@ -1,7 +1,5 @@
 # Future Kernel Contracts
 
-> Status: Draft
-> Date: 2026-03-01
 > Scope: 未来能力 backlog 治理规则、条目生命周期、研究来源注册与毕业流程。
 
 ## 1. 目标

@@ -1,7 +1,5 @@
 # Mod SDK Domain Spec
 
-> Status: Draft
-> Date: 2026-03-03
 > Scope: `@nimiplatform/sdk/mod` 主题导引（host 注入、hook 聚合、跨域边界）。
 > Normative Imports: `spec/sdk/kernel/*`
 

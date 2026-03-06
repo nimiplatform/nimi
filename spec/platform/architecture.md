@@ -1,8 +1,6 @@
 # Platform Architecture
 
 > Domain: Platform / Architecture
-> Status: Frozen
-> Date: 2026-03-03
 
 ## 0. Normative Imports
 
