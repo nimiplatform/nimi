@@ -37,6 +37,7 @@ import { TurnHookOrchestrator } from './turn-hook/turn-hook.js';
 import { UiExtensionGateway } from './ui-extension/ui-extension.js';
 import { HookActionAuditSink } from './audit/action-audit-sink.js';
 import { verifyExternalAgentExecutionContext } from '../runtime-store/tauri-bridge';
+import type { LocalAiProviderHints } from '../local-ai-runtime/index.js';
 import type {
   HookActionAuditFilter,
   HookActionCommitRequest,
@@ -366,12 +367,22 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     provider: string;
     prompt: string;
     model?: string;
+    negativePrompt?: string;
     size?: string;
+    aspectRatio?: string;
+    quality?: string;
+    style?: string;
+    seed?: number;
     n?: number;
+    referenceImages?: string[];
+    mask?: string;
+    responseFormat?: 'url' | 'base64';
+    providerOptions?: Record<string, unknown>;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
+    providerHints?: LocalAiProviderHints;
   }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }> {
     return this.llmService.generateModImage(input);
   }
@@ -381,11 +392,21 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     provider: string;
     prompt: string;
     model?: string;
+    negativePrompt?: string;
     durationSeconds?: number;
+    fps?: number;
+    resolution?: string;
+    aspectRatio?: string;
+    seed?: number;
+    firstFrameUri?: string;
+    lastFrameUri?: string;
+    cameraMotion?: string;
+    providerOptions?: Record<string, unknown>;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
+    providerHints?: LocalAiProviderHints;
   }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }> {
     return this.llmService.generateModVideo(input);
   }

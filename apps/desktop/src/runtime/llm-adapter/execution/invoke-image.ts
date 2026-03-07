@@ -57,11 +57,22 @@ export async function invokeModImage(input: InvokeModImageInput): Promise<Invoke
     const generated = await runtime.media.image.generate({
       model: resolved.modelId,
       prompt: String(input.prompt || '').trim(),
+      negativePrompt: String(input.negativePrompt || '').trim() || undefined,
       route: resolved.source,
       connectorId: String(input.connectorId || '').trim() || undefined,
       fallback: 'deny',
       size: String(input.size || '').trim() || undefined,
+      aspectRatio: String(input.aspectRatio || '').trim() || undefined,
+      quality: String(input.quality || '').trim() || undefined,
+      style: String(input.style || '').trim() || undefined,
+      seed: typeof input.seed === 'number' ? input.seed : undefined,
       n: typeof input.n === 'number' ? input.n : undefined,
+      referenceImages: Array.isArray(input.referenceImages)
+        ? input.referenceImages.map((item) => String(item || '').trim()).filter(Boolean)
+        : undefined,
+      mask: String(input.mask || '').trim() || undefined,
+      responseFormat: input.responseFormat,
+      providerOptions: input.providerOptions,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
       metadata,
       signal: input.abortSignal,

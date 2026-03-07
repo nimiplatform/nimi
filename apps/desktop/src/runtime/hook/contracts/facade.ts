@@ -21,6 +21,7 @@ import type {
   HookActionVerifyResult,
   HookActionResult,
 } from './action.js';
+import type { LocalAiProviderHints } from '../../local-ai-runtime/index.js';
 
 export type HookLlmStreamEvent =
   | { type: 'text_delta'; textDelta: string }
@@ -222,12 +223,22 @@ export interface DesktopHookRuntimeFacade {
     provider: string;
     prompt: string;
     model?: string;
+    negativePrompt?: string;
     size?: string;
+    aspectRatio?: string;
+    quality?: string;
+    style?: string;
+    seed?: number;
     n?: number;
+    referenceImages?: string[];
+    mask?: string;
+    responseFormat?: 'url' | 'base64';
+    providerOptions?: Record<string, unknown>;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
+    providerHints?: LocalAiProviderHints;
   }): Promise<{ images: Array<{ uri?: string; b64Json?: string; mimeType?: string }>; traceId: string }>;
   generateModVideo(input: {
     modId: string;
@@ -235,11 +246,21 @@ export interface DesktopHookRuntimeFacade {
     provider: string;
     prompt: string;
     model?: string;
+    negativePrompt?: string;
     durationSeconds?: number;
+    fps?: number;
+    resolution?: string;
+    aspectRatio?: string;
+    seed?: number;
+    firstFrameUri?: string;
+    lastFrameUri?: string;
+    cameraMotion?: string;
+    providerOptions?: Record<string, unknown>;
     localProviderEndpoint?: string;
     localProviderModel?: string;
     localOpenAiEndpoint?: string;
     connectorId?: string;
+    providerHints?: LocalAiProviderHints;
   }): Promise<{ videos: Array<{ uri?: string; mimeType?: string }>; traceId: string }>;
   generateModEmbedding(input: {
     modId: string;

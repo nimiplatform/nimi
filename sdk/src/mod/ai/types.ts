@@ -40,8 +40,17 @@ export type AiGenerateObjectRequest = AiTextRequest & {
 export type AiGenerateImageRequest = AiRouteInput & {
   prompt: string;
   model?: string;
+  negativePrompt?: string;
   size?: string;
+  aspectRatio?: string;
+  quality?: string;
+  style?: string;
+  seed?: number;
   n?: number;
+  referenceImages?: string[];
+  mask?: string;
+  responseFormat?: 'url' | 'base64';
+  providerOptions?: Record<string, unknown>;
 };
 
 export type AiGenerateImageResult = {
@@ -57,7 +66,16 @@ export type AiGenerateImageResult = {
 export type AiGenerateVideoRequest = AiRouteInput & {
   prompt: string;
   model?: string;
+  negativePrompt?: string;
   durationSeconds?: number;
+  fps?: number;
+  resolution?: string;
+  aspectRatio?: string;
+  seed?: number;
+  firstFrameUri?: string;
+  lastFrameUri?: string;
+  cameraMotion?: string;
+  providerOptions?: Record<string, unknown>;
 };
 
 export type AiGenerateVideoResult = {

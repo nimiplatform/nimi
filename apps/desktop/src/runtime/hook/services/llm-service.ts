@@ -6,6 +6,7 @@ import {
   invokeModTranscribe,
   invokeModVideo,
 } from '../../llm-adapter/execution';
+import type { LocalAiProviderHints } from '../../local-ai-runtime/index.js';
 import type { HookSourceType } from '../contracts/types.js';
 import { createHookRecord, type PermissionResolver } from './utils.js';
 import { HookAuditTrail } from '../audit/hook-audit.js';
@@ -39,12 +40,22 @@ export interface LlmImageInput {
   provider: string;
   prompt: string;
   model?: string;
+  negativePrompt?: string;
   size?: string;
+  aspectRatio?: string;
+  quality?: string;
+  style?: string;
+  seed?: number;
   n?: number;
+  referenceImages?: string[];
+  mask?: string;
+  responseFormat?: 'url' | 'base64';
+  providerOptions?: Record<string, unknown>;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
+  providerHints?: LocalAiProviderHints;
 }
 
 export interface LlmVideoInput {
@@ -53,11 +64,21 @@ export interface LlmVideoInput {
   provider: string;
   prompt: string;
   model?: string;
+  negativePrompt?: string;
   durationSeconds?: number;
+  fps?: number;
+  resolution?: string;
+  aspectRatio?: string;
+  seed?: number;
+  firstFrameUri?: string;
+  lastFrameUri?: string;
+  cameraMotion?: string;
+  providerOptions?: Record<string, unknown>;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
+  providerHints?: LocalAiProviderHints;
 }
 
 export interface LlmEmbeddingInput {
@@ -242,8 +263,17 @@ export class HookRuntimeLlmService {
       provider: input.provider,
       prompt: input.prompt,
       model: input.model || input.localProviderModel,
+      negativePrompt: input.negativePrompt,
       size: input.size,
+      aspectRatio: input.aspectRatio,
+      quality: input.quality,
+      style: input.style,
+      seed: input.seed,
       n: input.n,
+      referenceImages: input.referenceImages,
+      mask: input.mask,
+      responseFormat: input.responseFormat,
+      providerOptions: input.providerOptions,
       abortSignal: undefined,
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,
@@ -277,7 +307,16 @@ export class HookRuntimeLlmService {
       provider: input.provider,
       prompt: input.prompt,
       model: input.model || input.localProviderModel,
+      negativePrompt: input.negativePrompt,
       durationSeconds: input.durationSeconds,
+      fps: input.fps,
+      resolution: input.resolution,
+      aspectRatio: input.aspectRatio,
+      seed: input.seed,
+      firstFrameUri: input.firstFrameUri,
+      lastFrameUri: input.lastFrameUri,
+      cameraMotion: input.cameraMotion,
+      providerOptions: input.providerOptions,
       abortSignal: undefined,
       localProviderEndpoint: input.localProviderEndpoint,
       localProviderModel: input.model || input.localProviderModel,
