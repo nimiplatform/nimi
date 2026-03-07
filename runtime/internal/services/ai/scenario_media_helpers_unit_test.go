@@ -207,6 +207,14 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
 		t.Fatalf("unexpected adapter: %s", got)
 	}
+	// Gemini model name heuristic: gemini-* models should use native adapter even
+	// when the connector providerType is not set to "gemini".
+	if got := resolveMediaAdapterName("gemini-3.1-flash-image-preview", "gemini-3.1-flash-image-preview", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterGeminiOperation {
+		t.Fatalf("unexpected adapter for gemini model with empty providerType: %s", got)
+	}
+	if got := resolveMediaAdapterName("gemini-3.1-flash-image-preview", "gemini-3.1-flash-image-preview", runtimev1.Modal_MODAL_IMAGE, "openai"); got != adapterGeminiOperation {
+		t.Fatalf("unexpected adapter for gemini model with openai providerType: %s", got)
+	}
 
 	if got := inferMediaProviderTypeFromBackendName(nil); got != "" {
 		t.Fatalf("nil backend should infer empty provider")

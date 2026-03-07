@@ -829,6 +829,15 @@ func resolveMediaAdapterName(modelID string, modelResolved string, modal runtime
 			return adapter
 		}
 	}
+	// Model-name heuristic: "gemini-*" models require the native Gemini adapter
+	// even when the connector's providerType is not explicitly set to "gemini".
+	if strings.HasPrefix(lowerModel, "gemini-") || strings.HasPrefix(resolvedLower, "gemini-") {
+		if strategy, ok := mediaAdapterStrategiesByProvider["gemini"]; ok {
+			if adapter := strategy.forModal(modal); adapter != "" {
+				return adapter
+			}
+		}
+	}
 	if providerLower != "" {
 		if record, ok := providerregistry.Lookup(providerLower); ok {
 			if mediaScenarioSupportedByProviderRecord(record, modal) {
