@@ -271,11 +271,20 @@ func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string
 
 	mimeType := FirstNonEmpty(
 		ValueAsString(payload["mime_type"]),
+		ValueAsString(payload["mimeType"]),
 		ValueAsString(payload["content_type"]),
 	)
 	for _, key := range []string{"b64_json", "image_base64", "base64", "data", "image"} {
 		if decoded, ok := DecodeBase64ArtifactPayload(ValueAsString(payload[key])); ok {
 			return decoded, mimeType, ""
+		}
+	}
+	if imageURL := strings.TrimSpace(ValueAsString(payload["image"])); imageURL != "" {
+		if strings.HasPrefix(strings.ToLower(imageURL), "http://") || strings.HasPrefix(strings.ToLower(imageURL), "https://") {
+			return ExtractBinaryArtifactBytesAndMIME(map[string]any{
+				"url":       imageURL,
+				"mime_type": mimeType,
+			})
 		}
 	}
 	if imageURL := payload["image_url"]; imageURL != nil {
@@ -291,7 +300,20 @@ func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string
 			}
 		}
 	}
+	if inlineData := payload["inlineData"]; inlineData != nil {
+		if typed, ok := inlineData.(map[string]any); ok {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
+			}
+		}
+	}
 	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["content"]); len(artifactBytes) > 0 {
+		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
+	}
+	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["parts"]); len(artifactBytes) > 0 {
+		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
+	}
+	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["choices"]); len(artifactBytes) > 0 {
 		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 	}
 	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["message"]); len(artifactBytes) > 0 {

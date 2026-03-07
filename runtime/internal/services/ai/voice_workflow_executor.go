@@ -236,10 +236,15 @@ func buildVoiceWorkflowPayload(
 		if targetModelID == "" {
 			targetModelID = strings.TrimSpace(resolution.ModelID)
 		}
+		explicitPreferredName := strings.TrimSpace(input.GetPreferredName())
+		resolvedPreferredName := resolveVoiceWorkflowPreferredName(req)
 		payload["model"] = targetModelID
 		payload["target_model_id"] = targetModelID
-		payload["name"] = resolveVoiceWorkflowPreferredName(req)
-		payload["voice_name"] = resolveVoiceWorkflowPreferredName(req)
+		payload["name"] = resolvedPreferredName
+		payload["voice_name"] = resolvedPreferredName
+		if explicitPreferredName != "" {
+			payload["preferred_name"] = explicitPreferredName
+		}
 
 		inputPayload := map[string]any{
 			"reference_audio_uri":  strings.TrimSpace(input.GetReferenceAudioUri()),
@@ -271,6 +276,7 @@ func buildVoiceWorkflowPayload(
 		previewText := strings.TrimSpace(input.GetPreviewText())
 		language := strings.TrimSpace(input.GetLanguage())
 		preferredName := strings.TrimSpace(input.GetPreferredName())
+		explicitPreferredName := preferredName
 		if preferredName == "" {
 			preferredName = resolveVoiceWorkflowPreferredName(req)
 		}
@@ -283,6 +289,9 @@ func buildVoiceWorkflowPayload(
 		payload["description"] = instruction
 		payload["preview_text"] = previewText
 		payload["text"] = firstNonEmptyString(previewText, instruction)
+		if explicitPreferredName != "" {
+			payload["preferred_name"] = explicitPreferredName
+		}
 		if language != "" {
 			payload["language"] = language
 		}

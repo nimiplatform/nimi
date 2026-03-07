@@ -134,18 +134,28 @@ func voiceWorkflowTryEndpoints(
 
 // resolveVoiceWorkflowBaseURL resolves the base URL for voice workflow requests.
 func resolveVoiceWorkflowBaseURL(provider string, cfg MediaAdapterConfig, extPayload map[string]any) string {
+	normalizeBaseURL := func(raw string) string {
+		trimmed := strings.TrimSuffix(strings.TrimSpace(raw), "/")
+		if trimmed == "" {
+			return ""
+		}
+		if strings.EqualFold(strings.TrimSpace(provider), "dashscope") {
+			return strings.TrimSuffix(nativeOriginURL(trimmed), "/")
+		}
+		return trimmed
+	}
 	if extPayload != nil {
 		if value := strings.TrimSpace(ValueAsString(extPayload["base_url"])); value != "" {
-			return strings.TrimSuffix(value, "/")
+			return normalizeBaseURL(value)
 		}
 	}
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	baseURL := normalizeBaseURL(cfg.BaseURL)
 	if baseURL != "" {
 		return baseURL
 	}
 	record, ok := providerregistry.Lookup(strings.TrimSpace(strings.ToLower(provider)))
 	if ok {
-		return strings.TrimSuffix(strings.TrimSpace(record.DefaultEndpoint), "/")
+		return normalizeBaseURL(record.DefaultEndpoint)
 	}
 	return ""
 }
@@ -180,6 +190,9 @@ func extractVoiceWorkflowVoiceRef(payload map[string]any) string {
 		ValueAsString(payload["voice_id"]),
 		ValueAsString(payload["voiceId"]),
 		ValueAsString(payload["voice"]),
+		ValueAsString(MapField(payload["result"], "voice")),
+		ValueAsString(MapField(payload["data"], "voice")),
+		ValueAsString(MapField(payload["output"], "voice")),
 		ValueAsString(MapField(payload["voice"], "id")),
 		ValueAsString(MapField(payload["voice"], "voice_id")),
 		ValueAsString(MapField(payload["voice"], "voice_ref")),

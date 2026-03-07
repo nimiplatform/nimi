@@ -155,6 +155,12 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 	return metadata.AppendToOutgoingContext(ctx, pairs...)
 }
 
+// WithNimiOutgoingMetadata applies the standard runtime protocol envelope onto
+// an outgoing gRPC context for CLI and replay callers outside this package.
+func WithNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverride *ClientMetadata) context.Context {
+	return withNimiOutgoingMetadata(ctx, appID, metadataOverride)
+}
+
 func firstMetadataOverride(values ...*ClientMetadata) *ClientMetadata {
 	if len(values) == 0 {
 		return nil
@@ -173,7 +179,7 @@ func defaultClientMetadata() ClientMetadata {
 		CallerID:                   cliCallerID,
 		SurfaceID:                  cliSurfaceID,
 		TraceID:                    "",
-		CredentialSource:           "runtime-config",
+		CredentialSource:           "",
 	}
 }
 

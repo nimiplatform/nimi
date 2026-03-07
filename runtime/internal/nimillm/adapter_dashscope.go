@@ -53,35 +53,9 @@ func ExecuteAlibabaNative(
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
-		submitPath := resolveAlibabaImageSubmitPath(scenarioExtensions)
-		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(scenarioExtensions)
-		submitPayload := map[string]any{
-			"model":           modelResolved,
-			"prompt":          spec.GetPrompt(),
-			"negative_prompt": spec.GetNegativePrompt(),
-			"input": map[string]any{
-				"prompt":          spec.GetPrompt(),
-				"negative_prompt": spec.GetNegativePrompt(),
-			},
-			"parameters": map[string]any{
-				"n":            spec.GetN(),
-				"size":         spec.GetSize(),
-				"aspect_ratio": spec.GetAspectRatio(),
-				"quality":      spec.GetQuality(),
-				"style":        spec.GetStyle(),
-				"seed":         spec.GetSeed(),
-				"mask":         spec.GetMask(),
-				"format":       spec.GetResponseFormat(),
-			},
-		}
-		if len(spec.GetReferenceImages()) > 0 {
-			submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
-		}
-		if len(scenarioExtensions) > 0 {
-			submitPayload["extensions"] = scenarioExtensions
-		}
+		submitPath, queryPathTemplate, submitPayload, submitHeaders := buildAlibabaImageSubmitRequest(modelResolved, spec, scenarioExtensions)
 		submitResp := map[string]any{}
-		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, submitHeaders); err != nil {
 			return nil, nil, "", err
 		}
 		providerJobID := ExtractTaskIDFromPayload(submitResp)
@@ -213,22 +187,24 @@ func ExecuteAlibabaNative(
 		}
 		requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
+		parameters := map[string]any{
+			"voice":       requestedVoice,
+			"language":    strings.TrimSpace(spec.GetLanguage()),
+			"emotion":     strings.TrimSpace(spec.GetEmotion()),
+			"speed":       spec.GetSpeed(),
+			"pitch":       spec.GetPitch(),
+			"volume":      spec.GetVolume(),
+			"format":      strings.TrimSpace(spec.GetAudioFormat()),
+			"sample_rate": spec.GetSampleRateHz(),
+		}
+		applyAlibabaTTSScenarioExtensions(parameters, scenarioExtensions)
 		payload := map[string]any{
 			"model": modelResolved,
 			"input": map[string]any{
 				"text":  strings.TrimSpace(spec.GetText()),
 				"voice": requestedVoice,
 			},
-			"parameters": map[string]any{
-				"voice":       requestedVoice,
-				"language":    strings.TrimSpace(spec.GetLanguage()),
-				"emotion":     strings.TrimSpace(spec.GetEmotion()),
-				"speed":       spec.GetSpeed(),
-				"pitch":       spec.GetPitch(),
-				"volume":      spec.GetVolume(),
-				"format":      strings.TrimSpace(spec.GetAudioFormat()),
-				"sample_rate": spec.GetSampleRateHz(),
-			},
+			"parameters":     parameters,
 			"text":           strings.TrimSpace(spec.GetText()),
 			"audio_format":   strings.TrimSpace(spec.GetAudioFormat()),
 			"sample_rate_hz": spec.GetSampleRateHz(),
@@ -367,12 +343,16 @@ func ExecuteDashScopeTranscribe(
 // Alibaba-specific path resolvers (package-private)
 // ---------------------------------------------------------------------------
 
-func resolveAlibabaImageSubmitPath(scenarioExtensions map[string]any) string {
+func resolveAlibabaImageSubmitPath(modelResolved string, scenarioExtensions map[string]any) string {
+	defaults := []string{"/api/v1/services/aigc/image2image/image-synthesis"}
+	if usesDashScopeAsyncImageGeneration(modelResolved) {
+		defaults = []string{"/api/v1/services/aigc/image-generation/generation"}
+	}
 	return FirstProviderEndpointPath(
 		scenarioExtensions,
 		[]string{"image_path", "image_submit_path"},
 		[]string{"image_paths", "image_submit_paths"},
-		[]string{"/api/v1/services/aigc/image2image/image-synthesis"},
+		defaults,
 	)
 }
 
@@ -403,6 +383,28 @@ func resolveAlibabaTTSPath(scenarioExtensions map[string]any) string {
 	)
 }
 
+func applyAlibabaTTSScenarioExtensions(parameters map[string]any, scenarioExtensions map[string]any) {
+	if parameters == nil || len(scenarioExtensions) == 0 {
+		return
+	}
+
+	instructions := strings.TrimSpace(FirstNonEmpty(
+		ValueAsString(scenarioExtensions["instructions"]),
+		ValueAsString(scenarioExtensions["instruct"]),
+		ValueAsString(scenarioExtensions["instruction_text"]),
+	))
+	if instructions != "" {
+		parameters["instructions"] = instructions
+	}
+
+	if optimizeValue := FirstNonNil(
+		scenarioExtensions["optimize_instructions"],
+		scenarioExtensions["optimizeInstructions"],
+	); optimizeValue != nil {
+		parameters["optimize_instructions"] = ValueAsBool(optimizeValue)
+	}
+}
+
 func resolveAlibabaSTTPath(scenarioExtensions map[string]any) string {
 	return FirstProviderEndpointPath(
 		scenarioExtensions,
@@ -410,4 +412,105 @@ func resolveAlibabaSTTPath(scenarioExtensions map[string]any) string {
 		[]string{"stt_paths", "transcription_paths"},
 		[]string{"/chat/completions"},
 	)
+}
+
+func buildAlibabaImageSubmitRequest(
+	modelResolved string,
+	spec *runtimev1.ImageGenerateScenarioSpec,
+	scenarioExtensions map[string]any,
+) (string, string, map[string]any, map[string]string) {
+	submitPath := resolveAlibabaImageSubmitPath(modelResolved, scenarioExtensions)
+	queryPathTemplate := resolveAlibabaTaskQueryPathTemplate(scenarioExtensions)
+	if usesDashScopeAsyncImageGeneration(modelResolved) {
+		content := []any{
+			map[string]any{
+				"text": strings.TrimSpace(spec.GetPrompt()),
+			},
+		}
+		for _, referenceImage := range spec.GetReferenceImages() {
+			trimmed := strings.TrimSpace(referenceImage)
+			if trimmed == "" {
+				continue
+			}
+			content = append(content, map[string]any{
+				"image": trimmed,
+			})
+		}
+		input := map[string]any{
+			"messages": []any{
+				map[string]any{
+					"role":    "user",
+					"content": content,
+				},
+			},
+		}
+		parameters := map[string]any{}
+		if n := spec.GetN(); n > 0 {
+			parameters["n"] = n
+		}
+		if size := strings.TrimSpace(spec.GetSize()); size != "" {
+			parameters["size"] = size
+		}
+		if ratio := strings.TrimSpace(spec.GetAspectRatio()); ratio != "" {
+			parameters["aspect_ratio"] = ratio
+		}
+		if seed := spec.GetSeed(); seed > 0 {
+			parameters["seed"] = seed
+		}
+		if negativePrompt := strings.TrimSpace(spec.GetNegativePrompt()); negativePrompt != "" {
+			parameters["negative_prompt"] = negativePrompt
+		}
+		payload := map[string]any{
+			"model": modelResolved,
+			"input": input,
+		}
+		if len(parameters) > 0 {
+			payload["parameters"] = parameters
+		}
+		if len(scenarioExtensions) > 0 {
+			payload["extensions"] = scenarioExtensions
+		}
+		return submitPath, queryPathTemplate, payload, map[string]string{
+			"X-DashScope-Async": "enable",
+		}
+	}
+
+	payload := map[string]any{
+		"model":           modelResolved,
+		"prompt":          spec.GetPrompt(),
+		"negative_prompt": spec.GetNegativePrompt(),
+		"input": map[string]any{
+			"prompt":          spec.GetPrompt(),
+			"negative_prompt": spec.GetNegativePrompt(),
+		},
+		"parameters": map[string]any{
+			"n":            spec.GetN(),
+			"size":         spec.GetSize(),
+			"aspect_ratio": spec.GetAspectRatio(),
+			"quality":      spec.GetQuality(),
+			"style":        spec.GetStyle(),
+			"seed":         spec.GetSeed(),
+			"mask":         spec.GetMask(),
+			"format":       spec.GetResponseFormat(),
+		},
+	}
+	if len(spec.GetReferenceImages()) > 0 {
+		payload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
+	}
+	if len(scenarioExtensions) > 0 {
+		payload["extensions"] = scenarioExtensions
+	}
+	return submitPath, queryPathTemplate, payload, nil
+}
+
+func usesDashScopeAsyncImageGeneration(modelResolved string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(StripProviderModelPrefix(modelResolved, "dashscope")))
+	switch {
+	case strings.HasPrefix(normalized, "wan2.6"):
+		return true
+	case strings.HasPrefix(normalized, "wan2.5-t2i"):
+		return true
+	default:
+		return false
+	}
 }

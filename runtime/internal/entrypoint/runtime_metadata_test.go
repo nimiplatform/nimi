@@ -28,6 +28,9 @@ func TestWithNimiOutgoingMetadataDefault(t *testing.T) {
 	if got := firstMDValue(md, "x-nimi-trace-id"); got != "" {
 		t.Fatalf("trace id should be empty by default, got=%q", got)
 	}
+	if got := firstMDValue(md, "x-nimi-key-source"); got != "" {
+		t.Fatalf("key source should be omitted by default, got=%q", got)
+	}
 }
 
 func TestWithNimiOutgoingMetadataOverride(t *testing.T) {
