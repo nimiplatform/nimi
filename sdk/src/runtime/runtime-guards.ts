@@ -1,8 +1,9 @@
 import { ReasonCode } from '../types/index.js';
 import type { NimiError } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
+import { RoutePolicy } from './generated/runtime/v1/ai.js';
 import { normalizeText, parseSemverMajor } from './helpers.js';
-import type { RuntimeOptions } from './types.js';
+import type { RuntimeMetadata, RuntimeOptions } from './types.js';
 
 export function checkRuntimeVersionCompatibility(input: {
   version: string;
@@ -106,22 +107,9 @@ export async function resolveRuntimeSubjectUserId(input: {
   explicit?: string;
   subjectContext?: RuntimeOptions['subjectContext'];
 }): Promise<string> {
-  const direct = normalizeText(input.explicit);
-  if (direct) {
-    return direct;
-  }
-
-  const configured = normalizeText(input.subjectContext?.subjectUserId);
-  if (configured) {
-    return configured;
-  }
-
-  const resolver = input.subjectContext?.getSubjectUserId;
-  if (typeof resolver === 'function') {
-    const resolved = normalizeText(await resolver());
-    if (resolved) {
-      return resolved;
-    }
+  const resolved = await resolveOptionalRuntimeSubjectUserId(input);
+  if (resolved) {
+    return resolved;
   }
 
   throw createNimiError({
@@ -130,4 +118,85 @@ export async function resolveRuntimeSubjectUserId(input: {
     actionHint: 'set_runtime_subject_context_subject_user',
     source: 'sdk',
   });
+}
+
+export async function resolveOptionalRuntimeSubjectUserId(input: {
+  explicit?: string;
+  subjectContext?: RuntimeOptions['subjectContext'];
+}): Promise<string | undefined> {
+  const direct = normalizeText(input.explicit);
+  if (direct) {
+    return direct || undefined;
+  }
+
+  const configured = normalizeText(input.subjectContext?.subjectUserId);
+  if (configured) {
+    return configured || undefined;
+  }
+
+  const resolver = input.subjectContext?.getSubjectUserId;
+  if (typeof resolver === 'function') {
+    const resolved = normalizeText(await resolver());
+    if (resolved) {
+      return resolved || undefined;
+    }
+  }
+
+  return undefined;
+}
+
+type RuntimeAiRequestLike = {
+  routePolicy?: RoutePolicy;
+  connectorId?: string;
+  head?: {
+    routePolicy?: RoutePolicy;
+    connectorId?: string;
+  };
+};
+
+type RuntimeAiMetadataLike =
+  | Pick<RuntimeMetadata, 'keySource' | 'providerType' | 'providerEndpoint' | 'providerApiKey'>
+  | Record<string, unknown>
+  | undefined;
+
+function metadataValue(metadata: RuntimeAiMetadataLike, key: string, altKey?: string): string {
+  if (!metadata) {
+    return '';
+  }
+  const record = metadata as Record<string, unknown>;
+  return normalizeText(record[key] ?? (altKey ? record[altKey] : undefined));
+}
+
+function runtimeAiRoutePolicy(request: RuntimeAiRequestLike): RoutePolicy {
+  return request.routePolicy ?? request.head?.routePolicy ?? RoutePolicy.UNSPECIFIED;
+}
+
+function runtimeAiConnectorId(request: RuntimeAiRequestLike): string {
+  return normalizeText(request.connectorId ?? request.head?.connectorId);
+}
+
+export function runtimeAiRequestRequiresSubject(input: {
+  request: RuntimeAiRequestLike;
+  metadata?: RuntimeAiMetadataLike;
+}): boolean {
+  if (runtimeAiRoutePolicy(input.request) !== RoutePolicy.LOCAL_RUNTIME) {
+    return true;
+  }
+  if (runtimeAiConnectorId(input.request)) {
+    return true;
+  }
+
+  const keySource = metadataValue(input.metadata, 'keySource', 'x-nimi-key-source').toLowerCase();
+  if (keySource === 'managed' || keySource === 'inline') {
+    return true;
+  }
+
+  const providerType = metadataValue(input.metadata, 'providerType', 'x-nimi-provider-type');
+  const providerEndpoint = metadataValue(input.metadata, 'providerEndpoint', 'x-nimi-provider-endpoint');
+  const providerApiKey = metadataValue(input.metadata, 'providerApiKey', 'x-nimi-provider-api-key');
+  if (providerType || providerEndpoint || providerApiKey) {
+    return true;
+  }
+
+  return false;
 }

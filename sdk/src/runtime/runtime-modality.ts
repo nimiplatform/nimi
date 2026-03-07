@@ -31,6 +31,7 @@ import {
   toRoutePolicy,
   toTraceInfo,
 } from './helpers.js';
+import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import {
   runtimeGetScenarioArtifactsForMedia,
   runtimeSubmitScenarioJobForMedia,
@@ -222,16 +223,28 @@ export async function runtimeStreamSpeechSynthesis(
   ctx: RuntimeInternalContext,
   input: SpeechSynthesizeInput,
 ): Promise<AsyncIterable<ArtifactChunk>> {
-  const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
+  const routePolicy = toRoutePolicy(input.route);
+  const connectorId = normalizeText(input.connectorId);
+  const subjectUserId = runtimeAiRequestRequiresSubject({
+    request: {
+      head: {
+        routePolicy,
+        connectorId,
+      },
+    },
+    metadata: input.metadata,
+  })
+    ? await ctx.resolveSubjectUserId(input.subjectUserId)
+    : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const request = {
     head: {
       appId: ctx.appId,
-      subjectUserId,
+      subjectUserId: subjectUserId || '',
       modelId: ensureText(input.model, 'model'),
-      routePolicy: toRoutePolicy(input.route),
+      routePolicy,
       fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-      connectorId: normalizeText(input.connectorId),
+      connectorId,
     },
     scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
     executionMode: ExecutionMode.STREAM,

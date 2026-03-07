@@ -1,12 +1,17 @@
 import { createNimiError } from '../errors';
 import { ReasonCode } from '../../types/index.js';
-import { isRuntimeWriteMethod, RuntimeMethodIds } from '../method-ids';
+import {
+  isRuntimeLocalRuntimeAnonymousMethod,
+  isRuntimeWriteMethod,
+  RuntimeMethodIds,
+} from '../method-ids';
 import { createNodeGrpcTransport } from '../transports/node-grpc/index';
 import { createTauriIpcTransport } from '../transports/tauri-ipc/index';
 import {
   FallbackPolicy,
   RoutePolicy,
 } from '../generated/runtime/v1/ai';
+import { runtimeAiRequestRequiresSubject } from '../runtime-guards.js';
 import {
   AuthorizationPreset,
   PolicyMode,
@@ -80,9 +85,11 @@ function requireNonEmptyField(
 type RuntimeAiRouteRequest = {
   routePolicy?: RoutePolicy;
   fallback?: FallbackPolicy;
+  connectorId?: string;
   head?: {
     routePolicy?: RoutePolicy;
     fallback?: FallbackPolicy;
+    connectorId?: string;
   };
 };
 
@@ -148,7 +155,7 @@ function validateAiCredentialMetadata(
     }
   }
 
-  if (request.routePolicy === RoutePolicy.LOCAL_RUNTIME && source === 'inline') {
+  if (routePolicy === RoutePolicy.LOCAL_RUNTIME && source === 'inline') {
     throwValidationError(
       'SDK_RUNTIME_AI_CREDENTIAL_SCOPE_FORBIDDEN',
       `${methodId} local-runtime route does not allow inline keySource`,
@@ -331,7 +338,25 @@ function formatAuthorizationHeader(accessToken: string): string {
 
 async function resolveAuthorization(
   config: RuntimeClientConfig,
+  methodId: string,
+  request: unknown,
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
 ): Promise<string | undefined> {
+  if (isRuntimeLocalRuntimeAnonymousMethod(methodId)) {
+    return undefined;
+  }
+  if (
+    (methodId === RuntimeMethodIds.ai.executeScenario
+      || methodId === RuntimeMethodIds.ai.streamScenario
+      || methodId === RuntimeMethodIds.ai.submitScenarioJob)
+    && !runtimeAiRequestRequiresSubject({
+      request: request as RuntimeAiRouteRequest,
+      metadata: options?.metadata,
+    })
+  ) {
+    return undefined;
+  }
+
   const accessTokenInput = config.auth?.accessToken;
   if (typeof accessTokenInput === 'function') {
     const resolved = formatAuthorizationHeader(await accessTokenInput());
@@ -361,6 +386,7 @@ async function toUnaryCall(
   config: RuntimeClientConfig,
   methodId: string,
   request: RuntimeWireMessage,
+  normalizedRequest: unknown,
   options?: RuntimeCallOptions,
 ): Promise<RuntimeUnaryCall<RuntimeWireMessage>> {
   const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeCallOptions | undefined;
@@ -368,7 +394,7 @@ async function toUnaryCall(
     methodId,
     request,
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
-    authorization: await resolveAuthorization(config),
+    authorization: await resolveAuthorization(config, methodId, normalizedRequest, resolvedOptions),
     timeoutMs: resolvedOptions?.timeoutMs,
     _responseMetadataObserver: resolvedOptions?._responseMetadataObserver,
   };
@@ -378,6 +404,7 @@ async function toStreamCall(
   config: RuntimeClientConfig,
   methodId: string,
   request: RuntimeWireMessage,
+  normalizedRequest: unknown,
   options?: RuntimeStreamCallOptions,
 ): Promise<RuntimeOpenStreamCall<RuntimeWireMessage>> {
   const resolvedOptions = withIdempotencyKey(methodId, options) as RuntimeStreamCallOptions | undefined;
@@ -385,7 +412,7 @@ async function toStreamCall(
     methodId,
     request,
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
-    authorization: await resolveAuthorization(config),
+    authorization: await resolveAuthorization(config, methodId, normalizedRequest, resolvedOptions),
     timeoutMs: resolvedOptions?.timeoutMs,
     signal: resolvedOptions?.signal,
   };
@@ -480,7 +507,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
 
     const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
-    const call = await toUnaryCall(config, methodId, wireRequest, options);
+    const call = await toUnaryCall(config, methodId, wireRequest, normalizedRequest, options);
     const wireResponse = await transport.invokeUnary(
       call,
     );
@@ -505,7 +532,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
 
     const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
-    const call = await toStreamCall(config, methodId, wireRequest, options);
+    const call = await toStreamCall(config, methodId, wireRequest, normalizedRequest, options);
     const wireStream = await transport.openStream(
       call,
     );
@@ -580,6 +607,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       startLocalModel: unary(RuntimeMethodIds.localRuntime.startLocalModel),
       stopLocalModel: unary(RuntimeMethodIds.localRuntime.stopLocalModel),
       checkLocalModelHealth: unary(RuntimeMethodIds.localRuntime.checkLocalModelHealth),
+      warmLocalModel: unary(RuntimeMethodIds.localRuntime.warmLocalModel),
       collectDeviceProfile: unary(RuntimeMethodIds.localRuntime.collectDeviceProfile),
       resolveDependencies: unary(RuntimeMethodIds.localRuntime.resolveDependencies),
       applyDependencies: unary(RuntimeMethodIds.localRuntime.applyDependencies),

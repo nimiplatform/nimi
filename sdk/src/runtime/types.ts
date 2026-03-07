@@ -130,6 +130,8 @@ import type {
   StopLocalModelResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
+  WarmLocalModelRequest,
+  WarmLocalModelResponse,
 } from './generated/runtime/v1/local_runtime';
 import type {
   BuildIndexRequest,
@@ -366,6 +368,7 @@ export type RuntimeLocalRuntimeClient = {
   startLocalModel(request: StartLocalModelRequest, options?: RuntimeCallOptions): Promise<StartLocalModelResponse>;
   stopLocalModel(request: StopLocalModelRequest, options?: RuntimeCallOptions): Promise<StopLocalModelResponse>;
   checkLocalModelHealth(request: CheckLocalModelHealthRequest, options?: RuntimeCallOptions): Promise<CheckLocalModelHealthResponse>;
+  warmLocalModel(request: WarmLocalModelRequest, options?: RuntimeCallOptions): Promise<WarmLocalModelResponse>;
   collectDeviceProfile(request: CollectDeviceProfileRequest, options?: RuntimeCallOptions): Promise<CollectDeviceProfileResponse>;
   resolveDependencies(request: ResolveDependenciesRequest, options?: RuntimeCallOptions): Promise<ResolveDependenciesResponse>;
   applyDependencies(request: ApplyDependenciesRequest, options?: RuntimeCallOptions): Promise<ApplyDependenciesResponse>;

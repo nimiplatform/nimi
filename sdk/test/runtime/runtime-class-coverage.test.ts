@@ -400,13 +400,41 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         endpoint: '127.0.0.1:46371',
       },
     });
-    await assert.rejects(
-      async () => runtimeWithoutAuthContext.ai.text.generate({
-        model: 'cloud/model',
-        input: 'requires subject',
-      }),
-      (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.AUTH_CONTEXT_MISSING,
-    );
+    await runtimeWithoutAuthContext.ai.text.generate({
+      model: 'local/model-anon',
+      input: 'anonymous local-runtime request',
+    });
+    assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.subjectUserId, '');
+    assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.routePolicy, RoutePolicy.LOCAL_RUNTIME);
+
+    await runtimeWithoutAuthContext.ai.executeScenario({
+      head: {
+        appId: APP_ID,
+        modelId: 'local/model-low-level',
+        routePolicy: RoutePolicy.LOCAL_RUNTIME,
+        fallback: FallbackPolicy.DENY,
+        timeoutMs: 1000,
+        connectorId: '',
+      },
+      scenarioType: ScenarioType.TEXT_GENERATE,
+      executionMode: ExecutionMode.SYNC,
+      spec: {
+        spec: {
+          oneofKind: 'textGenerate',
+          textGenerate: {
+            input: [{ role: 'user', content: 'low level anonymous local-runtime', name: '' }],
+            systemPrompt: '',
+            tools: [],
+            temperature: 0,
+            topP: 0,
+            maxTokens: 8,
+          },
+        },
+      },
+      extensions: [],
+    });
+    assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.subjectUserId, '');
+
     await assert.rejects(
       async () => runtimeWithoutAuthContext.ai.executeScenario({
         head: {

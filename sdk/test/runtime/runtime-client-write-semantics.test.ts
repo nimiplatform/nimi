@@ -21,6 +21,11 @@ import {
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import {
+  InstallLocalModelResponse,
+  ListLocalModelsResponse,
+} from '../../src/runtime/generated/runtime/v1/local_runtime';
+import { RuntimeMethodIds } from '../../src/runtime/method-ids';
+import {
   APP_ID,
   runtimeConfig,
   createGenerateRequest,
@@ -294,6 +299,64 @@ test('createRuntimeClient does not inject idempotency key for read unary methods
     await client.model.list({});
     assert.ok(captured);
     assert.equal(captured.metadata.idempotencyKey, undefined);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('createRuntimeClient suppresses auth only for anonymous local-runtime AI and local-runtime read calls', async () => {
+  const calls: RuntimeUnaryCall<RuntimeWireMessage>[] = [];
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      calls.push(input);
+      switch (input.methodId) {
+        case RuntimeMethodIds.ai.executeScenario:
+          return ExecuteScenarioResponse.toBinary(
+            ExecuteScenarioResponse.create({
+              finishReason: FinishReason.STOP,
+              routeDecision: RoutePolicy.LOCAL_RUNTIME,
+              modelResolved: 'local-model',
+              traceId: 'trace-auth-routing',
+            }),
+          );
+        case RuntimeMethodIds.localRuntime.listLocalModels:
+          return ListLocalModelsResponse.toBinary(ListLocalModelsResponse.create({ models: [] }));
+        case RuntimeMethodIds.localRuntime.installLocalModel:
+          return InstallLocalModelResponse.toBinary(InstallLocalModelResponse.create({}));
+        default:
+          throw new Error(`unexpected unary method: ${input.methodId}`);
+      }
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = createRuntimeClient({
+      ...runtimeConfig,
+      auth: {
+        accessToken: () => 'token-route-aware',
+      },
+    });
+
+    await client.ai.executeScenario(createGenerateRequest());
+    await client.localRuntime.listLocalModels({});
+    await client.localRuntime.installLocalModel({});
+    await client.ai.executeScenario({
+      ...createGenerateRequest(),
+      head: {
+        ...createGenerateRequest().head,
+        modelId: 'cloud/model',
+        routePolicy: RoutePolicy.TOKEN_API,
+      },
+    });
+
+    assert.equal(calls[0]?.authorization, undefined);
+    assert.equal(calls[1]?.authorization, undefined);
+    assert.equal(calls[2]?.authorization, 'Bearer token-route-aware');
+    assert.equal(calls[3]?.authorization, 'Bearer token-route-aware');
   } finally {
     clearNodeGrpcBridge();
   }

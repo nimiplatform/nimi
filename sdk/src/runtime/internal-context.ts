@@ -35,6 +35,9 @@ export interface RuntimeInternalContext {
   /** Resolve the subject user ID from explicit value, options, or resolver. */
   resolveSubjectUserId: (explicit?: string) => Promise<string>;
 
+  /** Resolve the subject user ID when anonymous local-runtime is allowed. */
+  resolveOptionalSubjectUserId: (explicit?: string) => Promise<string | undefined>;
+
   /** Emit a telemetry event. */
   emitTelemetry: (name: string, data?: Record<string, unknown>) => void;
 }

@@ -65,6 +65,7 @@ import {
 import {
   assertRuntimeMethodAvailable,
   checkRuntimeVersionCompatibility,
+  resolveOptionalRuntimeSubjectUserId,
   resolveRuntimeSubjectUserId,
   wrapModeDStream,
 } from './runtime-guards.js';
@@ -165,6 +166,10 @@ export class Runtime {
       resolveRuntimeCallOptions: (input) => resolveRuntimeCallOptions(this.#options, input),
       resolveRuntimeStreamOptions: (input) => resolveRuntimeStreamOptions(this.#options, input),
       resolveSubjectUserId: (explicit) => resolveRuntimeSubjectUserId({
+        explicit,
+        subjectContext: this.#options.subjectContext,
+      }),
+      resolveOptionalSubjectUserId: (explicit) => resolveOptionalRuntimeSubjectUserId({
         explicit,
         subjectContext: this.#options.subjectContext,
       }),

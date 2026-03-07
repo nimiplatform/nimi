@@ -53,6 +53,7 @@ export const RuntimeMethodIds = {
     startLocalModel: '/nimi.runtime.v1.RuntimeLocalRuntimeService/StartLocalModel',
     stopLocalModel: '/nimi.runtime.v1.RuntimeLocalRuntimeService/StopLocalModel',
     checkLocalModelHealth: '/nimi.runtime.v1.RuntimeLocalRuntimeService/CheckLocalModelHealth',
+    warmLocalModel: '/nimi.runtime.v1.RuntimeLocalRuntimeService/WarmLocalModel',
     collectDeviceProfile: '/nimi.runtime.v1.RuntimeLocalRuntimeService/CollectDeviceProfile',
     resolveDependencies: '/nimi.runtime.v1.RuntimeLocalRuntimeService/ResolveDependencies',
     applyDependencies: '/nimi.runtime.v1.RuntimeLocalRuntimeService/ApplyDependencies',
@@ -161,10 +162,29 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.scriptWorker.execute,
 ]);
 
+export const RuntimeLocalRuntimeAnonymousMethodIds: readonly string[] = Object.freeze([
+  RuntimeMethodIds.localRuntime.listLocalModels,
+  RuntimeMethodIds.localRuntime.listVerifiedModels,
+  RuntimeMethodIds.localRuntime.searchCatalogModels,
+  RuntimeMethodIds.localRuntime.resolveModelInstallPlan,
+  RuntimeMethodIds.localRuntime.checkLocalModelHealth,
+  RuntimeMethodIds.localRuntime.warmLocalModel,
+  RuntimeMethodIds.localRuntime.collectDeviceProfile,
+  RuntimeMethodIds.localRuntime.resolveDependencies,
+  RuntimeMethodIds.localRuntime.listLocalServices,
+  RuntimeMethodIds.localRuntime.checkLocalServiceHealth,
+  RuntimeMethodIds.localRuntime.listNodeCatalog,
+  RuntimeMethodIds.localRuntime.listLocalAudits,
+]);
+
 export function isRuntimeStreamMethod(methodId: string): boolean {
   return RuntimeStreamMethodIds.includes(methodId);
 }
 
 export function isRuntimeWriteMethod(methodId: string): boolean {
   return RuntimeWriteMethodIds.includes(methodId);
+}
+
+export function isRuntimeLocalRuntimeAnonymousMethod(methodId: string): boolean {
+  return RuntimeLocalRuntimeAnonymousMethodIds.includes(methodId);
 }

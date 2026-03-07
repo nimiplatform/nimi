@@ -157,7 +157,14 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
       },
     });
 
-    const response = await client.ai.executeScenario(createGenerateRequest());
+    const response = await client.ai.executeScenario({
+      ...createGenerateRequest(),
+      head: {
+        ...createGenerateRequest().head,
+        modelId: 'cloud/model',
+        routePolicy: RoutePolicy.TOKEN_API,
+      },
+    });
     assert.equal(response.traceId, 'trace-tauri-write');
     assert.ok(capturedPayload);
     assert.equal(capturedPayload.methodId, RuntimeMethodIds.ai.executeScenario);
@@ -397,7 +404,14 @@ test('tauri-ipc stream errors surface as NimiError and close remote stream', asy
       },
     });
 
-    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
+    const stream = await client.ai.streamScenario({
+      ...createStreamGenerateRequest(),
+      head: {
+        ...createStreamGenerateRequest().head,
+        modelId: 'cloud/model',
+        routePolicy: RoutePolicy.TOKEN_API,
+      },
+    });
     let streamError: unknown = null;
     try {
       for await (const _event of stream) {
@@ -488,7 +502,14 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
       },
     });
 
-    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
+    const stream = await client.ai.streamScenario({
+      ...createStreamGenerateRequest(),
+      head: {
+        ...createStreamGenerateRequest().head,
+        modelId: 'cloud/model',
+        routePolicy: RoutePolicy.TOKEN_API,
+      },
+    });
     const received: string[] = [];
     for await (const event of stream) {
       if (event.payload.oneofKind === 'delta') {
@@ -557,7 +578,14 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
       },
     });
 
-    const stream = await client.ai.streamScenario(createStreamGenerateRequest());
+    const stream = await client.ai.streamScenario({
+      ...createStreamGenerateRequest(),
+      head: {
+        ...createStreamGenerateRequest().head,
+        modelId: 'cloud/model',
+        routePolicy: RoutePolicy.TOKEN_API,
+      },
+    });
     for await (const _event of stream) {
       // no-op; this stream completes without payload events
     }

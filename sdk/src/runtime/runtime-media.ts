@@ -38,6 +38,7 @@ import {
   toRoutePolicy,
   wrapModeBMediaStream,
 } from './helpers.js';
+import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
 export async function runtimeSubmitScenarioJobForMedia(
   ctx: RuntimeInternalContext,
@@ -155,20 +156,29 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
   );
   const route = toRoutePolicy((input.input as { route?: NimiRoutePolicy }).route);
   const fallback = toFallbackPolicy((input.input as { fallback?: NimiFallbackPolicy }).fallback);
+  const connectorId = normalizeText((input.input as { connectorId?: string }).connectorId);
 
-  const subjectUserId = await ctx.resolveSubjectUserId(
-    (input.input as { subjectUserId?: string }).subjectUserId,
-  );
+  const subjectUserId = runtimeAiRequestRequiresSubject({
+    request: {
+      head: {
+        routePolicy: route,
+        connectorId,
+      },
+    },
+    metadata: (input.input as { metadata?: Record<string, string> }).metadata,
+  })
+    ? await ctx.resolveSubjectUserId((input.input as { subjectUserId?: string }).subjectUserId)
+    : await ctx.resolveOptionalSubjectUserId((input.input as { subjectUserId?: string }).subjectUserId);
 
   const base: SubmitScenarioJobRequest = {
     head: {
       appId: ctx.appId,
-      subjectUserId,
+      subjectUserId: subjectUserId || '',
       modelId: ensureText((input.input as { model: string }).model, 'model'),
       routePolicy: route,
       fallback,
       timeoutMs,
-      connectorId: normalizeText((input.input as { connectorId?: string }).connectorId),
+      connectorId,
     },
     scenarioType: scenarioTypeFromModal(input.modal),
     executionMode: ExecutionMode.ASYNC_JOB,

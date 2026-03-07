@@ -22,6 +22,7 @@ import {
   runtimeStreamSpeech,
   runtimeListSpeechVoices,
 } from './runtime-modality.js';
+import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import type {
   RuntimeAiModule,
   RuntimeAiExecuteScenarioRequestInput,
@@ -283,34 +284,50 @@ export function createAiModule(
   },
 ): RuntimeAiModule {
   const { invokeWithClient, ctx } = input;
-  const withScenarioHeadSubjectUserId = async <T extends { head: { subjectUserId?: string } }>(
+  const withScenarioHeadSubjectUserId = async <T extends { head: { subjectUserId?: string; routePolicy?: number; connectorId?: string } }>(
     request: T,
-  ): Promise<T & { head: { subjectUserId: string } }> => {
-    const subjectUserId = await ctx.resolveSubjectUserId(request.head?.subjectUserId);
+    optionsValue?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ): Promise<Omit<T, 'head'> & { head: Omit<T['head'], 'subjectUserId'> & { subjectUserId: string } }> => {
+    const subjectUserId = runtimeAiRequestRequiresSubject({
+      request: { head: request.head },
+      metadata: optionsValue?.metadata,
+    })
+      ? await ctx.resolveSubjectUserId(request.head?.subjectUserId)
+      : await ctx.resolveOptionalSubjectUserId(request.head?.subjectUserId);
+    const head = {
+      ...request.head,
+      subjectUserId: subjectUserId || '',
+    } as Omit<T['head'], 'subjectUserId'> & { subjectUserId: string };
     return {
       ...request,
-      head: {
-        ...request.head,
-        subjectUserId,
-      },
+      head,
     };
   };
 
   return {
     executeScenario: async (request, optionsValue) => {
-      const normalizedRequest = await withScenarioHeadSubjectUserId(request as RuntimeAiExecuteScenarioRequestInput);
+      const normalizedRequest = await withScenarioHeadSubjectUserId(
+        request as RuntimeAiExecuteScenarioRequestInput,
+        optionsValue,
+      );
       return invokeWithClient(
         async (client) => client.ai.executeScenario(normalizedRequest, optionsValue),
       );
     },
     streamScenario: async (request, optionsValue) => {
-      const normalizedRequest = await withScenarioHeadSubjectUserId(request as RuntimeAiStreamScenarioRequestInput);
+      const normalizedRequest = await withScenarioHeadSubjectUserId(
+        request as RuntimeAiStreamScenarioRequestInput,
+        optionsValue,
+      );
       return invokeWithClient(
         async (client) => client.ai.streamScenario(normalizedRequest, optionsValue),
       );
     },
     submitScenarioJob: async (request, optionsValue) => {
-      const normalizedRequest = await withScenarioHeadSubjectUserId(request as RuntimeAiSubmitScenarioJobRequestInput);
+      const normalizedRequest = await withScenarioHeadSubjectUserId(
+        request as RuntimeAiSubmitScenarioJobRequestInput,
+        optionsValue,
+      );
       return invokeWithClient(
         async (client) => client.ai.submitScenarioJob(normalizedRequest, optionsValue),
       );

@@ -28,22 +28,35 @@ import {
   toTraceInfo,
   toUsage,
 } from './helpers.js';
+import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
 export async function runtimeGenerateText(
   ctx: RuntimeInternalContext,
   input: TextGenerateInput,
 ): Promise<TextGenerateOutput> {
-  const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
+  const routePolicy = toRoutePolicy(input.route);
+  const connectorId = normalizeText(input.connectorId);
+  const subjectUserId = runtimeAiRequestRequiresSubject({
+    request: {
+      head: {
+        routePolicy,
+        connectorId,
+      },
+    },
+    metadata: input.metadata,
+  })
+    ? await ctx.resolveSubjectUserId(input.subjectUserId)
+    : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
   const request = {
     head: {
       appId: ctx.appId,
-      subjectUserId,
+      subjectUserId: subjectUserId || '',
       modelId: ensureText(input.model, 'model'),
-      routePolicy: toRoutePolicy(input.route),
+      routePolicy,
       fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-      connectorId: normalizeText(input.connectorId),
+      connectorId,
     },
     scenarioType: ScenarioType.TEXT_GENERATE,
     executionMode: ExecutionMode.SYNC,
@@ -95,19 +108,31 @@ export async function runtimeStreamText(
   ctx: RuntimeInternalContext,
   input: TextStreamInput,
 ): Promise<TextStreamOutput> {
-  const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
+  const routePolicy = toRoutePolicy(input.route);
+  const connectorId = normalizeText(input.connectorId);
+  const subjectUserId = runtimeAiRequestRequiresSubject({
+    request: {
+      head: {
+        routePolicy,
+        connectorId,
+      },
+    },
+    metadata: input.metadata,
+  })
+    ? await ctx.resolveSubjectUserId(input.subjectUserId)
+    : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
 
   const stream = await ctx.invokeWithClient(async (client) => client.ai.streamScenario(
     {
       head: {
         appId: ctx.appId,
-        subjectUserId,
+        subjectUserId: subjectUserId || '',
         modelId: ensureText(input.model, 'model'),
-        routePolicy: toRoutePolicy(input.route),
+        routePolicy,
         fallback: toFallbackPolicy(input.fallback),
         timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-        connectorId: normalizeText(input.connectorId),
+        connectorId,
       },
       scenarioType: ScenarioType.TEXT_GENERATE,
       executionMode: ExecutionMode.STREAM,
@@ -212,7 +237,19 @@ export async function runtimeGenerateEmbedding(
   ctx: RuntimeInternalContext,
   input: EmbeddingGenerateInput,
 ): Promise<EmbeddingGenerateOutput> {
-  const subjectUserId = await ctx.resolveSubjectUserId(input.subjectUserId);
+  const routePolicy = toRoutePolicy(input.route);
+  const connectorId = normalizeText(input.connectorId);
+  const subjectUserId = runtimeAiRequestRequiresSubject({
+    request: {
+      head: {
+        routePolicy,
+        connectorId,
+      },
+    },
+    metadata: input.metadata,
+  })
+    ? await ctx.resolveSubjectUserId(input.subjectUserId)
+    : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const values = Array.isArray(input.input)
     ? input.input.map((value) => normalizeText(value)).filter((value) => value.length > 0)
     : [normalizeText(input.input)].filter((value) => value.length > 0);
@@ -230,12 +267,12 @@ export async function runtimeGenerateEmbedding(
     {
       head: {
         appId: ctx.appId,
-        subjectUserId,
+        subjectUserId: subjectUserId || '',
         modelId: ensureText(input.model, 'model'),
-        routePolicy: toRoutePolicy(input.route),
+        routePolicy,
         fallback: toFallbackPolicy(input.fallback),
         timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-        connectorId: normalizeText(input.connectorId),
+        connectorId,
       },
       scenarioType: ScenarioType.TEXT_EMBED,
       executionMode: ExecutionMode.SYNC,

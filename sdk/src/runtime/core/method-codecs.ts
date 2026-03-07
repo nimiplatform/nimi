@@ -118,6 +118,8 @@ import {
   StopLocalModelResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
+  WarmLocalModelRequest,
+  WarmLocalModelResponse,
 } from '../generated/runtime/v1/local_runtime';
 import {
   BuildIndexRequest,
@@ -352,6 +354,10 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   [RuntimeMethodIds.localRuntime.checkLocalModelHealth]: {
     requestType: CheckLocalModelHealthRequest,
     responseType: CheckLocalModelHealthResponse,
+  },
+  [RuntimeMethodIds.localRuntime.warmLocalModel]: {
+    requestType: WarmLocalModelRequest,
+    responseType: WarmLocalModelResponse,
   },
   [RuntimeMethodIds.localRuntime.collectDeviceProfile]: {
     requestType: CollectDeviceProfileRequest,

@@ -73,6 +73,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalRuntimeService/StartLocalService",
     "/nimi.runtime.v1.RuntimeLocalRuntimeService/StopLocalModel",
     "/nimi.runtime.v1.RuntimeLocalRuntimeService/StopLocalService",
+    "/nimi.runtime.v1.RuntimeLocalRuntimeService/WarmLocalModel",
     "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
     "/nimi.runtime.v1.RuntimeModelService/ListModels",
     "/nimi.runtime.v1.RuntimeModelService/PullModel",
