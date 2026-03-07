@@ -685,6 +685,22 @@ message AppendRuntimeAuditRequest {
   google.protobuf.Struct payload = 4;
 }
 
+message WarmLocalModelRequest {
+  string local_model_id = 1;
+  int32 timeout_ms = 2;
+}
+
+message WarmLocalModelResponse {
+  string local_model_id = 1;
+  string model_id = 2;
+  string model_resolved = 3;
+  string endpoint = 4;
+  string engine = 5;
+  bool already_warm = 6;
+  int64 latency_ms = 7;
+  string trace_id = 8;
+}
+
 service RuntimeLocalRuntimeService {
   rpc ListLocalModels(ListLocalModelsRequest) returns (ListLocalModelsResponse);
   rpc ListVerifiedModels(ListVerifiedModelsRequest) returns (ListVerifiedModelsResponse);
@@ -697,6 +713,7 @@ service RuntimeLocalRuntimeService {
   rpc StartLocalModel(StartLocalModelRequest) returns (StartLocalModelResponse);
   rpc StopLocalModel(StopLocalModelRequest) returns (StopLocalModelResponse);
   rpc CheckLocalModelHealth(CheckLocalModelHealthRequest) returns (CheckLocalModelHealthResponse);
+  rpc WarmLocalModel(WarmLocalModelRequest) returns (WarmLocalModelResponse);
   rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);
   rpc ResolveDependencies(ResolveDependenciesRequest) returns (ResolveDependenciesResponse);
   rpc ApplyDependencies(ApplyDependenciesRequest) returns (ApplyDependenciesResponse);

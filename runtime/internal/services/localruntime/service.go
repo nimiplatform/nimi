@@ -46,18 +46,23 @@ type EngineInfo struct {
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalRuntimeServiceServer
 
-	logger         *slog.Logger
-	auditStore     *auditlog.Store
-	stateStorePath string
-	localAuditCap  int
+	logger                  *slog.Logger
+	auditStore              *auditlog.Store
+	stateStorePath          string
+	localAuditCap           int
+	localModelsPath         string
+	localAIModelsConfigPath string
+	localAIManaged          bool
 
-	mu        sync.RWMutex
-	models    map[string]*runtimev1.LocalModelRecord
-	services  map[string]*runtimev1.LocalServiceDescriptor
-	audits    []*runtimev1.LocalAuditEvent
-	verified  []*runtimev1.LocalVerifiedModelDescriptor
-	catalog   []*runtimev1.LocalCatalogModelDescriptor
-	engineMgr EngineManager
+	mu                   sync.RWMutex
+	models               map[string]*runtimev1.LocalModelRecord
+	services             map[string]*runtimev1.LocalServiceDescriptor
+	audits               []*runtimev1.LocalAuditEvent
+	verified             []*runtimev1.LocalVerifiedModelDescriptor
+	catalog              []*runtimev1.LocalCatalogModelDescriptor
+	engineMgr            EngineManager
+	localAIRegistrations map[string]localAIRegistration
+	warmedModelKeys      map[string]struct{}
 
 	endpointProbe     endpointProbeFunc
 	hfCatalogSearch   hfCatalogSearchFunc
@@ -76,19 +81,23 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	}
 	verified := defaultVerifiedModels()
 	svc := &Service{
-		logger:            logger,
-		auditStore:        store,
-		stateStorePath:    resolveLocalRuntimeStatePath(stateStorePath),
-		localAuditCap:     localAuditCapacity,
-		models:            make(map[string]*runtimev1.LocalModelRecord),
-		services:          make(map[string]*runtimev1.LocalServiceDescriptor),
-		audits:            make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
-		verified:          verified,
-		catalog:           defaultCatalogFromVerified(verified),
-		endpointProbe:     defaultEndpointProbe,
-		hfCatalogSearch:   defaultHFCatalogSearch,
-		modelProbeState:   make(map[string]*probeRecoveryState),
-		serviceProbeState: make(map[string]*probeRecoveryState),
+		logger:                  logger,
+		auditStore:              store,
+		stateStorePath:          resolveLocalRuntimeStatePath(stateStorePath),
+		localAuditCap:           localAuditCapacity,
+		localModelsPath:         resolveLocalModelsPath(""),
+		localAIModelsConfigPath: resolveGeneratedLocalAIModelsConfigPath(""),
+		models:                  make(map[string]*runtimev1.LocalModelRecord),
+		services:                make(map[string]*runtimev1.LocalServiceDescriptor),
+		audits:                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
+		verified:                verified,
+		catalog:                 defaultCatalogFromVerified(verified),
+		localAIRegistrations:    make(map[string]localAIRegistration),
+		warmedModelKeys:         make(map[string]struct{}),
+		endpointProbe:           defaultEndpointProbe,
+		hfCatalogSearch:         defaultHFCatalogSearch,
+		modelProbeState:         make(map[string]*probeRecoveryState),
+		serviceProbeState:       make(map[string]*probeRecoveryState),
 	}
 	svc.restoreState()
 	svc.startRecoveryLoop()

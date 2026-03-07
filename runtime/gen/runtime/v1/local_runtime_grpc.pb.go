@@ -30,6 +30,7 @@ const (
 	RuntimeLocalRuntimeService_StartLocalModel_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalRuntimeService/StartLocalModel"
 	RuntimeLocalRuntimeService_StopLocalModel_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalRuntimeService/StopLocalModel"
 	RuntimeLocalRuntimeService_CheckLocalModelHealth_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalRuntimeService/CheckLocalModelHealth"
+	RuntimeLocalRuntimeService_WarmLocalModel_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalRuntimeService/WarmLocalModel"
 	RuntimeLocalRuntimeService_CollectDeviceProfile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalRuntimeService/CollectDeviceProfile"
 	RuntimeLocalRuntimeService_ResolveDependencies_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalRuntimeService/ResolveDependencies"
 	RuntimeLocalRuntimeService_ApplyDependencies_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalRuntimeService/ApplyDependencies"
@@ -65,6 +66,7 @@ type RuntimeLocalRuntimeServiceClient interface {
 	StartLocalModel(ctx context.Context, in *StartLocalModelRequest, opts ...grpc.CallOption) (*StartLocalModelResponse, error)
 	StopLocalModel(ctx context.Context, in *StopLocalModelRequest, opts ...grpc.CallOption) (*StopLocalModelResponse, error)
 	CheckLocalModelHealth(ctx context.Context, in *CheckLocalModelHealthRequest, opts ...grpc.CallOption) (*CheckLocalModelHealthResponse, error)
+	WarmLocalModel(ctx context.Context, in *WarmLocalModelRequest, opts ...grpc.CallOption) (*WarmLocalModelResponse, error)
 	CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error)
 	ResolveDependencies(ctx context.Context, in *ResolveDependenciesRequest, opts ...grpc.CallOption) (*ResolveDependenciesResponse, error)
 	ApplyDependencies(ctx context.Context, in *ApplyDependenciesRequest, opts ...grpc.CallOption) (*ApplyDependenciesResponse, error)
@@ -198,6 +200,16 @@ func (c *runtimeLocalRuntimeServiceClient) CheckLocalModelHealth(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CheckLocalModelHealthResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalRuntimeService_CheckLocalModelHealth_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalRuntimeServiceClient) WarmLocalModel(ctx context.Context, in *WarmLocalModelRequest, opts ...grpc.CallOption) (*WarmLocalModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WarmLocalModelResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalRuntimeService_WarmLocalModel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -399,6 +411,7 @@ type RuntimeLocalRuntimeServiceServer interface {
 	StartLocalModel(context.Context, *StartLocalModelRequest) (*StartLocalModelResponse, error)
 	StopLocalModel(context.Context, *StopLocalModelRequest) (*StopLocalModelResponse, error)
 	CheckLocalModelHealth(context.Context, *CheckLocalModelHealthRequest) (*CheckLocalModelHealthResponse, error)
+	WarmLocalModel(context.Context, *WarmLocalModelRequest) (*WarmLocalModelResponse, error)
 	CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error)
 	ResolveDependencies(context.Context, *ResolveDependenciesRequest) (*ResolveDependenciesResponse, error)
 	ApplyDependencies(context.Context, *ApplyDependenciesRequest) (*ApplyDependenciesResponse, error)
@@ -459,6 +472,9 @@ func (UnimplementedRuntimeLocalRuntimeServiceServer) StopLocalModel(context.Cont
 }
 func (UnimplementedRuntimeLocalRuntimeServiceServer) CheckLocalModelHealth(context.Context, *CheckLocalModelHealthRequest) (*CheckLocalModelHealthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckLocalModelHealth not implemented")
+}
+func (UnimplementedRuntimeLocalRuntimeServiceServer) WarmLocalModel(context.Context, *WarmLocalModelRequest) (*WarmLocalModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WarmLocalModel not implemented")
 }
 func (UnimplementedRuntimeLocalRuntimeServiceServer) CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectDeviceProfile not implemented")
@@ -728,6 +744,24 @@ func _RuntimeLocalRuntimeService_CheckLocalModelHealth_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalRuntimeServiceServer).CheckLocalModelHealth(ctx, req.(*CheckLocalModelHealthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalRuntimeService_WarmLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WarmLocalModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalRuntimeServiceServer).WarmLocalModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalRuntimeService_WarmLocalModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalRuntimeServiceServer).WarmLocalModel(ctx, req.(*WarmLocalModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1106,6 +1140,10 @@ var RuntimeLocalRuntimeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckLocalModelHealth",
 			Handler:    _RuntimeLocalRuntimeService_CheckLocalModelHealth_Handler,
+		},
+		{
+			MethodName: "WarmLocalModel",
+			Handler:    _RuntimeLocalRuntimeService_WarmLocalModel_Handler,
 		},
 		{
 			MethodName: "CollectDeviceProfile",

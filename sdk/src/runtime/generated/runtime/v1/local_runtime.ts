@@ -1979,6 +1979,56 @@ export interface AppendRuntimeAuditRequest {
     payload?: Struct;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.WarmLocalModelRequest
+ */
+export interface WarmLocalModelRequest {
+    /**
+     * @generated from protobuf field: string local_model_id = 1
+     */
+    localModelId: string;
+    /**
+     * @generated from protobuf field: int32 timeout_ms = 2
+     */
+    timeoutMs: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WarmLocalModelResponse
+ */
+export interface WarmLocalModelResponse {
+    /**
+     * @generated from protobuf field: string local_model_id = 1
+     */
+    localModelId: string;
+    /**
+     * @generated from protobuf field: string model_id = 2
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string model_resolved = 3
+     */
+    modelResolved: string;
+    /**
+     * @generated from protobuf field: string endpoint = 4
+     */
+    endpoint: string;
+    /**
+     * @generated from protobuf field: string engine = 5
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: bool already_warm = 6
+     */
+    alreadyWarm: boolean;
+    /**
+     * @generated from protobuf field: int64 latency_ms = 7
+     */
+    latencyMs: string;
+    /**
+     * @generated from protobuf field: string trace_id = 8
+     */
+    traceId: string;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.LocalModelStatus
  */
 export enum LocalModelStatus {
@@ -8522,6 +8572,164 @@ class AppendRuntimeAuditRequest$Type extends MessageType<AppendRuntimeAuditReque
  * @generated MessageType for protobuf message nimi.runtime.v1.AppendRuntimeAuditRequest
  */
 export const AppendRuntimeAuditRequest = new AppendRuntimeAuditRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WarmLocalModelRequest$Type extends MessageType<WarmLocalModelRequest> {
+    constructor() {
+        super("nimi.runtime.v1.WarmLocalModelRequest", [
+            { no: 1, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WarmLocalModelRequest>): WarmLocalModelRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localModelId = "";
+        message.timeoutMs = 0;
+        if (value !== undefined)
+            reflectionMergePartial<WarmLocalModelRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WarmLocalModelRequest): WarmLocalModelRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_model_id */ 1:
+                    message.localModelId = reader.string();
+                    break;
+                case /* int32 timeout_ms */ 2:
+                    message.timeoutMs = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WarmLocalModelRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_model_id = 1; */
+        if (message.localModelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localModelId);
+        /* int32 timeout_ms = 2; */
+        if (message.timeoutMs !== 0)
+            writer.tag(2, WireType.Varint).int32(message.timeoutMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WarmLocalModelRequest
+ */
+export const WarmLocalModelRequest = new WarmLocalModelRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WarmLocalModelResponse$Type extends MessageType<WarmLocalModelResponse> {
+    constructor() {
+        super("nimi.runtime.v1.WarmLocalModelResponse", [
+            { no: 1, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "already_warm", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "latency_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 8, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WarmLocalModelResponse>): WarmLocalModelResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localModelId = "";
+        message.modelId = "";
+        message.modelResolved = "";
+        message.endpoint = "";
+        message.engine = "";
+        message.alreadyWarm = false;
+        message.latencyMs = "0";
+        message.traceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<WarmLocalModelResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WarmLocalModelResponse): WarmLocalModelResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_model_id */ 1:
+                    message.localModelId = reader.string();
+                    break;
+                case /* string model_id */ 2:
+                    message.modelId = reader.string();
+                    break;
+                case /* string model_resolved */ 3:
+                    message.modelResolved = reader.string();
+                    break;
+                case /* string endpoint */ 4:
+                    message.endpoint = reader.string();
+                    break;
+                case /* string engine */ 5:
+                    message.engine = reader.string();
+                    break;
+                case /* bool already_warm */ 6:
+                    message.alreadyWarm = reader.bool();
+                    break;
+                case /* int64 latency_ms */ 7:
+                    message.latencyMs = reader.int64().toString();
+                    break;
+                case /* string trace_id */ 8:
+                    message.traceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WarmLocalModelResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_model_id = 1; */
+        if (message.localModelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localModelId);
+        /* string model_id = 2; */
+        if (message.modelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelId);
+        /* string model_resolved = 3; */
+        if (message.modelResolved !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.modelResolved);
+        /* string endpoint = 4; */
+        if (message.endpoint !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.endpoint);
+        /* string engine = 5; */
+        if (message.engine !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.engine);
+        /* bool already_warm = 6; */
+        if (message.alreadyWarm !== false)
+            writer.tag(6, WireType.Varint).bool(message.alreadyWarm);
+        /* int64 latency_ms = 7; */
+        if (message.latencyMs !== "0")
+            writer.tag(7, WireType.Varint).int64(message.latencyMs);
+        /* string trace_id = 8; */
+        if (message.traceId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.traceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WarmLocalModelResponse
+ */
+export const WarmLocalModelResponse = new WarmLocalModelResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeLocalRuntimeService
  */
@@ -8537,6 +8745,7 @@ export const RuntimeLocalRuntimeService = new ServiceType("nimi.runtime.v1.Runti
     { name: "StartLocalModel", options: {}, I: StartLocalModelRequest, O: StartLocalModelResponse },
     { name: "StopLocalModel", options: {}, I: StopLocalModelRequest, O: StopLocalModelResponse },
     { name: "CheckLocalModelHealth", options: {}, I: CheckLocalModelHealthRequest, O: CheckLocalModelHealthResponse },
+    { name: "WarmLocalModel", options: {}, I: WarmLocalModelRequest, O: WarmLocalModelResponse },
     { name: "CollectDeviceProfile", options: {}, I: CollectDeviceProfileRequest, O: CollectDeviceProfileResponse },
     { name: "ResolveDependencies", options: {}, I: ResolveDependenciesRequest, O: ResolveDependenciesResponse },
     { name: "ApplyDependencies", options: {}, I: ApplyDependenciesRequest, O: ApplyDependenciesResponse },

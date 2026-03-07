@@ -108,6 +108,14 @@ func (s *LocalRuntimeProxy) CheckLocalModelHealth(ctx context.Context, req *runt
 	return client.CheckLocalModelHealth(ctx, req)
 }
 
+func (s *LocalRuntimeProxy) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error) {
+	client, err := s.client()
+	if err != nil {
+		return nil, unavailableWorker(localRuntimeWorkerRole, err)
+	}
+	return client.WarmLocalModel(ctx, req)
+}
+
 func (s *LocalRuntimeProxy) CollectDeviceProfile(ctx context.Context, req *runtimev1.CollectDeviceProfileRequest) (*runtimev1.CollectDeviceProfileResponse, error) {
 	client, err := s.client()
 	if err != nil {

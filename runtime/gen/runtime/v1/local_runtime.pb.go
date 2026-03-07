@@ -6368,6 +6368,158 @@ func (x *AppendRuntimeAuditRequest) GetPayload() *structpb.Struct {
 	return nil
 }
 
+type WarmLocalModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LocalModelId  string                 `protobuf:"bytes,1,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
+	TimeoutMs     int32                  `protobuf:"varint,2,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WarmLocalModelRequest) Reset() {
+	*x = WarmLocalModelRequest{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WarmLocalModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WarmLocalModelRequest) ProtoMessage() {}
+
+func (x *WarmLocalModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WarmLocalModelRequest.ProtoReflect.Descriptor instead.
+func (*WarmLocalModelRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *WarmLocalModelRequest) GetLocalModelId() string {
+	if x != nil {
+		return x.LocalModelId
+	}
+	return ""
+}
+
+func (x *WarmLocalModelRequest) GetTimeoutMs() int32 {
+	if x != nil {
+		return x.TimeoutMs
+	}
+	return 0
+}
+
+type WarmLocalModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LocalModelId  string                 `protobuf:"bytes,1,opt,name=local_model_id,json=localModelId,proto3" json:"local_model_id,omitempty"`
+	ModelId       string                 `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	ModelResolved string                 `protobuf:"bytes,3,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
+	Endpoint      string                 `protobuf:"bytes,4,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Engine        string                 `protobuf:"bytes,5,opt,name=engine,proto3" json:"engine,omitempty"`
+	AlreadyWarm   bool                   `protobuf:"varint,6,opt,name=already_warm,json=alreadyWarm,proto3" json:"already_warm,omitempty"`
+	LatencyMs     int64                  `protobuf:"varint,7,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
+	TraceId       string                 `protobuf:"bytes,8,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WarmLocalModelResponse) Reset() {
+	*x = WarmLocalModelResponse{}
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WarmLocalModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WarmLocalModelResponse) ProtoMessage() {}
+
+func (x *WarmLocalModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WarmLocalModelResponse.ProtoReflect.Descriptor instead.
+func (*WarmLocalModelResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *WarmLocalModelResponse) GetLocalModelId() string {
+	if x != nil {
+		return x.LocalModelId
+	}
+	return ""
+}
+
+func (x *WarmLocalModelResponse) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *WarmLocalModelResponse) GetModelResolved() string {
+	if x != nil {
+		return x.ModelResolved
+	}
+	return ""
+}
+
+func (x *WarmLocalModelResponse) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *WarmLocalModelResponse) GetEngine() string {
+	if x != nil {
+		return x.Engine
+	}
+	return ""
+}
+
+func (x *WarmLocalModelResponse) GetAlreadyWarm() bool {
+	if x != nil {
+		return x.AlreadyWarm
+	}
+	return false
+}
+
+func (x *WarmLocalModelResponse) GetLatencyMs() int64 {
+	if x != nil {
+		return x.LatencyMs
+	}
+	return 0
+}
+
+func (x *WarmLocalModelResponse) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
+}
+
 var File_runtime_v1_local_runtime_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_proto_rawDesc = "" +
@@ -6946,7 +7098,21 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x19\n" +
 	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12$\n" +
 	"\x0elocal_model_id\x18\x03 \x01(\tR\flocalModelId\x121\n" +
-	"\apayload\x18\x04 \x01(\v2\x17.google.protobuf.StructR\apayload*\xb9\x01\n" +
+	"\apayload\x18\x04 \x01(\v2\x17.google.protobuf.StructR\apayload\"\\\n" +
+	"\x15WarmLocalModelRequest\x12$\n" +
+	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\x12\x1d\n" +
+	"\n" +
+	"timeout_ms\x18\x02 \x01(\x05R\ttimeoutMs\"\x91\x02\n" +
+	"\x16WarmLocalModelResponse\x12$\n" +
+	"\x0elocal_model_id\x18\x01 \x01(\tR\flocalModelId\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12%\n" +
+	"\x0emodel_resolved\x18\x03 \x01(\tR\rmodelResolved\x12\x1a\n" +
+	"\bendpoint\x18\x04 \x01(\tR\bendpoint\x12\x16\n" +
+	"\x06engine\x18\x05 \x01(\tR\x06engine\x12!\n" +
+	"\falready_warm\x18\x06 \x01(\bR\valreadyWarm\x12\x1d\n" +
+	"\n" +
+	"latency_ms\x18\a \x01(\x03R\tlatencyMs\x12\x19\n" +
+	"\btrace_id\x18\b \x01(\tR\atraceId*\xb9\x01\n" +
 	"\x10LocalModelStatus\x12\"\n" +
 	"\x1eLOCAL_MODEL_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cLOCAL_MODEL_STATUS_INSTALLED\x10\x01\x12\x1d\n" +
@@ -6973,7 +7139,7 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1bLOCAL_ENGINE_STATUS_STOPPED\x10\x01\x12 \n" +
 	"\x1cLOCAL_ENGINE_STATUS_STARTING\x10\x02\x12\x1f\n" +
 	"\x1bLOCAL_ENGINE_STATUS_HEALTHY\x10\x03\x12!\n" +
-	"\x1dLOCAL_ENGINE_STATUS_UNHEALTHY\x10\x042\x96\x18\n" +
+	"\x1dLOCAL_ENGINE_STATUS_UNHEALTHY\x10\x042\xf9\x18\n" +
 	"\x1aRuntimeLocalRuntimeService\x12d\n" +
 	"\x0fListLocalModels\x12'.nimi.runtime.v1.ListLocalModelsRequest\x1a(.nimi.runtime.v1.ListLocalModelsResponse\x12m\n" +
 	"\x12ListVerifiedModels\x12*.nimi.runtime.v1.ListVerifiedModelsRequest\x1a+.nimi.runtime.v1.ListVerifiedModelsResponse\x12p\n" +
@@ -6985,7 +7151,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x10RemoveLocalModel\x12(.nimi.runtime.v1.RemoveLocalModelRequest\x1a).nimi.runtime.v1.RemoveLocalModelResponse\x12d\n" +
 	"\x0fStartLocalModel\x12'.nimi.runtime.v1.StartLocalModelRequest\x1a(.nimi.runtime.v1.StartLocalModelResponse\x12a\n" +
 	"\x0eStopLocalModel\x12&.nimi.runtime.v1.StopLocalModelRequest\x1a'.nimi.runtime.v1.StopLocalModelResponse\x12v\n" +
-	"\x15CheckLocalModelHealth\x12-.nimi.runtime.v1.CheckLocalModelHealthRequest\x1a..nimi.runtime.v1.CheckLocalModelHealthResponse\x12s\n" +
+	"\x15CheckLocalModelHealth\x12-.nimi.runtime.v1.CheckLocalModelHealthRequest\x1a..nimi.runtime.v1.CheckLocalModelHealthResponse\x12a\n" +
+	"\x0eWarmLocalModel\x12&.nimi.runtime.v1.WarmLocalModelRequest\x1a'.nimi.runtime.v1.WarmLocalModelResponse\x12s\n" +
 	"\x14CollectDeviceProfile\x12,.nimi.runtime.v1.CollectDeviceProfileRequest\x1a-.nimi.runtime.v1.CollectDeviceProfileResponse\x12p\n" +
 	"\x13ResolveDependencies\x12+.nimi.runtime.v1.ResolveDependenciesRequest\x1a,.nimi.runtime.v1.ResolveDependenciesResponse\x12j\n" +
 	"\x11ApplyDependencies\x12).nimi.runtime.v1.ApplyDependenciesRequest\x1a*.nimi.runtime.v1.ApplyDependenciesResponse\x12j\n" +
@@ -7019,7 +7186,7 @@ func file_runtime_v1_local_runtime_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_local_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_local_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 92)
+var file_runtime_v1_local_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 94)
 var file_runtime_v1_local_runtime_proto_goTypes = []any{
 	(LocalModelStatus)(0),                          // 0: nimi.runtime.v1.LocalModelStatus
 	(LocalServiceStatus)(0),                        // 1: nimi.runtime.v1.LocalServiceStatus
@@ -7110,32 +7277,34 @@ var file_runtime_v1_local_runtime_proto_goTypes = []any{
 	(*ListLocalAuditsResponse)(nil),                // 86: nimi.runtime.v1.ListLocalAuditsResponse
 	(*AppendInferenceAuditRequest)(nil),            // 87: nimi.runtime.v1.AppendInferenceAuditRequest
 	(*AppendRuntimeAuditRequest)(nil),              // 88: nimi.runtime.v1.AppendRuntimeAuditRequest
-	nil,                                            // 89: nimi.runtime.v1.LocalModelRecord.HashesEntry
-	nil,                                            // 90: nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
-	nil,                                            // 91: nimi.runtime.v1.LocalProviderHints.ExtraEntry
-	nil,                                            // 92: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	nil,                                            // 93: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	nil,                                            // 94: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
-	nil,                                            // 95: nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
-	nil,                                            // 96: nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
-	(*structpb.Struct)(nil),                        // 97: google.protobuf.Struct
-	(*Ack)(nil),                                    // 98: nimi.runtime.v1.Ack
+	(*WarmLocalModelRequest)(nil),                  // 89: nimi.runtime.v1.WarmLocalModelRequest
+	(*WarmLocalModelResponse)(nil),                 // 90: nimi.runtime.v1.WarmLocalModelResponse
+	nil,                                            // 91: nimi.runtime.v1.LocalModelRecord.HashesEntry
+	nil,                                            // 92: nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
+	nil,                                            // 93: nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	nil,                                            // 94: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	nil,                                            // 95: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	nil,                                            // 96: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
+	nil,                                            // 97: nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	nil,                                            // 98: nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
+	(*structpb.Struct)(nil),                        // 99: google.protobuf.Struct
+	(*Ack)(nil),                                    // 100: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	5,   // 0: nimi.runtime.v1.LocalModelRecord.source:type_name -> nimi.runtime.v1.LocalModelSource
-	89,  // 1: nimi.runtime.v1.LocalModelRecord.hashes:type_name -> nimi.runtime.v1.LocalModelRecord.HashesEntry
+	91,  // 1: nimi.runtime.v1.LocalModelRecord.hashes:type_name -> nimi.runtime.v1.LocalModelRecord.HashesEntry
 	0,   // 2: nimi.runtime.v1.LocalModelRecord.status:type_name -> nimi.runtime.v1.LocalModelStatus
 	0,   // 3: nimi.runtime.v1.LocalModelHealth.status:type_name -> nimi.runtime.v1.LocalModelStatus
-	90,  // 4: nimi.runtime.v1.LocalVerifiedModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
+	92,  // 4: nimi.runtime.v1.LocalVerifiedModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor.HashesEntry
 	9,   // 5: nimi.runtime.v1.LocalProviderHints.localai:type_name -> nimi.runtime.v1.LocalProviderHintsLocalAi
 	10,  // 6: nimi.runtime.v1.LocalProviderHints.nexa:type_name -> nimi.runtime.v1.LocalProviderHintsNexa
-	91,  // 7: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	93,  // 7: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
 	2,   // 8: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
 	11,  // 9: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	92,  // 10: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	94,  // 10: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
 	2,   // 11: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
 	11,  // 12: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	93,  // 13: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	95,  // 13: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
 	14,  // 14: nimi.runtime.v1.LocalDeviceProfile.gpu:type_name -> nimi.runtime.v1.LocalGpuProfile
 	15,  // 15: nimi.runtime.v1.LocalDeviceProfile.python:type_name -> nimi.runtime.v1.LocalPythonProfile
 	16,  // 16: nimi.runtime.v1.LocalDeviceProfile.npu:type_name -> nimi.runtime.v1.LocalNpuProfile
@@ -7145,7 +7314,7 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	19,  // 20: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
 	19,  // 21: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalDependencyOptionDescriptor
 	20,  // 22: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalDependencyAlternativeDescriptor
-	94,  // 23: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
+	96,  // 23: nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalDependenciesDeclarationDescriptor.PreferredEntry
 	3,   // 24: nimi.runtime.v1.LocalDependencyDescriptor.kind:type_name -> nimi.runtime.v1.LocalDependencyKind
 	18,  // 25: nimi.runtime.v1.LocalDependencyResolutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
 	22,  // 26: nimi.runtime.v1.LocalDependencyResolutionPlan.dependencies:type_name -> nimi.runtime.v1.LocalDependencyDescriptor
@@ -7158,9 +7327,9 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	26,  // 33: nimi.runtime.v1.LocalDependencyApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalDependencyApplyStageResult
 	23,  // 34: nimi.runtime.v1.LocalDependencyApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
 	11,  // 35: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	97,  // 36: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
-	97,  // 37: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
-	97,  // 38: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
+	99,  // 36: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
+	99,  // 37: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
+	99,  // 38: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
 	4,   // 39: nimi.runtime.v1.LocalEngineDescriptor.status:type_name -> nimi.runtime.v1.LocalEngineStatus
 	32,  // 40: nimi.runtime.v1.ListEnginesResponse.engines:type_name -> nimi.runtime.v1.LocalEngineDescriptor
 	32,  // 41: nimi.runtime.v1.EnsureEngineResponse.engine:type_name -> nimi.runtime.v1.LocalEngineDescriptor
@@ -7171,9 +7340,9 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	6,   // 46: nimi.runtime.v1.ListLocalModelsResponse.models:type_name -> nimi.runtime.v1.LocalModelRecord
 	8,   // 47: nimi.runtime.v1.ListVerifiedModelsResponse.models:type_name -> nimi.runtime.v1.LocalVerifiedModelDescriptor
 	12,  // 48: nimi.runtime.v1.SearchCatalogModelsResponse.items:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor
-	95,  // 49: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
+	97,  // 49: nimi.runtime.v1.ResolveModelInstallPlanRequest.hashes:type_name -> nimi.runtime.v1.ResolveModelInstallPlanRequest.HashesEntry
 	13,  // 50: nimi.runtime.v1.ResolveModelInstallPlanResponse.plan:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor
-	96,  // 51: nimi.runtime.v1.InstallLocalModelRequest.hashes:type_name -> nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
+	98,  // 51: nimi.runtime.v1.InstallLocalModelRequest.hashes:type_name -> nimi.runtime.v1.InstallLocalModelRequest.HashesEntry
 	6,   // 52: nimi.runtime.v1.InstallLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
 	6,   // 53: nimi.runtime.v1.InstallVerifiedModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
 	6,   // 54: nimi.runtime.v1.ImportLocalModelResponse.model:type_name -> nimi.runtime.v1.LocalModelRecord
@@ -7197,9 +7366,9 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	29,  // 72: nimi.runtime.v1.ListNodeCatalogResponse.nodes:type_name -> nimi.runtime.v1.LocalNodeDescriptor
 	31,  // 73: nimi.runtime.v1.ListLocalAuditsRequest.time_range:type_name -> nimi.runtime.v1.LocalAuditTimeRange
 	30,  // 74: nimi.runtime.v1.ListLocalAuditsResponse.events:type_name -> nimi.runtime.v1.LocalAuditEvent
-	97,  // 75: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
-	97,  // 76: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
-	97,  // 77: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
+	99,  // 75: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
+	99,  // 76: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
+	99,  // 77: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
 	43,  // 78: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
 	45,  // 79: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
 	47,  // 80: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
@@ -7211,55 +7380,57 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	59,  // 86: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
 	61,  // 87: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
 	63,  // 88: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
-	65,  // 89: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
-	67,  // 90: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
-	69,  // 91: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
-	71,  // 92: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
-	73,  // 93: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
-	75,  // 94: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
-	77,  // 95: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
-	79,  // 96: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
-	81,  // 97: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
-	83,  // 98: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
-	85,  // 99: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
-	87,  // 100: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
-	88,  // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
-	33,  // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
-	35,  // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
-	37,  // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
-	39,  // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
-	41,  // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
-	44,  // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
-	46,  // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
-	48,  // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
-	50,  // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
-	52,  // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
-	54,  // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
-	56,  // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
-	58,  // 114: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
-	60,  // 115: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
-	62,  // 116: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
-	64,  // 117: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
-	66,  // 118: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
-	68,  // 119: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
-	70,  // 120: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
-	72,  // 121: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
-	74,  // 122: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
-	76,  // 123: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
-	78,  // 124: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
-	80,  // 125: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
-	82,  // 126: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
-	84,  // 127: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
-	86,  // 128: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
-	98,  // 129: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
-	98,  // 130: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
-	34,  // 131: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
-	36,  // 132: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
-	38,  // 133: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
-	40,  // 134: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
-	42,  // 135: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
-	107, // [107:136] is the sub-list for method output_type
-	78,  // [78:107] is the sub-list for method input_type
+	89,  // 89: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:input_type -> nimi.runtime.v1.WarmLocalModelRequest
+	65,  // 90: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
+	67,  // 91: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
+	69,  // 92: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
+	71,  // 93: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
+	73,  // 94: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
+	75,  // 95: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
+	77,  // 96: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
+	79,  // 97: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
+	81,  // 98: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
+	83,  // 99: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
+	85,  // 100: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
+	87,  // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
+	88,  // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
+	33,  // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
+	35,  // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
+	37,  // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
+	39,  // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
+	41,  // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
+	44,  // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
+	46,  // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
+	48,  // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
+	50,  // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
+	52,  // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
+	54,  // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
+	56,  // 114: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
+	58,  // 115: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
+	60,  // 116: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
+	62,  // 117: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
+	64,  // 118: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
+	90,  // 119: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:output_type -> nimi.runtime.v1.WarmLocalModelResponse
+	66,  // 120: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
+	68,  // 121: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
+	70,  // 122: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
+	72,  // 123: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
+	74,  // 124: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
+	76,  // 125: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
+	78,  // 126: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
+	80,  // 127: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
+	82,  // 128: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
+	84,  // 129: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
+	86,  // 130: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
+	100, // 131: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
+	100, // 132: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
+	34,  // 133: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
+	36,  // 134: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
+	38,  // 135: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
+	40,  // 136: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
+	42,  // 137: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
+	108, // [108:138] is the sub-list for method output_type
+	78,  // [78:108] is the sub-list for method input_type
 	78,  // [78:78] is the sub-list for extension type_name
 	78,  // [78:78] is the sub-list for extension extendee
 	0,   // [0:78] is the sub-list for field type_name
@@ -7277,7 +7448,7 @@ func file_runtime_v1_local_runtime_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_proto_rawDesc), len(file_runtime_v1_local_runtime_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   92,
+			NumMessages:   94,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
