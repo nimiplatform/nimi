@@ -1,6 +1,6 @@
 version: 1
 provider: dashscope
-catalog_version: 2026-03-05-dashscope-v2
+catalog_version: 2026-03-07-dashscope-v3
 models:
   - model_id: qwen-tts
     provider: dashscope
@@ -374,6 +374,397 @@ models:
       url: https://help.aliyun.com/zh/model-studio/getting-started/models
       retrieved_at: 2026-03-05
       note: DashScope model catalog and pricing overview.
+  - model_id: deepseek-v3.2
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: deepseek-v3.2-exp
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: deepseek-v3.1
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: deepseek-r1
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: deepseek-r1-0528
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: deepseek-v3
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: siliconflow/deepseek-v3.2
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: siliconflow/deepseek-v3.1-terminus
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: siliconflow/deepseek-r1-0528
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: siliconflow/deepseek-v3-0324
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: kimi/kimi-k2.5
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: kimi-k2.5
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: kimi-k2-thinking
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: Moonshot-Kimi-K2-Instruct
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: glm-5
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: glm-4.7
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: glm-4.6
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: glm-4.5
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: glm-4.5-air
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: MiniMax/MiniMax-M2.5
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: MiniMax pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: MiniMax-M2.5
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: MiniMax pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: MiniMax/MiniMax-M2.1
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: MiniMax pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: MiniMax-M2.1
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: MiniMax pricing on DashScope varies by model tier and account plan.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
   - model_id: text-embedding-v4
     provider: dashscope
     model_type: embedding
@@ -425,10 +816,27 @@ models:
       url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
       retrieved_at: 2026-03-05
       note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
-  - model_id: wan2.6-t2i
+  - model_id: qwen3-asr-flash-2026-02-10
+    provider: dashscope
+    model_type: stt
+    updated_at: 2026-02-10
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-05
+      notes: Speech-to-text pricing varies by audio duration, request shape, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen-asr-api-reference
+      retrieved_at: 2026-03-05
+      note: DashScope Qwen ASR API reference covering qwen3-asr-flash.
+  - model_id: qwen-image-2.0-pro
     provider: dashscope
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-03-07
     capabilities:
       - image.generate
     pricing:
@@ -436,8 +844,161 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: qwen-image-2.0-pro-2026-03-03
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-03
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: qwen-image-2.0
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: qwen-image-2.0-2026-03-03
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-03
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: z-image-turbo
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: wan2.6-t2i
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
       notes: Image generation pricing varies by quality and tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: wan2.5-t2i-preview
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: flux-schnell
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: flux-dev
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/getting-started/models
+      retrieved_at: 2026-03-05
+      note: DashScope model catalog and pricing overview.
+  - model_id: flux-merged
+    provider: dashscope
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ref:
       url: https://help.aliyun.com/zh/model-studio/getting-started/models
       retrieved_at: 2026-03-05

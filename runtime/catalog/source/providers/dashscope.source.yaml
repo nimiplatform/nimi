@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-03-05-dashscope-v2
+catalog_version: 2026-03-07-dashscope-v3
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   runtime_plane: remote
@@ -347,6 +347,272 @@ models:
       notes: Vision-language model pricing varies by account plan and token class.
     source_ids: [dashscope_models_pricing_doc]
 
+  - model_id: deepseek-v3.2
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: deepseek-v3.2-exp
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: deepseek-v3.1
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: deepseek-r1
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: deepseek-r1-0528
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: deepseek-v3
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope-hosted DeepSeek text pricing varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: siliconflow/deepseek-v3.2
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: siliconflow/deepseek-v3.1-terminus
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: siliconflow/deepseek-r1-0528
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: siliconflow/deepseek-v3-0324
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: SiliconFlow-hosted DeepSeek pricing on DashScope varies by request mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: kimi/kimi-k2.5
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+    aliases:
+      - kimi-k2.5
+
+  - model_id: kimi-k2-thinking
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: Moonshot-Kimi-K2-Instruct
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: Kimi pricing on DashScope varies by model mode and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: glm-5
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: glm-4.7
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: glm-4.6
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: glm-4.5
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: glm-4.5-air
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: GLM pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: MiniMax/MiniMax-M2.5
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: MiniMax pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+    aliases:
+      - MiniMax-M2.5
+
+  - model_id: MiniMax/MiniMax-M2.1
+    model_type: chat
+    updated_at: 2026-03-07
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: MiniMax pricing on DashScope varies by model tier and account plan.
+    source_ids: [dashscope_models_pricing_doc]
+    aliases:
+      - MiniMax-M2.1
+
   - model_id: text-embedding-v4
     model_type: embedding
     updated_at: 2026-03-05
@@ -374,18 +640,114 @@ models:
     source_ids: [dashscope_asr_doc, dashscope_models_pricing_doc]
     aliases:
       - qwen3-asr-flash-2025-09-08
+      - qwen3-asr-flash-2026-02-10
 
-  - model_id: wan2.6-t2i
+  - model_id: qwen-image-2.0-pro
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-03-07
     capabilities: [image.generate]
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+    aliases:
+      - qwen-image-2.0-pro-2026-03-03
+
+  - model_id: qwen-image-2.0
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+    aliases:
+      - qwen-image-2.0-2026-03-03
+
+  - model_id: z-image-turbo
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: wan2.6-t2i
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
       notes: Image generation pricing varies by quality and tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: wan2.5-t2i-preview
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: flux-schnell
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: flux-dev
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
+    source_ids: [dashscope_models_pricing_doc]
+
+  - model_id: flux-merged
+    model_type: image
+    updated_at: 2026-03-07
+    capabilities: [image.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-03-07
+      notes: DashScope image generation pricing varies by quality, resolution, and account tier.
     source_ids: [dashscope_models_pricing_doc]
 
 voice_workflow_models:

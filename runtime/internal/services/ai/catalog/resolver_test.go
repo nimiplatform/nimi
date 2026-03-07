@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	runtimecatalog "github.com/nimiplatform/nimi/runtime/catalog"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
@@ -25,15 +26,53 @@ func TestResolveVoicesDashScopeModel(t *testing.T) {
 	}
 	foundCherry := false
 	for _, voice := range result.Voices {
-		if voice.VoiceID == "Cherry" {
+		if voice.VoiceID == "cherry" {
 			foundCherry = true
 		}
 		if voice.VoiceID == "Haruto" {
 			t.Fatalf("dashscope catalog must not include Haruto")
 		}
+		if voice.VoiceID == voice.Name {
+			t.Fatalf("expected canonical voice_id distinct from display name, got=%q", voice.VoiceID)
+		}
 	}
 	if !foundCherry {
-		t.Fatalf("expected Cherry in built-in voice catalog")
+		t.Fatalf("expected cherry in built-in voice catalog")
+	}
+}
+
+func TestParseProviderDocumentYAMLPreservesDashScopeCanonicalVoiceIDs(t *testing.T) {
+	raw, err := runtimecatalog.DefaultProvidersFS.ReadFile("providers/dashscope.yaml")
+	if err != nil {
+		t.Fatalf("ReadFile(dashscope.yaml): %v", err)
+	}
+
+	doc, err := parseProviderDocumentYAML(raw, "dashscope.yaml")
+	if err != nil {
+		t.Fatalf("parseProviderDocumentYAML: %v", err)
+	}
+
+	foundArthur := false
+	foundCherry := false
+	for _, voice := range doc.Voices {
+		switch voice.Name {
+		case "Arthur":
+			foundArthur = true
+			if voice.VoiceID != "arthur" {
+				t.Fatalf("expected Arthur voice_id=arthur, got=%q", voice.VoiceID)
+			}
+		case "Cherry":
+			foundCherry = true
+			if voice.VoiceID != "cherry" {
+				t.Fatalf("expected Cherry voice_id=cherry, got=%q", voice.VoiceID)
+			}
+		}
+	}
+	if !foundArthur {
+		t.Fatal("expected Arthur in dashscope provider document")
+	}
+	if !foundCherry {
+		t.Fatal("expected Cherry in dashscope provider document")
 	}
 }
 

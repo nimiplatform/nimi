@@ -181,14 +181,6 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string) (Provid
 		}
 		doc.Voices[i].Provider = provider
 	}
-	if provider == "dashscope" {
-		for i := range doc.Voices {
-			name := strings.TrimSpace(doc.Voices[i].Name)
-			if name != "" && strings.EqualFold(name, strings.TrimSpace(doc.Voices[i].VoiceID)) {
-				doc.Voices[i].VoiceID = name
-			}
-		}
-	}
 
 	snapshot := Snapshot{
 		CatalogVersion:        doc.CatalogVersion,
