@@ -72,6 +72,10 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	go func() {
+		<-ctx.Done()
+		stop() // restore default signal behavior: second Ctrl+C kills the process immediately
+	}()
 
 	d := daemon.New(cfg, logger, runtimeVersion)
 	return d.Run(ctx)

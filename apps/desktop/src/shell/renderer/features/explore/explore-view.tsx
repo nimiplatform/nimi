@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
@@ -9,6 +9,13 @@ import {
   type ExploreAgentCardData,
   type FeaturedWorldCardData,
 } from './explore-cards';
+
+const ICON_SEARCH = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
 
 type WorldBanner = {
   id: string;
@@ -38,6 +45,7 @@ type ExploreViewProps = {
 
 export function ExploreView(props: ExploreViewProps) {
   const { t } = useTranslation();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [topAgentsPage, setTopAgentsPage] = useState(0);
   const [topAgentsDirection, setTopAgentsDirection] = useState<'forward' | 'backward'>('forward');
@@ -82,6 +90,10 @@ export function ExploreView(props: ExploreViewProps) {
     }
   };
 
+  const scrollToTop = () => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <style>{`
@@ -95,36 +107,29 @@ export function ExploreView(props: ExploreViewProps) {
         }
       `}</style>
       {/* Header bar */}
-      <div className="flex h-14 shrink-0 items-center justify-between bg-gray-50 px-6 border-b border-gray-100">
-        <h1 className={APP_PAGE_TITLE_CLASS}>
-          {t('Explore.pageTitle')}
-        </h1>
-        <div className="flex w-64 items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 transition-all focus-within:border-mint-500/50 focus-within:ring-2 focus-within:ring-mint-500/10">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#9ca3af"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            className="ml-2 flex-1 bg-transparent text-xs text-gray-900 outline-none placeholder:text-gray-400 font-light"
-            placeholder=""
-            value={props.searchText}
-            onChange={(e) => props.onSearchTextChange(e.target.value)}
-          />
+      <div className="shrink-0 border-b border-gray-100 bg-[#F0F4F8] px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className={APP_PAGE_TITLE_CLASS}>
+            {t('Explore.pageTitle')}
+          </h1>
+          <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
+            <div className="group relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
+                {ICON_SEARCH}
+              </span>
+              <input
+                className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
+                placeholder="Search worlds, agents, posts..."
+                value={props.searchText}
+                onChange={(e) => props.onSearchTextChange(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-[#F0F4F8]">
         <div className="mx-auto max-w-6xl px-6 py-8">
           {/* World Banner Carousel */}
           {worldsWithBanners.length > 0 && (
@@ -303,6 +308,19 @@ export function ExploreView(props: ExploreViewProps) {
           </section>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={scrollToTop}
+        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-700 shadow-lg ring-1 ring-gray-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-50 hover:text-gray-900"
+        aria-label="Back to top"
+        title="Back to top"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 19V5" />
+          <polyline points="5 12 12 5 19 12" />
+        </svg>
+      </button>
     </div>
   );
 }

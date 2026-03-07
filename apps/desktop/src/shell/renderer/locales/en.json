@@ -239,6 +239,9 @@
     "today": "Today",
     "yesterday": "Yesterday"
   },
+  "Home": {
+    "pageTitle": "Moments"
+  },
   "World": {
     "title": "Worlds",
     "subtitle": "Explore and manage your worlds",

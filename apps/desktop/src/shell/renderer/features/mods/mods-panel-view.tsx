@@ -1,6 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import type { ModsPanelModel, ModsPanelMod } from './mods-panel-controller';
 
+const ICON_SEARCH = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 function ModCard({
   mod,
   pendingModId,
@@ -131,19 +138,26 @@ export function ModsPanelView(props: ModsPanelModel) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#F0F4F8]">
       <div className="mx-auto w-full max-w-6xl px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">{t('ModsPanel.title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('ModsPanel.subtitle')}</p>
-        </div>
+        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">{t('ModsPanel.title')}</h1>
+            <p className="mt-1 text-sm text-gray-500">{t('ModsPanel.subtitle')}</p>
+          </div>
 
-        <div className="mb-8 flex max-w-md">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchQueryChange(e.target.value)}
-            placeholder={t('ModsPanel.searchPlaceholder')}
-            className="w-full rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm outline-none transition-shadow focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
-          />
+          <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
+            <div className="group relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
+                {ICON_SEARCH}
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                placeholder={t('ModsPanel.searchPlaceholder')}
+                className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
+              />
+            </div>
+          </div>
         </div>
 
         {!hasMods && !isSearching ? (

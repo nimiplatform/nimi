@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
@@ -18,6 +19,9 @@ import { ContactDetailView } from './contact-detail-view.js';
 export function ContactsView(props: ContactsViewProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
+  const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
+  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
+  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
@@ -179,10 +183,29 @@ export function ContactsView(props: ContactsViewProps) {
   const counts = getUpdatedCounts();
 
   // 处理选择联系人
+  useEffect(() => {
+    if (!rememberedProfileId || selectedContact || selectedRequest) {
+      return;
+    }
+    const restoredContact = props.allFriends.find((contact) => contact.id === rememberedProfileId) || null;
+    if (!restoredContact) {
+      return;
+    }
+    const nextCategory: TabFilter = restoredContact.isAgent
+      ? (restoredContact.agentOwnershipType === 'MASTER_OWNED' ? 'myAgents' : 'agents')
+      : 'humans';
+    setSelectedContact(restoredContact);
+    setSelectedRequest(null);
+    setSelectedCategory(nextCategory);
+    props.onFilterChange(nextCategory);
+  }, [props, rememberedProfileId, selectedContact, selectedRequest]);
+
   const handleSelectContact = (contact: ContactRecord, categoryId: TabFilter) => {
     setSelectedContact(contact);
     setSelectedRequest(null);
     setSelectedCategory(categoryId);
+    setSelectedProfileId(contact.id);
+    setSelectedProfileIsAgent(contact.isAgent);
     props.onFilterChange(categoryId);
   };
 
@@ -401,7 +424,11 @@ export function ContactsView(props: ContactsViewProps) {
             profile={selectedProfile!}
             loading={profileLoading}
             error={profileError}
-            onClose={() => setSelectedContact(null)}
+            onClose={() => {
+              setSelectedContact(null);
+              setSelectedProfileId(null);
+              setSelectedProfileIsAgent(null);
+            }}
             onMessage={() => {
               if (selectedContact) {
                 props.onMessage(selectedContact);

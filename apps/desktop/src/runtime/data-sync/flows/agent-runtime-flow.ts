@@ -104,69 +104,6 @@ function isAgentProfile(profile: Record<string, unknown>): boolean {
   return false;
 }
 
-function extractAgentWorldId(profile: Record<string, unknown>): string {
-  const direct = toNonEmptyString(profile.worldId);
-  if (direct) {
-    return direct;
-  }
-  const agent = toRecord(profile.agent);
-  const fromAgent = toNonEmptyString(agent?.worldId);
-  if (fromAgent) {
-    return fromAgent;
-  }
-  const agentProfile = toRecord(profile.agentProfile);
-  return toNonEmptyString(agentProfile?.worldId);
-}
-
-function extractWorldBannerUrl(profile: Record<string, unknown>): string {
-  const direct = toNonEmptyString(profile.worldBannerUrl);
-  if (direct) {
-    return direct;
-  }
-  const world = toRecord(profile.world);
-  const fromWorld = toNonEmptyString(world?.bannerUrl);
-  if (fromWorld) {
-    return fromWorld;
-  }
-  const agentProfile = toRecord(profile.agentProfile);
-  return toNonEmptyString(agentProfile?.worldBannerUrl);
-}
-
-async function enrichAgentProfileWithWorldBanner(
-  callApi: DataSyncApiCaller,
-  profile: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  if (extractWorldBannerUrl(profile)) {
-    return profile;
-  }
-
-  const worldId = extractAgentWorldId(profile);
-  if (!worldId) {
-    return profile;
-  }
-
-  try {
-    const payload = await callApi(
-      (realm) => realm.services.WorldsService.worldControllerGetWorld(worldId),
-      'Failed to load world detail',
-    );
-    const world = toRecord(payload);
-    const bannerUrl = toNonEmptyString(world?.bannerUrl);
-    if (!world || !bannerUrl) {
-      return profile;
-    }
-    return {
-      ...profile,
-      worldBannerUrl: bannerUrl,
-      world: profile.world && typeof profile.world === 'object'
-        ? { ...(profile.world as Record<string, unknown>), ...world, bannerUrl }
-        : world,
-    };
-  } catch {
-    return profile;
-  }
-}
-
 async function getProfileByHandle(
   callApi: DataSyncApiCaller,
   handleCandidate: string,
@@ -261,7 +198,6 @@ export async function loadAgentDetails(
     if (!profile || !isAgentProfile(profile)) {
       throw new Error('AGENT_PROFILE_NOT_FOUND');
     }
-    profile = await enrichAgentProfileWithWorldBanner(callApi, profile);
 
     const resolvedId = toNonEmptyString(profile.id);
     if (resolvedId) {

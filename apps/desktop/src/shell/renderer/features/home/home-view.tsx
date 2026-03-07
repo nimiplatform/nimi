@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/components/create-post-modal';
 import { PostCard } from './post-card';
 import { PostFeed } from './post-feed';
@@ -59,14 +63,6 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
   );
 }
 
-type FeedScope = 'all' | 'friends' | 'forYou';
-
-const FEED_SCOPES: { value: FeedScope; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'friends', label: 'Friends' },
-  { value: 'forYou', label: 'For You' },
-];
-
 const PAGE_SIZE = 15;
 
 type HomeViewProps = {
@@ -74,27 +70,66 @@ type HomeViewProps = {
 };
 
 export function HomeView(props: HomeViewProps) {
-  const [scope, setScope] = useState<FeedScope>('all');
+  const { t } = useTranslation();
+  const authStatus = useAppStore((state) => state.auth.status);
+  const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
+  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
+  const selectedProfileIsAgent = useAppStore((state) => state.selectedProfileIsAgent);
+  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
+  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
-  const postFeedKey = `${scope}-${refreshKey}`;
+  const postFeedKey = `moments-${refreshKey}`;
+
+  const contactsQuery = useQuery({
+    queryKey: ['contacts', authStatus],
+    queryFn: async () => {
+      const snapshot = await dataSync.loadSocialSnapshot();
+      return snapshot as {
+        friends?: Array<Record<string, unknown>>;
+      };
+    },
+    enabled: authStatus === 'authenticated',
+  });
+
+  const allowedAuthorIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (currentUserId) {
+      ids.add(currentUserId);
+    }
+    for (const friend of contactsQuery.data?.friends || []) {
+      const friendId = String(friend.id || '').trim();
+      if (friendId) {
+        ids.add(friendId);
+      }
+    }
+    return ids;
+  }, [contactsQuery.data?.friends, currentUserId]);
 
   const fetchPage = useCallback(
     async (cursorArg: string | null) => {
       const data = await dataSync.loadPostFeed({
-        scope,
+        scope: 'friends',
         limit: PAGE_SIZE,
         cursor: cursorArg ?? undefined,
       });
+      const items = (data?.items ?? []).filter((item) => {
+        const authorId = String(item.author?.id || '').trim();
+        return authorId ? allowedAuthorIds.has(authorId) : false;
+      }).sort((left, right) => {
+        const leftTime = Date.parse(String(left.createdAt ?? ''));
+        const rightTime = Date.parse(String(right.createdAt ?? ''));
+        return rightTime - leftTime;
+      });
       return {
-        items: data?.items ?? [],
+        items,
         nextCursor: data?.page?.nextCursor ?? null,
       };
     },
-    [scope],
+    [allowedAuthorIds],
   );
 
   useEffect(() => {
@@ -110,7 +145,7 @@ export function HomeView(props: HomeViewProps) {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Top bar */}
       <div className="flex h-14 shrink-0 items-center gap-3 bg-gray-50 px-6">
-        <h1 className={APP_PAGE_TITLE_CLASS}>Home</h1>
+        <h1 className={APP_PAGE_TITLE_CLASS}>{t('Home.pageTitle')}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -130,24 +165,6 @@ export function HomeView(props: HomeViewProps) {
             <span className="text-sm text-gray-400">What&apos;s on your mind?</span>
           </button>
 
-          {/* Scope Filter */}
-          <div className="mt-4 flex gap-2">
-            {FEED_SCOPES.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                onClick={() => setScope(s.value)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-                  scope === s.value
-                    ? 'bg-cyan-500 text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-
           {/* Publishing placeholder - shown at top of feed */}
           {isPublishing && (
             <div className="mt-4">
@@ -165,6 +182,7 @@ export function HomeView(props: HomeViewProps) {
                 <PostCard
                   post={post}
                   onDelete={() => setRefreshKey((k) => k + 1)}
+                  showAddFriendBadge={false}
                 />
               )}
             />
@@ -192,14 +210,29 @@ export function HomeView(props: HomeViewProps) {
         />
       )}
 
+      <ContactDetailProfileModal
+        open={Boolean(selectedProfileId)}
+        profileId={selectedProfileId || ''}
+        profileSeed={selectedProfileId ? {
+          id: selectedProfileId,
+          displayName: '',
+          handle: '',
+          isAgent: selectedProfileIsAgent === true,
+        } : null}
+        onClose={() => {
+          setSelectedProfileId(null);
+          setSelectedProfileIsAgent(null);
+        }}
+      />
+
       {/* Floating Create Post Button */}
       <button
         type="button"
         onClick={() => setCreatePostOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-lg shadow-[#4ECCA3]/30 transition-all duration-200 hover:scale-110 hover:shadow-xl hover:shadow-[#4ECCA3]/40 active:scale-95"
+        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-lg shadow-[#4ECCA3]/30 transition-all duration-200 hover:scale-110 hover:shadow-xl hover:shadow-[#4ECCA3]/40 active:scale-95"
         aria-label="Create Post"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>

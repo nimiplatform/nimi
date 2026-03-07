@@ -71,6 +71,7 @@ export type AppStoreState = {
   previousTab: AppTab | null;
   selectedChatId: string | null;
   selectedProfileId: string | null;
+  selectedProfileIsAgent: boolean | null;
   selectedWorldId: string | null;
   chatProfilePanelTarget: 'self' | 'other' | null;
   localManifestSummaries: RuntimeLocalManifestSummary[];
@@ -93,6 +94,7 @@ export type AppStoreState = {
   setActiveTab: (tab: AppTab) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
+  setSelectedProfileIsAgent: (isAgent: boolean | null) => void;
   setSelectedWorldId: (worldId: string | null) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string | null, tab: 'profile' | 'agent-detail') => void;

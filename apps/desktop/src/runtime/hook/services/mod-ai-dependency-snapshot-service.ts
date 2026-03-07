@@ -2,6 +2,7 @@ import type {
   HookModAiDependencySnapshot,
   HookModAiDependencySnapshotResolver,
 } from '../contracts/facade.js';
+import { parseRuntimeCanonicalCapability } from '@nimiplatform/sdk/mod/runtime-route';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 function toMissingDependencySnapshot(input: {
@@ -38,6 +39,7 @@ export class HookRuntimeModAiDependencySnapshotService {
     routeSourceHint?: 'token-api' | 'local-runtime';
   }): Promise<HookModAiDependencySnapshot> {
     const modId = String(input.modId || '').trim();
+    const capability = parseRuntimeCanonicalCapability(input.capability) || undefined;
     if (!modId) {
       return toMissingDependencySnapshot({
         modId: '',
@@ -54,7 +56,7 @@ export class HookRuntimeModAiDependencySnapshotService {
     }
     return this.resolver({
       modId,
-      capability: String(input.capability || '').trim() || undefined,
+      capability,
       routeSourceHint: input.routeSourceHint,
     });
   }

@@ -4,6 +4,7 @@ import type { PostDto } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
@@ -232,10 +233,14 @@ function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
 export function ExplorePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
+  const selectedProfileId = useAppStore((state) => state.selectedProfileId);
+  const selectedProfileIsAgent = useAppStore((state) => state.selectedProfileIsAgent);
+  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
+  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedAgentForProfile, setSelectedAgentForProfile] = useState<ExploreAgentCardData | null>(null);
 
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
@@ -421,9 +426,12 @@ export function ExplorePanel() {
 
   const onAgentOpen = useCallback(
     (agentId: string) => {
-      navigateToProfile(agentId, 'agent-detail');
+      const target = agents.find((item) => item.id === agentId) || null;
+      setSelectedAgentForProfile(target);
+      setSelectedProfileId(agentId);
+      setSelectedProfileIsAgent(target?.isAgent === true);
     },
-    [navigateToProfile],
+    [agents, setSelectedProfileId, setSelectedProfileIsAgent],
   );
 
   const agentLimit = agentLimitQuery.data ?? null;
@@ -475,6 +483,52 @@ export function ExplorePanel() {
           });
           setGiftModalOpen(false);
           setSelectedAgentForGift(null);
+        }}
+      />
+      <ContactDetailProfileModal
+        open={Boolean(selectedAgentForProfile?.id)}
+        profileId={selectedAgentForProfile?.id || ''}
+        profileSeed={selectedAgentForProfile ? {
+          id: selectedAgentForProfile.id,
+          displayName: selectedAgentForProfile.name,
+          handle: selectedAgentForProfile.handle,
+          avatarUrl: selectedAgentForProfile.avatarUrl,
+          bio: selectedAgentForProfile.bio,
+          isAgent: selectedAgentForProfile.isAgent,
+          isOnline: selectedAgentForProfile.isOnline,
+          tags: selectedAgentForProfile.tags,
+          worldName: selectedAgentForProfile.worldName,
+          worldBannerUrl: selectedAgentForProfile.worldBannerUrl,
+          friendsCount: selectedAgentForProfile.friendsCount,
+          postsCount: selectedAgentForProfile.postsCount,
+          likesCount: selectedAgentForProfile.likesCount,
+          giftStats: selectedAgentForProfile.giftStats,
+          agentState: selectedAgentForProfile.state,
+          agentCategory: selectedAgentForProfile.category,
+          agentOrigin: selectedAgentForProfile.origin,
+          agentTier: selectedAgentForProfile.tier,
+          agentWakeStrategy: selectedAgentForProfile.wakeStrategy,
+          agentOwnershipType: selectedAgentForProfile.ownershipType,
+          agentWorldId: selectedAgentForProfile.worldId,
+        } : null}
+        onClose={() => {
+          setSelectedAgentForProfile(null);
+          setSelectedProfileId(null);
+          setSelectedProfileIsAgent(null);
+        }}
+      />
+      <ContactDetailProfileModal
+        open={Boolean(!selectedAgentForProfile?.id && selectedProfileId)}
+        profileId={selectedProfileId || ''}
+        profileSeed={selectedProfileId ? {
+          id: selectedProfileId,
+          displayName: '',
+          handle: '',
+          isAgent: selectedProfileIsAgent === true,
+        } : null}
+        onClose={() => {
+          setSelectedProfileId(null);
+          setSelectedProfileIsAgent(null);
         }}
       />
     </>

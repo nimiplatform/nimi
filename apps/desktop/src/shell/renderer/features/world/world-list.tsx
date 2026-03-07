@@ -7,6 +7,13 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
 import { isMainWorldType } from './shared.js';
 
+const ICON_SEARCH = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 export type WorldAgentItem = {
   id: string;
   name: string;
@@ -178,7 +185,7 @@ export function WorldList() {
 
   if (worldsQuery.isPending) {
     return (
-      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F7F8FA' }}>
+      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F0F4F8' }}>
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-mint-500" />
           <span className="text-sm">{t('World.loading')}</span>
@@ -189,34 +196,42 @@ export function WorldList() {
 
   if (worldsQuery.isError) {
     return (
-      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F7F8FA' }}>
+      <div className="flex h-full items-center justify-center" style={{ backgroundColor: '#F0F4F8' }}>
         <span className="text-sm text-red-600">{t('World.loadError')}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F7F8FA' }}>
+    <div className="flex min-h-0 flex-1 flex-col" style={{ backgroundColor: '#F0F4F8' }}>
       {/* Header bar */}
-      <div className="flex h-auto shrink-0 flex-col justify-center gap-1 px-6 py-4" style={{ backgroundColor: '#F7F8FA' }}>
-        <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
-        <span className="text-xs" style={{ color: '#888888' }}>Synced from Desktop</span>
-        <div className="mt-3">
-          <input
-            type="search"
-            value={searchText}
-            onChange={(event) => {
-              setSearchText(event.target.value);
-            }}
-            placeholder="Search worlds by name or description..."
-            className="w-full rounded-xl border-0 bg-white px-4 py-2.5 text-sm shadow-sm outline-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-mint-100"
-            style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}
-          />
+      <div className="shrink-0 px-6 py-4" style={{ backgroundColor: '#F0F4F8' }}>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#1A1A1A' }}>{t('World.title')}</h1>
+            <span className="text-xs" style={{ color: '#888888' }}>Synced from Desktop</span>
+          </div>
+          <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
+            <div className="group relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
+                {ICON_SEARCH}
+              </span>
+              <input
+                type="search"
+                value={searchText}
+                onChange={(event) => {
+                  setSearchText(event.target.value);
+                }}
+                placeholder="Search worlds by name or description..."
+                className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#F7F8FA' }}>
+      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ backgroundColor: '#F0F4F8' }}>
         <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (
