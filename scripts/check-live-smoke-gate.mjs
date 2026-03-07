@@ -212,6 +212,42 @@ function evaluateLayer(input) {
   };
 }
 
+function evaluateGoldPath(report, options) {
+  const failures = [];
+  const softSkips = [];
+  const fixtures = Array.isArray(report?.fixtures) ? report.fixtures : [];
+  const gatedDashscopeFixtures = fixtures.filter((fixture) => fixture?.gated && fixture?.provider === 'dashscope');
+
+  if (gatedDashscopeFixtures.length === 0) {
+    if (options.requireRelease) {
+      failures.push('gold_path:dashscope:missing_fixture_records');
+    }
+    return { failures, softSkips, fixtureIds: [] };
+  }
+
+  for (const fixture of gatedDashscopeFixtures) {
+    const fixtureId = String(fixture.fixture_id || '').trim() || 'unknown-fixture';
+    for (const layer of ['L0', 'L1', 'L2', 'L3']) {
+      const status = String(fixture?.layers?.[layer]?.status || '').trim();
+      const cellId = `gold_path:${fixtureId}:${layer}`;
+      if (status === 'passed') {
+        continue;
+      }
+      if (status === 'skipped' && !options.requireRelease) {
+        softSkips.push(`${cellId}:skipped`);
+        continue;
+      }
+      failures.push(`${cellId}:${status || 'missing'}`);
+    }
+  }
+
+  return {
+    failures,
+    softSkips,
+    fixtureIds: gatedDashscopeFixtures.map((fixture) => String(fixture.fixture_id || '').trim()).filter(Boolean),
+  };
+}
+
 function main() {
   const options = parseArgs();
   const report = readYamlFile(options.reportPath);
@@ -307,14 +343,19 @@ function main() {
     requireRelease: options.requireRelease,
   });
 
-  const failures = [...runtimeEvaluation.failures, ...sdkEvaluation.failures];
-  const softSkips = [...runtimeEvaluation.softSkips, ...sdkEvaluation.softSkips];
+  const goldEvaluation = evaluateGoldPath(report?.gold_path, {
+    requireRelease: options.requireRelease,
+  });
+
+  const failures = [...runtimeEvaluation.failures, ...sdkEvaluation.failures, ...goldEvaluation.failures];
+  const softSkips = [...runtimeEvaluation.softSkips, ...sdkEvaluation.softSkips, ...goldEvaluation.softSkips];
 
   process.stdout.write('[check-live-smoke-gate] evaluation context\n');
   process.stdout.write(`- mode: ${options.requireRelease ? 'release-hard-block' : 'pr-skip-safe'}\n`);
   process.stdout.write(`- changed providers: ${toSortedArray(changedProviders).join(', ') || '(none)'}\n`);
   process.stdout.write(`- runtime required providers: ${toSortedArray(runtimeRequiredProviders).join(', ') || '(none)'}\n`);
   process.stdout.write(`- sdk required providers: ${toSortedArray(sdkRequiredProviders).join(', ') || '(none)'}\n`);
+  process.stdout.write(`- gold-path fixtures: ${goldEvaluation.fixtureIds.join(', ') || '(none)'}\n`);
 
   if (softSkips.length > 0) {
     process.stdout.write(`- skip-safe cells: ${softSkips.join(', ')}\n`);

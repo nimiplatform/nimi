@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import YAML from 'yaml';
@@ -34,6 +34,7 @@ const providerCatalogFile = path.join(
 );
 const reportDir = path.join(repoRoot, 'dev', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');
+const goldReportPath = path.join(reportDir, 'ai-gold-path-report.yaml');
 
 function runRuntimeTests() {
   process.stdout.write('[live-test-matrix] running runtime live smoke tests...\n');
@@ -79,6 +80,36 @@ function runSdkTests() {
     ].join('\n'),
     status: result.status ?? 1,
   };
+}
+
+function runGoldPathTests() {
+  process.stdout.write('[live-test-matrix] running gold-path replay tests...\n');
+  const result = spawnSync(
+    'node',
+    ['scripts/run-dashscope-gold-path.mjs'],
+    {
+      cwd: repoRoot,
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+      timeout: 30 * 60 * 1000,
+    },
+  );
+
+  return {
+    output: [
+      typeof result.stdout === 'string' ? result.stdout : '',
+      typeof result.stderr === 'string' ? result.stderr : '',
+    ].join('\n'),
+    status: result.status ?? 1,
+  };
+}
+
+function readGoldPathReport() {
+  if (!existsSync(goldReportPath)) {
+    return null;
+  }
+  return YAML.parse(readFileSync(goldReportPath, 'utf8')) || null;
 }
 
 function parseGoTestOutput(output) {
@@ -275,6 +306,7 @@ function orderedInterfacesForProvider(definitions, order) {
 function main() {
   const skipRuntime = process.argv.includes('--skip-runtime');
   const skipSdk = process.argv.includes('--skip-sdk');
+  const skipGoldPath = process.argv.includes('--skip-gold-path');
 
   const catalogProviders = loadProviderCatalog(providerCatalogFile);
   const runtimeDefinitions = parseRuntimeLiveTestDefinitions(runtimeLiveSmokeFile);
@@ -292,6 +324,8 @@ function main() {
 
   let runtimeExitStatus = 0;
   let sdkExitStatus = 0;
+  let goldExitStatus = 0;
+  let goldReport = null;
 
   if (!skipRuntime) {
     const runtimeRun = runRuntimeTests();
@@ -303,6 +337,12 @@ function main() {
     const sdkRun = runSdkTests();
     sdkExitStatus = sdkRun.status;
     sdkNodeResults = parseNodeTestOutput(sdkRun.output);
+  }
+
+  if (!skipGoldPath) {
+    const goldRun = runGoldPathTests();
+    goldExitStatus = goldRun.status;
+    goldReport = readGoldPathReport();
   }
 
   const providers = toSortedArray(providerUniverse);
@@ -349,10 +389,22 @@ function main() {
       command_status: {
         runtime: skipRuntime ? 'skipped' : runtimeExitStatus === 0 ? 'ok' : 'failed',
         sdk: skipSdk ? 'skipped' : sdkExitStatus === 0 ? 'ok' : 'failed',
+        gold_path: skipGoldPath ? 'skipped' : goldExitStatus === 0 ? 'ok' : 'failed',
       },
     },
     runtime: runtimeMatrix,
     sdk: sdkMatrix,
+    gold_path: goldReport
+      ? {
+        ...goldReport,
+        report_path: goldReportPath,
+      }
+      : {
+        generated_at: null,
+        summary: null,
+        fixtures: [],
+        report_path: goldReportPath,
+      },
   };
 
   if (!existsSync(reportDir)) {
@@ -362,8 +414,17 @@ function main() {
 
   process.stdout.write(`[live-test-matrix] report written to ${reportPath}\n`);
   process.stdout.write(`[live-test-matrix] summary: ${summary.passed} passed, ${summary.skipped} skipped, ${summary.failed} failed, ${summary.no_test} no_test (${summary.total_cells} total cells)\n`);
+  if (goldReport?.summary) {
+    process.stdout.write(`[live-test-matrix] gold-path summary: ${goldReport.summary.passed} passed, ${goldReport.summary.skipped} skipped, ${goldReport.summary.failed} failed, ${goldReport.summary.reserved} reserved (${goldReport.summary.total_fixtures} total fixtures)\n`);
+  }
 
-  if (summary.failed > 0 || runtimeExitStatus !== 0 || sdkExitStatus !== 0) {
+  if (
+    summary.failed > 0
+    || runtimeExitStatus !== 0
+    || sdkExitStatus !== 0
+    || goldExitStatus !== 0
+    || Number(goldReport?.summary?.failed || 0) > 0
+  ) {
     process.stdout.write('[live-test-matrix] WARNING: runtime/sdk live smoke run contains failures\n');
     process.exitCode = 1;
   }
