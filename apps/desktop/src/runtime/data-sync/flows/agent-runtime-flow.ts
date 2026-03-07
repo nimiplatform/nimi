@@ -86,6 +86,114 @@ function toNonEmptyString(value: unknown): string {
   return String(value || '').trim();
 }
 
+function toNullableString(value: unknown): string | null {
+  const normalized = toNonEmptyString(value);
+  return normalized || null;
+}
+
+function extractAgentWorldId(profile: Record<string, unknown>): string | null {
+  const direct = toNonEmptyString(profile.worldId);
+  if (direct) {
+    return direct;
+  }
+
+  const agent = toRecord(profile.agent);
+  const fromAgent = toNonEmptyString(agent?.worldId);
+  if (fromAgent) {
+    return fromAgent;
+  }
+
+  const agentProfile = toRecord(profile.agentProfile);
+  const fromAgentProfile = toNonEmptyString(agentProfile?.worldId);
+  if (fromAgentProfile) {
+    return fromAgentProfile;
+  }
+
+  return null;
+}
+
+function extractWorldBannerUrl(profile: Record<string, unknown>): string | null {
+  const direct = toNonEmptyString(profile.worldBannerUrl);
+  if (direct) {
+    return direct;
+  }
+
+  const world = toRecord(profile.world);
+  const fromWorld = toNonEmptyString(world?.bannerUrl);
+  if (fromWorld) {
+    return fromWorld;
+  }
+
+  const agentProfile = toRecord(profile.agentProfile);
+  const fromAgentProfile = toNonEmptyString(agentProfile?.worldBannerUrl);
+  if (fromAgentProfile) {
+    return fromAgentProfile;
+  }
+
+  return null;
+}
+
+function extractWorldName(profile: Record<string, unknown>): string | null {
+  const direct = toNonEmptyString(profile.worldName);
+  if (direct) {
+    return direct;
+  }
+
+  const world = toRecord(profile.world);
+  const fromWorld = toNonEmptyString(world?.name);
+  if (fromWorld) {
+    return fromWorld;
+  }
+
+  const agentProfile = toRecord(profile.agentProfile);
+  const fromAgentProfile = toNonEmptyString(agentProfile?.worldName);
+  if (fromAgentProfile) {
+    return fromAgentProfile;
+  }
+
+  return null;
+}
+
+async function enrichAgentProfileWithWorldBanner(
+  callApi: DataSyncApiCaller,
+  profile: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const existingBannerUrl = extractWorldBannerUrl(profile);
+  const existingWorldName = extractWorldName(profile);
+  if (existingBannerUrl && existingWorldName) {
+    return profile;
+  }
+
+  const worldId = extractAgentWorldId(profile);
+  if (!worldId) {
+    return profile;
+  }
+
+  try {
+    const world = await callApi(
+      (realm) => realm.services.WorldsService.worldControllerGetWorld(worldId),
+      'Failed to load world detail',
+    );
+    const worldRecord = toRecord(world);
+    if (!worldRecord) {
+      return profile;
+    }
+
+    return {
+      ...profile,
+      worldName: existingWorldName || toNullableString(worldRecord.name),
+      worldBannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
+      world: {
+        ...(toRecord(profile.world) || {}),
+        ...worldRecord,
+        bannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
+      },
+    };
+  } catch {
+    return profile;
+  }
+}
+
 function isHandleIdentifier(identifier: string): boolean {
   return identifier.startsWith('@') || identifier.startsWith('~');
 }
@@ -199,24 +307,26 @@ export async function loadAgentDetails(
       throw new Error('AGENT_PROFILE_NOT_FOUND');
     }
 
-    const resolvedId = toNonEmptyString(profile.id);
+    const enrichedProfile = await enrichAgentProfileWithWorldBanner(callApi, profile);
+
+    const resolvedId = toNonEmptyString(enrichedProfile.id);
     if (resolvedId) {
-      cacheSet(`agent-profile:${resolvedId}`, profile, 5 * 60 * 1000);
+      cacheSet(`agent-profile:${resolvedId}`, enrichedProfile, 5 * 60 * 1000);
     }
-    const resolvedHandle = toNonEmptyString(profile.handle);
+    const resolvedHandle = toNonEmptyString(enrichedProfile.handle);
     if (resolvedHandle) {
-      cacheSet(`agent-profile:${resolvedHandle}`, profile, 5 * 60 * 1000);
+      cacheSet(`agent-profile:${resolvedHandle}`, enrichedProfile, 5 * 60 * 1000);
       if (!resolvedHandle.startsWith('~') && !resolvedHandle.startsWith('@')) {
-        cacheSet(`agent-profile:~${resolvedHandle}`, profile, 5 * 60 * 1000);
-        cacheSet(`agent-profile:@${resolvedHandle}`, profile, 5 * 60 * 1000);
+        cacheSet(`agent-profile:~${resolvedHandle}`, enrichedProfile, 5 * 60 * 1000);
+        cacheSet(`agent-profile:@${resolvedHandle}`, enrichedProfile, 5 * 60 * 1000);
       }
     }
-    cacheSet(cacheKey, profile, 5 * 60 * 1000);
+    cacheSet(cacheKey, enrichedProfile, 5 * 60 * 1000);
     return applyAgentProfileReadFilters({
       emitDataSyncError,
       viewerUserId: context?.viewerUserId,
       worldId: context?.worldId,
-      profile,
+      profile: enrichedProfile,
     });
   } catch (error) {
     emitDataSyncError('load-agent-details', error, { agentIdentifier: normalizedIdentifier });
