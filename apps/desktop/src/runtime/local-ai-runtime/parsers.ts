@@ -549,6 +549,15 @@ export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescripto
   };
 }
 
+export function parseOrphanModelFile(value: unknown): import('./types').OrphanModelFile {
+  const record = asRecord(value);
+  return {
+    filename: asString(record.filename),
+    path: asString(record.path),
+    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
+  };
+}
+
 export function parseAuditEvent(value: unknown): LocalAiAuditEvent {
   const record = asRecord(value);
   const payload = record.payload && typeof record.payload === 'object' && !Array.isArray(record.payload)

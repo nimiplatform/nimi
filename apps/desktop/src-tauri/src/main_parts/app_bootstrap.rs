@@ -155,7 +155,9 @@ fn main() {
             local_runtime::commands::runtime_local_models_health,
             local_runtime::commands::runtime_local_append_inference_audit,
             local_runtime::commands::runtime_local_append_runtime_audit,
-            local_runtime::commands::runtime_local_models_reveal_in_folder
+            local_runtime::commands::runtime_local_models_reveal_in_folder,
+            local_runtime::commands::runtime_local_models_scan_orphans,
+            local_runtime::commands::runtime_local_models_scaffold_orphan
         ])
         .run(tauri::generate_context!());
 

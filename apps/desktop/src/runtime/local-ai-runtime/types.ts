@@ -507,3 +507,16 @@ export type LocalAiInstallAcceptedResponse = {
   modelId: string;
   localModelId: string;
 };
+
+export type OrphanModelFile = {
+  filename: string;
+  path: string;
+  sizeBytes: number;
+};
+
+export type LocalAiScaffoldOrphanPayload = {
+  path: string;
+  capabilities: string[];
+  engine?: string;
+  endpoint?: string;
+};

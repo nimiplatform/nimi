@@ -207,3 +207,12 @@ pub struct LocalAiNodesCatalogListPayload {
     pub provider: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiScaffoldOrphanPayload {
+    pub path: String,
+    pub capabilities: Vec<String>,
+    pub engine: Option<String>,
+    pub endpoint: Option<String>,
+}
+

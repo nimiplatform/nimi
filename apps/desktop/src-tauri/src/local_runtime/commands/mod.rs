@@ -53,14 +53,13 @@ use super::store::{load_state, runtime_models_dir, save_state};
 use super::supervisor::{health, start_model, stop_model};
 use super::types::{
     now_iso_timestamp, slugify_local_model_id, GgufVariantDescriptor, LocalAiAuditEvent,
-    LocalAiCatalogItemDescriptor,
-    LocalAiDependencyApplyResult, LocalAiDependencyKind, LocalAiDependencyResolutionPlan,
-    LocalAiDeviceProfile, LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
-    LocalAiDownloadSessionSummary, LocalAiDownloadState, LocalAiInstallPlanDescriptor,
-    LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord, LocalAiNodeDescriptor,
-    LocalAiRuntimeState, LocalAiServiceArtifactType, LocalAiServiceDescriptor,
-    LocalAiServiceStatus, LocalAiVerifiedModelDescriptor, DEFAULT_LOCAL_RUNTIME_ENDPOINT,
-    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
+    LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
+    LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
+    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
+    LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
+    LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedModelDescriptor,
+    OrphanModelFile, DEFAULT_LOCAL_RUNTIME_ENDPOINT, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_models::{find_verified_model, verified_model_list};
 
@@ -77,4 +76,5 @@ include!("commands_downloads.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_file.rs");
 include!("commands_models_audit.rs");
+include!("commands_orphan_scan.rs");
 include!("commands_reveal_tests.rs");

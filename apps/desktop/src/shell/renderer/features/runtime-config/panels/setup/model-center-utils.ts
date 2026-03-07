@@ -25,7 +25,15 @@ export type LocalRuntimeModelCenterProps = {
   onHealthCheck: () => Promise<void>;
   onResolveDependencies: (modId: string, capability?: string) => Promise<LocalAiDependencyResolutionPlan>;
   onApplyDependencies: (modId: string, capability?: string) => Promise<void>;
-  onInstallCatalogItem: (item: LocalAiCatalogItemDescriptor, options?: { entry?: string }) => Promise<void>;
+  onInstallCatalogItem: (
+    item: LocalAiCatalogItemDescriptor,
+    options?: {
+      entry?: string;
+      files?: string[];
+      capabilities?: string[];
+      engine?: string;
+    },
+  ) => Promise<void>;
   onInstall: (payload: LocalAiInstallPayload) => Promise<void>;
   onInstallVerified: (templateId: string) => Promise<void>;
   onImport: () => Promise<void>;
@@ -50,9 +58,12 @@ export type LocalRuntimeModelCenterProps = {
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
+export const INSTALL_ENGINE_OPTIONS = ['localai', 'nexa'] as const;
+export type InstallEngineOption = typeof INSTALL_ENGINE_OPTIONS[number];
 export type ProgressSessionState = {
   event: LocalAiDownloadProgressEvent;
   updatedAtMs: number;
+  createdAtMs: number;
   installSource?: 'catalog' | 'manual' | 'verified';
 };
 
@@ -122,7 +133,8 @@ export function formatBytes(value: number | undefined): string {
     next /= 1024;
     unitIndex += 1;
   }
-  return `${next.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  const precision = unitIndex === 0 ? 0 : unitIndex >= 3 ? 2 : 1;
+  return `${next.toFixed(precision)} ${units[unitIndex]}`;
 }
 
 export function formatSpeed(value: number | undefined): string {
@@ -138,6 +150,24 @@ export function formatEta(seconds: number | undefined): string {
   const minutes = Math.floor(safe / 60);
   const remain = Math.ceil(safe % 60);
   return `${minutes}m ${remain}s`;
+}
+
+export function formatDownloadPhaseLabel(phase: string | undefined): string {
+  const normalized = String(phase || '').trim().toLowerCase();
+  if (normalized === 'verify') return 'Verifying';
+  if (normalized === 'upsert') return 'Finalizing';
+  if (normalized === 'download') return 'Downloading';
+  return normalized || 'Preparing';
+}
+
+export function normalizeCapabilityOption(value: string | undefined): CapabilityOption {
+  const normalized = String(value || '').trim().toLowerCase();
+  return (CAPABILITY_OPTIONS.find((item) => item === normalized) || 'chat') as CapabilityOption;
+}
+
+export function normalizeInstallEngine(value: string | undefined): InstallEngineOption {
+  const normalized = String(value || '').trim().toLowerCase();
+  return (INSTALL_ENGINE_OPTIONS.find((item) => item === normalized) || 'localai') as InstallEngineOption;
 }
 
 export function parseTimestamp(value: string | undefined): number {
@@ -162,6 +192,35 @@ export function pruneProgressSessions(
     next[sessionId] = state;
   }
   return changed ? next : sessions;
+}
+
+function isInteractiveDownloadState(state: LocalAiDownloadState): boolean {
+  return state === 'queued' || state === 'running' || state === 'paused' || state === 'failed';
+}
+
+export function sortProgressSessions(
+  sessions: Record<string, ProgressSessionState>,
+): ProgressSessionState[] {
+  return Object.values(sessions).sort((left, right) => {
+    const leftInteractive = isInteractiveDownloadState(left.event.state);
+    const rightInteractive = isInteractiveDownloadState(right.event.state);
+    if (leftInteractive !== rightInteractive) {
+      return leftInteractive ? -1 : 1;
+    }
+    if (leftInteractive) {
+      if (left.createdAtMs !== right.createdAtMs) {
+        return left.createdAtMs - right.createdAtMs;
+      }
+      return left.event.installSessionId.localeCompare(right.event.installSessionId);
+    }
+    if (left.updatedAtMs !== right.updatedAtMs) {
+      return right.updatedAtMs - left.updatedAtMs;
+    }
+    if (left.createdAtMs !== right.createdAtMs) {
+      return right.createdAtMs - left.createdAtMs;
+    }
+    return right.event.installSessionId.localeCompare(left.event.installSessionId);
+  });
 }
 
 export function filterInstalledModels<T extends { model?: string; localModelId?: string; capabilities?: string[]; engine?: string }>(

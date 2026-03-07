@@ -29,6 +29,8 @@ import type {
   LocalAiInstallAcceptedResponse,
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
+  OrphanModelFile,
+  LocalAiScaffoldOrphanPayload,
 } from './types';
 import {
   invokeLocalAiCommand,
@@ -47,6 +49,7 @@ import {
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
   parseInstallAcceptedResponse,
+  parseOrphanModelFile,
   readGlobalTauriEventListen,
   assertLifecycleWriteAllowed,
 } from './parsers';
@@ -348,6 +351,20 @@ export async function subscribeLocalAiRuntimeDownloadProgress(
     return unsubscribe;
   }
   return () => {};
+}
+
+export async function scanLocalAiRuntimeOrphans(): Promise<OrphanModelFile[]> {
+  const items = await invokeLocalAiCommand<unknown[]>('runtime_local_models_scan_orphans');
+  return (Array.isArray(items) ? items : []).map((item) => parseOrphanModelFile(item));
+}
+
+export async function scaffoldLocalAiRuntimeOrphan(
+  payload: LocalAiScaffoldOrphanPayload,
+): Promise<LocalAiInstallAcceptedResponse> {
+  const result = await invokeLocalAiCommand<unknown>('runtime_local_models_scaffold_orphan', {
+    payload,
+  });
+  return parseInstallAcceptedResponse(result);
 }
 
 export async function fetchLocalAiRuntimeSnapshot(localModelId?: string): Promise<LocalAiRuntimeSnapshot> {

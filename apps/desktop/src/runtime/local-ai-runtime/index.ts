@@ -34,6 +34,8 @@ import {
   removeLocalAiRuntimeModel,
   startLocalAiRuntimeModel,
   stopLocalAiRuntimeModel,
+  scanLocalAiRuntimeOrphans,
+  scaffoldLocalAiRuntimeOrphan,
 } from './commands';
 import type {
   GgufVariantDescriptor,
@@ -71,6 +73,8 @@ import type {
   LocalAiRuntimeWriteOptions,
   LocalAiVerifiedModelDescriptor,
   LocalAiInferenceAuditPayload,
+  OrphanModelFile,
+  LocalAiScaffoldOrphanPayload,
 } from './types';
 import {
   queryLocalAiRuntimeModelsByCapability,
@@ -115,6 +119,8 @@ export type {
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
   LocalAiVerifiedModelDescriptor,
+  OrphanModelFile,
+  LocalAiScaffoldOrphanPayload,
 };
 
 export type LocalAiRuntimeFacade = {
@@ -201,6 +207,8 @@ export type LocalAiRuntimeFacade = {
     listener: (event: LocalAiDownloadProgressEvent) => void,
   ) => Promise<() => void>;
   revealInFolder: (localModelId: string) => Promise<void>;
+  scanOrphans: () => Promise<OrphanModelFile[]>;
+  scaffoldOrphan: (payload: LocalAiScaffoldOrphanPayload) => Promise<LocalAiInstallAcceptedResponse>;
 };
 
 export const localAiRuntime: LocalAiRuntimeFacade = {
@@ -240,6 +248,8 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   pollSnapshot: fetchLocalAiRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalAiRuntimeDownloadProgress,
   revealInFolder: revealLocalAiRuntimeModelInFolder,
+  scanOrphans: scanLocalAiRuntimeOrphans,
+  scaffoldOrphan: scaffoldLocalAiRuntimeOrphan,
 };
 
 export { startLocalAiRuntimePolling };

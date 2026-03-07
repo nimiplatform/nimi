@@ -560,7 +560,9 @@ fn select_entry_file(
 fn select_install_files(
     siblings: &[HfModelSibling],
     entry: &str,
+    manual_entry: Option<&str>,
     manual_files: Option<&[String]>,
+    engine: &str,
 ) -> Vec<String> {
     if let Some(raw_files) = manual_files {
         let mut seen = HashSet::<String>::new();
@@ -576,6 +578,14 @@ fn select_install_files(
             }
         }
         return output;
+    }
+
+    let manual_entry_matches_selected_gguf =
+        normalize_hf_file_path(manual_entry.unwrap_or_default()).as_deref() == Some(entry)
+            && entry.to_ascii_lowercase().ends_with(".gguf")
+            && engine.trim().eq_ignore_ascii_case("localai");
+    if manual_entry_matches_selected_gguf {
+        return vec![entry.to_string()];
     }
 
     let preferred_files = [
@@ -847,7 +857,9 @@ pub fn resolve_install_plan(
     let files = select_install_files(
         &model_details.siblings,
         entry.as_str(),
+        input.entry.as_deref(),
         input.files.as_deref(),
+        engine.as_str(),
     );
     let hashes = resolve_hashes_for_files(&model_details.siblings, &files, input.hashes.as_ref());
 
@@ -919,7 +931,7 @@ mod tests {
         hf_api_base_url, infer_capabilities, infer_engine, infer_license, match_catalog_capability,
         match_catalog_query, normalize_hf_file_path, normalize_hf_repo_slug,
         normalize_install_limit, normalize_search_query, runtime_mode_for_engine,
-        select_entry_file, HfModelSibling,
+        select_entry_file, select_install_files, HfModelSibling,
     };
     use crate::local_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
     use std::collections::HashMap;
@@ -1160,6 +1172,50 @@ mod tests {
     fn select_entry_file_returns_none_for_empty_siblings() {
         let entry = select_entry_file(&[], None, "localai");
         assert_eq!(entry, None);
+    }
+
+    #[test]
+    fn select_install_files_uses_only_manual_gguf_variant_for_localai() {
+        let siblings = vec![
+            sibling("config.json"),
+            sibling("tokenizer.json"),
+            sibling("Qwen_Qwen3.5-0.8B-Q8_0.gguf"),
+            sibling("Qwen_Qwen3.5-0.8B-Q4_K_M.gguf"),
+        ];
+        let files = select_install_files(
+            &siblings,
+            "Qwen_Qwen3.5-0.8B-Q8_0.gguf",
+            Some("Qwen_Qwen3.5-0.8B-Q8_0.gguf"),
+            None,
+            "localai",
+        );
+        assert_eq!(files, vec!["Qwen_Qwen3.5-0.8B-Q8_0.gguf".to_string()]);
+    }
+
+    #[test]
+    fn select_install_files_keeps_default_companion_files_without_manual_variant() {
+        let siblings = vec![
+            sibling("config.json"),
+            sibling("tokenizer.json"),
+            sibling("Qwen_Qwen3.5-0.8B-Q8_0.gguf"),
+            sibling("Qwen_Qwen3.5-0.8B-Q4_K_M.gguf"),
+        ];
+        let files = select_install_files(
+            &siblings,
+            "Qwen_Qwen3.5-0.8B-Q8_0.gguf",
+            None,
+            None,
+            "localai",
+        );
+        assert_eq!(
+            files,
+            vec![
+                "Qwen_Qwen3.5-0.8B-Q8_0.gguf".to_string(),
+                "config.json".to_string(),
+                "tokenizer.json".to_string(),
+                "Qwen_Qwen3.5-0.8B-Q4_K_M.gguf".to_string(),
+            ]
+        );
     }
 
     // --- K-LOCAL-021 match_catalog_query / match_catalog_capability ---

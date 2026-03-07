@@ -144,7 +144,15 @@ function Input({
 }
 
 export type ModelCenterCatalogSectionProps = {
-  onInstallCatalogItem: (item: LocalAiCatalogItemDescriptor, options?: { entry?: string }) => Promise<void>;
+  onInstallCatalogItem: (
+    item: LocalAiCatalogItemDescriptor,
+    options?: {
+      entry?: string;
+      files?: string[];
+      capabilities?: string[];
+      engine?: string;
+    },
+  ) => Promise<void>;
   onInstallVerified: (templateId: string) => Promise<void>;
   onPendingHighlightModel: (modelId: string) => void;
 };
