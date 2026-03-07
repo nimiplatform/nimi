@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
@@ -17,11 +17,16 @@ import { ContactsSearchResults, ContactsCategoryAccordion } from './contacts-cat
 import { ContactDetailView } from './contact-detail-view.js';
 
 export function ContactsView(props: ContactsViewProps) {
+  const MIN_CONTACTS_SIDEBAR_WIDTH = 280;
+  const MAX_CONTACTS_SIDEBAR_WIDTH = 420;
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
   const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
@@ -49,6 +54,40 @@ export function ContactsView(props: ContactsViewProps) {
   }, [props.blockedContacts]);
 
   // 跟踪已接受的好友请求（用于在列表中显示"Added"状态）
+  useEffect(() => {
+    const onMouseMove = (event: globalThis.MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) {
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const nextWidth = Math.min(
+        MAX_CONTACTS_SIDEBAR_WIDTH,
+        Math.max(MIN_CONTACTS_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
+      );
+      setSidebarWidth(nextWidth);
+    };
+
+    const onMouseUp = () => {
+      resizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const startResize = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
   const [acceptedRequests, setAcceptedRequests] = useState<Set<string>>(new Set());
 
   // 跟踪已拒绝的好友请求
@@ -294,9 +333,12 @@ export function ContactsView(props: ContactsViewProps) {
   }
 
   return (
-    <div className="flex h-full bg-[#F5F7FA]">
+    <div ref={containerRef} className="flex h-full bg-[#F5F7FA]">
       {/* 左侧联系人列表 */}
-      <aside className="w-[320px] flex flex-col bg-[#F8F9FB] border-r border-gray-200">
+      <aside
+        className="relative flex shrink-0 flex-col bg-[#F8F9FB]"
+        style={{ width: `${sidebarWidth}px` }}
+      >
         {/* 顶部标题 */}
         <div className="flex h-14 items-center px-4 shrink-0">
           <h1 className={APP_PAGE_TITLE_CLASS}>Contacts</h1>
@@ -305,14 +347,14 @@ export function ContactsView(props: ContactsViewProps) {
         {/* 搜索框 */}
         <div className="px-3 pb-3">
           <div className="flex h-10 items-center gap-2">
-            <div className="flex-1 flex h-10 items-center rounded-full bg-white px-4 shadow-sm">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="flex h-10 min-w-0 max-w-[268px] flex-1 items-center rounded-full bg-white px-4 shadow-sm">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
-                className="ml-2 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-                placeholder="Search"
+                className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+                placeholder="Search friends"
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
               />
@@ -339,7 +381,7 @@ export function ContactsView(props: ContactsViewProps) {
             <button
               type="button"
               onClick={props.onOpenAddContact}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-[#4ECCA3] text-[#4ECCA3] hover:bg-[#4ECCA3]/5 transition-colors shadow-sm"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[999px] border-2 border-[#4ECCA3] bg-white text-[#4ECCA3] shadow-sm transition-colors hover:bg-[#4ECCA3]/5"
               title="Add Friend"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -388,6 +430,13 @@ export function ContactsView(props: ContactsViewProps) {
             />
           )}
         </div>
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize contacts sidebar"
+          onMouseDown={startResize}
+          className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
+        />
       </aside>
 
       {/* 右侧详情区 - 使用 ProfileView */}

@@ -83,7 +83,8 @@ function OwnershipBadge({ ownershipType }: { ownershipType?: string }) {
 
 // Breathing online indicator
 function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
-  if (!isOnline) return null;
+  const SHOW_AVATAR_ONLINE_INDICATOR = false;
+  if (!SHOW_AVATAR_ONLINE_INDICATOR || !isOnline) return null;
   
   return (
     <span className="absolute bottom-1 right-1 h-4 w-4">

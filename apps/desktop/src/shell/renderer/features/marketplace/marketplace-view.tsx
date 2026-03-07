@@ -9,17 +9,6 @@ const ICON_SEARCH = (
   </svg>
 );
 
-const ICON_LIST = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="8" y1="6" x2="21" y2="6" />
-    <line x1="8" y1="12" x2="21" y2="12" />
-    <line x1="8" y1="18" x2="21" y2="18" />
-    <line x1="3" y1="6" x2="3.01" y2="6" />
-    <line x1="3" y1="12" x2="3.01" y2="12" />
-    <line x1="3" y1="18" x2="3.01" y2="18" />
-  </svg>
-);
-
 const ICON_BOX = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -38,12 +27,7 @@ export function MarketplaceView(model: MarketplacePageModel) {
       {/* Header */}
       <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-2 text-gray-900">
-            <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
-            <span className="text-gray-400">
-              {ICON_LIST}
-            </span>
-          </div>
+          <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
           <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
             <div className="group relative">
               <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">

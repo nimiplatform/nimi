@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData } from '../profile-model';
 
+const SHOW_AVATAR_ONLINE_INDICATOR = false;
+
 type ProfileHeaderProps = {
   profile: ProfileData;
   isOwnProfile: boolean;
@@ -38,7 +40,7 @@ export function ProfileHeader({
           fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-mint-400 to-mint-500 text-white'}
           textClassName="text-2xl font-bold"
         />
-        {profile.isOnline ? (
+        {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
           <span className="absolute -right-1 -bottom-1 h-5 w-5 rounded-full border-3 border-white bg-green-400" />
         ) : null}
       </div>

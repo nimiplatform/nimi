@@ -108,6 +108,7 @@ export function TurnInput(props: TurnInputProps = {}) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
   const [emojiCategoryPage, setEmojiCategoryPage] = useState(0);
+  const [showUploadPickerActive, setShowUploadPickerActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pastedImage, setPastedImage] = useState<{ file: File; previewUrl: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -132,6 +133,15 @@ export function TurnInput(props: TurnInputProps = {}) {
       ...cat,
       originalIndex: start + idx
     }));
+  };
+
+  const setEmojiPage = (page: number) => {
+    const boundedPage = Math.max(0, Math.min(totalCategoryPages - 1, page));
+    const nextPageCategories = getCategoriesForPage(boundedPage);
+    setEmojiCategoryPage(boundedPage);
+    if (nextPageCategories[0]) {
+      setActiveEmojiCategory(nextPageCategories[0].originalIndex);
+    }
   };
 
   // Close emoji picker when clicking outside
@@ -161,6 +171,23 @@ export function TurnInput(props: TurnInputProps = {}) {
       URL.revokeObjectURL(pastedImage.previewUrl);
     }
   }, [pastedImage]);
+
+  useEffect(() => {
+    if (!showUploadPickerActive) {
+      return;
+    }
+
+    const handleWindowFocus = () => {
+      window.setTimeout(() => {
+        setShowUploadPickerActive(false);
+      }, 120);
+    };
+
+    window.addEventListener('focus', handleWindowFocus, true);
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus, true);
+    };
+  }, [showUploadPickerActive]);
 
   const replacePastedImage = (file: File) => {
     const previewUrl = URL.createObjectURL(file);
@@ -331,6 +358,7 @@ export function TurnInput(props: TurnInputProps = {}) {
   });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setShowUploadPickerActive(false);
     const file = event.target.files?.[0];
     if (file) {
       uploadFileMutation.mutate(file);
@@ -340,6 +368,7 @@ export function TurnInput(props: TurnInputProps = {}) {
   };
 
   const handleUploadClick = () => {
+    setShowUploadPickerActive(true);
     fileInputRef.current?.click();
   };
 
@@ -390,29 +419,14 @@ export function TurnInput(props: TurnInputProps = {}) {
         >
           {/* Emoji categories tabs with pagination */}
           <div className="relative border-b border-gray-100">
-            <div className="flex items-center justify-between px-2 pt-2 pb-1">
-              {/* Left arrow - show when not on first page */}
-              {emojiCategoryPage > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setEmojiCategoryPage((prev) => prev - 1)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors mr-1"
-                  aria-label={t('TurnInput.previousPage')}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 18l-6-6 6-6"/>
-                  </svg>
-                </button>
-              )}
-              
-              {/* Category tabs for current page */}
-              <div className={`flex items-center gap-1 flex-1 ${emojiCategoryPage === 0 ? 'pl-0' : ''}`}>
+            <div className="flex items-center gap-1 px-2 py-2">
+              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
                 {getCategoriesForPage(emojiCategoryPage).map((category) => (
                   <button
                     key={category.name}
                     type="button"
                     onClick={() => setActiveEmojiCategory(category.originalIndex)}
-                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                    className={`flex-shrink-0 px-2.5 py-1.5 text-[11px] font-medium rounded-full transition-colors ${
                       activeEmojiCategory === category.originalIndex
                         ? 'bg-[#0066CC] text-white'
                         : 'text-gray-500 hover:bg-gray-100'
@@ -422,20 +436,22 @@ export function TurnInput(props: TurnInputProps = {}) {
                   </button>
                 ))}
               </div>
-              
-              {/* Right arrow - show when not on last page */}
-              {emojiCategoryPage < totalCategoryPages - 1 && (
+              {totalCategoryPages > 1 ? (
                 <button
                   type="button"
-                  onClick={() => setEmojiCategoryPage((prev) => prev + 1)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors ml-1"
-                  aria-label={t('TurnInput.nextPage')}
+                  onClick={() => setEmojiPage(emojiCategoryPage === 0 ? emojiCategoryPage + 1 : emojiCategoryPage - 1)}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  aria-label={emojiCategoryPage === 0 ? t('TurnInput.nextPage') : t('TurnInput.previousPage')}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6"/>
+                    {emojiCategoryPage === 0 ? (
+                      <path d="M9 18l6-6-6-6" />
+                    ) : (
+                      <path d="M15 18l-6-6 6-6" />
+                    )}
                   </svg>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -534,7 +550,11 @@ export function TurnInput(props: TurnInputProps = {}) {
               type="button"
               onClick={handleUploadClick}
               disabled={!selectedChatId || isUploading}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200/50 hover:text-gray-700 disabled:opacity-40"
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
+                showUploadPickerActive || isUploading || pastedImage
+                  ? 'bg-[#0066CC] text-white'
+                  : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
+              }`}
               aria-label={t('TurnInput.uploadFile')}
               title={t('TurnInput.uploadFile')}
             >

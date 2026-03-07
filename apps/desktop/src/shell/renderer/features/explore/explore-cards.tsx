@@ -392,7 +392,8 @@ function AgentStateBadge({ state }: { state?: string }) {
 
 // Online status indicator
 function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
-  if (!isOnline) return null;
+  const SHOW_AVATAR_ONLINE_INDICATOR = false;
+  if (!SHOW_AVATAR_ONLINE_INDICATOR || !isOnline) return null;
   return (
     <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" title="Online" />
   );

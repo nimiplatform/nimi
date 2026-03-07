@@ -107,7 +107,7 @@ export function ExploreView(props: ExploreViewProps) {
         }
       `}</style>
       {/* Header bar */}
-      <div className="shrink-0 border-b border-gray-100 bg-[#F0F4F8] px-6 py-4">
+      <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <h1 className={APP_PAGE_TITLE_CLASS}>
             {t('Explore.pageTitle')}

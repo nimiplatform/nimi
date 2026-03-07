@@ -284,7 +284,7 @@ export function ProfileView(props: ProfileViewProps) {
                         fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#4ECCA3]'}
                       />
                     </div>
-                    {profile.isOnline ? (
+                    {false && profile.isOnline ? (
                       <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
                     ) : null}
                   </div>

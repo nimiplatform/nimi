@@ -44,7 +44,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`flex h-12 shrink-0 items-center bg-[linear-gradient(90deg,rgba(79,201,173,0.64)_0%,rgba(72,195,168,0.62)_50%,rgba(69,188,163,0.6)_100%)] pr-0 text-[#073b33] shadow-[inset_0_1px_0_rgba(255,255,255,0.34)] backdrop-blur-xl backdrop-saturate-150 ${props.titlebarLeftInsetClass}`}
+      className={`relative z-10 flex h-12 shrink-0 items-center bg-[linear-gradient(90deg,#7FD8C5_0%,#79D5C1_48%,#73D0BC_100%)] pr-0 text-[#073b33] ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
       {props.enableModWorkspaceTabs ? (
