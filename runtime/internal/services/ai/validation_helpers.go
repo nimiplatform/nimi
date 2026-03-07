@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -62,10 +63,17 @@ func validatePromptRequest(appID string, subjectUserID string, modelID string, p
 }
 
 func validateBaseRequest(appID string, subjectUserID string, modelID string, route runtimev1.RoutePolicy) error {
+	return validateBaseRequestWithOptions(appID, subjectUserID, modelID, route, true)
+}
+
+func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID string, route runtimev1.RoutePolicy, requireSubjectUserID bool) error {
 	if strings.TrimSpace(appID) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_APP_ID_REQUIRED)
 	}
-	if strings.TrimSpace(subjectUserID) == "" || strings.TrimSpace(modelID) == "" {
+	if strings.TrimSpace(modelID) == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if requireSubjectUserID && strings.TrimSpace(subjectUserID) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	if route == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
@@ -75,6 +83,57 @@ func validateBaseRequest(appID string, subjectUserID string, modelID string, rou
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	return nil
+}
+
+func requireSubjectUserIDForScenario(
+	route runtimev1.RoutePolicy,
+	parsed ParsedKeySource,
+	remoteTarget *nimillm.RemoteTarget,
+) bool {
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME {
+		return true
+	}
+	if remoteTarget != nil {
+		return true
+	}
+	if strings.TrimSpace(parsed.ConnectorID) != "" {
+		return true
+	}
+	if strings.TrimSpace(parsed.KeySource) == keySourceManaged || strings.TrimSpace(parsed.KeySource) == keySourceInline {
+		return true
+	}
+	if strings.TrimSpace(parsed.ProviderType) != "" || strings.TrimSpace(parsed.Endpoint) != "" || strings.TrimSpace(parsed.APIKey) != "" {
+		return true
+	}
+	return false
+}
+
+func (s *Service) prepareScenarioRequest(ctx context.Context, head *runtimev1.ScenarioRequestHead) (*nimillm.RemoteTarget, error) {
+	if head == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+
+	parsed := parseKeySource(ctx, head.GetConnectorId())
+	if err := validateKeySource(parsed, head.GetAppId()); err != nil {
+		return nil, err
+	}
+	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateBaseRequestWithOptions(
+		head.GetAppId(),
+		head.GetSubjectUserId(),
+		head.GetModelId(),
+		head.GetRoutePolicy(),
+		requireSubjectUserIDForScenario(head.GetRoutePolicy(), parsed, remoteTarget),
+	); err != nil {
+		return nil, err
+	}
+	if err := s.validateLocalModelRequest(ctx, head.GetModelId(), remoteTarget); err != nil {
+		return nil, err
+	}
+	return remoteTarget, nil
 }
 
 func composeInputText(systemPrompt string, input []*runtimev1.ChatMessage) string {

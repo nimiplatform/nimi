@@ -78,6 +78,18 @@ func (s mediaAdapterStrategy) forModal(modal runtimev1.Modal) string {
 }
 
 var mediaAdapterStrategiesByProvider = map[string]mediaAdapterStrategy{
+	"localai": {
+		Image: adapterLocalAINative,
+		Video: adapterLocalAINative,
+		TTS:   adapterLocalAINative,
+		STT:   adapterLocalAINative,
+	},
+	"nexa": {
+		Image: adapterNexaNative,
+		Video: adapterNexaNative,
+		TTS:   adapterNexaNative,
+		STT:   adapterNexaNative,
+	},
 	// --- Existing native adapters ---
 	"volcengine_openspeech": {
 		TTS: adapterBytedanceOpenSpeech,
@@ -185,9 +197,6 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobRequest) error {
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if err := validateBaseRequest(req.GetHead().GetAppId(), req.GetHead().GetSubjectUserId(), req.GetHead().GetModelId(), req.GetHead().GetRoutePolicy()); err != nil {
-		return err
 	}
 	if len(req.GetIdempotencyKey()) > 256 {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
@@ -877,6 +886,11 @@ func mediaScenarioSupportedByProviderRecord(record providerregistry.ProviderReco
 func inferMediaProviderTypeFromSelectedBackend(selectedProvider provider, modelResolved string) string {
 	if cloud, ok := selectedProvider.(*nimillm.CloudProvider); ok && cloud != nil {
 		if backend, _, _, _ := cloud.PickBackend(modelResolved); backend != nil {
+			return inferMediaProviderTypeFromBackendName(backend)
+		}
+	}
+	if backendProvider, ok := selectedProvider.(nimillm.MediaBackendProvider); ok && backendProvider != nil {
+		if backend, _ := backendProvider.ResolveMediaBackend(modelResolved); backend != nil {
 			return inferMediaProviderTypeFromBackendName(backend)
 		}
 	}

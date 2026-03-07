@@ -20,27 +20,12 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if spec == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := validateBaseRequest(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		req.GetHead().GetRoutePolicy(),
-	); err != nil {
-		return nil, err
-	}
 	if len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	parsed := parseKeySource(ctx, req.GetHead().GetConnectorId())
-	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
-		return nil, err
-	}
-	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
 	if err != nil {
-		return nil, err
-	}
-	if err := s.validateLocalModelRequest(ctx, req.GetHead().GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 
@@ -133,14 +118,6 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	if spec == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := validateBaseRequest(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		req.GetHead().GetRoutePolicy(),
-	); err != nil {
-		return nil, err
-	}
 	if len(spec.GetInputs()) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
@@ -151,15 +128,8 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	}
 	inputs := spec.GetInputs()
 
-	parsed := parseKeySource(ctx, req.GetHead().GetConnectorId())
-	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
-		return nil, err
-	}
-	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
 	if err != nil {
-		return nil, err
-	}
-	if err := s.validateLocalModelRequest(ctx, req.GetHead().GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 

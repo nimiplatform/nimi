@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const maxRuntimeRequestTimeout = 5 * time.Minute
+
 func (s *Service) attachQueueWaitUnary(ctx context.Context, result scheduler.AcquireResult) {
 	waitMs := s.attachQueueWait(ctx, result)
 	_ = grpc.SetTrailer(ctx, usagemetrics.QueueWaitTrailer(waitMs))
@@ -75,12 +77,18 @@ func withTimeout(ctx context.Context, timeoutMS int32, defaultTimeout time.Durat
 }
 
 func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) time.Duration {
-	duration := defaultTimeout
-	if timeoutMS > 0 {
-		requested := time.Duration(timeoutMS) * time.Millisecond
-		if requested < defaultTimeout {
-			duration = requested
-		}
+	if timeoutMS <= 0 {
+		return clampTimeoutDuration(defaultTimeout)
+	}
+	return clampTimeoutDuration(time.Duration(timeoutMS) * time.Millisecond)
+}
+
+func clampTimeoutDuration(duration time.Duration) time.Duration {
+	if duration <= 0 {
+		return 0
+	}
+	if duration > maxRuntimeRequestTimeout {
+		return maxRuntimeRequestTimeout
 	}
 	return duration
 }

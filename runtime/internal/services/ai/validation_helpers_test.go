@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"testing"
@@ -114,4 +115,91 @@ func TestRecordRouteAutoSwitch_NoPanicOnMissingDependencies(t *testing.T) {
 		HintFrom:       "a",
 		HintTo:         "b",
 	})
+}
+
+func TestPrepareScenarioRequestAllowsAnonymousLocalRuntime(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalModelsResponse{{
+			Models: []*runtimev1.LocalModelRecord{{
+				LocalModelId: "lm-1",
+				ModelId:      "qwen",
+				Engine:       "localai",
+				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			}},
+		}},
+	}
+
+	remoteTarget, err := svc.prepareScenarioRequest(context.Background(), &runtimev1.ScenarioRequestHead{
+		AppId:       "nimi.desktop",
+		ModelId:     "local/qwen",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+	})
+	if err != nil {
+		t.Fatalf("expected anonymous local-runtime request to succeed, got %v", err)
+	}
+	if remoteTarget != nil {
+		t.Fatalf("expected local-runtime request to keep remote target nil, got %#v", remoteTarget)
+	}
+}
+
+func TestPrepareScenarioRequestRequiresSubjectForTokenAPI(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	_, err := svc.prepareScenarioRequest(context.Background(), &runtimev1.ScenarioRequestHead{
+		AppId:       "nimi.desktop",
+		ModelId:     "openai/gpt-4o-mini",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+	})
+	if err == nil {
+		t.Fatalf("expected token-api request without subject user id to fail")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("unexpected reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+}
+
+func TestRequireSubjectUserIDForScenario(t *testing.T) {
+	tests := []struct {
+		name        string
+		route       runtimev1.RoutePolicy
+		parsed      ParsedKeySource
+		remote      *nimillm.RemoteTarget
+		wantRequire bool
+	}{
+		{
+			name:        "anonymous local runtime",
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			parsed:      ParsedKeySource{},
+			wantRequire: false,
+		},
+		{
+			name:        "managed local runtime connector",
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			parsed:      ParsedKeySource{KeySource: keySourceManaged, ConnectorID: "conn-1"},
+			wantRequire: true,
+		},
+		{
+			name:        "inline remote target",
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			parsed:      ParsedKeySource{KeySource: keySourceInline, ProviderType: "openai", Endpoint: "https://example.com/v1", APIKey: "sk-test"},
+			wantRequire: true,
+		},
+		{
+			name:        "token api route",
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			parsed:      ParsedKeySource{},
+			wantRequire: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := requireSubjectUserIDForScenario(tt.route, tt.parsed, tt.remote)
+			if got != tt.wantRequire {
+				t.Fatalf("requireSubjectUserIDForScenario() = %v, want %v", got, tt.wantRequire)
+			}
+		})
+	}
 }

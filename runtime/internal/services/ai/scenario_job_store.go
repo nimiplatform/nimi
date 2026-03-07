@@ -62,15 +62,8 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 
-	parsed := parseKeySource(ctx, req.GetHead().GetConnectorId())
-	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
-		return nil, err
-	}
-	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
 	if err != nil {
-		return nil, err
-	}
-	if err := s.validateLocalModelRequest(ctx, req.GetHead().GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 
@@ -303,15 +296,8 @@ func (s *Service) submitScenarioAsyncJob(
 		return nil, err
 	}
 
-	parsed := parseKeySource(ctx, req.GetHead().GetConnectorId())
-	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
-		return nil, err
-	}
-	remoteTarget, err := resolveKeySourceToTarget(ctx, parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead())
 	if err != nil {
-		return nil, err
-	}
-	if err := s.validateLocalModelRequest(ctx, req.GetHead().GetModelId(), remoteTarget); err != nil {
 		return nil, err
 	}
 

@@ -54,27 +54,12 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := validateBaseRequest(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		req.GetHead().GetRoutePolicy(),
-	); err != nil {
-		return err
-	}
 	if len(spec.GetInput()) == 0 && strings.TrimSpace(spec.GetSystemPrompt()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	parsed := parseKeySource(stream.Context(), req.GetHead().GetConnectorId())
-	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
-		return err
-	}
-	remoteTarget, err := resolveKeySourceToTarget(stream.Context(), parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead())
 	if err != nil {
-		return err
-	}
-	if err := s.validateLocalModelRequest(stream.Context(), req.GetHead().GetModelId(), remoteTarget); err != nil {
 		return err
 	}
 
@@ -283,27 +268,12 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if err := validateBaseRequest(
-		req.GetHead().GetAppId(),
-		req.GetHead().GetSubjectUserId(),
-		req.GetHead().GetModelId(),
-		req.GetHead().GetRoutePolicy(),
-	); err != nil {
-		return err
-	}
 	if strings.TrimSpace(spec.GetText()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	parsed := parseKeySource(stream.Context(), req.GetHead().GetConnectorId())
-	if err := validateKeySource(parsed, req.GetHead().GetAppId()); err != nil {
-		return err
-	}
-	remoteTarget, err := resolveKeySourceToTarget(stream.Context(), parsed, s.connStore, s.allowLoopback)
+	remoteTarget, err := s.prepareScenarioRequest(stream.Context(), req.GetHead())
 	if err != nil {
-		return err
-	}
-	if err := s.validateLocalModelRequest(stream.Context(), req.GetHead().GetModelId(), remoteTarget); err != nil {
 		return err
 	}
 
