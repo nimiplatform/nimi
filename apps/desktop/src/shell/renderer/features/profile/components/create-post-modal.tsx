@@ -6,8 +6,9 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 type CreatePostModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  onComplete: (result: { success: boolean; mode: 'create' | 'edit' }) => void;
   onUploadStart?: () => void; // Called when upload starts for optimistic UI
+  initialPost?: EditablePostSeed | null;
 };
 
 type SelectedFile = {
@@ -15,6 +16,39 @@ type SelectedFile = {
   previewUrl: string;
   type: 'image' | 'video';
 };
+
+type EditablePostSeed = {
+  postId: string;
+  caption?: string | null;
+  tags?: string[] | null;
+  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
+  media?: {
+    id: string;
+    type: 'image' | 'video';
+    previewUrl?: string | null;
+  } | null;
+};
+
+type SelectedMediaRef = {
+  id: string;
+  type: 'image' | 'video';
+  previewUrl: string;
+};
+
+function extractExistingMediaId(input: EditablePostSeed['media']): string {
+  if (!input || typeof input !== 'object') {
+    return '';
+  }
+  const payload = input as Record<string, unknown>;
+  const candidates = [payload.id, payload.imageId, payload.videoId, payload.uid];
+  for (const candidate of candidates) {
+    const value = String(candidate || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
 
 type Location = {
   id: string;
@@ -87,8 +121,9 @@ function stripHashtags(text: string): string {
   return text.replace(/#[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+/g, '').replace(/\s+/g, ' ').trim();
 }
 
-export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: CreatePostModalProps) {
+export function CreatePostModal({ open, onClose, onComplete, onUploadStart, initialPost = null }: CreatePostModalProps) {
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
+  const [selectedMediaRef, setSelectedMediaRef] = useState<SelectedMediaRef | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +147,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
   const [emojiPanelPos, setEmojiPanelPos] = useState<{ left: number; top: number } | null>(null);
   const [locationPanelPos, setLocationPanelPos] = useState<{ left: number; top: number } | null>(null);
   const [tagPanelPos, setTagPanelPos] = useState<{ left: number; top: number } | null>(null);
+  const isEditMode = Boolean(initialPost?.postId);
 
   // Popular tags for suggestions
   const POPULAR_TAGS = [
@@ -140,6 +176,15 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     }));
   };
 
+  const setEmojiPage = (page: number) => {
+    const boundedPage = Math.max(0, Math.min(totalCategoryPages - 1, page));
+    const nextPageCategories = getCategoriesForPage(boundedPage);
+    setEmojiCategoryPage(boundedPage);
+    if (nextPageCategories[0]) {
+      setActiveEmojiCategory(nextPageCategories[0].originalIndex);
+    }
+  };
+
   // Get hashtags from caption and merge with selected tags
   const captionTags = extractHashtags(caption);
   const tags = [...new Set([...selectedTags, ...captionTags])];
@@ -153,6 +198,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
   const reset = useCallback(() => {
     if (selectedFile) URL.revokeObjectURL(selectedFile.previewUrl);
     setSelectedFile(null);
+    setSelectedMediaRef(null);
     setCaption('');
     setUploading(false);
     setError(null);
@@ -165,6 +211,44 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     setTagSearch('');
     setSelectedTags([]);
   }, [selectedFile]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (selectedFile) {
+      URL.revokeObjectURL(selectedFile.previewUrl);
+    }
+
+    setSelectedFile(null);
+    setError(null);
+    setDragOver(false);
+    setShowEmojiPanel(false);
+    setShowLocationPanel(false);
+    setShowTagPanel(false);
+    setSelectedLocation(null);
+    setLocationSearch('');
+    setTagSearch('');
+
+    if (initialPost) {
+      setCaption(String(initialPost.caption || ''));
+      setSelectedTags(Array.isArray(initialPost.tags) ? initialPost.tags.map(String) : []);
+      const mediaId = extractExistingMediaId(initialPost.media);
+      const mediaType = initialPost.media?.type === 'video' ? 'video' : 'image';
+      const previewUrl = String(initialPost.media?.previewUrl || '').trim();
+      setSelectedMediaRef(mediaId || previewUrl ? {
+        id: mediaId,
+        type: mediaType,
+        previewUrl,
+      } : null);
+      return;
+    }
+
+    setCaption('');
+    setSelectedTags([]);
+    setSelectedMediaRef(null);
+  }, [initialPost, open]);
 
   useEffect(() => {
     if (!open) {
@@ -221,6 +305,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     }
 
     if (selectedFile) URL.revokeObjectURL(selectedFile.previewUrl);
+    setSelectedMediaRef(null);
 
     setSelectedFile({
       file,
@@ -311,8 +396,8 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
   };
 
   const handleSubmit = useCallback(async () => {
-    // API requires media, so we need at least a file
-    if (!selectedFile) return;
+    const activeMedia = selectedFile || selectedMediaRef;
+    if (!activeMedia || (!('file' in activeMedia) && !activeMedia.id)) return;
     
     // Optimistic UI: notify parent that upload has started
     onUploadStart?.();
@@ -323,43 +408,56 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
     // Continue upload in background
     try {
       let mediaId: string;
+      let mediaType: PostMediaType;
       
-      // Upload file
-      if (selectedFile.type === 'image') {
-        // 1. Get upload credentials
-        const upload = await dataSync.createImageDirectUpload();
-        // 2. Upload file to Cloudflare
-        const formData = new FormData();
-        formData.append('file', selectedFile.file);
-        await fetch(upload.uploadUrl, {
-          method: 'POST',
-          body: formData,
-        });
-        mediaId = upload.imageId;
+      if ('file' in activeMedia) {
+        if (activeMedia.type === 'image') {
+          const upload = await dataSync.createImageDirectUpload();
+          const formData = new FormData();
+          formData.append('file', activeMedia.file);
+          await fetch(upload.uploadUrl, {
+            method: 'POST',
+            body: formData,
+          });
+          mediaId = upload.imageId;
+          mediaType = PostMediaType.IMAGE;
+        } else {
+          const uploadData = await dataSync.createVideoDirectUpload();
+          const formData = new FormData();
+          formData.append('file', activeMedia.file);
+          await fetch(uploadData.uploadURL, {
+            method: 'POST',
+            body: formData,
+          });
+          mediaId = uploadData.uid;
+          mediaType = PostMediaType.VIDEO;
+        }
       } else {
-        // Video upload
-        const uploadData = await dataSync.createVideoDirectUpload();
-        const formData = new FormData();
-        formData.append('file', selectedFile.file);
-        await fetch(uploadData.uploadURL, {
-          method: 'POST',
-          body: formData,
-        });
-        mediaId = uploadData.uid;
+        mediaId = activeMedia.id;
+        mediaType = activeMedia.type === 'video' ? PostMediaType.VIDEO : PostMediaType.IMAGE;
       }
 
-      // 3. Create post (API requires media field)
-      await dataSync.createPost({
+      const createdPost = await dataSync.createPost({
         media: [{
-          type: selectedFile.type === 'image' ? PostMediaType.IMAGE : PostMediaType.VIDEO,
+          type: mediaType,
           id: mediaId,
         }],
         caption: stripHashtags(caption) || undefined,
         tags: tags.length > 0 ? tags : undefined,
       });
 
-      // Notify parent that post was created successfully
-      onCreated();
+      if (initialPost?.postId) {
+        const createdPostId = String((createdPost as { id?: string } | null)?.id || '').trim();
+        if (initialPost.visibility && initialPost.visibility !== 'PUBLIC') {
+          if (!createdPostId) {
+            throw new Error('Updated post was created without an id, visibility could not be restored.');
+          }
+          await dataSync.updatePostVisibility(createdPostId, initialPost.visibility);
+        }
+        await dataSync.deletePost(initialPost.postId);
+      }
+
+      onComplete({ success: true, mode: isEditMode ? 'edit' : 'create' });
     } catch (err) {
       logRendererEvent({
         level: 'error',
@@ -367,9 +465,9 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
         message: 'action:create-post:failed',
         details: { error: String(err) },
       });
-      onCreated();
+      onComplete({ success: false, mode: isEditMode ? 'edit' : 'create' });
     }
-  }, [selectedFile, caption, tags, selectedLocation, handleClose, onCreated, onUploadStart]);
+  }, [selectedFile, selectedMediaRef, onUploadStart, handleClose, caption, tags, initialPost, onComplete, isEditMode]);
 
   // Close panels when clicking outside
   useEffect(() => {
@@ -435,7 +533,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Create Post</h2>
+          <h2 className="text-base font-semibold text-gray-900">{isEditMode ? 'Edit Post' : 'Create Post'}</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -451,8 +549,20 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file);
+              e.target.value = '';
+            }}
+          />
+
           {/* File Upload Area */}
-          {!selectedFile ? (
+          {!selectedFile && !selectedMediaRef ? (
             <div
               className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 transition ${
                 dragOver ? 'border-[#4ECCA3] bg-[#4ECCA3]/10' : 'border-gray-300 bg-gray-50 hover:border-[#4ECCA3]'
@@ -473,50 +583,40 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
                 {dragOver ? 'Drop file here' : 'Click or drag to upload'}
               </p>
               <p className="mt-1 text-xs text-gray-400">PNG, JPEG, GIF, WebP, MP4, MOV (max 100MB)</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileSelect(file);
-                  e.target.value = '';
-                }}
-              />
             </div>
           ) : (
             <div className="relative">
               {/* Preview */}
               <div className="overflow-hidden rounded-xl bg-gray-100">
-                {selectedFile.type === 'image' ? (
+                {(selectedFile?.type ?? selectedMediaRef?.type) === 'image' ? (
                   <img
-                    src={selectedFile.previewUrl}
+                    src={selectedFile?.previewUrl || selectedMediaRef?.previewUrl || ''}
                     alt="Preview"
                     className="mx-auto max-h-64 object-contain"
                   />
                 ) : (
                   <video
-                    src={selectedFile.previewUrl}
+                    src={selectedFile?.previewUrl || selectedMediaRef?.previewUrl || ''}
                     controls
                     className="mx-auto max-h-64"
                   />
                 )}
               </div>
-              {/* Replace file */}
               <button
                 type="button"
-                onClick={() => {
-                  URL.revokeObjectURL(selectedFile.previewUrl);
-                  setSelectedFile(null);
-                }}
+                onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white transition hover:bg-black/70 disabled:opacity-50"
+                className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/58 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-black/72 disabled:opacity-50"
+                title="Replace media"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+                  <polyline points="17 3 21 3 21 7" />
+                  <line x1="16" y1="8" x2="21" y2="3" />
+                  <circle cx="9" cy="13" r="2" />
+                  <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L8 19" />
                 </svg>
+                {selectedMediaRef && !selectedFile ? 'Replace image' : 'Change image'}
               </button>
             </div>
           )}
@@ -687,7 +787,7 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
           <button
             type="button"
             onClick={() => { void handleSubmit(); }}
-            disabled={!selectedFile || uploading}
+            disabled={(!selectedFile && !selectedMediaRef) || uploading}
             className="flex items-center gap-2 rounded-[10px] bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {uploading ? (
@@ -696,10 +796,10 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
                   <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
                 </svg>
-                Posting...
+                {isEditMode ? 'Saving...' : 'Posting...'}
               </>
             ) : (
-              'Post'
+              isEditMode ? 'Save' : 'Post'
             )}
           </button>
         </div>
@@ -714,29 +814,14 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
         >
           {/* Category tabs with pagination */}
           <div className="relative border-b border-gray-100">
-            <div className="flex items-center justify-between px-2 pt-2 pb-1">
-              {/* Left arrow - show when not on first page */}
-              {emojiCategoryPage > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setEmojiCategoryPage((prev) => prev - 1)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors mr-1"
-                  aria-label="Previous page"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 18l-6-6 6-6"/>
-                  </svg>
-                </button>
-              )}
-              
-              {/* Category tabs for current page */}
-              <div className={`flex items-center gap-1 flex-1 ${emojiCategoryPage === 0 ? 'pl-0' : ''}`}>
+            <div className="flex items-center gap-1 px-2 py-2">
+              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
                 {getCategoriesForPage(emojiCategoryPage).map((category) => (
                   <button
                     key={category.name}
                     type="button"
                     onClick={() => setActiveEmojiCategory(category.originalIndex)}
-                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                    className={`flex-shrink-0 px-2.5 py-1.5 text-[11px] font-medium rounded-full transition-colors ${
                       activeEmojiCategory === category.originalIndex
                         ? 'bg-[#0066CC] text-white'
                         : 'text-gray-500 hover:bg-gray-100'
@@ -746,20 +831,22 @@ export function CreatePostModal({ open, onClose, onCreated, onUploadStart }: Cre
                   </button>
                 ))}
               </div>
-              
-              {/* Right arrow - show when not on last page */}
-              {emojiCategoryPage < totalCategoryPages - 1 && (
+              {totalCategoryPages > 1 ? (
                 <button
                   type="button"
-                  onClick={() => setEmojiCategoryPage((prev) => prev + 1)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors ml-1"
-                  aria-label="Next page"
+                  onClick={() => setEmojiPage(emojiCategoryPage === 0 ? emojiCategoryPage + 1 : emojiCategoryPage - 1)}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  aria-label={emojiCategoryPage === 0 ? 'Next page' : 'Previous page'}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6"/>
+                    {emojiCategoryPage === 0 ? (
+                      <path d="M9 18l6-6-6-6" />
+                    ) : (
+                      <path d="M15 18l-6-6 6-6" />
+                    )}
                   </svg>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
           {/* Emoji grid */}

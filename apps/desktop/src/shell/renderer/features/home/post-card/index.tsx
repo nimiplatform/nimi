@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
@@ -6,6 +6,7 @@ import { ReportReason } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
+import { CreatePostModal } from '@renderer/features/profile/components/create-post-modal.js';
 import { dataSync } from '@runtime/data-sync';
 import { AddFriendModal } from './add-friend-modal';
 import { PostCardArticle } from './article';
@@ -15,9 +16,25 @@ import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
 import { normalizeMediaType, resolveMediaUrl, resolveVideoPlaybackSource } from './utils';
 
+function extractPostMediaId(media: unknown): string {
+  if (!media || typeof media !== 'object') {
+    return '';
+  }
+  const payload = media as Record<string, unknown>;
+  const candidates = [payload.id, payload.imageId, payload.videoId, payload.uid];
+  for (const candidate of candidates) {
+    const value = String(candidate || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
 export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddFriendBadge?: boolean }) {
   const { post, onDelete, showAddFriendBadge = true } = input;
   const queryClient = useQueryClient();
+  const savedPostsStorageKey = 'nimi.desktop.saved-post-ids';
 
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
@@ -28,6 +45,8 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [isSavedPost, setIsSavedPost] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const authorId = String(post.author?.id || (post.author as unknown as { _id?: string })?._id || '').trim();
   const hasMedia = post.media && post.media.length > 0;
@@ -55,6 +74,22 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   const firstMediaType = normalizeMediaType(firstMedia?.type);
   const firstMediaUrl = resolveMediaUrl(firstMedia);
   const videoSource = firstMediaType === PostMediaType.VIDEO ? resolveVideoPlaybackSource(firstMediaUrl) : null;
+  const editPostSeed = useMemo(() => {
+    if (!post.id) {
+      return null;
+    }
+    return {
+      postId: post.id,
+      caption: post.caption,
+      tags: Array.isArray(post.tags) ? post.tags.map(String) : [],
+      visibility: postVisibility,
+      media: firstMedia && firstMediaUrl ? {
+        id: extractPostMediaId(firstMedia),
+        type: firstMediaType === PostMediaType.VIDEO ? 'video' : 'image',
+        previewUrl: firstMediaUrl,
+      } : null,
+    };
+  }, [firstMedia, firstMediaType, firstMediaUrl, post.caption, post.id, post.tags, postVisibility]);
 
   const authorRecord = (
     post.author && typeof post.author === 'object'
@@ -72,6 +107,20 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
       setPostVisibility(post.visibility);
     }
   }, [post.visibility]);
+
+  useEffect(() => {
+    if (!post.id || typeof window === 'undefined') {
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(savedPostsStorageKey);
+      const ids = raw ? JSON.parse(raw) : [];
+      const savedIds = Array.isArray(ids) ? ids.map(String) : [];
+      setIsSavedPost(savedIds.includes(post.id));
+    } catch {
+      setIsSavedPost(false);
+    }
+  }, [post.id, savedPostsStorageKey]);
 
   const handleBlockUser = useCallback(async () => {
     if (!authorId) {
@@ -187,6 +236,61 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
     }
   }, [onDelete, post.id, setStatusBanner, ui]);
 
+  const handleEditPost = useCallback(() => {
+    ui.togglePostMenu();
+    setEditModalOpen(true);
+  }, [ui]);
+
+  const handleCopyLink = useCallback(async () => {
+    ui.togglePostMenu();
+    const postLink = `nimi://moments/posts/${post.id}`;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(postLink);
+      }
+      setStatusBanner({
+        kind: 'success',
+        message: 'Post link copied',
+      });
+    } catch {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Failed to copy post link',
+      });
+    }
+  }, [post.id, setStatusBanner, ui]);
+
+  const handleSavePost = useCallback(() => {
+    ui.togglePostMenu();
+    if (!post.id || typeof window === 'undefined') {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Failed to save post',
+      });
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(savedPostsStorageKey);
+      const ids = raw ? JSON.parse(raw) : [];
+      const savedIds = Array.isArray(ids) ? ids.map(String) : [];
+      const nextSaved = !savedIds.includes(post.id);
+      const nextIds = nextSaved
+        ? [...savedIds, post.id]
+        : savedIds.filter((id) => id !== post.id);
+      window.localStorage.setItem(savedPostsStorageKey, JSON.stringify(nextIds));
+      setIsSavedPost(nextSaved);
+      setStatusBanner({
+        kind: 'success',
+        message: nextSaved ? 'Post saved' : 'Post removed from saved',
+      });
+    } catch {
+      setStatusBanner({
+        kind: 'error',
+        message: 'Failed to save post',
+      });
+    }
+  }, [post.id, savedPostsStorageKey, setStatusBanner, ui]);
+
   const handleAddFriend = useCallback(async () => {
     if (!authorId) {
       throw new Error('Cannot add friend: user ID not found');
@@ -301,10 +405,16 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         onOpenAuthorProfile={openAuthorProfile}
         onOpenAddFriendModal={ui.openAddFriendModal}
         onTogglePostMenu={ui.togglePostMenu}
-        onOpenEditPost={ui.openEditPost}
+        onOpenEditPost={handleEditPost}
+        onOpenEditVisibility={ui.openEditPost}
         onOpenDeleteConfirm={ui.openDeleteConfirm}
         onOpenBlockConfirm={ui.openBlockConfirm}
         onOpenReportModal={ui.openReportModal}
+        onCopyLink={() => {
+          void handleCopyLink();
+        }}
+        onSavePost={handleSavePost}
+        isSavedPost={isSavedPost}
         onToggleLike={() => {
           void handleToggleLike();
         }}
@@ -375,6 +485,27 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
         onClose={() => ui.setShowDeleteConfirm(false)}
         onConfirm={() => {
           void handleDeletePost();
+        }}
+      />
+
+      <CreatePostModal
+        open={editModalOpen}
+        initialPost={editPostSeed}
+        onClose={() => setEditModalOpen(false)}
+        onComplete={({ success }) => {
+          setEditModalOpen(false);
+          if (success) {
+            setStatusBanner({
+              kind: 'success',
+              message: 'Post updated successfully',
+            });
+            onDelete?.();
+            return;
+          }
+          setStatusBanner({
+            kind: 'error',
+            message: 'Failed to update post',
+          });
         }}
       />
 

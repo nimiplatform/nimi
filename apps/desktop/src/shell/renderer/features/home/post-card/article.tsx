@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -24,9 +24,13 @@ export type PostCardArticleProps = {
   onOpenAddFriendModal: () => void;
   onTogglePostMenu: () => void;
   onOpenEditPost: () => void;
+  onOpenEditVisibility: () => void;
   onOpenDeleteConfirm: () => void;
   onOpenBlockConfirm: () => void;
   onOpenReportModal: () => void;
+  onCopyLink: () => void;
+  onSavePost: () => void;
+  isSavedPost: boolean;
   onToggleLike: () => void;
   onChat: () => void;
   onOpenGift: () => void;
@@ -35,6 +39,7 @@ export type PostCardArticleProps = {
 export function PostCardArticle(props: PostCardArticleProps) {
   const authorName = props.post.author?.displayName || 'Unknown';
   const authorHandle = props.post.author?.handle || '';
+  const SHOW_AVATAR_STATUS_INDICATOR = false;
   const isRecent = new Date().getTime() - new Date(props.post.createdAt).getTime() < 3600000; // 1 hour
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-white/40 bg-white/70 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.03)] transition-all duration-500 hover:shadow-[0_12px_48px_rgba(78,204,163,0.12)] hover:-translate-y-1 group">
@@ -63,7 +68,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
               />
               
               {/* Live Pulse Indicator */}
-              {isRecent && (
+              {SHOW_AVATAR_STATUS_INDICATOR && isRecent && (
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ECCA3] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-[#4ECCA3]"></span>
@@ -111,19 +116,43 @@ export function PostCardArticle(props: PostCardArticleProps) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <button
-            ref={props.menuButtonRef}
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              props.onTogglePostMenu();
-            }}
-            className="rounded-full p-2 text-slate-300 transition-all hover:bg-black/5 hover:text-slate-600"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
-            </svg>
-          </button>
+          <div className="relative">
+            <button
+              ref={props.menuButtonRef}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onTogglePostMenu();
+              }}
+              className="rounded-full p-2 text-slate-300 transition-all hover:bg-black/5 hover:text-slate-600"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+              </svg>
+            </button>
+            {props.showPostMenu ? (
+              <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-gray-100 bg-white/95 py-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+                {props.isOwnPost ? (
+                  <>
+                    <MenuAction label="Edit" icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
+                    <MenuAction label="Modify visibility" icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
+                    <MenuAction label="Delete" icon={<TrashIcon className="h-4 w-4" />} onClick={props.onOpenDeleteConfirm} tone="danger" />
+                  </>
+                ) : (
+                  <>
+                    <MenuAction label="Copy link" icon={<LinkIcon className="h-4 w-4" />} onClick={props.onCopyLink} />
+                    <MenuAction
+                      label={props.isSavedPost ? 'Saved' : 'Save post'}
+                      icon={<SaveIcon className="h-4 w-4" filled={props.isSavedPost} />}
+                      onClick={props.onSavePost}
+                    />
+                    <MenuAction label="Block" icon={<BlockIcon className="h-4 w-4" />} onClick={props.onOpenBlockConfirm} tone="danger" />
+                    <MenuAction label="Report" icon={<ReportIcon className="h-4 w-4" />} onClick={props.onOpenReportModal} tone="danger" />
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
           <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-medium">
             {new Date(props.post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </span>
@@ -206,5 +235,95 @@ export function PostCardArticle(props: PostCardArticleProps) {
         </div>
       )}
     </article>
+  );
+}
+
+function MenuAction(input: {
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+  tone?: 'default' | 'danger';
+}) {
+  const className = input.tone === 'danger'
+    ? 'text-red-600 hover:bg-red-50'
+    : 'text-slate-700 hover:bg-slate-50';
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        input.onClick();
+      }}
+      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition ${className}`}
+    >
+      <span className="shrink-0">{input.icon}</span>
+      {input.label}
+    </button>
+  );
+}
+
+function EditIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function EyeIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
+}
+
+function LinkIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+function SaveIcon({ className = '', filled = false }: { className?: string; filled?: boolean }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function BlockIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+    </svg>
+  );
+}
+
+function ReportIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
   );
 }
