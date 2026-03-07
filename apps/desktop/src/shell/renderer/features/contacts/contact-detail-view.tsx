@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { CollectionsTab } from '@renderer/features/profile/components/collections-tab';
 import { GiftsTab } from '@renderer/features/profile/components/gifts-tab';
@@ -20,6 +21,7 @@ type ContactDetailViewProps = {
   onBlock?: () => void;
   onRemove?: () => void;
   showMessageButton?: boolean;
+  fullBleed?: boolean;
 };
 
 type MediaSelection = {
@@ -27,15 +29,26 @@ type MediaSelection = {
   mediaIndex: number;
 };
 
+type TabIndicator = {
+  left: number;
+  width: number;
+};
+
 const CONTACT_DETAIL_TABS: ProfileTab[] = ['Posts', 'Media', 'Collections', 'Gifts'];
 
 export function ContactDetailView(props: ContactDetailViewProps) {
   const { t } = useTranslation();
+  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
+  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const [activeTab, setActiveTab] = useState<ProfileTab>('Posts');
   const [selectedMedia, setSelectedMedia] = useState<MediaSelection | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [tabIndicator, setTabIndicator] = useState<TabIndicator>({ left: 0, width: 24 });
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const tabButtonRefs = useRef<Partial<Record<ProfileTab, HTMLButtonElement | null>>>({});
 
   useEffect(() => {
     if (!showMenu) {
@@ -56,6 +69,24 @@ export function ContactDetailView(props: ContactDetailViewProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
+
+  useLayoutEffect(() => {
+    const updateIndicator = () => {
+      const activeButton = tabButtonRefs.current[activeTab];
+      const tabList = tabListRef.current;
+      if (!activeButton || !tabList) {
+        return;
+      }
+
+      const compactWidth = Math.min(28, Math.max(20, activeButton.offsetWidth - 22));
+      const left = activeButton.offsetLeft + ((activeButton.offsetWidth - compactWidth) / 2);
+      setTabIndicator({ left, width: compactWidth });
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [activeTab]);
 
   if (props.loading) {
     return (
@@ -115,20 +146,35 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const originLabel = profile.agentOrigin || 'Unknown origin';
   const joinedLabel = formatProfileDate(profile.createdAt) || 'Unknown joined date';
   const worldLabel = profile.worldName || 'Unknown world';
+  const worldNavigationId = profile.agentOwnerWorldId || profile.agentWorldId || '';
+  const canVisitWorld = Boolean(worldNavigationId);
   const headline = profile.bio || (profile.isAgent
     ? 'This contact has no public profile summary yet.'
     : 'No profile summary has been added yet.');
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
-      <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+        <div className={`${props.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}`}>
           <section className="relative overflow-hidden rounded-[34px] border border-white/70 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
             <div className="relative h-[220px] px-8 py-7" style={headerStyle}>
+              {canVisitWorld ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProfileId(profile.id);
+                    setSelectedProfileIsAgent(profile.isAgent);
+                    navigateToWorld(worldNavigationId);
+                  }}
+                  className="absolute inset-x-0 top-0 z-10 h-[140px] cursor-pointer"
+                  aria-label={`Visit ${worldLabel}`}
+                />
+              ) : null}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28),transparent_32%)]" />
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
 
-              <div className="relative z-10 flex items-start justify-end">
+              <div className="relative z-10 flex items-start justify-between gap-4">
+                <span />
                 {(props.onBlock || props.onRemove) ? (
                   <div className="relative">
                     <button
@@ -181,9 +227,9 @@ export function ContactDetailView(props: ContactDetailViewProps) {
             <div className="relative px-8 pb-8">
               <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="rounded-[30px] border border-slate-200/70 bg-white/92 p-6 shadow-[0_16px_44px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+                  <div className="rounded-[30px] border border-slate-200/65 bg-white/90 px-6 py-7 shadow-[0_18px_48px_rgba(15,23,42,0.06)] backdrop-blur-md xl:px-7">
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-                      <div className="flex shrink-0 flex-col items-start gap-3 xl:pt-[18px]">
+                      <div className="flex shrink-0 flex-col items-start gap-3 xl:pt-[6px]">
                         <div className="relative">
                           <EntityAvatar
                             imageUrl={profile.avatarUrl}
@@ -209,16 +255,13 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                                 </span>
                               ) : null}
                             </div>
-                            <h1 className="mt-1 text-[34px] font-semibold tracking-[-0.04em] text-slate-900">
+                            <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] xl:text-[32px]">
                               {profile.displayName}
                             </h1>
-                            <p
-                              className="mt-1 text-sm font-semibold"
-                              style={{ color: profile.isAgent ? palette.accent : '#64748b' }}
-                            >
+                            <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
                               {profile.handle}
                             </p>
-                            <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                            <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
                               {headline}
                             </p>
                             <div className="mt-4 xl:hidden">
@@ -242,16 +285,35 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                                 />
                               </div>
                             </div>
-                            <div className="mt-5 flex flex-col gap-3 text-sm text-slate-600">
+                            <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
                               <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
                               <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
-                              <InlineMeta value={worldLabel} icon={<WorldIcon className="h-3.5 w-3.5" />} />
+                              <WorldMetaLink
+                                value={worldLabel}
+                                canVisit={canVisitWorld}
+                                onClick={canVisitWorld ? () => navigateToWorld(worldNavigationId) : undefined}
+                              />
                               <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
                             </div>
+                            {profile.tags.length > 0 ? (
+                              <div className="mt-7 flex flex-wrap gap-2.5">
+                                {profile.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
+                                    style={{
+                                      color: '#1f8f69',
+                                    }}
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
 
-                          <div className="hidden shrink-0 xl:ml-auto xl:flex xl:w-[332px] xl:flex-col xl:items-end">
-                            <div className="mt-[8px] flex w-full items-center justify-end gap-3">
+                          <div className="hidden shrink-0 xl:ml-auto xl:flex xl:w-[344px] xl:flex-col xl:items-end xl:border-l xl:border-slate-100/90 xl:pl-10">
+                            <div className="mt-[6px] flex w-full items-center justify-end gap-3">
                                 {props.showMessageButton !== false ? (
                                   <IconButton
                                     icon={<MessageIcon className="h-4 w-4" />}
@@ -265,11 +327,11 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                                   onClick={props.onSendGift}
                                 />
                             </div>
-                            <div className="mt-[68px] grid w-[250px] grid-cols-[1fr_10px_1fr_10px_1fr] items-start gap-x-0.5">
+                            <div className="mt-[62px] grid w-[260px] grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
                               <StatTile label="Friends" value={friendCount} />
-                              <span />
+                              <StatDivider />
                               <StatTile label="Posts" value={postCount} />
-                              <span />
+                              <StatDivider />
                               <StatTile label="Likes" value={likesCount} />
                             </div>
                           </div>
@@ -278,84 +340,65 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr),280px]">
+                  <div className="mt-6">
                     <section className="min-w-0 space-y-6">
-                      <div className="rounded-[28px] border border-slate-200/70 bg-white shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
-                        <div className="border-b border-slate-100 px-4">
-                          <div className="flex flex-wrap gap-1.5">
+                      <div className="bg-transparent">
+                        <div className="px-4">
+                          <div
+                            ref={tabListRef}
+                            className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-3"
+                          >
                             {CONTACT_DETAIL_TABS.map((tab) => (
                               <button
                                 key={tab}
+                                ref={(node) => {
+                                  tabButtonRefs.current[tab] = node;
+                                }}
                                 type="button"
                                 onClick={() => setActiveTab(tab)}
-                                className={`relative rounded-[14px] px-4 py-3 text-sm font-semibold transition ${
-                                  activeTab === tab
-                                    ? 'border border-[#b7eadb] bg-[#e8fbf3] text-[#1f8f69] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]'
-                                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                                }`}
+                                className="relative px-0 py-2 transition-all duration-300"
                               >
-                                {tab}
+                                <span className="invisible block text-[15px] font-semibold">
+                                  {tab}
+                                </span>
+                                <span
+                                  className={`absolute inset-0 flex items-center justify-center text-sm transition-all duration-300 ${
+                                    activeTab === tab
+                                      ? 'text-[15px] font-semibold text-slate-950'
+                                      : 'font-normal text-slate-500 hover:text-slate-800'
+                                  }`}
+                                >
+                                  {tab}
+                                </span>
                               </button>
                             ))}
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute bottom-0 h-[3px] rounded-full bg-[linear-gradient(90deg,#49c9a5_0%,#1f9bab_100%)] shadow-[0_1px_8px_rgba(73,201,165,0.24)] transition-[left,width] duration-300 ease-out"
+                              style={{ left: `${tabIndicator.left}px`, width: `${tabIndicator.width}px` }}
+                            />
                           </div>
                         </div>
 
-                        <div className="bg-[linear-gradient(180deg,#fbfcfd_0%,#f5f8fa_100%)] px-5 py-5">
-                          {activeTab === 'Posts' && <PostsTab profileId={profile.id} />}
-                          {activeTab === 'Media' && (
+                        <div className="px-5 py-5">
+                          <div className={activeTab === 'Posts' ? 'block' : 'hidden'}>
+                            <PostsTab profileId={profile.id} />
+                          </div>
+                          <div className={activeTab === 'Media' ? 'block' : 'hidden'}>
                             <MediaTab
                               profileId={profile.id}
                               onMediaClick={(post, mediaIndex) => setSelectedMedia({ post, mediaIndex })}
                             />
-                          )}
-                          {activeTab === 'Collections' && <CollectionsTab profileId={profile.id} />}
-                          {activeTab === 'Gifts' && <GiftsTab giftStats={profile.giftStats} />}
+                          </div>
+                          <div className={activeTab === 'Collections' ? 'block' : 'hidden'}>
+                            <CollectionsTab profileId={profile.id} />
+                          </div>
+                          <div className={activeTab === 'Gifts' ? 'block' : 'hidden'}>
+                            <GiftsTab giftStats={profile.giftStats} />
+                          </div>
                         </div>
                       </div>
                     </section>
-
-                    <aside className="space-y-6">
-                      <div className="rounded-[28px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#f7fafc_100%)] p-5 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
-                        <h3 className="text-sm font-semibold text-slate-900">Status</h3>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <StatusBadge active={profile.isOnline}>{profile.isOnline ? 'Online now' : 'Offline'}</StatusBadge>
-                          <StatusBadge>{profile.isAgent ? 'Agent account' : 'Human account'}</StatusBadge>
-                          {profile.agentTier ? <StatusBadge>{profile.agentTier}</StatusBadge> : null}
-                          {profile.agentState ? <StatusBadge>{profile.agentState}</StatusBadge> : null}
-                        </div>
-                      </div>
-
-                      <div className="rounded-[28px] border border-slate-200/70 bg-white p-5 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
-                        <h3 className="text-sm font-semibold text-slate-900">Highlights</h3>
-                        <div className="mt-4 space-y-3">
-                          <SideInfoRow label="World" value={profile.agentWorldId || profile.agentOwnerWorldId || 'Not linked'} />
-                          <SideInfoRow label="Origin" value={profile.agentOrigin || 'Unknown'} />
-                          <SideInfoRow label="Wake Strategy" value={profile.agentWakeStrategy || 'Not set'} />
-                          <SideInfoRow label="Visibility" value={profile.agentIsPublic === null ? 'Unknown' : profile.agentIsPublic ? 'Public' : 'Private'} />
-                        </div>
-                      </div>
-
-                      {profile.tags.length > 0 ? (
-                        <div className="rounded-[28px] border border-slate-200/70 bg-white p-5 shadow-[0_12px_34px_rgba(15,23,42,0.05)]">
-                          <h3 className="text-sm font-semibold text-slate-900">Tags</h3>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {profile.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-full border px-3 py-1.5 text-xs font-medium"
-                                style={{
-                                  borderColor: profile.isAgent ? `${palette.badgeText}33` : '#d8efe8',
-                                  backgroundColor: profile.isAgent ? `${palette.badgeBg}` : '#eefaf6',
-                                  color: profile.isAgent ? palette.badgeText : '#2f7d6b',
-                                }}
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </aside>
                   </div>
                 </div>
 
@@ -377,6 +420,32 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   );
 }
 
+function WorldMetaLink(input: {
+  value: string;
+  canVisit: boolean;
+  onClick?: () => void;
+}) {
+  if (!input.canVisit || !input.onClick) {
+    return <InlineMeta value={input.value} icon={<WorldIcon className="h-3.5 w-3.5" />} />;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={input.onClick}
+      className="group flex items-center gap-2.5 text-left transition-colors"
+    >
+      <span className="shrink-0 text-[#94A3B8] transition-colors group-hover:text-[#4ECCA3]">
+        <WorldIcon className="h-3.5 w-3.5" />
+      </span>
+      <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] leading-6 text-[#7C8AA5] transition-all group-hover:font-semibold group-hover:text-[#4ECCA3]">
+        <span className="truncate">{input.value}</span>
+        <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-y-[1px]" />
+      </span>
+    </button>
+  );
+}
+
 function InlineMeta({
   value,
   icon,
@@ -386,8 +455,8 @@ function InlineMeta({
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="shrink-0 text-slate-400">{icon}</span>
-      <div className="min-w-0 text-[13px] leading-6 text-slate-400">{value}</div>
+      <span className="shrink-0 text-[#94A3B8]">{icon}</span>
+      <div className="min-w-0 text-[13px] leading-6 text-[#7C8AA5]">{value}</div>
     </div>
   );
 }
@@ -395,10 +464,23 @@ function InlineMeta({
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</div>
-      <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-900">{value}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">{label}</div>
+      <div className="mt-2 text-[36px] font-semibold leading-none tracking-[-0.05em] text-[#1A1A1B]">{value}</div>
     </div>
   );
+}
+
+function ExternalLinkIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17 17 7" />
+      <path d="M9 7h8v8" />
+    </svg>
+  );
+}
+
+function StatDivider() {
+  return <span className="mt-7 h-10 w-px justify-self-center bg-[linear-gradient(180deg,rgba(148,163,184,0)_0%,rgba(148,163,184,0.35)_50%,rgba(148,163,184,0)_100%)]" />;
 }
 
 function ActionPill({
@@ -443,7 +525,7 @@ function IconButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.05)] backdrop-blur-sm transition hover:border-slate-300 hover:bg-white"
     >
       {icon}
     </button>

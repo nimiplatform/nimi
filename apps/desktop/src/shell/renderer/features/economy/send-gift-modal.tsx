@@ -71,7 +71,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" 
+      className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40 backdrop-blur-sm" 
       onClick={props.onClose}
     >
       <div

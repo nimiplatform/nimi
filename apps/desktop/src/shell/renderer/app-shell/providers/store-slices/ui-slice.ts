@@ -7,6 +7,7 @@ type UiSlice = Pick<AppStoreState,
   | 'previousTab'
   | 'selectedChatId'
   | 'selectedProfileId'
+  | 'selectedProfileIsAgent'
   | 'selectedWorldId'
   | 'chatProfilePanelTarget'
   | 'statusBanner'
@@ -15,6 +16,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setActiveTab'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
+  | 'setSelectedProfileIsAgent'
   | 'setSelectedWorldId'
   | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
@@ -31,6 +33,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     previousTab: null,
     selectedChatId: null,
     selectedProfileId: null,
+    selectedProfileIsAgent: null,
     selectedWorldId: null,
     chatProfilePanelTarget: null,
     statusBanner: null,
@@ -39,12 +42,14 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setActiveTab: (tab) => set({ activeTab: tab }),
     setSelectedChatId: (chatId) => set({ selectedChatId: chatId }),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
+    setSelectedProfileIsAgent: (isAgent) => set({ selectedProfileIsAgent: isAgent }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId, tab) =>
       set((state) => ({
         previousTab: state.activeTab,
         selectedProfileId: profileId,
+        selectedProfileIsAgent: tab === 'agent-detail',
         activeTab: tab,
       })),
     navigateToWorld: (worldId) =>
@@ -61,7 +66,12 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       set((state) => ({
         activeTab: state.previousTab || 'chat',
         previousTab: null,
-        selectedProfileId: null,
+        selectedProfileId: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
+          ? state.selectedProfileId
+          : null,
+        selectedProfileIsAgent: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
+          ? state.selectedProfileIsAgent
+          : null,
         selectedWorldId: null,
       })),
     setStatusBanner: (banner) => set({ statusBanner: banner }),

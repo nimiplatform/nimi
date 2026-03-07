@@ -4,6 +4,7 @@ import type { PostDto } from '@nimiplatform/sdk/realm';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { dataSync } from '@runtime/data-sync';
 import { AddFriendModal } from './add-friend-modal';
@@ -14,16 +15,19 @@ import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
 import { normalizeMediaType, resolveMediaUrl, resolveVideoPlaybackSource } from './utils';
 
-export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => void }) {
+export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddFriendBadge?: boolean }) {
+  const { post, onDelete, showAddFriendBadge = true } = input;
   const queryClient = useQueryClient();
 
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
+  const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const authorId = String(post.author?.id || (post.author as unknown as { _id?: string })?._id || '').trim();
   const hasMedia = post.media && post.media.length > 0;
@@ -272,9 +276,11 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
 
   const openAuthorProfile = useCallback(() => {
     if (authorId) {
-      navigateToProfile(authorId, post.author?.isAgent ? 'agent-detail' : 'profile');
+      setSelectedProfileId(authorId);
+      setSelectedProfileIsAgent(post.author?.isAgent === true);
+      setProfileModalOpen(true);
     }
-  }, [authorId, navigateToProfile, post.author?.isAgent]);
+  }, [authorId, post.author?.isAgent, setSelectedProfileId, setSelectedProfileIsAgent]);
 
   return (
     <>
@@ -283,6 +289,7 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
         authorId={authorId}
         isFriend={ui.isFriend}
         isOwnPost={isOwnPost}
+        showAddFriendBadge={showAddFriendBadge}
         isLiked={ui.isLiked}
         isLikePending={isLikePending}
         showPostMenu={ui.showPostMenu}
@@ -369,6 +376,46 @@ export function PostCard({ post, onDelete }: { post: PostDto; onDelete?: () => v
         onConfirm={() => {
           void handleDeletePost();
         }}
+      />
+
+      <ContactDetailProfileModal
+        open={profileModalOpen && Boolean(authorId)}
+        profileId={authorId}
+        profileSeed={authorId ? {
+          id: authorId,
+          displayName: post.author?.displayName || 'Unknown',
+          handle: post.author?.handle || '',
+          avatarUrl: post.author?.avatarUrl,
+          bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,
+          isAgent: post.author?.isAgent === true,
+          isOnline: authorRecord?.isOnline === true,
+          createdAt: typeof authorRecord?.createdAt === 'string' ? authorRecord.createdAt : '',
+          tags: Array.isArray(authorRecord?.tags) ? authorRecord.tags.map(String) : [],
+          city: typeof authorRecord?.city === 'string' ? authorRecord.city : null,
+          countryCode: typeof authorRecord?.countryCode === 'string' ? authorRecord.countryCode : null,
+          gender: typeof authorRecord?.gender === 'string' ? authorRecord.gender : null,
+          worldName: typeof authorRecord?.worldName === 'string' ? authorRecord.worldName : null,
+          worldBannerUrl: typeof authorRecord?.worldBannerUrl === 'string' ? authorRecord.worldBannerUrl : null,
+          friendsCount: typeof authorRecord?.friendsCount === 'number' ? authorRecord.friendsCount : undefined,
+          postsCount: typeof authorRecord?.postsCount === 'number' ? authorRecord.postsCount : undefined,
+          likesCount: typeof authorRecord?.likesCount === 'number'
+            ? authorRecord.likesCount
+            : typeof authorRecord?.likeCount === 'number'
+              ? authorRecord.likeCount
+              : undefined,
+          giftStats: authorRecord?.giftStats && typeof authorRecord.giftStats === 'object'
+            ? (authorRecord.giftStats as Record<string, number>)
+            : undefined,
+          agentState: typeof authorRecord?.state === 'string' ? authorRecord.state : null,
+          agentCategory: typeof authorRecord?.category === 'string' ? authorRecord.category : null,
+          agentOrigin: typeof authorRecord?.origin === 'string' ? authorRecord.origin : null,
+          agentTier: typeof authorRecord?.tier === 'string' ? authorRecord.tier : null,
+          agentWakeStrategy: typeof authorRecord?.wakeStrategy === 'string' ? authorRecord.wakeStrategy : null,
+          agentOwnershipType: typeof authorRecord?.ownershipType === 'string' ? authorRecord.ownershipType : null,
+          agentWorldId: typeof authorRecord?.worldId === 'string' ? authorRecord.worldId : null,
+          agentOwnerWorldId: typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
+        } : null}
+        onClose={() => setProfileModalOpen(false)}
       />
     </>
   );
