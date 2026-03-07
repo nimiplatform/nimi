@@ -4,6 +4,7 @@ import {
   asRuntimeInvokeError,
   buildRuntimeCallOptions,
   buildRuntimeRequestMetadata,
+  ensureRuntimeLocalModelWarm,
   extractEmbeddings,
   extractRuntimeReasonCode,
   extractTextFromGenerateOutput,
@@ -198,6 +199,13 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
 
   try {
     if (input.fixture.capability === 'text.generate') {
+      await ensureRuntimeLocalModelWarm({
+        modId: DESKTOP_REPLAY_MOD_ID,
+        source: resolved.source,
+        modelId: resolved.modelId,
+        engine: resolved.provider,
+        timeoutMs: 120_000,
+      });
       const callOptions = await buildRuntimeCallOptions({
         modId: DESKTOP_REPLAY_MOD_ID,
         timeoutMs: 120_000,

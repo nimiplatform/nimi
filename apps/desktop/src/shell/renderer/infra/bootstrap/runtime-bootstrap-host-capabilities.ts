@@ -32,7 +32,10 @@ import type {
   RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/mod/runtime-route';
 import { getPlatformClient } from '@runtime/platform-client';
-import { buildRuntimeRequestMetadata } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import {
+  buildRuntimeRequestMetadata,
+  ensureRuntimeLocalModelWarm,
+} from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import {
   runtimeModMediaCachePut,
   type RuntimeModMediaCachePutInput,
@@ -698,6 +701,7 @@ function toResolvedBinding(
     source: resolved.source,
     provider: String(resolved.provider || '').trim(),
     model: String(resolved.model || '').trim(),
+    modelId: 'modelId' in resolved ? String(resolved.modelId || '').trim() || undefined : undefined,
     connectorId: String(resolved.connectorId || '').trim(),
     endpoint: String(resolved.endpoint || '').trim() || undefined,
     localModelId: 'localModelId' in resolved ? String(resolved.localModelId || '').trim() || undefined : undefined,
@@ -705,6 +709,12 @@ function toResolvedBinding(
     adapter: String(resolved.adapter || '').trim() || undefined,
     localProviderEndpoint: 'localProviderEndpoint' in resolved ? String(resolved.localProviderEndpoint || '').trim() || undefined : undefined,
     localOpenAiEndpoint: String(resolved.localOpenAiEndpoint || '').trim() || undefined,
+    goRuntimeLocalModelId: 'goRuntimeLocalModelId' in resolved
+      ? String(resolved.goRuntimeLocalModelId || '').trim() || undefined
+      : undefined,
+    goRuntimeStatus: 'goRuntimeStatus' in resolved
+      ? String(resolved.goRuntimeStatus || '').trim() || undefined
+      : undefined,
   };
 }
 
@@ -731,6 +741,53 @@ function hydrateTokenApiRouteBindingFromOptions(
   return {
     ...binding,
     provider: String(binding.provider || connector.provider || '').trim() || undefined,
+  };
+}
+
+function hydrateLocalRuntimeRouteBindingFromOptions(
+  binding: RuntimeRouteBinding,
+  options: RuntimeRouteOptionsSnapshot,
+): RuntimeRouteBinding {
+  if (binding.source !== 'local-runtime') {
+    return binding;
+  }
+  const selected = options.selected.source === 'local-runtime' ? options.selected : null;
+  const targetLocalModelId = String(binding.localModelId || '').trim();
+  const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(localai|nexa|local)\//i, '');
+  const targetEngine = String(binding.engine || binding.provider || '').trim().toLowerCase();
+  const localModel = options.localRuntime.models.find((item) => (
+    (targetLocalModelId && String(item.localModelId || '').trim() === targetLocalModelId)
+    || (
+      String(item.modelId || item.model || '').trim() === targetModelId
+      && (!targetEngine || String(item.engine || item.provider || '').trim().toLowerCase() === targetEngine)
+    )
+  )) || null;
+
+  if (!localModel && selected) {
+    return {
+      ...selected,
+      model: String(binding.model || binding.modelId || selected.model || '').trim(),
+      modelId: String(binding.modelId || selected.modelId || selected.model || '').trim() || undefined,
+      localModelId: String(binding.localModelId || selected.localModelId || '').trim() || undefined,
+      engine: String(binding.engine || selected.engine || '').trim() || undefined,
+      provider: String(binding.provider || selected.provider || '').trim() || undefined,
+    };
+  }
+  if (!localModel) {
+    return binding;
+  }
+  return {
+    ...binding,
+    model: String(binding.model || binding.modelId || localModel.modelId || localModel.model || '').trim(),
+    modelId: String(binding.modelId || localModel.modelId || localModel.model || '').trim() || undefined,
+    localModelId: String(binding.localModelId || localModel.localModelId || '').trim() || undefined,
+    engine: String(binding.engine || localModel.engine || '').trim() || undefined,
+    provider: String(binding.provider || localModel.provider || localModel.engine || '').trim() || undefined,
+    adapter: String(binding.adapter || localModel.adapter || '').trim() || undefined,
+    providerHints: binding.providerHints || localModel.providerHints,
+    endpoint: String(binding.endpoint || localModel.endpoint || '').trim() || undefined,
+    goRuntimeLocalModelId: String(binding.goRuntimeLocalModelId || localModel.goRuntimeLocalModelId || '').trim() || undefined,
+    goRuntimeStatus: String(binding.goRuntimeStatus || localModel.goRuntimeStatus || '').trim() || undefined,
   };
 }
 
@@ -814,13 +871,19 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
   }): Promise<ModRuntimeResolvedBinding> => {
     let effectiveBinding = payload.binding;
     const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
+    const needsLocalRuntimeHydration = effectiveBinding?.source === 'local-runtime'
+      && (
+        !String(effectiveBinding.localModelId || '').trim()
+        || !String(effectiveBinding.engine || '').trim()
+        || !String(effectiveBinding.adapter || '').trim()
+      );
     const needsTokenApiHydration = effectiveBinding?.source === 'token-api'
       && (
         !String(effectiveBinding.connectorId || '').trim()
         || !String(effectiveBinding.provider || '').trim()
       );
     let options: RuntimeRouteOptionsSnapshot | null = null;
-    if (!effectiveBinding || !hasModel || needsTokenApiHydration) {
+    if (!effectiveBinding || !hasModel || needsTokenApiHydration || needsLocalRuntimeHydration) {
       options = await loadRuntimeRouteOptions({
         capability: payload.capability,
         modId: payload.modId,
@@ -828,6 +891,8 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
     }
     if (!effectiveBinding || !hasModel) {
       effectiveBinding = options?.selected;
+    } else if (options && effectiveBinding.source === 'local-runtime') {
+      effectiveBinding = hydrateLocalRuntimeRouteBindingFromOptions(effectiveBinding, options);
     } else if (options && effectiveBinding.source === 'token-api') {
       effectiveBinding = hydrateTokenApiRouteBindingFromOptions(effectiveBinding, options);
     }
@@ -949,9 +1014,20 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'text.generate',
               binding,
             });
+            const model = requireModel(request.model || resolved.model, 'MOD_RUNTIME_TEXT_MODEL_REQUIRED');
+            await ensureRuntimeLocalModelWarm({
+              modId,
+              source: resolved.source,
+              modelId: model,
+              localModelId: resolved.localModelId || undefined,
+              goRuntimeLocalModelId: resolved.goRuntimeLocalModelId || undefined,
+              engine: resolved.engine || resolved.provider || undefined,
+              endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint || undefined,
+              timeoutMs: Number(request.timeoutMs || 0) || undefined,
+            });
             return getRuntimeClient().ai.text.generate({
               ...request,
-              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TEXT_MODEL_REQUIRED'),
+              model,
               route: resolved.source,
               fallback: 'deny',
               connectorId: resolved.connectorId || undefined,
@@ -976,9 +1052,20 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'text.generate',
               binding,
             });
+            const model = requireModel(request.model || resolved.model, 'MOD_RUNTIME_TEXT_MODEL_REQUIRED');
+            await ensureRuntimeLocalModelWarm({
+              modId,
+              source: resolved.source,
+              modelId: model,
+              localModelId: resolved.localModelId || undefined,
+              goRuntimeLocalModelId: resolved.goRuntimeLocalModelId || undefined,
+              engine: resolved.engine || resolved.provider || undefined,
+              endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint || undefined,
+              timeoutMs: Number(request.timeoutMs || 0) || undefined,
+            });
             return getRuntimeClient().ai.text.stream({
               ...request,
-              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TEXT_MODEL_REQUIRED'),
+              model,
               route: resolved.source,
               fallback: 'deny',
               connectorId: resolved.connectorId || undefined,

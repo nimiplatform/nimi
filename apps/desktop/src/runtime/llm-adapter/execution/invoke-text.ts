@@ -3,6 +3,7 @@ import {
   asRuntimeInvokeError,
   extractRuntimeReasonCode,
   buildRuntimeCallOptions,
+  ensureRuntimeLocalModelWarm,
   createRuntimeTraceId,
   extractTextFromGenerateOutput,
   getRuntimeClient,
@@ -53,6 +54,14 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
 
   try {
     const runtime = getRuntimeClient();
+    await ensureRuntimeLocalModelWarm({
+      modId: input.modId,
+      source: resolved.source,
+      modelId: resolved.modelId,
+      engine: resolved.provider,
+      endpoint: resolved.endpoint,
+      timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,
+    });
     const callOptions = await buildRuntimeCallOptions({
       modId: input.modId,
       timeoutMs: PRIVATE_PROVIDER_TIMEOUT_MS,

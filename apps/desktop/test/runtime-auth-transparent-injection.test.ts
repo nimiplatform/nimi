@@ -119,6 +119,45 @@ async function invokeGenerateWithoutSubject(): Promise<void> {
   });
 }
 
+async function invokeLocalGenerateWithoutSubject(): Promise<void> {
+  await getPlatformClient().runtime.ai.executeScenario({
+    head: {
+      appId: getPlatformClient().runtime.appId,
+      modelId: 'localai/bartowski/Qwen_Qwen3.5-0.8B-GGUF',
+      routePolicy: 1,
+      fallback: 1,
+      timeoutMs: 60_000,
+      connectorId: '',
+    },
+    scenarioType: 1,
+    executionMode: 1,
+    spec: {
+      spec: {
+        oneofKind: 'textGenerate',
+        textGenerate: {
+          input: [{
+            role: 'user',
+            content: 'hello',
+            name: '',
+          }],
+          systemPrompt: '',
+          tools: [],
+          temperature: 0,
+          topP: 0,
+          maxTokens: 32,
+        },
+      },
+    },
+  });
+}
+
+function findUnaryCallByMethodId(
+  calls: TauriInvokeCall[],
+  methodId: string,
+): TauriInvokeCall | undefined {
+  return calls.findLast((item) => item.command === 'runtime_bridge_unary' && item.payload.methodId === methodId);
+}
+
 function assertUnaryRequestContains(calls: TauriInvokeCall[], expectedText: string): void {
   const unaryCall = calls.findLast((item) => item.command === 'runtime_bridge_unary');
   assert.ok(unaryCall);
@@ -218,6 +257,84 @@ test('platform runtime call omits authorization when token provider returns empt
     const unaryCall = calls.find((item) => item.command === 'runtime_bridge_unary');
     assert.ok(unaryCall);
     assert.equal(unaryCall.payload.authorization, undefined);
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform local-runtime ai call omits authorization even when token provider returns a token', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'stale-realm-token',
+    });
+
+    await invokeLocalGenerateWithoutSubject();
+
+    const unaryCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+    );
+    assert.ok(unaryCall);
+    assert.equal(unaryCall.payload.authorization, undefined);
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform localRuntime read-only calls omit authorization even when token provider returns a token', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'stale-realm-token',
+    });
+
+    await getPlatformClient().runtime.localRuntime.listLocalModels({});
+    await getPlatformClient().runtime.localRuntime.warmLocalModel({
+      localModelId: 'local-model-1',
+      timeoutMs: 60_000,
+    });
+
+    const listCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeLocalRuntimeService/ListLocalModels',
+    );
+    assert.ok(listCall);
+    assert.equal(listCall.payload.authorization, undefined);
+
+    const warmCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeLocalRuntimeService/WarmLocalModel',
+    );
+    assert.ok(warmCall);
+    assert.equal(warmCall.payload.authorization, undefined);
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('platform token-api ai call still injects authorization', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const restoreTauri = installTauriRuntime(calls);
+  try {
+    await initializePlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'fresh-realm-token',
+      subjectUserIdProvider: () => 'subject-user',
+    });
+
+    await invokeGenerateWithoutSubject();
+
+    const unaryCall = findUnaryCallByMethodId(
+      calls,
+      '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
+    );
+    assert.ok(unaryCall);
+    assert.equal(unaryCall.payload.authorization, 'Bearer fresh-realm-token');
   } finally {
     restoreTauri();
   }

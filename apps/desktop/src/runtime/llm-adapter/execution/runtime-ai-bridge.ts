@@ -6,6 +6,10 @@ import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 const ROUTE_POLICY_LOCAL_RUNTIME = 1;
 const ROUTE_POLICY_TOKEN_API = 2;
 const FALLBACK_POLICY_DENY = 1;
+const DEFAULT_LOCAL_RUNTIME_WARM_TIMEOUT_MS = 60_000;
+const MAX_LOCAL_RUNTIME_WARM_TIMEOUT_MS = 300_000;
+const LOCAL_RUNTIME_WARM_PAGE_SIZE = 100;
+const LOCAL_RUNTIME_WARM_MAX_PAGES = 20;
 
 const RUNTIME_REASON_CODE_TO_LOCAL_AI: Record<string, string> = {
   AI_MODEL_NOT_FOUND: ReasonCode.AI_MODEL_NOT_FOUND,
@@ -39,6 +43,17 @@ const AI_REASON_CODE_NUMERIC: Record<number, string> = {
 
 const DEFAULT_RUNTIME_ACTION_HINT = 'retry_or_check_runtime_status';
 
+type RuntimeLocalWarmCandidate = {
+  localModelId: string;
+  modelId: string;
+  engine: string;
+  endpoint: string;
+  updatedAt: string;
+};
+
+const warmedLocalRuntimeModelKeys = new Set<string>();
+const pendingLocalRuntimeWarmups = new Map<string, Promise<void>>();
+
 export const RUNTIME_MODAL_TEXT = 1;
 export const RUNTIME_MODAL_IMAGE = 2;
 export const RUNTIME_MODAL_VIDEO = 3;
@@ -55,6 +70,18 @@ export type SourceAndModel = {
   adapter: string;
 };
 
+export type EnsureRuntimeLocalModelWarmInput = {
+  modId: string;
+  source: InferenceRouteSource;
+  modelId: string;
+  localModelId?: string;
+  goRuntimeLocalModelId?: string;
+  engine?: string;
+  endpoint?: string;
+  timeoutMs?: number;
+  onStateChange?: (state: 'warming' | 'ready', candidate: RuntimeLocalWarmCandidate) => void;
+};
+
 export function createRuntimeTraceId(prefix = 'runtime-call'): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -63,13 +90,185 @@ function normalizeModelRoot(model: string): string {
   const normalized = String(model || '').trim();
   if (!normalized) return '';
   const lower = normalized.toLowerCase();
+  if (lower.startsWith('localai/')) return normalized.slice('localai/'.length).trim();
+  if (lower.startsWith('nexa/')) return normalized.slice('nexa/'.length).trim();
   if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim();
   if (lower.startsWith('cloud/')) return normalized.slice('cloud/'.length).trim();
   if (lower.startsWith('token/')) return normalized.slice('token/'.length).trim();
   return normalized;
 }
 
-function ensureRouteModelId(model: string, routePolicy: number): string {
+function inferLocalRuntimeEngine(provider: string): string {
+  const normalized = String(provider || '').trim().toLowerCase();
+  if (normalized.includes('nexa')) return 'nexa';
+  if (normalized.includes('localai') || normalized.includes('local-runtime')) return 'localai';
+  return 'local';
+}
+
+function normalizeEngineName(value: string): string {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized.includes('localai')) return 'localai';
+  if (normalized.includes('nexa')) return 'nexa';
+  return normalized;
+}
+
+function resolveWarmTimeoutMs(timeoutMs: number | undefined): number {
+  const numeric = Math.floor(Number(timeoutMs || 0));
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return DEFAULT_LOCAL_RUNTIME_WARM_TIMEOUT_MS;
+  }
+  if (numeric > MAX_LOCAL_RUNTIME_WARM_TIMEOUT_MS) {
+    return MAX_LOCAL_RUNTIME_WARM_TIMEOUT_MS;
+  }
+  return numeric;
+}
+
+function localRuntimeWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
+  return [
+    String(candidate.localModelId || '').trim(),
+    String(candidate.endpoint || '').trim(),
+    String(candidate.updatedAt || '').trim(),
+  ].join('|');
+}
+
+function selectRuntimeLocalWarmCandidate(
+  input: Omit<EnsureRuntimeLocalModelWarmInput, 'modId' | 'timeoutMs' | 'onStateChange'>,
+  models: Array<Record<string, unknown>>,
+): RuntimeLocalWarmCandidate | null {
+  const targetLocalModelId = String(input.goRuntimeLocalModelId || input.localModelId || '').trim();
+  const targetModelRoot = normalizeModelRoot(input.modelId);
+  const targetEndpoint = String(input.endpoint || '').trim();
+  const targetEngine = normalizeEngineName(input.engine || '');
+
+  const candidates = models
+    .map((item) => ({
+      localModelId: String(item.localModelId || '').trim(),
+      modelId: String(item.modelId || '').trim(),
+      engine: String(item.engine || '').trim(),
+      endpoint: String(item.endpoint || '').trim(),
+      updatedAt: String(item.updatedAt || '').trim(),
+      status: Number(item.status || 0),
+    }))
+    .filter((item) => item.localModelId && item.modelId && item.status !== 4);
+
+  if (targetLocalModelId) {
+    const direct = candidates.find((item) => item.localModelId === targetLocalModelId) || null;
+    if (direct) {
+      return direct;
+    }
+  }
+
+  const scored = candidates
+    .filter((item) => normalizeModelRoot(item.modelId) === targetModelRoot)
+    .map((item) => {
+      let score = 0;
+      if (targetEndpoint && item.endpoint === targetEndpoint) score += 4;
+      if (targetEngine && normalizeEngineName(item.engine) === targetEngine) score += 2;
+      if (item.status === 2) score += 1;
+      return { item, score };
+    })
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      return left.item.localModelId.localeCompare(right.item.localModelId);
+    });
+
+  return scored[0]?.item || null;
+}
+
+async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown>>> {
+  const runtime = getRuntimeClient();
+  const models: Array<Record<string, unknown>> = [];
+  let pageToken = '';
+  for (let index = 0; index < LOCAL_RUNTIME_WARM_MAX_PAGES; index += 1) {
+    const response = await runtime.localRuntime.listLocalModels({
+      statusFilter: 0,
+      engineFilter: '',
+      categoryFilter: '',
+      pageSize: LOCAL_RUNTIME_WARM_PAGE_SIZE,
+      pageToken,
+    });
+    for (const model of response.models || []) {
+      if (model && typeof model === 'object' && !Array.isArray(model)) {
+        models.push(model as unknown as Record<string, unknown>);
+      }
+    }
+    pageToken = String(response.nextPageToken || '').trim();
+    if (!pageToken) {
+      break;
+    }
+  }
+  return models;
+}
+
+export function resetRuntimeLocalModelWarmCacheForTests(): void {
+  warmedLocalRuntimeModelKeys.clear();
+  pendingLocalRuntimeWarmups.clear();
+}
+
+export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModelWarmInput): Promise<void> {
+  if (input.source !== 'local-runtime') {
+    return;
+  }
+
+  const selectionInput = {
+    source: input.source,
+    modelId: input.modelId,
+    localModelId: input.localModelId,
+    goRuntimeLocalModelId: input.goRuntimeLocalModelId,
+    engine: input.engine,
+    endpoint: input.endpoint,
+  };
+  const initialCandidate = selectRuntimeLocalWarmCandidate(selectionInput, await listAllRuntimeLocalModels());
+  if (!initialCandidate) {
+    return;
+  }
+
+  const initialCacheKey = localRuntimeWarmCacheKey(initialCandidate);
+  if (warmedLocalRuntimeModelKeys.has(initialCacheKey)) {
+    return;
+  }
+
+  const pending = pendingLocalRuntimeWarmups.get(initialCacheKey);
+  if (pending) {
+    await pending;
+    return;
+  }
+
+  const warmPromise = (async () => {
+    input.onStateChange?.('warming', initialCandidate);
+    const timeoutMs = resolveWarmTimeoutMs(input.timeoutMs);
+    const callOptions = await buildRuntimeCallOptions({
+      modId: input.modId,
+      timeoutMs,
+      source: 'local-runtime',
+      providerEndpoint: initialCandidate.endpoint,
+    });
+    await getRuntimeClient().localRuntime.warmLocalModel({
+      localModelId: initialCandidate.localModelId,
+      timeoutMs,
+    }, callOptions);
+    const refreshedCandidate = selectRuntimeLocalWarmCandidate(
+      {
+        ...selectionInput,
+        localModelId: initialCandidate.localModelId,
+        goRuntimeLocalModelId: initialCandidate.localModelId,
+      },
+      await listAllRuntimeLocalModels(),
+    ) || initialCandidate;
+    warmedLocalRuntimeModelKeys.add(localRuntimeWarmCacheKey(refreshedCandidate));
+    input.onStateChange?.('ready', refreshedCandidate);
+  })().finally(() => {
+    pendingLocalRuntimeWarmups.delete(initialCacheKey);
+  });
+
+  pendingLocalRuntimeWarmups.set(initialCacheKey, warmPromise);
+  await warmPromise;
+}
+
+function ensureRouteModelId(model: string, routePolicy: number, provider: string): string {
   const modelRoot = normalizeModelRoot(model);
   if (!modelRoot) {
     throw createNimiError({
@@ -80,6 +279,10 @@ function ensureRouteModelId(model: string, routePolicy: number): string {
     });
   }
   if (routePolicy === ROUTE_POLICY_TOKEN_API) return `cloud/${modelRoot}`;
+  const engine = inferLocalRuntimeEngine(provider);
+  if (engine === 'localai' || engine === 'nexa') {
+    return `${engine}/${modelRoot}`;
+  }
   return `local/${modelRoot}`;
 }
 
@@ -122,7 +325,7 @@ export function resolveSourceAndModel(input: {
     source,
     routePolicy,
     fallbackPolicy: FALLBACK_POLICY_DENY,
-    modelId: ensureRouteModelId(model, routePolicy),
+    modelId: ensureRouteModelId(model, routePolicy, provider),
     endpoint: hasConnector ? '' : endpoint,
     provider,
     adapter: 'openai_compat_adapter',
