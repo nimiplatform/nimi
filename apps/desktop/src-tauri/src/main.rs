@@ -181,7 +181,6 @@ struct DiagLogEntry {
     details: serde_json::Value,
 }
 
-
 include!("main_parts/session_logging.rs");
 include!("main_parts/env_http.rs");
 include!("main_parts/defaults_and_commands.rs");
