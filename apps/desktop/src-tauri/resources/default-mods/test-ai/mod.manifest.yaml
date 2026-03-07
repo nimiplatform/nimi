@@ -1,0 +1,33 @@
+id: world.nimi.test-ai
+name: Test AI
+version: 1.0.0
+kind: capability-mod
+icon: local-chat
+entry: ./dist/mods/test-ai/index.js
+description: >
+  Diagnostic mod for validating all 8 AI capabilities end-to-end: text generation,
+  text embedding, image generation, video generation, audio synthesis, audio transcription,
+  voice cloning, and voice design.
+capabilities:
+  - runtime.ai.text.generate
+  - runtime.ai.text.embed
+  - runtime.media.image.generate
+  - runtime.media.video.generate
+  - runtime.media.tts.list.voices
+  - runtime.media.tts.synthesize
+  - runtime.media.stt.transcribe
+  - runtime.media.voice.clone
+  - runtime.media.voice.design
+  - runtime.route.list.options
+  - runtime.route.resolve
+  - ui.register.ui-extension.app.sidebar.mods
+  - ui.register.ui-extension.app.content.routes
+ai:
+  consume:
+    - chat
+    - embed
+    - image
+    - video
+    - tts
+    - stt
+    - voice

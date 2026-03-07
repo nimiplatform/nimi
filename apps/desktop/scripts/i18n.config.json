@@ -28,7 +28,7 @@
       "enforced": true,
       "reason": "Mod has en/zh JSON locales and is mounted by desktop runtime surfaces."
     },
-    "test-chat-tts": {
+    "test-ai": {
       "enforced": false,
       "reason": "Diagnostic test mod without locale bundles; excluded from parity enforcement."
     },

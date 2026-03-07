@@ -3,9 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::provider_adapter::{
     default_policy_gate_for_provider, default_provider_hints_for_provider_capability,
     infer_backend_hint_for_provider, nexa_capability_requires_npu, nexa_model_has_npu_candidate,
-    nexa_policy_gate_allows_npu, provider_available_for_capability, provider_backend_hint_from_hints,
-    provider_from_engine, probe_model_matches_capability_for_provider, resolve_adapter_for_provider,
-    with_provider_backend_hint,
+    nexa_policy_gate_allows_npu, probe_model_matches_capability_for_provider,
+    provider_available_for_capability, provider_backend_hint_from_hints, provider_from_engine,
+    resolve_adapter_for_provider, with_provider_backend_hint,
 };
 use super::reason_codes::{
     LOCAL_AI_ADAPTER_MISMATCH, LOCAL_AI_CAPABILITY_MISSING, LOCAL_AI_SERVICE_UNREACHABLE,
@@ -24,7 +24,8 @@ fn normalize_optional(input: Option<&str>) -> Option<String> {
 }
 
 fn service_ready(service: &LocalAiServiceDescriptor) -> bool {
-    service.status == LocalAiServiceStatus::Active || service.status == LocalAiServiceStatus::Installed
+    service.status == LocalAiServiceStatus::Active
+        || service.status == LocalAiServiceStatus::Installed
 }
 
 fn model_matches_capability(model: &LocalAiModelRecord, capability: &str) -> bool {
@@ -80,7 +81,9 @@ fn probe_models_for_capability<'a>(
 ) -> Vec<&'a String> {
     let mut selected = probe_models
         .iter()
-        .filter(|item| probe_model_matches_capability_for_provider(provider, item.as_str(), capability))
+        .filter(|item| {
+            probe_model_matches_capability_for_provider(provider, item.as_str(), capability)
+        })
         .collect::<Vec<_>>();
     selected.sort_by(|left, right| left.cmp(right));
     selected
@@ -95,7 +98,10 @@ fn backend_source_rank(value: &str) -> i32 {
     }
 }
 
-fn prefer_row(candidate: &LocalAiCapabilityMatrixEntry, current: &LocalAiCapabilityMatrixEntry) -> bool {
+fn prefer_row(
+    candidate: &LocalAiCapabilityMatrixEntry,
+    current: &LocalAiCapabilityMatrixEntry,
+) -> bool {
     if candidate.available != current.available {
         return candidate.available;
     }
@@ -106,7 +112,11 @@ fn prefer_row(candidate: &LocalAiCapabilityMatrixEntry, current: &LocalAiCapabil
         return candidate_source_rank > current_source_rank;
     }
 
-    let candidate_reason_rank = if candidate.reason_code.is_some() { 0 } else { 1 };
+    let candidate_reason_rank = if candidate.reason_code.is_some() {
+        0
+    } else {
+        1
+    };
     let current_reason_rank = if current.reason_code.is_some() { 0 } else { 1 };
     if candidate_reason_rank != current_reason_rank {
         return candidate_reason_rank > current_reason_rank;
@@ -134,10 +144,7 @@ fn nexa_gate_reason_and_detail(
     npu_usable: bool,
 ) -> (String, String) {
     if npu_usable {
-        return (
-            "NPU_USABLE".to_string(),
-            "nexa npu gate open".to_string(),
-        );
+        return ("NPU_USABLE".to_string(), "nexa npu gate open".to_string());
     }
     if !host_npu_ready {
         return (
@@ -202,9 +209,8 @@ pub fn build_capability_matrix_with_probe_and_device(
                 .iter()
                 .any(|model_id| nexa_model_has_npu_candidate(model_id.as_str()));
             let policy_gate_allows_npu = nexa_policy_gate_allows_npu();
-            let npu_usable = host_npu_ready
-                && model_probe_has_npu_candidate
-                && policy_gate_allows_npu;
+            let npu_usable =
+                host_npu_ready && model_probe_has_npu_candidate && policy_gate_allows_npu;
             let (gate_reason, gate_detail) = nexa_gate_reason_and_detail(
                 host_npu_ready,
                 model_probe_has_npu_candidate,
@@ -250,117 +256,119 @@ pub fn build_capability_matrix_with_probe_and_device(
                 });
             }
 
-            let mut push_entry = |model_id: Option<String>,
-                                  model_engine: Option<String>,
-                                  backend_source: &str| {
-                let mut provider_hints = default_provider_hints_for_provider_capability(
-                    provider.as_str(),
-                    node.capability.as_str(),
-                );
-                let backend = infer_backend_hint_for_provider(
-                    provider.as_str(),
-                    node.capability.as_str(),
-                    model_id.as_deref(),
-                )
-                .or_else(|| {
-                    provider_backend_hint_from_hints(provider.as_str(), provider_hints.as_ref())
-                });
-                with_provider_backend_hint(
-                    provider.as_str(),
-                    &mut provider_hints,
-                    backend.clone(),
-                    node.capability.as_str(),
-                );
-                if let Some(gate) = nexa_gate.as_ref() {
-                    if provider_hints.is_none() {
-                        provider_hints = default_provider_hints_for_provider_capability(
-                            provider.as_str(),
-                            node.capability.as_str(),
-                        );
-                    }
-                    if let Some(hints) = provider_hints.as_mut() {
-                        if hints.nexa.is_none() {
-                            hints.nexa = Some(LocalAiProviderNexaHints::default());
-                        }
-                        if let Some(nexa) = hints.nexa.as_mut() {
-                            nexa.policy_gate = policy_gate.clone();
-                            nexa.host_npu_ready = Some(gate.host_npu_ready);
-                            nexa.model_probe_has_npu_candidate =
-                                Some(gate.model_probe_has_npu_candidate);
-                            nexa.policy_gate_allows_npu = Some(gate.policy_gate_allows_npu);
-                            nexa.npu_usable = Some(gate.npu_usable);
-                            nexa.gate_reason = Some(gate.gate_reason.clone());
-                            nexa.gate_detail = Some(gate.gate_detail.clone());
-                        }
-                    }
-                }
-
-                let (adapter, adapter_error) = match resolve_adapter_for_provider(
-                    provider.as_str(),
-                    node.capability.as_str(),
-                    provider_hints.as_ref(),
-                    None,
-                ) {
-                    Ok(adapter) => (adapter, None),
-                    Err(error) => (
-                        super::provider_adapter::default_adapter_for_provider_capability(
-                            provider.as_str(),
-                            node.capability.as_str(),
-                        ),
-                        Some(error),
-                    ),
-                };
-
-                let mut available = service_ready(service);
-                let mut reason_code = None::<String>;
-                if let Some(error) = adapter_error {
-                    available = false;
-                    reason_code = Some(
-                        error
-                            .split(':')
-                            .next()
-                            .unwrap_or(LOCAL_AI_ADAPTER_MISMATCH)
-                            .trim()
-                            .to_string(),
+            let mut push_entry =
+                |model_id: Option<String>, model_engine: Option<String>, backend_source: &str| {
+                    let mut provider_hints = default_provider_hints_for_provider_capability(
+                        provider.as_str(),
+                        node.capability.as_str(),
                     );
-                } else if !service_ready(service) {
-                    available = false;
-                    reason_code = Some(LOCAL_AI_SERVICE_UNREACHABLE.to_string());
-                } else if !provider_available_for_capability(provider.as_str(), node.capability.as_str()) {
-                    available = false;
-                    reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
-                } else if model_id.is_none() {
-                    available = false;
-                    reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
-                } else if provider.eq_ignore_ascii_case("nexa")
-                    && nexa_capability_requires_npu(node.capability.as_str())
-                {
-                    let gate_allows = nexa_gate
-                        .as_ref()
-                        .map(|item| item.npu_usable)
-                        .unwrap_or(false);
-                    if !gate_allows {
+                    let backend = infer_backend_hint_for_provider(
+                        provider.as_str(),
+                        node.capability.as_str(),
+                        model_id.as_deref(),
+                    )
+                    .or_else(|| {
+                        provider_backend_hint_from_hints(provider.as_str(), provider_hints.as_ref())
+                    });
+                    with_provider_backend_hint(
+                        provider.as_str(),
+                        &mut provider_hints,
+                        backend.clone(),
+                        node.capability.as_str(),
+                    );
+                    if let Some(gate) = nexa_gate.as_ref() {
+                        if provider_hints.is_none() {
+                            provider_hints = default_provider_hints_for_provider_capability(
+                                provider.as_str(),
+                                node.capability.as_str(),
+                            );
+                        }
+                        if let Some(hints) = provider_hints.as_mut() {
+                            if hints.nexa.is_none() {
+                                hints.nexa = Some(LocalAiProviderNexaHints::default());
+                            }
+                            if let Some(nexa) = hints.nexa.as_mut() {
+                                nexa.policy_gate = policy_gate.clone();
+                                nexa.host_npu_ready = Some(gate.host_npu_ready);
+                                nexa.model_probe_has_npu_candidate =
+                                    Some(gate.model_probe_has_npu_candidate);
+                                nexa.policy_gate_allows_npu = Some(gate.policy_gate_allows_npu);
+                                nexa.npu_usable = Some(gate.npu_usable);
+                                nexa.gate_reason = Some(gate.gate_reason.clone());
+                                nexa.gate_detail = Some(gate.gate_detail.clone());
+                            }
+                        }
+                    }
+
+                    let (adapter, adapter_error) = match resolve_adapter_for_provider(
+                        provider.as_str(),
+                        node.capability.as_str(),
+                        provider_hints.as_ref(),
+                        None,
+                    ) {
+                        Ok(adapter) => (adapter, None),
+                        Err(error) => (
+                            super::provider_adapter::default_adapter_for_provider_capability(
+                                provider.as_str(),
+                                node.capability.as_str(),
+                            ),
+                            Some(error),
+                        ),
+                    };
+
+                    let mut available = service_ready(service);
+                    let mut reason_code = None::<String>;
+                    if let Some(error) = adapter_error {
+                        available = false;
+                        reason_code = Some(
+                            error
+                                .split(':')
+                                .next()
+                                .unwrap_or(LOCAL_AI_ADAPTER_MISMATCH)
+                                .trim()
+                                .to_string(),
+                        );
+                    } else if !service_ready(service) {
+                        available = false;
+                        reason_code = Some(LOCAL_AI_SERVICE_UNREACHABLE.to_string());
+                    } else if !provider_available_for_capability(
+                        provider.as_str(),
+                        node.capability.as_str(),
+                    ) {
                         available = false;
                         reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
+                    } else if model_id.is_none() {
+                        available = false;
+                        reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
+                    } else if provider.eq_ignore_ascii_case("nexa")
+                        && nexa_capability_requires_npu(node.capability.as_str())
+                    {
+                        let gate_allows = nexa_gate
+                            .as_ref()
+                            .map(|item| item.npu_usable)
+                            .unwrap_or(false);
+                        if !gate_allows {
+                            available = false;
+                            reason_code = Some(LOCAL_AI_CAPABILITY_MISSING.to_string());
+                        }
                     }
-                }
 
-                output.push(LocalAiCapabilityMatrixEntry {
-                    service_id: service.service_id.clone(),
-                    node_id: node.node_id.clone(),
-                    capability: node.capability.clone(),
-                    provider: provider.clone(),
-                    model_id,
-                    model_engine,
-                    backend,
-                    backend_source: backend_source.to_string(),
-                    adapter,
-                    available,
-                    reason_code,
-                    provider_hints,
-                    policy_gate: policy_gate.clone(),
-                });
-            };
+                    output.push(LocalAiCapabilityMatrixEntry {
+                        service_id: service.service_id.clone(),
+                        node_id: node.node_id.clone(),
+                        capability: node.capability.clone(),
+                        provider: provider.clone(),
+                        model_id,
+                        model_engine,
+                        backend,
+                        backend_source: backend_source.to_string(),
+                        adapter,
+                        available,
+                        reason_code,
+                        provider_hints,
+                        policy_gate: policy_gate.clone(),
+                    });
+                };
 
             if installed_models.is_empty() && probe_candidates.is_empty() {
                 push_entry(None, None, "catalog");

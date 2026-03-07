@@ -17,7 +17,9 @@ pub struct RuntimeBridgeUnaryResult {
     pub response_metadata: Option<HashMap<String, String>>,
 }
 
-fn extract_response_metadata(response: &tonic::Response<Vec<u8>>) -> Option<HashMap<String, String>> {
+fn extract_response_metadata(
+    response: &tonic::Response<Vec<u8>>,
+) -> Option<HashMap<String, String>> {
     let keys = [
         "x-nimi-runtime-version",
         "x-nimi-voice-catalog-source",
@@ -84,7 +86,9 @@ pub async fn invoke_unary(
         payload.method_id.as_str(),
     )?;
     if let Some(timeout_ms) = payload.timeout_ms {
-        request.set_timeout(std::time::Duration::from_millis(timeout_ms.max(1)));
+        if timeout_ms > 0 {
+            request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+        }
     }
 
     grpc.ready().await.map_err(|error| {

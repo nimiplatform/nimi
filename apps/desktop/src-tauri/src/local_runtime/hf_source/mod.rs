@@ -54,7 +54,6 @@ pub(super) fn hf_download_base_url() -> String {
     "https://huggingface.co".to_string()
 }
 
-
 include!("repo_normalization.rs");
 include!("download_transport.rs");
 include!("install_flow.rs");

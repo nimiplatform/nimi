@@ -26,7 +26,8 @@ static LOCALAI_RUNTIME_API_KEY: OnceLock<String> = OnceLock::new();
 
 type ManagedStrategyStartFn = fn(&str, &str) -> Result<String, String>;
 type ManagedStrategyStopFn = fn(&str) -> Result<String, String>;
-type ManagedStrategyBootstrapFn = fn(&LocalAiServiceArtifact, &str) -> Result<Option<String>, String>;
+type ManagedStrategyBootstrapFn =
+    fn(&LocalAiServiceArtifact, &str) -> Result<Option<String>, String>;
 type ManagedStrategyEnabledFn = fn() -> bool;
 
 #[derive(Clone, Copy)]
@@ -89,7 +90,9 @@ fn generate_runtime_api_key() -> String {
 }
 
 pub(crate) fn resolve_or_initialize_runtime_api_key() -> String {
-    if let Some(value) = normalize_non_empty(std::env::var(LOCALAI_RUNTIME_API_KEY_ENV).ok().as_deref()) {
+    if let Some(value) =
+        normalize_non_empty(std::env::var(LOCALAI_RUNTIME_API_KEY_ENV).ok().as_deref())
+    {
         return value;
     }
     let generated = LOCALAI_RUNTIME_API_KEY
@@ -121,8 +124,8 @@ fn managed_service_artifact(
 ) -> Result<LocalAiServiceArtifact, String> {
     let artifact = find_service_artifact(service_id)
         .ok_or_else(|| format!("LOCAL_AI_SERVICE_ARTIFACT_NOT_FOUND: serviceId={service_id}"))?;
-    let resolved_provider = managed_service_provider_from_artifact(&artifact)
-        .unwrap_or_else(|| "unknown".to_string());
+    let resolved_provider =
+        managed_service_provider_from_artifact(&artifact).unwrap_or_else(|| "unknown".to_string());
     if !resolved_provider.eq_ignore_ascii_case(provider) {
         return Err(format!(
             "LOCAL_AI_ADAPTER_MISMATCH: serviceId={} managed provider mismatch expected={} actual={}",
@@ -235,7 +238,12 @@ pub fn normalize_service_descriptor(descriptor: &mut LocalAiServiceDescriptor) {
     if descriptor.artifact_type.is_none() {
         descriptor.artifact_type = Some(artifact.artifact_type.clone());
     }
-    if descriptor.endpoint.as_deref().unwrap_or_default().trim().is_empty()
+    if descriptor
+        .endpoint
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
         && artifact.artifact_type == LocalAiServiceArtifactType::AttachedEndpoint
     {
         descriptor.endpoint = Some(default_loopback_endpoint_for_artifact(&artifact));
@@ -252,17 +260,15 @@ fn is_loopback_endpoint(endpoint: &str) -> bool {
         return false;
     }
     if let Ok(url) = reqwest::Url::parse(normalized) {
-        return url
-            .host_str()
-            .map(is_loopback_host)
-            .unwrap_or(false);
+        return url.host_str().map(is_loopback_host).unwrap_or(false);
     }
     false
 }
 
 fn build_service_health_url(endpoint: &str, health_endpoint: &str) -> Result<String, String> {
-    let endpoint = normalize_non_empty(Some(endpoint))
-        .ok_or_else(|| "LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: service endpoint is missing".to_string())?;
+    let endpoint = normalize_non_empty(Some(endpoint)).ok_or_else(|| {
+        "LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: service endpoint is missing".to_string()
+    })?;
     let health_endpoint =
         normalize_non_empty(Some(health_endpoint)).unwrap_or_else(|| "/readyz".to_string());
     if let Ok(url) = reqwest::Url::parse(health_endpoint.as_str()) {
@@ -296,20 +302,24 @@ fn maybe_authenticate_request(
     if managed_service_provider(service_id).as_deref() == Some("localai") {
         let api_key = resolve_or_initialize_runtime_api_key();
         if !api_key.trim().is_empty() {
-            return request.bearer_auth(api_key.clone()).header("X-Api-Key", api_key);
+            return request
+                .bearer_auth(api_key.clone())
+                .header("X-Api-Key", api_key);
         }
     }
     request
 }
 
 fn parse_endpoint_host_port(endpoint: &str) -> Result<(String, u16), String> {
-    let normalized = normalize_non_empty(Some(endpoint))
-        .ok_or_else(|| "LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: service endpoint is missing".to_string())?;
-    let url = reqwest::Url::parse(normalized.as_str())
-        .map_err(|error| format!("LOCAL_AI_SERVICE_ENDPOINT_INVALID: invalid endpoint URL: {error}"))?;
-    let host = url
-        .host_str()
-        .ok_or_else(|| "LOCAL_AI_SERVICE_ENDPOINT_INVALID: endpoint host is required".to_string())?;
+    let normalized = normalize_non_empty(Some(endpoint)).ok_or_else(|| {
+        "LOCAL_AI_SERVICE_ENDPOINT_REQUIRED: service endpoint is missing".to_string()
+    })?;
+    let url = reqwest::Url::parse(normalized.as_str()).map_err(|error| {
+        format!("LOCAL_AI_SERVICE_ENDPOINT_INVALID: invalid endpoint URL: {error}")
+    })?;
+    let host = url.host_str().ok_or_else(|| {
+        "LOCAL_AI_SERVICE_ENDPOINT_INVALID: endpoint host is required".to_string()
+    })?;
     if !is_loopback_host(host) {
         return Err(format!(
             "LOCAL_AI_SERVICE_UNREACHABLE: endpoint host must be loopback: {host}"
@@ -318,7 +328,9 @@ fn parse_endpoint_host_port(endpoint: &str) -> Result<(String, u16), String> {
     let port = url
         .port_or_known_default()
         .filter(|value| *value > 0)
-        .ok_or_else(|| "LOCAL_AI_SERVICE_ENDPOINT_INVALID: endpoint port is required".to_string())?;
+        .ok_or_else(|| {
+            "LOCAL_AI_SERVICE_ENDPOINT_INVALID: endpoint port is required".to_string()
+        })?;
     Ok(("127.0.0.1".to_string(), port))
 }
 
@@ -426,9 +438,9 @@ fn shutdown_process(child: &mut Child, grace_timeout: Duration) {
 
 fn managed_localai_process_running(service_id: &str) -> Result<bool, String> {
     let normalized = service_id.trim().to_ascii_lowercase();
-    let mut registry = localai_process_registry()
-        .lock()
-        .map_err(|_| "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string())?;
+    let mut registry = localai_process_registry().lock().map_err(|_| {
+        "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string()
+    })?;
     if let Some(child) = registry.get_mut(normalized.as_str()) {
         return match child.try_wait() {
             Ok(None) => Ok(true),
@@ -449,9 +461,9 @@ fn managed_localai_process_running(service_id: &str) -> Result<bool, String> {
 
 fn stop_managed_localai_process(service_id: &str) -> Result<bool, String> {
     let normalized = service_id.trim().to_ascii_lowercase();
-    let mut registry = localai_process_registry()
-        .lock()
-        .map_err(|_| "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string())?;
+    let mut registry = localai_process_registry().lock().map_err(|_| {
+        "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string()
+    })?;
     let mut child = match registry.remove(normalized.as_str()) {
         Some(value) => value,
         None => return Ok(false),
@@ -529,14 +541,12 @@ pub fn start_managed_localai_service(service_id: &str, endpoint: &str) -> Result
     }
 
     let child = command.spawn().map_err(|error| {
-        format!(
-            "LOCAL_AI_PROVIDER_INTERNAL_ERROR: failed to start managed localai binary: {error}"
-        )
+        format!("LOCAL_AI_PROVIDER_INTERNAL_ERROR: failed to start managed localai binary: {error}")
     })?;
     {
-        let mut registry = localai_process_registry()
-            .lock()
-            .map_err(|_| "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string())?;
+        let mut registry = localai_process_registry().lock().map_err(|_| {
+            "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string()
+        })?;
         registry.insert(service_id.trim().to_ascii_lowercase(), child);
     }
 
@@ -582,9 +592,8 @@ fn bootstrap_nexa_service_artifact(
     artifact: &LocalAiServiceArtifact,
     _marker: &str,
 ) -> Result<Option<String>, String> {
-    let bootstrap = ensure_nexa_binary().map_err(|error| {
-        normalize_managed_error(error, LOCAL_AI_PROVIDER_INTERNAL_ERROR)
-    })?;
+    let bootstrap = ensure_nexa_binary()
+        .map_err(|error| normalize_managed_error(error, LOCAL_AI_PROVIDER_INTERNAL_ERROR))?;
     Ok(Some(format!(
         "engine pack ready: serviceId={} binary={}",
         artifact.service_id, bootstrap.binary_path
@@ -612,9 +621,8 @@ fn start_managed_nexa_service(service_id: &str, endpoint: &str) -> Result<String
         });
     }
 
-    let bootstrap = ensure_nexa_binary().map_err(|error| {
-        normalize_managed_error(error, LOCAL_AI_PROVIDER_INTERNAL_ERROR)
-    })?;
+    let bootstrap = ensure_nexa_binary()
+        .map_err(|error| normalize_managed_error(error, LOCAL_AI_PROVIDER_INTERNAL_ERROR))?;
     let mut command = Command::new(bootstrap.binary_path.as_str());
     let mut args = artifact.process.args.clone();
     if args.is_empty() {
@@ -662,9 +670,9 @@ fn start_managed_nexa_service(service_id: &str, endpoint: &str) -> Result<String
         )
     })?;
     {
-        let mut registry = localai_process_registry()
-            .lock()
-            .map_err(|_| "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string())?;
+        let mut registry = localai_process_registry().lock().map_err(|_| {
+            "LOCAL_AI_PROVIDER_INTERNAL_ERROR: process registry lock poisoned".to_string()
+        })?;
         registry.insert(service_id.trim().to_ascii_lowercase(), child);
     }
 
@@ -695,10 +703,7 @@ fn stop_managed_nexa_service(service_id: &str) -> Result<String, String> {
     ))
 }
 
-pub fn start_managed_service(
-    service_id: &str,
-    endpoint: &str,
-) -> Result<Option<String>, String> {
+pub fn start_managed_service(service_id: &str, endpoint: &str) -> Result<Option<String>, String> {
     let provider = match managed_service_provider(service_id) {
         Some(value) => value,
         None => return Ok(None),
@@ -752,7 +757,10 @@ fn evaluate_preflight_check(
         let has_python = profile.python.available;
         let current = profile.python.version.clone().unwrap_or_default();
         let ok = has_python
-            && match (parse_version_parts(current.as_str()), parse_version_parts(min_version)) {
+            && match (
+                parse_version_parts(current.as_str()),
+                parse_version_parts(min_version),
+            ) {
                 (Some((major, minor)), Some((min_major, min_minor))) => {
                     major > min_major || (major == min_major && minor >= min_minor)
                 }
@@ -797,8 +805,7 @@ fn evaluate_preflight_check(
             } else {
                 format!(
                     "nvidia-gpu check failed: vendor={}, available={}",
-                    vendor,
-                    profile.gpu.available
+                    vendor, profile.gpu.available
                 )
             },
         };
@@ -919,11 +926,7 @@ pub fn resolve_node_host_service(node_id: &str) -> Option<(String, String)> {
     }
     for artifact in service_artifact_registry() {
         for node in artifact.nodes {
-            if node
-                .node_id
-                .trim()
-                .eq_ignore_ascii_case(normalized_node_id)
-            {
+            if node.node_id.trim().eq_ignore_ascii_case(normalized_node_id) {
                 return Some((artifact.service_id, node.capability));
             }
         }
@@ -949,8 +952,7 @@ pub fn preflight_dependency(
     }
 
     if *kind == LocalAiDependencyKind::Model {
-        let engine =
-            normalize_non_empty(engine).unwrap_or_else(|| "localai".to_string());
+        let engine = normalize_non_empty(engine).unwrap_or_else(|| "localai".to_string());
         if let Some(artifact) = find_service_artifact(engine.as_str()) {
             return preflight_service_artifact(
                 dependency_id,
@@ -1111,7 +1113,10 @@ pub fn probe_service_endpoint_health(service_id: &str, endpoint: &str) -> Result
                 artifact.service_id
             )
         })?;
-    let request = maybe_authenticate_request(client.get(health_url.as_str()), artifact.service_id.as_str());
+    let request = maybe_authenticate_request(
+        client.get(health_url.as_str()),
+        artifact.service_id.as_str(),
+    );
     match request.send() {
         Ok(response) if response.status().is_success() => Ok(format!(
             "service endpoint healthy: serviceId={} endpoint={}",
@@ -1155,7 +1160,8 @@ pub fn probe_service_capability_models(
             )
         })?;
 
-    let request = maybe_authenticate_request(client.get(probe_url.as_str()), artifact.service_id.as_str());
+    let request =
+        maybe_authenticate_request(client.get(probe_url.as_str()), artifact.service_id.as_str());
     let response = request.send().map_err(|error| {
         format!(
             "LOCAL_AI_SERVICE_UNREACHABLE: serviceId={} endpoint={} error={error}",

@@ -69,7 +69,9 @@ fn runtime_root_path() -> Result<PathBuf, String> {
 
 fn cache_binary_path() -> Result<PathBuf, String> {
     let runtime_root = runtime_root_path()?;
-    let cache_dir = runtime_root.join(LLAMA_ENGINE_PACK_SUBDIR).join(platform_id());
+    let cache_dir = runtime_root
+        .join(LLAMA_ENGINE_PACK_SUBDIR)
+        .join(platform_id());
     fs::create_dir_all(&cache_dir).map_err(|error| {
         format!(
             "LOCAL_AI_ENGINE_PACK_CACHE_DIR_FAILED: failed to create cache directory ({}): {error}",
@@ -97,13 +99,12 @@ fn env_download_url() -> Option<String> {
 }
 
 fn env_expected_sha256() -> Option<String> {
-    normalize_non_empty(std::env::var("NIMI_LLAMA_CPP_PACK_SHA256").ok().as_deref())
-        .map(|value| {
-            value
-                .to_ascii_lowercase()
-                .trim_start_matches("sha256:")
-                .to_string()
-        })
+    normalize_non_empty(std::env::var("NIMI_LLAMA_CPP_PACK_SHA256").ok().as_deref()).map(|value| {
+        value
+            .to_ascii_lowercase()
+            .trim_start_matches("sha256:")
+            .to_string()
+    })
 }
 
 fn env_localai_override_binary_path() -> Option<String> {
@@ -127,13 +128,17 @@ fn build_http_client() -> Result<reqwest::blocking::Client, String> {
         .timeout(std::time::Duration::from_secs(60))
         .build()
         .map_err(|error| {
-            format!("LOCAL_AI_ENGINE_PACK_HTTP_CLIENT_FAILED: failed to create HTTP client: {error}")
+            format!(
+                "LOCAL_AI_ENGINE_PACK_HTTP_CLIENT_FAILED: failed to create HTTP client: {error}"
+            )
         })
 }
 
 fn match_any(name: &str, candidates: &[&str]) -> bool {
     let normalized = name.to_ascii_lowercase();
-    candidates.iter().any(|candidate| normalized.contains(candidate))
+    candidates
+        .iter()
+        .any(|candidate| normalized.contains(candidate))
 }
 
 fn os_tokens() -> &'static [&'static str] {
@@ -176,7 +181,10 @@ fn asset_score(name: &str) -> i32 {
         score += 20;
     }
 
-    if normalized.ends_with(".zip") || normalized.ends_with(".tar.gz") || normalized.ends_with(".tgz") {
+    if normalized.ends_with(".zip")
+        || normalized.ends_with(".tar.gz")
+        || normalized.ends_with(".tgz")
+    {
         score += 5;
     }
 
@@ -214,7 +222,9 @@ fn resolve_latest_release_asset() -> Result<(String, String), String> {
     }
 
     let body = response.text().map_err(|error| {
-        format!("LOCAL_AI_ENGINE_PACK_RELEASE_QUERY_FAILED: failed to read release payload: {error}")
+        format!(
+            "LOCAL_AI_ENGINE_PACK_RELEASE_QUERY_FAILED: failed to read release payload: {error}"
+        )
     })?;
     let payload = serde_json::from_str::<GithubReleasePayload>(body.as_str()).map_err(|error| {
         format!("LOCAL_AI_ENGINE_PACK_RELEASE_QUERY_FAILED: invalid release payload: {error}")
@@ -323,14 +333,9 @@ fn verify_download_hash(path: &Path) -> Result<(), String> {
 }
 
 fn run_command(binary: &str, args: &[String]) -> Result<(), String> {
-    let status = Command::new(binary)
-        .args(args)
-        .status()
-        .map_err(|error| {
-            format!(
-                "LOCAL_AI_ENGINE_PACK_EXTRACT_FAILED: failed to execute {binary}: {error}"
-            )
-        })?;
+    let status = Command::new(binary).args(args).status().map_err(|error| {
+        format!("LOCAL_AI_ENGINE_PACK_EXTRACT_FAILED: failed to execute {binary}: {error}")
+    })?;
     if status.success() {
         return Ok(());
     }
@@ -505,7 +510,9 @@ fn download_and_prepare_binary(cache_target: &Path) -> Result<(PathBuf, String),
         || asset_lower.ends_with(".tar.gz")
         || asset_lower.ends_with(".tgz")
     {
-        if let Err(error) = extract_archive_with_system_tool(temp_download.as_path(), temp_extract.as_path()) {
+        if let Err(error) =
+            extract_archive_with_system_tool(temp_download.as_path(), temp_extract.as_path())
+        {
             let _ = fs::remove_dir_all(&temp_root);
             return Err(error);
         }
@@ -685,7 +692,11 @@ mod tests {
     #[test]
     fn asset_scoring_prefers_llama_server_name() {
         let binary_asset = format!("llama-server-{}", std::env::consts::OS);
-        let archive_asset = format!("llama-{}-{}.zip", std::env::consts::OS, std::env::consts::ARCH);
+        let archive_asset = format!(
+            "llama-{}-{}.zip",
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        );
         assert!(asset_score(binary_asset.as_str()) > asset_score(archive_asset.as_str()));
     }
 

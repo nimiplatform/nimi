@@ -80,7 +80,13 @@ fn to_descriptor(
         warnings.push("LOCAL_AI_DEPENDENCY_ID_MISSING".to_string());
     }
     if selected && option.kind == LocalAiDependencyKind::Model {
-        if option.model_id.as_deref().unwrap_or_default().trim().is_empty() {
+        if option
+            .model_id
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
             warnings.push("LOCAL_AI_DEPENDENCY_MODEL_ID_MISSING".to_string());
         }
         if option.repo.as_deref().unwrap_or_default().trim().is_empty() {
@@ -88,17 +94,35 @@ fn to_descriptor(
         }
     }
     if selected && option.kind == LocalAiDependencyKind::Service {
-        if option.service_id.as_deref().unwrap_or_default().trim().is_empty() {
+        if option
+            .service_id
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
             warnings.push("LOCAL_AI_DEPENDENCY_SERVICE_ID_MISSING".to_string());
         }
     }
     if selected && option.kind == LocalAiDependencyKind::Node {
-        if option.node_id.as_deref().unwrap_or_default().trim().is_empty() {
+        if option
+            .node_id
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
             warnings.push("LOCAL_AI_DEPENDENCY_NODE_ID_MISSING".to_string());
         }
     }
     if selected && option.kind == LocalAiDependencyKind::Workflow {
-        if option.workflow_id.as_deref().unwrap_or_default().trim().is_empty() {
+        if option
+            .workflow_id
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
             warnings.push("LOCAL_AI_DEPENDENCY_WORKFLOW_ID_MISSING".to_string());
         }
     }
@@ -419,7 +443,10 @@ pub fn resolve_dependencies(
                 "LOCAL_AI_OPTIONAL_DEPENDENCY_SKIPPED".to_string()
             },
             detail: if selected {
-                format!("optional dependency selected by fit: {}", option_label(option))
+                format!(
+                    "optional dependency selected by fit: {}",
+                    option_label(option)
+                )
             } else {
                 format!(
                     "optional dependency skipped due to preflight constraints: {}",

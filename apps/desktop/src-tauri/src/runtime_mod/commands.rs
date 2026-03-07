@@ -3,11 +3,11 @@ use serde::Deserialize;
 use tauri::AppHandle;
 
 use super::store::{
-    append_runtime_audit, delete_action_verify_ticket, get_action_idempotency_record,
-    get_action_verify_ticket, gc_media_cache, list_local_mod_manifests, open_db, put_media_cache,
+    append_runtime_audit, delete_action_verify_ticket, gc_media_cache,
+    get_action_idempotency_record, get_action_verify_ticket, list_local_mod_manifests, open_db,
     purge_action_execution_ledger, purge_action_idempotency_records, purge_action_verify_tickets,
     put_action_execution_ledger_record, put_action_idempotency_record, put_action_verify_ticket,
-    query_action_execution_ledger, query_runtime_audit, read_local_mod_entry,
+    put_media_cache, query_action_execution_ledger, query_runtime_audit, read_local_mod_entry,
     RuntimeActionExecutionLedgerFilter, RuntimeActionExecutionLedgerRecordPayload,
     RuntimeActionIdempotencyRecordPayload, RuntimeActionVerifyTicketPayload, RuntimeAuditFilter,
     RuntimeAuditRecordPayload, RuntimeLocalManifestSummary, RuntimeMediaCacheGcResultPayload,

@@ -2,11 +2,11 @@ use super::device_profile::collect_device_profile_from_env;
 use super::engine_pack::ensure_llama_cpp_binary;
 use super::service_artifacts::find_service_artifact;
 use super::service_lifecycle::preflight_service_artifact;
+#[cfg(test)]
+use super::types::DEFAULT_LOCAL_RUNTIME_ENDPOINT;
 use super::types::{
     LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus, LocalAiServiceArtifact,
 };
-#[cfg(test)]
-use super::types::DEFAULT_LOCAL_RUNTIME_ENDPOINT;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -599,12 +599,8 @@ impl QwenTtsPythonAdapter {
 
     fn preflight(endpoint: &str) -> Result<String, String> {
         let profile = collect_device_profile_from_env();
-        let decisions = preflight_service_artifact(
-            None,
-            "qwen-tts-python",
-            Some(endpoint),
-            &profile,
-        )?;
+        let decisions =
+            preflight_service_artifact(None, "qwen-tts-python", Some(endpoint), &profile)?;
         if let Some(failed) = decisions.iter().find(|item| !item.ok) {
             return Err(format!("{}: {}", failed.reason_code, failed.detail));
         }
@@ -869,11 +865,8 @@ impl QwenTtsPythonAdapter {
                 Some(venv_root.as_path()),
                 "LOCAL_AI_QWEN_BOOTSTRAP_FAILED",
             )?;
-            let mut install_requirements_args = vec![
-                "-m".to_string(),
-                "pip".to_string(),
-                "install".to_string(),
-            ];
+            let mut install_requirements_args =
+                vec!["-m".to_string(), "pip".to_string(), "install".to_string()];
             install_requirements_args.extend(requirements);
             let install_requirements_refs = install_requirements_args
                 .iter()
@@ -1138,9 +1131,7 @@ pub fn check_engine_health(model: &LocalAiModelRecord) -> LocalAiModelHealth {
 #[cfg(test)]
 mod tests {
     use super::{check_engine_health, preflight_engine_install_with, start_engine};
-    use crate::local_runtime::types::{
-        LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
-    };
+    use crate::local_runtime::types::{LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus};
     use std::collections::HashMap;
 
     fn model_fixture(engine: &str, status: LocalAiModelStatus) -> LocalAiModelRecord {
@@ -1190,7 +1181,9 @@ mod tests {
         let started = start_engine(&model);
         assert!(!started.healthy);
         assert_eq!(started.status, LocalAiModelStatus::Unhealthy);
-        assert!(started.detail.contains("LOCAL_AI_OPENAI_ENDPOINT_UNREACHABLE"));
+        assert!(started
+            .detail
+            .contains("LOCAL_AI_OPENAI_ENDPOINT_UNREACHABLE"));
     }
 
     #[test]

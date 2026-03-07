@@ -31,53 +31,43 @@ fn qwen3_tts_voicedesign_hashes() -> HashMap<String, String> {
         ),
         (
             "generation_config.json".to_string(),
-            "sha256:f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
-                .to_string(),
+            "sha256:f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa".to_string(),
         ),
         (
             "merges.txt".to_string(),
-            "sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
-                .to_string(),
+            "sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3".to_string(),
         ),
         (
             "model.safetensors".to_string(),
-            "sha256:391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522"
-                .to_string(),
+            "sha256:391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522".to_string(),
         ),
         (
             "preprocessor_config.json".to_string(),
-            "sha256:efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
-                .to_string(),
+            "sha256:efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119".to_string(),
         ),
         (
             "tokenizer_config.json".to_string(),
-            "sha256:dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
-                .to_string(),
+            "sha256:dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670".to_string(),
         ),
         (
             "vocab.json".to_string(),
-            "sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
-                .to_string(),
+            "sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910".to_string(),
         ),
         (
             "speech_tokenizer/config.json".to_string(),
-            "sha256:ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
-                .to_string(),
+            "sha256:ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167".to_string(),
         ),
         (
             "speech_tokenizer/configuration.json".to_string(),
-            "sha256:6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
-                .to_string(),
+            "sha256:6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd".to_string(),
         ),
         (
             "speech_tokenizer/model.safetensors".to_string(),
-            "sha256:836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
-                .to_string(),
+            "sha256:836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258".to_string(),
         ),
         (
             "speech_tokenizer/preprocessor_config.json".to_string(),
-            "sha256:fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
-                .to_string(),
+            "sha256:fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb".to_string(),
         ),
     ])
 }
@@ -87,8 +77,7 @@ fn qwen3_tts_voicedesign_descriptor() -> LocalAiVerifiedModelDescriptor {
     LocalAiVerifiedModelDescriptor {
         template_id: VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN.to_string(),
         title: "Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
-        description:
-            "Qwen VoiceDesign local TTS model for LocalAI managed runtime.".to_string(),
+        description: "Qwen VoiceDesign local TTS model for LocalAI managed runtime.".to_string(),
         install_kind: "verified-hf-multi-file".to_string(),
         model_id: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
         repo: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
@@ -127,13 +116,17 @@ pub fn find_verified_model(template_id: &str) -> Option<LocalAiVerifiedModelDesc
 
 #[cfg(test)]
 mod tests {
-    use super::{find_verified_model, verified_model_list, VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN};
+    use super::{
+        find_verified_model, verified_model_list, VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN,
+    };
 
     #[test]
     fn verified_model_registry_contains_qwen_voice_design() {
         let rows = verified_model_list();
         assert!(!rows.is_empty());
-        assert!(rows.iter().any(|item| item.template_id == VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN));
+        assert!(rows
+            .iter()
+            .any(|item| item.template_id == VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN));
     }
 
     #[test]
@@ -150,18 +143,62 @@ mod tests {
     #[test]
     fn verified_model_has_all_required_fields_per_k_local_010() {
         for model in verified_model_list() {
-            assert!(!model.template_id.trim().is_empty(), "template_id empty for {}", model.model_id);
-            assert!(!model.title.trim().is_empty(), "title empty for {}", model.model_id);
+            assert!(
+                !model.template_id.trim().is_empty(),
+                "template_id empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.title.trim().is_empty(),
+                "title empty for {}",
+                model.model_id
+            );
             assert!(!model.model_id.trim().is_empty(), "model_id empty");
-            assert!(!model.repo.trim().is_empty(), "repo empty for {}", model.model_id);
-            assert!(!model.revision.trim().is_empty(), "revision empty for {}", model.model_id);
-            assert!(!model.capabilities.is_empty(), "capabilities empty for {}", model.model_id);
-            assert!(!model.engine.trim().is_empty(), "engine empty for {}", model.model_id);
-            assert!(!model.entry.trim().is_empty(), "entry empty for {}", model.model_id);
-            assert!(!model.files.is_empty(), "files empty for {}", model.model_id);
-            assert!(!model.license.trim().is_empty(), "license empty for {}", model.model_id);
-            assert!(!model.hashes.is_empty(), "hashes empty for {}", model.model_id);
-            assert!(!model.endpoint.trim().is_empty(), "endpoint empty for {}", model.model_id);
+            assert!(
+                !model.repo.trim().is_empty(),
+                "repo empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.revision.trim().is_empty(),
+                "revision empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.capabilities.is_empty(),
+                "capabilities empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.engine.trim().is_empty(),
+                "engine empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.entry.trim().is_empty(),
+                "entry empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.files.is_empty(),
+                "files empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.license.trim().is_empty(),
+                "license empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.hashes.is_empty(),
+                "hashes empty for {}",
+                model.model_id
+            );
+            assert!(
+                !model.endpoint.trim().is_empty(),
+                "endpoint empty for {}",
+                model.model_id
+            );
         }
     }
 

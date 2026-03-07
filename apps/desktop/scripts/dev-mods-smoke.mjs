@@ -70,7 +70,7 @@ const LOADABLE_MOD_IDS = [
   'knowledge-base',
   'local-chat',
   'mint-you',
-  'test-chat-tts',
+  'test-ai',
   'textplay',
   'videoplay',
   'world-studio',

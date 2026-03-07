@@ -50,6 +50,7 @@ export type RuntimeBridgeDaemonStatus = {
   pid?: number;
   version?: string;
   lastError?: string;
+  debugLogPath?: string;
 };
 
 export type RuntimeBridgeConfigGetResult = {
@@ -221,6 +222,7 @@ export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDae
     pid: parseOptionalNumber(record.pid),
     version: parseOptionalString(record.version),
     lastError: parseOptionalString(record.lastError),
+    debugLogPath: parseOptionalString(record.debugLogPath),
   };
 }
 

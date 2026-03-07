@@ -4,6 +4,7 @@ struct ManagedDefaultModMarker {
     managed: bool,
     mod_id: String,
     version: Option<String>,
+    content_hash: Option<String>,
 }
 
 pub fn db_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -118,4 +119,3 @@ fn local_mods_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| format!("无法获取 app_data_dir: {error}"))?;
     Ok(base_dir.join("mods"))
 }
-

@@ -118,6 +118,69 @@ fn copy_dir_recursive(source: &Path, target: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn hash_file_bytes(path: &Path) -> Result<Vec<u8>, String> {
+    fs::read(path).map_err(|error| format!("读取文件失败 ({}): {error}", path.display()))
+}
+
+fn hash_directory_recursive(path: &Path) -> Result<String, String> {
+    fn walk(path: &Path, base: &Path, hasher: &mut sha2::Sha256) -> Result<(), String> {
+        let mut entries = fs::read_dir(path)
+            .map_err(|error| format!("读取目录失败 ({}): {error}", path.display()))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("读取目录项失败 ({}): {error}", path.display()))?;
+        entries.sort_by_key(|entry| entry.file_name());
+
+        for entry in entries {
+            let current_path = entry.path();
+            let relative = current_path
+                .strip_prefix(base)
+                .map_err(|error| format!("计算相对路径失败 ({}): {error}", current_path.display()))?;
+            if relative == Path::new(DEFAULT_MOD_MARKER_FILE) {
+                continue;
+            }
+            let relative_text = relative.to_string_lossy().replace('\\', "/");
+            hasher.update(relative_text.as_bytes());
+            if current_path.is_dir() {
+                hasher.update(b"dir");
+                walk(&current_path, base, hasher)?;
+                continue;
+            }
+            if current_path.is_file() {
+                hasher.update(b"file");
+                hasher.update(&hash_file_bytes(&current_path)?);
+            }
+        }
+        Ok(())
+    }
+
+    let mut hasher = sha2::Sha256::new();
+    walk(path, path, &mut hasher)?;
+    let digest = sha2::Digest::finalize(hasher);
+    let mut out = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        out.push_str(format!("{:02x}", byte).as_str());
+    }
+    Ok(out)
+}
+
+fn should_refresh_managed_default_mod(
+    source_mod_dir: &Path,
+    target_mod_dir: &Path,
+    source_version: Option<&str>,
+    target_version: Option<&str>,
+    _marker: &ManagedDefaultModMarker,
+) -> Result<bool, String> {
+    match compare_versions(source_version, target_version) {
+        Ordering::Greater => return Ok(true),
+        Ordering::Less => return Ok(false),
+        Ordering::Equal => {}
+    }
+
+    let source_hash = hash_directory_recursive(source_mod_dir)?;
+    let target_hash = hash_directory_recursive(target_mod_dir)?;
+    Ok(source_hash != target_hash)
+}
+
 fn marker_path(mod_dir: &Path) -> PathBuf {
     mod_dir.join(DEFAULT_MOD_MARKER_FILE)
 }
@@ -132,11 +195,15 @@ fn write_default_mod_marker(
     mod_dir: &Path,
     mod_id: &str,
     version: Option<&str>,
+    content_hash: Option<&str>,
 ) -> Result<(), String> {
     let marker = ManagedDefaultModMarker {
         managed: true,
         mod_id: mod_id.to_string(),
         version: version
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty()),
+        content_hash: content_hash
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty()),
     };
@@ -197,10 +264,16 @@ fn sync_default_mods_from_resources(app: &AppHandle, mods_dir: &Path) -> Result<
 
         let target_mod_dir = mods_dir.join(entry.file_name());
         let source_version = source_summary.version.as_deref();
+        let source_content_hash = hash_directory_recursive(&source_mod_dir)?;
 
         if !target_mod_dir.exists() {
             copy_dir_recursive(&source_mod_dir, &target_mod_dir)?;
-            write_default_mod_marker(&target_mod_dir, &source_summary.id, source_version)?;
+            write_default_mod_marker(
+                &target_mod_dir,
+                &source_summary.id,
+                source_version,
+                Some(&source_content_hash),
+            )?;
             continue;
         }
 
@@ -220,7 +293,13 @@ fn sync_default_mods_from_resources(app: &AppHandle, mods_dir: &Path) -> Result<
         let target_version = target_summary
             .as_ref()
             .and_then(|summary| summary.version.as_deref());
-        if compare_versions(source_version, target_version) != Ordering::Greater {
+        if !should_refresh_managed_default_mod(
+            &source_mod_dir,
+            &target_mod_dir,
+            source_version,
+            target_version,
+            &marker,
+        )? {
             continue;
         }
 
@@ -231,9 +310,102 @@ fn sync_default_mods_from_resources(app: &AppHandle, mods_dir: &Path) -> Result<
             )
         })?;
         copy_dir_recursive(&source_mod_dir, &target_mod_dir)?;
-        write_default_mod_marker(&target_mod_dir, &source_summary.id, source_version)?;
+        write_default_mod_marker(
+            &target_mod_dir,
+            &source_summary.id,
+            source_version,
+            Some(&source_content_hash),
+        )?;
     }
 
     Ok(())
 }
 
+#[cfg(test)]
+mod manifest_scan_tests {
+    use super::{
+        hash_directory_recursive, should_refresh_managed_default_mod, ManagedDefaultModMarker,
+        DEFAULT_MOD_MARKER_FILE,
+    };
+    use std::fs;
+    use std::path::Path;
+    use tempfile::tempdir;
+
+    fn write_test_mod(root: &Path, version: &str, body: &str) {
+        fs::create_dir_all(root.join("dist/mods/local-chat")).expect("create test mod dist");
+        fs::write(
+            root.join("mod.manifest.yaml"),
+            format!(
+                "id: world.nimi.local-chat\nname: Local Chat\nversion: {version}\nentry: dist/mods/local-chat/index.js\n"
+            ),
+        )
+        .expect("write test manifest");
+        fs::write(root.join("dist/mods/local-chat/index.js"), body).expect("write test entry");
+    }
+
+    fn managed_marker(content_hash: Option<String>) -> ManagedDefaultModMarker {
+        ManagedDefaultModMarker {
+            managed: true,
+            mod_id: "world.nimi.local-chat".to_string(),
+            version: Some("1.0.0".to_string()),
+            content_hash,
+        }
+    }
+
+    #[test]
+    fn hash_directory_recursive_ignores_default_mod_marker() {
+        let temp = tempdir().expect("create temp dir");
+        let mod_dir = temp.path().join("local-chat");
+        write_test_mod(&mod_dir, "1.0.0", "export const version = 'a';\n");
+        let before = hash_directory_recursive(&mod_dir).expect("hash before marker");
+        fs::write(
+            mod_dir.join(DEFAULT_MOD_MARKER_FILE),
+            r#"{"managed":true,"modId":"world.nimi.local-chat","version":"1.0.0","contentHash":"ignored"}"#,
+        )
+        .expect("write marker");
+        let after = hash_directory_recursive(&mod_dir).expect("hash after marker");
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn same_version_same_content_does_not_refresh() {
+        let temp = tempdir().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+        let target_dir = temp.path().join("target");
+        write_test_mod(&source_dir, "1.0.0", "export const version = 'same';\n");
+        write_test_mod(&target_dir, "1.0.0", "export const version = 'same';\n");
+        let source_hash = hash_directory_recursive(&source_dir).expect("hash source");
+
+        let refresh = should_refresh_managed_default_mod(
+            &source_dir,
+            &target_dir,
+            Some("1.0.0"),
+            Some("1.0.0"),
+            &managed_marker(Some(source_hash)),
+        )
+        .expect("evaluate refresh");
+
+        assert!(!refresh);
+    }
+
+    #[test]
+    fn same_version_content_change_refreshes_even_with_stale_marker() {
+        let temp = tempdir().expect("create temp dir");
+        let source_dir = temp.path().join("source");
+        let target_dir = temp.path().join("target");
+        write_test_mod(&source_dir, "1.0.0", "export const version = 'new';\n");
+        write_test_mod(&target_dir, "1.0.0", "export const version = 'old';\n");
+        let target_hash = hash_directory_recursive(&target_dir).expect("hash target");
+
+        let refresh = should_refresh_managed_default_mod(
+            &source_dir,
+            &target_dir,
+            Some("1.0.0"),
+            Some("1.0.0"),
+            &managed_marker(Some(target_hash)),
+        )
+        .expect("evaluate refresh");
+
+        assert!(refresh);
+    }
+}

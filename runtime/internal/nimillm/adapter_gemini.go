@@ -3,9 +3,11 @@ package nimillm
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,6 +44,9 @@ func ExecuteGeminiOperation(
 	apiKey := strings.TrimSpace(cfg.APIKey)
 	if scenarioModal(req) == runtimev1.Modal_MODAL_STT {
 		return ExecuteGeminiTranscribe(ctx, cfg, req, modelResolved)
+	}
+	if scenarioModal(req) == runtimev1.Modal_MODAL_IMAGE {
+		return ExecuteGeminiImageGenerateContent(ctx, cfg, req, modelResolved)
 	}
 
 	submitPayload := map[string]any{
@@ -208,6 +213,162 @@ func ExecuteGeminiOperation(
 		updater.UpdatePollState(jobID, providerJobID, retryCount, nil, "")
 		return []*runtimev1.ScenarioArtifact{artifact}, usage, providerJobID, nil
 	}
+}
+
+func ExecuteGeminiImageGenerateContent(
+	ctx context.Context,
+	cfg MediaAdapterConfig,
+	req *runtimev1.SubmitScenarioJobRequest,
+	modelResolved string,
+) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	baseURL := resolveGeminiNativeBaseURL(cfg.BaseURL)
+	if baseURL == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+
+	apiKey := strings.TrimSpace(cfg.APIKey)
+	if apiKey == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+
+	spec := scenarioImageSpec(req)
+	if spec == nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+
+	prompt := strings.TrimSpace(spec.GetPrompt())
+	if prompt == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+
+	resolvedModel := normalizeGeminiGenerateContentModel(modelResolved)
+	generationConfig := map[string]any{
+		"responseModalities": []string{"Image"},
+	}
+	if aspectRatio := resolveGeminiImageAspectRatio(spec); aspectRatio != "" {
+		generationConfig["imageConfig"] = map[string]any{
+			"aspectRatio": aspectRatio,
+		}
+	}
+
+	payload := map[string]any{
+		"contents": []map[string]any{
+			{
+				"parts": []map[string]any{
+					{
+						"text": prompt,
+					},
+				},
+			},
+		},
+		"generationConfig": generationConfig,
+	}
+
+	responsePayload := map[string]any{}
+	targetURL := JoinURL(baseURL, fmt.Sprintf("/models/%s:generateContent", url.PathEscape(resolvedModel)))
+	if err := DoJSONRequestWithHeadersAndTimeout(
+		ctx,
+		http.MethodPost,
+		targetURL,
+		"",
+		payload,
+		&responsePayload,
+		map[string]string{"x-goog-api-key": apiKey},
+		resolveGeminiGenerateContentHTTPTimeout(req),
+	); err != nil {
+		return nil, nil, "", err
+	}
+
+	artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(responsePayload["candidates"])
+	if len(artifactBytes) == 0 {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if mimeType == "" {
+		mimeType = "image/png"
+	}
+
+	artifactMeta := map[string]any{
+		"adapter":  AdapterGeminiOperation,
+		"endpoint": ":generateContent",
+		"response": responsePayload,
+	}
+	if artifactURI != "" {
+		artifactMeta["uri"] = artifactURI
+	}
+
+	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
+	ApplyImageSpecMetadata(artifact, spec)
+	usage := ArtifactUsage(prompt, artifactBytes, 180)
+	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+}
+
+func resolveGeminiNativeBaseURL(baseURL string) string {
+	normalized := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	lower := strings.ToLower(normalized)
+	if strings.HasSuffix(lower, "/openai") {
+		return strings.TrimSuffix(normalized, "/openai")
+	}
+	return normalized
+}
+
+func normalizeGeminiGenerateContentModel(modelResolved string) string {
+	normalized := strings.TrimSpace(modelResolved)
+	normalized = strings.TrimPrefix(normalized, "models/")
+	if idx := strings.Index(normalized, "/"); idx > 0 {
+		prefix := strings.TrimSpace(normalized[:idx])
+		if strings.EqualFold(prefix, "gemini") {
+			normalized = strings.TrimSpace(normalized[idx+1:])
+		}
+	}
+	return strings.TrimSpace(normalized)
+}
+
+func resolveGeminiImageAspectRatio(spec *runtimev1.ImageGenerateScenarioSpec) string {
+	if spec == nil {
+		return ""
+	}
+	if aspectRatio := strings.TrimSpace(spec.GetAspectRatio()); aspectRatio != "" {
+		return aspectRatio
+	}
+	size := strings.ToLower(strings.TrimSpace(spec.GetSize()))
+	if size == "" {
+		return ""
+	}
+	parts := strings.Split(size, "x")
+	if len(parts) != 2 {
+		return ""
+	}
+	width, widthErr := strconv.Atoi(strings.TrimSpace(parts[0]))
+	height, heightErr := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if widthErr != nil || heightErr != nil || width <= 0 || height <= 0 {
+		return ""
+	}
+	divisor := greatestCommonDivisor(width, height)
+	if divisor <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d:%d", width/divisor, height/divisor)
+}
+
+func greatestCommonDivisor(left int, right int) int {
+	for right != 0 {
+		left, right = right, left%right
+	}
+	if left < 0 {
+		return -left
+	}
+	return left
+}
+
+func resolveGeminiGenerateContentHTTPTimeout(req *runtimev1.SubmitScenarioJobRequest) time.Duration {
+	timeoutMS := int32(0)
+	if req != nil && req.GetHead() != nil {
+		timeoutMS = req.GetHead().GetTimeoutMs()
+	}
+	if timeoutMS <= 0 {
+		return defaultHTTPTimeout
+	}
+	return time.Duration(timeoutMS) * time.Millisecond
 }
 
 func ExecuteGeminiTranscribe(

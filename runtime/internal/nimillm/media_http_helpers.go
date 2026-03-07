@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 
@@ -138,6 +139,19 @@ func DoJSONRequestWithHeaders(
 	target *map[string]any,
 	headers map[string]string,
 ) error {
+	return DoJSONRequestWithHeadersAndTimeout(ctx, method, targetURL, apiKey, body, target, headers, 0)
+}
+
+func DoJSONRequestWithHeadersAndTimeout(
+	ctx context.Context,
+	method string,
+	targetURL string,
+	apiKey string,
+	body any,
+	target *map[string]any,
+	headers map[string]string,
+	timeout time.Duration,
+) error {
 	var requestBody io.Reader
 	if body != nil {
 		raw, err := json.Marshal(body)
@@ -149,6 +163,9 @@ func DoJSONRequestWithHeaders(
 	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, requestBody)
 	if err != nil {
 		return err
+	}
+	if timeout > 0 {
+		client.Timeout = timeout
 	}
 	request.Header.Set("Accept", "application/json")
 	if body != nil {

@@ -19,6 +19,11 @@ const DEFAULT_RUNTIME_CONFIG_REL_PATH: &str = ".nimi/config.json";
 
 static DAEMON_CHILD: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
 static DAEMON_LAST_ERROR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+static DAEMON_DEBUG_LOG_PATH: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+
+fn daemon_debug_log_path_store() -> &'static Mutex<Option<String>> {
+    DAEMON_DEBUG_LOG_PATH.get_or_init(|| Mutex::new(None))
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +34,7 @@ pub struct RuntimeBridgeDaemonStatus {
     pub grpc_addr: String,
     pub pid: Option<u32>,
     pub last_error: Option<String>,
+    pub debug_log_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -322,7 +328,18 @@ pub fn status() -> RuntimeBridgeDaemonStatus {
         grpc_addr: addr,
         pid,
         last_error,
+        debug_log_path: daemon_debug_log_path_store()
+            .lock()
+            .expect("debug log path lock poisoned")
+            .clone(),
     }
+}
+
+fn debug_log_path() -> Option<PathBuf> {
+    if read_non_empty_env("NIMI_RUNTIME_BRIDGE_DEBUG").as_deref() != Some("1") {
+        return None;
+    }
+    Some(std::env::temp_dir().join(format!("nimi-daemon-{}.log", std::process::id())))
 }
 
 pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
@@ -338,13 +355,29 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
         error
     })?;
     let mut command = Command::new(spec.program.as_str());
-    command
-        .args(spec.args)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .stdin(Stdio::null());
+    command.args(spec.args);
     if let Some(current_dir) = spec.current_dir {
         command.current_dir(current_dir);
+    }
+    let log_path = debug_log_path();
+    if let Some(ref path) = log_path {
+        let log_file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .map_err(|e| bridge_error("RUNTIME_BRIDGE_DAEMON_LOG_OPEN_FAILED", &e.to_string()))?;
+        let stderr_file = log_file.try_clone().map_err(|e| {
+            bridge_error("RUNTIME_BRIDGE_DAEMON_LOG_CLONE_FAILED", &e.to_string())
+        })?;
+        command
+            .stdout(Stdio::from(log_file))
+            .stderr(Stdio::from(stderr_file))
+            .stdin(Stdio::null());
+    } else {
+        command
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .stdin(Stdio::null());
     }
 
     let child = command.spawn().map_err(|error| {
@@ -356,6 +389,12 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
     {
         let mut guard = daemon_child().lock().expect("runtime daemon lock poisoned");
         *guard = Some(child);
+    }
+    {
+        let mut guard = daemon_debug_log_path_store()
+            .lock()
+            .expect("debug log path lock poisoned");
+        *guard = log_path.as_ref().and_then(|p| p.to_str().map(|s| s.to_string()));
     }
     invalidate_channel();
 
@@ -581,12 +620,10 @@ mod tests {
             std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
             std::env::remove_var("NIMI_RUNTIME_GRPC_ADDR");
             let path = runtime_config_path().expect("runtime config path");
-            fs::create_dir_all(path.parent().expect("config parent")).expect("create config parent");
-            fs::write(
-                path,
-                r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#,
-            )
-            .expect("write config");
+            fs::create_dir_all(path.parent().expect("config parent"))
+                .expect("create config parent");
+            fs::write(path, r#"{"schemaVersion":1,"grpcAddr":"127.0.0.1:50001"}"#)
+                .expect("write config");
             assert_eq!(grpc_addr(), "127.0.0.1:50001");
         });
         let _ = fs::remove_dir_all(home);
@@ -600,7 +637,8 @@ mod tests {
             std::env::remove_var("NIMI_RUNTIME_CONFIG_PATH");
             std::env::remove_var("NIMI_RUNTIME_GRPC_ADDR");
             let path = runtime_config_path().expect("runtime config path");
-            fs::create_dir_all(path.parent().expect("config parent")).expect("create config parent");
+            fs::create_dir_all(path.parent().expect("config parent"))
+                .expect("create config parent");
             fs::write(
                 path,
                 r#"{"schemaVersion":1,"runtime":{"grpcAddr":"127.0.0.1:59999"}}"#,

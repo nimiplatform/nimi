@@ -62,18 +62,18 @@ pub fn run_preflight_all(
             device_profile,
         )?;
         if rows.iter().any(|item| !item.ok) {
-            let failed = rows
-                .iter()
-                .find(|item| !item.ok)
-                .cloned()
-                .unwrap_or(LocalAiPreflightDecision {
-                    dependency_id: Some(dependency.dependency_id.clone()),
-                    target: "dependency".to_string(),
-                    check: "unknown".to_string(),
-                    ok: false,
-                    reason_code: "LOCAL_AI_DEPENDENCY_PREFLIGHT_FAILED".to_string(),
-                    detail: "preflight failed".to_string(),
-                });
+            let failed =
+                rows.iter()
+                    .find(|item| !item.ok)
+                    .cloned()
+                    .unwrap_or(LocalAiPreflightDecision {
+                        dependency_id: Some(dependency.dependency_id.clone()),
+                        target: "dependency".to_string(),
+                        check: "unknown".to_string(),
+                        ok: false,
+                        reason_code: "LOCAL_AI_DEPENDENCY_PREFLIGHT_FAILED".to_string(),
+                        detail: "preflight failed".to_string(),
+                    });
             let reason = failed.reason_code;
             let detail = failed.detail;
             return Err(format!("{reason}: {detail}"));
@@ -83,11 +83,7 @@ pub fn run_preflight_all(
     Ok(decisions)
 }
 
-pub fn fail_progress(
-    progress: &mut DependencyApplyProgress,
-    stage: &str,
-    error: String,
-) -> String {
+pub fn fail_progress(progress: &mut DependencyApplyProgress, stage: &str, error: String) -> String {
     let reason_code = extract_reason_code(error.as_str());
     progress.push_stage_failed(stage, reason_code, error.clone());
     error

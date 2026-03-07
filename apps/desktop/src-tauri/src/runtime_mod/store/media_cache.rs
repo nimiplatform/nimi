@@ -42,6 +42,13 @@ fn normalize_extension(extension_hint: Option<&str>, mime_type: &str) -> String 
         "image/gif" => "gif".to_string(),
         "image/bmp" => "bmp".to_string(),
         "image/tiff" => "tiff".to_string(),
+        "audio/mpeg" => "mp3".to_string(),
+        "audio/mp3" => "mp3".to_string(),
+        "audio/wav" => "wav".to_string(),
+        "audio/x-wav" => "wav".to_string(),
+        "audio/pcm" => "pcm".to_string(),
+        "audio/x-pcm" => "pcm".to_string(),
+        "audio/l16" => "pcm".to_string(),
         "video/mp4" => "mp4".to_string(),
         "video/webm" => "webm".to_string(),
         "video/quicktime" => "mov".to_string(),
@@ -173,4 +180,25 @@ pub fn gc_media_cache(max_age_seconds: Option<u64>) -> Result<RuntimeMediaCacheG
         removed_bytes,
         retained_count: scanned_count.saturating_sub(removed_count),
     })
+}
+
+#[cfg(test)]
+mod media_cache_tests {
+    use super::normalize_extension;
+
+    #[test]
+    fn normalize_extension_maps_audio_mime_types() {
+        assert_eq!(normalize_extension(None, "audio/mpeg"), "mp3");
+        assert_eq!(normalize_extension(None, "audio/mp3"), "mp3");
+        assert_eq!(normalize_extension(None, "audio/wav"), "wav");
+        assert_eq!(normalize_extension(None, "audio/x-wav"), "wav");
+        assert_eq!(normalize_extension(None, "audio/pcm"), "pcm");
+        assert_eq!(normalize_extension(None, "audio/x-pcm"), "pcm");
+    }
+
+    #[test]
+    fn normalize_extension_prefers_valid_audio_hint() {
+        assert_eq!(normalize_extension(Some(".wav"), "application/octet-stream"), "wav");
+        assert_eq!(normalize_extension(Some("mp3"), "application/octet-stream"), "mp3");
+    }
 }

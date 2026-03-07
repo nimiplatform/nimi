@@ -81,10 +81,7 @@ pub fn localai_backend_hint_for_capability(capability: &str) -> Option<String> {
     }
 }
 
-pub fn localai_backend_hint_for_model(
-    model_id: &str,
-    capability: &str,
-) -> Option<String> {
+pub fn localai_backend_hint_for_model(model_id: &str, capability: &str) -> Option<String> {
     let normalized = model_id.trim().to_ascii_lowercase();
     if normalized.is_empty() {
         return localai_backend_hint_for_capability(capability);
@@ -105,7 +102,9 @@ pub fn localai_backend_hint_for_model(
         return Some("stablediffusion.cpp".to_string());
     }
     if capability.eq_ignore_ascii_case("video")
-        && (normalized.contains("ltx") || normalized.contains("wan") || normalized.contains("video"))
+        && (normalized.contains("ltx")
+            || normalized.contains("wan")
+            || normalized.contains("video"))
     {
         return Some("video-native".to_string());
     }
@@ -140,9 +139,7 @@ fn localai_probe_model_matches_capability(model_id: &str, capability: &str) -> b
                 || normalized.contains("image")
         }
         "video" => {
-            normalized.contains("video")
-                || normalized.contains("ltx")
-                || normalized.contains("wan")
+            normalized.contains("video") || normalized.contains("ltx") || normalized.contains("wan")
         }
         _ => false,
     }
@@ -320,10 +317,7 @@ pub fn with_provider_backend_hint(
     }
 }
 
-pub fn adapter_supports_capability(
-    adapter: &LocalAiProviderAdapterKind,
-    capability: &str,
-) -> bool {
+pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capability: &str) -> bool {
     let normalized = normalize_capability(capability);
     if normalized == "video" {
         return matches!(adapter, LocalAiProviderAdapterKind::LocalaiNativeAdapter);
@@ -424,7 +418,10 @@ fn parse_bool_env(value: Option<String>) -> Option<bool> {
 }
 
 pub fn nexa_capability_requires_npu(capability: &str) -> bool {
-    matches!(normalize_capability(capability).as_str(), "rerank" | "cv" | "diarize")
+    matches!(
+        normalize_capability(capability).as_str(),
+        "rerank" | "cv" | "diarize"
+    )
 }
 
 pub fn nexa_model_has_npu_candidate(model_id: &str) -> bool {
@@ -440,8 +437,8 @@ pub fn nexa_model_has_npu_candidate(model_id: &str) -> bool {
 }
 
 pub fn nexa_policy_gate_allows_npu() -> bool {
-    let explicit_gate = parse_bool_env(std::env::var("NIMI_LOCAL_AI_NEXA_ENABLE_NPU").ok())
-        .unwrap_or(false);
+    let explicit_gate =
+        parse_bool_env(std::env::var("NIMI_LOCAL_AI_NEXA_ENABLE_NPU").ok()).unwrap_or(false);
     if !explicit_gate {
         return false;
     }

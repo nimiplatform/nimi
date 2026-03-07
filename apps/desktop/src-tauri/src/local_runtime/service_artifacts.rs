@@ -303,7 +303,9 @@ pub fn service_artifact_registry() -> Vec<LocalAiServiceArtifact> {
 pub fn find_service_artifact(service_id: &str) -> Option<LocalAiServiceArtifact> {
     let normalized = service_id.trim().to_ascii_lowercase();
     service_artifact_registry().into_iter().find(|item| {
-        item.service_id.trim().eq_ignore_ascii_case(normalized.as_str())
+        item.service_id
+            .trim()
+            .eq_ignore_ascii_case(normalized.as_str())
             || item.engine.trim().eq_ignore_ascii_case(normalized.as_str())
     })
 }

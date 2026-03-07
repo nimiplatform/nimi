@@ -39,8 +39,7 @@ pub fn list_nodes_from_services(
     });
 
     output.sort_by(|left, right| {
-        left
-            .provider
+        left.provider
             .cmp(&right.provider)
             .then(left.node_id.cmp(&right.node_id))
     });

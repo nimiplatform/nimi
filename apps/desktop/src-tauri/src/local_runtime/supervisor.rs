@@ -5,8 +5,8 @@ use super::audit::{
     EVENT_ENGINE_PACK_DOWNLOAD_FAILED, EVENT_ENGINE_PACK_DOWNLOAD_STARTED, EVENT_ENGINE_STARTED,
     EVENT_ENGINE_STOPPED,
 };
-use super::engine_pack::ensure_llama_cpp_binary;
 use super::engine_host::{check_engine_health, restart_engine, start_engine, stop_engine};
+use super::engine_pack::ensure_llama_cpp_binary;
 use super::import_validator::normalize_and_validate_capabilities;
 use super::store::{load_state, runtime_models_dir, runtime_root_dir, save_state};
 use super::types::{

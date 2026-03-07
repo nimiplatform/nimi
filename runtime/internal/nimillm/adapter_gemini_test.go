@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +11,14 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+type noopGeminiJobUpdater struct{}
+
+func (noopGeminiJobUpdater) UpdatePollState(_ string, _ string, _ int32, _ *timestamppb.Timestamp, _ string) {
+}
 
 func TestExecuteGeminiTranscribeUsesChatCompletions(t *testing.T) {
 	var captured map[string]any
@@ -121,5 +129,121 @@ func TestExecuteGeminiTranscribeRejectsUnsupportedAdvancedOptions(t *testing.T) 
 	)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got err=%v reason=%v ok=%v", err, reason, ok)
+	}
+}
+
+func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
+	imageBytes := []byte("gemini-image")
+	var captured map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/models/gemini-3.1-flash-image-preview:generateContent" {
+			http.NotFound(w, r)
+			return
+		}
+		if got := strings.TrimSpace(r.Header.Get("x-goog-api-key")); got != "gemini-key" {
+			t.Fatalf("unexpected x-goog-api-key header=%q", got)
+		}
+		if got := strings.TrimSpace(r.Header.Get("Authorization")); got != "" {
+			t.Fatalf("expected no Authorization header, got=%q", got)
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"candidates": []map[string]any{
+				{
+					"content": map[string]any{
+						"parts": []map[string]any{
+							{
+								"text": "Here you go!",
+							},
+							{
+								"inlineData": map[string]any{
+									"mimeType": "image/png",
+									"data":     base64.StdEncoding.EncodeToString(imageBytes),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	artifacts, usage, providerJobID, err := ExecuteGeminiOperation(
+		context.Background(),
+		MediaAdapterConfig{
+			BaseURL: server.URL + "/v1beta/openai",
+			APIKey:  "gemini-key",
+		},
+		noopGeminiJobUpdater{},
+		"job-gemini-image",
+		&runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+					ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+						Prompt: "A moon over the ocean.",
+						Size:   "1024x1024",
+					},
+				},
+			},
+		},
+		"gemini-3.1-flash-image-preview",
+		func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct { return nil },
+	)
+	if err != nil {
+		t.Fatalf("ExecuteGeminiOperation image failed: %v", err)
+	}
+	if providerJobID != "" {
+		t.Fatalf("expected sync image path to return empty provider job id, got=%q", providerJobID)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("expected 1 artifact, got=%d", len(artifacts))
+	}
+	if got := string(artifacts[0].GetBytes()); got != string(imageBytes) {
+		t.Fatalf("unexpected artifact bytes=%q", got)
+	}
+	if got := strings.TrimSpace(artifacts[0].GetMimeType()); got != "image/png" {
+		t.Fatalf("unexpected artifact mime=%q", got)
+	}
+	if usage == nil || usage.GetInputTokens() <= 0 {
+		t.Fatalf("expected usage stats, got=%v", usage)
+	}
+
+	contents, ok := captured["contents"].([]any)
+	if !ok || len(contents) != 1 {
+		t.Fatalf("expected single content entry, got=%T len=%d", captured["contents"], len(contents))
+	}
+	content, ok := contents[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected content map, got=%T", contents[0])
+	}
+	parts, ok := content["parts"].([]any)
+	if !ok || len(parts) != 1 {
+		t.Fatalf("expected single prompt part, got=%T len=%d", content["parts"], len(parts))
+	}
+	part, ok := parts[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected prompt part map, got=%T", parts[0])
+	}
+	if got := strings.TrimSpace(ValueAsString(part["text"])); got != "A moon over the ocean." {
+		t.Fatalf("unexpected prompt=%q", got)
+	}
+
+	generationConfig, ok := captured["generationConfig"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected generationConfig, got=%T", captured["generationConfig"])
+	}
+	modalities, ok := generationConfig["responseModalities"].([]any)
+	if !ok || len(modalities) != 1 || strings.TrimSpace(ValueAsString(modalities[0])) != "Image" {
+		t.Fatalf("unexpected responseModalities=%v", generationConfig["responseModalities"])
+	}
+	imageConfig, ok := generationConfig["imageConfig"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected imageConfig, got=%T", generationConfig["imageConfig"])
+	}
+	if got := strings.TrimSpace(ValueAsString(imageConfig["aspectRatio"])); got != "1:1" {
+		t.Fatalf("unexpected aspect ratio=%q", got)
 	}
 }

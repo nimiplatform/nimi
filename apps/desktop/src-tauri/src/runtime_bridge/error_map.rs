@@ -212,6 +212,24 @@ fn grpc_code_reason_suffix(code: Code) -> &'static str {
     }
 }
 
+fn is_retryable_transport_cancel(
+    status: &Status,
+    structured: Option<&StructuredStatusPayload>,
+) -> bool {
+    if status.code() != Code::Cancelled {
+        return false;
+    }
+    if let Some(value) = structured {
+        if !value.reason_code.trim().is_empty() {
+            return false;
+        }
+    }
+    let lowered = sanitize_error_message(status.message()).to_ascii_lowercase();
+    lowered.contains("h2 protocol error")
+        || lowered.contains("http2 error")
+        || lowered.contains("transport error")
+}
+
 pub fn bridge_error(code: &str, message: &str) -> String {
     encode(RuntimeBridgeErrorPayload {
         reason_code: normalize_reason_code(code),
@@ -224,6 +242,7 @@ pub fn bridge_error(code: &str, message: &str) -> String {
 
 pub fn bridge_status_error(status: Status) -> String {
     let structured = parse_structured_status_payload(status.message());
+    let retryable_transport_cancel = is_retryable_transport_cancel(&status, structured.as_ref());
     let structured_reason = structured
         .as_ref()
         .map(|value| value.reason_code.trim().to_string())
@@ -239,7 +258,11 @@ pub fn bridge_status_error(status: Status) -> String {
         String::new()
     };
     let reason_code = normalize_reason_code(reason_input.as_str());
-    let fallback_reason_code = format!("RUNTIME_GRPC_{}", grpc_code_reason_suffix(status.code()));
+    let fallback_reason_code = if retryable_transport_cancel {
+        "RUNTIME_GRPC_UNAVAILABLE".to_string()
+    } else {
+        format!("RUNTIME_GRPC_{}", grpc_code_reason_suffix(status.code()))
+    };
     let normalized_reason_code = if reason_code == "RUNTIME_BRIDGE_UNKNOWN" {
         fallback_reason_code
     } else {
@@ -248,7 +271,7 @@ pub fn bridge_status_error(status: Status) -> String {
     let retryable_by_status = matches!(
         status.code(),
         Code::Unavailable | Code::DeadlineExceeded | Code::ResourceExhausted | Code::Aborted
-    );
+    ) || retryable_transport_cancel;
     let retryable = structured
         .as_ref()
         .and_then(|value| value.retryable)
@@ -360,6 +383,26 @@ mod tests {
         assert_eq!(
             payload.get("reasonCode").and_then(Value::as_str),
             Some("RUNTIME_GRPC_DEADLINE_EXCEEDED")
+        );
+    }
+
+    #[test]
+    fn bridge_status_error_normalizes_transport_cancel_to_retryable_unavailable() {
+        let payload = parse_json(bridge_status_error(Status::new(
+            Code::Cancelled,
+            "h2 protocol error: http2 error",
+        )));
+        assert_eq!(
+            payload.get("reasonCode").and_then(Value::as_str),
+            Some("RUNTIME_GRPC_UNAVAILABLE")
+        );
+        assert_eq!(
+            payload.get("retryable").and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            payload.get("actionHint").and_then(Value::as_str),
+            Some("retry_or_restart_runtime")
         );
     }
 

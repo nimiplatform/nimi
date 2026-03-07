@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
+use super::hf_source::hf_download_base_url;
 use super::import_validator::{normalize_and_validate_capabilities, validate_loopback_endpoint};
 use super::provider_adapter::{
     default_provider_hints_for_provider_capability, provider_from_engine,
@@ -13,7 +14,6 @@ use super::types::{
     LocalAiInstallPlanDescriptor, LocalAiProviderHints, LocalAiVerifiedModelDescriptor,
     DEFAULT_LOCAL_RUNTIME_ENDPOINT,
 };
-use super::hf_source::hf_download_base_url;
 use super::verified_models::{find_verified_model, verified_model_list};
 
 fn hf_api_base_url() -> String {
@@ -233,10 +233,7 @@ fn infer_capabilities(pipeline_tag: Option<&str>, tags: &[String]) -> Vec<String
         }
     };
 
-    let pipeline = pipeline_tag
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase();
+    let pipeline = pipeline_tag.unwrap_or_default().trim().to_ascii_lowercase();
     if pipeline == "text-generation"
         || pipeline == "text2text-generation"
         || pipeline == "chatal"
@@ -247,13 +244,17 @@ fn infer_capabilities(pipeline_tag: Option<&str>, tags: &[String]) -> Vec<String
     if pipeline == "text-to-image" || pipeline == "image-to-image" {
         push_unique(&mut output, "image");
     }
-    if pipeline == "text-to-video" || pipeline == "image-to-video" || pipeline == "video-generation" {
+    if pipeline == "text-to-video" || pipeline == "image-to-video" || pipeline == "video-generation"
+    {
         push_unique(&mut output, "video");
     }
     if pipeline == "text-to-speech" || pipeline == "text-to-audio" || pipeline == "audio-to-audio" {
         push_unique(&mut output, "tts");
     }
-    if pipeline == "automatic-speech-recognition" || pipeline == "speech-to-text" || pipeline == "audio-to-text" {
+    if pipeline == "automatic-speech-recognition"
+        || pipeline == "speech-to-text"
+        || pipeline == "audio-to-text"
+    {
         push_unique(&mut output, "stt");
     }
     if pipeline == "feature-extraction" || pipeline == "sentence-similarity" {
@@ -277,7 +278,10 @@ fn infer_capabilities(pipeline_tag: Option<&str>, tags: &[String]) -> Vec<String
         if normalized.contains("text-to-speech") || normalized.contains("tts") {
             push_unique(&mut output, "tts");
         }
-        if normalized.contains("speech-to-text") || normalized.contains("asr") || normalized.contains("stt") {
+        if normalized.contains("speech-to-text")
+            || normalized.contains("asr")
+            || normalized.contains("stt")
+        {
             push_unique(&mut output, "stt");
         }
         if normalized.contains("embedding") || normalized.contains("feature-extraction") {
@@ -298,10 +302,18 @@ fn match_catalog_query(item: &LocalAiCatalogItemDescriptor, query: &str) -> bool
         return true;
     }
 
-    item.model_id.to_ascii_lowercase().contains(normalized.as_str())
+    item.model_id
+        .to_ascii_lowercase()
+        .contains(normalized.as_str())
         || item.repo.to_ascii_lowercase().contains(normalized.as_str())
-        || item.title.to_ascii_lowercase().contains(normalized.as_str())
-        || item.description.to_ascii_lowercase().contains(normalized.as_str())
+        || item
+            .title
+            .to_ascii_lowercase()
+            .contains(normalized.as_str())
+        || item
+            .description
+            .to_ascii_lowercase()
+            .contains(normalized.as_str())
         || item
             .tags
             .iter()
@@ -336,9 +348,7 @@ fn build_hf_client() -> Result<reqwest::blocking::Client, String> {
         .timeout(Duration::from_secs(HF_SEARCH_TIMEOUT_SECS))
         .build()
         .map_err(|error| {
-            format!(
-                "LOCAL_AI_CATALOG_HTTP_CLIENT_FAILED: failed to create HF API client: {error}"
-            )
+            format!("LOCAL_AI_CATALOG_HTTP_CLIENT_FAILED: failed to create HF API client: {error}")
         })
 }
 
@@ -369,7 +379,9 @@ fn fetch_hf_search_models(query: &str, limit: usize) -> Result<Vec<HfSearchModel
     }
 
     let body = response.text().map_err(|error| {
-        format!("LOCAL_AI_CATALOG_HF_SEARCH_FAILED: failed to read huggingface search payload: {error}")
+        format!(
+            "LOCAL_AI_CATALOG_HF_SEARCH_FAILED: failed to read huggingface search payload: {error}"
+        )
     })?;
     serde_json::from_str::<Vec<HfSearchModel>>(body.as_str()).map_err(|error| {
         format!("LOCAL_AI_CATALOG_HF_SEARCH_FAILED: invalid huggingface search payload: {error}")
@@ -448,11 +460,7 @@ fn verified_descriptor_to_catalog_item(
 
 fn hf_search_to_catalog_item(item: HfSearchModel) -> Option<LocalAiCatalogItemDescriptor> {
     let repo = normalize_hf_repo_slug(item.id.as_str())?;
-    let title = repo
-        .split('/')
-        .nth(1)
-        .unwrap_or(repo.as_str())
-        .to_string();
+    let title = repo.split('/').nth(1).unwrap_or(repo.as_str()).to_string();
     let capabilities = infer_capabilities(item.pipeline_tag.as_deref(), &item.tags);
     let engine = infer_engine(repo.as_str(), &item.tags, &capabilities);
     let endpoint = default_endpoint_for_engine(engine.as_str());
@@ -524,13 +532,22 @@ fn select_entry_file(
     }
 
     if engine.trim().eq_ignore_ascii_case("localai") {
-        if let Some(found) = candidates.iter().find(|item| item.to_ascii_lowercase().ends_with(".gguf")) {
+        if let Some(found) = candidates
+            .iter()
+            .find(|item| item.to_ascii_lowercase().ends_with(".gguf"))
+        {
             return Some(found.clone());
         }
-        if let Some(found) = candidates.iter().find(|item| item == &&"model.safetensors".to_string()) {
+        if let Some(found) = candidates
+            .iter()
+            .find(|item| item == &&"model.safetensors".to_string())
+        {
             return Some(found.clone());
         }
-        if let Some(found) = candidates.iter().find(|item| item.to_ascii_lowercase().ends_with(".safetensors")) {
+        if let Some(found) = candidates
+            .iter()
+            .find(|item| item.to_ascii_lowercase().ends_with(".safetensors"))
+        {
             return Some(found.clone());
         }
     }
@@ -583,7 +600,8 @@ fn select_install_files(
     }
 
     for preferred in preferred_files {
-        if sibling_files.iter().any(|item| item == preferred) && seen.insert(preferred.to_string()) {
+        if sibling_files.iter().any(|item| item == preferred) && seen.insert(preferred.to_string())
+        {
             output.push(preferred.to_string());
         }
     }
@@ -780,11 +798,14 @@ fn source_hint(input: &LocalAiCatalogResolveInput) -> String {
         .to_ascii_lowercase()
 }
 
-pub fn resolve_install_plan(input: LocalAiCatalogResolveInput) -> Result<LocalAiInstallPlanDescriptor, String> {
+pub fn resolve_install_plan(
+    input: LocalAiCatalogResolveInput,
+) -> Result<LocalAiInstallPlanDescriptor, String> {
     let source = source_hint(&input);
     if source == "verified" {
-        let template_id = extract_template_id_from_input(&input)
-            .ok_or_else(|| "LOCAL_AI_INSTALL_PLAN_TEMPLATE_REQUIRED: templateId is required".to_string())?;
+        let template_id = extract_template_id_from_input(&input).ok_or_else(|| {
+            "LOCAL_AI_INSTALL_PLAN_TEMPLATE_REQUIRED: templateId is required".to_string()
+        })?;
         return resolve_verified_plan(template_id.as_str());
     }
 
@@ -792,8 +813,9 @@ pub fn resolve_install_plan(input: LocalAiCatalogResolveInput) -> Result<LocalAi
         return resolve_verified_plan(template_id.as_str());
     }
 
-    let repo = extract_repo_from_input(&input)
-        .ok_or_else(|| "LOCAL_AI_INSTALL_PLAN_REPO_REQUIRED: repo/modelId/itemId is required".to_string())?;
+    let repo = extract_repo_from_input(&input).ok_or_else(|| {
+        "LOCAL_AI_INSTALL_PLAN_REPO_REQUIRED: repo/modelId/itemId is required".to_string()
+    })?;
     let model_details = fetch_hf_model_details(repo.as_str())?;
 
     let pipeline_tag = model_details.pipeline_tag.as_deref();
@@ -810,9 +832,22 @@ pub fn resolve_install_plan(input: LocalAiCatalogResolveInput) -> Result<LocalAi
         .or_else(|| model_details.sha.clone())
         .unwrap_or_else(|| "main".to_string());
 
-    let entry = select_entry_file(&model_details.siblings, input.entry.as_deref(), engine.as_str())
-        .unwrap_or_else(|| input.entry.clone().unwrap_or_else(|| "model.bin".to_string()));
-    let files = select_install_files(&model_details.siblings, entry.as_str(), input.files.as_deref());
+    let entry = select_entry_file(
+        &model_details.siblings,
+        input.entry.as_deref(),
+        engine.as_str(),
+    )
+    .unwrap_or_else(|| {
+        input
+            .entry
+            .clone()
+            .unwrap_or_else(|| "model.bin".to_string())
+    });
+    let files = select_install_files(
+        &model_details.siblings,
+        entry.as_str(),
+        input.files.as_deref(),
+    );
     let hashes = resolve_hashes_for_files(&model_details.siblings, &files, input.hashes.as_ref());
 
     let endpoint_raw = normalize_non_empty(input.endpoint.as_deref())
@@ -858,10 +893,10 @@ pub fn resolve_install_plan(input: LocalAiCatalogResolveInput) -> Result<LocalAi
 #[cfg(test)]
 mod tests {
     use super::{
-        hf_api_base_url, infer_capabilities, infer_engine, infer_license,
-        match_catalog_capability, match_catalog_query, normalize_hf_file_path,
-        normalize_hf_repo_slug, normalize_install_limit, normalize_search_query,
-        runtime_mode_for_engine, select_entry_file, HfModelSibling,
+        hf_api_base_url, infer_capabilities, infer_engine, infer_license, match_catalog_capability,
+        match_catalog_query, normalize_hf_file_path, normalize_hf_repo_slug,
+        normalize_install_limit, normalize_search_query, runtime_mode_for_engine,
+        select_entry_file, HfModelSibling,
     };
     use crate::local_runtime::types::{LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode};
     use std::collections::HashMap;
