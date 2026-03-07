@@ -1,14 +1,22 @@
+use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use tauri::AppHandle;
 
-use super::types::LocalAiRuntimeState;
+use super::types::{LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiRuntimeState};
 
 const NIMI_ROOT_DIR: &str = ".nimi";
 const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
 const LOCAL_AI_RUNTIME_STATE_FILE: &str = "state.json";
+static STATE_SAVE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+fn state_save_lock() -> &'static Mutex<()> {
+    STATE_SAVE_LOCK.get_or_init(|| Mutex::new(()))
+}
 
 pub fn runtime_root_dir(_app: &AppHandle) -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户 home 目录".to_string())?;
@@ -50,6 +58,76 @@ fn load_state_from_path(path: &Path) -> Result<LocalAiRuntimeState, String> {
 pub fn load_state(app: &AppHandle) -> Result<LocalAiRuntimeState, String> {
     let path = runtime_state_path(app)?;
     load_state_from_path(&path)
+}
+
+fn download_phase_rank(phase: &str) -> u8 {
+    match phase.trim().to_ascii_lowercase().as_str() {
+        "download" => 1,
+        "verify" => 2,
+        "upsert" => 3,
+        _ => 0,
+    }
+}
+
+fn download_state_rank(state: &LocalAiDownloadState) -> u8 {
+    match state {
+        LocalAiDownloadState::Queued => 1,
+        LocalAiDownloadState::Running => 2,
+        LocalAiDownloadState::Paused => 3,
+        LocalAiDownloadState::Completed => 4,
+        LocalAiDownloadState::Failed => 5,
+        LocalAiDownloadState::Cancelled => 6,
+    }
+}
+
+fn compare_download_records(
+    left: &LocalAiDownloadSessionRecord,
+    right: &LocalAiDownloadSessionRecord,
+) -> Ordering {
+    left.updated_at
+        .cmp(&right.updated_at)
+        .then_with(|| {
+            download_phase_rank(left.phase.as_str()).cmp(&download_phase_rank(right.phase.as_str()))
+        })
+        .then_with(|| left.bytes_received.cmp(&right.bytes_received))
+        .then_with(|| {
+            left.bytes_total
+                .unwrap_or(0)
+                .cmp(&right.bytes_total.unwrap_or(0))
+        })
+        .then_with(|| download_state_rank(&left.state).cmp(&download_state_rank(&right.state)))
+}
+
+fn merge_download_records(
+    current: &[LocalAiDownloadSessionRecord],
+    incoming: &[LocalAiDownloadSessionRecord],
+) -> Vec<LocalAiDownloadSessionRecord> {
+    let mut merged = HashMap::<String, LocalAiDownloadSessionRecord>::new();
+    for record in current.iter().chain(incoming.iter()) {
+        let key = record.install_session_id.clone();
+        match merged.get(&key) {
+            Some(existing) if compare_download_records(existing, record) != Ordering::Less => {}
+            _ => {
+                merged.insert(key, record.clone());
+            }
+        }
+    }
+    let mut rows = merged.into_values().collect::<Vec<_>>();
+    rows.sort_by(|left, right| {
+        left.created_at
+            .cmp(&right.created_at)
+            .then_with(|| left.install_session_id.cmp(&right.install_session_id))
+    });
+    rows
+}
+
+fn merge_state_for_save(
+    current: &LocalAiRuntimeState,
+    incoming: &LocalAiRuntimeState,
+) -> LocalAiRuntimeState {
+    let mut merged = incoming.clone();
+    merged.downloads = merge_download_records(&current.downloads, &incoming.downloads);
+    merged
 }
 
 fn save_state_to_path(path: &Path, state: &LocalAiRuntimeState) -> Result<(), String> {
@@ -130,13 +208,21 @@ fn save_state_to_path(path: &Path, state: &LocalAiRuntimeState) -> Result<(), St
 
 pub fn save_state(app: &AppHandle, state: &LocalAiRuntimeState) -> Result<(), String> {
     let path = runtime_state_path(app)?;
-    save_state_to_path(&path, state)
+    let _lock = state_save_lock()
+        .lock()
+        .map_err(|_| "获取 Local AI Runtime state 保存锁失败".to_string())?;
+    let merged = match load_state_from_path(&path) {
+        Ok(current) => merge_state_for_save(&current, state),
+        Err(_) => state.clone(),
+    };
+    save_state_to_path(&path, &merged)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{load_state_from_path, save_state_to_path};
     use crate::local_runtime::types::{
+        LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
         LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
     };
     use std::collections::HashMap;
@@ -173,6 +259,48 @@ mod tests {
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
+        }
+    }
+
+    fn download_fixture(
+        install_session_id: &str,
+        phase: &str,
+        state: LocalAiDownloadState,
+        bytes_received: u64,
+        updated_at: &str,
+    ) -> LocalAiDownloadSessionRecord {
+        LocalAiDownloadSessionRecord {
+            install_session_id: install_session_id.to_string(),
+            model_id: "hf:test/model".to_string(),
+            local_model_id: "hf:test-model".to_string(),
+            request: LocalAiInstallRequest {
+                model_id: "hf:test/model".to_string(),
+                repo: "test/model".to_string(),
+                revision: Some("main".to_string()),
+                capabilities: Some(vec!["chat".to_string()]),
+                engine: Some("llama-cpp".to_string()),
+                entry: Some("model.gguf".to_string()),
+                files: Some(vec!["model.gguf".to_string()]),
+                license: Some("apache-2.0".to_string()),
+                hashes: Some(HashMap::from([(
+                    "model.gguf".to_string(),
+                    "sha256:abc".to_string(),
+                )])),
+                endpoint: Some("http://127.0.0.1:1234/v1".to_string()),
+                provider_hints: None,
+            },
+            install_metadata: None,
+            phase: phase.to_string(),
+            state,
+            bytes_received,
+            bytes_total: Some(4_710_000_000),
+            speed_bytes_per_sec: Some(12_345.0),
+            eta_seconds: Some(42.0),
+            message: Some("progress".to_string()),
+            reason_code: None,
+            retryable: true,
+            created_at: "2026-01-01T00:00:00.000Z".to_string(),
+            updated_at: updated_at.to_string(),
         }
     }
 
@@ -227,5 +355,120 @@ mod tests {
         let result = load_state_from_path(&state_path);
         assert!(result.is_err());
         let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn merge_state_for_save_preserves_downloads_missing_from_incoming_state() {
+        let current = LocalAiRuntimeState {
+            version: 11,
+            models: vec![],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: vec![download_fixture(
+                "install-1",
+                "verify",
+                LocalAiDownloadState::Running,
+                4_600_000_000,
+                "2026-01-01T00:00:05.000Z",
+            )],
+            audits: Vec::new(),
+        };
+        let incoming = LocalAiRuntimeState {
+            version: 11,
+            models: vec![model_fixture("model-a")],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: Vec::new(),
+            audits: Vec::new(),
+        };
+
+        let merged = super::merge_state_for_save(&current, &incoming);
+
+        assert_eq!(merged.models.len(), 1);
+        assert_eq!(merged.downloads.len(), 1);
+        assert_eq!(merged.downloads[0].install_session_id, "install-1");
+        assert_eq!(merged.downloads[0].phase, "verify");
+    }
+
+    #[test]
+    fn merge_state_for_save_prefers_newer_download_record() {
+        let current = LocalAiRuntimeState {
+            version: 11,
+            models: vec![],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: vec![download_fixture(
+                "install-1",
+                "verify",
+                LocalAiDownloadState::Running,
+                4_600_000_000,
+                "2026-01-01T00:00:05.000Z",
+            )],
+            audits: Vec::new(),
+        };
+        let incoming = LocalAiRuntimeState {
+            version: 11,
+            models: vec![],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: vec![download_fixture(
+                "install-1",
+                "download",
+                LocalAiDownloadState::Running,
+                1_000_000,
+                "2026-01-01T00:00:03.000Z",
+            )],
+            audits: Vec::new(),
+        };
+
+        let merged = super::merge_state_for_save(&current, &incoming);
+
+        assert_eq!(merged.downloads.len(), 1);
+        assert_eq!(merged.downloads[0].phase, "verify");
+        assert_eq!(merged.downloads[0].bytes_received, 4_600_000_000);
+    }
+
+    #[test]
+    fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
+        let current = LocalAiRuntimeState {
+            version: 11,
+            models: vec![],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: vec![download_fixture(
+                "install-1",
+                "verify",
+                LocalAiDownloadState::Running,
+                4_600_000_000,
+                "2026-01-01T00:00:05.000Z",
+            )],
+            audits: Vec::new(),
+        };
+        let incoming = LocalAiRuntimeState {
+            version: 11,
+            models: vec![],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: vec![download_fixture(
+                "install-1",
+                "download",
+                LocalAiDownloadState::Running,
+                1_000_000,
+                "2026-01-01T00:00:05.000Z",
+            )],
+            audits: Vec::new(),
+        };
+
+        let merged = super::merge_state_for_save(&current, &incoming);
+
+        assert_eq!(merged.downloads.len(), 1);
+        assert_eq!(merged.downloads[0].phase, "verify");
+        assert_eq!(merged.downloads[0].bytes_received, 4_600_000_000);
     }
 }

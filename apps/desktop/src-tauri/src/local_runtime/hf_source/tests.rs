@@ -5,10 +5,11 @@ mod tests {
         control_to_error, hf_download_base_url, is_disk_full_io_error, is_hf_repo,
         normalize_expected_hash, normalize_hf_repo_slug, normalize_install_files,
         normalize_relative_file_path, resolve_expected_file_hash, sha256_hex,
-        sha256_hex_streaming, HfDownloadControl,
+        sha256_hex_streaming, HfDownloadControl, SessionProgressEstimator,
     };
     use crate::local_runtime::types::LocalAiInstallRequest;
     use std::io::Write;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn hf_repo_detection_accepts_hf_protocol_and_urls() {
@@ -151,6 +152,40 @@ mod tests {
         let (dynamic_received, dynamic_total) = aggregate_progress(100, None, &progress);
         assert_eq!(dynamic_received, 300);
         assert_eq!(dynamic_total, Some(600));
+    }
+
+    #[test]
+    fn session_progress_estimator_uses_recent_window_speed() {
+        let mut estimator = SessionProgressEstimator::default();
+        let start = Instant::now();
+
+        let first = estimator.observe_at(start, 0, Some(1_000));
+        assert_eq!(first.0, None);
+        assert_eq!(first.1, None);
+
+        let second = estimator.observe_at(start + Duration::from_secs(1), 100, Some(1_000));
+        let second_speed = second.0.expect("speed after warmup");
+        assert!((second_speed - 100.0).abs() < 0.001, "unexpected speed: {second_speed}");
+
+        let third = estimator.observe_at(start + Duration::from_secs(4), 700, Some(1_000));
+        let third_speed = third.0.expect("speed in 3s sliding window");
+        assert!((third_speed - 200.0).abs() < 0.001, "unexpected speed: {third_speed}");
+    }
+
+    #[test]
+    fn session_progress_estimator_smooths_eta_jumps() {
+        let mut estimator = SessionProgressEstimator::default();
+        let start = Instant::now();
+
+        estimator.observe_at(start, 0, Some(1_000));
+        let (_, first_eta) = estimator.observe_at(start + Duration::from_secs(1), 100, Some(1_000));
+        let first_eta = first_eta.expect("initial eta");
+        assert!((first_eta - 9.0).abs() < 0.001, "unexpected eta: {first_eta}");
+
+        let (_, second_eta) = estimator.observe_at(start + Duration::from_secs(2), 900, Some(1_000));
+        let second_eta = second_eta.expect("smoothed eta");
+        assert!(second_eta > 0.2, "eta should not jump straight to raw value: {second_eta}");
+        assert!(second_eta < first_eta, "eta should still move down: {second_eta} >= {first_eta}");
     }
 
     // --- K-LOCAL-026 normalize_relative_file_path ---

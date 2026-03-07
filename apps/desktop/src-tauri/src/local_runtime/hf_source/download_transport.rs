@@ -214,17 +214,27 @@ fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-/// Streaming SHA256: reads file in 64KB chunks to avoid loading entire file into memory.
+/// Streaming SHA256 with optional progress callback.
 fn sha256_hex_streaming(path: &Path) -> Result<String, String> {
+    sha256_hex_streaming_with_progress(path, &mut |_bytes_verified, _bytes_total| {})
+}
+
+fn sha256_hex_streaming_with_progress<F>(path: &Path, on_progress: &mut F) -> Result<String, String>
+where
+    F: FnMut(u64, u64),
+{
     let file = fs::File::open(path).map_err(|error| {
         format!(
             "SHA256 streaming: failed to open file ({}): {error}",
             path.display()
         )
     })?;
-    let mut reader = BufReader::with_capacity(64 * 1024, file);
+    let total_bytes = file.metadata().map(|meta| meta.len()).unwrap_or(0);
+    let mut reader = BufReader::with_capacity(1024 * 1024, file);
     let mut hasher = Sha256::new();
-    let mut buf = [0u8; 64 * 1024];
+    let mut buf = vec![0u8; 1024 * 1024];
+    let mut bytes_verified = 0_u64;
+    let mut last_report_at = Instant::now();
     loop {
         let n = reader.read(&mut buf).map_err(|error| {
             format!(
@@ -236,6 +246,11 @@ fn sha256_hex_streaming(path: &Path) -> Result<String, String> {
             break;
         }
         hasher.update(&buf[..n]);
+        bytes_verified = bytes_verified.saturating_add(n as u64);
+        if last_report_at.elapsed() >= Duration::from_millis(250) || bytes_verified >= total_bytes {
+            on_progress(bytes_verified, total_bytes);
+            last_report_at = Instant::now();
+        }
     }
     Ok(format!("{:x}", hasher.finalize()))
 }
@@ -306,4 +321,3 @@ fn should_cleanup_staging_for_error(error: &str) -> bool {
         .unwrap_or_default();
     code == LOCAL_AI_HF_DOWNLOAD_CANCELLED || code == LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH
 }
-

@@ -1,3 +1,100 @@
+const DOWNLOAD_SPEED_WINDOW_MIN: Duration = Duration::from_secs(1);
+const DOWNLOAD_SPEED_WINDOW_MAX: Duration = Duration::from_secs(3);
+const DOWNLOAD_ETA_SMOOTHING_ALPHA: f64 = 0.2;
+
+#[derive(Debug, Clone, Copy)]
+struct DownloadProgressSample {
+    captured_at: Instant,
+    bytes_received: u64,
+}
+
+#[derive(Debug, Default)]
+struct SessionProgressEstimator {
+    samples: VecDeque<DownloadProgressSample>,
+    smoothed_eta_seconds: Option<f64>,
+}
+
+impl SessionProgressEstimator {
+    fn observe_at(
+        &mut self,
+        captured_at: Instant,
+        bytes_received: u64,
+        bytes_total: Option<u64>,
+    ) -> (Option<f64>, Option<f64>) {
+        if self
+            .samples
+            .back()
+            .map(|sample| bytes_received < sample.bytes_received)
+            .unwrap_or(false)
+        {
+            self.samples.clear();
+            self.smoothed_eta_seconds = None;
+        }
+
+        self.samples.push_back(DownloadProgressSample {
+            captured_at,
+            bytes_received,
+        });
+
+        while self.samples.len() > 1 {
+            let Some(oldest) = self.samples.front().copied() else {
+                break;
+            };
+            if captured_at.saturating_duration_since(oldest.captured_at)
+                <= DOWNLOAD_SPEED_WINDOW_MAX
+            {
+                break;
+            }
+            self.samples.pop_front();
+        }
+
+        let Some(anchor) = self.samples.front().copied() else {
+            return (None, None);
+        };
+
+        let elapsed_secs = captured_at
+            .saturating_duration_since(anchor.captured_at)
+            .as_secs_f64();
+        if elapsed_secs < DOWNLOAD_SPEED_WINDOW_MIN.as_secs_f64()
+            || bytes_received <= anchor.bytes_received
+        {
+            return (None, None);
+        }
+
+        let delta_bytes = bytes_received.saturating_sub(anchor.bytes_received);
+        let speed_bytes_per_sec = Some(delta_bytes as f64 / elapsed_secs);
+        let raw_eta_seconds = match (bytes_total, speed_bytes_per_sec) {
+            (Some(total), Some(speed)) if speed > 0.0 && total >= bytes_received => {
+                Some((total.saturating_sub(bytes_received)) as f64 / speed)
+            }
+            _ => None,
+        };
+        let eta_seconds = match raw_eta_seconds {
+            Some(raw_eta) if raw_eta <= 0.0 => {
+                self.smoothed_eta_seconds = Some(0.0);
+                Some(0.0)
+            }
+            Some(raw_eta) => {
+                let next_eta = match self.smoothed_eta_seconds {
+                    Some(previous_eta) if previous_eta.is_finite() => {
+                        previous_eta
+                            + ((raw_eta - previous_eta) * DOWNLOAD_ETA_SMOOTHING_ALPHA)
+                    }
+                    _ => raw_eta,
+                };
+                self.smoothed_eta_seconds = Some(next_eta);
+                Some(next_eta)
+            }
+            None => {
+                self.smoothed_eta_seconds = None;
+                None
+            }
+        };
+
+        (speed_bytes_per_sec, eta_seconds)
+    }
+}
+
 pub fn install_from_hf(
     app: &AppHandle,
     request: &LocalAiInstallRequest,
@@ -93,6 +190,7 @@ pub fn install_from_hf_with_control(
     let mut total_verified_bytes = 0_u64;
     let mut computed_hashes = HashMap::<String, String>::new();
     let file_count = install_files.len();
+    let mut session_progress_estimator = SessionProgressEstimator::default();
 
     for (file_index, file_path) in install_files.iter().enumerate() {
         let staged_file_path = staging_dir.join(file_path);
@@ -112,6 +210,11 @@ pub fn install_from_hf_with_control(
         let mut on_file_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
             let (bytes_received, bytes_total) =
                 aggregate_progress(completed_before_file, total_bytes_known, &progress);
+            let (speed_bytes_per_sec, eta_seconds) = session_progress_estimator.observe_at(
+                Instant::now(),
+                bytes_received,
+                bytes_total,
+            );
             let message = progress.message.as_ref().map(|detail| {
                 format!(
                     "[{}/{}] {}: {}",
@@ -125,8 +228,8 @@ pub fn install_from_hf_with_control(
                 phase: progress.phase,
                 bytes_received,
                 bytes_total,
-                speed_bytes_per_sec: progress.speed_bytes_per_sec,
-                eta_seconds: progress.eta_seconds,
+                speed_bytes_per_sec,
+                eta_seconds,
                 message,
             })
         };
@@ -144,10 +247,15 @@ pub fn install_from_hf_with_control(
             return Err(error);
         }
 
+        let file_size = fs::metadata(&staged_file_path)
+            .map(|meta| meta.len())
+            .unwrap_or(0);
+        let downloaded_bytes_after_file = completed_before_file.saturating_add(file_size);
+
         if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
             phase: "verify".to_string(),
-            bytes_received: total_verified_bytes,
-            bytes_total: total_bytes_known,
+            bytes_received: downloaded_bytes_after_file,
+            bytes_total: total_bytes_known.or(Some(downloaded_bytes_after_file)),
             speed_bytes_per_sec: None,
             eta_seconds: None,
             message: Some(format!(
@@ -160,7 +268,38 @@ pub fn install_from_hf_with_control(
             return Err(error);
         }
 
-        let file_hash = sha256_hex_streaming(&staged_file_path).map_err(|error| {
+        let mut verify_progress_estimator = SessionProgressEstimator::default();
+        let file_hash = sha256_hex_streaming_with_progress(
+            &staged_file_path,
+            &mut |verified_bytes, verified_total| {
+                let (verify_speed_bytes_per_sec, verify_eta_seconds) =
+                    verify_progress_estimator.observe_at(
+                        Instant::now(),
+                        verified_bytes,
+                        Some(verified_total),
+                    );
+                let verify_percent = if verified_total > 0 {
+                    ((verified_bytes as f64 / verified_total as f64) * 100.0).round() as u64
+                } else {
+                    0
+                };
+                let _ = control_to_error(on_progress(HfDownloadProgress {
+                    phase: "verify".to_string(),
+                    bytes_received: downloaded_bytes_after_file,
+                    bytes_total: total_bytes_known.or(Some(downloaded_bytes_after_file)),
+                    speed_bytes_per_sec: verify_speed_bytes_per_sec,
+                    eta_seconds: verify_eta_seconds,
+                    message: Some(format!(
+                        "[{}/{}] {}: verifying integrity ({}%)",
+                        file_index + 1,
+                        file_count,
+                        file_path,
+                        verify_percent.min(100)
+                    )),
+                }));
+            },
+        )
+        .map_err(|error| {
             rollback_staging(
                 staging_dir.as_path(),
                 backup_dir.as_path(),
@@ -183,10 +322,7 @@ pub fn install_from_hf_with_control(
             }
         }
 
-        let file_size = fs::metadata(&staged_file_path)
-            .map(|meta| meta.len())
-            .unwrap_or(0);
-        total_verified_bytes = total_verified_bytes.saturating_add(file_size);
+        total_verified_bytes = downloaded_bytes_after_file;
         computed_hashes.insert(file_path.to_string(), format!("sha256:{file_hash}"));
 
         if let Some(error) = control_to_error(on_progress(HfDownloadProgress {
@@ -286,4 +422,3 @@ pub fn install_from_hf_with_control(
 
     manifest_to_model_record(&validated, Some(validated_endpoint.as_str()))
 }
-

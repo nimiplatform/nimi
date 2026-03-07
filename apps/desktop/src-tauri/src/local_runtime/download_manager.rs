@@ -188,6 +188,36 @@ fn update_record(
     })
 }
 
+fn update_or_restore_record(
+    app: &AppHandle,
+    fallback: &LocalAiDownloadSessionRecord,
+    mutate: impl FnOnce(&mut LocalAiDownloadSessionRecord),
+) -> Result<LocalAiDownloadSessionRecord, String> {
+    with_state_mut(app, |state| {
+        let index = state
+            .downloads
+            .iter()
+            .position(|item| item.install_session_id == fallback.install_session_id);
+        let entry = match index {
+            Some(index) => &mut state.downloads[index],
+            None => {
+                eprintln!(
+                    "LOCAL_AI_DOWNLOAD_SESSION_RECOVERED: installSessionId={}",
+                    fallback.install_session_id
+                );
+                state.downloads.push(fallback.clone());
+                state
+                    .downloads
+                    .last_mut()
+                    .expect("download session exists after recovery push")
+            }
+        };
+        mutate(entry);
+        entry.updated_at = now_iso_timestamp();
+        Ok(entry.clone())
+    })
+}
+
 fn find_record(
     app: &AppHandle,
     install_session_id: &str,
@@ -272,8 +302,10 @@ fn process_session(app: &AppHandle, install_session_id: &str) {
     let local_model_id = record.local_model_id.clone();
     let model_id = record.model_id.clone();
     let metadata = record.install_metadata.clone();
+    let mut latest_record = record.clone();
 
     let mut last_save = Instant::now();
+    let mut last_saved_phase = record.phase.clone();
     let mut on_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
         let control = get_control(install_session_id);
         if control == SessionControl::Cancelled {
@@ -282,18 +314,33 @@ fn process_session(app: &AppHandle, install_session_id: &str) {
         if control == SessionControl::Paused {
             return HfDownloadControl::Pause;
         }
-        let should_save = last_save.elapsed() >= Duration::from_millis(250);
+        let phase_changed = progress.phase != last_saved_phase;
+        let reached_known_total = progress
+            .bytes_total
+            .map(|total| progress.bytes_received >= total)
+            .unwrap_or(false);
+        let should_save = phase_changed
+            || reached_known_total
+            || last_save.elapsed() >= Duration::from_millis(250);
         if should_save {
-            let _ = update_record(app, install_session_id, |entry| {
+            match update_or_restore_record(app, &latest_record, |entry| {
                 entry.phase = progress.phase.clone();
                 entry.bytes_received = progress.bytes_received;
                 entry.bytes_total = progress.bytes_total;
                 entry.speed_bytes_per_sec = progress.speed_bytes_per_sec;
                 entry.eta_seconds = progress.eta_seconds;
                 entry.message = progress.message.clone();
-            })
-            .map(|updated| emit_progress_event(app, &updated));
+            }) {
+                Ok(updated) => {
+                    emit_progress_event(app, &updated);
+                    latest_record = updated;
+                }
+                Err(error) => {
+                    eprintln!("LOCAL_AI_DOWNLOAD_PROGRESS_SAVE_FAILED: {error}");
+                }
+            }
             last_save = Instant::now();
+            last_saved_phase = progress.phase;
         }
         HfDownloadControl::Continue
     };
@@ -301,15 +348,21 @@ fn process_session(app: &AppHandle, install_session_id: &str) {
     match install_from_hf_with_control(app, &install_request, &mut on_progress) {
         Ok(model) => match upsert_model(app, model) {
             Ok(saved) => {
-                let _ = update_record(app, install_session_id, |entry| {
+                match update_or_restore_record(app, &latest_record, |entry| {
                     entry.phase = "verify".to_string();
                     entry.state = LocalAiDownloadState::Completed;
                     entry.message = Some("installation completed".to_string());
                     entry.reason_code = None;
                     entry.retryable = false;
                     entry.local_model_id = saved.local_model_id.clone();
-                })
-                .map(|updated| emit_progress_event(app, &updated));
+                }) {
+                    Ok(updated) => {
+                        emit_progress_event(app, &updated);
+                    }
+                    Err(error) => {
+                        eprintln!("LOCAL_AI_DOWNLOAD_COMPLETION_SAVE_FAILED: {error}");
+                    }
+                }
                 append_audit_non_blocking(
                     app,
                     EVENT_MODEL_DOWNLOAD_COMPLETED,
@@ -322,14 +375,20 @@ fn process_session(app: &AppHandle, install_session_id: &str) {
             }
             Err(error) => {
                 let reason_code = classify_reason_code(error.as_str()).0;
-                let _ = update_record(app, install_session_id, |entry| {
+                match update_or_restore_record(app, &latest_record, |entry| {
                     entry.phase = "upsert".to_string();
                     entry.state = LocalAiDownloadState::Failed;
                     entry.message = Some(error.clone());
                     entry.reason_code = Some(reason_code.clone());
                     entry.retryable = false;
-                })
-                .map(|updated| emit_progress_event(app, &updated));
+                }) {
+                    Ok(updated) => {
+                        emit_progress_event(app, &updated);
+                    }
+                    Err(save_error) => {
+                        eprintln!("LOCAL_AI_DOWNLOAD_UPSERT_FAILURE_SAVE_FAILED: {save_error}");
+                    }
+                }
                 append_audit_non_blocking(
                     app,
                     EVENT_MODEL_DOWNLOAD_FAILED,
@@ -356,13 +415,19 @@ fn process_session(app: &AppHandle, install_session_id: &str) {
             } else if reason_code == LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH {
                 cleanup_staging_for_model(app, model_id.as_str());
             }
-            let _ = update_record(app, install_session_id, |entry| {
+            match update_or_restore_record(app, &latest_record, |entry| {
                 entry.state = next_state.clone();
                 entry.message = Some(error.clone());
                 entry.reason_code = Some(reason_code.clone());
                 entry.retryable = retryable;
-            })
-            .map(|updated| emit_progress_event(app, &updated));
+            }) {
+                Ok(updated) => {
+                    emit_progress_event(app, &updated);
+                }
+                Err(save_error) => {
+                    eprintln!("LOCAL_AI_DOWNLOAD_FAILURE_SAVE_FAILED: {save_error}");
+                }
+            }
             let audit_event = if next_state == LocalAiDownloadState::Paused {
                 EVENT_MODEL_DOWNLOAD_PAUSED
             } else if next_state == LocalAiDownloadState::Cancelled {
