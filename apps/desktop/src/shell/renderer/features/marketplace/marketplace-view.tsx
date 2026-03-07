@@ -34,33 +34,35 @@ export function MarketplaceView(model: MarketplacePageModel) {
   const notInstalledMods = model.filteredMods.filter((mod) => !mod.isInstalled);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
       {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between bg-gray-50 px-6">
-        <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
-        <div className="flex items-center gap-2 text-gray-400">
-          {ICON_LIST}
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="shrink-0 bg-gray-50 px-6 py-4">
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            {ICON_SEARCH}
-          </span>
-          <input
-            type="text"
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pr-4 pl-10 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100"
-            placeholder="Search mods..."
-            value={model.searchQuery}
-            onChange={(event) => model.onSearchQueryChange(event.target.value)}
-          />
+      <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2 text-gray-900">
+            <h1 className={APP_PAGE_TITLE_CLASS}>Mod Marketplace</h1>
+            <span className="text-gray-400">
+              {ICON_LIST}
+            </span>
+          </div>
+          <div className="w-full max-w-xl lg:w-[420px] lg:flex-shrink-0">
+            <div className="group relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
+                {ICON_SEARCH}
+              </span>
+              <input
+                type="text"
+                className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
+                placeholder="Search mods..."
+                value={model.searchQuery}
+                onChange={(event) => model.onSearchQueryChange(event.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Results Count */}
-      <div className="shrink-0 bg-gray-50 px-6 pb-3 pt-1 text-xs font-semibold text-gray-500">
+      <div className="shrink-0 bg-[#F0F4F8] px-6 pb-3 pt-1 text-xs font-semibold text-gray-500">
         {model.filteredMods.length} mods found
         {installedMods.length > 0 && (
           <span className="ml-2 font-normal text-mint-600">({installedMods.length} installed)</span>
