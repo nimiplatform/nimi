@@ -2,9 +2,11 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -167,5 +169,121 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 	}
 	if payload["detail"].GetStringValue() != "mock bootstrap failure" {
 		t.Fatalf("unexpected detail payload: %q", payload["detail"].GetStringValue())
+	}
+}
+
+func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	if err := os.WriteFile(filepath.Join(homeDir, ".nimi"), []byte("blocked"), 0o644); err != nil {
+		t.Fatalf("seed blocked home path: %v", err)
+	}
+
+	localModelsPath := filepath.Join(t.TempDir(), "models")
+	cfg := config.Config{
+		GRPCAddr:              "127.0.0.1:0",
+		HTTPAddr:              "127.0.0.1:0",
+		LocalRuntimeStatePath: filepath.Join(t.TempDir(), "local-runtime-state.json"),
+		LocalModelsPath:       localModelsPath,
+		AuditRingBufferSize:   64,
+		UsageStatsBufferSize:  64,
+		EngineLocalAIEnabled:  true,
+		EngineLocalAIPort:     1234,
+		EngineLocalAIVersion:  "3.12.1",
+	}
+	daemon := New(cfg, logger, "test")
+	svc := daemon.grpc.LocalRuntimeService()
+	if svc == nil {
+		t.Fatalf("expected localruntime service")
+	}
+	t.Cleanup(func() { svc.Close() })
+
+	manifestModelID := "local/bootstrap-sync-fail"
+	manifestEntry := "./weights/model.gguf"
+	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      manifestModelID,
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Entry:        manifestEntry,
+	})
+	if err != nil {
+		t.Fatalf("install managed localai model: %v", err)
+	}
+	if modelResp.GetModel().GetLocalModelId() == "" {
+		t.Fatalf("expected installed local model id")
+	}
+
+	modelSlug := "local-bootstrap-sync-fail"
+	entryPath := filepath.Join(localModelsPath, modelSlug, "weights", "model.gguf")
+	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
+		t.Fatalf("create entry dir: %v", err)
+	}
+	if err := os.WriteFile(entryPath, []byte("test-model"), 0o644); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
+	manifestPath := filepath.Join(localModelsPath, modelSlug, "model.manifest.json")
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	manifestRaw, err := json.Marshal(map[string]any{
+		"model_id":     manifestModelID,
+		"entry":        manifestEntry,
+		"engine":       "localai",
+		"capabilities": []string{"chat"},
+		"files":        []string{"weights/model.gguf"},
+		"hashes":       map[string]string{"sha256": "deadbeef"},
+		"source":       map[string]string{"repo": "test/repo", "revision": "main"},
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, manifestRaw, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	store := auditlog.New(64, 64)
+	daemon.auditStore = store
+	daemon.aiHealth = providerhealth.New()
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return &engine.Manager{}, nil
+	}
+	calls := make([]engine.EngineKind, 0, 1)
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		calls = append(calls, kind)
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if len(calls) != 0 {
+		t.Fatalf("expected localai bootstrap to be skipped after asset sync failure, got calls=%v", calls)
+	}
+	snapshot := daemon.state.Snapshot()
+	if snapshot.Status != health.StatusDegraded {
+		t.Fatalf("expected degraded on localai asset sync failure, got=%s (%s)", snapshot.Status, snapshot.Reason)
+	}
+	if !strings.Contains(snapshot.Reason, "sync managed localai assets") {
+		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
+	}
+
+	localProvider := daemon.aiHealth.Snapshot("local")
+	if localProvider.State != providerhealth.StateUnhealthy {
+		t.Fatalf("expected local provider unhealthy after asset sync failure, got=%s", localProvider.State)
+	}
+	if !strings.Contains(localProvider.LastReason, "sync managed localai assets") {
+		t.Fatalf("unexpected local provider reason: %s", localProvider.LastReason)
+	}
+
+	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
+	}
+	record := events[0]
+	if record.GetOperation() != "engine.bootstrap_failed" {
+		t.Fatalf("unexpected operation: %s", record.GetOperation())
+	}
+	if !strings.Contains(record.GetPayload().GetFields()["detail"].GetStringValue(), "sync managed localai assets") {
+		t.Fatalf("unexpected bootstrap failure detail: %q", record.GetPayload().GetFields()["detail"].GetStringValue())
 	}
 }

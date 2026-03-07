@@ -22,9 +22,11 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
 
     const model = getRecommendedChatModelV11(input.state);
     if (!model) return;
+    const matchedModel = input.state.localRuntime.models.find((item) => item.model === model) || null;
+    const provider = String(matchedModel?.engine || 'localai').trim() || 'localai';
 
     input.setRuntimeFields({
-      provider: `local-runtime:localai:openai_compat_adapter:${model}`,
+      provider,
       runtimeModelType: 'chat',
       localProviderEndpoint: normalizeEndpointV11(input.state.localRuntime.endpoint, DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11),
       localProviderModel: model,

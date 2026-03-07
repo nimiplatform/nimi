@@ -215,6 +215,7 @@ fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 /// Streaming SHA256 with optional progress callback.
+#[cfg(test)]
 fn sha256_hex_streaming(path: &Path) -> Result<String, String> {
     sha256_hex_streaming_with_progress(path, &mut |_bytes_verified, _bytes_total| {})
 }

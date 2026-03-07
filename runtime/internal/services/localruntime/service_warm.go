@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	defaultWarmLocalModelTimeout = 60 * time.Second
-	maxWarmLocalModelTimeout     = 5 * time.Minute
+	defaultWarmLocalModelTimeout  = 60 * time.Second
+	maxWarmLocalModelTimeout      = 5 * time.Minute
+	warmManagedProbeRetryInterval = 200 * time.Millisecond
 )
 
 func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error) {
@@ -30,8 +31,13 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
 
+	timeout := warmLocalModelTimeout(req.GetTimeoutMs())
+	startedAt := time.Now()
+	requestCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	endpoint := modelProbeEndpoint(model)
-	if err := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), endpoint); err != nil {
+	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), endpoint); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    strings.TrimSpace(err.Error()),
 			ActionHint: "check_local_runtime_engine",
@@ -39,16 +45,14 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	}
 
 	registration := s.localAIRegistrationForModel(model)
-	probe := s.probeEndpoint(ctx, endpoint)
+	probe := s.waitForWarmProbe(requestCtx, model, registration, endpoint)
 	if !modelProbeSucceeded(model, probe, registration) {
 		detail := modelProbeFailureDetail(model, probe, registration)
-		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE ||
-			model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-			if _, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail); err != nil {
-				return nil, err
-			}
-		} else {
-			s.setModelHealthDetail(model.GetLocalModelId(), detail)
+		if requestCtx.Err() != nil {
+			detail = appendWarmWaitDetail(detail, requestCtx.Err())
+		}
+		if err := s.recordWarmProbeFailure(model, detail); err != nil {
+			return nil, err
 		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    detail,
@@ -67,14 +71,9 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	traceID := ulid.Make().String()
 	modelResolved := normalizeWarmResolvedModelID(model.GetModelId())
 	warmKey := warmCacheKey(model, endpoint, modelResolved)
-	startedAt := time.Now()
 	if s.isWarmKeyCached(warmKey) {
 		return s.newWarmLocalModelResponse(model, modelResolved, endpoint, true, startedAt, traceID), nil
 	}
-
-	timeout := warmLocalModelTimeout(req.GetTimeoutMs())
-	requestCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 
 	backend := nimillm.NewBackend("local-runtime-warmup", endpoint, "", timeout)
 	if backend == nil {
@@ -137,6 +136,67 @@ func warmLocalModelTimeout(timeoutMS int32) time.Duration {
 		return maxWarmLocalModelTimeout
 	}
 	return requested
+}
+
+func shouldRetryWarmProbe(engine string, endpoint string) bool {
+	_, shouldManage, err := parseManagedEndpointPort(engine, endpoint)
+	return err == nil && shouldManage
+}
+
+func (s *Service) waitForWarmProbe(
+	ctx context.Context,
+	model *runtimev1.LocalModelRecord,
+	registration localAIRegistration,
+	endpoint string,
+) endpointProbeResult {
+	probe := s.probeEndpoint(ctx, endpoint)
+	if modelProbeSucceeded(model, probe, registration) || probe.healthy || !shouldRetryWarmProbe(model.GetEngine(), endpoint) {
+		return probe
+	}
+
+	timer := time.NewTimer(warmManagedProbeRetryInterval)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return probe
+		case <-timer.C:
+		}
+
+		probe = s.probeEndpoint(ctx, endpoint)
+		if modelProbeSucceeded(model, probe, registration) || probe.healthy {
+			return probe
+		}
+		timer.Reset(warmManagedProbeRetryInterval)
+	}
+}
+
+func (s *Service) recordWarmProbeFailure(model *runtimev1.LocalModelRecord, detail string) error {
+	if model == nil {
+		return nil
+	}
+	switch model.GetStatus() {
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+		if _, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail); err != nil {
+			return err
+		}
+	default:
+		s.setModelHealthDetail(model.GetLocalModelId(), detail)
+	}
+	return nil
+}
+
+func appendWarmWaitDetail(detail string, err error) string {
+	base := strings.TrimSpace(detail)
+	if err == nil {
+		return base
+	}
+	waitDetail := "warm_wait_error=" + strings.TrimSpace(err.Error())
+	if base == "" {
+		return waitDetail
+	}
+	return base + "; " + waitDetail
 }
 
 func warmCacheKey(model *runtimev1.LocalModelRecord, endpoint string, modelResolved string) string {

@@ -350,6 +350,9 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if v := strings.TrimSpace(raw.LocalRuntimeStatePath); v != "" {
 		merged.LocalRuntimeStatePath = v
 	}
+	if v := strings.TrimSpace(raw.LocalModelsPath); v != "" {
+		merged.LocalModelsPath = v
+	}
 	if raw.WorkerMode != nil {
 		merged.WorkerMode = raw.WorkerMode
 	}
@@ -554,6 +557,9 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "localRuntimeStatePath":
 		cfg.LocalRuntimeStatePath = value
 		return nil
+	case "localModelsPath":
+		cfg.LocalModelsPath = value
+		return nil
 	case "workerMode":
 		v := strings.ToLower(strings.TrimSpace(value)) == "true"
 		cfg.WorkerMode = &v
@@ -728,6 +734,9 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	case "localRuntimeStatePath":
 		cfg.LocalRuntimeStatePath = defaultCfg.LocalRuntimeStatePath
 		return nil
+	case "localModelsPath":
+		cfg.LocalModelsPath = defaultCfg.LocalModelsPath
+		return nil
 	case "workerMode":
 		cfg.WorkerMode = defaultCfg.WorkerMode
 		return nil
@@ -893,6 +902,9 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 		return true
 	}
 	if strings.TrimSpace(before.LocalRuntimeStatePath) != strings.TrimSpace(after.LocalRuntimeStatePath) {
+		return true
+	}
+	if strings.TrimSpace(before.LocalModelsPath) != strings.TrimSpace(after.LocalModelsPath) {
 		return true
 	}
 	if intPtrValue(before.ShutdownTimeoutSeconds) != intPtrValue(after.ShutdownTimeoutSeconds) {

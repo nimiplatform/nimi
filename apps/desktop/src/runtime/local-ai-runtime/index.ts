@@ -81,6 +81,29 @@ import {
   type LocalAiRuntimeCapability,
 } from './capability-query';
 import { startLocalAiRuntimePolling, type LocalAiRuntimePollingOptions } from './polling';
+import {
+  type GoRuntimeModelEntry,
+  type GoRuntimeSyncAction,
+  type GoRuntimeSyncResult,
+  type GoRuntimeSyncTarget,
+  GoRuntimeSyncError,
+  listGoRuntimeModelsSnapshot,
+  syncModelInstallToGoRuntime,
+  syncModelStartToGoRuntime,
+  syncModelStopToGoRuntime,
+  syncModelRemoveToGoRuntime,
+  reconcileModelsToGoRuntime,
+} from './go-runtime-sync';
+
+export {
+  GoRuntimeSyncError,
+  listGoRuntimeModelsSnapshot,
+  syncModelInstallToGoRuntime,
+  syncModelStartToGoRuntime,
+  syncModelStopToGoRuntime,
+  syncModelRemoveToGoRuntime,
+  reconcileModelsToGoRuntime,
+};
 
 export type {
   GgufVariantDescriptor,
@@ -119,6 +142,10 @@ export type {
   LocalAiRuntimeSnapshot,
   LocalAiRuntimeWriteOptions,
   LocalAiVerifiedModelDescriptor,
+  GoRuntimeModelEntry,
+  GoRuntimeSyncAction,
+  GoRuntimeSyncResult,
+  GoRuntimeSyncTarget,
   OrphanModelFile,
   LocalAiScaffoldOrphanPayload,
 };

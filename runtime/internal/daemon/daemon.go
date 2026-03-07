@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -469,6 +470,34 @@ func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string,
 	})
 }
 
+func resolveManagedLocalAIModelsConfigPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil || strings.TrimSpace(home) == "" {
+		return ""
+	}
+	return filepath.Join(home, ".nimi", "runtime", "localai-models.yaml")
+}
+
+func (d *Daemon) recordLocalAIBootstrapFailure(detail string) bool {
+	trimmedDetail := strings.TrimSpace(detail)
+	if trimmedDetail == "" {
+		trimmedDetail = "managed localai bootstrap failed"
+	}
+	reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", engine.EngineLocalAI, trimmedDetail)
+
+	d.logger.Error("managed localai bootstrap failed", "detail", trimmedDetail)
+	d.setProviderFailureHint("local", reason)
+	if d.aiHealth != nil {
+		previous := d.aiHealth.Snapshot("local")
+		d.aiHealth.Mark("local", false, reason)
+		appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.Snapshot("local"))
+	}
+	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLocalAI), "local", trimmedDetail)
+	d.state.SetStatus(health.StatusDegraded, reason)
+	d.grpc.SyncServingState()
+	return true
+}
+
 func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {
 	exitCode = -1
 	matches := engineCrashAttemptPattern.FindStringSubmatch(strings.TrimSpace(detail))
@@ -512,10 +541,17 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		return
 	}
 	d.engineMgr = mgr
+	localAIConfigPath := resolveManagedLocalAIModelsConfigPath()
+	mgr.SetLocalAIPaths(d.cfg.LocalModelsPath, localAIConfigPath)
 
 	// Inject engine manager into localruntime service for gRPC access.
+	skipLocalAIBootstrap := false
 	if svc := d.grpc.LocalRuntimeService(); svc != nil {
+		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLocalAIEnabled)
 		svc.SetEngineManager(newEngineManagerBridge(engine.NewServiceAdapter(mgr)))
+		if err := svc.SyncManagedLocalAIAssets(ctx); err != nil {
+			skipLocalAIBootstrap = d.recordLocalAIBootstrapFailure(fmt.Sprintf("sync managed localai assets: %v", err))
+		}
 	}
 
 	var wg sync.WaitGroup
@@ -541,7 +577,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		}()
 	}
 
-	if d.cfg.EngineLocalAIEnabled {
+	if d.cfg.EngineLocalAIEnabled && !skipLocalAIBootstrap {
 		bootstrap(engine.EngineLocalAI, d.cfg.EngineLocalAIVersion, d.cfg.EngineLocalAIPort,
 			"NIMI_RUNTIME_LOCAL_AI_BASE_URL")
 	}

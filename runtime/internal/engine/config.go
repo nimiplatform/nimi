@@ -33,6 +33,18 @@ type EngineConfig struct {
 	// ModelsPath is the directory for model files (LocalAI --models-path).
 	ModelsPath string
 
+	// ModelsConfigPath is the LocalAI YAML config file passed via
+	// --models-config-file.
+	ModelsConfigPath string
+
+	// BackendsPath is the LocalAI backend install directory passed via
+	// --backends-path.
+	BackendsPath string
+
+	// ExternalBackends is the set of LocalAI backends to auto-load on boot via
+	// --external-backends.
+	ExternalBackends []string
+
 	// HealthPath is the HTTP path used for health probing.
 	HealthPath string
 

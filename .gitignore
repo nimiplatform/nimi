@@ -30,6 +30,9 @@ nimi-mods/
 /runtime/nimi
 /runtime/nimi.exe
 
+# local model files (large binaries, partial downloads)
+/runtime/models/
+
 # local caches
 .vscode/
 .idea/

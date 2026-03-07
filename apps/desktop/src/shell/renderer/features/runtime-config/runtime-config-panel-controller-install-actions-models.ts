@@ -2,6 +2,11 @@ import { useCallback } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import {
   localAiRuntime,
+  type GoRuntimeSyncTarget,
+  syncModelInstallToGoRuntime,
+  syncModelStartToGoRuntime,
+  syncModelStopToGoRuntime,
+  syncModelRemoveToGoRuntime,
   type LocalAiInstallAcceptedResponse,
   type LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
@@ -39,13 +44,54 @@ export function useRuntimeConfigModelManagementActions(
     setStatusBanner,
   } = input;
 
+  const recordGoRuntimeSyncFailure = useCallback(async (
+    eventType: string,
+    target: GoRuntimeSyncTarget,
+    error: unknown,
+  ) => {
+    await localAiRuntime.appendAudit({
+      eventType,
+      modelId: String(target.modelId || '').trim(),
+      localModelId: String(target.localModelId || '').trim() || undefined,
+      source: 'local-runtime',
+      reasonCode: 'GO_RUNTIME_SYNC_FAILED',
+      detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
+      payload: {
+        action: eventType,
+        engine: String(target.engine || '').trim() || undefined,
+      },
+    }).catch(() => null);
+  }, []);
+
   const importLocalRuntimeModel = useCallback(async () => {
     try {
       const manifestPath = await localAiRuntime.pickManifestPath();
       if (!manifestPath) {
         return;
       }
-      await localAiRuntime.import({ manifestPath }, { caller: 'core' });
+      const imported = await localAiRuntime.import({ manifestPath }, { caller: 'core' });
+      try {
+        const synced = await syncModelInstallToGoRuntime(imported);
+        if (imported.status === 'active') {
+          await syncModelStartToGoRuntime({
+            modelId: imported.modelId,
+            engine: imported.engine,
+            localModelId: synced.localModelId,
+          });
+        }
+      } catch (syncError) {
+        await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_import', {
+          modelId: imported.modelId,
+          engine: imported.engine,
+          localModelId: imported.localModelId,
+        }, syncError);
+        await refreshLocalRuntimeSnapshot();
+        setStatusBanner({
+          kind: 'warning',
+          message: `Local model imported, but Go runtime sync failed: ${syncError instanceof Error ? syncError.message : String(syncError || '')}`,
+        });
+        throw syncError;
+      }
       await refreshLocalRuntimeSnapshot();
       setStatusBanner({
         kind: 'success',
@@ -58,7 +104,7 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
 
   const importLocalRuntimeModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
@@ -111,61 +157,127 @@ export function useRuntimeConfigModelManagementActions(
   }, [pendingInstallsRef, setPendingInstallVersion, setStatusBanner]);
 
   const startLocalRuntimeModel = useCallback(async (localModelId: string) => {
-    try {
-      await localAiRuntime.start(localModelId, { caller: 'core' });
-      await refreshLocalRuntimeSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model started: ${localModelId}` });
-    } catch (error) {
+    const model = await localAiRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: `Start model failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
       throw error;
+    });
+    try {
+      await syncModelStartToGoRuntime({
+        modelId: model.modelId || localModelId,
+        engine: model.engine,
+        localModelId,
+      });
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({ kind: 'success', message: `Model started: ${localModelId}` });
+    } catch (error) {
+      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_start', {
+        modelId: model.modelId || localModelId,
+        engine: model.engine,
+        localModelId,
+      }, error);
+      setStatusBanner({
+        kind: 'warning',
+        message: `Model started locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
 
   const stopLocalRuntimeModel = useCallback(async (localModelId: string) => {
-    try {
-      await localAiRuntime.stop(localModelId, { caller: 'core' });
-      await refreshLocalRuntimeSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model stopped: ${localModelId}` });
-    } catch (error) {
+    const model = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: `Stop model failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
       throw error;
-    }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
-
-  const restartLocalRuntimeModel = useCallback(async (localModelId: string) => {
+    });
     try {
-      await localAiRuntime.stop(localModelId, { caller: 'core' }).catch(() => null);
-      await localAiRuntime.start(localModelId, { caller: 'core' });
+      await syncModelStopToGoRuntime({
+        modelId: model.modelId || localModelId,
+        engine: model.engine,
+        localModelId,
+      });
       await refreshLocalRuntimeSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model restarted: ${localModelId}` });
+      setStatusBanner({ kind: 'success', message: `Model stopped: ${localModelId}` });
     } catch (error) {
+      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_stop', {
+        modelId: model.modelId || localModelId,
+        engine: model.engine,
+        localModelId,
+      }, error);
       setStatusBanner({
-        kind: 'error',
-        message: `Restart model failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        kind: 'warning',
+        message: `Model stopped locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
       throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
+
+  const restartLocalRuntimeModel = useCallback(async (localModelId: string) => {
+    let stoppedModel: Awaited<ReturnType<typeof localAiRuntime.stop>> | null = null;
+    let resolvedModelId = localModelId;
+    try {
+      stoppedModel = await localAiRuntime.stop(localModelId, { caller: 'core' }).catch(() => null);
+      resolvedModelId = stoppedModel?.modelId || localModelId;
+      await syncModelStopToGoRuntime({
+        modelId: resolvedModelId,
+        engine: stoppedModel?.engine,
+        localModelId,
+      }).catch(() => null);
+      const startedModel = await localAiRuntime.start(localModelId, { caller: 'core' });
+      await syncModelStartToGoRuntime({
+        modelId: startedModel.modelId || resolvedModelId,
+        engine: startedModel.engine,
+        localModelId,
+      });
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({ kind: 'success', message: `Model restarted: ${localModelId}` });
+    } catch (error) {
+      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_restart', {
+        modelId: resolvedModelId,
+        engine: stoppedModel?.engine || '',
+        localModelId,
+      }, error);
+      setStatusBanner({
+        kind: 'warning',
+        message: `Model restarted locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
+    }
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
 
   const removeLocalRuntimeModel = useCallback(async (localModelId: string) => {
-    try {
-      await localAiRuntime.remove(localModelId, { caller: 'core' });
-      await refreshLocalRuntimeSnapshot();
-      setStatusBanner({ kind: 'success', message: `Model removed: ${localModelId}` });
-    } catch (error) {
+    const model = await localAiRuntime.remove(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: `Remove model failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
       throw error;
+    });
+    try {
+      await syncModelRemoveToGoRuntime({
+        modelId: model.modelId || localModelId,
+        engine: model.engine,
+        localModelId,
+      });
+      await refreshLocalRuntimeSnapshot();
+      setStatusBanner({ kind: 'success', message: `Model removed: ${localModelId}` });
+    } catch (error) {
+      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_remove', {
+        modelId: model.modelId || localModelId,
+        engine: model.engine,
+        localModelId,
+      }, error);
+      setStatusBanner({
+        kind: 'warning',
+        message: `Model removed locally, but Go runtime sync failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
 
   return {
     importLocalRuntimeModel,

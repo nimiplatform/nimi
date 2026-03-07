@@ -8,7 +8,7 @@ import type {
 } from '@nimiplatform/sdk/mod/runtime-route';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { localAiRuntime } from '@runtime/local-ai-runtime';
+import { localAiRuntime, listGoRuntimeModelsSnapshot } from '@runtime/local-ai-runtime';
 
 type RuntimeFields = {
   provider: string;
@@ -27,6 +27,18 @@ type ConnectorDescriptor = {
 };
 
 const LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS = 1200;
+
+function mapCanonicalCapabilityToLocalRuntimeCapability(
+  capability: RuntimeCanonicalCapability,
+): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | undefined {
+  if (capability === 'text.generate') return 'chat';
+  if (capability === 'text.embed') return 'embedding';
+  if (capability === 'image.generate') return 'image';
+  if (capability === 'video.generate') return 'video';
+  if (capability === 'audio.synthesize') return 'tts';
+  if (capability === 'audio.transcribe') return 'stt';
+  return undefined;
+}
 
 function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | null {
   const normalized = String(value || '').trim();
@@ -63,14 +75,53 @@ function inferLocalEngine(provider: string): string {
   return String(provider || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
 }
 
+function normalizeLocalEngine(value: unknown): string {
+  return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
+}
+
+function normalizeLocalRuntimeModelRoot(value: string): string {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('localai/')) return trimmed.slice('localai/'.length).trim();
+  if (lower.startsWith('nexa/')) return trimmed.slice('nexa/'.length).trim();
+  if (lower.startsWith('local/')) return trimmed.slice('local/'.length).trim();
+  return trimmed;
+}
+
+function buildLocalRuntimeSelector(modelId: string, engine: string): string {
+  const normalizedModelId = normalizeLocalRuntimeModelRoot(modelId);
+  const normalizedEngine = normalizeLocalEngine(engine);
+  return normalizedModelId ? `${normalizedEngine}/${normalizedModelId}` : normalizedEngine;
+}
+
+function defaultLocalRuntimeAdapter(
+  provider: string,
+  capability: RuntimeCanonicalCapability,
+): string {
+  const normalizedProvider = normalizeLocalEngine(provider);
+  if (normalizedProvider === 'nexa') {
+    return 'nexa_native_adapter';
+  }
+  if (
+    capability === 'image.generate'
+    || capability === 'video.generate'
+    || capability === 'audio.synthesize'
+    || capability === 'audio.transcribe'
+  ) {
+    return 'localai_native_adapter';
+  }
+  return 'openai_compat_adapter';
+}
+
 function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
   if (!input) return '';
   return [
     String(input.source || '').trim(),
     String(input.connectorId || '').trim(),
-    String(input.model || '').trim(),
+    normalizeLocalRuntimeModelRoot(String(input.modelId || input.model || '').trim()),
     String(input.localModelId || '').trim(),
-    String(input.engine || '').trim(),
+    normalizeLocalEngine(String(input.engine || '').trim()),
   ].join('|');
 }
 
@@ -93,6 +144,52 @@ function mergeTokenApiBindingProvider(
 
 function modelSupportsCapability(capabilities: string[] | undefined, capability: RuntimeCanonicalCapability): boolean {
   return (capabilities || []).some((item) => normalizeCapabilityToken(item) === capability);
+}
+
+function toLocalRuntimeBinding(option: RuntimeRouteLocalRuntimeOption): RuntimeRouteBinding {
+  const modelId = String(option.modelId || option.model || '').trim();
+  const engine = normalizeLocalEngine(option.engine);
+  return {
+    source: 'local-runtime',
+    connectorId: '',
+    model: modelId,
+    modelId,
+    provider: String(option.provider || engine).trim() || engine,
+    localModelId: String(option.localModelId || '').trim() || undefined,
+    engine,
+    adapter: String(option.adapter || '').trim() || undefined,
+    providerHints: option.providerHints,
+    endpoint: String(option.endpoint || '').trim() || undefined,
+    goRuntimeLocalModelId: String(option.goRuntimeLocalModelId || '').trim() || undefined,
+    goRuntimeStatus: String(option.goRuntimeStatus || '').trim() || undefined,
+  };
+}
+
+function pickMatchingLocalRuntimeOption(
+  localModels: RuntimeRouteLocalRuntimeOption[],
+  binding: RuntimeRouteBinding,
+): RuntimeRouteLocalRuntimeOption | null {
+  const bindingLocalModelId = String(binding.localModelId || '').trim();
+  if (bindingLocalModelId) {
+    const byLocalModelId = localModels.find((item) => String(item.localModelId || '').trim() === bindingLocalModelId) || null;
+    if (byLocalModelId) {
+      return byLocalModelId;
+    }
+  }
+
+  const targetModelId = normalizeLocalRuntimeModelRoot(String(binding.modelId || binding.model || '').trim());
+  const targetEngine = normalizeLocalEngine(binding.engine || binding.provider || '');
+  const byModelAndEngine = localModels.find((item) => (
+    normalizeLocalRuntimeModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
+    && normalizeLocalEngine(item.engine || item.provider || '') === targetEngine
+  )) || null;
+  if (byModelAndEngine) {
+    return byModelAndEngine;
+  }
+
+  return localModels.find((item) => (
+    normalizeLocalRuntimeModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
+  )) || null;
 }
 
 async function pollLocalRuntimeSnapshotWithTimeout(): Promise<{
@@ -141,29 +238,34 @@ function buildSelectedBinding(input: {
 }): RuntimeRouteBinding {
   const { runtimeFields, localModels, connectors } = input;
   const preferredSource = inferSource(runtimeFields.provider);
-  const preferredBinding: RuntimeRouteBinding = preferredSource === 'local-runtime'
-    ? {
+  if (preferredSource === 'local-runtime') {
+    const preferredBinding: RuntimeRouteBinding = {
       source: 'local-runtime',
       connectorId: '',
       model: String(runtimeFields.localProviderModel || '').trim(),
-      localModelId: String(runtimeFields.localProviderModel || '').trim() || undefined,
+      modelId: normalizeLocalRuntimeModelRoot(String(runtimeFields.localProviderModel || '').trim()) || undefined,
       engine: inferLocalEngine(runtimeFields.provider),
-    }
-    : {
-      source: 'token-api',
-      connectorId: String(runtimeFields.connectorId || '').trim(),
-      model: String(runtimeFields.localProviderModel || '').trim(),
-      provider: String(runtimeFields.provider || '').trim() || undefined,
+      provider: normalizeLocalEngine(runtimeFields.provider),
     };
+    const matchedLocalModel = pickMatchingLocalRuntimeOption(localModels, preferredBinding);
+    if (matchedLocalModel) {
+      return toLocalRuntimeBinding(matchedLocalModel);
+    }
+    if (localModels.length > 0) {
+      return toLocalRuntimeBinding(localModels[0]!);
+    }
+    return preferredBinding;
+  }
+
+  const preferredBinding: RuntimeRouteBinding = {
+    source: 'token-api',
+    connectorId: String(runtimeFields.connectorId || '').trim(),
+    model: String(runtimeFields.localProviderModel || '').trim(),
+    provider: String(runtimeFields.provider || '').trim() || undefined,
+  };
 
   const availableBindings: RuntimeRouteBinding[] = [
-    ...localModels.map((item) => ({
-      source: 'local-runtime' as const,
-      connectorId: '',
-      model: item.model,
-      localModelId: item.localModelId,
-      engine: item.engine,
-    })),
+    ...localModels.map((item) => toLocalRuntimeBinding(item)),
     ...connectors.flatMap((connector) => connector.models.map((model) => ({
       source: 'token-api' as const,
       connectorId: connector.id,
@@ -219,7 +321,33 @@ export async function loadRuntimeRouteOptions(input: {
 
   let localRuntimeModels: RuntimeRouteLocalRuntimeOption[] = [];
   try {
-    const snapshot = await pollLocalRuntimeSnapshotWithTimeout();
+    const localCapability = mapCanonicalCapabilityToLocalRuntimeCapability(input.capability);
+    const [snapshot, nodeCatalog, goRuntimeModels] = await Promise.all([
+      pollLocalRuntimeSnapshotWithTimeout(),
+      localAiRuntime.listNodesCatalog(
+        localCapability ? { capability: localCapability } : undefined,
+      ).catch(() => []),
+      listGoRuntimeModelsSnapshot().catch(() => []),
+    ]);
+
+    const nodeByProvider = new Map<string, {
+      provider: string;
+      adapter: string;
+      providerHints?: RuntimeRouteLocalRuntimeOption['providerHints'];
+    }>();
+
+    for (const node of nodeCatalog) {
+      const provider = normalizeLocalEngine(node.provider);
+      const current = nodeByProvider.get(provider);
+      if (!current || (!current.providerHints && node.providerHints) || (!current.adapter && node.adapter)) {
+        nodeByProvider.set(provider, {
+          provider,
+          adapter: String(node.adapter || '').trim(),
+          providerHints: node.providerHints,
+        });
+      }
+    }
+
     localRuntimeModels = snapshot.models
       .filter((item) => item.status !== 'removed')
       .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
@@ -228,8 +356,19 @@ export async function loadRuntimeRouteOptions(input: {
         label: item.modelId,
         engine: item.engine,
         model: item.modelId,
+        modelId: item.modelId,
+        provider: normalizeLocalEngine(item.engine),
+        adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
+          || defaultLocalRuntimeAdapter(item.engine, input.capability),
+        providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
         endpoint: item.endpoint,
         status: item.status,
+        goRuntimeLocalModelId: goRuntimeModels.find((goModel) => (
+          syncLookup(goModel.modelId, goModel.engine) === syncLookup(item.modelId, item.engine)
+        ))?.localModelId,
+        goRuntimeStatus: goRuntimeModels.find((goModel) => (
+          syncLookup(goModel.modelId, goModel.engine) === syncLookup(item.modelId, item.engine)
+        ))?.status,
         capabilities: item.capabilities
           .map((capability) => normalizeCapabilityToken(capability))
           .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),
@@ -262,4 +401,8 @@ export async function loadRuntimeRouteOptions(input: {
     },
     connectors,
   };
+}
+
+function syncLookup(modelId: string, engine: string): string {
+  return `${normalizeLocalEngine(engine)}::${String(modelId || '').trim().toLowerCase()}`;
 }

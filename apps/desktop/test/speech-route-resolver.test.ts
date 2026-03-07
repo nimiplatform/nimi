@@ -88,6 +88,9 @@ test('createResolveRuntimeBinding infers local-runtime source for localai provid
 
   assert.equal(result.source, 'local-runtime');
   assert.equal(result.engine, 'localai');
+  assert.equal(result.model, 'localai/tts-1');
+  assert.equal(result.modelId, 'tts-1');
+  assert.equal(result.localProviderModel, 'tts-1');
 });
 
 test('createResolveRuntimeBinding infers token-api source for cloud provider', async () => {
@@ -97,4 +100,34 @@ test('createResolveRuntimeBinding infers token-api source for cloud provider', a
 
   assert.equal(result.source, 'token-api');
   assert.equal(result.engine, undefined);
+});
+
+test('createResolveRuntimeBinding preserves localModelId and adapter for local-runtime binding', async () => {
+  const fields = createMockFields({
+    provider: 'localai',
+    runtimeModelType: 'image',
+    localProviderModel: 'z-image-turbo',
+    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+  });
+  const resolve = createResolveRuntimeBinding(() => fields);
+  const result = await resolve({
+    modId: 'test-mod',
+    binding: {
+      source: 'local-runtime',
+      connectorId: '',
+      model: 'z-image-turbo',
+      modelId: 'z-image-turbo',
+      localModelId: 'file:z-image-turbo',
+      engine: 'localai',
+      provider: 'localai',
+      adapter: 'localai_native_adapter',
+      endpoint: 'http://127.0.0.1:1234/v1',
+    },
+  });
+
+  assert.equal(result.model, 'localai/z-image-turbo');
+  assert.equal(result.modelId, 'z-image-turbo');
+  assert.equal(result.localModelId, 'file:z-image-turbo');
+  assert.equal(result.adapter, 'localai_native_adapter');
+  assert.equal(result.localProviderModel, 'z-image-turbo');
 });

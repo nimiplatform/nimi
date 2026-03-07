@@ -1,3 +1,4 @@
+import type { LocalAiProviderAdapter, LocalAiProviderHints } from './types/llm.js';
 import { asRecord } from './json-utils';
 
 export type RuntimeRouteSource = 'local-runtime' | 'token-api';
@@ -16,9 +17,15 @@ export type RuntimeRouteBinding = {
   source: RuntimeRouteSource;
   connectorId: string;
   model: string;
+  modelId?: string;
   provider?: string;
   localModelId?: string;
   engine?: string;
+  adapter?: LocalAiProviderAdapter;
+  providerHints?: LocalAiProviderHints;
+  endpoint?: string;
+  goRuntimeLocalModelId?: string;
+  goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
 };
 
 export type RuntimeRouteModelProfile = {
@@ -43,8 +50,14 @@ export type RuntimeRouteLocalRuntimeOption = {
   label?: string;
   engine?: string;
   model: string;
+  modelId?: string;
+  provider?: string;
+  adapter?: LocalAiProviderAdapter;
+  providerHints?: LocalAiProviderHints;
   endpoint?: string;
   status?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
+  goRuntimeLocalModelId?: string;
+  goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
   capabilities?: string[];
 };
 
@@ -87,9 +100,17 @@ export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | 
     source: normalizeRuntimeRouteSource(record.source),
     connectorId: String(record.connectorId || ''),
     model: String(record.model || ''),
+    modelId: String(record.modelId || '').trim() || undefined,
     provider: String(record.provider || '').trim() || undefined,
     localModelId: String(record.localModelId || '').trim() || undefined,
     engine: String(record.engine || '').trim() || undefined,
+    adapter: String(record.adapter || '').trim() || undefined,
+    providerHints: record.providerHints && typeof record.providerHints === 'object' && !Array.isArray(record.providerHints)
+      ? record.providerHints as LocalAiProviderHints
+      : undefined,
+    endpoint: String(record.endpoint || '').trim() || undefined,
+    goRuntimeLocalModelId: String(record.goRuntimeLocalModelId || '').trim() || undefined,
+    goRuntimeStatus: String(record.goRuntimeStatus || '').trim() || undefined,
   };
 }
 
@@ -173,8 +194,16 @@ function parseLocalRuntimeModels(value: unknown): RuntimeRouteLocalRuntimeOption
       label: String(record.label || '').trim() || undefined,
       engine: String(record.engine || '').trim() || undefined,
       model,
+      modelId: String(record.modelId || '').trim() || undefined,
+      provider: String(record.provider || '').trim() || undefined,
+      adapter: String(record.adapter || '').trim() || undefined,
+      providerHints: record.providerHints && typeof record.providerHints === 'object' && !Array.isArray(record.providerHints)
+        ? record.providerHints as LocalAiProviderHints
+        : undefined,
       endpoint: String(record.endpoint || '').trim() || undefined,
       status: String(record.status || '').trim() || undefined,
+      goRuntimeLocalModelId: String(record.goRuntimeLocalModelId || '').trim() || undefined,
+      goRuntimeStatus: String(record.goRuntimeStatus || '').trim() || undefined,
       capabilities: Array.isArray(record.capabilities)
         ? record.capabilities.map((capability) => String(capability || '').trim()).filter(Boolean)
         : undefined,

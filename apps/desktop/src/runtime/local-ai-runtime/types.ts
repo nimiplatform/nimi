@@ -409,6 +409,10 @@ export type LocalAiRuntimeAuditPayload = {
   eventType: 'runtime_model_ready_after_install' | string;
   modelId?: string;
   localModelId?: string;
+  source?: LocalAiAuditSource;
+  modality?: LocalAiAuditModality;
+  reasonCode?: string;
+  detail?: string;
   payload?: Record<string, unknown>;
 };
 

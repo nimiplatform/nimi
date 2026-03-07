@@ -52,6 +52,15 @@ func localAICommand(cfg EngineConfig) *exec.Cmd {
 	if cfg.ModelsPath != "" {
 		args = append(args, "--models-path", cfg.ModelsPath)
 	}
+	if cfg.ModelsConfigPath != "" {
+		args = append(args, "--models-config-file", cfg.ModelsConfigPath)
+	}
+	if cfg.BackendsPath != "" {
+		args = append(args, "--backends-path", cfg.BackendsPath)
+	}
+	if len(cfg.ExternalBackends) > 0 {
+		args = append(args, "--external-backends", strings.Join(cfg.ExternalBackends, ","))
+	}
 	return exec.Command(cfg.BinaryPath, args...)
 }
 

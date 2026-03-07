@@ -45,6 +45,7 @@ export type ModRuntimeResolvedBinding = {
   source: RuntimeRouteSource;
   provider: string;
   model: string;
+  modelId?: string;
   connectorId: string;
   endpoint?: string;
   localModelId?: string;
@@ -52,6 +53,8 @@ export type ModRuntimeResolvedBinding = {
   adapter?: string;
   localProviderEndpoint?: string;
   localOpenAiEndpoint?: string;
+  goRuntimeLocalModelId?: string;
+  goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
 };
 
 export type ModRuntimeRouteListOptionsInput = {

@@ -47,6 +47,7 @@ func (a *ServiceAdapter) EnsureEngine(ctx context.Context, engineName string, ve
 	if err != nil {
 		return err
 	}
+	cfg = a.mgr.applyLocalAIPaths(cfg)
 	_, err = a.mgr.EnsureEngine(ctx, cfg)
 	return err
 }
@@ -56,6 +57,7 @@ func (a *ServiceAdapter) StartEngine(ctx context.Context, engineName string, por
 	if err != nil {
 		return err
 	}
+	cfg = a.mgr.applyLocalAIPaths(cfg)
 	cfg, err = a.mgr.EnsureEngine(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("ensure engine before start: %w", err)

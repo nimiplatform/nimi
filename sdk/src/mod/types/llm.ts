@@ -37,6 +37,7 @@ export type LocalRuntimeRouteBinding = {
   provider: string;
   adapter?: LocalAiProviderAdapter;
   providerHints?: LocalAiProviderHints;
+  modelId?: string;
   localModelId: string;
   engine: LocalRuntimeEngine;
   model: string;
@@ -44,6 +45,8 @@ export type LocalRuntimeRouteBinding = {
   localProviderEndpoint: string;
   localProviderModel: string;
   localOpenAiEndpoint: string;
+  goRuntimeLocalModelId?: string;
+  goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
   connectorId: '';
 };
 
@@ -54,6 +57,7 @@ export type TokenApiRouteBinding = {
   adapter?: LocalAiProviderAdapter;
   providerHints?: LocalAiProviderHints;
   connectorId: string;
+  modelId?: string;
   model: string;
   endpoint: string;
   localOpenAiEndpoint: string;

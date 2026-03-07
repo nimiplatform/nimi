@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -178,5 +179,48 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil); err != nil {
 		t.Fatalf("expected local model validation success, got %v", err)
+	}
+
+	// Same modelId across engines should respect explicit engine selector.
+	dualEnginePage := &runtimev1.ListLocalModelsResponse{
+		Models: []*runtimev1.LocalModelRecord{
+			{ModelId: "qwen", Engine: "localai", LocalInvokeProfileId: "invoke"},
+			{ModelId: "qwen", Engine: "nexa", LocalInvokeProfileId: "invoke"},
+		},
+	}
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{
+		dualEnginePage,
+		dualEnginePage,
+	}}
+	if err := svc.validateLocalModelRequest(context.Background(), "localai/qwen", nil); err != nil {
+		t.Fatalf("expected localai selector to succeed, got %v", err)
+	}
+	if err := svc.validateLocalModelRequest(context.Background(), "nexa/qwen", nil); err != nil {
+		t.Fatalf("expected nexa selector to succeed, got %v", err)
+	}
+}
+
+func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger)
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{{
+			ModelId:      "unsloth/Z-Image-Turbo-GGUF",
+			Engine:       "localai",
+			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+			HealthDetail: "managed/bundled LocalAI binary on darwin/arm64 does not ship stablediffusion backend",
+		}},
+	}}}
+
+	err := svc.validateLocalModelRequest(context.Background(), "local/unsloth/Z-Image-Turbo-GGUF", nil)
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)
+	}
+	if err == nil || !strings.Contains(err.Error(), "inspect_local_runtime_model_health") {
+		t.Fatalf("expected action hint in structured error payload, got %v", err)
+	}
+	if err == nil || !strings.Contains(err.Error(), "stablediffusion backend") {
+		t.Fatalf("expected unhealthy detail in structured error payload, got %v", err)
 	}
 }

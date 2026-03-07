@@ -132,6 +132,10 @@ pub struct LocalAiRuntimeAuditPayload {
     pub event_type: String,
     pub model_id: Option<String>,
     pub local_model_id: Option<String>,
+    pub source: Option<String>,
+    pub modality: Option<String>,
+    pub reason_code: Option<String>,
+    pub detail: Option<String>,
     pub payload: Option<serde_json::Value>,
 }
 
@@ -215,4 +219,3 @@ pub struct LocalAiScaffoldOrphanPayload {
     pub engine: Option<String>,
     pub endpoint: Option<String>,
 }
-

@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   localAiRuntime,
+  type GoRuntimeSyncTarget,
+  syncModelInstallToGoRuntime,
+  syncModelStartToGoRuntime,
+  reconcileModelsToGoRuntime,
   type LocalAiDependenciesDeclarationDescriptor,
   type LocalAiDependencyResolutionPlan,
   type LocalAiCatalogItemDescriptor,
@@ -72,6 +76,25 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const pendingInstallsRef = useRef(new Map<string, PendingInstallEntry>());
   const [pendingInstallVersion, setPendingInstallVersion] = useState(0);
 
+  const recordGoRuntimeSyncFailure = useCallback(async (
+    eventType: string,
+    target: GoRuntimeSyncTarget,
+    error: unknown,
+  ) => {
+    await localAiRuntime.appendAudit({
+      eventType,
+      modelId: String(target.modelId || '').trim(),
+      localModelId: String(target.localModelId || '').trim() || undefined,
+      source: 'local-runtime',
+      reasonCode: 'GO_RUNTIME_SYNC_FAILED',
+      detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
+      payload: {
+        action: eventType,
+        engine: String(target.engine || '').trim() || undefined,
+      },
+    }).catch(() => null);
+  }, []);
+
   const installSessionMeta = useMemo(() => {
     const meta = new Map<string, { plan: LocalAiInstallPlanDescriptor; installSource: string }>();
     for (const [sessionId, entry] of pendingInstallsRef.current) {
@@ -115,6 +138,39 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (targetHealth?.status === 'unhealthy') {
         throw new Error(targetHealth.detail || 'local runtime model unhealthy');
       }
+    } catch (localError: unknown) {
+      setStatusBanner({
+        kind: 'error',
+        message: `Post-install failed: ${localError instanceof Error ? localError.message : String(localError || '')}`,
+      });
+      return;
+    }
+
+    try {
+      const plan = session?.plan;
+      const synced = await syncModelInstallToGoRuntime({
+        localModelId: resolvedLocalModelId,
+        modelId: resolvedModelId,
+        capabilities: plan?.capabilities || capabilities,
+        engine: plan?.engine || '',
+        entry: plan?.entry || '',
+        license: plan?.license || '',
+        source: {
+          repo: plan?.repo || '',
+          revision: plan?.revision || '',
+        },
+        hashes: plan?.hashes || {},
+        endpoint: plan?.endpoint || '',
+        status: 'active',
+        installedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      await syncModelStartToGoRuntime({
+        modelId: resolvedModelId,
+        engine: plan?.engine || '',
+        localModelId: synced.localModelId,
+      });
+
       await localAiRuntime.appendAudit({
         eventType: 'runtime_model_ready_after_install',
         modelId: resolvedModelId,
@@ -131,12 +187,17 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         message: `Model installed and ready: ${resolvedModelId}`,
       });
     } catch (postError: unknown) {
+      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_download', {
+        modelId: resolvedModelId || installSessionId,
+        engine: session?.plan.engine || '',
+        localModelId: resolvedLocalModelId || undefined,
+      }, postError);
       setStatusBanner({
         kind: 'error',
         message: `Post-install failed: ${postError instanceof Error ? postError.message : String(postError || '')}`,
       });
     }
-  }, [refreshLocalRuntimeSnapshot, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, setStatusBanner]);
 
   const runInstallPlanLifecycle = useCallback((plan: LocalAiInstallPlanDescriptor, installSource: 'catalog' | 'manual' | 'verified') => {
     localAiRuntime.install({
@@ -218,6 +279,20 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       const plan = await resolveRuntimeDependencies(modId, capability);
       const result = await localAiRuntime.applyDependencies(plan, { caller: 'core' });
       await refreshLocalRuntimeSnapshot();
+      try {
+        const fullModels = await localAiRuntime.list();
+        await reconcileModelsToGoRuntime(fullModels);
+      } catch (syncError) {
+        await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_dependency_apply', {
+          modelId: modId,
+          engine: 'localai',
+        }, syncError);
+        setStatusBanner({
+          kind: 'warning',
+          message: `Dependencies applied, but Go runtime sync failed: ${syncError instanceof Error ? syncError.message : String(syncError || '')}`,
+        });
+        return;
+      }
       setStatusBanner({
         kind: 'success',
         message: `Dependencies applied for ${modId}: ${result.installedModels.length} model(s), ${result.services.length} service(s)`,
@@ -229,7 +304,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [refreshLocalRuntimeSnapshot, resolveRuntimeDependencies, setStatusBanner]);
+  }, [recordGoRuntimeSyncFailure, refreshLocalRuntimeSnapshot, resolveRuntimeDependencies, setStatusBanner]);
 
   const installCatalogLocalRuntimeModel = useCallback(async (
     item: LocalAiCatalogItemDescriptor,

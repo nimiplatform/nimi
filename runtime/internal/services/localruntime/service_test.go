@@ -356,7 +356,7 @@ func TestLocalRuntimeDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 	receivedPath := ""
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedPath = r.URL.Path
-		_, _ = w.Write([]byte(`{"data":[{"id":"local/model"}]}`))
+		_, _ = w.Write([]byte(`{"data":[{"id":"default-probe-model"}]}`))
 	}))
 	defer server.Close()
 

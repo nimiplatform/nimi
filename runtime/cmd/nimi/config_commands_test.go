@@ -182,6 +182,41 @@ func TestRunRuntimeConfigSetEngineFieldsRequiresRestart(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigSetLocalModelsPathRequiresRestart(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	setOutput, err := captureStdoutFromRun(func() error {
+		return runRuntimeConfig([]string{
+			"set",
+			"--set", "localModelsPath=~/runtime/models",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeConfig set localModelsPath: %v", err)
+	}
+	setPayload := parseJSONMap(t, setOutput)
+	if asString(setPayload["reasonCode"]) != configReasonRestartRequired {
+		t.Fatalf("set reasonCode mismatch: %s", setOutput)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.LocalModelsPath != "~/runtime/models" {
+		t.Fatalf("localModelsPath mismatch: got=%q", cfg.LocalModelsPath)
+	}
+}
+
 func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -449,6 +484,7 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_HTTP_ADDR",
 		"NIMI_RUNTIME_SHUTDOWN_TIMEOUT",
 		"NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH",
+		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",
 		"NIMI_RUNTIME_LOCAL_AI_BASE_URL",

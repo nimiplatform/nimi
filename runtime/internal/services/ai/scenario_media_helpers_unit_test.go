@@ -201,8 +201,17 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("localai/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterLocalAINative {
 		t.Fatalf("unexpected adapter: %s", got)
 	}
+	if got := resolveMediaAdapterName("unsloth/z-image-turbo", "", runtimev1.Modal_MODAL_IMAGE, "localai"); got != adapterLocalAINative {
+		t.Fatalf("unexpected localai provider adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("whisper-large-v3", "", runtimev1.Modal_MODAL_STT, "localai"); got != adapterLocalAINative {
+		t.Fatalf("unexpected localai stt adapter: %s", got)
+	}
 	if got := resolveMediaAdapterName("nexa/qwen", "", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterNexaNative {
 		t.Fatalf("unexpected adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("wan2.2", "", runtimev1.Modal_MODAL_VIDEO, "nexa"); got != adapterNexaNative {
+		t.Fatalf("unexpected nexa provider adapter: %s", got)
 	}
 	if got := resolveMediaAdapterName("", "kimi/k1", runtimev1.Modal_MODAL_IMAGE, ""); got != adapterKimiChatMultimodal {
 		t.Fatalf("unexpected adapter: %s", got)
@@ -224,6 +233,12 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	}
 	if got := inferMediaProviderTypeFromBackendName(&nimillm.Backend{Name: "local-localai"}); got != "localai" {
 		t.Fatalf("unexpected local provider type: %q", got)
+	}
+	localProvider := &localProvider{
+		localai: &nimillm.Backend{Name: "local-localai"},
+	}
+	if got := inferMediaProviderTypeFromSelectedBackend(localProvider, "z-image-turbo"); got != "localai" {
+		t.Fatalf("unexpected local provider backend type: %q", got)
 	}
 
 	if got := stringSliceToAny([]string{"  a ", "", "b"}); len(got) != 2 {

@@ -110,12 +110,37 @@ pub fn runtime_local_append_runtime_audit(
     payload: LocalAiRuntimeAuditPayload,
 ) -> Result<(), String> {
     let event_type = validate_runtime_audit_event_type(payload.event_type.as_str())?;
+    let mut payload_object = match payload.payload {
+        Some(serde_json::Value::Object(map)) => map,
+        Some(other) => {
+            let mut map = serde_json::Map::<String, serde_json::Value>::new();
+            map.insert("payload".to_string(), other);
+            map
+        }
+        None => serde_json::Map::<String, serde_json::Value>::new(),
+    };
+    if let Some(value) = normalize_optional(payload.source) {
+        payload_object.insert("source".to_string(), serde_json::Value::String(value));
+    }
+    if let Some(value) = normalize_optional(payload.modality) {
+        payload_object.insert("modality".to_string(), serde_json::Value::String(value));
+    }
+    if let Some(value) = normalize_optional(payload.reason_code) {
+        payload_object.insert("reasonCode".to_string(), serde_json::Value::String(value));
+    }
+    if let Some(value) = normalize_optional(payload.detail) {
+        payload_object.insert("detail".to_string(), serde_json::Value::String(value));
+    }
     append_app_audit_event(
         &app,
         event_type,
         normalize_optional(payload.model_id).as_deref(),
         normalize_optional(payload.local_model_id).as_deref(),
-        payload.payload,
+        if payload_object.is_empty() {
+            None
+        } else {
+            Some(serde_json::Value::Object(payload_object))
+        },
     )
 }
 

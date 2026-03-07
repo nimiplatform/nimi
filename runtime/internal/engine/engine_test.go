@@ -675,6 +675,47 @@ func TestServiceAdapterStopEngineNotFound(t *testing.T) {
 	}
 }
 
+func TestManagerApplyLocalAIPaths(t *testing.T) {
+	dir := t.TempDir()
+	mgr, err := NewManager(nil, dir, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	configPath := filepath.Join(t.TempDir(), "localai-models.yaml")
+	if err := os.WriteFile(configPath, []byte(`
+- name: model-a
+  backend: llama-cpp
+  parameters:
+    model: model-a.gguf
+- name: model-b
+  backend: whisper-ggml
+  parameters:
+    model: model-b.bin
+`), 0o644); err != nil {
+		t.Fatalf("write localai models config: %v", err)
+	}
+
+	mgr.SetLocalAIPaths("/data/models", configPath)
+	cfg := mgr.applyLocalAIPaths(DefaultLocalAIConfig())
+	if cfg.ModelsPath != "/data/models" {
+		t.Fatalf("models path mismatch: %q", cfg.ModelsPath)
+	}
+	if cfg.ModelsConfigPath != configPath {
+		t.Fatalf("models config path mismatch: %q", cfg.ModelsConfigPath)
+	}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("resolve home dir: %v", err)
+	}
+	if got, want := cfg.BackendsPath, filepath.Join(homeDir, ".nimi", "runtime", "localai-backends"); got != want {
+		t.Fatalf("backends path mismatch: got=%q want=%q", got, want)
+	}
+	if got, want := strings.Join(cfg.ExternalBackends, ","), "llama-cpp,whisper-ggml"; got != want {
+		t.Fatalf("external backends mismatch: got=%q want=%q", got, want)
+	}
+}
+
 func TestParseEngineKind(t *testing.T) {
 	tests := []struct {
 		input string
@@ -1025,13 +1066,54 @@ func TestLocalAICommandArgs(t *testing.T) {
 	if strings.Contains(args, "--models-path") {
 		t.Error("expected no --models-path when ModelsPath is empty")
 	}
+	if strings.Contains(args, "--models-config-file") {
+		t.Error("expected no --models-config-file when ModelsConfigPath is empty")
+	}
+	if strings.Contains(args, "--backends-path") {
+		t.Error("expected no --backends-path when BackendsPath is empty")
+	}
+	if strings.Contains(args, "--external-backends") {
+		t.Error("expected no --external-backends when ExternalBackends is empty")
+	}
 
 	// With ModelsPath.
 	cfg.ModelsPath = "/data/models"
+	cfg.ModelsConfigPath = "/data/runtime/localai-models.yaml"
+	cfg.BackendsPath = "/data/runtime/localai-backends"
+	cfg.ExternalBackends = []string{"llama-cpp", "whisper-ggml"}
 	cmd2 := localAICommand(cfg)
 	args2 := strings.Join(cmd2.Args[1:], " ")
 	if !strings.Contains(args2, "--models-path") || !strings.Contains(args2, "/data/models") {
 		t.Errorf("expected --models-path /data/models, got: %s", args2)
+	}
+	if !strings.Contains(args2, "--models-config-file") || !strings.Contains(args2, "/data/runtime/localai-models.yaml") {
+		t.Errorf("expected --models-config-file /data/runtime/localai-models.yaml, got: %s", args2)
+	}
+	if !strings.Contains(args2, "--backends-path") || !strings.Contains(args2, "/data/runtime/localai-backends") {
+		t.Errorf("expected --backends-path /data/runtime/localai-backends, got: %s", args2)
+	}
+	if !strings.Contains(args2, "--external-backends") || !strings.Contains(args2, "llama-cpp,whisper-ggml") {
+		t.Errorf("expected --external-backends llama-cpp,whisper-ggml, got: %s", args2)
+	}
+}
+
+func TestDetectLocalAIExternalBackends(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "localai-models.yaml")
+	if err := os.WriteFile(configPath, []byte(`
+- name: model-a
+  backend: llama-cpp
+- name: model-b
+  backend: whisper-ggml
+- name: model-c
+  backend: llama-cpp
+- name: model-d
+  backend: ""
+`), 0o644); err != nil {
+		t.Fatalf("write localai models config: %v", err)
+	}
+
+	if got, want := strings.Join(detectLocalAIExternalBackends(configPath), ","), "llama-cpp,whisper-ggml"; got != want {
+		t.Fatalf("detectLocalAIExternalBackends mismatch: got=%q want=%q", got, want)
 	}
 }
 

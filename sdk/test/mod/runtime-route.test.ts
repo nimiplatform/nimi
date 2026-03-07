@@ -19,8 +19,14 @@ test('parseRuntimeRouteBinding keeps token-api provider metadata', () => {
     connectorId: 'connector-dashscope',
     provider: 'dashscope',
     model: 'wan2.6-t2i',
+    modelId: undefined,
     localModelId: undefined,
     engine: undefined,
+    adapter: undefined,
+    providerHints: undefined,
+    endpoint: undefined,
+    goRuntimeLocalModelId: undefined,
+    goRuntimeStatus: undefined,
   });
 });
 
@@ -69,4 +75,41 @@ test('parseRuntimeRouteOptions keeps connector providers and models', () => {
     'qwen-image-2.0',
     'wan2.6-t2i',
   ]);
+});
+
+test('parseRuntimeRouteOptions keeps local-runtime adapter and go runtime metadata', () => {
+  const parsed = parseRuntimeRouteOptions({
+    capability: 'image.generate',
+    selected: {
+      source: 'local-runtime',
+      connectorId: '',
+      model: 'z-image-turbo',
+      modelId: 'z-image-turbo',
+      localModelId: 'file:z-image-turbo',
+      engine: 'localai',
+      provider: 'localai',
+      adapter: 'localai_native_adapter',
+      goRuntimeLocalModelId: '01JTESTLOCALAIMODEL',
+      goRuntimeStatus: 'active',
+    },
+    localRuntime: {
+      models: [{
+        localModelId: 'file:z-image-turbo',
+        model: 'z-image-turbo',
+        modelId: 'z-image-turbo',
+        engine: 'localai',
+        provider: 'localai',
+        adapter: 'localai_native_adapter',
+        goRuntimeLocalModelId: '01JTESTLOCALAIMODEL',
+        goRuntimeStatus: 'active',
+        capabilities: ['image.generate'],
+      }],
+    },
+    connectors: [],
+  });
+
+  assert.ok(parsed);
+  assert.equal(parsed?.selected.adapter, 'localai_native_adapter');
+  assert.equal(parsed?.selected.goRuntimeStatus, 'active');
+  assert.equal(parsed?.localRuntime.models[0]?.goRuntimeLocalModelId, '01JTESTLOCALAIMODEL');
 });

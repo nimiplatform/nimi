@@ -40,3 +40,25 @@ test('resolveSourceAndModel preserves explicit token-api provider and prefixes c
   assert.equal(resolved.provider, 'dashscope');
   assert.equal(resolved.fallbackPolicy, 1);
 });
+
+test('resolveSourceAndModel prefixes localai selectors for local-runtime routes', () => {
+  const resolved = resolveSourceAndModel({
+    provider: 'localai',
+    model: 'z-image-turbo',
+    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+  });
+
+  assert.equal(resolved.source, 'local-runtime');
+  assert.equal(resolved.modelId, 'localai/z-image-turbo');
+});
+
+test('resolveSourceAndModel prefixes nexa selectors for local-runtime routes', () => {
+  const resolved = resolveSourceAndModel({
+    provider: 'nexa',
+    model: 'qwen-rerank',
+    localProviderEndpoint: 'http://127.0.0.1:18181/v1',
+  });
+
+  assert.equal(resolved.source, 'local-runtime');
+  assert.equal(resolved.modelId, 'nexa/qwen-rerank');
+});

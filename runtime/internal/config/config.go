@@ -17,13 +17,14 @@ import (
 )
 
 const (
-	DefaultSchemaVersion            = 1
-	defaultGRPCAddr                 = "127.0.0.1:46371"
-	defaultHTTPAddr                 = "127.0.0.1:46372"
-	defaultLocalRuntimeStateRelPath = ".nimi/runtime/local-runtime-state.json"
+	DefaultSchemaVersion             = 1
+	defaultGRPCAddr                  = "127.0.0.1:46371"
+	defaultHTTPAddr                  = "127.0.0.1:46372"
+	defaultLocalRuntimeStateRelPath  = ".nimi/runtime/local-runtime-state.json"
+	defaultLocalModelsRelPath        = ".nimi/models"
 	defaultModelCatalogCustomRelPath = ".nimi/runtime/model-catalog/providers"
-	defaultRuntimeConfigRelPath     = ".nimi/config.json"
-	defaultCloudGeminiBaseURL       = "https://generativelanguage.googleapis.com/v1beta/openai"
+	defaultRuntimeConfigRelPath      = ".nimi/config.json"
+	defaultCloudGeminiBaseURL        = "https://generativelanguage.googleapis.com/v1beta/openai"
 )
 
 // Config defines daemon boot configuration. (K-DAEMON-009)
@@ -32,6 +33,7 @@ type Config struct {
 	HTTPAddr              string
 	ShutdownTimeout       time.Duration
 	LocalRuntimeStatePath string
+	LocalModelsPath       string
 
 	// AllowLoopbackProviderEndpoint permits HTTP (non-TLS) connections to
 	// loopback addresses (127.0.0.0/8, ::1, localhost) for provider endpoints.
@@ -151,21 +153,22 @@ type FileConfig struct {
 	HTTPAddr               string `json:"httpAddr,omitempty"`
 	ShutdownTimeoutSeconds *int   `json:"shutdownTimeoutSeconds,omitempty"`
 	LocalRuntimeStatePath  string `json:"localRuntimeStatePath,omitempty"`
+	LocalModelsPath        string `json:"localModelsPath,omitempty"`
 
-	WorkerMode                         *bool  `json:"workerMode,omitempty"`
-	AIHealthIntervalSeconds            *int   `json:"aiHealthIntervalSeconds,omitempty"`
-	AIHTTPTimeoutSeconds               *int   `json:"aiHttpTimeoutSeconds,omitempty"`
-	GlobalConcurrencyLimit             *int   `json:"globalConcurrencyLimit,omitempty"`
-	PerAppConcurrencyLimit             *int   `json:"perAppConcurrencyLimit,omitempty"`
-	IdempotencyCapacity                *int   `json:"idempotencyCapacity,omitempty"`
-	MaxDelegationDepth                 *int   `json:"maxDelegationDepth,omitempty"`
-	AuditRingBufferSize                *int   `json:"auditRingBufferSize,omitempty"`
-	UsageStatsBufferSize               *int   `json:"usageStatsBufferSize,omitempty"`
-	LocalAuditCapacity                 *int   `json:"localAuditCapacity,omitempty"`
-	SessionTTLMinSeconds               *int   `json:"sessionTtlMinSeconds,omitempty"`
-	SessionTTLMaxSeconds               *int   `json:"sessionTtlMaxSeconds,omitempty"`
-	ModelCatalogCustomDir              string `json:"modelCatalogCustomDir,omitempty"`
-	LogLevel                           string `json:"logLevel,omitempty"`
+	WorkerMode              *bool  `json:"workerMode,omitempty"`
+	AIHealthIntervalSeconds *int   `json:"aiHealthIntervalSeconds,omitempty"`
+	AIHTTPTimeoutSeconds    *int   `json:"aiHttpTimeoutSeconds,omitempty"`
+	GlobalConcurrencyLimit  *int   `json:"globalConcurrencyLimit,omitempty"`
+	PerAppConcurrencyLimit  *int   `json:"perAppConcurrencyLimit,omitempty"`
+	IdempotencyCapacity     *int   `json:"idempotencyCapacity,omitempty"`
+	MaxDelegationDepth      *int   `json:"maxDelegationDepth,omitempty"`
+	AuditRingBufferSize     *int   `json:"auditRingBufferSize,omitempty"`
+	UsageStatsBufferSize    *int   `json:"usageStatsBufferSize,omitempty"`
+	LocalAuditCapacity      *int   `json:"localAuditCapacity,omitempty"`
+	SessionTTLMinSeconds    *int   `json:"sessionTtlMinSeconds,omitempty"`
+	SessionTTLMaxSeconds    *int   `json:"sessionTtlMaxSeconds,omitempty"`
+	ModelCatalogCustomDir   string `json:"modelCatalogCustomDir,omitempty"`
+	LogLevel                string `json:"logLevel,omitempty"`
 
 	Auth      *FileConfigAuth              `json:"auth,omitempty"`
 	Providers map[string]RuntimeFileTarget `json:"providers,omitempty"`
@@ -211,25 +214,26 @@ func boolPtr(v bool) *bool { return &v }
 
 func DefaultFileConfig() FileConfig {
 	return FileConfig{
-		SchemaVersion:                      DefaultSchemaVersion,
-		GRPCAddr:                           defaultGRPCAddr,
-		HTTPAddr:                           defaultHTTPAddr,
-		ShutdownTimeoutSeconds:             intPtr(10),
-		LocalRuntimeStatePath:              "~/" + defaultLocalRuntimeStateRelPath,
-		WorkerMode:                         boolPtr(false),
-		AIHealthIntervalSeconds:            intPtr(8),
-		AIHTTPTimeoutSeconds:               intPtr(30),
-		GlobalConcurrencyLimit:             intPtr(8),
-		PerAppConcurrencyLimit:             intPtr(2),
-		IdempotencyCapacity:                intPtr(10000),
-		MaxDelegationDepth:                 intPtr(3),
-		AuditRingBufferSize:                intPtr(20000),
-		UsageStatsBufferSize:               intPtr(50000),
-		LocalAuditCapacity:                 intPtr(5000),
-		SessionTTLMinSeconds:               intPtr(60),
-		SessionTTLMaxSeconds:               intPtr(86400),
-		ModelCatalogCustomDir:              "~/" + defaultModelCatalogCustomRelPath,
-		Providers:                          map[string]RuntimeFileTarget{},
+		SchemaVersion:           DefaultSchemaVersion,
+		GRPCAddr:                defaultGRPCAddr,
+		HTTPAddr:                defaultHTTPAddr,
+		ShutdownTimeoutSeconds:  intPtr(10),
+		LocalRuntimeStatePath:   "~/" + defaultLocalRuntimeStateRelPath,
+		LocalModelsPath:         "~/" + defaultLocalModelsRelPath,
+		WorkerMode:              boolPtr(false),
+		AIHealthIntervalSeconds: intPtr(8),
+		AIHTTPTimeoutSeconds:    intPtr(30),
+		GlobalConcurrencyLimit:  intPtr(8),
+		PerAppConcurrencyLimit:  intPtr(2),
+		IdempotencyCapacity:     intPtr(10000),
+		MaxDelegationDepth:      intPtr(3),
+		AuditRingBufferSize:     intPtr(20000),
+		UsageStatsBufferSize:    intPtr(50000),
+		LocalAuditCapacity:      intPtr(5000),
+		SessionTTLMinSeconds:    intPtr(60),
+		SessionTTLMaxSeconds:    intPtr(86400),
+		ModelCatalogCustomDir:   "~/" + defaultModelCatalogCustomRelPath,
+		Providers:               map[string]RuntimeFileTarget{},
 	}
 }
 
@@ -256,6 +260,7 @@ func Load() (Config, error) {
 		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.HTTPAddr, defaultHTTPAddr)),
 		ShutdownTimeout:               10 * time.Second,
 		LocalRuntimeStatePath:         resolveLocalRuntimeStatePath(fileCfg),
+		LocalModelsPath:               resolveLocalModelsPath(fileCfg),
 		AllowLoopbackProviderEndpoint: readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false),
 		SessionTTLMinSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", fileCfg.SessionTTLMinSeconds, 60),
 		SessionTTLMaxSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS", fileCfg.SessionTTLMaxSeconds, 86400),
@@ -514,6 +519,20 @@ func resolveLocalRuntimeStatePath(fileCfg FileConfig) string {
 		return ""
 	}
 	return filepath.Join(home, defaultLocalRuntimeStateRelPath)
+}
+
+func resolveLocalModelsPath(fileCfg FileConfig) string {
+	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH")); value != "" {
+		return expandUserPath(value)
+	}
+	if value := strings.TrimSpace(fileCfg.LocalModelsPath); value != "" {
+		return expandUserPath(value)
+	}
+	home, err := os.UserHomeDir()
+	if err != nil || strings.TrimSpace(home) == "" {
+		return ""
+	}
+	return filepath.Join(home, defaultLocalModelsRelPath)
 }
 
 func resolveModelCatalogCustomDir(fileCfg FileConfig) string {

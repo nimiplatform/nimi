@@ -33,6 +33,7 @@ type endpointProbeResult struct {
 	healthy  bool
 	detail   string
 	probeURL string
+	models   []string
 }
 
 type probeRecoveryState struct {
@@ -95,11 +96,14 @@ func defaultEndpointProbe(ctx context.Context, endpoint string) endpointProbeRes
 		}
 	}
 	hasModel := false
+	modelIDs := make([]string, 0, len(payload.Data))
 	for _, item := range payload.Data {
-		if strings.TrimSpace(item.ID) != "" {
-			hasModel = true
-			break
+		modelID := strings.TrimSpace(item.ID)
+		if modelID == "" {
+			continue
 		}
+		hasModel = true
+		modelIDs = append(modelIDs, modelID)
 	}
 	if !hasModel {
 		return endpointProbeResult{
@@ -112,6 +116,7 @@ func defaultEndpointProbe(ctx context.Context, endpoint string) endpointProbeRes
 		healthy:  true,
 		detail:   "probe succeeded",
 		probeURL: probeURL,
+		models:   modelIDs,
 	}
 }
 

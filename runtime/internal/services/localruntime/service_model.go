@@ -444,6 +444,9 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 		Detail:       "model installed",
 	})
 	s.mu.Unlock()
+	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
+		s.logger.Warn("sync localai assets after install failed", "model_id", record.GetModelId(), "error", syncErr)
+	}
 	return &runtimev1.InstallLocalModelResponse{Model: record}, nil
 }
 
@@ -595,6 +598,9 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		Detail:       manifestPath,
 	})
 	s.mu.Unlock()
+	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
+		s.logger.Warn("sync localai assets after import failed", "model_id", record.GetModelId(), "error", syncErr)
+	}
 	return &runtimev1.ImportLocalModelResponse{Model: record}, nil
 }
 
@@ -677,6 +683,9 @@ func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocal
 	if err != nil {
 		return nil, err
 	}
+	if syncErr := s.SyncManagedLocalAIAssets(context.Background()); syncErr != nil {
+		s.logger.Warn("sync localai assets after remove failed", "local_model_id", localModelID, "error", syncErr)
+	}
 	return &runtimev1.RemoveLocalModelResponse{Model: model}, nil
 }
 
@@ -710,7 +719,8 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 
 	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), modelProbeEndpoint(current))
 	probe := s.probeEndpoint(ctx, modelProbeEndpoint(current))
-	if probe.healthy {
+	registration := s.localAIRegistrationForModel(current)
+	if modelProbeSucceeded(current, probe, registration) {
 		s.resetModelRecovery(localModelID)
 		latest := s.modelByID(localModelID)
 		if latest == nil {
@@ -720,7 +730,7 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 	}
 
 	failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
-	detail := appendWarnings(defaultString(probe.detail, "model probe failed"), warnings)
+	detail := appendWarnings(modelProbeFailureDetail(current, probe, registration), warnings)
 	if bootstrapErr != nil {
 		detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
 	}
@@ -776,13 +786,14 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
 			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
 			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
-			if probe.healthy {
+			registration := s.localAIRegistrationForModel(model)
+			if modelProbeSucceeded(model, probe, registration) {
 				s.resetModelRecovery(localModelID)
 				result = append(result, modelHealth(model))
 				continue
 			}
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
-			detail := defaultString(probe.detail, "model probe failed")
+			detail := modelProbeFailureDetail(model, probe, registration)
 			if bootstrapErr != nil {
 				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
 			}
@@ -798,7 +809,8 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
 			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), modelProbeEndpoint(model))
 			probe := s.probeEndpoint(ctx, modelProbeEndpoint(model))
-			if probe.healthy {
+			registration := s.localAIRegistrationForModel(model)
+			if modelProbeSucceeded(model, probe, registration) {
 				successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
 				if successes >= localRecoverySuccessThreshold {
 					recovered, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")
@@ -820,7 +832,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			}
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			health := modelHealth(model)
-			detail := defaultString(probe.detail, "model probe failed")
+			detail := modelProbeFailureDetail(model, probe, registration)
 			if bootstrapErr != nil {
 				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
 			}
