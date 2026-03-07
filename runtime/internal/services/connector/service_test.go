@@ -572,6 +572,62 @@ func TestListConnectorModelsRemoteUsesCatalogWithoutOutbound(t *testing.T) {
 	}
 }
 
+func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "dashscope",
+		ApiKey:   "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	connectorID := created.GetConnector().GetConnectorId()
+	if connectorID == "" {
+		t.Fatalf("expected connector id")
+	}
+
+	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: connectorID,
+		PageSize:    200,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	if len(resp.GetModels()) == 0 {
+		t.Fatalf("expected dashscope catalog-derived model list")
+	}
+
+	expectedImageModels := map[string]bool{
+		"qwen-image-2.0-pro": true,
+		"qwen-image-2.0":     true,
+		"z-image-turbo":      true,
+		"wan2.6-t2i":         true,
+		"wan2.5-t2i-preview": true,
+		"flux-schnell":       true,
+		"flux-dev":           true,
+		"flux-merged":        true,
+	}
+	foundImageModels := map[string]bool{}
+	for _, model := range resp.GetModels() {
+		modelID := strings.TrimSpace(model.GetModelId())
+		if !expectedImageModels[modelID] {
+			continue
+		}
+		for _, capability := range model.GetCapabilities() {
+			if strings.TrimSpace(capability) == "image.generate" {
+				foundImageModels[modelID] = true
+				break
+			}
+		}
+	}
+
+	if len(foundImageModels) != len(expectedImageModels) {
+		t.Fatalf("expected representative dashscope image models %v, found %v", expectedImageModels, foundImageModels)
+	}
+}
+
 func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")

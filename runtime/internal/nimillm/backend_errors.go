@@ -51,7 +51,7 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"invalid model",
 	)
 	if modelNotFound {
-		return codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "switch_tts_model_or_refresh_connector_models"
+		return codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, "switch_model_or_refresh_connector_models"
 	}
 
 	modalityNotSupported := containsAnyToken(
@@ -65,10 +65,10 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"does not support audio",
 	)
 	if modalityNotSupported {
-		return codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, "select_model_with_audio_synthesize_capability"
+		return codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, "select_model_with_required_capability"
 	}
 
-	mentionsMediaOption := containsAnyToken(
+	mentionsTTSOption := containsAnyToken(
 		normalized,
 		"voice",
 		"audio format",
@@ -88,11 +88,32 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"out of range",
 		"unrecognized",
 	)
-	if mentionsMediaOption && invalidOrUnsupported {
+	if mentionsTTSOption && invalidOrUnsupported {
 		return codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, "adjust_tts_voice_or_audio_options"
 	}
 
-	return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_tts_input_and_extensions"
+	mentionsImageInput := containsAnyToken(
+		normalized,
+		"url error",
+		"image url",
+		"reference image",
+		"mask",
+		"aspect ratio",
+		"ratio",
+		"resolution",
+		"size",
+		"width",
+		"height",
+		"png",
+		"jpg",
+		"jpeg",
+		"webp",
+	)
+	if mentionsImageInput || (containsAnyToken(normalized, "image") && invalidOrUnsupported) {
+		return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_image_input_and_response_format"
+	}
+
+	return codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, "check_input_and_extensions"
 }
 
 // MapProviderRequestError maps a network/request error to gRPC status.
@@ -135,7 +156,7 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	case http.StatusNotFound:
 		if providerMessage != "" {
 			return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
-				ActionHint: "switch_tts_model_or_refresh_connector_models",
+				ActionHint: "switch_model_or_refresh_connector_models",
 				Message:    providerMessage,
 				Metadata: map[string]string{
 					"provider_message": providerMessage,

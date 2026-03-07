@@ -136,7 +136,7 @@ func TestMapProviderHTTPError_BadRequestModelNotFound(t *testing.T) {
 	if metadata["provider_message"] == "" {
 		t.Fatalf("expected provider_message metadata, got %#v", metadata)
 	}
-	if metadata["action_hint"] != "switch_tts_model_or_refresh_connector_models" {
+	if metadata["action_hint"] != "switch_model_or_refresh_connector_models" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
 }
@@ -159,7 +159,7 @@ func TestMapProviderHTTPError_BadRequestModalityNotSupported(t *testing.T) {
 		t.Fatalf("expected AI_MODALITY_NOT_SUPPORTED, got %v", reason)
 	}
 	metadata := extractErrorInfoMetadata(err)
-	if metadata["action_hint"] != "select_model_with_audio_synthesize_capability" {
+	if metadata["action_hint"] != "select_model_with_required_capability" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
 }
@@ -183,6 +183,29 @@ func TestMapProviderHTTPError_BadRequestMediaOptionUnsupported(t *testing.T) {
 	}
 	metadata := extractErrorInfoMetadata(err)
 	if metadata["action_hint"] != "adjust_tts_voice_or_audio_options" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
+	}
+}
+
+func TestMapProviderHTTPError_BadRequestImageInputInvalid(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{
+		"error": map[string]any{
+			"message": "url error, please check url!",
+		},
+	})
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error for HTTP 400 image-input-invalid")
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("expected AI_INPUT_INVALID, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "check_image_input_and_response_format" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
 }
@@ -223,6 +246,10 @@ func TestMapProviderHTTPError_ModelNotFoundIncludesProviderMessage(t *testing.T)
 	}
 	if st.Message() == "" {
 		t.Fatal("expected provider message in status message")
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if metadata["action_hint"] != "switch_model_or_refresh_connector_models" {
+		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
 }
 

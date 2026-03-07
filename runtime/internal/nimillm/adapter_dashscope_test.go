@@ -242,6 +242,87 @@ func TestExecuteDashScopeTranscribeRejectsUnsupportedAdvancedOptions(t *testing.
 	}
 }
 
+func TestBuildAlibabaImageSubmitRequestDashScopeQwenImageUsesSyncMultimodalContract(t *testing.T) {
+	submitPath, queryPathTemplate, payload, headers := buildAlibabaImageSubmitRequest(
+		"qwen-image-2.0-pro",
+		&runtimev1.ImageGenerateScenarioSpec{
+			Prompt:         "一只穿宇航服的橘猫，电影感，细节丰富",
+			NegativePrompt: "low quality, blurry",
+			N:              1,
+			Size:           "1024x1024",
+		},
+		nil,
+	)
+
+	if submitPath != "/api/v1/services/aigc/multimodal-generation/generation" {
+		t.Fatalf("unexpected submitPath: %q", submitPath)
+	}
+	if queryPathTemplate != "/api/v1/tasks/{task_id}" {
+		t.Fatalf("unexpected queryPathTemplate: %q", queryPathTemplate)
+	}
+	if len(headers) != 0 {
+		t.Fatalf("expected sync request without async headers, got=%v", headers)
+	}
+	if got := strings.TrimSpace(toString(payload["model"])); got != "qwen-image-2.0-pro" {
+		t.Fatalf("unexpected model: %q", got)
+	}
+
+	input, ok := payload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input payload, got=%T", payload["input"])
+	}
+	messages, ok := input["messages"].([]any)
+	if !ok || len(messages) != 1 {
+		t.Fatalf("expected one input message, got=%T len=%d", input["messages"], len(messages))
+	}
+	message, ok := messages[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected message map, got=%T", messages[0])
+	}
+	content, ok := message["content"].([]any)
+	if !ok || len(content) != 1 {
+		t.Fatalf("expected one content item, got=%T len=%d", message["content"], len(content))
+	}
+	textItem, ok := content[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected content map, got=%T", content[0])
+	}
+	if got := strings.TrimSpace(toString(textItem["text"])); got != "一只穿宇航服的橘猫，电影感，细节丰富" {
+		t.Fatalf("unexpected prompt text: %q", got)
+	}
+
+	parameters, ok := payload["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected parameters payload, got=%T", payload["parameters"])
+	}
+	if got := strings.TrimSpace(toString(parameters["negative_prompt"])); got != "low quality, blurry" {
+		t.Fatalf("unexpected negative prompt: %q", got)
+	}
+	if got := strings.TrimSpace(toString(parameters["size"])); got != "1024*1024" {
+		t.Fatalf("unexpected size: %q", got)
+	}
+}
+
+func TestNormalizeDashScopeImageSize(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "already provider format", input: "1024*1024", want: "1024*1024"},
+		{name: "lower x separator", input: "1024x1024", want: "1024*1024"},
+		{name: "upper x separator", input: "1024X1024", want: "1024*1024"},
+		{name: "invalid literal preserved", input: "auto", want: "auto"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := normalizeDashScopeImageSize(tc.input); got != tc.want {
+				t.Fatalf("normalizeDashScopeImageSize(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testing.T) {
 	var capturedPayload map[string]any
 	var capturedAsyncHeader string
@@ -298,6 +379,7 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 				Spec: &runtimev1.ScenarioSpec_ImageGenerate{
 					ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
 						Prompt: "A tiny cinematic island floating above a calm sea.",
+						Size:   "1328x1328",
 					},
 				},
 			},
@@ -338,6 +420,13 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 	}
 	if got := strings.TrimSpace(toString(firstContent["text"])); got != "A tiny cinematic island floating above a calm sea." {
 		t.Fatalf("unexpected prompt text: %q", got)
+	}
+	parameters, ok := capturedPayload["parameters"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected parameters payload, got=%T", capturedPayload["parameters"])
+	}
+	if got := strings.TrimSpace(toString(parameters["size"])); got != "1328*1328" {
+		t.Fatalf("unexpected normalized size: %q", got)
 	}
 	if len(artifacts) != 1 {
 		t.Fatalf("expected one image artifact, got=%d", len(artifacts))
