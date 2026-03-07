@@ -61,16 +61,24 @@ export function createRuntimeTraceId(prefix = 'runtime-call'): string {
 
 function normalizeModelRoot(model: string): string {
   const normalized = String(model || '').trim();
-  if (!normalized) return 'default';
+  if (!normalized) return '';
   const lower = normalized.toLowerCase();
-  if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim() || 'default';
-  if (lower.startsWith('cloud/')) return normalized.slice('cloud/'.length).trim() || 'default';
-  if (lower.startsWith('token/')) return normalized.slice('token/'.length).trim() || 'default';
+  if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim();
+  if (lower.startsWith('cloud/')) return normalized.slice('cloud/'.length).trim();
+  if (lower.startsWith('token/')) return normalized.slice('token/'.length).trim();
   return normalized;
 }
 
 function ensureRouteModelId(model: string, routePolicy: number): string {
   const modelRoot = normalizeModelRoot(model);
+  if (!modelRoot) {
+    throw createNimiError({
+      message: 'runtime model is required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_model',
+      source: 'runtime',
+    });
+  }
   if (routePolicy === ROUTE_POLICY_TOKEN_API) return `cloud/${modelRoot}`;
   return `local/${modelRoot}`;
 }
@@ -100,14 +108,23 @@ export function resolveSourceAndModel(input: {
   const hasConnector = Boolean(String(input.connectorId || '').trim());
   const source = hasConnector ? 'token-api' : inferRouteSourceFromEndpoint(endpoint);
   const routePolicy = source === 'local-runtime' ? ROUTE_POLICY_LOCAL_RUNTIME : ROUTE_POLICY_TOKEN_API;
-  const model = String(input.model || input.localProviderModel || '').trim() || 'default';
+  const provider = String(input.provider || '').trim();
+  if (!provider) {
+    throw createNimiError({
+      message: 'runtime provider is required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_provider',
+      source: 'runtime',
+    });
+  }
+  const model = String(input.model || input.localProviderModel || '').trim();
   return {
     source,
     routePolicy,
     fallbackPolicy: FALLBACK_POLICY_DENY,
     modelId: ensureRouteModelId(model, routePolicy),
     endpoint: hasConnector ? '' : endpoint,
-    provider: String(input.provider || '').trim() || 'openai-compatible',
+    provider,
     adapter: 'openai_compat_adapter',
   };
 }
@@ -128,13 +145,15 @@ export async function buildRuntimeRequestMetadata(input: {
   connectorId?: string;
   providerEndpoint?: string;
 }): Promise<Record<string, string>> {
-  void input;
   const traceId = createRuntimeTraceId();
-  return {
-    keySource: 'managed',
+  const metadata: Record<string, string> = {
     traceId,
     'x-nimi-trace-id': traceId,
   };
+  if (String(input.connectorId || '').trim()) {
+    metadata.keySource = 'managed';
+  }
+  return metadata;
 }
 
 export async function buildRuntimeCallOptions(input: {
@@ -150,7 +169,7 @@ export async function buildRuntimeCallOptions(input: {
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
-    keySource: 'managed';
+    keySource?: 'managed';
   };
 }> {
   const caller = resolveCaller(input.modId);
@@ -162,7 +181,7 @@ export async function buildRuntimeCallOptions(input: {
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
-      keySource: 'managed',
+      ...(String(input.connectorId || '').trim() ? { keySource: 'managed' as const } : {}),
     },
   };
 }
@@ -184,7 +203,7 @@ export async function buildRuntimeStreamOptions(
     callerKind: 'desktop-core' | 'desktop-mod';
     callerId: string;
     surfaceId: string;
-    keySource: 'managed';
+    keySource?: 'managed';
   };
 }> {
   const caller = resolveCaller(input.modId);
@@ -197,7 +216,7 @@ export async function buildRuntimeStreamOptions(
       callerKind: caller.callerKind,
       callerId: caller.callerId,
       surfaceId: 'desktop.renderer',
-      keySource: 'managed',
+      ...(String(input.connectorId || '').trim() ? { keySource: 'managed' as const } : {}),
     },
   };
 }
@@ -219,7 +238,16 @@ export function extractTextFromGenerateOutput(output: unknown): string {
 }
 
 export function extractEmbeddings(vectorsValue: unknown): number[][] {
-  const vectors = Array.isArray(vectorsValue) ? vectorsValue : [];
+  const valueRecord = asRecord(vectorsValue);
+  const kindRecord = asRecord(valueRecord.kind);
+  const listValueRecord = asRecord(kindRecord.listValue ?? valueRecord.listValue);
+  const vectors = Array.isArray(vectorsValue)
+    ? vectorsValue
+    : Array.isArray(valueRecord.values)
+      ? valueRecord.values as unknown[]
+      : Array.isArray(listValueRecord.values)
+        ? listValueRecord.values as unknown[]
+        : [];
   return vectors.map((entry) => {
     const rowRecord = asRecord(entry);
     const values = Array.isArray(rowRecord.values) ? rowRecord.values : [];

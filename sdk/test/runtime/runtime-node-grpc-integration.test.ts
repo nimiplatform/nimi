@@ -295,6 +295,42 @@ test('node-grpc maps unavailable grpc status to retryable NimiError', async () =
   }
 });
 
+test('node-grpc normalizes h2 transport cancellation to retryable unavailable', async () => {
+  setNodeGrpcBridge(null);
+
+  const server = await startRuntimeGrpcServer({
+    listModels: (_call, callback) => {
+      const error = Object.assign(new Error('h2 protocol error: http2 error'), {
+        code: grpc.status.CANCELLED,
+        details: 'h2 protocol error: http2 error',
+        metadata: new grpc.Metadata(),
+      }) as grpc.ServiceError;
+      callback(error, null as unknown as Uint8Array);
+    },
+    streamScenario: (call) => {
+      call.end();
+    },
+  });
+
+  try {
+    const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
+    let thrown: unknown = null;
+    try {
+      await client.model.list({});
+    } catch (error) {
+      thrown = error;
+    }
+
+    assert.ok(thrown);
+    const nimiError = asNimiError(thrown, { source: 'runtime' });
+    assert.equal(nimiError.reasonCode, 'RUNTIME_GRPC_UNAVAILABLE');
+    assert.equal(nimiError.retryable, true);
+    assert.equal(nimiError.actionHint, 'retry_or_check_runtime_daemon');
+  } finally {
+    await server.close();
+  }
+});
+
 test('node-grpc uses uppercase reason code from grpc details', async () => {
   setNodeGrpcBridge(null);
 

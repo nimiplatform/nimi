@@ -7,7 +7,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   const endpoint = String(input.localProviderEndpoint || input.localOpenAiEndpoint || '').trim();
   const source = inferRouteSourceFromEndpoint(endpoint);
   const model = String(input.localProviderModel || '').trim();
-  const provider = String(input.provider || '').trim() || 'openai-compatible';
+  const provider = String(input.provider || '').trim();
 
   if (endpoint && source === 'local-runtime') {
     try {

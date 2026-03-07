@@ -159,6 +159,9 @@ function toCallOptions(timeoutMs?: number): CallOptions {
 
 function reasonCodeFromServiceError(grpc: GrpcModule, error: ServiceError): string {
   const structured = parseStructuredGrpcDetails(error);
+  if (isRetryableTransportCancelledError(grpc, error, structured)) {
+    return 'RUNTIME_GRPC_UNAVAILABLE';
+  }
   if (structured?.reasonCode) {
     return structured.reasonCode;
   }
@@ -176,6 +179,26 @@ function reasonCodeFromServiceError(grpc: GrpcModule, error: ServiceError): stri
   }
   const codeName = grpc.status[error.code] || 'UNKNOWN';
   return `RUNTIME_GRPC_${String(codeName).toUpperCase()}`;
+}
+
+function isRetryableTransportCancelledError(
+  grpc: GrpcModule,
+  error: ServiceError,
+  structured?: {
+    reasonCode?: string;
+  } | null,
+): boolean {
+  if (error.code !== grpc.status.CANCELLED) {
+    return false;
+  }
+  if (String(structured?.reasonCode || '').trim()) {
+    return false;
+  }
+  const message = `${String(error.details || '').trim()} ${String(error.message || '').trim()}`
+    .toLowerCase();
+  return message.includes('h2 protocol error')
+    || message.includes('http2 error')
+    || message.includes('transport error');
 }
 
 function isRetryableGrpcError(grpc: GrpcModule, error: ServiceError): boolean {
@@ -294,10 +317,11 @@ function normalizeServiceError(
   retryable: boolean;
 } {
   const structured = parseStructuredGrpcDetails(error);
+  const retryableTransportCancelled = isRetryableTransportCancelledError(grpc, error, structured);
   const retryableByStatus = isRetryableGrpcError(grpc, error);
   const retryable = typeof structured?.retryable === 'boolean'
     ? structured.retryable
-    : retryableByStatus;
+    : retryableByStatus || retryableTransportCancelled;
 
   return {
     input: structured || error,

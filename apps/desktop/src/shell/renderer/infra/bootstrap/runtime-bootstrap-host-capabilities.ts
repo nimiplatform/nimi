@@ -25,12 +25,18 @@ import type {
   ModRuntimeDependencySnapshot,
   ModRuntimeResolvedBinding,
 } from '@nimiplatform/sdk/mod/runtime';
+import type { SpeechSynthesizeOutput } from '@nimiplatform/sdk/runtime';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
 } from '@nimiplatform/sdk/mod/runtime-route';
 import { getPlatformClient } from '@runtime/platform-client';
 import { buildRuntimeRequestMetadata } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import {
+  runtimeModMediaCachePut,
+  type RuntimeModMediaCachePutInput,
+  type RuntimeModMediaCachePutResult,
+} from '@runtime/llm-adapter/tauri-bridge';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
 import type { WireModSdkHostInput } from './runtime-bootstrap-host';
@@ -70,6 +76,115 @@ function normalizeIdentifier(value: unknown): string {
 
 function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.filter((item) => String(item || '').trim().length > 0)));
+}
+
+function normalizeText(value: unknown): string {
+  return String(value || '').trim();
+}
+
+function encodeBytesBase64(bytes: Uint8Array): string {
+  if (bytes.length === 0) {
+    return '';
+  }
+  const globalBuffer = (globalThis as { Buffer?: { from(value: Uint8Array): { toString(format: string): string } } }).Buffer;
+  if (globalBuffer) {
+    return globalBuffer.from(bytes).toString('base64');
+  }
+  if (typeof btoa === 'function') {
+    let binary = '';
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+    return btoa(binary);
+  }
+  throw new Error('RUNTIME_MOD_MEDIA_CACHE_BASE64_UNAVAILABLE');
+}
+
+function resolveAudioExtensionHint(input: {
+  audioFormat?: string;
+  mimeType?: string;
+}): string | undefined {
+  const format = normalizeText(input.audioFormat).toLowerCase();
+  if (format === 'mp3') return 'mp3';
+  if (format === 'wav') return 'wav';
+  if (format === 'pcm') return 'pcm';
+  const mimeType = normalizeText(input.mimeType).toLowerCase();
+  if (mimeType === 'audio/mpeg' || mimeType === 'audio/mp3') return 'mp3';
+  if (mimeType === 'audio/wav' || mimeType === 'audio/x-wav') return 'wav';
+  if (mimeType === 'audio/pcm' || mimeType === 'audio/l16') return 'pcm';
+  return undefined;
+}
+
+function normalizeSpeechArtifactMimeType(value: string | undefined): string | undefined {
+  const mimeType = normalizeText(value).toLowerCase();
+  if (!mimeType) {
+    return undefined;
+  }
+  if (mimeType === 'audio/mp3') {
+    return 'audio/mpeg';
+  }
+  if (mimeType === 'audio/x-wav') {
+    return 'audio/wav';
+  }
+  if (mimeType === 'audio/x-pcm') {
+    return 'audio/pcm';
+  }
+  return mimeType;
+}
+
+async function cacheSpeechArtifactForDesktopPlayback(input: {
+  artifact: SpeechSynthesizeOutput['artifacts'][number];
+  audioFormat?: string;
+  mediaCachePut?: (
+    value: RuntimeModMediaCachePutInput,
+  ) => Promise<RuntimeModMediaCachePutResult | null>;
+}): Promise<SpeechSynthesizeOutput['artifacts'][number]> {
+  const bytes = input.artifact.bytes instanceof Uint8Array && input.artifact.bytes.length > 0
+    ? input.artifact.bytes
+    : null;
+  if (!bytes) {
+    const mimeType = normalizeSpeechArtifactMimeType(input.artifact.mimeType);
+    return mimeType && mimeType !== input.artifact.mimeType
+      ? {
+        ...input.artifact,
+        mimeType,
+      }
+      : input.artifact;
+  }
+  const mimeType = normalizeSpeechArtifactMimeType(input.artifact.mimeType);
+  const cached = await (input.mediaCachePut || runtimeModMediaCachePut)({
+    mediaBase64: encodeBytesBase64(bytes),
+    mimeType,
+    extensionHint: resolveAudioExtensionHint({
+      audioFormat: input.audioFormat,
+      mimeType,
+    }),
+  });
+  if (!cached?.uri) {
+    return input.artifact;
+  }
+  return {
+    ...input.artifact,
+    uri: cached.uri,
+    mimeType: normalizeSpeechArtifactMimeType(cached.mimeType)
+      || mimeType
+      || normalizeSpeechArtifactMimeType(input.artifact.mimeType)
+      || input.artifact.mimeType,
+  };
+}
+
+export async function cacheSpeechArtifactsForDesktopPlayback(input: {
+  artifacts: SpeechSynthesizeOutput['artifacts'];
+  audioFormat?: string;
+  mediaCachePut?: (
+    value: RuntimeModMediaCachePutInput,
+  ) => Promise<RuntimeModMediaCachePutResult | null>;
+}): Promise<SpeechSynthesizeOutput['artifacts']> {
+  return Promise.all((input.artifacts || []).map((artifact) => cacheSpeechArtifactForDesktopPlayback({
+    artifact,
+    audioFormat: input.audioFormat,
+    mediaCachePut: input.mediaCachePut,
+  })));
 }
 
 function mapCanonicalCapabilityToLocalAi(
@@ -996,7 +1111,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'audio.synthesize',
               binding,
             });
-            return getRuntimeClient().media.tts.synthesize({
+            const response = await getRuntimeClient().media.tts.synthesize({
               ...request,
               model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
               route: resolved.source,
@@ -1011,6 +1126,13 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
                 })),
               },
             });
+            return {
+              ...response,
+              artifacts: await cacheSpeechArtifactsForDesktopPlayback({
+                artifacts: response.artifacts,
+                audioFormat: request.audioFormat,
+              }),
+            };
           },
           stream: async (payload) => {
             const { modId, binding, ...request } = payload;

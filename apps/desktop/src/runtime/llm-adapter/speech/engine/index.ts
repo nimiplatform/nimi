@@ -96,7 +96,7 @@ export class NimiSpeechEngine {
     });
     return result.voices.map(v => ({
       id: v.voiceId,
-      providerId: normalizedInput.providerId || 'openai-compatible',
+      providerId: normalizedInput.providerId || '',
       name: v.name,
       lang: v.lang,
       langs: v.supportedLangs,

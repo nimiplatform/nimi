@@ -2,7 +2,16 @@ export * from './errors';
 export * from './types';
 export * from './method-ids';
 export * from './workflow-builder';
-export { Modal, RoutePolicy, FallbackPolicy, StreamEventType, ScenarioJobStatus, ScenarioJobEventType } from './generated/runtime/v1/ai';
+export {
+  Modal,
+  ScenarioType,
+  ExecutionMode,
+  RoutePolicy,
+  FallbackPolicy,
+  StreamEventType,
+  ScenarioJobStatus,
+  ScenarioJobEventType,
+} from './generated/runtime/v1/ai';
 export { ModelStatus } from './generated/runtime/v1/model';
 export { ModelCatalogProviderSource } from './generated/runtime/v1/connector';
 export type {

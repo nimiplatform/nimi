@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import net from 'node:net';
-import { dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createRuntimeClient } from '../../../../src/runtime/index.js';
@@ -10,6 +11,10 @@ import { createRuntimeClient } from '../../../../src/runtime/index.js';
 export type RuntimeDaemonRunContext = {
   endpoint: string;
 };
+
+const DEFAULT_RUNTIME_READY_TIMEOUT_MS = 120_000;
+const DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS = 250;
+const DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS = 1_000;
 
 async function allocatePort(): Promise<number> {
   return await new Promise((resolvePromise, reject) => {
@@ -65,17 +70,22 @@ async function waitForRuntimeReady(endpoint: string, appId: string): Promise<voi
   });
 
   let lastError: unknown = null;
-  for (let attempt = 0; attempt < 120; attempt += 1) {
+  const timeoutMs = resolveRuntimeReadyTimeoutMs();
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
     try {
-      await client.localRuntime.listLocalModels({});
+      const remainingMs = Math.max(1, deadline - Date.now());
+      await client.localRuntime.listLocalModels({}, {
+        timeoutMs: Math.min(DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS, remainingMs),
+      });
       return;
     } catch (error) {
       lastError = error;
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, DEFAULT_RUNTIME_READY_POLL_INTERVAL_MS));
     }
   }
 
-  throw new Error(`runtime readiness check failed: ${String(lastError)}`);
+  throw new Error(`runtime readiness check failed after ${timeoutMs}ms: ${String(lastError)}`);
 }
 
 async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> {
@@ -113,6 +123,7 @@ export async function withRuntimeDaemon(
   },
 ): Promise<void> {
   const runtimeDir = resolveRuntimeDir();
+  const stateRoot = mkdtempSync(join(tmpdir(), 'nimi-sdk-runtime-'));
   const grpcPort = await allocatePort();
   const httpPort = await allocatePort();
   const endpoint = `127.0.0.1:${grpcPort}`;
@@ -125,6 +136,13 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_GRPC_ADDR: endpoint,
       NIMI_RUNTIME_HTTP_ADDR: `127.0.0.1:${httpPort}`,
       NIMI_RUNTIME_ENABLE_WORKERS: '0',
+      NIMI_RUNTIME_LOCK_PATH: join(stateRoot, 'runtime.lock'),
+      NIMI_RUNTIME_CONFIG_PATH: join(stateRoot, 'config.json'),
+      NIMI_RUNTIME_MODEL_REGISTRY_PATH: join(stateRoot, 'model-registry.json'),
+      NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH: join(stateRoot, 'local-runtime-state.json'),
+      NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
+      XDG_DATA_HOME: join(stateRoot, 'xdg-data'),
+      XDG_CACHE_HOME: join(stateRoot, 'xdg-cache'),
       ...(input.runtimeEnv || {}),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -160,5 +178,14 @@ export async function withRuntimeDaemon(
     throw new Error(`${detail}\nstdout=${stdout}\nstderr=${stderr}`);
   } finally {
     await terminateDaemon(daemon);
+    rmSync(stateRoot, { recursive: true, force: true });
   }
+}
+
+function resolveRuntimeReadyTimeoutMs(): number {
+  const configured = Number(process.env.NIMI_RUNTIME_READY_TIMEOUT_MS || '');
+  if (Number.isFinite(configured) && configured > 0) {
+    return configured;
+  }
+  return DEFAULT_RUNTIME_READY_TIMEOUT_MS;
 }

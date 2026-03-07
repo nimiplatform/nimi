@@ -69,10 +69,10 @@ test('no endpoint no connectorId → unsupported', async () => {
   assert.ok(result.detail.includes('no endpoint or connector'));
 });
 
-test('provider defaults to openai-compatible when empty', async () => {
+test('provider remains empty when caller omitted it', async () => {
   const result = await checkLocalLlmHealth({
     provider: '',
   });
 
-  assert.equal(result.provider, 'openai-compatible');
+  assert.equal(result.provider, '');
 });
