@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { toProfileData } from './profile-model';
@@ -22,6 +23,9 @@ function toErrorMessage(error: unknown, fallback: string): string {
 export function ProfilePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUser = useAppStore((state) => state.auth.user);
+  const authToken = useAppStore((state) => state.auth.token);
+  const refreshToken = useAppStore((state) => state.auth.refreshToken);
+  const setAuthSession = useAppStore((state) => state.setAuthSession);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -176,6 +180,48 @@ export function ProfilePanel() {
     }
   };
 
+  const onSaveOwnProfile = async (draft: EditableProfileDraft) => {
+    try {
+      const nextDisplayName = draft.displayName.trim();
+      if (!nextDisplayName) {
+        throw new Error('Display name is required');
+      }
+
+      const toArray = (value: string) =>
+        value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      const updated = await dataSync.updateUserProfile({
+        displayName: nextDisplayName,
+        bio: draft.bio.trim() || null,
+        city: draft.city.trim() || null,
+        countryCode: draft.countryCode.trim() || null,
+        gender: draft.gender.trim() || null,
+        languages: toArray(draft.languages),
+        tags: toArray(draft.tags),
+      }) as Record<string, unknown>;
+
+      setAuthSession(updated, authToken, refreshToken);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['contact-profile'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+      ]);
+      setStatusBanner({
+        kind: 'success',
+        message: 'Profile updated',
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: toErrorMessage(error, 'Failed to update profile'),
+      });
+      throw error;
+    }
+  };
+
   if (!profile && !loading && !error) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
@@ -186,20 +232,36 @@ export function ProfilePanel() {
 
   return (
     <>
-      <ProfileView
-        profile={profile!}
-        isOwnProfile={isOwnProfile}
-        loading={loading}
-        error={error}
-        onBack={navigateBack}
-        onMessage={() => {
-          void onMessage();
-        }}
-        onAddFriend={() => { void onAddFriend(); }}
-        canAddFriend={!addFriendBlocked}
-        addFriendHint={addFriendHint}
-        onSendGift={() => setGiftModalOpen(true)}
-      />
+      {isOwnProfile ? (
+        <ContactDetailView
+          profile={profile!}
+          isOwnProfile
+          loading={loading}
+          error={error}
+          onClose={navigateBack}
+          onMessage={() => {
+            void onMessage();
+          }}
+          onSendGift={() => setGiftModalOpen(true)}
+          showMessageButton={false}
+          onSaveProfile={onSaveOwnProfile}
+        />
+      ) : (
+        <ProfileView
+          profile={profile!}
+          isOwnProfile={isOwnProfile}
+          loading={loading}
+          error={error}
+          onBack={navigateBack}
+          onMessage={() => {
+            void onMessage();
+          }}
+          onAddFriend={() => { void onAddFriend(); }}
+          canAddFriend={!addFriendBlocked}
+          addFriendHint={addFriendHint}
+          onSendGift={() => setGiftModalOpen(true)}
+        />
+      )}
       <SendGiftModal
         open={giftModalOpen && !isOwnProfile}
         receiverId={profile?.id || ''}

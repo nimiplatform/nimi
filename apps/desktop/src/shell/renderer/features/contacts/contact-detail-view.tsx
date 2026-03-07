@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PostDto } from '@nimiplatform/sdk/realm';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
@@ -11,6 +11,18 @@ import { MediaTab } from '@renderer/features/profile/components/media-tab';
 import { PostsTab } from '@renderer/features/profile/components/posts-tab';
 import { formatProfileDate, type ProfileData, type ProfileTab } from '@renderer/features/profile/profile-model';
 
+const SHOW_AVATAR_ONLINE_INDICATOR = false;
+
+export type EditableProfileDraft = {
+  displayName: string;
+  bio: string;
+  city: string;
+  countryCode: string;
+  gender: string;
+  languages: string;
+  tags: string;
+};
+
 type ContactDetailViewProps = {
   profile: ProfileData;
   loading: boolean;
@@ -22,6 +34,8 @@ type ContactDetailViewProps = {
   onRemove?: () => void;
   showMessageButton?: boolean;
   fullBleed?: boolean;
+  isOwnProfile?: boolean;
+  onSaveProfile?: (draft: EditableProfileDraft) => Promise<void>;
 };
 
 type MediaSelection = {
@@ -44,6 +58,10 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const [activeTab, setActiveTab] = useState<ProfileTab>('Posts');
   const [selectedMedia, setSelectedMedia] = useState<MediaSelection | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
   const [tabIndicator, setTabIndicator] = useState<TabIndicator>({ left: 0, width: 24 });
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -69,6 +87,13 @@ export function ContactDetailView(props: ContactDetailViewProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
+
+  useEffect(() => {
+    setDraft(buildEditableDraft(props.profile));
+    setIsEditing(false);
+    setIsSaving(false);
+    setSaveError(null);
+  }, [props.profile]);
 
   useLayoutEffect(() => {
     const updateIndicator = () => {
@@ -136,9 +161,17 @@ export function ContactDetailView(props: ContactDetailViewProps) {
         backgroundSize: 'cover',
       }
     : {
-        background: profile.isAgent
-          ? palette.ring
-          : 'linear-gradient(135deg, #dff8ef 0%, #ecfffb 40%, #f8fcff 100%)',
+        backgroundImage: [
+          'radial-gradient(44% 56% at 18% 18%, rgba(102, 221, 183, 0.74) 0%, rgba(102, 221, 183, 0.36) 38%, rgba(102, 221, 183, 0.08) 62%, rgba(102, 221, 183, 0) 78%)',
+          'radial-gradient(40% 48% at 50% 10%, rgba(170, 146, 255, 0.50) 0%, rgba(170, 146, 255, 0.23) 38%, rgba(170, 146, 255, 0.07) 62%, rgba(170, 146, 255, 0.01) 74%, rgba(170, 146, 255, 0) 84%)',
+          'radial-gradient(34% 40% at 78% 11%, rgba(236, 244, 112, 0.54) 0%, rgba(236, 244, 112, 0.23) 36%, rgba(236, 244, 112, 0.07) 60%, rgba(236, 244, 112, 0.01) 72%, rgba(236, 244, 112, 0) 82%)',
+          'radial-gradient(32% 28% at 64% 12%, rgba(222, 233, 204, 0.30) 0%, rgba(222, 233, 204, 0.15) 36%, rgba(222, 233, 204, 0.05) 60%, rgba(222, 233, 204, 0) 80%)',
+          'radial-gradient(56% 70% at 26% 62%, rgba(49, 182, 234, 0.36) 0%, rgba(49, 182, 234, 0.14) 34%, rgba(49, 182, 234, 0.03) 56%, rgba(49, 182, 234, 0) 78%)',
+          'radial-gradient(52% 68% at 72% 58%, rgba(167, 203, 255, 0.30) 0%, rgba(167, 203, 255, 0.10) 34%, rgba(167, 203, 255, 0.02) 58%, rgba(167, 203, 255, 0) 80%)',
+          'radial-gradient(60% 84% at 54% 110%, rgba(74, 213, 192, 0.60) 0%, rgba(74, 213, 192, 0.26) 40%, rgba(74, 213, 192, 0.05) 64%, rgba(74, 213, 192, 0) 82%)',
+          'linear-gradient(135deg, #d9f1ea 0%, #e0f7ef 28%, #e8f8f5 52%, #edf9f9 76%, #f4fbfb 100%)',
+        ].join(', '),
+        backgroundBlendMode: 'screen, screen, screen, screen, screen, screen, screen, normal',
       };
   const locationLabel = profile.city && profile.countryCode
     ? `${profile.city}, ${profile.countryCode.toUpperCase()}`
@@ -151,12 +184,33 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   const headline = profile.bio || (profile.isAgent
     ? 'This contact has no public profile summary yet.'
     : 'No profile summary has been added yet.');
+  const showGiftButton = !props.isOwnProfile;
+
+  const handleSaveProfile = async () => {
+    if (!props.onSaveProfile) {
+      return;
+    }
+    if (!draft.displayName.trim()) {
+      setSaveError('Display name is required');
+      return;
+    }
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await props.onSaveProfile(draft);
+      setIsEditing(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
       <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
         <div className={`${props.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}`}>
-          <section className="relative overflow-hidden rounded-[34px] border border-white/70 bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
+          <section className="relative overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.10)]">
             <div className="relative h-[220px] px-8 py-7" style={headerStyle}>
               {canVisitWorld ? (
                 <button
@@ -170,12 +224,41 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                   aria-label={`Visit ${worldLabel}`}
                 />
               ) : null}
+              {!profile.worldBannerUrl ? (
+                <>
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.34),transparent_36%)]" />
+                  <div className="pointer-events-none absolute -left-6 top-4 h-40 w-44 rounded-full bg-[#73e0bc]/24 blur-[44px]" />
+                  <div className="pointer-events-none absolute left-[34%] top-[-2%] h-36 w-40 rounded-full bg-[#a98fff]/20 blur-[48px]" />
+                  <div className="pointer-events-none absolute right-[10%] top-[-1%] h-36 w-42 rounded-full bg-[#edf369]/22 blur-[52px]" />
+                  <div className="pointer-events-none absolute left-[55%] top-[3%] h-24 w-34 rounded-full bg-white/22 blur-[42px]" />
+                  <div className="pointer-events-none absolute left-[14%] top-[46%] h-52 w-44 rounded-full bg-[#3db6ea]/18 blur-[54px]" />
+                  <div className="pointer-events-none absolute right-[18%] bottom-[-10%] h-48 w-44 rounded-full bg-[#57d7c2]/22 blur-[52px]" />
+                  <div className="pointer-events-none absolute right-[0%] top-[24%] h-56 w-24 rounded-full bg-white/20 blur-[46px]" />
+                </>
+              ) : null}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28),transparent_32%)]" />
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
 
               <div className="relative z-10 flex items-start justify-between gap-4">
                 <span />
-                {(props.onBlock || props.onRemove) ? (
+                {props.isOwnProfile ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isEditing) {
+                        setDraft(buildEditableDraft(profile));
+                        setIsEditing(false);
+                        return;
+                      }
+                      setIsEditing(true);
+                    }}
+                    className="inline-flex h-11 items-center gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
+                    title={isEditing ? 'Exit edit mode' : 'Edit profile'}
+                  >
+                    {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
+                    <span className="text-sm font-semibold">{isEditing ? 'Preview' : 'Edit profile'}</span>
+                  </button>
+                ) : (props.onBlock || props.onRemove) ? (
                   <div className="relative">
                     <button
                       ref={menuButtonRef}
@@ -227,7 +310,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
             <div className="relative px-8 pb-8">
               <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="rounded-[30px] border border-slate-200/65 bg-white/90 px-6 py-7 shadow-[0_18px_48px_rgba(15,23,42,0.06)] backdrop-blur-md xl:px-7">
+                  <div className="rounded-[30px] border border-white/38 bg-white/40 px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[18px] supports-[backdrop-filter]:bg-white/30 xl:px-7">
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
                       <div className="flex shrink-0 flex-col items-start gap-3 xl:pt-[6px]">
                         <div className="relative">
@@ -239,7 +322,7 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                             textClassName="text-3xl font-bold"
                             fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#dff8ef] to-[#f2fbff] text-[#1f8f69]'}
                           />
-                          {profile.isOnline ? (
+                          {SHOW_AVATAR_ONLINE_INDICATOR && profile.isOnline ? (
                             <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-[#28c189] shadow-sm" />
                           ) : null}
                         </div>
@@ -248,71 +331,179 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              {profile.isOnline ? (
-                                <span className="inline-flex items-center rounded-full bg-[#e8fbf3] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1f8f69]">
-                                  Online
-                                </span>
-                              ) : null}
-                            </div>
-                            <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] xl:text-[32px]">
-                              {profile.displayName}
-                            </h1>
-                            <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
-                              {profile.handle}
-                            </p>
-                            <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
-                              {headline}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2" />
+                            {isEditing ? (
+                              <div className="mt-3 max-w-[540px] space-y-4">
+                                <label className="block">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Display name</span>
+                                  <input
+                                    type="text"
+                                    value={draft.displayName}
+                                    onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))}
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[28px] font-semibold leading-[1.05] tracking-[0.02em] text-[#1A1A1B] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Handle</span>
+                                  <input
+                                    type="text"
+                                    value={profile.handle}
+                                    disabled
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]"
+                                  />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Bio</span>
+                                  <textarea
+                                    value={draft.bio}
+                                    onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))}
+                                    rows={4}
+                                    className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-[1.7] text-[#424245] outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+                                  />
+                                </label>
+                              </div>
+                            ) : (
+                              <>
+                                <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] xl:text-[32px]">
+                                  {profile.displayName}
+                                </h1>
+                                <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
+                                  {profile.handle}
+                                </p>
+                                <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
+                                  {headline}
+                                </p>
+                              </>
+                            )}
                             <div className="mt-4 xl:hidden">
                               <div className="grid max-w-[228px] grid-cols-3 gap-2">
                                 <StatTile label="Friends" value={friendCount} />
                                 <StatTile label="Posts" value={postCount} />
                                 <StatTile label="Likes" value={likesCount} />
                               </div>
-                              <div className="mt-3 flex items-center gap-2">
-                                {props.showMessageButton !== false ? (
-                                  <IconButton
-                                    icon={<MessageIcon className="h-4 w-4" />}
-                                    label="Message"
-                                    onClick={props.onMessage}
-                                  />
-                                ) : null}
-                                <IconButton
-                                  icon={<GiftIcon className="h-4 w-4" />}
-                                  label="Send Gift"
-                                  onClick={props.onSendGift}
-                                />
-                              </div>
-                            </div>
-                            <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
-                              <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
-                              <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
-                              <WorldMetaLink
-                                value={worldLabel}
-                                canVisit={canVisitWorld}
-                                onClick={canVisitWorld ? () => navigateToWorld(worldNavigationId) : undefined}
-                              />
-                              <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
-                            </div>
-                            {profile.tags.length > 0 ? (
-                              <div className="mt-7 flex flex-wrap gap-2.5">
-                                {profile.tags.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
-                                    style={{
-                                      color: '#1f8f69',
+                              {isEditing && props.isOwnProfile ? (
+                                <div className="mt-4 flex flex-col gap-3">
+                                  {saveError ? (
+                                    <p className="text-sm text-red-500">{saveError}</p>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void handleSaveProfile();
                                     }}
+                                    disabled={isSaving || !draft.displayName.trim()}
+                                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4ECCA3] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#41b992] disabled:cursor-not-allowed disabled:opacity-50"
                                   >
-                                    {tag}
+                                    {isSaving ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
+                                    {isSaving ? 'Saving...' : 'Save profile'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDraft(buildEditableDraft(profile));
+                                      setSaveError(null);
+                                      setIsEditing(false);
+                                    }}
+                                    disabled={isSaving}
+                                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="mt-3 flex items-center gap-2">
+                                  {props.showMessageButton !== false ? (
+                                    <IconButton
+                                      icon={<MessageIcon className="h-4 w-4" />}
+                                      label="Message"
+                                      onClick={props.onMessage}
+                                    />
+                                  ) : null}
+                                  {showGiftButton ? (
+                                    <IconButton
+                                      icon={<GiftIcon className="h-4 w-4" />}
+                                      label="Send Gift"
+                                      onClick={props.onSendGift}
+                                    />
+                                  ) : null}
+                                </div>
+                              )}
+                            </div>
+                            {isEditing ? (
+                              <div className="mt-7 max-w-[640px] rounded-[24px] border border-[#dbe7e3] bg-[linear-gradient(180deg,rgba(78,204,163,0.08)_0%,rgba(255,255,255,0.95)_100%)] p-5 shadow-[0_14px_34px_rgba(78,204,163,0.08)]">
+                                <div className="mb-4 flex items-center gap-2">
+                                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#4ECCA3]/12 text-[#1f8f69]">
+                                    <PencilIcon className="h-4 w-4" />
                                   </span>
-                                ))}
+                                  <div>
+                                    <div className="text-sm font-semibold text-slate-900">Edit mode</div>
+                                    <div className="text-xs text-slate-500">Update your public profile details shown across Moments, Contacts, and chat.</div>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <EditableField
+                                  label="City"
+                                  value={draft.city}
+                                  onChange={(value) => setDraft((current) => ({ ...current, city: value }))}
+                                />
+                                <EditableField
+                                  label="Country code"
+                                  value={draft.countryCode}
+                                  onChange={(value) => setDraft((current) => ({ ...current, countryCode: value.toUpperCase() }))}
+                                />
+                                <EditableField
+                                  label="Gender"
+                                  value={draft.gender}
+                                  onChange={(value) => setDraft((current) => ({ ...current, gender: value }))}
+                                />
+                                <EditableField
+                                  label="Languages"
+                                  value={draft.languages}
+                                  onChange={(value) => setDraft((current) => ({ ...current, languages: value }))}
+                                  placeholder="English, Chinese"
+                                />
+                                <div className="md:col-span-2">
+                                  <EditableField
+                                    label="Tags"
+                                    value={draft.tags}
+                                    onChange={(value) => setDraft((current) => ({ ...current, tags: value }))}
+                                    placeholder="creator, traveler, world-native"
+                                  />
+                                </div>
+                                </div>
                               </div>
-                            ) : null}
+                            ) : (
+                              <>
+                                <div className="mt-7 grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
+                                  <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
+                                  <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
+                                  <WorldMetaLink
+                                    value={worldLabel}
+                                    canVisit={canVisitWorld}
+                                    onClick={canVisitWorld ? () => navigateToWorld(worldNavigationId) : undefined}
+                                  />
+                                  <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
+                                </div>
+                                {profile.tags.length > 0 ? (
+                                  <div className="mt-7 flex flex-wrap gap-2.5">
+                                    {profile.tags.map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1.5 text-[12px] font-medium backdrop-blur-sm transition hover:bg-[rgba(15,23,42,0.08)] hover:shadow-[0_8px_22px_rgba(15,23,42,0.07)]"
+                                        style={{
+                                          color: '#1f8f69',
+                                        }}
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </>
+                            )}
                           </div>
 
-                          <div className="hidden shrink-0 xl:ml-auto xl:flex xl:w-[344px] xl:flex-col xl:items-end xl:border-l xl:border-slate-100/90 xl:pl-10">
+                          <div className="hidden shrink-0 xl:ml-auto xl:flex xl:w-[344px] xl:flex-col xl:items-end xl:border-l xl:border-white/35 xl:pl-10">
                             <div className="mt-[6px] flex w-full items-center justify-end gap-3">
                                 {props.showMessageButton !== false ? (
                                   <IconButton
@@ -321,11 +512,13 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                                     onClick={props.onMessage}
                                   />
                                 ) : null}
-                                <IconButton
-                                  icon={<GiftIcon className="h-4 w-4" />}
-                                  label="Send Gift"
-                                  onClick={props.onSendGift}
-                                />
+                                {showGiftButton ? (
+                                  <IconButton
+                                    icon={<GiftIcon className="h-4 w-4" />}
+                                    label="Send Gift"
+                                    onClick={props.onSendGift}
+                                  />
+                                ) : null}
                             </div>
                             <div className="mt-[62px] grid w-[260px] grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
                               <StatTile label="Friends" value={friendCount} />
@@ -334,6 +527,36 @@ export function ContactDetailView(props: ContactDetailViewProps) {
                               <StatDivider />
                               <StatTile label="Likes" value={likesCount} />
                             </div>
+                            {props.isOwnProfile && isEditing ? (
+                              <div className="mt-8 flex w-full flex-col gap-3">
+                                {saveError ? (
+                                  <p className="text-sm text-red-500">{saveError}</p>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void handleSaveProfile();
+                                  }}
+                                  disabled={isSaving || !draft.displayName.trim()}
+                                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#4ECCA3] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#41b992] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {isSaving ? <SpinnerIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
+                                  {isSaving ? 'Saving...' : 'Save profile'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDraft(buildEditableDraft(profile));
+                                    setSaveError(null);
+                                    setIsEditing(false);
+                                  }}
+                                  disabled={isSaving}
+                                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -420,6 +643,38 @@ export function ContactDetailView(props: ContactDetailViewProps) {
   );
 }
 
+function buildEditableDraft(profile: ProfileData): EditableProfileDraft {
+  return {
+    displayName: profile.displayName || '',
+    bio: profile.bio || '',
+    city: profile.city || '',
+    countryCode: profile.countryCode || '',
+    gender: profile.gender || '',
+    languages: profile.languages.join(', '),
+    tags: profile.tags.join(', '),
+  };
+}
+
+function EditableField(input: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{input.label}</span>
+      <input
+        type="text"
+        value={input.value}
+        onChange={(event) => input.onChange(event.target.value)}
+        placeholder={input.placeholder}
+        className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-[#4ECCA3] focus:ring-4 focus:ring-[#4ECCA3]/10"
+      />
+    </label>
+  );
+}
+
 function WorldMetaLink(input: {
   value: string;
   canVisit: boolean;
@@ -451,7 +706,7 @@ function InlineMeta({
   icon,
 }: {
   value: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2.5">
@@ -479,6 +734,36 @@ function ExternalLinkIcon({ className = '' }: { className?: string }) {
   );
 }
 
+function PencilIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function EyeIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m5 12 5 5L20 7" />
+    </svg>
+  );
+}
+
+function SpinnerIcon({ className = '' }: { className?: string }) {
+  return <span className={`${className} inline-block animate-spin rounded-full border-2 border-white/40 border-t-white`} />;
+}
+
 function StatDivider() {
   return <span className="mt-7 h-10 w-px justify-self-center bg-[linear-gradient(180deg,rgba(148,163,184,0)_0%,rgba(148,163,184,0.35)_50%,rgba(148,163,184,0)_100%)]" />;
 }
@@ -490,7 +775,7 @@ function ActionPill({
   onClick,
 }: {
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   variant: 'primary' | 'secondary';
   onClick: () => void;
 }) {
@@ -515,7 +800,7 @@ function IconButton({
   label,
   onClick,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onClick: () => void;
 }) {
@@ -541,7 +826,7 @@ function SideInfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusBadge({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+function StatusBadge({ children, active = false }: { children: ReactNode; active?: boolean }) {
   return (
     <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${active ? 'bg-[#e8fbf3] text-[#1f8f69]' : 'bg-slate-100 text-slate-600'}`}>
       {children}
