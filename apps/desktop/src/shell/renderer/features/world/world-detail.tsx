@@ -1,8 +1,6 @@
-/**
- * @deprecated Legacy detail view.
- * Active navigation now routes to features/world-detail/world-detail-view.tsx.
- */
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { dataSync } from '@runtime/data-sync';
+import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { XianxiaWorldTemplate, type XianxiaWorldData } from './world-xianxia-template';
@@ -143,6 +141,37 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     });
   };
 
+  const createAgentMutation = useMutation({
+    mutationFn: async (input: {
+      handle: string;
+      displayName: string;
+      concept: string;
+      description: string;
+      scenario: string;
+      greeting: string;
+      referenceImageUrl: string;
+      wakeStrategy: '' | 'PASSIVE' | 'PROACTIVE';
+      dnaPrimary: '' | 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
+      dnaSecondary: string[];
+    }) =>
+      dataSync.createAgent({
+        worldId: world.id,
+        handle: input.handle,
+        concept: input.concept,
+        displayName: input.displayName || undefined,
+        description: input.description || undefined,
+        scenario: input.scenario || undefined,
+        greeting: input.greeting || undefined,
+        referenceImageUrl: input.referenceImageUrl || undefined,
+        wakeStrategy: input.wakeStrategy || undefined,
+        dnaPrimary: (input.dnaPrimary || undefined) as Parameters<typeof dataSync.createAgent>[0]['dnaPrimary'],
+        dnaSecondary: input.dnaSecondary.length ? input.dnaSecondary as Parameters<typeof dataSync.createAgent>[0]['dnaSecondary'] : undefined,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: worldDetailWithAgentsQueryKey(world.id) });
+    },
+  });
+
   return (
     <div className="h-full overflow-y-auto bg-[#f8fafb]">
       <XianxiaWorldTemplate
@@ -158,6 +187,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         onCreateSubWorld={handleCreateSubWorld}
         onChatAgent={handleChatAgent}
         onVoiceAgent={handleVoiceAgent}
+        onCreateAgent={(input) => createAgentMutation.mutate(input)}
+        createAgentMutating={createAgentMutation.isPending}
       />
     </div>
   );

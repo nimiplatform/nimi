@@ -43,7 +43,8 @@ import {
   unblockUser,
   updateCurrentUserProfile,
 } from './flows/profile-flow';
-import { loadCreatorAgents, searchUserByIdentifier } from './flows/social-flow';
+import { createMasterAgent, loadCreatorAgents, searchUserByIdentifier } from './flows/social-flow';
+import type { CreateMasterAgentInput } from './flows/social-flow';
 import { loadExploreFeedItems, loadMoreExploreFeedItems } from './flows/explore-flow';
 import {
   loadAgentDetails,
@@ -259,6 +260,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
     loadUserProfile: async (id: string) =>
       loadUserProfileById(input.callApiTask, input.emitFacadeError, id),
     loadMyAgents: async () => loadCreatorAgents(input.callApiTask),
+    createAgent: async (agentInput: CreateMasterAgentInput) =>
+      createMasterAgent(input.callApiTask, agentInput),
     loadFriendRequests: async () => loadPendingFriendRequests(input.callApiTask, input.emitFacadeError),
     loadExploreFeed: async (tag: string | null = null, limit = 20) =>
       loadExploreFeedItems(input.callApiTask, input.emitFacadeError, tag, limit),

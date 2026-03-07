@@ -104,6 +104,44 @@ export async function searchUserByIdentifier(
   return user;
 }
 
+export type CreateMasterAgentInput = {
+  worldId: string;
+  handle: string;
+  concept: string;
+  displayName?: string;
+  description?: string;
+  scenario?: string;
+  greeting?: string;
+  referenceImageUrl?: string;
+  wakeStrategy?: 'PASSIVE' | 'PROACTIVE';
+  dnaPrimary?: 'CARING' | 'PLAYFUL' | 'INTELLECTUAL' | 'CONFIDENT' | 'MYSTERIOUS' | 'ROMANTIC';
+  dnaSecondary?: Array<'HUMOROUS' | 'SARCASTIC' | 'GENTLE' | 'DIRECT' | 'OPTIMISTIC' | 'REALISTIC' | 'DRAMATIC' | 'PASSIONATE' | 'REBELLIOUS' | 'INNOCENT' | 'WISE' | 'ECCENTRIC'>;
+};
+
+export async function createMasterAgent(
+  callApi: DataSyncApiCaller,
+  input: CreateMasterAgentInput,
+): Promise<Record<string, unknown>> {
+  const result = await callApi(
+    (realm) => realm.services.CreatorService.creatorControllerCreateAgent({
+      handle: input.handle.trim(),
+      concept: input.concept.trim(),
+      displayName: input.displayName?.trim() || undefined,
+      description: input.description?.trim() || undefined,
+      scenario: input.scenario?.trim() || undefined,
+      greeting: input.greeting?.trim() || undefined,
+      referenceImageUrl: input.referenceImageUrl?.trim() || undefined,
+      wakeStrategy: input.wakeStrategy,
+      dnaPrimary: input.dnaPrimary,
+      dnaSecondary: input.dnaSecondary?.length ? input.dnaSecondary : undefined,
+      ownershipType: 'MASTER_OWNED',
+      worldId: input.worldId,
+    }),
+    '创建 Agent 失败',
+  );
+  return (result && typeof result === 'object' ? result : {}) as Record<string, unknown>;
+}
+
 export async function loadCreatorAgents(
   callApi: DataSyncApiCaller,
 ): Promise<Record<string, unknown>[]> {

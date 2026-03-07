@@ -727,6 +727,11 @@
       "agents": "智能体名录",
       "timeline": "事件编年"
     },
+    "createAgent": "创建 Agent",
+    "createAgentHandle": "Handle（必填）",
+    "createAgentDisplayName": "显示名称（可选）",
+    "createAgentConcept": "人设概念（必填）",
+    "createAgentSubmit": "创建",
     "noDescription": "暂无描述",
     "xianxia": {
       "hero": {

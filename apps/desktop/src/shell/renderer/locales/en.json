@@ -727,6 +727,11 @@
       "agents": "Interactive Agent Directory",
       "timeline": "Chronicle"
     },
+    "createAgent": "Create Agent",
+    "createAgentHandle": "Handle (required)",
+    "createAgentDisplayName": "Display Name (optional)",
+    "createAgentConcept": "Concept / Core persona (required)",
+    "createAgentSubmit": "Create",
     "noDescription": "No description",
     "xianxia": {
       "hero": {

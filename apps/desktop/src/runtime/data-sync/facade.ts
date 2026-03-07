@@ -45,6 +45,7 @@ import type {
   TransitType,
 } from './flows/transit-flow';
 import { createDataSyncActions } from './facade-actions';
+import type { CreateMasterAgentInput } from './flows/social-flow';
 
 const DATA_SYNC_HOT_STATE_KEY = '__NIMI_DATA_SYNC_API_CONFIG__' as const;
 type DataSyncHotState = {
@@ -434,6 +435,7 @@ export class DataSync {
     return this.actions.requestAccountDeletion(payload);
   }
   loadMyAgents() { return this.actions.loadMyAgents(); }
+  createAgent(input: CreateMasterAgentInput) { return this.actions.createAgent(input); }
   loadFriendRequests() { return this.actions.loadFriendRequests(); }
   loadExploreFeed(tag: string | null = null, limit = 20) { return this.actions.loadExploreFeed(tag, Math.min(limit, 100)); }
   loadMoreExploreFeed(limit = 20, cursor?: string, tag?: string | null) {
