@@ -54,6 +54,21 @@ pub fn runtime_local_models_catalog_search(
 }
 
 #[tauri::command]
+pub fn runtime_local_models_catalog_list_variants(
+    payload: LocalAiModelsCatalogListVariantsPayload,
+) -> Result<Vec<GgufVariantDescriptor>, String> {
+    let repo = payload
+        .repo
+        .as_deref()
+        .unwrap_or_default()
+        .trim();
+    if repo.is_empty() {
+        return Err("LOCAL_AI_LIST_VARIANTS_REPO_REQUIRED: repo is required".to_string());
+    }
+    list_repo_gguf_variants(repo)
+}
+
+#[tauri::command]
 pub fn runtime_local_models_catalog_resolve_install_plan(
     payload: LocalAiModelsCatalogResolveInstallPlanPayload,
 ) -> Result<LocalAiInstallPlanDescriptor, String> {

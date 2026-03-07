@@ -41,7 +41,7 @@ export type RuntimeConfigInstallActions = {
     modId: string,
     capability?: CapabilityV11 | string,
   ) => Promise<void>;
-  installCatalogLocalRuntimeModel: (item: LocalAiCatalogItemDescriptor) => Promise<void>;
+  installCatalogLocalRuntimeModel: (item: LocalAiCatalogItemDescriptor, options?: { entry?: string }) => Promise<void>;
   installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
   installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
   importLocalRuntimeModel: () => Promise<void>;
@@ -223,7 +223,10 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [refreshLocalRuntimeSnapshot, resolveRuntimeDependencies, setStatusBanner]);
 
-  const installCatalogLocalRuntimeModel = useCallback(async (item: LocalAiCatalogItemDescriptor) => {
+  const installCatalogLocalRuntimeModel = useCallback(async (
+    item: LocalAiCatalogItemDescriptor,
+    options?: { entry?: string },
+  ) => {
     try {
       const plan = await localAiRuntime.resolveInstallPlan({
         itemId: item.itemId,
@@ -232,6 +235,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         modelId: item.modelId,
         repo: item.repo,
         revision: item.revision,
+        entry: options?.entry,
       });
       runInstallPlanLifecycle(plan, 'catalog');
       setStatusBanner({

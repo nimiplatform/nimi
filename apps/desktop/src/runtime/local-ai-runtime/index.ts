@@ -10,6 +10,7 @@ import {
   importLocalAiRuntimeModelFile,
   installLocalAiRuntimeModel,
   searchLocalAiRuntimeCatalog,
+  listLocalAiRuntimeRepoGgufVariants,
   resolveLocalAiRuntimeInstallPlan,
   listLocalAiRuntimeDownloadSessions,
   pauseLocalAiRuntimeDownload,
@@ -35,6 +36,7 @@ import {
   stopLocalAiRuntimeModel,
 } from './commands';
 import type {
+  GgufVariantDescriptor,
   LocalAiAuditEvent,
   LocalAiCatalogItemDescriptor,
   LocalAiCatalogResolveInstallPlanPayload,
@@ -77,6 +79,7 @@ import {
 import { startLocalAiRuntimePolling, type LocalAiRuntimePollingOptions } from './polling';
 
 export type {
+  GgufVariantDescriptor,
   LocalAiAuditEvent,
   LocalAiCatalogItemDescriptor,
   LocalAiCatalogResolveInstallPlanPayload,
@@ -117,6 +120,7 @@ export type {
 export type LocalAiRuntimeFacade = {
   list: () => Promise<LocalAiModelRecord[]>;
   searchCatalog: (payload?: LocalAiCatalogSearchPayload) => Promise<LocalAiCatalogItemDescriptor[]>;
+  listRepoGgufVariants: (repo: string) => Promise<GgufVariantDescriptor[]>;
   resolveInstallPlan: (payload: LocalAiCatalogResolveInstallPlanPayload) => Promise<LocalAiInstallPlanDescriptor>;
   collectDeviceProfile: () => Promise<LocalAiDeviceProfile>;
   resolveDependencies: (payload: LocalAiDependenciesResolvePayload) => Promise<LocalAiDependencyResolutionPlan>;
@@ -202,6 +206,7 @@ export type LocalAiRuntimeFacade = {
 export const localAiRuntime: LocalAiRuntimeFacade = {
   list: listLocalAiRuntimeModels,
   searchCatalog: searchLocalAiRuntimeCatalog,
+  listRepoGgufVariants: listLocalAiRuntimeRepoGgufVariants,
   resolveInstallPlan: resolveLocalAiRuntimeInstallPlan,
   collectDeviceProfile: collectLocalAiRuntimeDeviceProfile,
   resolveDependencies: resolveLocalAiRuntimeDependencies,

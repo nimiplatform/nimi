@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localAiRuntime,
+  type GgufVariantDescriptor,
   type LocalAiDependencyResolutionPlan,
   type LocalAiCatalogItemDescriptor,
   type LocalAiVerifiedModelDescriptor,
@@ -156,8 +157,10 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const [installing, setInstalling] = useState(false);
   const [progressBySessionId, setProgressBySessionId] = useState<Record<string, ProgressSessionState>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [catalogCapability, setCatalogCapability] = useState<'all' | CapabilityOption>('all');
   const [catalogItems, setCatalogItems] = useState<LocalAiCatalogItemDescriptor[]>([]);
+  const [catalogDisplayCount, setCatalogDisplayCount] = useState(10);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [verifiedModels, setVerifiedModels] = useState<LocalAiVerifiedModelDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
@@ -165,6 +168,12 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const [selectedDependencyCapability, setSelectedDependencyCapability] = useState<'auto' | CapabilityOption>('auto');
   const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
   const [loadingDependencyPlan, setLoadingDependencyPlan] = useState(false);
+
+  // Variant picker state
+  const [variantPickerItem, setVariantPickerItem] = useState<LocalAiCatalogItemDescriptor | null>(null);
+  const [variantList, setVariantList] = useState<GgufVariantDescriptor[]>([]);
+  const [variantError, setVariantError] = useState('');
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   const displayMode: 'runtime' | 'mod' = props.displayMode === 'mod' ? 'mod' : 'runtime';
   const isModMode = displayMode === 'mod';
@@ -214,33 +223,41 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     [props.state.localRuntime.models],
   );
 
-  // Filter installed models by search
+  // Filter installed models by search (uses deferred value to avoid blocking input)
   const filteredInstalledModels = useMemo(() => {
-    if (!searchQuery.trim()) return sortedModels;
-    const query = searchQuery.toLowerCase().trim();
-    return sortedModels.filter(m => 
+    if (!deferredSearchQuery.trim()) return sortedModels;
+    const query = deferredSearchQuery.toLowerCase().trim();
+    return sortedModels.filter(m =>
       m.model.toLowerCase().includes(query) ||
       m.localModelId.toLowerCase().includes(query) ||
       m.engine.toLowerCase().includes(query)
     );
-  }, [sortedModels, searchQuery]);
+  }, [sortedModels, deferredSearchQuery]);
 
   // Check if a catalog item is already installed
   const isInstalled = useCallback((modelId: string) => {
     return sortedModels.some(m => m.model.toLowerCase() === modelId.toLowerCase());
   }, [sortedModels]);
 
-  // Catalog search
+  // Use refs for search state so refreshCatalogItems doesn't rebuild on every keystroke
+  const searchQueryRef = useRef(deferredSearchQuery);
+  searchQueryRef.current = deferredSearchQuery;
+  const catalogCapabilityRef = useRef(catalogCapability);
+  catalogCapabilityRef.current = catalogCapability;
+
+  // Catalog search — stable callback that reads from refs
   const refreshCatalogItems = useCallback(async () => {
-    if (!searchQuery.trim()) {
+    const query = searchQueryRef.current.trim();
+    const capability = catalogCapabilityRef.current;
+    if (!query) {
       setCatalogItems([]);
       return;
     }
     setLoadingCatalog(true);
     try {
       const rows = await localAiRuntime.searchCatalog({
-        query: searchQuery.trim(),
-        capability: catalogCapability === 'all' ? undefined : catalogCapability,
+        query,
+        capability: capability === 'all' ? undefined : capability,
         limit: 30,
       });
       // Filter out already installed models
@@ -251,7 +268,7 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     } finally {
       setLoadingCatalog(false);
     }
-  }, [searchQuery, catalogCapability, isInstalled]);
+  }, [isInstalled]);
 
   const refreshVerifiedModels = useCallback(async () => {
     setLoadingVerifiedModels(true);
@@ -267,13 +284,18 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
     }
   }, [isInstalled]);
 
-  // Auto search on query change
+  // Reset display count when search changes
+  useEffect(() => {
+    setCatalogDisplayCount(10);
+  }, [deferredSearchQuery, catalogCapability]);
+
+  // Auto search on query change with debounce (uses deferred value so input stays responsive)
   useEffect(() => {
     const timer = setTimeout(() => {
       void refreshCatalogItems();
-    }, 400);
+    }, 600);
     return () => clearTimeout(timer);
-  }, [searchQuery, catalogCapability, refreshCatalogItems]);
+  }, [deferredSearchQuery, catalogCapability, refreshCatalogItems]);
 
   // Load verified models on mount
   useEffect(() => {
@@ -462,7 +484,6 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
 
   // Main layout - unified search + results
   const hasSearchQuery = searchQuery.trim().length > 0;
-  const showSearchResults = hasSearchQuery && (catalogItems.length > 0 || verifiedModels.length > 0);
   const localRuntimeHealthy = props.state.localRuntime.status === 'healthy';
   const healthTooltip = formatLastCheckedAgo(props.state.localRuntime.lastCheckedAt);
 
@@ -635,42 +656,118 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
                       </button>
                     </div>
                   ))}
-                  {/* Catalog Results */}
-                  {catalogItems.map((item) => (
-                    <div key={item.itemId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
-                      <ModelIcon engine={item.engine} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.engine}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-mint-50 text-mint-700">Hugging Face</span>
+                  {/* Catalog Results (paginated) */}
+                  {catalogItems.slice(0, catalogDisplayCount).map((item) => (
+                    <div key={item.itemId}>
+                      <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
+                        <ModelIcon engine={item.engine} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.engine}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-mint-50 text-mint-700">Hugging Face</span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
                         </div>
-                        <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
-                      </div>
-                      <span className={`text-[10px] px-2 py-1 rounded-full ${item.installAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {item.installAvailable ? 'Ready' : 'Manual'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void (async () => {
-                            setInstalling(true);
-                            try {
-                              await props.onInstallCatalogItem(item);
-                            } finally {
-                              setInstalling(false);
+                        <span className={`text-[10px] px-2 py-1 rounded-full ${item.installAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {item.installAvailable ? 'Ready' : 'Manual'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (variantPickerItem?.itemId === item.itemId) {
+                              setVariantPickerItem(null);
+                              setVariantList([]);
+                              return;
                             }
-                          })();
-                        }}
-                        disabled={!item.installAvailable || installing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
-                      >
-                        <DownloadIcon className="w-3.5 h-3.5" />
-                        Install
-                      </button>
+                            setVariantPickerItem(item);
+                            setVariantList([]);
+                            setVariantError('');
+                            setLoadingVariants(true);
+                            void localAiRuntime.listRepoGgufVariants(item.repo).then((variants) => {
+                              setVariantList(variants);
+                              setLoadingVariants(false);
+                            }).catch((err) => {
+                              setVariantList([]);
+                              setVariantError(err instanceof Error ? err.message : String(err || 'Unknown error'));
+                              setLoadingVariants(false);
+                            });
+                          }}
+                          disabled={!item.installAvailable || installing}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
+                        >
+                          <DownloadIcon className="w-3.5 h-3.5" />
+                          Install
+                        </button>
+                      </div>
+                      {/* Variant picker */}
+                      {variantPickerItem?.itemId === item.itemId && (
+                        <div className="px-4 pb-3 bg-gray-50/80">
+                          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                            <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                              <span className="text-xs font-semibold text-gray-500">Select Variant</span>
+                              <button
+                                type="button"
+                                onClick={() => { setVariantPickerItem(null); setVariantList([]); }}
+                                className="text-xs text-gray-400 hover:text-gray-600"
+                              >
+                                Close
+                              </button>
+                            </div>
+                            {loadingVariants ? (
+                              <div className="px-3 py-4 text-center">
+                                <p className="text-xs text-gray-500">Loading variants...</p>
+                              </div>
+                            ) : variantList.length === 0 ? (
+                              <div className="px-3 py-4 text-center">
+                                <p className="text-xs text-gray-500">{variantError ? `Error: ${variantError}` : 'No GGUF variants found'}</p>
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                                {variantList.map((variant) => (
+                                  <button
+                                    key={variant.filename}
+                                    type="button"
+                                    disabled={installing}
+                                    onClick={() => {
+                                      setVariantPickerItem(null);
+                                      setVariantList([]);
+                                      void (async () => {
+                                        setInstalling(true);
+                                        try {
+                                          await props.onInstallCatalogItem(item, { entry: variant.filename });
+                                        } finally {
+                                          setInstalling(false);
+                                        }
+                                      })();
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-mint-50 disabled:opacity-50"
+                                  >
+                                    <span className="text-xs font-medium text-gray-800 truncate">{variant.filename}</span>
+                                    {typeof variant.sizeBytes === 'number' && (
+                                      <span className="text-[10px] text-gray-500 ml-2 shrink-0">{formatBytes(variant.sizeBytes)}</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
+                {catalogItems.length > catalogDisplayCount && (
+                  <div className="px-4 py-3 border-t border-gray-100 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setCatalogDisplayCount((prev) => prev + 10)}
+                      className="px-4 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                    >
+                      Load More ({catalogItems.length - catalogDisplayCount} remaining)
+                    </button>
+                  </div>
+                )}
                 {catalogItems.length === 0 && verifiedModels.length === 0 && !loadingCatalog && (
                   <div className="px-4 py-8 text-center">
                     <p className="text-sm text-gray-500">No models found matching your search</p>
@@ -755,95 +852,6 @@ export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
             </div>
           )}
 
-          {/* Search Results - Available to Install */}
-          {showSearchResults && (
-            <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Available to Install</span>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {/* Verified Models */}
-                {verifiedModels.map((item) => (
-                  <div key={item.templateId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
-                      <StarIcon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 truncate">{item.title}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Verified</span>
-                      </div>
-                      <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
-                      {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void (async () => {
-                          setInstalling(true);
-                          try {
-                            await props.onInstallVerified(item.templateId);
-                          } finally {
-                            setInstalling(false);
-                          }
-                        })();
-                      }}
-                      disabled={installing}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
-                    >
-                      <DownloadIcon className="w-3.5 h-3.5" />
-                      Install
-                    </button>
-                  </div>
-                ))}
-                {/* Catalog Results */}
-                {catalogItems.map((item) => (
-                  <div key={item.itemId} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
-                    <ModelIcon engine={item.engine} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.engine}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">Hugging Face</span>
-                      </div>
-                      <p className="text-xs text-gray-500 truncate">{item.modelId}</p>
-                    </div>
-                    <span className={`text-[10px] px-2 py-1 rounded-full ${item.installAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {item.installAvailable ? 'Ready' : 'Manual'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void (async () => {
-                          setInstalling(true);
-                          try {
-                            await props.onInstallCatalogItem(item);
-                          } finally {
-                            setInstalling(false);
-                          }
-                        })();
-                      }}
-                      disabled={!item.installAvailable || installing}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500 text-white text-xs font-medium hover:bg-mint-600 disabled:opacity-50"
-                    >
-                      <DownloadIcon className="w-3.5 h-3.5" />
-                      Install
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {catalogItems.length === 0 && verifiedModels.length === 0 && !loadingCatalog && (
-                <div className="px-4 py-8 text-center">
-                  <p className="text-sm text-gray-500">No models found matching your search</p>
-                </div>
-              )}
-              {loadingCatalog && (
-                <div className="px-4 py-8 text-center">
-                  <p className="text-sm text-gray-500">Searching...</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Quick Picks - Only show when no search */}
           {!hasSearchQuery && verifiedModels.length > 0 && (

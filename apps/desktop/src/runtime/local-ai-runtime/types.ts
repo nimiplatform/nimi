@@ -119,6 +119,12 @@ export type LocalAiCatalogItemDescriptor = {
   verified: boolean;
 };
 
+export type GgufVariantDescriptor = {
+  filename: string;
+  sizeBytes?: number;
+  sha256?: string;
+};
+
 export type LocalAiInstallPlanDescriptor = {
   planId: string;
   itemId: string;

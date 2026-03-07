@@ -10,9 +10,9 @@ use super::provider_adapter::{
 };
 use super::service_artifacts::find_service_artifact;
 use super::types::{
-    slugify_local_model_id, LocalAiCatalogItemDescriptor, LocalAiEngineRuntimeMode,
-    LocalAiInstallPlanDescriptor, LocalAiProviderHints, LocalAiVerifiedModelDescriptor,
-    DEFAULT_LOCAL_RUNTIME_ENDPOINT,
+    slugify_local_model_id, GgufVariantDescriptor, LocalAiCatalogItemDescriptor,
+    LocalAiEngineRuntimeMode, LocalAiInstallPlanDescriptor, LocalAiProviderHints,
+    LocalAiVerifiedModelDescriptor, DEFAULT_LOCAL_RUNTIME_ENDPOINT,
 };
 use super::verified_models::{find_verified_model, verified_model_list};
 
@@ -85,6 +85,8 @@ struct HfModelSibling {
 struct HfModelLfs {
     #[serde(default)]
     sha256: Option<String>,
+    #[serde(default)]
+    size: Option<u64>,
 }
 
 fn normalize_non_empty(value: Option<&str>) -> Option<String> {
@@ -391,8 +393,7 @@ fn fetch_hf_search_models(query: &str, limit: usize) -> Result<Vec<HfSearchModel
 fn fetch_hf_model_details(repo: &str) -> Result<HfModelDetails, String> {
     let client = build_hf_client()?;
     let api_base = hf_api_base_url();
-    let repo_encoded = repo.replace('/', "%2F");
-    let url = format!("{api_base}/{repo_encoded}");
+    let url = format!("{api_base}/{repo}");
     let response = client
         .get(url)
         .query(&[("full", "true")])
@@ -888,6 +889,28 @@ pub fn resolve_install_plan(
         warnings,
         reason_code: None,
     })
+}
+
+pub fn list_repo_gguf_variants(repo: &str) -> Result<Vec<GgufVariantDescriptor>, String> {
+    let details = fetch_hf_model_details(repo)?;
+    let mut variants = Vec::<GgufVariantDescriptor>::new();
+    for sibling in &details.siblings {
+        let name_lower = sibling.rfilename.to_ascii_lowercase();
+        if !name_lower.ends_with(".gguf") {
+            continue;
+        }
+        let (size_bytes, sha256) = match &sibling.lfs {
+            Some(lfs) => (lfs.size, lfs.sha256.clone()),
+            None => (None, None),
+        };
+        variants.push(GgufVariantDescriptor {
+            filename: sibling.rfilename.clone(),
+            size_bytes,
+            sha256,
+        });
+    }
+    variants.sort_by(|a, b| a.size_bytes.unwrap_or(0).cmp(&b.size_bytes.unwrap_or(0)));
+    Ok(variants)
 }
 
 #[cfg(test)]

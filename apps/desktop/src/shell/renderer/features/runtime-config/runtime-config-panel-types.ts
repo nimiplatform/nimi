@@ -54,7 +54,7 @@ export type RuntimeConfigPanelControllerModel = {
     modId: string,
     capability?: CapabilityV11 | string,
   ) => Promise<void>;
-  installCatalogLocalRuntimeModel: (item: LocalAiCatalogItemDescriptor) => Promise<void>;
+  installCatalogLocalRuntimeModel: (item: LocalAiCatalogItemDescriptor, options?: { entry?: string }) => Promise<void>;
   installLocalRuntimeModel: (payload: LocalAiInstallPayload) => Promise<void>;
   installVerifiedLocalRuntimeModel: (templateId: string) => Promise<void>;
   importLocalRuntimeModel: () => Promise<void>;

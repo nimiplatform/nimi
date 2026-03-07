@@ -1,6 +1,7 @@
 import { emitRuntimeLog } from '../telemetry/logger';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
+  GgufVariantDescriptor,
   LocalAiModelStatus,
   LocalAiModelRecord,
   LocalAiVerifiedModelDescriptor,
@@ -536,6 +537,15 @@ export function parseModelHealth(value: unknown): LocalAiModelHealth {
     status: normalizeStatus(record.status),
     detail: asString(record.detail),
     endpoint: asString(record.endpoint),
+  };
+}
+
+export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescriptor {
+  const record = asRecord(value);
+  return {
+    filename: asString(record.filename),
+    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : undefined,
+    sha256: asString(record.sha256) || undefined,
   };
 }
 

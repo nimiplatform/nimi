@@ -1,5 +1,6 @@
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
 import type {
+  GgufVariantDescriptor,
   LocalAiModelRecord,
   LocalAiVerifiedModelDescriptor,
   LocalAiCatalogSearchPayload,
@@ -34,6 +35,7 @@ import {
   parseModelRecord,
   parseVerifiedModelDescriptor,
   parseCatalogItemDescriptor,
+  parseGgufVariantDescriptor,
   parseInstallPlanDescriptor,
   parseDeviceProfile,
   parseDependencyResolutionPlan,
@@ -70,6 +72,15 @@ export async function searchLocalAiRuntimeCatalog(
     } : undefined,
   });
   return (Array.isArray(items) ? items : []).map((item) => parseCatalogItemDescriptor(item));
+}
+
+export async function listLocalAiRuntimeRepoGgufVariants(
+  repo: string,
+): Promise<GgufVariantDescriptor[]> {
+  const items = await invokeLocalAiCommand<unknown[]>('runtime_local_models_catalog_list_variants', {
+    payload: { repo },
+  });
+  return (Array.isArray(items) ? items : []).map((item) => parseGgufVariantDescriptor(item));
 }
 
 export async function resolveLocalAiRuntimeInstallPlan(

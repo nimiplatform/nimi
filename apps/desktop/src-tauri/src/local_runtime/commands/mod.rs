@@ -19,7 +19,7 @@ use super::audit::{
 };
 use super::capability_matrix::refresh_state_capability_matrix_with_probe_and_device;
 use super::catalog::{
-    resolve_install_plan as resolve_catalog_install_plan, search_catalog,
+    list_repo_gguf_variants, resolve_install_plan as resolve_catalog_install_plan, search_catalog,
     LocalAiCatalogResolveInput,
 };
 use super::dependency_apply::{
@@ -52,7 +52,8 @@ use super::service_lifecycle::{
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::supervisor::{health, start_model, stop_model};
 use super::types::{
-    now_iso_timestamp, slugify_local_model_id, LocalAiAuditEvent, LocalAiCatalogItemDescriptor,
+    now_iso_timestamp, slugify_local_model_id, GgufVariantDescriptor, LocalAiAuditEvent,
+    LocalAiCatalogItemDescriptor,
     LocalAiDependencyApplyResult, LocalAiDependencyKind, LocalAiDependencyResolutionPlan,
     LocalAiDeviceProfile, LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
     LocalAiDownloadSessionSummary, LocalAiDownloadState, LocalAiInstallPlanDescriptor,

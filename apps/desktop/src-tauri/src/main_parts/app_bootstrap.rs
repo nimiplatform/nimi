@@ -128,6 +128,7 @@ fn main() {
             local_runtime::commands::runtime_local_pick_manifest_path,
             local_runtime::commands::runtime_local_models_verified_list,
             local_runtime::commands::runtime_local_models_catalog_search,
+            local_runtime::commands::runtime_local_models_catalog_list_variants,
             local_runtime::commands::runtime_local_models_catalog_resolve_install_plan,
             local_runtime::commands::runtime_local_dependencies_resolve,
             local_runtime::commands::runtime_local_device_profile_collect,
