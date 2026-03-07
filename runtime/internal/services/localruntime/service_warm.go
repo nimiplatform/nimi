@@ -42,8 +42,13 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	probe := s.probeEndpoint(ctx, endpoint)
 	if !modelProbeSucceeded(model, probe, registration) {
 		detail := modelProbeFailureDetail(model, probe, registration)
-		if _, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail); err != nil {
-			return nil, err
+		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE ||
+			model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+			if _, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail); err != nil {
+				return nil, err
+			}
+		} else {
+			s.setModelHealthDetail(model.GetLocalModelId(), detail)
 		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    detail,

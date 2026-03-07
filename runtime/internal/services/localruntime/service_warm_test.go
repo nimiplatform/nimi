@@ -102,3 +102,49 @@ func TestWarmLocalModelRejectsUnsupportedCapability(t *testing.T) {
 		t.Fatalf("unexpected reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
 }
+
+func TestWarmLocalModelInstalledProbeFailureReturnsUnavailableWithoutInvalidTransition(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/models":
+			_, _ = io.WriteString(w, `{"data":[{"id":"other-model"}]}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, nil)
+	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/qwen",
+		Capabilities: []string{"chat"},
+		Engine:       "localai",
+		Endpoint:     server.URL + "/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	_, err = svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
+		LocalModelId: installed.GetModel().GetLocalModelId(),
+		TimeoutMs:    60_000,
+	})
+	if err == nil {
+		t.Fatalf("expected warm failure when probe model does not match registration")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("unexpected reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+
+	model := svc.modelByID(installed.GetModel().GetLocalModelId())
+	if model == nil {
+		t.Fatalf("expected model record to remain available")
+	}
+	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+		t.Fatalf("installed model should stay INSTALLED after warm probe failure, got %v", model.GetStatus())
+	}
+	if model.GetHealthDetail() == "" {
+		t.Fatalf("expected warm probe failure to populate health detail")
+	}
+}
