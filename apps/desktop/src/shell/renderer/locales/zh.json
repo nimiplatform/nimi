@@ -239,6 +239,9 @@
     "today": "今天",
     "yesterday": "昨天"
   },
+  "Home": {
+    "pageTitle": "朋友圈"
+  },
   "World": {
     "title": "世界",
     "subtitle": "探索和管理你的世界",

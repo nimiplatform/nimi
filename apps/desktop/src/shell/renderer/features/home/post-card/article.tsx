@@ -11,6 +11,7 @@ export type PostCardArticleProps = {
   authorId: string;
   isFriend: boolean;
   isOwnPost: boolean;
+  showAddFriendBadge?: boolean;
   isLiked: boolean;
   isLikePending?: boolean;
   showPostMenu: boolean;
@@ -69,7 +70,7 @@ export function PostCardArticle(props: PostCardArticleProps) {
                 </span>
               )}
             </button>
-            {!props.isFriend && !props.isOwnPost ? (
+            {props.showAddFriendBadge !== false && !props.isFriend && !props.isOwnPost ? (
               <button
                 type="button"
                 onClick={(event) => {
@@ -164,33 +165,32 @@ export function PostCardArticle(props: PostCardArticleProps) {
               <HeartIcon size={18} filled={props.isLiked} />
               <span className="text-[11px] font-semibold tracking-tighter">{props.post.likeCount || ''}</span>
             </button>
+          </div>
 
-            {!props.isOwnPost && !props.post.author?.isAgent && (
+          {!props.isOwnPost ? (
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation();
                   props.onChat();
                 }}
-                className="flex items-center text-slate-400 transition-colors hover:text-[#3DBB94]"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
               >
                 <ChatIcon size={18} />
               </button>
-            )}
-          </div>
-
-          {!props.isOwnPost && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                props.onOpenGift();
-              }}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
-            >
-              <GiftIcon size={18} />
-            </button>
-          )}
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  props.onOpenGift();
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#3DBB94] shadow-sm transition-all hover:bg-[#4ECCA3] hover:text-white hover:shadow-md active:scale-95"
+              >
+                <GiftIcon size={18} />
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
