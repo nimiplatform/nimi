@@ -35,7 +35,7 @@ test('createResolveRuntimeBinding reads source/model/connectorId from RuntimeFie
   assert.equal(result.source, 'token-api');
   assert.equal(result.model, 'tts-1');
   assert.equal(result.connectorId, 'conn-123');
-  assert.equal(result.adapter, 'openai_compat_adapter');
+  assert.equal(result.adapter, undefined);
 });
 
 test('createResolveRuntimeBinding binding source takes priority over inferred source', async () => {
@@ -73,10 +73,12 @@ test('createResolveRuntimeBinding model binding takes priority over fields.local
     source: 'token-api',
     connectorId: 'override-conn',
     model: 'custom-model',
+    provider: 'dashscope',
   };
   const result = await resolve({ modId: 'test-mod', binding });
 
   assert.equal(result.model, 'custom-model');
+  assert.equal(result.provider, 'dashscope');
 });
 
 test('createResolveRuntimeBinding infers local-runtime source for localai provider', async () => {

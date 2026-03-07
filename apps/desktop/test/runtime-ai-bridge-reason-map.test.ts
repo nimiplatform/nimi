@@ -34,10 +34,10 @@ test('runtime ai bridge keeps media-option reason distinguishable', () => {
   assert.equal(mapped, ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED);
 });
 
-test('runtime ai bridge no longer collapses AI_INPUT_INVALID to LOCAL_AI_CAPABILITY_MISSING', () => {
+test('runtime ai bridge keeps generic AI_INPUT_INVALID distinguishable', () => {
   const mapped = toLocalAiReasonCode({
     reasonCode: ReasonCode.AI_INPUT_INVALID,
-    actionHint: 'check_tts_input_and_extensions',
+    actionHint: 'check_input_and_extensions',
     traceId: 'trace-3',
     retryable: false,
     source: 'runtime',

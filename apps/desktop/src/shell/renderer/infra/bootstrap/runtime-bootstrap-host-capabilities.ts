@@ -29,6 +29,7 @@ import type { SpeechSynthesizeOutput } from '@nimiplatform/sdk/runtime';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
+  RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/mod/runtime-route';
 import { getPlatformClient } from '@runtime/platform-client';
 import { buildRuntimeRequestMetadata } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
@@ -707,6 +708,32 @@ function toResolvedBinding(
   };
 }
 
+function hydrateTokenApiRouteBindingFromOptions(
+  binding: RuntimeRouteBinding,
+  options: RuntimeRouteOptionsSnapshot,
+): RuntimeRouteBinding {
+  if (binding.source !== 'token-api') {
+    return binding;
+  }
+  const connectorId = String(binding.connectorId || '').trim();
+  const selected = options.selected.source === 'token-api' ? options.selected : null;
+  const connector = options.connectors.find((item) => item.id === connectorId) || null;
+
+  if (!connectorId && selected) {
+    return {
+      ...selected,
+      model: String(binding.model || selected.model || '').trim(),
+    };
+  }
+  if (!connector) {
+    return binding;
+  }
+  return {
+    ...binding,
+    provider: String(binding.provider || connector.provider || '').trim() || undefined,
+  };
+}
+
 function toRouteHealthResult(
   result: RuntimeLlmHealthResult,
   provider: string,
@@ -787,12 +814,22 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
   }): Promise<ModRuntimeResolvedBinding> => {
     let effectiveBinding = payload.binding;
     const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
-    if (!effectiveBinding || !hasModel) {
-      const options = await loadRuntimeRouteOptions({
+    const needsTokenApiHydration = effectiveBinding?.source === 'token-api'
+      && (
+        !String(effectiveBinding.connectorId || '').trim()
+        || !String(effectiveBinding.provider || '').trim()
+      );
+    let options: RuntimeRouteOptionsSnapshot | null = null;
+    if (!effectiveBinding || !hasModel || needsTokenApiHydration) {
+      options = await loadRuntimeRouteOptions({
         capability: payload.capability,
         modId: payload.modId,
       });
-      effectiveBinding = options.selected;
+    }
+    if (!effectiveBinding || !hasModel) {
+      effectiveBinding = options?.selected;
+    } else if (options && effectiveBinding.source === 'token-api') {
+      effectiveBinding = hydrateTokenApiRouteBindingFromOptions(effectiveBinding, options);
     }
     const resolved = await resolveRuntimeBinding({
       modId: payload.modId,

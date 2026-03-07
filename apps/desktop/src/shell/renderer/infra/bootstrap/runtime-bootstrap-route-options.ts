@@ -23,6 +23,7 @@ type ConnectorDescriptor = {
   id: string;
   label?: string;
   vendor?: string;
+  provider?: string;
 };
 
 const LOCAL_RUNTIME_SNAPSHOT_TIMEOUT_MS = 1200;
@@ -71,6 +72,23 @@ function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
     String(input.localModelId || '').trim(),
     String(input.engine || '').trim(),
   ].join('|');
+}
+
+function mergeTokenApiBindingProvider(
+  binding: RuntimeRouteBinding,
+  connectors: RuntimeRouteConnectorOption[],
+): RuntimeRouteBinding {
+  if (binding.source !== 'token-api') {
+    return binding;
+  }
+  const connector = connectors.find((item) => item.id === binding.connectorId) || null;
+  if (!connector) {
+    return binding;
+  }
+  return {
+    ...binding,
+    provider: String(binding.provider || connector.provider || '').trim() || undefined,
+  };
 }
 
 function modelSupportsCapability(capabilities: string[] | undefined, capability: RuntimeCanonicalCapability): boolean {
@@ -135,6 +153,7 @@ function buildSelectedBinding(input: {
       source: 'token-api',
       connectorId: String(runtimeFields.connectorId || '').trim(),
       model: String(runtimeFields.localProviderModel || '').trim(),
+      provider: String(runtimeFields.provider || '').trim() || undefined,
     };
 
   const availableBindings: RuntimeRouteBinding[] = [
@@ -149,14 +168,16 @@ function buildSelectedBinding(input: {
       source: 'token-api' as const,
       connectorId: connector.id,
       model,
+      provider: String(connector.provider || '').trim() || undefined,
     }))),
   ];
 
-  if (availableBindings.some((item) => bindingKey(item) === bindingKey(preferredBinding))) {
-    return preferredBinding;
+  const matchedBinding = availableBindings.find((item) => bindingKey(item) === bindingKey(preferredBinding)) || null;
+  if (matchedBinding) {
+    return matchedBinding;
   }
 
-  return availableBindings[0] || preferredBinding;
+  return availableBindings[0] || mergeTokenApiBindingProvider(preferredBinding, connectors);
 }
 
 export async function loadRuntimeRouteOptions(input: {
@@ -189,6 +210,7 @@ export async function loadRuntimeRouteOptions(input: {
       id: connector.id,
       label: String(connector.label || ''),
       vendor: String(connector.vendor || '').trim() || undefined,
+      provider: String(connector.provider || '').trim() || undefined,
       models,
       modelCapabilities,
       modelProfiles: [],
@@ -241,4 +263,3 @@ export async function loadRuntimeRouteOptions(input: {
     connectors,
   };
 }
-

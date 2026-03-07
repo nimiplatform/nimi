@@ -16,6 +16,7 @@ export type RuntimeRouteBinding = {
   source: RuntimeRouteSource;
   connectorId: string;
   model: string;
+  provider?: string;
   localModelId?: string;
   engine?: string;
 };
@@ -31,6 +32,7 @@ export type RuntimeRouteConnectorOption = {
   id: string;
   label: string;
   vendor?: string;
+  provider?: string;
   models: string[];
   modelCapabilities?: Record<string, string[]>;
   modelProfiles?: RuntimeRouteModelProfile[];
@@ -85,6 +87,7 @@ export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | 
     source: normalizeRuntimeRouteSource(record.source),
     connectorId: String(record.connectorId || ''),
     model: String(record.model || ''),
+    provider: String(record.provider || '').trim() || undefined,
     localModelId: String(record.localModelId || '').trim() || undefined,
     engine: String(record.engine || '').trim() || undefined,
   };
@@ -202,6 +205,7 @@ export function parseRuntimeRouteOptions(
         id: String(connector.id || ''),
         label: String(connector.label || ''),
         vendor: String(connector.vendor || '').trim() || undefined,
+        provider: String(connector.provider || '').trim() || undefined,
         models: Array.isArray(connector.models)
           ? connector.models.map((model) => String(model || '').trim()).filter(Boolean)
           : [],

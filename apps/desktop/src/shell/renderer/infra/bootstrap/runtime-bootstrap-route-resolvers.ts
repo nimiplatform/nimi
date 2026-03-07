@@ -39,6 +39,7 @@ export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeField
       : inferSource(fields.provider);
     const model = binding?.model || fields.localProviderModel || '';
     const connectorId = binding?.connectorId || fields.connectorId || '';
+    const provider = String(binding?.provider || fields.provider || '').trim();
 
     if (source === 'local-runtime') {
       return {
@@ -60,8 +61,7 @@ export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeField
     return {
       source: 'token-api',
       runtimeModelType: fields.runtimeModelType as RuntimeModality,
-      provider: fields.provider,
-      adapter: 'openai_compat_adapter',
+      provider,
       model,
       endpoint: '',
       localOpenAiEndpoint: '',
