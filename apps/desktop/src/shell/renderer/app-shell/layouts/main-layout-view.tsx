@@ -8,6 +8,7 @@ import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { persistStoredContactsFilter } from '@renderer/features/contacts/contacts-model';
+import { WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import {
@@ -579,7 +580,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <StatusBanner />
 
-          <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
+          <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
             {props.activeTab === 'home' ? (
               <div className="flex min-h-0 flex-1 flex-col">
                 <HomePanel createPostRequestKey={createPostRequestKey} />

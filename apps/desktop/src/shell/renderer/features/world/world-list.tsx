@@ -5,6 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries.js';
+import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import { isMainWorldType } from './shared.js';
 
 const ICON_SEARCH = (
@@ -156,6 +157,7 @@ export function WorldList() {
   const [searchText, setSearchText] = useState('');
 
   const openWorldDetail = (worldId: string) => {
+    prefetchWorldDetailPanel();
     prefetchWorldDetailAndEvents(worldId);
     navigateToWorld(worldId);
   };

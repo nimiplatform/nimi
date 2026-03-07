@@ -10,6 +10,7 @@ import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { WorldListItem } from '../world/world-list';
 import { prefetchWorldDetailAndEvents } from '../world/world-detail-queries.js';
+import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
 
@@ -418,6 +419,7 @@ export function ExplorePanel() {
 
   const onWorldOpen = useCallback(
     (worldId: string) => {
+      prefetchWorldDetailPanel();
       prefetchWorldDetailAndEvents(worldId);
       navigateToWorld(worldId);
     },

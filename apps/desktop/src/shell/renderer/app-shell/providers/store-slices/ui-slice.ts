@@ -1,3 +1,4 @@
+import { startTransition } from 'react';
 import type { AppStoreSet, AppStoreState } from '../store-types';
 
 type UiSlice = Pick<AppStoreState,
@@ -52,16 +53,23 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         selectedProfileIsAgent: tab === 'agent-detail',
         activeTab: tab,
       })),
-    navigateToWorld: (worldId) =>
-      set((state) => ({
-        previousTab: state.activeTab,
-        selectedWorldId: worldId,
-        runtimeFields: {
-          ...state.runtimeFields,
-          worldId,
-        },
-        activeTab: 'world-detail',
-      })),
+    navigateToWorld: (worldId) => {
+      const normalizedWorldId = String(worldId || '').trim();
+      if (!normalizedWorldId) {
+        return;
+      }
+      startTransition(() => {
+        set((state) => ({
+          previousTab: state.activeTab,
+          selectedWorldId: normalizedWorldId,
+          runtimeFields: {
+            ...state.runtimeFields,
+            worldId: normalizedWorldId,
+          },
+          activeTab: 'world-detail',
+        }));
+      });
+    },
     navigateBack: () =>
       set((state) => ({
         activeTab: state.previousTab || 'chat',

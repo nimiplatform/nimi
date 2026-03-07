@@ -6,6 +6,7 @@ import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
+import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { toAgentDetailData } from './agent-detail-model';
 import { AgentDetailView } from './agent-detail-view';
 
@@ -166,6 +167,7 @@ export function AgentDetailPanel() {
           if (!agent?.worldId) {
             return;
           }
+          prefetchWorldDetailPanel();
           prefetchWorldDetailAndEvents(agent.worldId);
           navigateToWorld(agent.worldId);
         }}

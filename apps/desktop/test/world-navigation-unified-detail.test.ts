@@ -23,6 +23,10 @@ const agentDetailPanelSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/agent-detail/agent-detail-panel.tsx'),
   'utf8',
 );
+const uiSliceSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/app-shell/providers/store-slices/ui-slice.ts'),
+  'utf8',
+);
 
 test('world list routes detail entry through navigateToWorld unified path', () => {
   assert.match(worldListSource, /const navigateToWorld = useAppStore\(\(state\) => state\.navigateToWorld\)/);
@@ -31,6 +35,7 @@ test('world list routes detail entry through navigateToWorld unified path', () =
 
 test('world detail tab renders active world detail panel from features/world', () => {
   assert.match(mainLayoutSource, /import\('@renderer\/features\/world\/world-detail-active-panel'\)/);
+  assert.match(mainLayoutSource, /WorldDetailRouteLoading/);
 });
 
 test('world detail uses explicit initial loading state to avoid first-render flicker', () => {
@@ -39,13 +44,21 @@ test('world detail uses explicit initial loading state to avoid first-render fli
 });
 
 test('world list click prefetches world detail and events before navigation', () => {
+  assert.match(worldListSource, /prefetchWorldDetailPanel\(\)/);
   assert.match(worldListSource, /prefetchWorldDetailAndEvents\(worldId\)/);
 });
 
 test('explore world banner click prefetches world detail and events before navigation', () => {
+  assert.match(explorePanelSource, /prefetchWorldDetailPanel\(\)/);
   assert.match(explorePanelSource, /prefetchWorldDetailAndEvents\(worldId\)/);
 });
 
 test('agent detail open world prefetches world detail and events before navigation', () => {
+  assert.match(agentDetailPanelSource, /prefetchWorldDetailPanel\(\)/);
   assert.match(agentDetailPanelSource, /prefetchWorldDetailAndEvents\(agent\.worldId\)/);
+});
+
+test('world navigation uses a transition to avoid clearing revealed content during detail boot', () => {
+  assert.match(uiSliceSource, /startTransition\(\(\) => \{/);
+  assert.match(uiSliceSource, /activeTab: 'world-detail'/);
 });
