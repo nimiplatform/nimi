@@ -46,6 +46,7 @@ groups:
       - StartLocalModel
       - StopLocalModel
       - CheckLocalModelHealth
+      - WarmLocalModel
       - ListVerifiedModels
       - SearchCatalogModels
       - ResolveModelInstallPlan

@@ -202,6 +202,11 @@ method_mappings:
     proto_method: CheckLocalModelHealth
     mapping_status: aligned
   - design_service: RuntimeLocalRuntimeService
+    design_method: WarmLocalModel
+    proto_service: RuntimeLocalRuntimeService
+    proto_method: WarmLocalModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalRuntimeService
     design_method: ListVerifiedModels
     proto_service: RuntimeLocalRuntimeService
     proto_method: ListVerifiedModels

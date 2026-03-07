@@ -51,6 +51,7 @@
 | `RuntimeLocalRuntimeService` | `StartLocalModel` | `RuntimeLocalRuntimeService` | `StartLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `StopLocalModel` | `RuntimeLocalRuntimeService` | `StopLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `CheckLocalModelHealth` | `RuntimeLocalRuntimeService` | `CheckLocalModelHealth` | `aligned` |
+| `RuntimeLocalRuntimeService` | `WarmLocalModel` | `RuntimeLocalRuntimeService` | `WarmLocalModel` | `aligned` |
 | `RuntimeLocalRuntimeService` | `ListVerifiedModels` | `RuntimeLocalRuntimeService` | `ListVerifiedModels` | `aligned` |
 | `RuntimeLocalRuntimeService` | `SearchCatalogModels` | `RuntimeLocalRuntimeService` | `SearchCatalogModels` | `aligned` |
 | `RuntimeLocalRuntimeService` | `ResolveModelInstallPlan` | `RuntimeLocalRuntimeService` | `ResolveModelInstallPlan` | `aligned` |

@@ -48,6 +48,7 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `StartLocalModel` | `S-SURFACE-002` |
 | `StopLocalModel` | `S-SURFACE-002` |
 | `CheckLocalModelHealth` | `S-SURFACE-002` |
+| `WarmLocalModel` | `S-SURFACE-002` |
 | `ListVerifiedModels` | `S-SURFACE-002` |
 | `SearchCatalogModels` | `S-SURFACE-002` |
 | `ResolveModelInstallPlan` | `S-SURFACE-002` |

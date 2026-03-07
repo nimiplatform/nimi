@@ -51,6 +51,7 @@ Source: `K-RPC-004`
 | `StartLocalModel` | `unary` |
 | `StopLocalModel` | `unary` |
 | `CheckLocalModelHealth` | `unary` |
+| `WarmLocalModel` | `unary` |
 | `ListVerifiedModels` | `unary` |
 | `SearchCatalogModels` | `unary` |
 | `ResolveModelInstallPlan` | `unary` |
