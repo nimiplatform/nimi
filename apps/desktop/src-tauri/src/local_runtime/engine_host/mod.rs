@@ -552,6 +552,7 @@ mod tests {
     use super::{check_engine_health, preflight_engine_install_with, start_engine};
     use crate::local_runtime::types::{LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus};
     use std::collections::HashMap;
+    use std::net::TcpListener;
 
     fn model_fixture(engine: &str, status: LocalAiModelStatus) -> LocalAiModelRecord {
         LocalAiModelRecord {
@@ -573,6 +574,17 @@ mod tests {
             health_detail: None,
             engine_config: None,
         }
+    }
+
+    fn unreachable_endpoint_fixture() -> String {
+        let listener =
+            TcpListener::bind("127.0.0.1:0").expect("bind ephemeral localhost port for unreachable fixture");
+        let port = listener
+            .local_addr()
+            .expect("resolve ephemeral localhost port")
+            .port();
+        drop(listener);
+        format!("http://127.0.0.1:{port}/v1")
     }
 
     #[test]
@@ -597,7 +609,8 @@ mod tests {
 
     #[test]
     fn openai_compatible_engine_reports_unhealthy_when_endpoint_unreachable() {
-        let model = model_fixture("openai-compatible", LocalAiModelStatus::Installed);
+        let mut model = model_fixture("openai-compatible", LocalAiModelStatus::Installed);
+        model.endpoint = unreachable_endpoint_fixture();
         let started = start_engine(&model);
         assert!(!started.healthy);
         assert_eq!(started.status, LocalAiModelStatus::Unhealthy);
