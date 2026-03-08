@@ -46,6 +46,13 @@ function compileMatchers(patterns) {
   }));
 }
 
+function normalizePathPrefix(input) {
+  return String(input || '')
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\/+|\/+$/g, '');
+}
+
 function matchesAny(filePath, matchers) {
   const normalized = filePath.replace(/\\/g, '/');
   for (const matcher of matchers) {
@@ -155,6 +162,30 @@ function resolveRule(filePath, compiledRules) {
   return null;
 }
 
+function describeDepthSubject(filePath, depthBase) {
+  const normalizedFilePath = filePath.replace(/\\/g, '/');
+  if (!depthBase) {
+    return {
+      depthBase: '.',
+      depthSubject: normalizedFilePath,
+      depth: normalizedFilePath.split('/').length,
+    };
+  }
+
+  const normalizedBase = normalizePathPrefix(depthBase);
+  const prefix = `${normalizedBase}/`;
+  if (!normalizedFilePath.startsWith(prefix)) {
+    throw new Error(`depth_base "${normalizedBase}" does not match file "${normalizedFilePath}"`);
+  }
+
+  const depthSubject = normalizedFilePath.slice(prefix.length);
+  return {
+    depthBase: normalizedBase,
+    depthSubject,
+    depth: depthSubject ? depthSubject.split('/').length : 0,
+  };
+}
+
 function buildWaivers(waivers) {
   return (waivers || []).map((waiver) => ({
     ...waiver,
@@ -201,6 +232,7 @@ export function evaluateAiStructureBudget(options = {}) {
     id: String(rule.id || '').trim(),
     warningDepth: Number(rule.warning_depth),
     errorDepth: Number(rule.error_depth),
+    depthBase: normalizePathPrefix(rule.depth_base),
     matchers: compileMatchers(rule.include || []),
   }));
   const waivers = buildWaivers(parsed.waivers || []);
@@ -228,7 +260,8 @@ export function evaluateAiStructureBudget(options = {}) {
       continue;
     }
 
-    const depth = relativePath.split('/').length;
+    const depthInfo = describeDepthSubject(relativePath, rule.depthBase);
+    const depth = depthInfo.depth;
     const depthSeverity = toSeverity(depth, rule.warningDepth, rule.errorDepth);
     if (depthSeverity !== 'none') {
       const waiver = findWaiver(relativePath, 'depth', waivers);
@@ -238,6 +271,8 @@ export function evaluateAiStructureBudget(options = {}) {
         check: 'depth',
         severity: depthSeverity,
         depth,
+        depthBase: depthInfo.depthBase,
+        depthSubject: depthInfo.depthSubject,
         warningDepth: rule.warningDepth,
         errorDepth: rule.errorDepth,
         waiver,

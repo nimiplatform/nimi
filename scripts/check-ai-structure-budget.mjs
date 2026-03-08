@@ -3,7 +3,7 @@ import { evaluateAiStructureBudget } from './ai-structure-budget-core.mjs';
 
 function formatRow(row) {
   if (row.check === 'depth') {
-    return `${row.file} [rule=${row.ruleId}] depth=${row.depth} (threshold warn>=${row.warningDepth} error>=${row.errorDepth})`;
+    return `${row.file} [rule=${row.ruleId}] depth=${row.depth} base=${row.depthBase} subject=${row.depthSubject} (threshold warn>=${row.warningDepth} error>=${row.errorDepth})`;
   }
   return `${row.file} [rule=${row.ruleId}] basename=${row.basename} (forwarding shell outside allowed basename set)`;
 }

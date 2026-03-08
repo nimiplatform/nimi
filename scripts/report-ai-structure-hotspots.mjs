@@ -26,8 +26,8 @@ console.log(`- Warning count: ${report.warnings.length}`);
 console.log(`- Error count: ${report.errors.length}`);
 console.log(`- Waived errors: ${report.waivedErrors.length}`);
 console.log('');
-console.log('| Severity | Check | Value | Budget | File | Waiver |');
-console.log('| --- | --- | --- | --- | --- | --- |');
+console.log('| Severity | Check | Value | Budget | Base | Subject | File | Waiver |');
+console.log('| --- | --- | --- | --- | --- | --- | --- | --- |');
 
 let printed = 0;
 for (const row of report.rows) {
@@ -38,13 +38,15 @@ for (const row of report.rows) {
   const budget = row.check === 'depth'
     ? `warn>=${row.warningDepth}, error>=${row.errorDepth}`
     : 'allowed basenames only';
+  const base = row.check === 'depth' ? `\`${row.depthBase}\`` : '-';
+  const subject = row.check === 'depth' ? `\`${row.depthSubject}\`` : '-';
   const waiver = row.waiver
     ? `${row.waiver.untilDate ? row.waiver.untilDate.toISOString().slice(0, 10) : 'n/a'}`
     : 'no';
-  console.log(`| ${row.severity} | ${row.check} | ${value} | ${budget} | \`${row.file}\` | ${waiver} |`);
+  console.log(`| ${row.severity} | ${row.check} | ${value} | ${budget} | ${base} | ${subject} | \`${row.file}\` | ${waiver} |`);
   printed += 1;
 }
 
 if (printed === 0) {
-  console.log('| - | - | - | - | - | - |');
+  console.log('| - | - | - | - | - | - | - | - |');
 }
