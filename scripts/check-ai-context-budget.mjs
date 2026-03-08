@@ -29,6 +29,10 @@ for (const row of report.expiredWaivers) {
   );
 }
 
+for (const row of report.invalidWaivers) {
+  console.error(`ERROR: invalid waiver for ${row.file}: ${row.detail}`);
+}
+
 for (const row of report.errors) {
   console.error(
     `ERROR: ${row.file} [${row.profile}] lines=${row.lines} bytes=${formatBytes(row.bytes)} ` +
@@ -36,7 +40,7 @@ for (const row of report.errors) {
   );
 }
 
-if (report.expiredWaivers.length > 0 || report.errors.length > 0) {
+if (report.invalidWaivers.length > 0 || report.expiredWaivers.length > 0 || report.errors.length > 0) {
   process.exit(1);
 }
 

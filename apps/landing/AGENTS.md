@@ -1,38 +1,19 @@
 # Landing AGENTS.md
 
-> Conventions for AI agents working on `@nimiplatform/landing`.
+## Scope
+- Applies to `apps/landing/**`.
+- Landing is a standalone static site, not part of runtime or desktop execution flows.
 
-## Context
+## Hard Boundaries
+- Keep external links configurable by env vars.
+- Keep user-facing claims aligned with repo reality; do not invent product/runtime guarantees.
+- Do not import private runtime or desktop internals.
 
-`apps/landing/` is an independent static marketing/entry site for Nimi.
-It is intentionally decoupled from `apps/web` application shell flows.
+## Retrieval Defaults
+- Start in `apps/landing/src/**`.
+- Skip unrelated app shells and generated assets.
 
-## Stack
-
-- Build tool: Vite 7
-- UI: React 19 + Tailwind 4
-- Runtime: static client-side site (no runtime/realm API dependency)
-
-## Environment Variables
-
-- `VITE_LANDING_APP_URL`
-- `VITE_LANDING_DOCS_URL`
-- `VITE_LANDING_GITHUB_URL`
-- `VITE_LANDING_PROTOCOL_URL`
-- `VITE_LANDING_DEFAULT_LOCALE`
-
-## Coding Rules
-
-- Keep all external links configurable via env with safe defaults.
-- Keep content claims aligned with `spec/` and `README.md`; avoid unverified marketing claims.
-- Maintain bilingual parity (`en` and `zh`) for user-facing copy.
-- Prefer semantic HTML and keyboard-accessible controls.
-- Do not import from `runtime/internal/` or desktop/web private internals.
-
-## Build and Verification
-
-```bash
-pnpm --filter @nimiplatform/landing typecheck
-pnpm --filter @nimiplatform/landing test
-pnpm --filter @nimiplatform/landing build
-```
+## Verification Commands
+- `pnpm --filter @nimiplatform/landing typecheck`
+- `pnpm --filter @nimiplatform/landing test`
+- `pnpm --filter @nimiplatform/landing build`

@@ -16,7 +16,7 @@
 
 [Website](https://nimi.xyz) | [Getting Started](docs/getting-started/index.md) | [SDK Reference](docs/reference/sdk.md) |  [Protocol](spec/platform/protocol.md) | [Contributing](CONTRIBUTING.md)
 
-Nimi is the last-mile infrastructure that turns model capability into reliable product behavior. 
+Nimi is the last-mile infrastructure that turns model capability into reliable product behavior.
 
 Developers run multimodal AI across local and cloud Runtime, while Realm keeps identity, memory, and governance consistent across apps.
 
@@ -71,7 +71,6 @@ This is the "Ready Player One" narrative with system constraints:
 - cross-app behavior stays auditable and governable
 
 Core protocol primitives: `Timeflow`, `Social`, `Economy`, `Transit`, `Context`, `Presence`.
-
 
 ## Architecture At A Glance
 

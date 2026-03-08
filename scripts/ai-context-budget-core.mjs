@@ -166,6 +166,10 @@ function buildWaiverMap(waivers) {
   return map;
 }
 
+function waiverAllowedForProfile(profileId) {
+  return profileId === 'tests_and_scripts' || profileId === 'generated';
+}
+
 export function evaluateAiContextBudget(options = {}) {
   const cwd = options.cwd || process.cwd();
   const configRelativePath = options.configRelativePath || 'dev/config/ai-context-budget.yaml';
@@ -181,6 +185,38 @@ export function evaluateAiContextBudget(options = {}) {
   const files = listTrackedFiles(cwd);
   const rows = [];
   const skippedMissing = [];
+  const invalidWaivers = [];
+
+  for (const [filePath, waiver] of waiverMap.entries()) {
+    const absolutePath = path.join(cwd, filePath);
+    if (!fs.existsSync(absolutePath)) {
+      invalidWaivers.push({
+        file: filePath,
+        reason: waiver.reason,
+        kind: 'missing',
+        detail: 'waiver points to a missing path',
+      });
+      continue;
+    }
+    if (matchesAny(filePath, excludeMatchers)) {
+      invalidWaivers.push({
+        file: filePath,
+        reason: waiver.reason,
+        kind: 'excluded',
+        detail: 'waiver targets an excluded path',
+      });
+      continue;
+    }
+    const profileId = resolveProfile(filePath, classifierMatchers, defaultProfile);
+    if (!waiverAllowedForProfile(profileId)) {
+      invalidWaivers.push({
+        file: filePath,
+        reason: waiver.reason,
+        kind: 'forbidden_profile',
+        detail: `waivers are forbidden for profile ${profileId}`,
+      });
+    }
+  }
 
   for (const relativePath of files) {
     if (matchesAny(relativePath, excludeMatchers)) {
@@ -251,6 +287,7 @@ export function evaluateAiContextBudget(options = {}) {
     errors,
     waivedErrors,
     expiredWaivers,
+    invalidWaivers,
   };
 }
 

@@ -9,6 +9,9 @@
     "**/*.md",
     "!**/node_modules/**",
     "!**/.git/**",
+    "!_external/**",
+    "!dev/report/**",
+    "!dev/plan/**",
     "!**/dist/**",
     "!**/target/**",
     "!**/coverage/**"

@@ -187,6 +187,9 @@ jobs:
       - name: Enforce no-legacy app-auth CLI naming
         run: pnpm check:no-legacy-app-auth-cli
 
+      - name: AGENTS freshness gate
+        run: pnpm check:agents-freshness
+
       - name: Enforce no private local_ai tauri calls in desktop TS
         run: pnpm check:no-local-ai-private-calls
 
@@ -382,8 +385,8 @@ jobs:
           NIMI_RUNTIME_MIN_STATEMENTS_COVERAGE: 60
         run: pnpm check:runtime-go-coverage
 
-      - name: Runtime ai/media coverage gate
-        run: pnpm check:runtime-ai-media-coverage
+      - name: Runtime ai scenario coverage gate
+        run: pnpm check:runtime-ai-scenario-coverage
 
       - name: Runtime golangci-lint
         uses: golangci/golangci-lint-action@9fae48acfc02a90574d7c304a1758ef9895495fa # v7.0.1
