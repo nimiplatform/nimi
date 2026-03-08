@@ -136,7 +136,7 @@ function LoadingScreen() {
     <SharedStatusShell
       eyebrow="Nimi Runtime"
       title={t('Bootstrap.initializingRuntime')}
-      description="Preparing local services and syncing your session."
+      description={t('Bootstrap.initializingRuntimeDescription')}
     >
       <div className="mt-8 w-full max-w-[18rem]">
         <div className="h-2 overflow-hidden rounded-full bg-[#e7eef0]">
@@ -146,7 +146,7 @@ function LoadingScreen() {
           />
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#7b8794]">
-          <span>Boot sequence</span>
+          <span>{t('Bootstrap.bootSequenceLabel')}</span>
           <span>{Math.round(Math.min(100, progress))}%</span>
         </div>
         <div className="mt-5 flex items-center justify-center gap-2">

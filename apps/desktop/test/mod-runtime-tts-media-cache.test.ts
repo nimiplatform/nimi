@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { cacheSpeechArtifactsForDesktopPlayback } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities';
+import { cacheSpeechArtifactsForDesktopPlayback } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-dependencies.js';
 
 test('tts artifacts with bytes are cached to stable local uri for mod playback', async () => {
   const cacheCalls: Array<Record<string, unknown>> = [];

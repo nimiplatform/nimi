@@ -344,7 +344,7 @@ mod tests {
         let temp = unique_temp_dir("missing");
         let state_path = temp.join("nonexistent.json");
         let state = load_state_from_path(&state_path).expect("default state");
-        assert_eq!(state.version, 11);
+        assert_eq!(state.version, LocalAiRuntimeState::default().version);
         assert!(state.models.is_empty());
         let _ = fs::remove_dir_all(&temp);
     }

@@ -78,7 +78,7 @@ export function SettingsPanelBody() {
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize settings sidebar"
+          aria-label={t('Settings.resizeSidebarAriaLabel')}
           onMouseDown={startResize}
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />

@@ -3,13 +3,17 @@ use serde_json::Value;
 use std::fs;
 use std::io::Write;
 use std::net::{SocketAddr, TcpStream};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use super::channel_pool::invalidate_channel;
 use super::error_map::bridge_error;
+mod daemon_command;
+use daemon_command::{
+    runtime_bridge_mode_for_status, runtime_bridge_mode_label, runtime_cli_command_spec,
+};
 
 const DEFAULT_GRPC_ADDR: &str = "127.0.0.1:46371";
 const DEFAULT_RUNTIME_BINARY: &str = "nimi";
@@ -83,138 +87,6 @@ fn runtime_binary() -> String {
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_RUNTIME_BINARY.to_string())
-}
-
-#[derive(Debug, Clone)]
-struct RuntimeCliCommandSpec {
-    program: String,
-    args: Vec<String>,
-    current_dir: Option<PathBuf>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RuntimeBridgeMode {
-    Runtime,
-    Release,
-}
-
-fn runtime_dev_root_dir() -> Option<PathBuf> {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../runtime");
-    if root.exists() {
-        Some(root)
-    } else {
-        None
-    }
-}
-
-fn is_executable_available(name: &str) -> bool {
-    if name.contains(std::path::MAIN_SEPARATOR) || name.contains('/') || name.contains('\\') {
-        return Path::new(name).exists();
-    }
-
-    let Some(raw_path) = std::env::var_os("PATH") else {
-        return false;
-    };
-
-    for dir in std::env::split_paths(&raw_path) {
-        let candidate = dir.join(name);
-        if candidate.exists() {
-            return true;
-        }
-
-        #[cfg(windows)]
-        {
-            const WINDOWS_EXTENSIONS: [&str; 4] = [".exe", ".cmd", ".bat", ".com"];
-            for extension in WINDOWS_EXTENSIONS {
-                let candidate = dir.join(format!("{name}{extension}"));
-                if candidate.exists() {
-                    return true;
-                }
-            }
-        }
-    }
-
-    false
-}
-
-fn runtime_bridge_mode_label(mode: RuntimeBridgeMode) -> &'static str {
-    match mode {
-        RuntimeBridgeMode::Runtime => "RUNTIME",
-        RuntimeBridgeMode::Release => "RELEASE",
-    }
-}
-
-fn parse_runtime_bridge_mode(raw: &str) -> Option<RuntimeBridgeMode> {
-    let normalized = raw.trim().to_ascii_uppercase();
-    match normalized.as_str() {
-        "RUNTIME" => Some(RuntimeBridgeMode::Runtime),
-        "RELEASE" => Some(RuntimeBridgeMode::Release),
-        _ => None,
-    }
-}
-
-fn runtime_bridge_mode() -> Result<RuntimeBridgeMode, String> {
-    let raw = read_non_empty_env(RUNTIME_BRIDGE_MODE_ENV)
-        .unwrap_or_else(|| DEFAULT_RUNTIME_BRIDGE_MODE.to_string());
-    parse_runtime_bridge_mode(raw.as_str()).ok_or_else(|| {
-        bridge_error(
-            "RUNTIME_BRIDGE_MODE_INVALID",
-            format!(
-                "{} must be RUNTIME or RELEASE, received: {}",
-                RUNTIME_BRIDGE_MODE_ENV, raw
-            )
-            .as_str(),
-        )
-    })
-}
-
-fn runtime_bridge_mode_for_status() -> (RuntimeBridgeMode, Option<String>) {
-    match runtime_bridge_mode() {
-        Ok(mode) => (mode, None),
-        Err(error) => (RuntimeBridgeMode::Release, Some(error)),
-    }
-}
-
-fn runtime_cli_command_spec(args: &[&str]) -> Result<RuntimeCliCommandSpec, String> {
-    let mode = runtime_bridge_mode()?;
-    match mode {
-        RuntimeBridgeMode::Runtime => {
-            if !is_executable_available("go") {
-                return Err(bridge_error(
-                    "RUNTIME_BRIDGE_RUNTIME_GO_NOT_FOUND",
-                    "runtime mode requires `go` in PATH",
-                ));
-            }
-            let runtime_dir = runtime_dev_root_dir().ok_or_else(|| {
-                bridge_error(
-                    "RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND",
-                    "runtime mode requires ./runtime directory in workspace",
-                )
-            })?;
-            let mut resolved_args = vec!["run".to_string(), "./cmd/nimi".to_string()];
-            resolved_args.extend(args.iter().map(|value| (*value).to_string()));
-            Ok(RuntimeCliCommandSpec {
-                program: "go".to_string(),
-                args: resolved_args,
-                current_dir: Some(runtime_dir),
-            })
-        }
-        RuntimeBridgeMode::Release => {
-            let binary = runtime_binary();
-            if binary == DEFAULT_RUNTIME_BINARY && !is_executable_available(DEFAULT_RUNTIME_BINARY)
-            {
-                return Err(bridge_error(
-                    "RUNTIME_BRIDGE_RUNTIME_BINARY_NOT_FOUND",
-                    "release mode requires `nimi` in PATH (or set NIMI_RUNTIME_BINARY)",
-                ));
-            }
-            Ok(RuntimeCliCommandSpec {
-                program: binary,
-                args: args.iter().map(|value| (*value).to_string()).collect(),
-                current_dir: None,
-            })
-        }
-    }
 }
 
 fn read_non_empty_env(name: &str) -> Option<String> {
@@ -366,9 +238,9 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
             .append(true)
             .open(path)
             .map_err(|e| bridge_error("RUNTIME_BRIDGE_DAEMON_LOG_OPEN_FAILED", &e.to_string()))?;
-        let stderr_file = log_file.try_clone().map_err(|e| {
-            bridge_error("RUNTIME_BRIDGE_DAEMON_LOG_CLONE_FAILED", &e.to_string())
-        })?;
+        let stderr_file = log_file
+            .try_clone()
+            .map_err(|e| bridge_error("RUNTIME_BRIDGE_DAEMON_LOG_CLONE_FAILED", &e.to_string()))?;
         command
             .stdout(Stdio::from(log_file))
             .stderr(Stdio::from(stderr_file))
@@ -394,7 +266,9 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
         let mut guard = daemon_debug_log_path_store()
             .lock()
             .expect("debug log path lock poisoned");
-        *guard = log_path.as_ref().and_then(|p| p.to_str().map(|s| s.to_string()));
+        *guard = log_path
+            .as_ref()
+            .and_then(|p| p.to_str().map(|s| s.to_string()));
     }
     invalidate_channel();
 

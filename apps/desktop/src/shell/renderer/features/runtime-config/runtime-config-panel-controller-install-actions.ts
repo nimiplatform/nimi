@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   localAiRuntime,
   type GoRuntimeSyncTarget,
@@ -89,7 +90,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       modelId: String(target.modelId || '').trim(),
       localModelId: String(target.localModelId || '').trim() || undefined,
       source: 'local-runtime',
-      reasonCode: 'GO_RUNTIME_SYNC_FAILED',
+      reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
       detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
       payload: {
         action: eventType,

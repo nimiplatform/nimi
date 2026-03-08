@@ -50,6 +50,7 @@
     "sectionPreferences": "Preferences",
     "sectionExtensions": "Extensions",
     "sectionAdvanced": "Advanced",
+    "resizeSidebarAriaLabel": "Resize settings sidebar",
     "menuProfile": "Profile",
     "menuLanguage": "Language & Region",
     "menuPrivacy": "Privacy",
@@ -430,6 +431,8 @@
   },
   "Bootstrap": {
     "initializingRuntime": "Initializing runtime...",
+    "initializingRuntimeDescription": "Preparing local services and syncing your session.",
+    "bootSequenceLabel": "Boot sequence",
     "webDegraded": "Web bootstrap timed out; switched to degraded mode.",
     "runtimeInitTimeout": "Runtime initialization timed out. Please check desktop bridge and backend connection.",
     "startFailedPrefix": "Startup failed",

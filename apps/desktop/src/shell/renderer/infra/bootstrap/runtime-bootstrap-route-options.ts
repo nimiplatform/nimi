@@ -89,12 +89,6 @@ function normalizeLocalRuntimeModelRoot(value: string): string {
   return trimmed;
 }
 
-function buildLocalRuntimeSelector(modelId: string, engine: string): string {
-  const normalizedModelId = normalizeLocalRuntimeModelRoot(modelId);
-  const normalizedEngine = normalizeLocalEngine(engine);
-  return normalizedModelId ? `${normalizedEngine}/${normalizedModelId}` : normalizedEngine;
-}
-
 function defaultLocalRuntimeAdapter(
   provider: string,
   capability: RuntimeCanonicalCapability,

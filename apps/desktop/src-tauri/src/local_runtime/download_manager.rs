@@ -275,9 +275,7 @@ fn get_control(install_session_id: &str) -> SessionControl {
 
 fn take_next_queued_session() -> Option<String> {
     if let Ok(mut lock) = manager().lock() {
-        while let Some(session_id) = lock.queue.pop_front() {
-            return Some(session_id);
-        }
+        return lock.queue.pop_front();
     }
     None
 }

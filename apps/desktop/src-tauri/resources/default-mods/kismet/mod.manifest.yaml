@@ -17,3 +17,16 @@ capabilities:
 ai:
   consume:
     - chat
+  dependencies:
+    required:
+      - dependencyId: kismet/chat-qwen2.5-7b
+        kind: model
+        capability: chat
+        modelId: qwen2.5-7b-instruct
+        repo: Qwen/Qwen2.5-7B-Instruct-GGUF
+        engine: openai-compatible
+        title: Qwen2.5 7B Instruct (analysis)
+    preferred:
+      chat: kismet/chat-qwen2.5-7b
+requires:
+  - desktop-core-cloud-chat

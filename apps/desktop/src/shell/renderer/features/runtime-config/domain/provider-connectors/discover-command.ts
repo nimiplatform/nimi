@@ -1,3 +1,4 @@
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from '../../runtime-config-types';
@@ -37,7 +38,7 @@ export async function runDiscoverLocalRuntimeModelsCommand(input: {
       eventType: 'runtime_model_sync_failed_during_discovery',
       modelId: 'local-runtime-models',
       source: 'local-runtime',
-      reasonCode: 'GO_RUNTIME_SYNC_FAILED',
+      reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
       detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
       payload: {
         action: 'runtime_model_sync_failed_during_discovery',

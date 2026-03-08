@@ -1,0 +1,587 @@
+import type { RefObject } from 'react';
+import type {
+  LocalAiArtifactRecord,
+  LocalAiDownloadProgressEvent,
+  LocalAiVerifiedArtifactDescriptor,
+  LocalAiVerifiedModelDescriptor,
+  LocalAiDependencyResolutionPlan,
+} from '@runtime/local-ai-runtime';
+import type {
+  RuntimeConfigStateV11,
+  RuntimeSetupPageIdV11,
+} from '@renderer/features/runtime-config/state/types';
+import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
+import { RuntimeSelect } from '../primitives';
+import { ModelCenterDependencySection } from './model-center-dependency-section';
+import {
+  CAPABILITY_OPTIONS,
+  downloadStateLabel,
+  formatBytes,
+  formatDownloadPhaseLabel,
+  formatEta,
+  formatSpeed,
+  type CapabilityOption,
+} from './model-center-utils';
+import {
+  artifactTaskStatusLabel,
+  DownloadIcon,
+  FolderOpenIcon,
+  formatArtifactKindLabel,
+  HeartPulseIcon,
+  type ArtifactTaskEntry,
+  RefreshIcon,
+  StarIcon,
+  SearchIcon,
+  formatLastCheckedAgo,
+} from './local-runtime-model-center-helpers';
+
+type ModModeViewProps = {
+  state: RuntimeConfigStateV11;
+  selectedDependencyModId: string;
+  loadingDependencyPlan: boolean;
+  dependencySelectionLocked: boolean;
+  selectedDependencyCapability: 'auto' | CapabilityOption;
+  dependencyPlanPreview: LocalAiDependencyResolutionPlan | null;
+  runtimeDependencyTargets: RuntimeDependencyTargetDescriptor[];
+  onSetSelectedDependencyModId: (modId: string) => void;
+  onSetSelectedDependencyCapability: (capability: 'auto' | CapabilityOption) => void;
+  onResolveDependencyPlanPreview: () => void;
+  onApplyDependencies: (modId: string, capability?: string) => Promise<void>;
+  onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
+};
+
+export function LocalRuntimeModelCenterModModeView(props: ModModeViewProps) {
+  const modCapabilities = props.runtimeDependencyTargets.find((item) => item.modId === props.selectedDependencyModId)?.consumeCapabilities || [];
+  const capabilityStatuses = modCapabilities.map((capability) => {
+    const localNode = props.state.localRuntime.nodeMatrix.find((node) => node.capability === capability && node.available);
+    const hasLocalModel = props.state.localRuntime.models.some((model) => model.status === 'active' && model.capabilities.includes(capability));
+    return { capability, localAvailable: Boolean(localNode) || hasLocalModel };
+  });
+  const hasUnavailable = capabilityStatuses.some((item) => !item.localAvailable);
+  const selectedDependencyTarget = props.runtimeDependencyTargets.find((item) => item.modId === props.selectedDependencyModId) || null;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="flex h-14 shrink-0 items-center border-b border-gray-200 bg-white px-6">
+        <h2 className="text-lg font-semibold text-gray-900">Local Models</h2>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-6">
+          <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900">
+                {selectedDependencyTarget?.modName || props.selectedDependencyModId || 'Runtime Mod'}
+              </h4>
+              <p className="text-xs text-gray-500">Configure only this mod&apos;s declared model dependencies.</p>
+            </div>
+            {modCapabilities.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-700">AI Capability Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {capabilityStatuses.map((item) => (
+                    <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {item.capability}: {item.localAvailable ? 'local-runtime' : 'needs setup'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <ModelCenterDependencySection
+              isModMode
+              loadingDependencyPlan={props.loadingDependencyPlan}
+              selectedDependencyModId={props.selectedDependencyModId}
+              dependencySelectionLocked={props.dependencySelectionLocked}
+              selectedDependencyTarget={selectedDependencyTarget}
+              selectedDependencyCapability={props.selectedDependencyCapability}
+              dependencyPlanPreview={props.dependencyPlanPreview}
+              runtimeDependencyTargets={props.runtimeDependencyTargets}
+              onSetSelectedDependencyModId={props.onSetSelectedDependencyModId}
+              onSetSelectedDependencyCapability={props.onSetSelectedDependencyCapability}
+              onResolveDependencyPlanPreview={props.onResolveDependencyPlanPreview}
+              onApplyDependencies={props.onApplyDependencies}
+            />
+          </div>
+          {hasUnavailable ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <p className="text-xs font-semibold text-amber-900">Setup Required</p>
+              <p className="mt-1 text-[11px] text-amber-800">Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.</p>
+              <div className="mt-3 flex items-center gap-2">
+                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">Install Models</button>
+                <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">Configure Cloud API</button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ToolbarProps = {
+  checkingHealth: boolean;
+  localRuntimeHealthy: boolean;
+  lastCheckedAt: string | null;
+  discovering: boolean;
+  importMenuRef: RefObject<HTMLDivElement | null>;
+  showImportMenu: boolean;
+  onHealthCheck: () => void;
+  onRefresh: () => void;
+  onToggleImportMenu: () => void;
+  onOpenImportFile: () => void;
+  onImportManifest: () => void;
+  onImportArtifactManifest: () => void;
+};
+
+export function LocalRuntimeModelCenterToolbar(props: ToolbarProps) {
+  const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt);
+
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex-1" />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={props.onHealthCheck}
+          disabled={props.checkingHealth}
+          title={healthTooltip}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
+            props.localRuntimeHealthy
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <HeartPulseIcon className="h-4 w-4" />
+          {props.checkingHealth ? 'Checking...' : 'Health'}
+        </button>
+        <button
+          type="button"
+          onClick={props.onRefresh}
+          disabled={props.discovering}
+          className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <RefreshIcon className="h-4 w-4" />
+          {props.discovering ? 'Refreshing...' : 'Refresh'}
+        </button>
+        <div className="relative" ref={props.importMenuRef}>
+          <button
+            type="button"
+            onClick={props.onToggleImportMenu}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+          >
+            <FolderOpenIcon className="h-4 w-4" />
+            Import
+          </button>
+          {props.showImportMenu ? (
+            <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg">
+              <button type="button" onClick={props.onOpenImportFile} className="w-full rounded-t-lg px-3 py-2.5 text-left text-xs hover:bg-gray-50">
+                <div className="font-medium text-gray-900">Import Model File</div>
+                <div className="mt-0.5 text-gray-500">.gguf, .safetensors, .bin, .onnx</div>
+              </button>
+              <button type="button" onClick={props.onImportManifest} className="w-full border-t border-gray-100 px-3 py-2.5 text-left text-xs hover:bg-gray-50">
+                <div className="font-medium text-gray-900">Import Model Manifest</div>
+                <div className="mt-0.5 text-gray-500">model.manifest.json</div>
+              </button>
+              <button type="button" onClick={props.onImportArtifactManifest} className="w-full rounded-b-lg border-t border-gray-100 px-3 py-2.5 text-left text-xs hover:bg-gray-50">
+                <div className="font-medium text-gray-900">Import Artifact Manifest</div>
+                <div className="mt-0.5 text-gray-500">artifact.manifest.json</div>
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ImportDialogProps = {
+  visible: boolean;
+  capability: CapabilityOption;
+  onCapabilityChange: (capability: CapabilityOption) => void;
+  onClose: () => void;
+  onChooseFile: () => void;
+};
+
+export function LocalRuntimeModelCenterImportDialog(props: ImportDialogProps) {
+  if (!props.visible) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FolderOpenIcon className="h-4 w-4 text-mint-600" />
+          <h3 className="text-sm font-semibold text-gray-900">Import Local Model File</h3>
+        </div>
+        <button type="button" onClick={props.onClose} className="text-xs text-gray-400 hover:text-gray-600">
+          Cancel
+        </button>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">Capability:</span>
+          <RuntimeSelect
+            value={props.capability}
+            onChange={(value) => props.onCapabilityChange((value || 'chat') as CapabilityOption)}
+            className="w-36"
+            options={CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability }))}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={props.onChooseFile}
+          className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600"
+        >
+          <FolderOpenIcon className="h-3.5 w-3.5" />
+          Choose File
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type ArtifactRequirementBadgesProps = {
+  modelTemplateId: string;
+  relatedArtifacts: LocalAiVerifiedArtifactDescriptor[];
+  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
+  artifactBusy: boolean;
+  isArtifactPending: (templateId: string) => boolean;
+  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+  onInstallArtifact: (templateId: string) => void;
+};
+
+function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
+  if (props.relatedArtifacts.length === 0) {
+    return null;
+  }
+
+  const missingArtifacts = props.relatedArtifacts.filter((artifact) => !props.installedArtifactsById.has(artifact.artifactId.toLowerCase()));
+  const hasPendingMissingArtifacts = missingArtifacts.some((artifact) => props.isArtifactPending(artifact.templateId));
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {missingArtifacts.length > 1 ? (
+        <button
+          type="button"
+          onClick={() => props.onInstallMissingArtifacts(props.relatedArtifacts)}
+          disabled={props.artifactBusy || hasPendingMissingArtifacts}
+          className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+        >
+          {hasPendingMissingArtifacts ? 'Installing assets...' : `Install Missing (${missingArtifacts.length})`}
+        </button>
+      ) : null}
+      {props.relatedArtifacts.map((artifact) => {
+        const installed = props.installedArtifactsById.get(artifact.artifactId.toLowerCase()) || null;
+        const pending = props.isArtifactPending(artifact.templateId);
+        return (
+          <div
+            key={`${props.modelTemplateId}-${artifact.templateId}`}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${
+              installed
+                ? 'border-green-200 bg-green-50 text-green-700'
+                : 'border-amber-200 bg-amber-50 text-amber-700'
+            }`}
+          >
+            <span>{formatArtifactKindLabel(artifact.kind)}</span>
+            <span>{installed ? 'Installed' : pending ? 'Installing' : 'Required'}</span>
+            {!installed ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  props.onInstallArtifact(artifact.templateId);
+                }}
+                disabled={props.artifactBusy || pending}
+                className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-white disabled:opacity-50"
+              >
+                {pending ? 'Installing...' : 'Install'}
+              </button>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+type VerifiedArtifactsSectionProps = {
+  hasSearchQuery: boolean;
+  loadingVerifiedArtifacts: boolean;
+  artifactBusy: boolean;
+  visibleVerifiedArtifacts: LocalAiVerifiedArtifactDescriptor[];
+  isArtifactPending: (templateId: string) => boolean;
+  onRefresh: () => void;
+  onInstallArtifact: (templateId: string) => void;
+};
+
+export function LocalRuntimeModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectionProps) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FolderOpenIcon className="h-4 w-4 text-slate-500" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Verified Companion Assets</span>
+        </div>
+        <button
+          type="button"
+          onClick={props.onRefresh}
+          disabled={props.loadingVerifiedArtifacts || props.artifactBusy}
+          className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <RefreshIcon className="h-3 w-3" />
+          Refresh
+        </button>
+      </div>
+      {props.loadingVerifiedArtifacts ? (
+        <div className="py-6 text-center">
+          <p className="text-sm text-gray-500">Loading verified artifacts...</p>
+        </div>
+      ) : props.visibleVerifiedArtifacts.length > 0 ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {props.visibleVerifiedArtifacts.slice(0, props.hasSearchQuery ? 12 : 6).map((artifact) => {
+            const pending = props.isArtifactPending(artifact.templateId);
+            return (
+              <div key={artifact.templateId} className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition-colors hover:border-mint-200 hover:bg-mint-50/30">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-slate-700 text-[11px] font-semibold text-white">
+                  {formatArtifactKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-gray-900">{artifact.title}</p>
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                      {formatArtifactKindLabel(artifact.kind)}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-gray-500">{artifact.artifactId}</p>
+                  {artifact.description ? <p className="mt-0.5 truncate text-[11px] text-gray-400">{artifact.description}</p> : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => props.onInstallArtifact(artifact.templateId)}
+                  disabled={props.artifactBusy || pending}
+                  className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
+                >
+                  <DownloadIcon className="h-3.5 w-3.5" />
+                  {pending ? 'Installing...' : 'Install'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="py-6 text-center">
+          <p className="text-sm text-gray-500">
+            {props.hasSearchQuery
+              ? 'No verified companion assets matched your search.'
+              : 'No verified companion assets available for the current filter.'}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type ActiveDownloadsSectionProps = {
+  downloads: LocalAiDownloadProgressEvent[];
+  onPause: (installSessionId: string) => void;
+  onResume: (installSessionId: string) => void;
+  onCancel: (installSessionId: string) => void;
+};
+
+export function LocalRuntimeModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionProps) {
+  if (props.downloads.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Active Downloads ({props.downloads.length})</h3>
+      {props.downloads.map((event) => {
+        const isRunning = event.state === 'running';
+        const isPaused = event.state === 'paused';
+        const isFailed = event.state === 'failed';
+        const canPause = event.state === 'queued' || isRunning;
+        const canResume = isPaused || (isFailed && event.retryable);
+        const canCancel = event.state !== 'completed' && event.state !== 'cancelled';
+        const phaseLabel = formatDownloadPhaseLabel(event.phase);
+        const progressMeta = event.phase === 'verify'
+          ? (event.speedBytesPerSec && event.speedBytesPerSec > 0
+              ? `${formatSpeed(event.speedBytesPerSec)} verify · ETA ${formatEta(event.etaSeconds)}`
+              : 'Verifying local file...')
+          : event.phase === 'upsert'
+            ? 'Finalizing installation...'
+            : event.speedBytesPerSec && event.speedBytesPerSec > 0
+              ? `${formatSpeed(event.speedBytesPerSec)} · ETA ${formatEta(event.etaSeconds)}`
+              : 'Measuring throughput...';
+
+        return (
+          <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+            <div className="mb-2 flex items-center gap-3">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-red-100 text-red-600' : 'bg-mint-100 text-mint-600'}`}>
+                <DownloadIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">{event.modelId}</p>
+                <p className="text-xs text-gray-500">{phaseLabel}</p>
+                {event.phase !== 'download' && event.message ? <p className="truncate text-[11px] text-gray-400">{event.message}</p> : null}
+              </div>
+              <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
+                isFailed ? 'bg-red-100 text-red-700' :
+                isPaused ? 'bg-amber-100 text-amber-700' :
+                isRunning ? 'bg-blue-100 text-blue-700' :
+                'bg-gray-100 text-gray-600'
+              }`}>
+                {downloadStateLabel(event.state)}
+              </span>
+            </div>
+            {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
+              <div className="mb-2">
+                <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className={`h-full transition-all ${isFailed ? 'bg-red-500' : 'bg-mint-500'}`}
+                    style={{ width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%` }}
+                  />
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-gray-500">
+                  <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
+                  {isRunning ? <span>{progressMeta}</span> : null}
+                </div>
+              </div>
+            ) : (
+              <p className="mb-2 text-xs text-gray-500">{formatBytes(event.bytesReceived)} downloaded</p>
+            )}
+            <div className="flex items-center gap-2">
+              {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">Pause</button> : null}
+              {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-mint-500 px-2 py-1 text-xs text-white hover:bg-mint-600">Resume</button> : null}
+              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600">Cancel</button> : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+type ArtifactTasksSectionProps = {
+  tasks: ArtifactTaskEntry[];
+};
+
+export function LocalRuntimeModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) {
+  if (props.tasks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Asset Tasks ({props.tasks.length})</h3>
+      <div className="grid grid-cols-1 gap-3">
+        {props.tasks.map((task) => {
+          const isRunning = task.state === 'running';
+          const isFailed = task.state === 'failed';
+          return (
+            <div key={`artifact-task-${task.templateId}`} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                  isFailed ? 'bg-red-100 text-red-600' : isRunning ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  <FolderOpenIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-gray-900">{task.title}</p>
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                      {formatArtifactKindLabel(task.kind)}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-gray-500">{task.artifactId}</p>
+                  {task.detail ? <p className={`mt-0.5 truncate text-[11px] ${isFailed ? 'text-red-500' : 'text-gray-400'}`}>{task.detail}</p> : null}
+                </div>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
+                  isFailed ? 'bg-red-100 text-red-700' : isRunning ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  {artifactTaskStatusLabel(task.state)}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+type QuickPicksSectionProps = {
+  loadingVerifiedModels: boolean;
+  installing: boolean;
+  artifactBusy: boolean;
+  verifiedModels: LocalAiVerifiedModelDescriptor[];
+  relatedArtifactsByModelTemplate: Map<string, LocalAiVerifiedArtifactDescriptor[]>;
+  installedArtifactsById: Map<string, LocalAiArtifactRecord>;
+  isArtifactPending: (templateId: string) => boolean;
+  onRefresh: () => void;
+  onInstallVerifiedModel: (templateId: string) => void;
+  onInstallArtifact: (templateId: string) => void;
+  onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
+};
+
+export function LocalRuntimeModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
+  if (props.verifiedModels.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <StarIcon className="h-4 w-4 text-amber-500" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Quick Picks</span>
+        </div>
+        <button
+          type="button"
+          onClick={props.onRefresh}
+          disabled={props.loadingVerifiedModels}
+          className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+        >
+          <RefreshIcon className="h-3 w-3" />
+          Refresh
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {props.verifiedModels.map((item) => {
+          const relatedArtifacts = props.relatedArtifactsByModelTemplate.get(item.templateId) || [];
+          return (
+            <div key={item.templateId} className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition-colors hover:border-mint-200 hover:bg-mint-50/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+                <StarIcon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
+                <p className="truncate text-xs text-gray-500">{item.modelId}</p>
+                <ArtifactRequirementBadges
+                  modelTemplateId={`${item.templateId}-quick`}
+                  relatedArtifacts={relatedArtifacts}
+                  installedArtifactsById={props.installedArtifactsById}
+                  artifactBusy={props.artifactBusy}
+                  isArtifactPending={props.isArtifactPending}
+                  onInstallMissingArtifacts={props.onInstallMissingArtifacts}
+                  onInstallArtifact={props.onInstallArtifact}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => props.onInstallVerifiedModel(item.templateId)}
+                disabled={props.installing}
+                className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
+              >
+                <DownloadIcon className="h-3.5 w-3.5" />
+                Install
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export { ArtifactRequirementBadges, SearchIcon };

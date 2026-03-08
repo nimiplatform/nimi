@@ -140,7 +140,7 @@ async function submitAndCollect(runtime: Runtime, request: Record<string, unknow
 
   let traceId = String(submitResponse.job?.traceId || metadata.traceId || '').trim();
   let modelResolved = String(submitResponse.job?.modelResolved || '').trim();
-  let voiceAssetId = String(submitResponse.asset?.voiceAssetId || '').trim() || undefined;
+  const voiceAssetId = String(submitResponse.asset?.voiceAssetId || '').trim() || undefined;
 
   const deadline = Date.now() + 180_000;
   for (;;) {

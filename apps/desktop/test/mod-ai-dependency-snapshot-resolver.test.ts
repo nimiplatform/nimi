@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store';
 import { localAiRuntime } from '../src/runtime/local-ai-runtime';
-import { createModAiDependencySnapshotResolver } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities';
+import { createModAiDependencySnapshotResolver } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-dependencies.js';
 
 test('dependency snapshot resolver maps canonical capability tokens for mod-facing output', async () => {
   const originalGetState = useAppStore.getState;

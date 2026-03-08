@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import {
   hydrateLocalRuntimeRouteBindingFromOptions,
-} from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities';
+} from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.js';
 import {
   pickPreferredGoRuntimeModel,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';

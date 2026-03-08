@@ -435,7 +435,7 @@ export async function syncModelRemoveToGoRuntime(target: GoRuntimeSyncTarget): P
 }
 
 export async function reconcileModelsToGoRuntime(models: LocalAiModelRecord[]): Promise<GoRuntimeSyncResult[]> {
-  const runtime = requireSdkLocalRuntime('reconcile', {
+  requireSdkLocalRuntime('reconcile', {
     modelId: 'local-runtime-models',
     engine: 'localai',
   });
