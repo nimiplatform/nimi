@@ -2,7 +2,7 @@ export type * from './llm';
 export type * from './speech';
 export type * from './runtime-mod';
 export type * from '../runtime/types.js';
-export type { HookClient } from './runtime-hook/index';
+export type { HookClient } from './runtime-hook';
 export type {
   HookActionClient,
   HookActionDescriptor,
@@ -19,31 +19,31 @@ export type {
   HookActionAuditRecord,
   HookActionAuditFilter,
   HookActionDiscoverFilter,
-} from './runtime-hook/action';
+} from './action';
 export type {
   HookDataClient,
-} from './runtime-hook/data';
+} from './data';
 export type {
   HookEventClient,
-} from './runtime-hook/event';
+} from './event';
 export type {
   HookInterModClient,
-} from './runtime-hook/inter-mod';
+} from './inter-mod';
 export type {
   HookAuditClient,
   HookMetaClient,
-} from './runtime-hook/meta';
+} from './meta';
 export type {
   HookProfileClient,
   RuntimeHookAgentProfileReadInput,
   RuntimeHookAgentProfileReadResult,
-} from './runtime-hook/profile';
+} from './profile';
 export type {
   HookTurnClient,
-} from './runtime-hook/turn';
+} from './turn';
 export type {
   HookUiClient,
-} from './runtime-hook/ui';
+} from './ui';
 export type {
   FetchImpl,
   RuntimeHttpContext,
@@ -53,4 +53,4 @@ export type {
   HookRegistrationRecord,
   HookAuditRecord,
   HookAuditStats,
-} from './runtime-hook/shared';
+} from './shared';

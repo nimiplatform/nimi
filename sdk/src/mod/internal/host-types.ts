@@ -1,8 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
 import type {
   RuntimeHttpContext,
-} from '../types/runtime-hook/index';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-hook/runtime-facade';
+} from '../types/runtime-hook';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
 import type {
   RuntimeLlmHealthInput,
   RuntimeLlmHealthResult,

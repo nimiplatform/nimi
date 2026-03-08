@@ -3,8 +3,8 @@ import { ReasonCode } from '../../types/index.js';
 import {
   RuntimeMethodIds,
 } from '../method-ids.js';
-import { createNodeGrpcTransport } from '../transports/node-grpc/index.js';
-import { createTauriIpcTransport } from '../transports/tauri-ipc/index.js';
+import { createNodeGrpcTransport } from '../transports/node-grpc.js';
+import { createTauriIpcTransport } from '../transports/tauri-ipc.js';
 import type {
   RuntimeCallOptions,
   RuntimeClient,

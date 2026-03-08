@@ -4,7 +4,7 @@ import test from 'node:test';
 import { clearModSdkHost } from '../../src/mod/host.js';
 import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
-import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-hook/runtime-facade.js';
+import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-facade.js';
 
 test('mod runtime client forwards local artifact listing with mod id and filters', async () => {
   clearModSdkHost();

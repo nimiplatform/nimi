@@ -1,5 +1,5 @@
 import type { HookSourceType, RuntimeHttpContext } from './runtime-hook';
-import type { RuntimeHookRuntimeFacade } from './runtime-hook/runtime-facade';
+import type { RuntimeHookRuntimeFacade } from './runtime-facade';
 import type {
   RuntimeLlmHealthInput,
   RuntimeLlmHealthResult,

@@ -1,5 +1,5 @@
-import { asNimiError, createNimiError } from '../../errors';
-import { ReasonCode } from '../../../types/index.js';
+import { asNimiError, createNimiError } from '../errors';
+import { ReasonCode } from '../../types/index.js';
 import type {
   RuntimeOpenStreamCall,
   RuntimeWireMessage,
@@ -7,7 +7,7 @@ import type {
   RuntimeTauriIpcTransportConfig,
   RuntimeTransport,
   RuntimeUnaryCall,
-} from '../../types';
+} from '../types';
 
 type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type TauriListenUnsubscribe = () => void;

@@ -1,5 +1,5 @@
-import { asNimiError, createNimiError } from '../../errors';
-import { ReasonCode } from '../../../types/index.js';
+import { asNimiError, createNimiError } from '../errors';
+import { ReasonCode } from '../../types/index.js';
 import type {
   RuntimeNodeGrpcTransportConfig,
   RuntimeWireMessage,
@@ -7,7 +7,7 @@ import type {
   RuntimeStreamCloseCall,
   RuntimeTransport,
   RuntimeUnaryCall,
-} from '../../types';
+} from '../types';
 import type {
   CallOptions,
   ChannelCredentials,

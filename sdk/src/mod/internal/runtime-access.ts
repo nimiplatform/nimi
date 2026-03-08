@@ -4,7 +4,7 @@ import type {
   RuntimeLlmHealthResult,
   RuntimeRouteHealthResult,
 } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-hook/runtime-facade';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
 import type {
   ModRuntimeContext,
   ModRuntimeContextInput,

@@ -1,5 +1,5 @@
-import type { HookProfileClient } from '../types/runtime-hook/profile.js';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-hook/runtime-facade.js';
+import type { HookProfileClient } from '../types/profile.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createProfileClient(input: {
   modId: string;

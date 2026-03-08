@@ -5,7 +5,7 @@ import { ReasonCode } from '../../src/types/index.js';
 import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
 import { createModRuntimeInspector } from '../../src/mod/runtime/inspector.js';
 import { clearModSdkHost } from '../../src/mod/host.js';
-import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-hook/runtime-facade.js';
+import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-facade.js';
 
 test('mod runtime client uses injected runtime context without global host', async () => {
   clearModSdkHost();

@@ -51,8 +51,8 @@ export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow';
 export { createRuntimeClient } from './core/client';
-export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from './transports/node-grpc/index';
-export { createTauriIpcTransport } from './transports/tauri-ipc/index';
+export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from './transports/node-grpc';
+export { createTauriIpcTransport } from './transports/tauri-ipc';
 export { Runtime } from './runtime.js';
 export * from './runtime-realm-bridge.js';
 export {

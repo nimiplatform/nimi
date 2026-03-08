@@ -1,4 +1,4 @@
-import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transports/node-grpc/index';
+import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transports/node-grpc';
 import type { RuntimeClientConfig } from '../../src/runtime/types';
 import {
   AuthorizationPreset,
