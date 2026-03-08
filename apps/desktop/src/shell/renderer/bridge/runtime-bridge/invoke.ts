@@ -7,6 +7,7 @@ import type { RuntimeBridgeStructuredError } from './types';
 const BRIDGE_ERROR_CODE_MAP: Record<string, string> = {
   LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: '导入路径无效，请将模型放到 Local Runtime models 目录后重试',
   LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: '仅支持导入 model.manifest.json 清单文件',
+  LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: '仅支持导入 artifact.manifest.json 清单文件',
   LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND: '未找到模型清单文件，请检查导入路径',
   LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED: '模型清单解析失败，请检查 JSON 格式',
   LOCAL_AI_IMPORT_HASH_MISMATCH: '模型文件校验失败，请确认文件完整后重试',

@@ -439,7 +439,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
 
   const importLocalArtifact = useCallback(async () => {
     try {
-      const manifestPath = await localAiRuntime.pickManifestPath();
+      const manifestPath = await localAiRuntime.pickArtifactManifestPath();
       if (!manifestPath) {
         return;
       }

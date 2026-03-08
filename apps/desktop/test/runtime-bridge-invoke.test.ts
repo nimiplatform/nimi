@@ -22,6 +22,17 @@ test('toBridgeUserError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => 
   assert.equal(String(error.details?.userMessage || ''), '磁盘空间不足，请释放空间后继续下载');
 });
 
+test('toBridgeUserError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID reason code', () => {
+  const error = toBridgeUserError(
+    new Error('LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: unsupported file'),
+  );
+  assert.equal(error.reasonCode, 'LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    '仅支持导入 artifact.manifest.json 清单文件',
+  );
+});
+
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
