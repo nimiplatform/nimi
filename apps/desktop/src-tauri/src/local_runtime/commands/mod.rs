@@ -60,7 +60,8 @@ use super::types::{
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
     LocalAiModelSource, LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedModelDescriptor,
-    OrphanModelFile, DEFAULT_LOCAL_ENDPOINT, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    OrphanArtifactFile, OrphanModelFile, DEFAULT_LOCAL_ENDPOINT,
+    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_models::{find_verified_model, verified_model_list};
 
@@ -77,5 +78,6 @@ include!("commands_downloads.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_file.rs");
 include!("commands_models_audit.rs");
+include!("commands_artifact_orphans.rs");
 include!("commands_orphan_scan.rs");
 include!("commands_reveal_tests.rs");

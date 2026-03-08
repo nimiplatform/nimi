@@ -10,97 +10,22 @@ fn is_model_file_extension(path: &std::path::Path) -> bool {
 fn scan_orphan_model_files(app: &AppHandle) -> Result<Vec<OrphanModelFile>, String> {
     let models_root = runtime_models_dir(app)?;
     let state = load_state(app)?;
-
-    // Collect all registered model file paths (absolute) for cross-check
-    let registered_paths: std::collections::HashSet<String> = state
-        .models
-        .iter()
-        .filter_map(|m| {
-            let slug = slugify_local_model_id(&m.model_id);
-            let entry = &m.entry;
-            if entry.is_empty() {
-                return None;
-            }
-            Some(
-                models_root
-                    .join(&slug)
-                    .join(entry)
-                    .to_string_lossy()
-                    .to_string(),
-            )
-        })
-        .collect();
-
-    let mut orphans = Vec::<OrphanModelFile>::new();
-
-    let entries = std::fs::read_dir(&models_root).map_err(|e| {
-        format!("LOCAL_AI_ORPHAN_SCAN_READ_DIR_FAILED: cannot read models directory: {e}")
-    })?;
-
-    for entry in entries {
-        let entry = match entry {
-            Ok(entry) => entry,
-            Err(_) => continue,
-        };
-        let path = entry.path();
-
-        if path.is_file() && is_model_file_extension(&path) {
-            // Loose file directly in models root — definitely an orphan
-            let filename = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown")
-                .to_string();
-            let size_bytes = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
-            orphans.push(OrphanModelFile {
-                filename,
-                path: path.to_string_lossy().to_string(),
-                size_bytes,
-            });
-        } else if path.is_dir() {
-            // Check subdirectories: if a subdir has model files but NO model.manifest.json,
-            // those model files are orphans
-            let manifest_path = path.join("model.manifest.json");
-            if manifest_path.exists() {
-                // This subdirectory is properly scaffolded, skip
-                continue;
-            }
-            // Scan for model files inside this unmanifested subdir
-            let sub_entries = match std::fs::read_dir(&path) {
-                Ok(entries) => entries,
-                Err(_) => continue,
-            };
-            for sub_entry in sub_entries {
-                let sub_entry = match sub_entry {
-                    Ok(entry) => entry,
-                    Err(_) => continue,
-                };
-                let sub_path = sub_entry.path();
-                if sub_path.is_file() && is_model_file_extension(&sub_path) {
-                    let abs_path_str = sub_path.to_string_lossy().to_string();
-                    if registered_paths.contains(&abs_path_str) {
-                        continue;
-                    }
-                    let filename = sub_path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("unknown")
-                        .to_string();
-                    let size_bytes =
-                        std::fs::metadata(&sub_path).map(|m| m.len()).unwrap_or(0);
-                    orphans.push(OrphanModelFile {
-                        filename,
-                        path: abs_path_str,
-                        size_bytes,
-                    });
-                }
-            }
-        }
-    }
-
-    // Sort by filename for consistent ordering
-    orphans.sort_by(|a, b| a.filename.cmp(&b.filename));
-    Ok(orphans)
+    let registered_paths = registered_model_paths(&models_root, &state);
+    scan_orphan_binary_candidates(
+        &models_root,
+        &registered_paths,
+        "LOCAL_AI_ORPHAN_SCAN_READ_DIR_FAILED",
+    )
+    .map(|items| {
+        items
+            .into_iter()
+            .map(|item| OrphanModelFile {
+                filename: item.filename,
+                path: item.path,
+                size_bytes: item.size_bytes,
+            })
+            .collect()
+    })
 }
 
 fn to_orphan_download_event(

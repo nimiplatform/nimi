@@ -219,3 +219,18 @@ pub struct LocalAiScaffoldOrphanPayload {
     pub engine: Option<String>,
     pub endpoint: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiScaffoldArtifactPayload {
+    pub path: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiScaffoldArtifactResult {
+    pub manifest_path: String,
+    pub artifact_id: String,
+    pub kind: String,
+}

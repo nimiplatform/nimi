@@ -68,6 +68,14 @@ pub struct OrphanModelFile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct OrphanArtifactFile {
+    pub filename: String,
+    pub path: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GgufVariantDescriptor {
     pub filename: String,
     pub size_bytes: Option<u64>,
