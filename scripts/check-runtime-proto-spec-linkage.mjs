@@ -173,8 +173,11 @@ function checkGrantTokenChainEvolution() {
 }
 
 function checkLocalRuntimePaginationAndAuditFields() {
-  const rel = 'proto/runtime/v1/local_runtime.proto';
-  const content = read(rel);
+  const rel = 'proto/runtime/v1/local_runtime package';
+  const content = [
+    read('proto/runtime/v1/local_runtime.proto'),
+    read('proto/runtime/v1/local_runtime_types.proto'),
+  ].join('\n');
 
   const localModelRecord = getProtoMessageBlock(content, 'LocalModelRecord', rel);
   assertMessageHasFields(localModelRecord, 'LocalModelRecord', rel, ['local_invoke_profile_id']);

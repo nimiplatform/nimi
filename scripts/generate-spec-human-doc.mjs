@@ -1,518 +1,58 @@
 #!/usr/bin/env node
 
-/**
- * Generates a single human-readable Markdown document from the spec/ tree.
- *
- * The AI-oriented spec system uses Rule IDs (K-*, S-*) as machine anchors and
- * forbids prose duplication. This script produces a narrative-style document
- * organized by conceptual domain, with explanatory introductions and rules
- * inlined where contextually relevant.
- *
- * Usage:
- *   node scripts/generate-spec-human-doc.mjs           # generate
- *   node scripts/generate-spec-human-doc.mjs --check    # drift check
- */
+/** Generate or drift-check the human-readable spec document. */
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import {
+  DocBuilder,
+  desktopKernelFiles,
+  futureKernelFiles,
+  parseKernelRules,
+  platformKernelFiles,
+  realmKernelFiles,
+  renderAppTabs,
+  renderBacklogItems,
+  renderBootstrapPhases,
+  renderBuildChunks,
+  renderDataSyncFlows,
+  renderDesktopErrorCodes,
+  renderErrorMappingMatrix,
+  renderFeatureFlags,
+  renderGraduationLog,
+  renderHookCapabilityAllowlists,
+  renderHookSubsystems,
+  renderImportBoundaries,
+  renderIpcCommands,
+  renderJobStates,
+  renderKeySourceTruthTable,
+  renderLocalAdapterRouting,
+  renderLocalEngineCatalog,
+  renderLogAreas,
+  renderMethodGroups,
+  renderModAccessModes,
+  renderModKernelStages,
+  renderModLifecycleStates,
+  renderProviderCapabilities,
+  renderProviderCatalog,
+  renderReasonCodes,
+  renderResearchSources,
+  renderRetryStatusCodes,
+  renderRpcMethods,
+  renderSdkErrorCodes,
+  renderStateTransitions,
+  renderStoreSlices,
+  renderTurnHookPoints,
+  renderUiSlots,
+  runtimeKernelFiles,
+  sdkKernelFiles,
+} from './lib/spec-human-doc/core.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const specDir = path.join(repoRoot, 'spec');
 const outPath = path.join(specDir, 'generated', 'nimi-spec.md');
-
-// ---------------------------------------------------------------------------
-// Kernel rule parser
-// ---------------------------------------------------------------------------
-
-const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3})\s+(.*)$/;
-
-function parseKernelRules(content) {
-  const rules = new Map();
-  const lines = content.split('\n');
-  let currentId = null;
-  let currentTitle = '';
-  let bodyLines = [];
-
-  function flush() {
-    if (currentId) {
-      rules.set(currentId, {
-        title: currentTitle,
-        body: bodyLines.join('\n').trim(),
-      });
-    }
-  }
-
-  for (const line of lines) {
-    const m = line.match(RULE_HEADING_RE);
-    if (m) {
-      flush();
-      currentId = m[1];
-      currentTitle = m[2];
-      bodyLines = [];
-    } else if (currentId) {
-      // Stop capturing at any same-level heading that is not a rule ID
-      if (/^##\s/.test(line) && !RULE_HEADING_RE.test(line)) {
-        flush();
-        currentId = null;
-      } else {
-        bodyLines.push(line);
-      }
-    }
-  }
-  flush();
-  return rules;
-}
-
-// ---------------------------------------------------------------------------
-// YAML helpers
-// ---------------------------------------------------------------------------
-
-async function readYaml(filePath) {
-  const raw = await fs.readFile(filePath, 'utf8');
-  return YAML.parse(raw);
-}
-
-// ---------------------------------------------------------------------------
-// Document builder
-// ---------------------------------------------------------------------------
-
-class DocBuilder {
-  constructor(ruleMap) {
-    this.ruleMap = ruleMap;
-    this.lines = [];
-  }
-
-  /** Add raw text. */
-  text(str) {
-    this.lines.push(str);
-    return this;
-  }
-
-  /** Add a blank line. */
-  blank() {
-    this.lines.push('');
-    return this;
-  }
-
-  /** Render a kernel rule as a readable block. Title becomes bold, body follows. */
-  rule(id) {
-    const r = this.ruleMap.get(id);
-    if (!r) {
-      this.lines.push(`> *[${id}: 规则未找到]*\n`);
-      return this;
-    }
-    this.lines.push(`**${id} — ${r.title}**\n`);
-    if (r.body) {
-      this.lines.push(r.body);
-    }
-    this.lines.push('');
-    return this;
-  }
-
-  /** Render multiple rules under a heading. */
-  ruleGroup(heading, ids) {
-    if (heading) {
-      this.lines.push(`${heading}\n`);
-    }
-    for (const id of ids) {
-      this.rule(id);
-    }
-    return this;
-  }
-
-  /** Render a YAML table inline. */
-  async yamlTable(filePath, renderer) {
-    try {
-      const doc = await readYaml(filePath);
-      const rendered = renderer(doc);
-      if (rendered) this.lines.push(rendered);
-    } catch {
-      this.lines.push('> *[表格数据未找到]*\n');
-    }
-    return this;
-  }
-
-  build() {
-    let output = this.lines.join('\n');
-    return `${output.replace(/\n{3,}/g, '\n\n').replace(/\n*$/, '\n')}`;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// YAML table renderers
-// ---------------------------------------------------------------------------
-
-function renderRpcMethods(doc) {
-  const services = doc?.services || [];
-  let out = '';
-  for (const svc of services) {
-    out += `**${svc.name}**\n\n`;
-    out += '| 方法 | 类型 |\n|---|---|\n';
-    for (const m of svc.methods || []) {
-      out += `| ${m.name} | ${m.type} |\n`;
-    }
-    out += '\n';
-  }
-  return out;
-}
-
-function renderReasonCodes(doc) {
-  const codes = doc?.codes || [];
-  let out = '| 名称 | 值 | 族 |\n|---|---:|---|\n';
-  for (const c of codes) {
-    out += `| ${c.name} | ${c.value} | ${c.family} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderProviderCatalog(doc) {
-  const providers = doc?.providers || [];
-  let out = '| Provider | 默认 Endpoint | 需显式 Endpoint |\n|---|---|---|\n';
-  for (const p of providers) {
-    out += `| ${p.provider} | ${p.default_endpoint ?? '—'} | ${p.requires_explicit_endpoint ? '是' : '否'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderProviderCapabilities(doc) {
-  const providers = doc?.providers || [];
-  let out = '| Provider | 执行模块 | Managed | Inline | Endpoint 要求 |\n|---|---|---|---|---|\n';
-  for (const p of providers) {
-    out += `| ${p.provider} | ${p.execution_module} | ${p.managed_connector_supported ? '是' : '否'} | ${p.inline_supported ? '是' : '否'} | ${p.endpoint_requirement} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderErrorMappingMatrix(doc) {
-  const mappings = doc?.mappings || [];
-  let out = '| ReasonCode | gRPC Code | 场景 | 出口形态 |\n|---|---|---|---|\n';
-  for (const m of mappings) {
-    out += `| ${m.reason_code} | ${m.grpc_code} | ${m.surface || '—'} | ${m.exit_shape || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderJobStates(doc) {
-  const states = doc?.states || [];
-  let out = '| 状态 | 终态 |\n|---|---|\n';
-  for (const s of states) {
-    out += `| ${s.state} | ${s.terminal ? '是' : '否'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderStateTransitions(doc) {
-  const machines = doc?.machines || [];
-  let out = '';
-  for (const machine of machines) {
-    out += `**${machine.machine}**\n\n`;
-    out += `状态: ${(machine.states || []).join(' → ')}\n\n`;
-    out += '| 从 | 到 | 触发条件 |\n|---|---|---|\n';
-    for (const t of machine.transitions || []) {
-      out += `| ${t.from} | ${t.to} | ${t.trigger} |\n`;
-    }
-    out += '\n';
-  }
-  return out;
-}
-
-function renderKeySourceTruthTable(doc) {
-  const cases = doc?.cases || [];
-  let out = '| 场景 | key_source | connector_id | inline 凭据 | 有效 | 错误码 |\n|---|---|---|---|---|---|\n';
-  for (const c of cases) {
-    const inline = [c.x_nimi_provider_type, c.x_nimi_provider_endpoint, c.x_nimi_provider_api_key].filter(Boolean).join('/') || '—';
-    out += `| ${c.id} | ${c.key_source} | ${c.connector_id || '—'} | ${inline} | ${c.valid ? '是' : '否'} | ${c.reason_code || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderLocalEngineCatalog(doc) {
-  const engines = doc?.engines || [];
-  let out = '| 引擎 | 默认 Endpoint | 运行模式 | 协议 |\n|---|---|---|---|\n';
-  for (const e of engines) {
-    out += `| ${e.engine} | ${e.default_endpoint || '—'} | ${e.runtime_mode} | ${e.protocol} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderLocalAdapterRouting(doc) {
-  const routes = doc?.routes || [];
-  let out = '| Provider | Capability | Adapter |\n|---|---|---|\n';
-  for (const r of routes) {
-    out += `| ${r.provider} | ${r.capability} | ${r.adapter} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderSdkErrorCodes(doc) {
-  const codes = doc?.codes || [];
-  let out = '| 名称 | 族 | 描述 |\n|---|---|---|\n';
-  for (const c of codes) {
-    out += `| ${c.name} | ${c.family || '—'} | ${c.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderImportBoundaries(doc) {
-  const boundaries = doc?.boundaries || [];
-  let out = '| 子路径 | 禁止导入 | 基线规则 |\n|---|---|---|\n';
-  for (const b of boundaries) {
-    const forbidden = Array.isArray(b.forbidden_imports) ? b.forbidden_imports.join(', ') : '—';
-    const rules = Array.isArray(b.baseline_rules) ? b.baseline_rules.join(', ') : '—';
-    out += `| ${b.surface || b.name} | ${forbidden} | ${rules} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderMethodGroups(doc) {
-  const groups = doc?.groups || [];
-  let out = '';
-  for (const g of groups) {
-    out += `**${g.group || g.sdk_module || g.name}** → ${g.service || '—'}\n\n`;
-    for (const m of g.methods || []) {
-      const name = typeof m === 'string' ? m : m.name;
-      out += `- ${name}\n`;
-    }
-    out += '\n';
-  }
-  return out;
-}
-
-function renderBootstrapPhases(doc) {
-  const phases = doc?.phases || [];
-  let out = '| 阶段 | 顺序 | 描述 |\n|---|---|---|\n';
-  for (const p of phases) {
-    out += `| ${p.phase || p.name} | ${p.order || '—'} | ${p.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderIpcCommands(doc) {
-  const commands = doc?.commands || [];
-  let out = '| 命令 | 描述 |\n|---|---|\n';
-  for (const c of commands) {
-    out += `| ${c.command || c.name} | ${c.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderAppTabs(doc) {
-  const tabs = doc?.tabs || [];
-  let out = '| Tab ID | 名称 | Nav Group | Feature Gate |\n|---|---|---|---|\n';
-  for (const t of tabs) {
-    out += `| ${t.id || t.tab_id} | ${t.label || t.name} | ${t.nav_group || '—'} | ${t.gated_by || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderStoreSlices(doc) {
-  const slices = doc?.slices || [];
-  let out = '| Slice | 描述 | Factory |\n|---|---|---|\n';
-  for (const s of slices) {
-    out += `| ${s.name} | ${s.description || '—'} | ${s.factory || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderHookSubsystems(doc) {
-  const subsystems = doc?.subsystems || [];
-  let out = '| 子系统 | Namespace | 描述 |\n|---|---|---|\n';
-  for (const s of subsystems) {
-    out += `| ${s.name} | ${s.namespace || s.capability_prefix || '—'} | ${s.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderUiSlots(doc) {
-  const slots = doc?.slots || [];
-  let out = '| 槽位 | 描述 |\n|---|---|\n';
-  for (const s of slots) {
-    out += `| ${s.slot || s.slot_id} | ${s.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderTurnHookPoints(doc) {
-  const points = doc?.points || [];
-  let out = '| Hook Point | 执行顺序 | 描述 |\n|---|---|---|\n';
-  for (const p of points) {
-    out += `| ${p.point || p.name} | ${p.order || '—'} | ${p.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderModLifecycleStates(doc) {
-  const states = doc?.states || [];
-  let out = '| 状态 | 描述 |\n|---|---|\n';
-  for (const s of states) {
-    out += `| ${s.state} | ${s.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderModKernelStages(doc) {
-  const stages = doc?.stages || [];
-  let out = '| 阶段 | 顺序 | 描述 |\n|---|---|---|\n';
-  for (const s of stages) {
-    out += `| ${s.stage || s.name} | ${s.order || '—'} | ${s.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderFeatureFlags(doc) {
-  const flags = doc?.flags || [];
-  let out = '| Flag | Desktop 默认 | Web 默认 | 描述 |\n|---|---|---|---|\n';
-  for (const f of flags) {
-    out += `| ${f.flag} | ${f.default_desktop ?? f.default ?? '—'} | ${f.default_web ?? '—'} | ${f.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderDataSyncFlows(doc) {
-  const flows = doc?.flows || [];
-  let out = '| 领域 | 方法 | 描述 |\n|---|---|---|\n';
-  for (const f of flows) {
-    const methods = Array.isArray(f.methods) ? f.methods.join(', ') : '—';
-    out += `| ${f.flow || f.domain} | ${methods} | ${f.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderRetryStatusCodes(doc) {
-  const codes = doc?.codes || [];
-  let out = '| Status Code | 原因 |\n|---|---|\n';
-  for (const c of codes) {
-    out += `| ${c.code} | ${c.reason || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderDesktopErrorCodes(doc) {
-  const codes = doc?.codes || [];
-  let out = '| Error Code | Domain | 描述 |\n|---|---|---|\n';
-  for (const c of codes) {
-    out += `| ${c.code} | ${c.domain || '—'} | ${c.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderLogAreas(doc) {
-  const areas = doc?.areas || [];
-  let out = '| Area | 描述 |\n|---|---|\n';
-  for (const a of areas) {
-    out += `| ${a.area} | ${a.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderHookCapabilityAllowlists(doc) {
-  const allowlists = doc?.source_types || doc?.allowlists || [];
-  let out = '| Source Type | 能力模式 | 描述 |\n|---|---|---|\n';
-  for (const a of allowlists) {
-    const patterns = a.allowlist || a.patterns || [];
-    out += `| ${a.source_type} | ${Array.isArray(patterns) ? patterns.join(', ') : '—'} | ${a.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderBacklogItems(doc) {
-  const items = doc?.items || [];
-  let out = '| Item ID | Title | Priority | Category | Status |\n|---|---|---|---|---|\n';
-  for (const i of items) {
-    out += `| ${i.item_id} | ${i.title} | ${i.priority} | ${i.category} | ${i.status} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderBuildChunks(doc) {
-  const chunks = doc?.chunks || [];
-  let out = '| Chunk | 路由模式 | 描述 |\n|---|---|---|\n';
-  for (const c of chunks) {
-    out += `| ${c.name} | ${c.route_pattern || c.pattern || '—'} | ${c.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderModAccessModes(doc) {
-  const modes = doc?.modes || [];
-  let out = '| 模式 | 描述 |\n|---|---|\n';
-  for (const m of modes) {
-    out += `| ${m.name || m.mode} | ${m.description || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderResearchSources(doc) {
-  const sources = doc?.sources || [];
-  let out = '| Source ID | 标题 | 路径 |\n|---|---|---|\n';
-  for (const s of sources) {
-    out += `| ${s.source_id} | ${s.title || '—'} | ${s.path || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-function renderGraduationLog(doc) {
-  const entries = doc?.entries || [];
-  if (entries.length === 0) return '> *暂无毕业记录*\n';
-  let out = '| Item ID | 毕业日期 | 目标 Spec |\n|---|---|---|\n';
-  for (const e of entries) {
-    out += `| ${e.item_id} | ${e.graduated_at || '—'} | ${e.target_spec || '—'} |\n`;
-  }
-  return `${out}\n`;
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-const runtimeKernelFiles = [
-  'rpc-surface.md', 'authz-ownership.md', 'authn-token-validation.md',
-  'auth-service.md', 'grant-service.md', 'key-source-routing.md',
-  'scenario-job-lifecycle.md', 'local-category-capability.md',
-  'local-engine-contract.md', 'device-profile-contract.md',
-  'endpoint-security.md',
-  'streaming-contract.md', 'error-model.md', 'pagination-filtering.md', 'audit-contract.md',
-  'daemon-lifecycle.md', 'provider-health-contract.md', 'workflow-contract.md',
-  'model-service-contract.md', 'knowledge-contract.md', 'app-messaging-contract.md',
-  'script-worker-contract.md', 'config-contract.md', 'connector-contract.md',
-  'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
-  'proto-governance-contract.md',
-];
-
-const sdkKernelFiles = [
-  'surface-contract.md', 'transport-contract.md',
-  'error-projection.md', 'boundary-contract.md',
-  'runtime-contract.md', 'realm-contract.md', 'ai-provider-contract.md',
-  'scope-contract.md', 'mod-contract.md', 'testing-gates-contract.md',
-];
-
-const desktopKernelFiles = [
-  'bootstrap-contract.md', 'bridge-ipc-contract.md', 'state-contract.md',
-  'auth-session-contract.md', 'data-sync-contract.md', 'hook-capability-contract.md',
-  'mod-governance-contract.md', 'llm-adapter-contract.md', 'ui-shell-contract.md',
-  'error-boundary-contract.md', 'telemetry-contract.md', 'network-contract.md',
-  'security-contract.md', 'streaming-consumption-contract.md', 'codegen-contract.md',
-];
-
-const futureKernelFiles = [
-  'capability-backlog.md', 'source-registry.md', 'graduation-contract.md',
-];
-
-const platformKernelFiles = [
-  'protocol-contract.md',
-  'architecture-contract.md',
-  'ai-last-mile-contract.md',
-  'governance-contract.md',
-];
-
-const realmKernelFiles = [
-  'boundary-vocabulary-contract.md',
-  'economy-contract.md',
-  'interop-mapping-contract.md',
-];
 
 async function main() {
   const checkMode = process.argv.includes('--check');
@@ -520,46 +60,24 @@ async function main() {
   // Parse all kernel rules
   const ruleMap = new Map();
 
-  for (const file of runtimeKernelFiles) {
-    try {
-      const content = await fs.readFile(path.join(specDir, 'runtime', 'kernel', file), 'utf8');
-      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
-    } catch { /* skip */ }
-  }
-
-  for (const file of sdkKernelFiles) {
-    try {
-      const content = await fs.readFile(path.join(specDir, 'sdk', 'kernel', file), 'utf8');
-      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
-    } catch { /* skip */ }
-  }
-
-  for (const file of desktopKernelFiles) {
-    try {
-      const content = await fs.readFile(path.join(specDir, 'desktop', 'kernel', file), 'utf8');
-      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
-    } catch { /* skip */ }
-  }
-
-  for (const file of futureKernelFiles) {
-    try {
-      const content = await fs.readFile(path.join(specDir, 'future', 'kernel', file), 'utf8');
-      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
-    } catch { /* skip */ }
-  }
-
-  for (const file of platformKernelFiles) {
-    try {
-      const content = await fs.readFile(path.join(specDir, 'platform', 'kernel', file), 'utf8');
-      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
-    } catch { /* skip */ }
-  }
-
-  for (const file of realmKernelFiles) {
-    try {
-      const content = await fs.readFile(path.join(specDir, 'realm', 'kernel', file), 'utf8');
-      for (const [id, rule] of parseKernelRules(content)) ruleMap.set(id, rule);
-    } catch { /* skip */ }
+  for (const [domain, files] of [
+    ['runtime', runtimeKernelFiles],
+    ['sdk', sdkKernelFiles],
+    ['desktop', desktopKernelFiles],
+    ['future', futureKernelFiles],
+    ['platform', platformKernelFiles],
+    ['realm', realmKernelFiles],
+  ]) {
+    for (const file of files) {
+      try {
+        const content = await fs.readFile(path.join(specDir, domain, 'kernel', file), 'utf8');
+        for (const [id, rule] of parseKernelRules(content)) {
+          ruleMap.set(id, rule);
+        }
+      } catch {
+        // Skip missing optional kernel inputs.
+      }
+    }
   }
 
   process.stderr.write(`parsed ${ruleMap.size} kernel rules\n`);
@@ -569,10 +87,6 @@ async function main() {
   const dtTables = (name) => path.join(specDir, 'desktop', 'kernel', 'tables', name);
   const ftTables = (name) => path.join(specDir, 'future', 'kernel', 'tables', name);
   const d = new DocBuilder(ruleMap);
-
-  // =========================================================================
-  // DOCUMENT START
-  // =========================================================================
 
   d.text(`# Nimi Platform 技术规范
 
@@ -599,10 +113,6 @@ async function main() {
 12. [附录：参考表](#12-附录参考表)
 
 ---`);
-
-  // =========================================================================
-  // 1. 概述
-  // =========================================================================
 
   d.text(`
 ## 1. 概述
@@ -650,10 +160,6 @@ Nimi Runtime 是一个 gRPC 守护进程，负责 AI 推理执行、模型管理
   d.rule('K-RPC-002');
   d.rule('K-RPC-003');
   d.rule('K-RPC-004');
-
-  // =========================================================================
-  // 2. 认证体系
-  // =========================================================================
 
   d.text(`---
 
@@ -723,10 +229,6 @@ AuthZ 在 AuthN 通过后执行，负责判断"这个用户能不能访问这个
   d.blank();
   d.rule('K-GRANT-005');
   d.rule('K-GRANT-006');
-
-  // =========================================================================
-  // 3. 连接器系统
-  // =========================================================================
 
   d.text(`---
 
@@ -804,10 +306,6 @@ message Connector {
 所有写入使用原子操作（写临时文件 → fsync → rename → fsync 父目录），全局写串行化保证一致性。
 
 Runtime 启动时执行重扫补偿：回填 \`has_credential\`、清理孤儿凭据、恢复 \`delete_pending\` 残留。`);
-
-  // =========================================================================
-  // 4. AI 推理管道
-  // =========================================================================
 
   d.text(`
 ---
@@ -945,10 +443,6 @@ Node 是 Service × capability 笛卡尔积的计算视图，每次查询实时�
   await d.yamlTable(rtTables('provider-catalog.yaml'), renderProviderCatalog);
   await d.yamlTable(rtTables('provider-capabilities.yaml'), renderProviderCapabilities);
 
-  // =========================================================================
-  // 5. 流式处理
-  // =========================================================================
-
   d.text(`---
 
 ## 5. 流式处理
@@ -992,10 +486,6 @@ ScenarioJob 状态事件流不使用 \`done=true\` 语义。当任务到达终�
   d.blank();
   d.rule('K-STREAM-005');
 
-  // =========================================================================
-  // 6. ScenarioJob 系统
-  // =========================================================================
-
   d.text(`---
 
 ## 6. ScenarioJob 系统
@@ -1022,10 +512,6 @@ ScenarioJob 有以下状态，其中四个是终态：`);
 
   d.text(`事件流在任一终态后可正常关闭。`);
 
-  // =========================================================================
-  // 7. 安全与审计
-  // =========================================================================
-
   d.text(`
 ---
 
@@ -1047,10 +533,6 @@ ScenarioJob 有以下状态，其中四个是终态：`);
   d.text(`审计数据有严格的安全要求：必须脱敏（不记录明文凭据），必须有保留期限（禁止无限保留）。`);
   d.blank();
   d.rule('K-AUDIT-005');
-
-  // =========================================================================
-  // 8. 错误处理模型
-  // =========================================================================
 
   d.text(`---
 
@@ -1086,10 +568,6 @@ Nimi 的错误由两层组成，二者正交：
   d.blank();
   d.rule('K-PAGE-001');
   d.rule('K-PAGE-003');
-
-  // =========================================================================
-  // 9. SDK 架构
-  // =========================================================================
 
   d.text(`---
 
@@ -1270,10 +748,6 @@ SDK 的五个子路径之间有**物理级导入隔离**，而非仅靠文档约
 **Scope SDK** 维护纯内存的权限目录。核心 API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。Scope catalog 是进程级的——各 Runtime 实例共享同一个 catalog 实例。
 
 **Mod SDK** 设计为最小权限。Mod 通过 host 注入获得 facade 和 hook client，不能直接构造 Runtime 或 Realm 客户端（如 S-BOUNDARY-003 所定义）。Mod 可用的能力由 Desktop 的 Hook 能力模型（见 10.6）中的 capability allowlist 控制。`);
-
-  // =========================================================================
-  // 10. Desktop 架构
-  // =========================================================================
 
   d.text(`---
 
@@ -1656,10 +1130,6 @@ Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制
   d.rule('D-SEC-006');
   d.rule('D-SEC-007');
 
-  // =========================================================================
-  // 11. Future 能力规划
-  // =========================================================================
-
   d.text(`---
 
 ## 11. Future 能力规划
@@ -1748,10 +1218,6 @@ Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的�
   d.text(`为什么毕业不可逆？设计意图是防止 "graduation ping-pong"（反复在 backlog 和 spec 之间搬迁）。一旦毕业，发现的问题在目标 spec 域中处理，不通过回退 backlog 状态来解决。毕业后的 item 保留在 backlog 中，仅状态变更为 \`spec-drafted\`——保留完整历史。`);
   d.blank();
   d.rule('F-GRAD-004');
-
-  // =========================================================================
-  // 12. 附录：参考表
-  // =========================================================================
 
   d.text(`---
 
@@ -1870,10 +1336,6 @@ Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的�
   d.text(`### 12.28 Future — Graduation Log
 `);
   await d.yamlTable(ftTables('graduation-log.yaml'), renderGraduationLog);
-
-  // =========================================================================
-  // BUILD
-  // =========================================================================
 
   const output = d.build();
 

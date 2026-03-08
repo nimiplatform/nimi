@@ -11,4 +11,4 @@ lint:
     - RPC_REQUEST_RESPONSE_UNIQUE
 breaking:
   use:
-    - FILE
+    - PACKAGE

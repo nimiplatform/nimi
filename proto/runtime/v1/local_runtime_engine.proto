@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+enum LocalEngineStatus {
+  LOCAL_ENGINE_STATUS_UNSPECIFIED = 0;
+  LOCAL_ENGINE_STATUS_STOPPED = 1;
+  LOCAL_ENGINE_STATUS_STARTING = 2;
+  LOCAL_ENGINE_STATUS_HEALTHY = 3;
+  LOCAL_ENGINE_STATUS_UNHEALTHY = 4;
+}
+
+message LocalEngineDescriptor {
+  string engine = 1;
+  string version = 2;
+  string endpoint = 3;
+  int32 port = 4;
+  LocalEngineStatus status = 5;
+  int32 pid = 6;
+  string platform = 7;
+  int64 binary_size_bytes = 8;
+  string started_at = 9;
+  string last_healthy_at = 10;
+  int32 consecutive_failures = 11;
+  string binary_path = 12;
+}
+
+message ListEnginesRequest {}
+
+message ListEnginesResponse {
+  repeated LocalEngineDescriptor engines = 1;
+}
+
+message EnsureEngineRequest {
+  string engine = 1;
+  string version = 2;
+}
+
+message EnsureEngineResponse {
+  LocalEngineDescriptor engine = 1;
+}
+
+message StartEngineRequest {
+  string engine = 1;
+  int32 port = 2;
+  string version = 3;
+}
+
+message StartEngineResponse {
+  LocalEngineDescriptor engine = 1;
+}
+
+message StopEngineRequest {
+  string engine = 1;
+}
+
+message StopEngineResponse {
+  LocalEngineDescriptor engine = 1;
+}
+
+message GetEngineStatusRequest {
+  string engine = 1;
+}
+
+message GetEngineStatusResponse {
+  LocalEngineDescriptor engine = 1;
+}
