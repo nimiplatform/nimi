@@ -90,7 +90,7 @@ func requireSubjectUserIDForScenario(
 	parsed ParsedKeySource,
 	remoteTarget *nimillm.RemoteTarget,
 ) bool {
-	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME {
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return true
 	}
 	if remoteTarget != nil {

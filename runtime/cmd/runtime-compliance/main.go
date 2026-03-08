@@ -448,7 +448,7 @@ func runtimeChecklist() []checklistItemSpec {
 		},
 		{
 			ID:          "RS-11-23",
-			Requirement: "local-runtime and token-api routing regression",
+			Requirement: "local and cloud routing regression",
 			Tests: []testRef{
 				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRoutesByPrefix"},
 				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateSuccess"},

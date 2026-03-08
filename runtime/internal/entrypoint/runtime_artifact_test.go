@@ -15,7 +15,7 @@ func TestCollectArtifactStreamSuccess(t *testing.T) {
 				ArtifactId:    "artifact-1",
 				MimeType:      "image/png",
 				Chunk:         []byte("hel"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: "sd3",
 				TraceId:       "trace-1",
 			},
@@ -23,7 +23,7 @@ func TestCollectArtifactStreamSuccess(t *testing.T) {
 				ArtifactId:    "artifact-1",
 				MimeType:      "image/png",
 				Chunk:         []byte("lo"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: "sd3",
 				TraceId:       "trace-1",
 				Usage: &runtimev1.UsageStats{
@@ -48,7 +48,7 @@ func TestCollectArtifactStreamSuccess(t *testing.T) {
 	if string(got.Payload) != "hello" {
 		t.Fatalf("payload mismatch: %q", string(got.Payload))
 	}
-	if got.RouteDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME {
+	if got.RouteDecision != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		t.Fatalf("route decision mismatch: %v", got.RouteDecision)
 	}
 	if got.ModelResolved != "sd3" {

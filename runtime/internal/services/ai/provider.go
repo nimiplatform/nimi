@@ -180,8 +180,8 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 
 	localaiCreds := normalized.LocalProviders["localai"]
 	nexaCreds := normalized.LocalProviders["nexa"]
-	localAIBackend := newLocalRuntimeBackend("local-localai", localaiCreds, normalized)
-	nexaBackend := newLocalRuntimeBackend("local-nexa", nexaCreds, normalized)
+	localAIBackend := newLocalBackend("local-localai", localaiCreds, normalized)
+	nexaBackend := newLocalBackend("local-nexa", nexaCreds, normalized)
 	return &routeSelector{
 		local: &localProvider{
 			localai: localAIBackend,
@@ -192,7 +192,7 @@ func newRouteSelectorWithRegistry(cfg Config, registry *modelregistry.Registry, 
 	}
 }
 
-func newLocalRuntimeBackend(name string, creds nimillm.ProviderCredentials, cfg Config) *nimillm.Backend {
+func newLocalBackend(name string, creds nimillm.ProviderCredentials, cfg Config) *nimillm.Backend {
 	normalized := cfg.normalized()
 	if normalized.EnforceEndpointSecurity {
 		// Local engines run on loopback and must allow HTTP loopback.

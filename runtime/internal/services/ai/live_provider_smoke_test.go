@@ -41,7 +41,7 @@ func runLiveSmokeLocalGenerateText(t *testing.T) {
 		},
 	})
 
-	runLiveSmokeScenarioGenerateText(t, svc, modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME)
+	runLiveSmokeScenarioGenerateText(t, svc, modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL)
 }
 
 func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix string, fallbackBaseURL string) {
@@ -55,7 +55,7 @@ func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix st
 		},
 	})
 
-	runLiveSmokeScenarioGenerateText(t, svc, modelID, runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API)
+	runLiveSmokeScenarioGenerateText(t, svc, modelID, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD)
 }
 
 func runLiveSmokeScenarioGenerateText(t *testing.T, svc *Service, modelID string, route runtimev1.RoutePolicy) {

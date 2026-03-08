@@ -25,7 +25,7 @@ import (
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
-	localruntimeservice "github.com/nimiplatform/nimi/runtime/internal/services/localruntime"
+	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"github.com/nimiplatform/nimi/runtime/internal/workerproxy"
@@ -36,16 +36,16 @@ import (
 
 // Server wraps the gRPC serving stack for the runtime daemon.
 type Server struct {
-	addr            string
-	state           *health.State
-	logger          *slog.Logger
-	grpcServer      *grpc.Server
-	healthServer    *grpcHealth.Server
-	aiHealth        *providerhealth.Tracker
-	auditStore      *auditlog.Store
-	workerPool      *workerproxy.ConnPool
-	aiSvc           *aiservice.Service
-	localRuntimeSvc *localruntimeservice.Service
+	addr         string
+	state        *health.State
+	logger       *slog.Logger
+	grpcServer   *grpc.Server
+	healthServer *grpcHealth.Server
+	aiHealth     *providerhealth.Tracker
+	auditStore   *auditlog.Store
+	workerPool   *workerproxy.ConnPool
+	aiSvc        *aiservice.Service
+	localService *localservice.Service
 }
 
 func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) *Server {
@@ -107,13 +107,13 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	var workerPool *workerproxy.ConnPool
 	var aiSvc *aiservice.Service
-	var localSvc *localruntimeservice.Service
+	var localSvc *localservice.Service
 	if cfg.WorkerMode {
 		workerPool = workerproxy.NewConnPool(logger)
 		runtimev1.RegisterRuntimeAiServiceServer(g, workerproxy.NewAIProxy(workerPool))
 		runtimev1.RegisterRuntimeWorkflowServiceServer(g, workerproxy.NewWorkflowProxy(workerPool))
 		runtimev1.RegisterRuntimeModelServiceServer(g, workerproxy.NewModelProxy(workerPool))
-		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, workerproxy.NewLocalRuntimeProxy(workerPool))
+		runtimev1.RegisterRuntimeLocalServiceServer(g, workerproxy.NewLocalServiceProxy(workerPool))
 		logger.Info("runtime worker proxy mode enabled")
 	} else {
 		connStore := connectorservice.NewConnectorStore(connectorservice.ResolveBasePath())
@@ -135,8 +135,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		modelSvc := modelservice.New(logger, modelRegistry)
 		modelSvc.SetPersistencePath(registryPath)
 		runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc)
-		localSvc = localruntimeservice.New(logger, auditStore, cfg.LocalRuntimeStatePath, cfg.LocalAuditCapacity)
-		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(g, localSvc)
+		localSvc = localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
+		runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 		aiSvc.SetLocalModelLister(localSvc)
 		aiSvc.SetLocalImageProfileResolver(localSvc)
 
@@ -157,16 +157,16 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger))
 
 	s := &Server{
-		addr:            addr,
-		state:           state,
-		logger:          logger,
-		grpcServer:      g,
-		healthServer:    h,
-		aiHealth:        aiHealth,
-		auditStore:      auditStore,
-		workerPool:      workerPool,
-		aiSvc:           aiSvc,
-		localRuntimeSvc: localSvc,
+		addr:         addr,
+		state:        state,
+		logger:       logger,
+		grpcServer:   g,
+		healthServer: h,
+		aiHealth:     aiHealth,
+		auditStore:   auditStore,
+		workerPool:   workerPool,
+		aiSvc:        aiSvc,
+		localService: localSvc,
 	}
 	s.SyncServingState()
 	return s
@@ -184,10 +184,10 @@ func (s *Server) AIService() *aiservice.Service {
 	return s.aiSvc
 }
 
-// LocalRuntimeService returns the in-process local runtime service for engine
+// LocalService returns the in-process local runtime service for engine
 // manager injection. Returns nil in worker mode.
-func (s *Server) LocalRuntimeService() *localruntimeservice.Service {
-	return s.localRuntimeSvc
+func (s *Server) LocalService() *localservice.Service {
+	return s.localService
 }
 
 func (s *Server) Serve() error {
@@ -240,7 +240,7 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAiService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeWorkflowService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
-	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalRuntimeService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeKnowledgeService_ServiceDesc.ServiceName, servingStatus)

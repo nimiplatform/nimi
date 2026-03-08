@@ -10,7 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	localruntime "github.com/nimiplatform/nimi/runtime/internal/services/localruntime"
+	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -121,7 +121,7 @@ func (d *Daemon) decorateProviderProbeError(providerName string, probeErr error)
 	return fmt.Errorf("%s; probe error: %w", hint, probeErr)
 }
 
-// engineManagerBridge adapts engine.ServiceAdapter to localruntime.EngineManager interface.
+// engineManagerBridge adapts engine.ServiceAdapter to localservice.EngineManager interface.
 type engineManagerBridge struct {
 	adapter *engine.ServiceAdapter
 }
@@ -130,9 +130,9 @@ func newEngineManagerBridge(adapter *engine.ServiceAdapter) *engineManagerBridge
 	return &engineManagerBridge{adapter: adapter}
 }
 
-func (b *engineManagerBridge) ListEngines() []localruntime.EngineInfo {
+func (b *engineManagerBridge) ListEngines() []localservice.EngineInfo {
 	dtos := b.adapter.ListEngines()
-	result := make([]localruntime.EngineInfo, len(dtos))
+	result := make([]localservice.EngineInfo, len(dtos))
 	for i, dto := range dtos {
 		result[i] = dtoToEngineInfo(dto)
 	}
@@ -151,16 +151,16 @@ func (b *engineManagerBridge) StopEngine(engineName string) error {
 	return b.adapter.StopEngine(engineName)
 }
 
-func (b *engineManagerBridge) EngineStatus(engineName string) (localruntime.EngineInfo, error) {
+func (b *engineManagerBridge) EngineStatus(engineName string) (localservice.EngineInfo, error) {
 	dto, err := b.adapter.EngineStatus(engineName)
 	if err != nil {
-		return localruntime.EngineInfo{}, err
+		return localservice.EngineInfo{}, err
 	}
 	return dtoToEngineInfo(dto), nil
 }
 
-func dtoToEngineInfo(dto engine.EngineInfoDTO) localruntime.EngineInfo {
-	return localruntime.EngineInfo{
+func dtoToEngineInfo(dto engine.EngineInfoDTO) localservice.EngineInfo {
+	return localservice.EngineInfo{
 		Engine:              dto.Engine,
 		Version:             dto.Version,
 		Endpoint:            dto.Endpoint,

@@ -21,11 +21,11 @@ func executeRuntimeReplay(grpcAddr string, timeout time.Duration, fixture *aiGol
 		ResolvedProvider:    strings.TrimSpace(fixture.Provider),
 		ResolvedModel:       strings.TrimSpace(fixture.ModelID),
 		ResolvedTargetModel: strings.TrimSpace(fixture.TargetModelID),
-		RoutePolicy:         "token-api",
+		RoutePolicy:         "cloud",
 		FallbackPolicy:      "deny",
 	}
-	if fixture.routePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME {
-		basePayload.RoutePolicy = "local-runtime"
+	if fixture.routePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		basePayload.RoutePolicy = "local"
 	}
 	if strings.EqualFold(strings.TrimSpace(fixture.Capability), "text.generate") || strings.EqualFold(strings.TrimSpace(fixture.Capability), "text.embed") {
 		req, err := fixture.buildExecuteScenarioRequest(aiReplayAppID, subjectUserID)

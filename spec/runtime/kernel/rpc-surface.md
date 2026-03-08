@@ -10,7 +10,7 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 
 - `AIService`（design 名称，映射到 proto `RuntimeAiService`）
 - `ConnectorService`（design-first，proto 仍在迁移）
-- `RuntimeLocalRuntimeService`
+- `RuntimeLocalService`
 - `RuntimeAuthService`
 - `RuntimeGrantService`
 
@@ -58,9 +58,9 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 
 ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/rpc-migration-map.yaml` 中 `mapping_status=aligned`）。
 
-## K-RPC-004 RuntimeLocalRuntimeService 方法集合
+## K-RPC-004 RuntimeLocalService 方法集合
 
-`RuntimeLocalRuntimeService` 方法按三层分级：
+`RuntimeLocalService` 方法按三层分级：
 
 **Tier 1 — 核心生命周期：**
 

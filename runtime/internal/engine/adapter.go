@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// ServiceAdapter adapts Manager to the localruntime.EngineManager interface.
-// This avoids an import cycle between engine and localruntime packages.
+// ServiceAdapter adapts Manager to the localservice.EngineManager interface.
+// This avoids an import cycle between engine and local packages.
 type ServiceAdapter struct {
 	mgr *Manager
 }
@@ -17,7 +17,7 @@ func NewServiceAdapter(mgr *Manager) *ServiceAdapter {
 	return &ServiceAdapter{mgr: mgr}
 }
 
-// EngineInfo mirrors localruntime.EngineInfo to avoid import.
+// EngineInfo mirrors localservice.EngineInfo to avoid import.
 type EngineInfoDTO struct {
 	Engine              string
 	Version             string

@@ -31,9 +31,9 @@ func preferredRoute(modelID string) runtimev1.RoutePolicy {
 		strings.HasPrefix(lower, "hunyuan/") ||
 		strings.HasPrefix(lower, "spark/") ||
 		strings.HasPrefix(lower, "openai_compatible/") {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
+		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 	}
-	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 }
 
 // Delegate to nimillm exports.

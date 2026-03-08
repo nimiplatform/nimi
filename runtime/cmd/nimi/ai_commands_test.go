@@ -27,7 +27,7 @@ func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 				"text": structpb.NewStringValue("hello from runtime"),
 			}},
 			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			ModelResolved: "qwen2.5",
 			TraceId:       "trace-resp-generate",
 			Usage: &runtimev1.UsageStats{
@@ -89,7 +89,7 @@ func TestRunRuntimeAIEmbedJSON(t *testing.T) {
 				},
 			}),
 			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
-			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			ModelResolved: "text-embedding-3-small",
 			TraceId:       "trace-resp-embed",
 			Usage: &runtimev1.UsageStats{
@@ -139,7 +139,7 @@ func TestRunRuntimeAIStreamJSON(t *testing.T) {
 				Payload: &runtimev1.StreamScenarioEvent_Started{
 					Started: &runtimev1.ScenarioStreamStarted{
 						ModelResolved: "qwen2.5",
-						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 					},
 				},
 			},
@@ -206,7 +206,7 @@ func TestRunRuntimeAIImageJSON(t *testing.T) {
 				ArtifactId:    "img-1",
 				MimeType:      "image/png",
 				Chunk:         []byte("hel"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: "sd3",
 				TraceId:       "trace-image-1",
 			},
@@ -215,7 +215,7 @@ func TestRunRuntimeAIImageJSON(t *testing.T) {
 				MimeType:      "image/png",
 				Chunk:         []byte("lo"),
 				Eof:           true,
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: "sd3",
 				TraceId:       "trace-image-1",
 				Usage: &runtimev1.UsageStats{
@@ -265,7 +265,7 @@ func TestRunRuntimeAIVideoJSON(t *testing.T) {
 				ArtifactId:    "video-1",
 				MimeType:      "video/mp4",
 				Chunk:         []byte("abc"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				ModelResolved: "video-gen",
 				TraceId:       "trace-video-1",
 			},
@@ -274,7 +274,7 @@ func TestRunRuntimeAIVideoJSON(t *testing.T) {
 				MimeType:      "video/mp4",
 				Chunk:         []byte("def"),
 				Eof:           true,
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				ModelResolved: "video-gen",
 				TraceId:       "trace-video-1",
 				Usage: &runtimev1.UsageStats{
@@ -324,7 +324,7 @@ func TestRunRuntimeAITTSJSON(t *testing.T) {
 				ArtifactId:    "tts-1",
 				MimeType:      "audio/mpeg",
 				Chunk:         []byte("mp"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: "tts-model",
 				TraceId:       "trace-tts-1",
 			},
@@ -333,7 +333,7 @@ func TestRunRuntimeAITTSJSON(t *testing.T) {
 				MimeType:      "audio/mpeg",
 				Chunk:         []byte("3"),
 				Eof:           true,
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: "tts-model",
 				TraceId:       "trace-tts-1",
 				Usage: &runtimev1.UsageStats{
@@ -530,7 +530,7 @@ func (s *cmdTestRuntimeAIService) SubmitScenarioJob(ctx context.Context, req *ru
 				MimeType:      "text/plain",
 				Chunk:         []byte(s.sttText),
 				Eof:           true,
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				ModelResolved: req.GetHead().GetModelId(),
 				TraceId:       "trace-stt-1",
 			},
@@ -635,7 +635,7 @@ func (s *cmdTestRuntimeAIService) lastSTTSubmitRequest() *runtimev1.SubmitScenar
 func assembleScenarioArtifactFromChunks(chunks []*runtimev1.ArtifactChunk) (*runtimev1.ScenarioArtifact, runtimev1.RoutePolicy, string, string, *runtimev1.UsageStats) {
 	artifactID := "artifact-1"
 	mimeType := "application/octet-stream"
-	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	modelResolved := ""
 	traceID := ""
 	var usage *runtimev1.UsageStats

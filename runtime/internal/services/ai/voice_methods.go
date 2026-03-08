@@ -172,21 +172,21 @@ func parseVoiceAssetPageToken(token string) (int, error) {
 
 func inferVoiceListRoutePolicy(modelID string, remoteTarget *nimillm.RemoteTarget) runtimev1.RoutePolicy {
 	if remoteTarget != nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
+		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 	}
 	normalized := strings.ToLower(strings.TrimSpace(modelID))
 	if normalized == "" {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
 	switch {
 	case strings.HasPrefix(normalized, "local/"),
 		strings.HasPrefix(normalized, "localai/"),
 		strings.HasPrefix(normalized, "nexa/"):
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	default:
 		if strings.Contains(normalized, "/") {
-			return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
+			return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 		}
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
 }

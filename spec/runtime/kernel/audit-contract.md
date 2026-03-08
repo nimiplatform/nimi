@@ -183,7 +183,7 @@ Phase 1 固定 `request_id == trace_id`（同一 ULID），为后续 fan-out 分
 
 Runtime 存在两套独立审计存储：
 
-- **LocalRuntimeService 审计**：存储于 `local-runtime-state.json`（`K-LOCAL-016`），上限 5,000 条，FIFO 淘汰。通过 `ListLocalAudits` RPC 查询。
+- **LocalService 审计**：存储于 `local-state.json`（`K-LOCAL-016`），上限 5,000 条，FIFO 淘汰。通过 `ListLocalAudits` RPC 查询。
 - **RuntimeAuditService 审计**：全局审计环形缓冲（`K-AUDIT-007`），默认上限 20,000 条。通过 `ListAuditEvents` / `ExportAuditEvents` RPC 查询。
 
 Phase 1 两者独立存储，不汇流。各走各自查询 RPC，不做跨存储聚合。
@@ -199,7 +199,7 @@ Runtime 中存在四层审计字段定义，各有明确适用范围：
 | **K-AUDIT-001 通用底线** | 本文档 | 所有审计路径（通用 floor） | 6 个通用底线字段（`trace_id`/`app_id`/`domain`/`operation`/`reason_code`/`timestamp`），全局审计与本地审计均需至少包含。 |
 | **K-AUDIT-018 AI 执行扩展** | 本文档 | AI 执行路径 | 在 K-AUDIT-001 基础上追加 AI 执行专属字段（`request_id`/`user_id`/`client_id`/`connector_id`/`provider`/`model`/`request_source`/`usage`/`grpc_code`）。 |
 | **K-AUDIT-006 AuditEventRecord** | 本文档 | 全局审计存储（`RuntimeAuditService`） | `ListAuditEvents` / `ExportAuditEvents` 使用的完整 schema。包含 K-AUDIT-001 底线字段 + auth/grant 相关字段（`principal_id`、`token_id`、`consent_id` 等）。AI 执行事件同时填充 K-AUDIT-018 扩展字段到 `payload`。 |
-| **K-LOCAL-016 LocalAuditEvent** | `local-category-capability.md` | 本地审计存储（`RuntimeLocalRuntimeService`） | `ListLocalAudits` 使用的轻量 schema。面向本地推理场景，不含 auth/grant 字段。 |
+| **K-LOCAL-016 LocalAuditEvent** | `local-category-capability.md` | 本地审计存储（`RuntimeLocalService`） | `ListLocalAudits` 使用的轻量 schema。面向本地推理场景，不含 auth/grant 字段。 |
 
 **关系规则**：
 - K-AUDIT-001 是所有审计字段的通用底线（floor）。K-AUDIT-006 和 K-LOCAL-016 均包含 K-AUDIT-001 的底线字段。

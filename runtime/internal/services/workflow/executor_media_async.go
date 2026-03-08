@@ -189,7 +189,7 @@ func buildSubmitScenarioJobRequest(
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         record.AppID,
 			SubjectUserId: record.SubjectUserID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -307,7 +307,7 @@ func buildSubmitScenarioJobRequest(
 		return nil, fmt.Errorf("model id is empty for external async node")
 	}
 	if req.GetHead().GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+		req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
 	if req.GetHead().GetFallback() == runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED {
 		req.Head.Fallback = runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY

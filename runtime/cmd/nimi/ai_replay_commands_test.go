@@ -17,7 +17,7 @@ func TestRunRuntimeAIReplaySubmitScenarioJobUsesProtocolEnvelope(t *testing.T) {
 				ArtifactId:    "tts-1",
 				MimeType:      "audio/mpeg",
 				Chunk:         []byte("mp"),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				ModelResolved: "qwen3-tts-flash",
 				TraceId:       "trace-tts-1",
 			},
@@ -26,7 +26,7 @@ func TestRunRuntimeAIReplaySubmitScenarioJobUsesProtocolEnvelope(t *testing.T) {
 				MimeType:      "audio/mpeg",
 				Chunk:         []byte("3"),
 				Eof:           true,
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 				ModelResolved: "qwen3-tts-flash",
 				TraceId:       "trace-tts-1",
 			},
@@ -48,7 +48,7 @@ request:
   language: zh-CN
   audio_format: mp3
 expected_assertions:
-  route_policy: token-api
+  route_policy: cloud
   fallback_policy: deny
 `))
 

@@ -21,7 +21,7 @@ func baseScenarioJobRequest() *runtimev1.SubmitScenarioJobRequest {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -292,7 +292,7 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	jobID := "poll-state-job"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
 		CreatedAt:    timestamppb.Now(),

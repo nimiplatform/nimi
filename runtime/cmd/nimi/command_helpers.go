@@ -47,10 +47,10 @@ func (f *multiStringFlag) Values() []string {
 
 func parseRoutePolicy(raw string) (runtimev1.RoutePolicy, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "local", "local-runtime":
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME, nil
-	case "cloud", "token", "token-api":
-		return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, nil
+	case "local":
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, nil
+	case "cloud":
+		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, nil
 	default:
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, fmt.Errorf("invalid route %q (expected local|cloud)", raw)
 	}

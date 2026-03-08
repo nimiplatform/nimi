@@ -42,18 +42,18 @@ func normalizeStringMap(values map[string]string) map[string]string {
 	return result
 }
 
-func resolveLocalRuntimeStatePath(fileCfg FileConfig) string {
-	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH")); value != "" {
+func resolveLocalStatePath(fileCfg FileConfig) string {
+	if value := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_STATE_PATH")); value != "" {
 		return value
 	}
-	if value := strings.TrimSpace(fileCfg.LocalRuntimeStatePath); value != "" {
+	if value := strings.TrimSpace(fileCfg.LocalStatePath); value != "" {
 		return expandUserPath(value)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
 	}
-	return filepath.Join(home, defaultLocalRuntimeStateRelPath)
+	return filepath.Join(home, defaultLocalStateRelPath)
 }
 
 func resolveLocalModelsPath(fileCfg FileConfig) string {

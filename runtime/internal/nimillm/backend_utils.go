@@ -228,10 +228,10 @@ func CheckModelAvailabilityWithScope(modelID string, route runtimev1.RoutePolicy
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
 	}
 
-	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME && strings.Contains(lower, "cloud-only") {
+	if route == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && strings.Contains(lower, "cloud-only") {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
-	if route == runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API && strings.Contains(lower, "local-only") {
+	if route == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD && strings.Contains(lower, "local-only") {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	return nil

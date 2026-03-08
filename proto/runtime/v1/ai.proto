@@ -40,8 +40,8 @@ enum ExecutionMode {
 
 enum RoutePolicy {
   ROUTE_POLICY_UNSPECIFIED = 0;
-  ROUTE_POLICY_LOCAL_RUNTIME = 1;
-  ROUTE_POLICY_TOKEN_API = 2;
+  ROUTE_POLICY_LOCAL = 1;
+  ROUTE_POLICY_CLOUD = 2;
 }
 
 enum FallbackPolicy {

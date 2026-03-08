@@ -43,7 +43,7 @@ func (p *localProvider) backends() (*nimillm.Backend, *nimillm.Backend) {
 }
 
 func (p *localProvider) Route() runtimev1.RoutePolicy {
-	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+	return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 }
 
 func (p *localProvider) ResolveModelID(raw string) string {
@@ -61,7 +61,7 @@ func (p *localProvider) ResolveModelID(raw string) string {
 }
 
 func (p *localProvider) CheckModelAvailability(modelID string) error {
-	if err := nimillm.CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME); err != nil {
+	if err := nimillm.CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL); err != nil {
 		return err
 	}
 	_, _, explicit, ok, _ := p.pickBackend(modelID)

@@ -35,7 +35,7 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -57,7 +57,7 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 	if resp.GetTraceId() == "" {
 		t.Fatalf("trace id must be set")
 	}
-	if resp.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME {
+	if resp.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		t.Fatalf("unexpected route decision: %v", resp.GetRouteDecision())
 	}
 	text := resp.GetOutput().GetFields()["text"].GetStringValue()
@@ -87,7 +87,7 @@ func TestStreamScenarioTextGenerateSequence(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     120_000,
 		},
@@ -135,7 +135,7 @@ func TestExecuteScenarioTextGenerateFallbackDenied(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "cloud/gpt-4",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     30_000,
 		},
@@ -187,7 +187,7 @@ func TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "local/qwen2.5",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10,
 		},

@@ -22,12 +22,12 @@ func TestValidateBaseRequestAndPrompt(t *testing.T) {
 		reason   runtimev1.ReasonCode
 		expectOK bool
 	}{
-		{name: "valid", appID: "a", userID: "u", modelID: "local/qwen", route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME, prompt: "hello", expectOK: true},
-		{name: "missing app", appID: "", userID: "u", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, prompt: "x", reason: runtimev1.ReasonCode_AI_APP_ID_REQUIRED},
-		{name: "missing envelope", appID: "a", userID: "", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, prompt: "x", reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
+		{name: "valid", appID: "a", userID: "u", modelID: "local/qwen", route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, prompt: "hello", expectOK: true},
+		{name: "missing app", appID: "", userID: "u", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, prompt: "x", reason: runtimev1.ReasonCode_AI_APP_ID_REQUIRED},
+		{name: "missing envelope", appID: "a", userID: "", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, prompt: "x", reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
 		{name: "missing route", appID: "a", userID: "u", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, prompt: "x", reason: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID},
-		{name: "multimodel unsupported", appID: "a", userID: "u", modelID: "a,b", route: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, prompt: "x", reason: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED},
-		{name: "empty prompt", appID: "a", userID: "u", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, prompt: "", reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
+		{name: "multimodel unsupported", appID: "a", userID: "u", modelID: "a,b", route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, prompt: "x", reason: runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED},
+		{name: "empty prompt", appID: "a", userID: "u", modelID: "m", route: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, prompt: "", reason: runtimev1.ReasonCode_AI_INPUT_INVALID},
 	}
 
 	for _, tt := range tests {
@@ -117,7 +117,7 @@ func TestRecordRouteAutoSwitch_NoPanicOnMissingDependencies(t *testing.T) {
 	})
 }
 
-func TestPrepareScenarioRequestAllowsAnonymousLocalRuntime(t *testing.T) {
+func TestPrepareScenarioRequestAllowsAnonymousLocal(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.localModel = &fakeLocalModelLister{
 		responses: []*runtimev1.ListLocalModelsResponse{{
@@ -133,13 +133,13 @@ func TestPrepareScenarioRequestAllowsAnonymousLocalRuntime(t *testing.T) {
 	remoteTarget, err := svc.prepareScenarioRequest(context.Background(), &runtimev1.ScenarioRequestHead{
 		AppId:       "nimi.desktop",
 		ModelId:     "local/qwen",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
 	if err != nil {
-		t.Fatalf("expected anonymous local-runtime request to succeed, got %v", err)
+		t.Fatalf("expected anonymous local request to succeed, got %v", err)
 	}
 	if remoteTarget != nil {
-		t.Fatalf("expected local-runtime request to keep remote target nil, got %#v", remoteTarget)
+		t.Fatalf("expected local request to keep remote target nil, got %#v", remoteTarget)
 	}
 }
 
@@ -149,10 +149,10 @@ func TestPrepareScenarioRequestRequiresSubjectForTokenAPI(t *testing.T) {
 	_, err := svc.prepareScenarioRequest(context.Background(), &runtimev1.ScenarioRequestHead{
 		AppId:       "nimi.desktop",
 		ModelId:     "openai/gpt-4o-mini",
-		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 	})
 	if err == nil {
-		t.Fatalf("expected token-api request without subject user id to fail")
+		t.Fatalf("expected cloud request without subject user id to fail")
 	}
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
@@ -170,32 +170,32 @@ func TestRequireSubjectUserIDForScenario(t *testing.T) {
 	}{
 		{
 			name:        "anonymous local runtime",
-			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			parsed:      ParsedKeySource{},
 			wantRequire: false,
 		},
 		{
 			name:        "managed key source without resolved remote target",
-			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			parsed:      ParsedKeySource{KeySource: keySourceManaged, ConnectorID: "conn-1"},
 			wantRequire: false,
 		},
 		{
 			name:        "resolved managed remote connector",
-			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			parsed:      ParsedKeySource{KeySource: keySourceManaged, ConnectorID: "conn-1"},
 			remote:      &nimillm.RemoteTarget{ProviderType: "openai"},
 			wantRequire: true,
 		},
 		{
 			name:        "inline remote target",
-			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			parsed:      ParsedKeySource{KeySource: keySourceInline, ProviderType: "openai", Endpoint: "https://example.com/v1", APIKey: "sk-test"},
 			wantRequire: true,
 		},
 		{
 			name:        "token api route",
-			route:       runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			route:       runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			parsed:      ParsedKeySource{},
 			wantRequire: true,
 		},

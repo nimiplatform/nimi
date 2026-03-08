@@ -39,7 +39,7 @@ Source: `K-RPC-003`
 | `UpsertModelCatalogProvider` | `unary` |
 | `DeleteModelCatalogProvider` | `unary` |
 
-## RuntimeLocalRuntimeService
+## RuntimeLocalService
 
 Source: `K-RPC-004`
 

@@ -36,7 +36,7 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	grpcAddr := fs.String("grpc-addr", baseCfg.GRPCAddr, "gRPC listen address")
 	httpAddr := fs.String("http-addr", baseCfg.HTTPAddr, "HTTP listen address")
 	shutdownTimeoutRaw := fs.String("shutdown-timeout", baseCfg.ShutdownTimeout.String(), "graceful shutdown timeout")
-	localRuntimeStatePath := fs.String("local-runtime-state-path", baseCfg.LocalRuntimeStatePath, "local runtime state persistence path")
+	localStatePath := fs.String("local-state-path", baseCfg.LocalStatePath, "local runtime state persistence path")
 	localModelsPath := fs.String("local-models-path", baseCfg.LocalModelsPath, "local models root path")
 	logLevel := fs.String("log-level", baseCfg.LogLevel, "log level (debug, info, warn, error)")
 
@@ -54,7 +54,7 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	cfg.GRPCAddr = *grpcAddr
 	cfg.HTTPAddr = *httpAddr
 	cfg.ShutdownTimeout = shutdownTimeout
-	cfg.LocalRuntimeStatePath = *localRuntimeStatePath
+	cfg.LocalStatePath = *localStatePath
 	cfg.LocalModelsPath = *localModelsPath
 	cfg.LogLevel = *logLevel
 	if err := cfg.Validate(); err != nil {

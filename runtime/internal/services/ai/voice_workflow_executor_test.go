@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -321,7 +321,7 @@ func voiceCloneRequest() *runtimev1.SubmitScenarioJobRequest {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -345,7 +345,7 @@ func voiceDesignRequest() *runtimev1.SubmitScenarioJobRequest {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 			ModelId:       "elevenlabs/eleven_v3",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,

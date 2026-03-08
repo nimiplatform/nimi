@@ -10,8 +10,8 @@ service_mappings:
     mapping_status: aligned
     phase: phase1
     source: K-RPC-005
-  - design_service: RuntimeLocalRuntimeService
-    proto_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
+    proto_service: RuntimeLocalService
     mapping_status: aligned
     phase: phase1
     source: K-RPC-004
@@ -171,179 +171,179 @@ method_mappings:
     proto_service: RuntimeConnectorService
     proto_method: DeleteModelCatalogProvider
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListLocalModels
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListLocalModels
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListLocalArtifacts
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListLocalArtifacts
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListVerifiedModels
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListVerifiedModels
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListVerifiedArtifacts
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListVerifiedArtifacts
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: InstallLocalModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: InstallLocalModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: InstallVerifiedModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: InstallVerifiedModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: InstallVerifiedArtifact
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: InstallVerifiedArtifact
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ImportLocalModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ImportLocalModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ImportLocalArtifact
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ImportLocalArtifact
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: RemoveLocalModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: RemoveLocalModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: RemoveLocalArtifact
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: RemoveLocalArtifact
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: StartLocalModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: StartLocalModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: StopLocalModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: StopLocalModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: CheckLocalModelHealth
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: CheckLocalModelHealth
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: WarmLocalModel
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: WarmLocalModel
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: SearchCatalogModels
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: SearchCatalogModels
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ResolveModelInstallPlan
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ResolveModelInstallPlan
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: CollectDeviceProfile
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: CollectDeviceProfile
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListLocalServices
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListLocalServices
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: InstallLocalService
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: InstallLocalService
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: StartLocalService
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: StartLocalService
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: StopLocalService
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: StopLocalService
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: CheckLocalServiceHealth
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: CheckLocalServiceHealth
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: RemoveLocalService
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: RemoveLocalService
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListNodeCatalog
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListNodeCatalog
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ResolveDependencies
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ResolveDependencies
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ApplyDependencies
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ApplyDependencies
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListLocalAudits
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListLocalAudits
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: AppendInferenceAudit
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: AppendInferenceAudit
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: AppendRuntimeAudit
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: AppendRuntimeAudit
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: ListEngines
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: ListEngines
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: EnsureEngine
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: EnsureEngine
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: StartEngine
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: StartEngine
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: StopEngine
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: StopEngine
     mapping_status: aligned
-  - design_service: RuntimeLocalRuntimeService
+  - design_service: RuntimeLocalService
     design_method: GetEngineStatus
-    proto_service: RuntimeLocalRuntimeService
+    proto_service: RuntimeLocalService
     proto_method: GetEngineStatus
     mapping_status: aligned
   - design_service: RuntimeAuthService

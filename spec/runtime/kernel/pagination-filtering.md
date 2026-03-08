@@ -57,16 +57,16 @@
 |---|---|---|---|---|---|
 | `ListConnectors` | ConnectorService | 是（K-PAGE-001） | kind → local_category → connector_id / created_at（K-PAGE-003） | kind_filter, status_filter, provider_filter（K-PAGE-004） | K-PAGE-001/003/004 |
 | `ListConnectorModels` | ConnectorService | 是（K-PAGE-001） | model_id ASC（K-PAGE-003） | — | K-PAGE-001/003 |
-| `ListLocalModels` | RuntimeLocalRuntimeService | 是（K-PAGE-005） | local_category ASC, model_id ASC | status_filter, engine_filter, category_filter | K-LOCAL-030 |
-| `ListVerifiedModels` | RuntimeLocalRuntimeService | 是（K-PAGE-005） | model_id ASC | category_filter, engine_filter | K-LOCAL-030 |
-| `ListLocalServices` | RuntimeLocalRuntimeService | 是（K-PAGE-005） | service_id ASC | status_filter | K-LOCAL-030 |
-| `ListNodeCatalog` | RuntimeLocalRuntimeService | 是（K-PAGE-005） | node_type ASC, node_id ASC | type_filter | K-LOCAL-030 |
-| `ListLocalAudits` | RuntimeLocalRuntimeService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, time_range | K-LOCAL-029/030 |
+| `ListLocalModels` | RuntimeLocalService | 是（K-PAGE-005） | local_category ASC, model_id ASC | status_filter, engine_filter, category_filter | K-LOCAL-030 |
+| `ListVerifiedModels` | RuntimeLocalService | 是（K-PAGE-005） | model_id ASC | category_filter, engine_filter | K-LOCAL-030 |
+| `ListLocalServices` | RuntimeLocalService | 是（K-PAGE-005） | service_id ASC | status_filter | K-LOCAL-030 |
+| `ListNodeCatalog` | RuntimeLocalService | 是（K-PAGE-005） | node_type ASC, node_id ASC | type_filter | K-LOCAL-030 |
+| `ListLocalAudits` | RuntimeLocalService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, time_range | K-LOCAL-029/030 |
 | `ListTokenChain` | RuntimeGrantService | 是（K-PAGE-005） | issued_at DESC | root_token_id（必填）, include_revoked | K-GRANT-011 |
 | `ListAuditEvents` | RuntimeAuditService | 是（K-PAGE-005） | timestamp DESC | app_id, subject_user_id, domain, reason_code, caller_kind, caller_id, time_range | K-AUDIT-007 |
 | `ListUsageStats` | RuntimeAuditService | 是（K-PAGE-005） | bucket_start DESC | app_id, subject_user_id, caller_kind, caller_id, capability, model_id | K-AUDIT-008 |
 | `ListAIProviderHealth` | RuntimeAuditService | 否（全量返回） | provider_name ASC | — | K-AUDIT-013 |
 | `ListModels` | RuntimeModelService | 是（K-PAGE-005） | model_id ASC | status_filter | K-MODEL-004 |
-| `SearchCatalogModels` | RuntimeLocalRuntimeService | 是（K-PAGE-005） | relevance DESC | query（必填）, category_filter, engine_filter | K-LOCAL-030 |
+| `SearchCatalogModels` | RuntimeLocalService | 是（K-PAGE-005） | relevance DESC | query（必填）, category_filter, engine_filter | K-LOCAL-030 |
 
 **注意**：`ListAIProviderHealth` 不使用分页，因 provider 总数通常 < 20，全量返回更适合 UI 消费。

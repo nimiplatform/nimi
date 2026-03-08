@@ -49,8 +49,8 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		cfg.ShutdownTimeoutSeconds = &parsed
 		return nil
-	case "localRuntimeStatePath":
-		cfg.LocalRuntimeStatePath = value
+	case "localStatePath":
+		cfg.LocalStatePath = value
 		return nil
 	case "localModelsPath":
 		cfg.LocalModelsPath = value
@@ -255,8 +255,8 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 	case "shutdownTimeoutSeconds":
 		cfg.ShutdownTimeoutSeconds = defaultCfg.ShutdownTimeoutSeconds
 		return nil
-	case "localRuntimeStatePath":
-		cfg.LocalRuntimeStatePath = defaultCfg.LocalRuntimeStatePath
+	case "localStatePath":
+		cfg.LocalStatePath = defaultCfg.LocalStatePath
 		return nil
 	case "localModelsPath":
 		cfg.LocalModelsPath = defaultCfg.LocalModelsPath

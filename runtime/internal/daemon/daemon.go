@@ -48,7 +48,7 @@ type Daemon struct {
 	providerFailureHints  map[string]string
 }
 
-var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "localruntime"}
+var runtimeWorkerNames = []string{"ai", "model", "workflow", "script", "local"}
 
 var (
 	engineCrashAttemptPattern    = regexp.MustCompile(`attempt=(\d+)/(\d+)`)
@@ -56,8 +56,8 @@ var (
 )
 
 func New(cfg config.Config, logger *slog.Logger, version string) *Daemon {
-	if value := strings.TrimSpace(cfg.LocalRuntimeStatePath); value != "" {
-		_ = os.Setenv("NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH", value)
+	if value := strings.TrimSpace(cfg.LocalStatePath); value != "" {
+		_ = os.Setenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value)
 	}
 	state := health.NewState()
 	return &Daemon{
@@ -552,9 +552,9 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		WorkingDir:  strings.TrimSpace(d.cfg.EngineLocalAIImageBackendWorkingDir),
 	})
 
-	// Inject engine manager into localruntime service for gRPC access.
+	// Inject engine manager into local service for gRPC access.
 	skipLocalAIBootstrap := false
-	if svc := d.grpc.LocalRuntimeService(); svc != nil {
+	if svc := d.grpc.LocalService(); svc != nil {
 		svc.SetLocalAIRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLocalAIEnabled)
 		if d.cfg.EngineLocalAIEnabled {
 			svc.SetLocalAIManagedEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLocalAIPort))
@@ -702,7 +702,7 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 		return
 	}
 	if strings.EqualFold(strings.TrimSpace(engineName), "localai-image-backend") {
-		if svc := d.grpc.LocalRuntimeService(); svc != nil {
+		if svc := d.grpc.LocalService(); svc != nil {
 			switch strings.ToLower(strings.TrimSpace(status)) {
 			case "healthy":
 				svc.SetLocalAIImageBackendHealth(true, detail)

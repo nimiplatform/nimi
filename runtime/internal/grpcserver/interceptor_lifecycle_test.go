@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestUnaryLifecycleInterceptorAllowsLocalRuntimeReadWhenStopping(t *testing.T) {
+func TestUnaryLifecycleInterceptorAllowsLocalReadWhenStopping(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusStopping, "draining")
 	interceptor := newUnaryLifecycleInterceptor(state)
@@ -19,7 +19,7 @@ func TestUnaryLifecycleInterceptorAllowsLocalRuntimeReadWhenStopping(t *testing.
 	_, err := interceptor(
 		context.Background(),
 		struct{}{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalRuntimeService/ListLocalModels"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/ListLocalModels"},
 		func(_ context.Context, _ any) (any, error) {
 			handlerCalled = true
 			return struct{}{}, nil
@@ -39,8 +39,8 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 	interceptor := newUnaryLifecycleInterceptor(state)
 
 	for _, fullMethod := range []string{
-		"/nimi.runtime.v1.RuntimeLocalRuntimeService/ListLocalArtifacts",
-		"/nimi.runtime.v1.RuntimeLocalRuntimeService/ListVerifiedArtifacts",
+		"/nimi.runtime.v1.RuntimeLocalService/ListLocalArtifacts",
+		"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedArtifacts",
 	} {
 		handlerCalled := false
 		_, err := interceptor(
@@ -61,7 +61,7 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 	}
 }
 
-func TestUnaryLifecycleInterceptorRejectsLocalRuntimeWriteWhenStopping(t *testing.T) {
+func TestUnaryLifecycleInterceptorRejectsLocalWriteWhenStopping(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusStopping, "draining")
 	interceptor := newUnaryLifecycleInterceptor(state)
@@ -70,7 +70,7 @@ func TestUnaryLifecycleInterceptorRejectsLocalRuntimeWriteWhenStopping(t *testin
 	_, err := interceptor(
 		context.Background(),
 		struct{}{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalRuntimeService/InstallLocalModel"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/InstallLocalModel"},
 		func(_ context.Context, _ any) (any, error) {
 			handlerCalled = true
 			return struct{}{}, nil

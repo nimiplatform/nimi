@@ -17,7 +17,7 @@ Current implementation scope:
   - `RuntimeGrantService` (authorize/validate/revoke/delegate/token-chain)
   - `RuntimeAppService` (`SendAppMessage`, `SubscribeAppMessages`)
   - `RuntimeKnowledgeService` (`BuildIndex`, `SearchIndex`, `DeleteIndex`)
-  - `RuntimeLocalRuntimeService` (local model/service/node/dependency management + local runtime audit append/query)
+  - `RuntimeLocalService` (local model/service/node/dependency management + local runtime audit append/query)
 - `RuntimeAiService` (all RPCs implemented with `local` / `cloud` provider router, strict route/fallback checks, and native SSE stream forwarding when provider supports streaming chat)
   - `RuntimeWorkflowService` (submit/get/cancel/subscribe with DAG validation and async execution)
 - Unified runtime audit bus:
@@ -40,8 +40,8 @@ Current implementation scope:
   - model registry persistence path: `NIMI_RUNTIME_MODEL_REGISTRY_PATH`
     - default: `~/.nimi/runtime/model-registry.json`
     - runtime boot loads this file; `RuntimeModelService.PullModel/RemoveModel` will persist updates
-  - local runtime state persistence path: `NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH`
-    - default: `~/.nimi/runtime/local-runtime-state.json`
+  - local runtime state persistence path: `NIMI_RUNTIME_LOCAL_STATE_PATH`
+    - default: `~/.nimi/runtime/local-state.json`
     - runtime boot restores local model/service/audit state; local runtime writes state atomically on lifecycle/audit updates
   - model routing examples:
     - `cloud/nimillm/gpt-4o`

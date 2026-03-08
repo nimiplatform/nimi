@@ -3677,8 +3677,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\falready_warm\x18\x06 \x01(\bR\valreadyWarm\x12\x1d\n" +
 	"\n" +
 	"latency_ms\x18\a \x01(\x03R\tlatencyMs\x12\x19\n" +
-	"\btrace_id\x18\b \x01(\tR\atraceId2\xc2\x1d\n" +
-	"\x1aRuntimeLocalRuntimeService\x12d\n" +
+	"\btrace_id\x18\b \x01(\tR\atraceId2\xbb\x1d\n" +
+	"\x13RuntimeLocalService\x12d\n" +
 	"\x0fListLocalModels\x12'.nimi.runtime.v1.ListLocalModelsRequest\x1a(.nimi.runtime.v1.ListLocalModelsResponse\x12m\n" +
 	"\x12ListLocalArtifacts\x12*.nimi.runtime.v1.ListLocalArtifactsRequest\x1a+.nimi.runtime.v1.ListLocalArtifactsResponse\x12m\n" +
 	"\x12ListVerifiedModels\x12*.nimi.runtime.v1.ListVerifiedModelsRequest\x1a+.nimi.runtime.v1.ListVerifiedModelsResponse\x12v\n" +
@@ -3867,76 +3867,76 @@ var file_runtime_v1_local_runtime_proto_depIdxs = []int32{
 	68, // 41: nimi.runtime.v1.AppendInferenceAuditRequest.policy_gate:type_name -> google.protobuf.Struct
 	68, // 42: nimi.runtime.v1.AppendInferenceAuditRequest.extra:type_name -> google.protobuf.Struct
 	68, // 43: nimi.runtime.v1.AppendRuntimeAuditRequest.payload:type_name -> google.protobuf.Struct
-	0,  // 44: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
-	2,  // 45: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalArtifacts:input_type -> nimi.runtime.v1.ListLocalArtifactsRequest
-	4,  // 46: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
-	6,  // 47: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedArtifacts:input_type -> nimi.runtime.v1.ListVerifiedArtifactsRequest
-	8,  // 48: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
-	10, // 49: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
-	12, // 50: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:input_type -> nimi.runtime.v1.InstallLocalModelRequest
-	14, // 51: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:input_type -> nimi.runtime.v1.InstallVerifiedModelRequest
-	16, // 52: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedArtifact:input_type -> nimi.runtime.v1.InstallVerifiedArtifactRequest
-	18, // 53: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:input_type -> nimi.runtime.v1.ImportLocalModelRequest
-	20, // 54: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalArtifact:input_type -> nimi.runtime.v1.ImportLocalArtifactRequest
-	22, // 55: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:input_type -> nimi.runtime.v1.RemoveLocalModelRequest
-	24, // 56: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalArtifact:input_type -> nimi.runtime.v1.RemoveLocalArtifactRequest
-	26, // 57: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
-	28, // 58: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
-	30, // 59: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
-	56, // 60: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:input_type -> nimi.runtime.v1.WarmLocalModelRequest
-	32, // 61: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
-	34, // 62: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
-	36, // 63: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
-	38, // 64: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
-	40, // 65: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
-	42, // 66: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
-	44, // 67: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
-	46, // 68: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
-	48, // 69: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
-	50, // 70: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
-	52, // 71: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
-	54, // 72: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
-	55, // 73: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
-	80, // 74: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
-	81, // 75: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
-	82, // 76: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
-	83, // 77: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
-	84, // 78: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
-	1,  // 79: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
-	3,  // 80: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalArtifacts:output_type -> nimi.runtime.v1.ListLocalArtifactsResponse
-	5,  // 81: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
-	7,  // 82: nimi.runtime.v1.RuntimeLocalRuntimeService.ListVerifiedArtifacts:output_type -> nimi.runtime.v1.ListVerifiedArtifactsResponse
-	9,  // 83: nimi.runtime.v1.RuntimeLocalRuntimeService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
-	11, // 84: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
-	13, // 85: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
-	15, // 86: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
-	17, // 87: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallVerifiedArtifact:output_type -> nimi.runtime.v1.InstallVerifiedArtifactResponse
-	19, // 88: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
-	21, // 89: nimi.runtime.v1.RuntimeLocalRuntimeService.ImportLocalArtifact:output_type -> nimi.runtime.v1.ImportLocalArtifactResponse
-	23, // 90: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
-	25, // 91: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalArtifact:output_type -> nimi.runtime.v1.RemoveLocalArtifactResponse
-	27, // 92: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
-	29, // 93: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
-	31, // 94: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
-	57, // 95: nimi.runtime.v1.RuntimeLocalRuntimeService.WarmLocalModel:output_type -> nimi.runtime.v1.WarmLocalModelResponse
-	33, // 96: nimi.runtime.v1.RuntimeLocalRuntimeService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
-	35, // 97: nimi.runtime.v1.RuntimeLocalRuntimeService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
-	37, // 98: nimi.runtime.v1.RuntimeLocalRuntimeService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
-	39, // 99: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
-	41, // 100: nimi.runtime.v1.RuntimeLocalRuntimeService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
-	43, // 101: nimi.runtime.v1.RuntimeLocalRuntimeService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
-	45, // 102: nimi.runtime.v1.RuntimeLocalRuntimeService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
-	47, // 103: nimi.runtime.v1.RuntimeLocalRuntimeService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
-	49, // 104: nimi.runtime.v1.RuntimeLocalRuntimeService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
-	51, // 105: nimi.runtime.v1.RuntimeLocalRuntimeService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
-	53, // 106: nimi.runtime.v1.RuntimeLocalRuntimeService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
-	85, // 107: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
-	85, // 108: nimi.runtime.v1.RuntimeLocalRuntimeService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
-	86, // 109: nimi.runtime.v1.RuntimeLocalRuntimeService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
-	87, // 110: nimi.runtime.v1.RuntimeLocalRuntimeService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
-	88, // 111: nimi.runtime.v1.RuntimeLocalRuntimeService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
-	89, // 112: nimi.runtime.v1.RuntimeLocalRuntimeService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
-	90, // 113: nimi.runtime.v1.RuntimeLocalRuntimeService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
+	0,  // 44: nimi.runtime.v1.RuntimeLocalService.ListLocalModels:input_type -> nimi.runtime.v1.ListLocalModelsRequest
+	2,  // 45: nimi.runtime.v1.RuntimeLocalService.ListLocalArtifacts:input_type -> nimi.runtime.v1.ListLocalArtifactsRequest
+	4,  // 46: nimi.runtime.v1.RuntimeLocalService.ListVerifiedModels:input_type -> nimi.runtime.v1.ListVerifiedModelsRequest
+	6,  // 47: nimi.runtime.v1.RuntimeLocalService.ListVerifiedArtifacts:input_type -> nimi.runtime.v1.ListVerifiedArtifactsRequest
+	8,  // 48: nimi.runtime.v1.RuntimeLocalService.SearchCatalogModels:input_type -> nimi.runtime.v1.SearchCatalogModelsRequest
+	10, // 49: nimi.runtime.v1.RuntimeLocalService.ResolveModelInstallPlan:input_type -> nimi.runtime.v1.ResolveModelInstallPlanRequest
+	12, // 50: nimi.runtime.v1.RuntimeLocalService.InstallLocalModel:input_type -> nimi.runtime.v1.InstallLocalModelRequest
+	14, // 51: nimi.runtime.v1.RuntimeLocalService.InstallVerifiedModel:input_type -> nimi.runtime.v1.InstallVerifiedModelRequest
+	16, // 52: nimi.runtime.v1.RuntimeLocalService.InstallVerifiedArtifact:input_type -> nimi.runtime.v1.InstallVerifiedArtifactRequest
+	18, // 53: nimi.runtime.v1.RuntimeLocalService.ImportLocalModel:input_type -> nimi.runtime.v1.ImportLocalModelRequest
+	20, // 54: nimi.runtime.v1.RuntimeLocalService.ImportLocalArtifact:input_type -> nimi.runtime.v1.ImportLocalArtifactRequest
+	22, // 55: nimi.runtime.v1.RuntimeLocalService.RemoveLocalModel:input_type -> nimi.runtime.v1.RemoveLocalModelRequest
+	24, // 56: nimi.runtime.v1.RuntimeLocalService.RemoveLocalArtifact:input_type -> nimi.runtime.v1.RemoveLocalArtifactRequest
+	26, // 57: nimi.runtime.v1.RuntimeLocalService.StartLocalModel:input_type -> nimi.runtime.v1.StartLocalModelRequest
+	28, // 58: nimi.runtime.v1.RuntimeLocalService.StopLocalModel:input_type -> nimi.runtime.v1.StopLocalModelRequest
+	30, // 59: nimi.runtime.v1.RuntimeLocalService.CheckLocalModelHealth:input_type -> nimi.runtime.v1.CheckLocalModelHealthRequest
+	56, // 60: nimi.runtime.v1.RuntimeLocalService.WarmLocalModel:input_type -> nimi.runtime.v1.WarmLocalModelRequest
+	32, // 61: nimi.runtime.v1.RuntimeLocalService.CollectDeviceProfile:input_type -> nimi.runtime.v1.CollectDeviceProfileRequest
+	34, // 62: nimi.runtime.v1.RuntimeLocalService.ResolveDependencies:input_type -> nimi.runtime.v1.ResolveDependenciesRequest
+	36, // 63: nimi.runtime.v1.RuntimeLocalService.ApplyDependencies:input_type -> nimi.runtime.v1.ApplyDependenciesRequest
+	38, // 64: nimi.runtime.v1.RuntimeLocalService.ListLocalServices:input_type -> nimi.runtime.v1.ListLocalServicesRequest
+	40, // 65: nimi.runtime.v1.RuntimeLocalService.InstallLocalService:input_type -> nimi.runtime.v1.InstallLocalServiceRequest
+	42, // 66: nimi.runtime.v1.RuntimeLocalService.StartLocalService:input_type -> nimi.runtime.v1.StartLocalServiceRequest
+	44, // 67: nimi.runtime.v1.RuntimeLocalService.StopLocalService:input_type -> nimi.runtime.v1.StopLocalServiceRequest
+	46, // 68: nimi.runtime.v1.RuntimeLocalService.CheckLocalServiceHealth:input_type -> nimi.runtime.v1.CheckLocalServiceHealthRequest
+	48, // 69: nimi.runtime.v1.RuntimeLocalService.RemoveLocalService:input_type -> nimi.runtime.v1.RemoveLocalServiceRequest
+	50, // 70: nimi.runtime.v1.RuntimeLocalService.ListNodeCatalog:input_type -> nimi.runtime.v1.ListNodeCatalogRequest
+	52, // 71: nimi.runtime.v1.RuntimeLocalService.ListLocalAudits:input_type -> nimi.runtime.v1.ListLocalAuditsRequest
+	54, // 72: nimi.runtime.v1.RuntimeLocalService.AppendInferenceAudit:input_type -> nimi.runtime.v1.AppendInferenceAuditRequest
+	55, // 73: nimi.runtime.v1.RuntimeLocalService.AppendRuntimeAudit:input_type -> nimi.runtime.v1.AppendRuntimeAuditRequest
+	80, // 74: nimi.runtime.v1.RuntimeLocalService.ListEngines:input_type -> nimi.runtime.v1.ListEnginesRequest
+	81, // 75: nimi.runtime.v1.RuntimeLocalService.EnsureEngine:input_type -> nimi.runtime.v1.EnsureEngineRequest
+	82, // 76: nimi.runtime.v1.RuntimeLocalService.StartEngine:input_type -> nimi.runtime.v1.StartEngineRequest
+	83, // 77: nimi.runtime.v1.RuntimeLocalService.StopEngine:input_type -> nimi.runtime.v1.StopEngineRequest
+	84, // 78: nimi.runtime.v1.RuntimeLocalService.GetEngineStatus:input_type -> nimi.runtime.v1.GetEngineStatusRequest
+	1,  // 79: nimi.runtime.v1.RuntimeLocalService.ListLocalModels:output_type -> nimi.runtime.v1.ListLocalModelsResponse
+	3,  // 80: nimi.runtime.v1.RuntimeLocalService.ListLocalArtifacts:output_type -> nimi.runtime.v1.ListLocalArtifactsResponse
+	5,  // 81: nimi.runtime.v1.RuntimeLocalService.ListVerifiedModels:output_type -> nimi.runtime.v1.ListVerifiedModelsResponse
+	7,  // 82: nimi.runtime.v1.RuntimeLocalService.ListVerifiedArtifacts:output_type -> nimi.runtime.v1.ListVerifiedArtifactsResponse
+	9,  // 83: nimi.runtime.v1.RuntimeLocalService.SearchCatalogModels:output_type -> nimi.runtime.v1.SearchCatalogModelsResponse
+	11, // 84: nimi.runtime.v1.RuntimeLocalService.ResolveModelInstallPlan:output_type -> nimi.runtime.v1.ResolveModelInstallPlanResponse
+	13, // 85: nimi.runtime.v1.RuntimeLocalService.InstallLocalModel:output_type -> nimi.runtime.v1.InstallLocalModelResponse
+	15, // 86: nimi.runtime.v1.RuntimeLocalService.InstallVerifiedModel:output_type -> nimi.runtime.v1.InstallVerifiedModelResponse
+	17, // 87: nimi.runtime.v1.RuntimeLocalService.InstallVerifiedArtifact:output_type -> nimi.runtime.v1.InstallVerifiedArtifactResponse
+	19, // 88: nimi.runtime.v1.RuntimeLocalService.ImportLocalModel:output_type -> nimi.runtime.v1.ImportLocalModelResponse
+	21, // 89: nimi.runtime.v1.RuntimeLocalService.ImportLocalArtifact:output_type -> nimi.runtime.v1.ImportLocalArtifactResponse
+	23, // 90: nimi.runtime.v1.RuntimeLocalService.RemoveLocalModel:output_type -> nimi.runtime.v1.RemoveLocalModelResponse
+	25, // 91: nimi.runtime.v1.RuntimeLocalService.RemoveLocalArtifact:output_type -> nimi.runtime.v1.RemoveLocalArtifactResponse
+	27, // 92: nimi.runtime.v1.RuntimeLocalService.StartLocalModel:output_type -> nimi.runtime.v1.StartLocalModelResponse
+	29, // 93: nimi.runtime.v1.RuntimeLocalService.StopLocalModel:output_type -> nimi.runtime.v1.StopLocalModelResponse
+	31, // 94: nimi.runtime.v1.RuntimeLocalService.CheckLocalModelHealth:output_type -> nimi.runtime.v1.CheckLocalModelHealthResponse
+	57, // 95: nimi.runtime.v1.RuntimeLocalService.WarmLocalModel:output_type -> nimi.runtime.v1.WarmLocalModelResponse
+	33, // 96: nimi.runtime.v1.RuntimeLocalService.CollectDeviceProfile:output_type -> nimi.runtime.v1.CollectDeviceProfileResponse
+	35, // 97: nimi.runtime.v1.RuntimeLocalService.ResolveDependencies:output_type -> nimi.runtime.v1.ResolveDependenciesResponse
+	37, // 98: nimi.runtime.v1.RuntimeLocalService.ApplyDependencies:output_type -> nimi.runtime.v1.ApplyDependenciesResponse
+	39, // 99: nimi.runtime.v1.RuntimeLocalService.ListLocalServices:output_type -> nimi.runtime.v1.ListLocalServicesResponse
+	41, // 100: nimi.runtime.v1.RuntimeLocalService.InstallLocalService:output_type -> nimi.runtime.v1.InstallLocalServiceResponse
+	43, // 101: nimi.runtime.v1.RuntimeLocalService.StartLocalService:output_type -> nimi.runtime.v1.StartLocalServiceResponse
+	45, // 102: nimi.runtime.v1.RuntimeLocalService.StopLocalService:output_type -> nimi.runtime.v1.StopLocalServiceResponse
+	47, // 103: nimi.runtime.v1.RuntimeLocalService.CheckLocalServiceHealth:output_type -> nimi.runtime.v1.CheckLocalServiceHealthResponse
+	49, // 104: nimi.runtime.v1.RuntimeLocalService.RemoveLocalService:output_type -> nimi.runtime.v1.RemoveLocalServiceResponse
+	51, // 105: nimi.runtime.v1.RuntimeLocalService.ListNodeCatalog:output_type -> nimi.runtime.v1.ListNodeCatalogResponse
+	53, // 106: nimi.runtime.v1.RuntimeLocalService.ListLocalAudits:output_type -> nimi.runtime.v1.ListLocalAuditsResponse
+	85, // 107: nimi.runtime.v1.RuntimeLocalService.AppendInferenceAudit:output_type -> nimi.runtime.v1.Ack
+	85, // 108: nimi.runtime.v1.RuntimeLocalService.AppendRuntimeAudit:output_type -> nimi.runtime.v1.Ack
+	86, // 109: nimi.runtime.v1.RuntimeLocalService.ListEngines:output_type -> nimi.runtime.v1.ListEnginesResponse
+	87, // 110: nimi.runtime.v1.RuntimeLocalService.EnsureEngine:output_type -> nimi.runtime.v1.EnsureEngineResponse
+	88, // 111: nimi.runtime.v1.RuntimeLocalService.StartEngine:output_type -> nimi.runtime.v1.StartEngineResponse
+	89, // 112: nimi.runtime.v1.RuntimeLocalService.StopEngine:output_type -> nimi.runtime.v1.StopEngineResponse
+	90, // 113: nimi.runtime.v1.RuntimeLocalService.GetEngineStatus:output_type -> nimi.runtime.v1.GetEngineStatusResponse
 	79, // [79:114] is the sub-list for method output_type
 	44, // [44:79] is the sub-list for method input_type
 	44, // [44:44] is the sub-list for extension type_name

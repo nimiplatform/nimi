@@ -99,7 +99,7 @@ ENV 覆盖：`NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED`、`NIMI_RUNTIME_ENGINE_LOCALA
 
 ### K-LENG-004e gRPC RPC
 
-`RuntimeLocalRuntimeService` 新增 5 个 Engine RPC：
+`RuntimeLocalService` 新增 5 个 Engine RPC：
 
 - `ListEngines` — 列出所有受管引擎状态。
 - `EnsureEngine` — 确保引擎二进制可用（下载如缺失）。

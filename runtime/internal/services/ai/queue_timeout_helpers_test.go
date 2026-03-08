@@ -79,8 +79,8 @@ func TestScenarioJobTimeoutDurationClampsLocalImageJobsAtSixtyMinutes(t *testing
 	}
 
 	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
-	if got != maxLocalRuntimeImageJobTimeout {
-		t.Fatalf("scenarioJobTimeoutDuration(local image 90m) = %s, want %s", got, maxLocalRuntimeImageJobTimeout)
+	if got != maxLocalImageJobTimeout {
+		t.Fatalf("scenarioJobTimeoutDuration(local image 90m) = %s, want %s", got, maxLocalImageJobTimeout)
 	}
 }
 

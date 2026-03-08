@@ -87,8 +87,8 @@ func normalizeRole(role string) string {
 		return "workflow"
 	case "script":
 		return "script"
-	case "localruntime":
-		return "localruntime"
+	case "local":
+		return "local"
 	default:
 		return ""
 	}

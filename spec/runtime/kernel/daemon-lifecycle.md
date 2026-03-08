@@ -61,7 +61,7 @@ Daemon 启动固定为以下阶段：
 
 Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervisor 角色管理子进程：
 
-- **Worker 名称枚举**：`ai`、`model`、`workflow`、`script`、`localruntime`。仅此 5 个有效名称，其他忽略。
+- **Worker 名称枚举**：`ai`、`model`、`workflow`、`script`、`local`。仅此 5 个有效名称，其他忽略。
 - **Worker → Service 映射**：
 
   | Worker 名称 | 对应 gRPC Service | 说明 |
@@ -70,7 +70,7 @@ Worker 模式启用时（`NIMI_RUNTIME_WORKER_MODE=true`），daemon 以 supervi
   | `model` | `RuntimeModelService` | 模型注册与管理 |
   | `workflow` | `RuntimeWorkflowService` | 工作流 DAG 执行 |
   | `script` | `ScriptWorkerService` | 脚本沙箱执行 |
-  | `localruntime` | `RuntimeLocalRuntimeService` | 本地模型生命周期管理 |
+  | `local` | `RuntimeLocalService` | 本地模型生命周期管理 |
 - **启动**：为每个 worker 启动独立 goroutine 执行重启循环。
 - **重启策略**：2s base backoff + uniform jitter [0, 500ms]，context 取消时退出循环。
 - **环境注入**：`NIMI_RUNTIME_WORKER_ROLE=<name>`，`NIMI_RUNTIME_WORKER_SOCKET=<socket_path>`。
@@ -149,7 +149,7 @@ AI 执行路径使用双层信号量控制并发：
 | gRPC 地址 | `NIMI_RUNTIME_GRPC_ADDR` | `127.0.0.1:46371` |
 | HTTP 地址 | `NIMI_RUNTIME_HTTP_ADDR` | `127.0.0.1:46372` |
 | 停机超时 | `NIMI_RUNTIME_SHUTDOWN_TIMEOUT` | `10s` |
-| Local state 路径 | `NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH` | `~/.nimi/runtime/local-runtime-state.json` |
+| Local state 路径 | `NIMI_RUNTIME_LOCAL_STATE_PATH` | `~/.nimi/runtime/local-state.json` |
 | 配置文件路径 | `NIMI_RUNTIME_CONFIG_PATH` | `~/.nimi/config.json` |
 
 校验规则：
@@ -166,7 +166,7 @@ Phase 1 配置文件 schema（`~/.nimi/config.json`）权威字段清单：
 | `grpcAddr` | string | `127.0.0.1:46371` | restart | gRPC 监听地址 | K-DAEMON-009 |
 | `httpAddr` | string | `127.0.0.1:46372` | restart | HTTP 监听地址 | K-DAEMON-009 |
 | `shutdownTimeoutSeconds` | int | `10` | restart | 优雅停机超时（秒） | K-DAEMON-003 |
-| `localRuntimeStatePath` | string | `~/.nimi/runtime/local-runtime-state.json` | restart | 本地状态持久化路径 | K-LOCAL-016 |
+| `localStatePath` | string | `~/.nimi/runtime/local-state.json` | restart | 本地状态持久化路径 | K-LOCAL-016 |
 | `workerMode` | bool | `false` | restart | 是否启用 worker 模式 | K-DAEMON-004 |
 | `aiHealthIntervalSeconds` | int | `8` | hot | AI Provider 探活间隔（秒） | K-PROV-003 |
 | `aiHttpTimeoutSeconds` | int | `30` | hot | AI Provider HTTP 超时（秒） | K-PROV-003 |

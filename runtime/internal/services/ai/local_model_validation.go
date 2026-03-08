@@ -34,7 +34,7 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	if s.localModel == nil {
 		return nil
 	}
-	if preferredRoute(requestedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME {
+	if preferredRoute(requestedModelID) != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		return nil
 	}
 

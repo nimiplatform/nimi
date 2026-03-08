@@ -34,14 +34,14 @@ func TestProviderHelpersAndRouteSelectorWrapper(t *testing.T) {
 
 	provider, route, modelResolved, _, err := selector.resolveProvider(
 		context.Background(),
-		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW,
 		"local/qwen2.5",
 	)
 	if err != nil {
 		t.Fatalf("resolveProvider wrapper should succeed: %v", err)
 	}
-	if provider == nil || route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME || modelResolved == "" {
+	if provider == nil || route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved == "" {
 		t.Fatalf("unexpected resolveProvider result: provider=%v route=%v model=%q", provider, route, modelResolved)
 	}
 }

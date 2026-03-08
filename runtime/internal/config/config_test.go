@@ -29,9 +29,9 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 		t.Fatalf("shutdown timeout mismatch: got=%s want=10s", cfg.ShutdownTimeout)
 	}
 
-	expectedStatePath := filepath.Join(homeDir, defaultLocalRuntimeStateRelPath)
-	if cfg.LocalRuntimeStatePath != expectedStatePath {
-		t.Fatalf("state path mismatch: got=%q want=%q", cfg.LocalRuntimeStatePath, expectedStatePath)
+	expectedStatePath := filepath.Join(homeDir, defaultLocalStateRelPath)
+	if cfg.LocalStatePath != expectedStatePath {
+		t.Fatalf("state path mismatch: got=%q want=%q", cfg.LocalStatePath, expectedStatePath)
 	}
 	expectedModelsPath := filepath.Join(homeDir, defaultLocalModelsRelPath)
 	if cfg.LocalModelsPath != expectedModelsPath {
@@ -89,7 +89,7 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
   "grpcAddr": "127.0.0.1:50001",
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 13,
-  "localRuntimeStatePath": "~/runtime/custom-state.json",
+  "localStatePath": "~/runtime/custom-state.json",
   "localModelsPath": "~/runtime/custom-models",
   "aiHttpTimeoutSeconds": 21,
   "aiHealthIntervalSeconds": 3,
@@ -127,8 +127,8 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.ShutdownTimeout != 13*time.Second {
 		t.Fatalf("shutdown value mismatch: %s", cfg.ShutdownTimeout)
 	}
-	if cfg.LocalRuntimeStatePath != filepath.Join(homeDir, "runtime/custom-state.json") {
-		t.Fatalf("local runtime state path mismatch: %q", cfg.LocalRuntimeStatePath)
+	if cfg.LocalStatePath != filepath.Join(homeDir, "runtime/custom-state.json") {
+		t.Fatalf("local runtime state path mismatch: %q", cfg.LocalStatePath)
 	}
 	if cfg.LocalModelsPath != filepath.Join(homeDir, "runtime/custom-models") {
 		t.Fatalf("local models path mismatch: %q", cfg.LocalModelsPath)
@@ -723,7 +723,7 @@ func TestLoadFlatFileConfig(t *testing.T) {
   "grpcAddr": "127.0.0.1:50001",
   "httpAddr": "127.0.0.1:50002",
   "shutdownTimeoutSeconds": 15,
-  "localRuntimeStatePath": "~/custom/state.json",
+  "localStatePath": "~/custom/state.json",
   "localModelsPath": "~/custom/models"
 }`
 	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
@@ -748,8 +748,8 @@ func TestLoadFlatFileConfig(t *testing.T) {
 	if cfg.ShutdownTimeout != 15*time.Second {
 		t.Fatalf("shutdown timeout mismatch: %s", cfg.ShutdownTimeout)
 	}
-	if cfg.LocalRuntimeStatePath != filepath.Join(homeDir, "custom/state.json") {
-		t.Fatalf("state path mismatch: %q", cfg.LocalRuntimeStatePath)
+	if cfg.LocalStatePath != filepath.Join(homeDir, "custom/state.json") {
+		t.Fatalf("state path mismatch: %q", cfg.LocalStatePath)
 	}
 	if cfg.LocalModelsPath != filepath.Join(homeDir, "custom/models") {
 		t.Fatalf("models path mismatch: %q", cfg.LocalModelsPath)
@@ -833,7 +833,7 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_GRPC_ADDR",
 		"NIMI_RUNTIME_HTTP_ADDR",
 		"NIMI_RUNTIME_SHUTDOWN_TIMEOUT",
-		"NIMI_RUNTIME_LOCAL_RUNTIME_STATE_PATH",
+		"NIMI_RUNTIME_LOCAL_STATE_PATH",
 		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",

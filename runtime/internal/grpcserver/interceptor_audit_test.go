@@ -117,7 +117,7 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 			Payload: &runtimev1.StreamScenarioEvent_Started{
 				Started: &runtimev1.ScenarioStreamStarted{
 					ModelResolved: "qwen2.5",
-					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+					RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 				},
 			},
 		}); sendErr != nil {
@@ -450,7 +450,7 @@ func scenarioExecuteTextRequest(appID string, subjectUserID string, modelID stri
 			AppId:         appID,
 			SubjectUserId: subjectUserID,
 			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
@@ -473,7 +473,7 @@ func scenarioStreamTextRequest(appID string, subjectUserID string, modelID strin
 			AppId:         appID,
 			SubjectUserId: subjectUserID,
 			ModelId:       modelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,

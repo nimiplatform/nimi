@@ -135,7 +135,7 @@ func (s *Supervisor) AllRunning(names []string) bool {
 
 func normalizeWorkerName(name string) string {
 	switch name {
-	case "ai", "model", "workflow", "script", "localruntime":
+	case "ai", "model", "workflow", "script", "local":
 		return name
 	default:
 		return ""

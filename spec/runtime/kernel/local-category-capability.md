@@ -37,7 +37,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 
 - 可用于 `ListConnectors`、`TestConnector`、`ListConnectorModels` 等能力发现与聚合探测场景
 - 不得作为 AI consume 的 `connector_id` 执行入口
-- 本地执行必须走 local-runtime 模型路由（见 `K-LOCAL-020`），而不是 local connector
+- 本地执行必须走 local 模型路由（见 `K-LOCAL-020`），而不是 local connector
 
 ## K-LOCAL-005 Local 生命周期状态机锚点
 
@@ -175,7 +175,7 @@ Apply 管道任一阶段失败时：
 
 ## K-LOCAL-016 状态持久化规则
 
-本地模型状态持久化到 `~/.nimi/runtime/local-runtime-state.json`：
+本地模型状态持久化到 `~/.nimi/runtime/local-state.json`：
 
 - 写入使用原子操作：写临时文件 → rename（防止断电损坏）。
 - 文件格式包含 `schemaVersion`（当前 `1`），向前兼容时忽略未知字段。
@@ -312,7 +312,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 ```
 ~/.nimi/
 ├── runtime/
-│   └── local-runtime-state.json  # 中央状态文件（K-LOCAL-016）
+│   └── local-state.json  # 中央状态文件（K-LOCAL-016）
 └── models/
     ├── hf-org-model-name/
     │   ├── model.manifest.json   # nimi 元数据（K-LOCAL-026）

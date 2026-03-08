@@ -17,16 +17,16 @@ import (
 var aiGoldFixtureEnvPattern = regexp.MustCompile(`\$\{([A-Z0-9_]+)\}`)
 
 type aiGoldFixture struct {
-	FixtureID          string                 `yaml:"fixture_id"`
-	Capability         string                 `yaml:"capability"`
-	Provider           string                 `yaml:"provider"`
-	ModelID            string                 `yaml:"model_id"`
-	TargetModelID      string                 `yaml:"target_model_id,omitempty"`
-	VoiceRef           *aiGoldVoiceReference  `yaml:"voice_ref,omitempty"`
-	Request            aiGoldFixtureRequest   `yaml:"request"`
-	ExpectedAssertions map[string]any         `yaml:"expected_assertions"`
-	EnvRequirements    []string               `yaml:"env_requirements"`
-	Path               string                 `yaml:"-"`
+	FixtureID          string                `yaml:"fixture_id"`
+	Capability         string                `yaml:"capability"`
+	Provider           string                `yaml:"provider"`
+	ModelID            string                `yaml:"model_id"`
+	TargetModelID      string                `yaml:"target_model_id,omitempty"`
+	VoiceRef           *aiGoldVoiceReference `yaml:"voice_ref,omitempty"`
+	Request            aiGoldFixtureRequest  `yaml:"request"`
+	ExpectedAssertions map[string]any        `yaml:"expected_assertions"`
+	EnvRequirements    []string              `yaml:"env_requirements"`
+	Path               string                `yaml:"-"`
 }
 
 type aiGoldVoiceReference struct {
@@ -161,9 +161,9 @@ func (f *aiGoldFixture) validateAudioRequest(capability string) error {
 
 func (f *aiGoldFixture) routePolicy() runtimev1.RoutePolicy {
 	if strings.EqualFold(strings.TrimSpace(f.Provider), "local") {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
-	return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
+	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 }
 
 func (f *aiGoldFixture) fallbackPolicy() runtimev1.FallbackPolicy {
@@ -178,7 +178,7 @@ func (f *aiGoldFixture) runtimeModelID() string {
 	if modelID == "" {
 		return ""
 	}
-	if f.routePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API {
+	if f.routePolicy() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
 		return modelID
 	}
 	lower := strings.ToLower(modelID)
@@ -421,7 +421,7 @@ func (f *aiGoldFixture) buildSubmitScenarioJobRequest(appID string, subjectUserI
 				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
 					TargetModelId: strings.TrimSpace(f.TargetModelID),
 					Input: &runtimev1.VoiceV2VInput{
-						ReferenceAudioUri: strings.TrimSpace(audioURI),
+						ReferenceAudioUri:  strings.TrimSpace(audioURI),
 						ReferenceAudioMime: strings.TrimSpace(audioMime),
 					},
 				},

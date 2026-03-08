@@ -63,11 +63,11 @@
 - `reason_code`：失败原因。
 - `action_hint`：建议操作（如 `restart`、`reinstall`）。
 
-## K-MODEL-007 与 RuntimeLocalRuntimeService 的关系
+## K-MODEL-007 与 RuntimeLocalService 的关系
 
-`RuntimeModelService` 和 `RuntimeLocalRuntimeService` 均涉及模型管理，但服务对象与抽象层次不同：
+`RuntimeModelService` 和 `RuntimeLocalService` 均涉及模型管理，但服务对象与抽象层次不同：
 
-| 维度 | RuntimeModelService | RuntimeLocalRuntimeService |
+| 维度 | RuntimeModelService | RuntimeLocalService |
 |---|---|---|
 | **抽象层次** | Runtime 级模型注册表 | 本地引擎级模型生命周期 |
 | **管理对象** | 所有已注册模型（local + remote） | 仅本地模型（local engine 绑定） |
@@ -76,7 +76,7 @@
 | **Phase** | Phase 2 Draft | Phase 1 Normative |
 
 **数据流关系**：
-- `RuntimeLocalRuntimeService.InstallLocalModel` 安装本地模型后，该模型应自动注册到 `RuntimeModelService` 的模型注册表（`ModelStatus=INSTALLED`）。
+- `RuntimeLocalService.InstallLocalModel` 安装本地模型后，该模型应自动注册到 `RuntimeModelService` 的模型注册表（`ModelStatus=INSTALLED`）。
 - `RuntimeModelService.PullModel` 用于拉取远程模型资源（如下载权重文件），与 `InstallLocalModel`（配置本地引擎绑定）互补。
 - `RuntimeModelService.ListModels` 是模型的统一视图；`ListLocalModels` 是本地模型的详细视图（含引擎配置、端点等）。
 

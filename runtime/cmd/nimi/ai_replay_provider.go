@@ -23,7 +23,7 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		ResolvedProvider:    strings.TrimSpace(fixture.Provider),
 		ResolvedModel:       strings.TrimSpace(fixture.ModelID),
 		ResolvedTargetModel: strings.TrimSpace(fixture.TargetModelID),
-		RoutePolicy:         "token-api",
+		RoutePolicy:         "cloud",
 		FallbackPolicy:      "deny",
 		TraceID:             "provider-raw-" + fixture.requestDigest()[:12],
 	}

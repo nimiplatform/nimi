@@ -3,7 +3,7 @@
   "grpcAddr": "127.0.0.1:46371",
   "httpAddr": "127.0.0.1:46372",
   "shutdownTimeoutSeconds": 10,
-  "localRuntimeStatePath": "~/.nimi/runtime/local-runtime-state.json",
+  "localStatePath": "~/.nimi/runtime/local-state.json",
   "localModelsPath": "~/.nimi/models",
   "workerMode": false,
   "aiHealthIntervalSeconds": 8,

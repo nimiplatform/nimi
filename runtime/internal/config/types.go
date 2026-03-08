@@ -6,7 +6,7 @@ const (
 	DefaultSchemaVersion             = 1
 	defaultGRPCAddr                  = "127.0.0.1:46371"
 	defaultHTTPAddr                  = "127.0.0.1:46372"
-	defaultLocalRuntimeStateRelPath  = ".nimi/runtime/local-runtime-state.json"
+	defaultLocalStateRelPath         = ".nimi/runtime/local-state.json"
 	defaultLocalModelsRelPath        = ".nimi/models"
 	defaultModelCatalogCustomRelPath = ".nimi/runtime/model-catalog/providers"
 	defaultRuntimeConfigRelPath      = ".nimi/config.json"
@@ -15,11 +15,11 @@ const (
 
 // Config defines daemon boot configuration. (K-DAEMON-009)
 type Config struct {
-	GRPCAddr              string
-	HTTPAddr              string
-	ShutdownTimeout       time.Duration
-	LocalRuntimeStatePath string
-	LocalModelsPath       string
+	GRPCAddr        string
+	HTTPAddr        string
+	ShutdownTimeout time.Duration
+	LocalStatePath  string
+	LocalModelsPath string
 
 	// AllowLoopbackProviderEndpoint permits HTTP (non-TLS) connections to
 	// loopback addresses (127.0.0.0/8, ::1, localhost) for provider endpoints.
@@ -164,7 +164,7 @@ type FileConfig struct {
 	GRPCAddr               string `json:"grpcAddr,omitempty"`
 	HTTPAddr               string `json:"httpAddr,omitempty"`
 	ShutdownTimeoutSeconds *int   `json:"shutdownTimeoutSeconds,omitempty"`
-	LocalRuntimeStatePath  string `json:"localRuntimeStatePath,omitempty"`
+	LocalStatePath         string `json:"localStatePath,omitempty"`
 	LocalModelsPath        string `json:"localModelsPath,omitempty"`
 
 	WorkerMode              *bool  `json:"workerMode,omitempty"`

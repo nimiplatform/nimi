@@ -195,7 +195,7 @@ function main() {
   );
   pushMissing(
     failures,
-    'sdk live smoke generate coverage missing for token-api routable providers',
+    'sdk live smoke generate coverage missing for cloud routable providers',
     missingSdkGenerate,
   );
 

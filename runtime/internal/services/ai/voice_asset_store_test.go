@@ -14,7 +14,7 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{
@@ -64,7 +64,7 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 			AppId:         "app-1",
 			SubjectUserId: "user-1",
 			ModelId:       "playht/playht-voice-clone",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
 		Spec: &runtimev1.ScenarioSpec{

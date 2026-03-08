@@ -147,7 +147,7 @@ func (p *CloudProvider) BackendWithRequestCredentials(backend *Backend, endpoint
 
 // Route returns the route policy for cloud.
 func (p *CloudProvider) Route() runtimev1.RoutePolicy {
-	return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
+	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 }
 
 // ResolveModelID resolves a raw model ID for cloud routing.
@@ -162,7 +162,7 @@ func (p *CloudProvider) ResolveModelID(raw string) string {
 
 // CheckModelAvailability checks if a model is available via cloud providers.
 func (p *CloudProvider) CheckModelAvailability(modelID string) error {
-	if err := CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API); err != nil {
+	if err := CheckModelAvailabilityWithScope(modelID, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD); err != nil {
 		return err
 	}
 	_, _, explicit, ok := p.PickBackend(modelID)

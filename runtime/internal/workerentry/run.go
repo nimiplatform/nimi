@@ -15,7 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
-	localruntimeservice "github.com/nimiplatform/nimi/runtime/internal/services/localruntime"
+	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	scriptworkerservice "github.com/nimiplatform/nimi/runtime/internal/services/scriptworker"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
@@ -26,7 +26,7 @@ import (
 // Run boots one runtime worker role and blocks until shutdown.
 func Run(role string) error {
 	switch role {
-	case "ai", "model", "workflow", "script", "localruntime":
+	case "ai", "model", "workflow", "script", "local":
 	default:
 		return fmt.Errorf("unsupported worker role %q", role)
 	}
@@ -77,8 +77,8 @@ func Run(role string) error {
 		runtimev1.RegisterRuntimeWorkflowServiceServer(server, workflowservice.New(logger))
 	case "script":
 		runtimev1.RegisterScriptWorkerServiceServer(server, scriptworkerservice.New(logger))
-	case "localruntime":
-		runtimev1.RegisterRuntimeLocalRuntimeServiceServer(server, localruntimeservice.New(logger, nil, "", 0))
+	case "local":
+		runtimev1.RegisterRuntimeLocalServiceServer(server, localservice.New(logger, nil, "", 0))
 	}
 
 	errCh := make(chan error, 1)

@@ -10,13 +10,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
@@ -114,12 +114,12 @@ func (s *Service) SetModelRegistryPersistencePath(path string) {
 	s.registryPath = strings.TrimSpace(path)
 }
 
-// SetLocalModelLister wires RuntimeLocalRuntimeService for local model availability checks.
+// SetLocalModelLister wires RuntimeLocalService for local model availability checks.
 func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
 }
 
-// SetLocalImageProfileResolver wires RuntimeLocalRuntimeService for dynamic
+// SetLocalImageProfileResolver wires RuntimeLocalService for dynamic
 // LocalAI image profile materialization.
 func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {
 	s.localImageProfile = resolver
@@ -140,7 +140,7 @@ func (s *Service) SetLocalProviderEndpoint(providerID string, endpoint string, a
 		BaseURL: strings.TrimSpace(endpoint),
 		APIKey:  strings.TrimSpace(apiKey),
 	}
-	local.setBackend(providerID, newLocalRuntimeBackend("local-"+strings.TrimSpace(providerID), creds, s.config))
+	local.setBackend(providerID, newLocalBackend("local-"+strings.TrimSpace(providerID), creds, s.config))
 }
 
 // CloudProvider returns the underlying cloud provider for cross-service wiring (e.g., ConnectorService probe).

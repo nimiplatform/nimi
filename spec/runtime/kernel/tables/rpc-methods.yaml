@@ -52,7 +52,7 @@ services:
         type: unary
       - name: DeleteModelCatalogProvider
         type: unary
-  - name: RuntimeLocalRuntimeService
+  - name: RuntimeLocalService
     source: K-RPC-004
     methods:
       - name: ListLocalModels

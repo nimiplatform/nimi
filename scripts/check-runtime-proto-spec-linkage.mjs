@@ -172,7 +172,7 @@ function checkGrantTokenChainEvolution() {
   }
 }
 
-function checkLocalRuntimePaginationAndAuditFields() {
+function checkLocalPaginationAndAuditFields() {
   const rel = 'proto/runtime/v1/local_runtime package';
   const content = [
     read('proto/runtime/v1/local_runtime.proto'),
@@ -325,7 +325,7 @@ function main() {
   checkAuthJWTOnlyAndReserved();
   checkConnectorUpdateMaskAndPagination();
   checkGrantTokenChainEvolution();
-  checkLocalRuntimePaginationAndAuditFields();
+  checkLocalPaginationAndAuditFields();
   checkReasonCodes359To363Linkage();
   checkPagingPairsInConnectorAndGrantProto();
 

@@ -14,7 +14,7 @@ func DefaultFileConfig() FileConfig {
 		GRPCAddr:                defaultGRPCAddr,
 		HTTPAddr:                defaultHTTPAddr,
 		ShutdownTimeoutSeconds:  intPtr(10),
-		LocalRuntimeStatePath:   "~/" + defaultLocalRuntimeStateRelPath,
+		LocalStatePath:          "~/" + defaultLocalStateRelPath,
 		LocalModelsPath:         "~/" + defaultLocalModelsRelPath,
 		WorkerMode:              boolPtr(false),
 		AIHealthIntervalSeconds: intPtr(8),

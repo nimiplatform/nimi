@@ -47,7 +47,7 @@ func (s *Service) SetCloudProvider(cloud *nimillm.CloudProvider) {
 	s.cloud = cloud
 }
 
-// SetLocalModelLister wires RuntimeLocalRuntimeService for local connector checks.
+// SetLocalModelLister wires RuntimeLocalService for local connector checks.
 func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
 }

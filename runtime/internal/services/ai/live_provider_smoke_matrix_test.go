@@ -101,9 +101,9 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 
 func routePolicyForProvider(providerID string) runtimev1.RoutePolicy {
 	if providerID == "local" {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME
+		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
-	return runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API
+	return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
 }
 
 func envModelIDForProvider(t *testing.T, providerID string, capabilitySuffix string, fallbackSuffix string) string {

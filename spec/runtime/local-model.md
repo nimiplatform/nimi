@@ -30,7 +30,7 @@
 
 ## 3. 模块映射
 
-- Local runtime service（含 `LocalArtifact*`、`engine_config` 持久化与 LocalAI 动态 image profile）：`runtime/internal/services/localruntime/`。
+- Local service（含 `LocalArtifact*`、`engine_config` 持久化与 LocalAI 动态 image profile）：`runtime/internal/services/localservice/`。
 - 引擎抽象：`runtime/internal/localengine/`。
 - 审计与错误映射：`runtime/internal/services/audit/`、`runtime/internal/errors/`。
 

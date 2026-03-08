@@ -274,9 +274,9 @@ func TestParseRoutePolicy(t *testing.T) {
 		want    runtimev1.RoutePolicy
 		wantErr bool
 	}{
-		{name: "local", input: "local", want: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
-		{name: "cloud", input: "cloud", want: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API},
-		{name: "token-api", input: "token-api", want: runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API},
+		{name: "local", input: "local", want: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+		{name: "cloud", input: "cloud", want: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
+		{name: "legacy alias rejected", input: "token-api", wantErr: true},
 		{name: "invalid", input: "unknown", wantErr: true},
 	}
 

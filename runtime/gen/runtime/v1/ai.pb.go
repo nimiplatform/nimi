@@ -206,22 +206,22 @@ func (ExecutionMode) EnumDescriptor() ([]byte, []int) {
 type RoutePolicy int32
 
 const (
-	RoutePolicy_ROUTE_POLICY_UNSPECIFIED   RoutePolicy = 0
-	RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME RoutePolicy = 1
-	RoutePolicy_ROUTE_POLICY_TOKEN_API     RoutePolicy = 2
+	RoutePolicy_ROUTE_POLICY_UNSPECIFIED RoutePolicy = 0
+	RoutePolicy_ROUTE_POLICY_LOCAL       RoutePolicy = 1
+	RoutePolicy_ROUTE_POLICY_CLOUD       RoutePolicy = 2
 )
 
 // Enum value maps for RoutePolicy.
 var (
 	RoutePolicy_name = map[int32]string{
 		0: "ROUTE_POLICY_UNSPECIFIED",
-		1: "ROUTE_POLICY_LOCAL_RUNTIME",
-		2: "ROUTE_POLICY_TOKEN_API",
+		1: "ROUTE_POLICY_LOCAL",
+		2: "ROUTE_POLICY_CLOUD",
 	}
 	RoutePolicy_value = map[string]int32{
-		"ROUTE_POLICY_UNSPECIFIED":   0,
-		"ROUTE_POLICY_LOCAL_RUNTIME": 1,
-		"ROUTE_POLICY_TOKEN_API":     2,
+		"ROUTE_POLICY_UNSPECIFIED": 0,
+		"ROUTE_POLICY_LOCAL":       1,
+		"ROUTE_POLICY_CLOUD":       2,
 	}
 )
 
@@ -4683,11 +4683,11 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x1aEXECUTION_MODE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13EXECUTION_MODE_SYNC\x10\x01\x12\x19\n" +
 	"\x15EXECUTION_MODE_STREAM\x10\x02\x12\x1c\n" +
-	"\x18EXECUTION_MODE_ASYNC_JOB\x10\x03*g\n" +
+	"\x18EXECUTION_MODE_ASYNC_JOB\x10\x03*[\n" +
 	"\vRoutePolicy\x12\x1c\n" +
-	"\x18ROUTE_POLICY_UNSPECIFIED\x10\x00\x12\x1e\n" +
-	"\x1aROUTE_POLICY_LOCAL_RUNTIME\x10\x01\x12\x1a\n" +
-	"\x16ROUTE_POLICY_TOKEN_API\x10\x02*f\n" +
+	"\x18ROUTE_POLICY_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12ROUTE_POLICY_LOCAL\x10\x01\x12\x16\n" +
+	"\x12ROUTE_POLICY_CLOUD\x10\x02*f\n" +
 	"\x0eFallbackPolicy\x12\x1f\n" +
 	"\x1bFALLBACK_POLICY_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14FALLBACK_POLICY_DENY\x10\x01\x12\x19\n" +

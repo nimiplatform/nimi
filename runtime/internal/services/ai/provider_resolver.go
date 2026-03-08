@@ -18,21 +18,21 @@ func (s *routeSelector) resolveProvider(ctx context.Context, requested runtimev1
 func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
 
-	// If a RemoteTarget is provided, force cloud/TOKEN_API route
+	// If a RemoteTarget is provided, force cloud/CLOUD route
 	if remoteTarget != nil {
 		decision := nimillm.RouteDecisionInfo{BackendName: "cloud-" + remoteTarget.ProviderType}
 		if s.cloud == nil {
 			return nil, runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", decision, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		modelResolved := s.cloud.ResolveModelID(rawModel)
-		return s.cloud, runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API, modelResolved, decision, nil
+		return s.cloud, runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD, modelResolved, decision, nil
 	}
 
 	preferred := preferredRoute(rawModel)
 
 	target := s.local
 	decision := nimillm.RouteDecisionInfo{BackendName: "local"}
-	if preferred == runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API {
+	if preferred == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
 		target = s.cloud
 		decision.BackendName = "cloud"
 	}

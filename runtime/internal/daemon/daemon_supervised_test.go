@@ -23,17 +23,17 @@ import (
 func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
-		GRPCAddr:              "127.0.0.1:0",
-		HTTPAddr:              "127.0.0.1:0",
-		LocalRuntimeStatePath: filepath.Join(t.TempDir(), "local-runtime-state.json"),
-		AuditRingBufferSize:   64,
-		UsageStatsBufferSize:  64,
-		EngineLocalAIEnabled:  true,
-		EngineLocalAIPort:     1234,
-		EngineLocalAIVersion:  "3.12.1",
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		EngineLocalAIEnabled: true,
+		EngineLocalAIPort:    1234,
+		EngineLocalAIVersion: "3.12.1",
 	}
 	daemon := New(cfg, logger, "test")
-	if svc := daemon.grpc.LocalRuntimeService(); svc != nil {
+	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
 	store := auditlog.New(32, 32)
@@ -107,7 +107,7 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 	cfg := config.Config{
 		GRPCAddr:                 "127.0.0.1:0",
 		HTTPAddr:                 "127.0.0.1:0",
-		LocalRuntimeStatePath:    filepath.Join(t.TempDir(), "local-runtime-state.json"),
+		LocalStatePath:           filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:      64,
 		UsageStatsBufferSize:     64,
 		EngineLocalAIEnabled:     true,
@@ -116,7 +116,7 @@ func TestStartSupervisedEnginesAutoManagedLocalAIEntersLocalBootstrapBranch(t *t
 		EngineLocalAIVersion:     "3.12.1",
 	}
 	daemon := New(cfg, logger, "test")
-	if svc := daemon.grpc.LocalRuntimeService(); svc != nil {
+	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
 	store := auditlog.New(64, 64)
@@ -182,20 +182,20 @@ func TestStartSupervisedEnginesSkipsLocalAIBootstrapWhenAssetSyncFails(t *testin
 
 	localModelsPath := filepath.Join(t.TempDir(), "models")
 	cfg := config.Config{
-		GRPCAddr:              "127.0.0.1:0",
-		HTTPAddr:              "127.0.0.1:0",
-		LocalRuntimeStatePath: filepath.Join(t.TempDir(), "local-runtime-state.json"),
-		LocalModelsPath:       localModelsPath,
-		AuditRingBufferSize:   64,
-		UsageStatsBufferSize:  64,
-		EngineLocalAIEnabled:  true,
-		EngineLocalAIPort:     1234,
-		EngineLocalAIVersion:  "3.12.1",
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		LocalModelsPath:      localModelsPath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		EngineLocalAIEnabled: true,
+		EngineLocalAIPort:    1234,
+		EngineLocalAIVersion: "3.12.1",
 	}
 	daemon := New(cfg, logger, "test")
-	svc := daemon.grpc.LocalRuntimeService()
+	svc := daemon.grpc.LocalService()
 	if svc == nil {
-		t.Fatalf("expected localruntime service")
+		t.Fatalf("expected local service")
 	}
 	t.Cleanup(func() { svc.Close() })
 

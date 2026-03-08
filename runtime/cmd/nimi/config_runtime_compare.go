@@ -16,7 +16,7 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if strings.TrimSpace(before.HTTPAddr) != strings.TrimSpace(after.HTTPAddr) {
 		return true
 	}
-	if strings.TrimSpace(before.LocalRuntimeStatePath) != strings.TrimSpace(after.LocalRuntimeStatePath) {
+	if strings.TrimSpace(before.LocalStatePath) != strings.TrimSpace(after.LocalStatePath) {
 		return true
 	}
 	if strings.TrimSpace(before.LocalModelsPath) != strings.TrimSpace(after.LocalModelsPath) {

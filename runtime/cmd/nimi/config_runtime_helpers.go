@@ -28,8 +28,8 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.ShutdownTimeoutSeconds != nil {
 		merged.ShutdownTimeoutSeconds = raw.ShutdownTimeoutSeconds
 	}
-	if v := strings.TrimSpace(raw.LocalRuntimeStatePath); v != "" {
-		merged.LocalRuntimeStatePath = v
+	if v := strings.TrimSpace(raw.LocalStatePath); v != "" {
+		merged.LocalStatePath = v
 	}
 	if v := strings.TrimSpace(raw.LocalModelsPath); v != "" {
 		merged.LocalModelsPath = v

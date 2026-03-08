@@ -48,7 +48,7 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "dashscope/qwen3-tts-vc",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,

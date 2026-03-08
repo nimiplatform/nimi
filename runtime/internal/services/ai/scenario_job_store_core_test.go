@@ -47,7 +47,7 @@ func TestScenarioJobStoreCancelAndArtifactsPaths(t *testing.T) {
 	jobID := "scenario-cancelable-job"
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        jobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-1",
@@ -87,7 +87,7 @@ func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",
 			ModelId:       "dashscope/qwen3-tts-vd",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_TOKEN_API,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
@@ -147,7 +147,7 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
@@ -165,7 +165,7 @@ func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
@@ -185,7 +185,7 @@ func TestScenarioJobStoreSubmitUnsupportedExtension(t *testing.T) {
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-1",
 			ModelId:       "local/qwen",
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 		},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
@@ -207,7 +207,7 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 	terminalJobID := "scenario-subscribe-terminal"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        terminalJobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-terminal",
@@ -233,7 +233,7 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 	runningJobID := "scenario-subscribe-cancel-context"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
 		JobId:        runningJobID,
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 		TraceId:      "trace-running",
@@ -276,7 +276,7 @@ func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
 	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
 			TraceId:    "trace-voice-stream",
 			CreatedAt:  timestamppb.New(now),
@@ -322,7 +322,7 @@ func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
 	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
 		job: &runtimev1.ScenarioJob{
 			JobId:      jobID,
-			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL_RUNTIME},
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
 			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 			TraceId:    "trace-voice-terminal",
 			CreatedAt:  timestamppb.New(now),

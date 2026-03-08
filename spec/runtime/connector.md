@@ -28,7 +28,7 @@
 
 - Connector service：`runtime/internal/services/connector/`。
 - Remote 执行路径：`runtime/internal/nimillm/`。
-- Local 执行路径：`runtime/internal/services/localruntime/`。
+- Local 执行路径：`runtime/internal/services/localservice/`。
 
 ## 4. 非目标
 

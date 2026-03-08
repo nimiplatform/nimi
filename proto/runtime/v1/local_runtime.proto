@@ -345,7 +345,7 @@ message WarmLocalModelResponse {
   string trace_id = 8;
 }
 
-service RuntimeLocalRuntimeService {
+service RuntimeLocalService {
   rpc ListLocalModels(ListLocalModelsRequest) returns (ListLocalModelsResponse);
   rpc ListLocalArtifacts(ListLocalArtifactsRequest) returns (ListLocalArtifactsResponse);
   rpc ListVerifiedModels(ListVerifiedModelsRequest) returns (ListVerifiedModelsResponse);

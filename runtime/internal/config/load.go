@@ -33,7 +33,7 @@ func Load() (Config, error) {
 		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", firstNonEmptyString(fileCfg.GRPCAddr, defaultGRPCAddr)),
 		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", firstNonEmptyString(fileCfg.HTTPAddr, defaultHTTPAddr)),
 		ShutdownTimeout:               10 * time.Second,
-		LocalRuntimeStatePath:         resolveLocalRuntimeStatePath(fileCfg),
+		LocalStatePath:                resolveLocalStatePath(fileCfg),
 		LocalModelsPath:               resolveLocalModelsPath(fileCfg),
 		AllowLoopbackProviderEndpoint: readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false),
 		SessionTTLMinSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", fileCfg.SessionTTLMinSeconds, 60),

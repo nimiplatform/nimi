@@ -64,7 +64,7 @@ exclude:
   - "**/locales/zh.json"
 
 waivers:
-  - path: runtime/internal/services/localruntime/service_test.go
+  - path: runtime/internal/services/localservice/service_test.go
     until: 2026-09-30
     reason: Large integration coverage suite retained as a single trace narrative.
   - path: runtime/internal/services/ai/live_provider_smoke_test.go
