@@ -13,9 +13,9 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
-	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -724,6 +724,30 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 	}
 }
 
+func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.store.Create(ConnectorRecord{
+		ConnectorID: "sys-openai",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:     "system",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "system-key"); err != nil {
+		t.Fatalf("create system connector: %v", err)
+	}
+
+	resp, err := svc.TestConnector(context.Background(), &runtimev1.TestConnectorRequest{
+		ConnectorId: "sys-openai",
+	})
+	if err != nil {
+		t.Fatalf("TestConnector: %v", err)
+	}
+	if !resp.GetAck().GetOk() {
+		t.Fatalf("expected system-owned remote connector to be visible, got ok=false reason=%v", resp.GetAck().GetReasonCode())
+	}
+}
+
 func TestEnsureLocalConnectors(t *testing.T) {
 	store := newTestStore(t)
 
@@ -840,6 +864,31 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 	}
 	if resp.GetModels()[0].GetModelId() != "chat-model" {
 		t.Fatalf("unexpected local model id: %s", resp.GetModels()[0].GetModelId())
+	}
+}
+
+func TestListConnectorModelsSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.store.Create(ConnectorRecord{
+		ConnectorID: "sys-openai",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:     "system",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "system-key"); err != nil {
+		t.Fatalf("create system connector: %v", err)
+	}
+
+	resp, err := svc.ListConnectorModels(context.Background(), &runtimev1.ListConnectorModelsRequest{
+		ConnectorId: "sys-openai",
+		PageSize:    20,
+	})
+	if err != nil {
+		t.Fatalf("ListConnectorModels: %v", err)
+	}
+	if len(resp.GetModels()) == 0 {
+		t.Fatalf("expected catalog-derived models for system-owned remote connector")
 	}
 }
 

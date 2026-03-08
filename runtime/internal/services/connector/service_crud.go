@@ -103,8 +103,7 @@ func (s *Service) GetConnector(ctx context.Context, req *runtimev1.GetConnectorR
 	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	// Information hiding: delete_pending or owner mismatch -> NOT_FOUND.
 	// System-owned connectors are visible to all, consistent with ListConnectors.
-	if !found || (rec.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
-		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
+	if !found || !connectorVisibleToCaller(rec, ownerID, hasOwner) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 

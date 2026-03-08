@@ -24,7 +24,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 	if err != nil {
 		return nil, s.internalProviderError("test_connector.load", err)
 	}
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
+	if !found || !connectorVisibleToCaller(rec, ownerID, hasOwner) {
 		return &runtimev1.TestConnectorResponse{
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND},
 		}, nil
@@ -99,7 +99,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	if err != nil {
 		return nil, s.internalProviderError("list_connector_models.load", err)
 	}
-	if !found || (rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && (!hasOwner || rec.OwnerID != ownerID)) {
+	if !found || !connectorVisibleToCaller(rec, ownerID, hasOwner) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 

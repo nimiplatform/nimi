@@ -42,6 +42,16 @@ func requireSubjectUserID(ctx context.Context) (string, error) {
 	return subject, nil
 }
 
+func connectorVisibleToCaller(rec ConnectorRecord, ownerID string, hasOwner bool) bool {
+	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
+		return true
+	}
+	if rec.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+		return true
+	}
+	return hasOwner && rec.OwnerID == ownerID
+}
+
 func defaultManagedConnectorLabel(provider string) string {
 	trimmed := strings.TrimSpace(provider)
 	if trimmed == "" {
