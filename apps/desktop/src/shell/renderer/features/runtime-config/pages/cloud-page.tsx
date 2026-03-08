@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   DEFAULT_OPENAI_ENDPOINT_V11,
   getVendorLabelV11,
   VENDOR_ORDER_V11,
   randomIdV11,
   type ApiVendor,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   sdkCreateConnector,

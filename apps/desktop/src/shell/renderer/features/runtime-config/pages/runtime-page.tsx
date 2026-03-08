@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
-import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/state/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { formatLocaleDateTime } from '@renderer/i18n';

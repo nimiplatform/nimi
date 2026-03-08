@@ -1,4 +1,4 @@
-import type { RuntimePageIdV11 } from './state/types';
+import type { RuntimePageIdV11 } from './runtime-config-state-types';
 
 export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }> = {
   overview: {

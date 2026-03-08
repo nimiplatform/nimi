@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createDefaultStateV11, RUNTIME_CONFIG_STORAGE_KEY_V11 } from '../src/shell/renderer/features/runtime-config/state/storage/defaults';
-import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/state/storage/persist';
-import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/state/types';
+import { createDefaultStateV11, RUNTIME_CONFIG_STORAGE_KEY_V11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
+import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
+import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 
 test('persisted state does not contain tokenApiKey or localOpenAiApiKey (type-level)', () => {
   const state = createDefaultStateV11({

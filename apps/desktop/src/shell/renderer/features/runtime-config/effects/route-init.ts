@@ -5,8 +5,9 @@ import {
   DEFAULT_LOCAL_RUNTIME_ENDPOINT_V11,
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/types';
-import { getRecommendedChatModelV11, setInitializedByV11 } from '@renderer/features/runtime-config/state/storage';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
+import { setInitializedByV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
+import { getRecommendedChatModelV11 } from '@renderer/features/runtime-config/runtime-config-storage-summary';
 
 type RouteInitEffectInput = {
   state: RuntimeConfigStateV11 | null;

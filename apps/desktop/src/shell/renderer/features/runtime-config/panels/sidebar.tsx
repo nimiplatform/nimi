@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { RuntimePageIdV11 } from '../state/types';
+import type { RuntimePageIdV11 } from '../runtime-config-state-types';
 
 type RuntimeSidebarProps = {
   activePage: RuntimePageIdV11;

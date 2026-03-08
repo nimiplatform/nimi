@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { desktopBridge, type RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { applyRuntimeDaemonStatusToConfigState } from './runtime-daemon-state';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
 export type RuntimeDaemonAction = 'start' | 'restart' | 'stop';

@@ -6,9 +6,9 @@ import {
   buildRuntimeBridgeConfigFromState,
   serializeRuntimeBridgeProjection,
 } from '../src/shell/renderer/features/runtime-config/runtime-bridge-config';
-import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/state/storage/defaults';
-import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/state/types';
-import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/state/types';
+import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
+import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)

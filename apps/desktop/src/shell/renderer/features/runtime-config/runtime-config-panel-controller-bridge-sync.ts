@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '@renderer/bridge';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   applyRuntimeBridgeConfigToState,
   buildRuntimeBridgeConfigFromState,

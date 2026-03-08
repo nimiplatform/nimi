@@ -3,7 +3,7 @@ import {
   CAPABILITIES_V11,
   type CapabilityV11,
   type RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from '../runtime-config-panel-types';

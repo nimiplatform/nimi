@@ -7,7 +7,7 @@ import type {
   LocalAiVerifiedModelDescriptor,
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
-import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/state/types';
+import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { RuntimeSelect } from '../primitives';
 import {
   CAPABILITY_OPTIONS,

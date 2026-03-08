@@ -12,7 +12,7 @@ import {
   type LocalAiInstallPayload,
   type LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
-import type { CapabilityV11 } from '@renderer/features/runtime-config/state/types';
+import type { CapabilityV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
 import {

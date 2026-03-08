@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 type VaultSyncEffectInput = {
   state: RuntimeConfigStateV11 | null;

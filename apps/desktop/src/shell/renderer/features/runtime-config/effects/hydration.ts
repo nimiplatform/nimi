@@ -2,10 +2,10 @@ import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
-  loadRuntimeConfigStateV11,
   RUNTIME_CONFIG_STORAGE_KEY_V11,
-} from '@renderer/features/runtime-config/state/storage';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-storage-defaults';
+import { loadRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   markRuntimeConfigV11ResetLogged,
   wasRuntimeConfigV11ResetLogged,

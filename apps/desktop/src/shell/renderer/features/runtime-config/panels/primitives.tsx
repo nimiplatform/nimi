@@ -8,7 +8,7 @@ import { Tooltip } from '@renderer/components/tooltip.js';
 import {
   statusTextV11,
   type ProviderStatusV11,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 
 export function Card({
   children,

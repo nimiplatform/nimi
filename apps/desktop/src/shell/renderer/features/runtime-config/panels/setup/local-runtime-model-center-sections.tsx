@@ -9,7 +9,7 @@ import type {
 import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
 import { RuntimeSelect } from '../primitives';
 import { ModelCenterDependencySection } from './model-center-dependency-section';

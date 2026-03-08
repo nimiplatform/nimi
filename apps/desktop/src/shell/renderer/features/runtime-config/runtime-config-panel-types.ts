@@ -2,7 +2,7 @@ import type {
   CapabilityV11,
   ProviderStatusV11,
   RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type {
   LocalAiCatalogItemDescriptor,

@@ -3,7 +3,7 @@ import type {
 } from '@renderer/app-shell/providers/app-store';
 import type {
   RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigStateUpdater } from '../runtime-config-types';
 
 export type RuntimeConfigPanelAsyncGuardContext = {

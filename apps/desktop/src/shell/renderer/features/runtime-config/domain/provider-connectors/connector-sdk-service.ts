@@ -5,7 +5,7 @@ import {
   getVendorLabelV11,
   type ApiConnector,
   type ApiVendor,
-} from '@renderer/features/runtime-config/state/types';
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 
 const CONNECTOR_CALL_OPTIONS = {
   timeoutMs: 5000,

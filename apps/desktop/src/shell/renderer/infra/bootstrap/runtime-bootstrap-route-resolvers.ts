@@ -4,7 +4,7 @@ import type {
   RuntimeModality,
 } from '@nimiplatform/sdk/mod/types';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod/runtime-route';
-import type { SourceIdV11 } from '@renderer/features/runtime-config/state/types';
+import type { SourceIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 type RuntimeFields = {
   provider: string;
