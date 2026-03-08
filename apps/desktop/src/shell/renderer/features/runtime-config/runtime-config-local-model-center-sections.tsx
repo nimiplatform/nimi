@@ -464,6 +464,8 @@ export function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSec
 
 type ArtifactTasksSectionProps = {
   tasks: ArtifactTaskEntry[];
+  pendingTemplateIds: string[];
+  onRetryTask: (templateId: string) => void;
 };
 
 export function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) {
@@ -478,6 +480,7 @@ export function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSection
         {props.tasks.map((task) => {
           const isRunning = task.state === 'running';
           const isFailed = task.state === 'failed';
+          const pendingRetry = props.pendingTemplateIds.includes(task.templateId);
           return (
             <div key={`artifact-task-${task.templateId}`} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
               <div className="flex items-center gap-3">
@@ -502,6 +505,18 @@ export function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSection
                   {artifactTaskStatusLabel(task.state)}
                 </span>
               </div>
+              {isFailed && task.taskKind === 'verified-install' ? (
+                <div className="mt-3 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => props.onRetryTask(task.templateId)}
+                    disabled={pendingRetry}
+                    className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {pendingRetry ? 'Retrying...' : 'Retry'}
+                  </button>
+                </div>
+              ) : null}
             </div>
           );
         })}

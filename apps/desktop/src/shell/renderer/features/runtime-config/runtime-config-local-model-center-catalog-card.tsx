@@ -5,6 +5,7 @@ import type {
   LocalAiCatalogItemDescriptor,
   LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
+  OrphanArtifactFile,
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
 import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -47,6 +48,10 @@ type CatalogCardProps = {
   orphanCapabilities: Record<string, CapabilityOption>;
   orphanImportSessionByPath: Record<string, string>;
   scaffoldingOrphan: string | null;
+  artifactOrphanFiles: OrphanArtifactFile[];
+  artifactOrphanError: string;
+  artifactOrphanKinds: Record<string, LocalAiArtifactKind>;
+  scaffoldingArtifactOrphan: string | null;
   hasSearchQuery: boolean;
   verifiedModels: LocalAiVerifiedModelDescriptor[];
   catalogItems: LocalAiCatalogItemDescriptor[];
@@ -70,6 +75,8 @@ type CatalogCardProps = {
   onRemoveArtifact: (localArtifactId: string) => void;
   onOrphanCapabilityChange: (path: string, capability: CapabilityOption) => void;
   onScaffoldOrphan: (path: string) => void;
+  onArtifactOrphanKindChange: (path: string, kind: LocalAiArtifactKind) => void;
+  onScaffoldArtifactOrphan: (path: string) => void;
   onInstallMissingArtifacts: (artifacts: LocalAiVerifiedArtifactDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallArtifact: (templateId: string) => void;
@@ -381,6 +388,59 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
           </div>
         )}
       </div>
+
+      {props.artifactOrphanFiles.length > 0 ? (
+        <div className="border-t border-slate-200 bg-slate-50/60">
+          <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2">
+            <svg className="h-4 w-4 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+              <path d="m3.3 7 8.7 5 8.7-5" />
+              <path d="M12 22V12" />
+            </svg>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+              Unregistered Companion Assets ({props.artifactOrphanFiles.length})
+            </span>
+          </div>
+          <div className="border-b border-slate-200 bg-slate-100/70 px-4 py-2 text-[11px] text-slate-600">
+            Unclassified files can appear in both model and companion lanes until you import them.
+          </div>
+          {props.artifactOrphanError ? (
+            <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-600">
+              {props.artifactOrphanError}
+            </div>
+          ) : null}
+          <div className="divide-y divide-slate-200/70">
+            {props.artifactOrphanFiles.map((orphan) => (
+              <div key={`artifact-${orphan.path}`} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                  <FolderOpenIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-gray-900">{orphan.filename}</div>
+                  <div className="text-xs text-gray-500">{formatBytes(orphan.sizeBytes)}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RuntimeSelect
+                    value={props.artifactOrphanKinds[orphan.path] || 'vae'}
+                    onChange={(value) => props.onArtifactOrphanKindChange(orphan.path, (value || 'vae') as LocalAiArtifactKind)}
+                    className="w-36"
+                    options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
+                  />
+                  <button
+                    type="button"
+                    disabled={props.artifactBusy || props.scaffoldingArtifactOrphan === orphan.path}
+                    onClick={() => props.onScaffoldArtifactOrphan(orphan.path)}
+                    className="flex items-center gap-1 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    <DownloadIcon className="h-3 w-3" />
+                    {(props.artifactBusy || props.scaffoldingArtifactOrphan === orphan.path) ? 'Importing...' : 'Import'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {props.orphanFiles.length > 0 ? (
         <div className="border-t border-amber-200 bg-amber-50/50">

@@ -5,6 +5,7 @@ import type {
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type {
+  LocalAiArtifactKind,
   LocalAiCatalogItemDescriptor,
   LocalAiDependencyResolutionPlan,
   LocalAiInstallPayload,
@@ -68,6 +69,7 @@ export type RuntimeConfigPanelControllerModel = {
   importLocalModel: () => Promise<void>;
   installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
   importLocalArtifact: () => Promise<void>;
+  scaffoldLocalArtifactOrphan: (path: string, kind: LocalAiArtifactKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;

@@ -102,6 +102,7 @@ export type ArtifactTaskEntry = {
   artifactId: string;
   title: string;
   kind: LocalAiArtifactKind;
+  taskKind: 'verified-install';
   state: ArtifactTaskState;
   detail?: string;
   updatedAtMs: number;

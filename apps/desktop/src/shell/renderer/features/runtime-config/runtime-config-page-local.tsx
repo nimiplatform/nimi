@@ -27,6 +27,7 @@ export function LocalPage({ model, state }: LocalPageProps) {
       onImport={model.importLocalModel}
       onInstallVerifiedArtifact={model.installVerifiedLocalArtifact}
       onImportArtifact={model.importLocalArtifact}
+      onScaffoldArtifactOrphan={model.scaffoldLocalArtifactOrphan}
       onImportFile={model.importLocalModelFile}
       onStart={model.startLocalModel}
       onStop={model.stopLocalModel}

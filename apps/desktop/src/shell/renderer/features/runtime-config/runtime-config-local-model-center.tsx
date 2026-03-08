@@ -9,6 +9,7 @@ import {
   type LocalAiCatalogItemDescriptor,
   type LocalAiVerifiedArtifactDescriptor,
   type LocalAiVerifiedModelDescriptor,
+  type OrphanArtifactFile,
   type OrphanModelFile,
 } from '@runtime/local-ai-runtime';
 import {
@@ -62,7 +63,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
   const [dependencyPlanPreview, setDependencyPlanPreview] = useState<LocalAiDependencyResolutionPlan | null>(null);
   const [loadingDependencyPlan, setLoadingDependencyPlan] = useState(false);
 
-  // Import state
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
   const [importFileCapability, setImportFileCapability] = useState<CapabilityOption>('chat');
@@ -79,21 +79,22 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showImportMenu]);
 
-  // Variant picker state
   const [variantPickerItem, setVariantPickerItem] = useState<LocalAiCatalogItemDescriptor | null>(null);
   const [variantList, setVariantList] = useState<GgufVariantDescriptor[]>([]);
   const [variantError, setVariantError] = useState('');
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
   const [catalogEngineOverrides, setCatalogEngineOverrides] = useState<Record<string, InstallEngineOption>>({});
-
-  // Orphan scan state
   const [orphanFiles, setOrphanFiles] = useState<OrphanModelFile[]>([]);
   const [orphanCapabilities, setOrphanCapabilities] = useState<Record<string, CapabilityOption>>({});
   const [orphanImportSessionByPath, setOrphanImportSessionByPath] = useState<Record<string, string>>({});
   const orphanImportSessionByPathRef = useRef<Record<string, string>>({});
   const [scaffoldingOrphan, setScaffoldingOrphan] = useState<string | null>(null);
   const [orphanError, setOrphanError] = useState('');
+  const [artifactOrphanFiles, setArtifactOrphanFiles] = useState<OrphanArtifactFile[]>([]);
+  const [artifactOrphanKinds, setArtifactOrphanKinds] = useState<Record<string, LocalAiArtifactKind>>({});
+  const [scaffoldingArtifactOrphan, setScaffoldingArtifactOrphan] = useState<string | null>(null);
+  const [artifactOrphanError, setArtifactOrphanError] = useState('');
 
   const displayMode: 'runtime' | 'mod' = props.displayMode === 'mod' ? 'mod' : 'runtime';
   const isModMode = displayMode === 'mod';
@@ -132,7 +133,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     setDependencyPlanPreview(null);
   }, [selectedDependencyCapability, selectedDependencyModId]);
 
-  // Sorted installed models
   const sortedModels = useMemo(
     () => [...props.state.local.models].sort((left, right) => {
       const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
@@ -143,7 +143,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     [props.state.local.models],
   );
 
-  // Filter installed models by search (uses deferred value to avoid blocking input)
   const filteredInstalledModels = useMemo(() => {
     if (!deferredSearchQuery.trim()) return sortedModels;
     const query = deferredSearchQuery.toLowerCase().trim();
@@ -187,7 +186,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     new Map(sortedInstalledArtifacts.map((artifact) => [artifact.artifactId.toLowerCase(), artifact] as const))
   ), [sortedInstalledArtifacts]);
 
-  // Check if a catalog item is already installed
   const isInstalled = useCallback((modelId: string) => {
     return sortedModels.some(m => m.model.toLowerCase() === modelId.toLowerCase());
   }, [sortedModels]);
@@ -206,13 +204,10 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     catalogEngineOverrides[item.itemId] || normalizeInstallEngine(item.engine)
   ), [catalogEngineOverrides]);
 
-  // Use refs for search state so refreshCatalogItems doesn't rebuild on every keystroke
   const searchQueryRef = useRef(deferredSearchQuery);
   searchQueryRef.current = deferredSearchQuery;
   const catalogCapabilityRef = useRef(catalogCapability);
   catalogCapabilityRef.current = catalogCapability;
-
-  // Catalog search — stable callback that reads from refs
   const refreshCatalogItems = useCallback(async () => {
     const query = searchQueryRef.current.trim();
     const capability = catalogCapabilityRef.current;
@@ -227,7 +222,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
       });
-      // Filter out already installed models
       const notInstalled = rows.filter(item => !isInstalled(item.modelId));
       setCatalogItems(notInstalled);
     } catch {
@@ -241,7 +235,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     setLoadingVerifiedModels(true);
     try {
       const rows = await localAiRuntime.listVerified();
-      // Filter out already installed models and limit to top 5
       const notInstalled = rows.filter(item => !isInstalled(item.modelId)).slice(0, 5);
       setVerifiedModels(notInstalled);
     } catch {
@@ -289,6 +282,23 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     }
   }, []);
 
+  const refreshArtifactOrphanFiles = useCallback(async () => {
+    try {
+      const orphans = await localAiRuntime.scanArtifactOrphans();
+      setArtifactOrphanFiles(orphans);
+      setArtifactOrphanError('');
+    } catch {
+      setArtifactOrphanFiles([]);
+    }
+  }, []);
+
+  const refreshAllOrphanFiles = useCallback(async () => {
+    await Promise.all([
+      refreshOrphanFiles(),
+      refreshArtifactOrphanFiles(),
+    ]);
+  }, [refreshArtifactOrphanFiles, refreshOrphanFiles]);
+
   const handleCompletedOrphanImport = useCallback((orphanPath: string, success: boolean, message?: string) => {
     setOrphanImportSessionByPath((prev) => {
       if (!(orphanPath in prev)) {
@@ -300,20 +310,17 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     });
     if (success) {
       void props.onDiscover().finally(() => {
-        void refreshOrphanFiles();
+        void refreshAllOrphanFiles();
       });
       return;
     }
     setOrphanError(message || 'Import failed');
-    void refreshOrphanFiles();
-  }, [props.onDiscover, refreshOrphanFiles]);
+    void refreshAllOrphanFiles();
+  }, [props.onDiscover, refreshAllOrphanFiles]);
 
-  // Reset display count when search changes
   useEffect(() => {
     setCatalogDisplayCount(10);
   }, [deferredSearchQuery, catalogCapability]);
-
-  // Auto search on query change with debounce (uses deferred value so input stays responsive)
   useEffect(() => {
     const timer = setTimeout(() => {
       void refreshCatalogItems();
@@ -321,7 +328,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     return () => clearTimeout(timer);
   }, [deferredSearchQuery, catalogCapability, refreshCatalogItems]);
 
-  // Load verified models on mount
   useEffect(() => {
     void refreshVerifiedModels();
   }, [refreshVerifiedModels]);
@@ -334,10 +340,13 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     void refreshVerifiedArtifacts();
   }, [refreshVerifiedArtifacts]);
 
-  // Scan for orphan model files on mount
   useEffect(() => {
     void refreshOrphanFiles();
   }, [refreshOrphanFiles]);
+
+  useEffect(() => {
+    void refreshArtifactOrphanFiles();
+  }, [refreshArtifactOrphanFiles]);
 
   useEffect(() => {
     orphanImportSessionByPathRef.current = orphanImportSessionByPath;
@@ -424,6 +433,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         artifactId: descriptor.artifactId,
         title: descriptor.title,
         kind: descriptor.kind,
+        taskKind: 'verified-install',
         state,
         detail: String(detail || '').trim() || undefined,
         updatedAtMs: nowMs,
@@ -465,7 +475,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       return;
     }
     for (const artifact of missing) {
-      // Keep installs serialized to avoid duplicate refresh races and clearer UI state.
       await installVerifiedArtifact(artifact.templateId);
     }
   }, [installVerifiedArtifact, installedArtifactsById]);
@@ -475,10 +484,11 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     try {
       await props.onImportArtifact();
       await refreshArtifactSections();
+      await refreshAllOrphanFiles();
     } finally {
       setArtifactBusy(false);
     }
-  }, [props, refreshArtifactSections]);
+  }, [props, refreshAllOrphanFiles, refreshArtifactSections]);
 
   const removeInstalledArtifact = useCallback(async (localArtifactId: string) => {
     setArtifactBusy(true);
@@ -542,6 +552,23 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     });
   }, [getLatestProgressEvent, handleCompletedOrphanImport, orphanCapabilities]);
 
+  const scaffoldArtifactOrphanImport = useCallback(async (orphanPath: string) => {
+    const kind = artifactOrphanKinds[orphanPath] || 'vae';
+    setArtifactBusy(true);
+    setScaffoldingArtifactOrphan(orphanPath);
+    setArtifactOrphanError('');
+    try {
+      await props.onScaffoldArtifactOrphan(orphanPath, kind);
+      await refreshArtifactSections();
+      await refreshAllOrphanFiles();
+    } catch (error: unknown) {
+      setArtifactOrphanError(error instanceof Error ? error.message : String(error || 'Artifact import failed'));
+    } finally {
+      setScaffoldingArtifactOrphan(null);
+      setArtifactBusy(false);
+    }
+  }, [artifactOrphanKinds, props, refreshAllOrphanFiles, refreshArtifactSections]);
+
   const closeVariantPicker = useCallback(() => {
     setVariantPickerItem(null);
     setVariantList([]);
@@ -584,7 +611,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
     }
   }, [closeVariantPicker, props, selectedCatalogCapability, selectedCatalogEngine]);
 
-  // Mod mode
   if (isModMode) {
     return (
       <LocalModelCenterModModeView
@@ -626,7 +652,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
             onHealthCheck={() => void props.onHealthCheck()}
             onRefresh={() => {
               void props.onDiscover().finally(() => {
-                void refreshOrphanFiles();
+                void refreshAllOrphanFiles();
               });
             }}
             onToggleImportMenu={() => setShowImportMenu((prev) => !prev)}
@@ -668,6 +694,10 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
             orphanCapabilities={orphanCapabilities}
             orphanImportSessionByPath={orphanImportSessionByPath}
             scaffoldingOrphan={scaffoldingOrphan}
+            artifactOrphanFiles={artifactOrphanFiles}
+            artifactOrphanError={artifactOrphanError}
+            artifactOrphanKinds={artifactOrphanKinds}
+            scaffoldingArtifactOrphan={scaffoldingArtifactOrphan}
             hasSearchQuery={hasSearchQuery}
             verifiedModels={verifiedModels}
             catalogItems={catalogItems}
@@ -694,6 +724,11 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
               [path]: capability,
             }))}
             onScaffoldOrphan={scaffoldOrphanImport}
+            onArtifactOrphanKindChange={(path, kind) => setArtifactOrphanKinds((prev) => ({
+              ...prev,
+              [path]: kind,
+            }))}
+            onScaffoldArtifactOrphan={(path) => { void scaffoldArtifactOrphanImport(path); }}
             onInstallMissingArtifacts={(artifacts) => { void installMissingArtifactsForModel(artifacts); }}
             onInstallVerifiedModel={(templateId) => { void installVerifiedModel(templateId); }}
             onInstallArtifact={(templateId) => { void installVerifiedArtifact(templateId); }}
@@ -726,7 +761,11 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
             onResume={onResumeDownload}
             onCancel={onCancelDownload}
           />
-          <LocalModelCenterArtifactTasksSection tasks={visibleArtifactTasks} />
+          <LocalModelCenterArtifactTasksSection
+            tasks={visibleArtifactTasks}
+            pendingTemplateIds={artifactPendingTemplateIds}
+            onRetryTask={(templateId) => { void installVerifiedArtifact(templateId); }}
+          />
           {!hasSearchQuery ? (
             <LocalModelCenterQuickPicksSection
               loadingVerifiedModels={loadingVerifiedModels}

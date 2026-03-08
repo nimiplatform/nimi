@@ -40,7 +40,9 @@ import {
   startLocalAiRuntimeModel,
   stopLocalAiRuntimeModel,
   scanLocalAiRuntimeOrphans,
+  scanLocalAiRuntimeArtifactOrphans,
   scaffoldLocalAiRuntimeOrphan,
+  scaffoldLocalAiRuntimeArtifactOrphan,
   installLocalAiRuntimeVerifiedArtifact,
 } from './commands';
 import type {
@@ -86,7 +88,10 @@ import type {
   LocalAiListVerifiedArtifactsPayload,
   LocalAiVerifiedModelDescriptor,
   LocalAiInferenceAuditPayload,
+  OrphanArtifactFile,
   OrphanModelFile,
+  LocalAiScaffoldArtifactPayload,
+  LocalAiScaffoldArtifactResult,
   LocalAiScaffoldOrphanPayload,
 } from './types';
 import {
@@ -170,7 +175,10 @@ export type {
   GoRuntimeSyncAction,
   GoRuntimeSyncResult,
   GoRuntimeSyncTarget,
+  OrphanArtifactFile,
   OrphanModelFile,
+  LocalAiScaffoldArtifactPayload,
+  LocalAiScaffoldArtifactResult,
   LocalAiScaffoldOrphanPayload,
 };
 
@@ -277,6 +285,11 @@ export type LocalAiRuntimeFacade = {
   revealInFolder: (localModelId: string) => Promise<void>;
   scanOrphans: () => Promise<OrphanModelFile[]>;
   scaffoldOrphan: (payload: LocalAiScaffoldOrphanPayload) => Promise<LocalAiInstallAcceptedResponse>;
+  scanArtifactOrphans: () => Promise<OrphanArtifactFile[]>;
+  scaffoldArtifactOrphan: (
+    payload: LocalAiScaffoldArtifactPayload,
+    options?: LocalAiRuntimeWriteOptions,
+  ) => Promise<LocalAiScaffoldArtifactResult>;
 };
 
 export const localAiRuntime: LocalAiRuntimeFacade = {
@@ -324,6 +337,8 @@ export const localAiRuntime: LocalAiRuntimeFacade = {
   revealInFolder: revealLocalAiRuntimeModelInFolder,
   scanOrphans: scanLocalAiRuntimeOrphans,
   scaffoldOrphan: scaffoldLocalAiRuntimeOrphan,
+  scanArtifactOrphans: scanLocalAiRuntimeArtifactOrphans,
+  scaffoldArtifactOrphan: scaffoldLocalAiRuntimeArtifactOrphan,
 };
 
 export { startLocalAiRuntimePolling };

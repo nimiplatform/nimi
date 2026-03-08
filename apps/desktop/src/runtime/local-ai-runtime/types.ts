@@ -481,9 +481,26 @@ export type OrphanModelFile = {
   sizeBytes: number;
 };
 
+export type OrphanArtifactFile = {
+  filename: string;
+  path: string;
+  sizeBytes: number;
+};
+
 export type LocalAiScaffoldOrphanPayload = {
   path: string;
   capabilities: string[];
   engine?: string;
   endpoint?: string;
+};
+
+export type LocalAiScaffoldArtifactPayload = {
+  path: string;
+  kind: LocalAiArtifactKind;
+};
+
+export type LocalAiScaffoldArtifactResult = {
+  manifestPath: string;
+  artifactId: string;
+  kind: LocalAiArtifactKind;
 };

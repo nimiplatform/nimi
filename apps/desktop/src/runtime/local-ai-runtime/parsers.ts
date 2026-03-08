@@ -43,7 +43,9 @@ export {
   parseGgufVariantDescriptor,
   parseInstallAcceptedResponse,
   parseModelHealth,
+  parseOrphanArtifactFile,
   parseOrphanModelFile,
+  parseScaffoldArtifactResult,
 } from './parsers-runtime-events';
 export function normalizeStatus(value: unknown): LocalAiModelStatus {
   if (typeof value === 'number') {

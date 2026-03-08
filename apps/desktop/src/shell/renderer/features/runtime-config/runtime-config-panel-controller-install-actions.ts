@@ -3,6 +3,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   localAiRuntime,
   type GoRuntimeSyncTarget,
+  type LocalAiArtifactKind,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   reconcileModelsToGoRuntime,
@@ -60,6 +61,7 @@ export type RuntimeConfigInstallActions = {
   importLocalModel: () => Promise<void>;
   installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
   importLocalArtifact: () => Promise<void>;
+  scaffoldLocalArtifactOrphan: (path: string, kind: LocalAiArtifactKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;
@@ -458,6 +460,29 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [refreshLocalSnapshot, setStatusBanner]);
 
+  const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalAiArtifactKind) => {
+    try {
+      const scaffolded = await localAiRuntime.scaffoldArtifactOrphan({
+        path,
+        kind,
+      }, { caller: 'core' });
+      const imported = await localAiRuntime.importArtifact({
+        manifestPath: scaffolded.manifestPath,
+      }, { caller: 'core' });
+      await refreshLocalSnapshot();
+      setStatusBanner({
+        kind: 'success',
+        message: `Artifact imported: ${imported.artifactId}`,
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: `Artifact orphan import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+      });
+      throw error;
+    }
+  }, [refreshLocalSnapshot, setStatusBanner]);
+
   const modelActions = useRuntimeConfigModelManagementActions({
     pendingInstallsRef,
     setPendingInstallVersion,
@@ -477,6 +502,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     installVerifiedLocalArtifact,
     importLocalModel: modelActions.importLocalModel,
     importLocalArtifact,
+    scaffoldLocalArtifactOrphan,
     importLocalModelFile: modelActions.importLocalModelFile,
     startLocalModel: modelActions.startLocalModel,
     stopLocalModel: modelActions.stopLocalModel,

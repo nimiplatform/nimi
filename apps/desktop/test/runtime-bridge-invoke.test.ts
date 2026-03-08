@@ -33,6 +33,28 @@ test('toBridgeUserError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
   );
 });
 
+test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code', () => {
+  const error = toBridgeUserError(
+    new Error('LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID: unsupported kind'),
+  );
+  assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    '请选择有效的 companion 资源类型',
+  );
+});
+
+test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', () => {
+  const error = toBridgeUserError(
+    new Error('LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND: file does not exist'),
+  );
+  assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    '未找到待导入的 companion 文件，请刷新后重试',
+  );
+});
+
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,

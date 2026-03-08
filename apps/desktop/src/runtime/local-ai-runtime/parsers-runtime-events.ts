@@ -4,12 +4,14 @@ import type {
   LocalAiDownloadState,
   LocalAiDownloadProgressEvent,
   LocalAiDownloadSessionSummary,
+  LocalAiScaffoldArtifactResult,
   LocalAiInstallAcceptedResponse,
   LocalAiModelHealth,
+  OrphanArtifactFile,
   OrphanModelFile,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
-import { normalizeStatus } from './parsers';
+import { normalizeArtifactKind, normalizeStatus } from './parsers';
 
 export function parseModelHealth(value: unknown): LocalAiModelHealth {
   const record = asRecord(value);
@@ -31,6 +33,15 @@ export function parseGgufVariantDescriptor(value: unknown): GgufVariantDescripto
 }
 
 export function parseOrphanModelFile(value: unknown): OrphanModelFile {
+  const record = asRecord(value);
+  return {
+    filename: asString(record.filename),
+    path: asString(record.path),
+    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
+  };
+}
+
+export function parseOrphanArtifactFile(value: unknown): OrphanArtifactFile {
   const record = asRecord(value);
   return {
     filename: asString(record.filename),
@@ -141,5 +152,14 @@ export function parseInstallAcceptedResponse(value: unknown): LocalAiInstallAcce
     installSessionId: asString(record.installSessionId),
     modelId: asString(record.modelId),
     localModelId: asString(record.localModelId),
+  };
+}
+
+export function parseScaffoldArtifactResult(value: unknown): LocalAiScaffoldArtifactResult {
+  const record = asRecord(value);
+  return {
+    manifestPath: asString(record.manifestPath),
+    artifactId: asString(record.artifactId),
+    kind: normalizeArtifactKind(record.kind),
   };
 }

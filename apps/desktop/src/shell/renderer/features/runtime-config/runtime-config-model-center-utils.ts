@@ -1,4 +1,5 @@
 import type {
+  LocalAiArtifactKind,
   LocalAiCatalogItemDescriptor,
   LocalAiDependencyResolutionPlan,
   LocalAiDownloadSessionSummary,
@@ -39,6 +40,7 @@ export type LocalModelCenterProps = {
   onImport: () => Promise<void>;
   onInstallVerifiedArtifact: (templateId: string) => Promise<void>;
   onImportArtifact: () => Promise<void>;
+  onScaffoldArtifactOrphan: (path: string, kind: LocalAiArtifactKind) => Promise<void>;
   onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
   onStart: (localModelId: string) => Promise<void>;
   onStop: (localModelId: string) => Promise<void>;

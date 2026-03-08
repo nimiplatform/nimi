@@ -196,6 +196,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     importLocalModel: installActions.importLocalModel,
     installVerifiedLocalArtifact: installActions.installVerifiedLocalArtifact,
     importLocalArtifact: installActions.importLocalArtifact,
+    scaffoldLocalArtifactOrphan: installActions.scaffoldLocalArtifactOrphan,
     importLocalModelFile: installActions.importLocalModelFile,
     startLocalModel: installActions.startLocalModel,
     stopLocalModel: installActions.stopLocalModel,
