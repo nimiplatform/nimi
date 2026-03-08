@@ -106,6 +106,10 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         }),
       },
       jobs: {
+        submit: async (input) => runtimeHost.media.jobs.submit({
+          modId: normalizedModId,
+          ...input,
+        }),
         get: async (jobId) => runtimeHost.media.jobs.get({
           modId: normalizedModId,
           jobId,

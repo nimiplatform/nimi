@@ -62,6 +62,56 @@ test('findGoRuntimeModel resolves duplicate modelId by engine', () => {
   assert.equal(resolved.matchedBy, 'modelId+engine');
 });
 
+test('findGoRuntimeModel ignores removed fallback duplicates', () => {
+  const models = [
+    {
+      localModelId: '01JREMOVED',
+      modelId: 'shared-model',
+      engine: 'localai',
+      status: 'removed',
+      endpoint: 'http://127.0.0.1:1234/v1',
+      capabilities: ['image'],
+    },
+  ];
+
+  const resolved = __internal.findGoRuntimeModel(models, {
+    modelId: 'shared-model',
+    engine: 'localai',
+  });
+
+  assert.equal(resolved.model, null);
+  assert.equal(resolved.matchedBy, undefined);
+});
+
+test('findGoRuntimeModel prefers non-removed duplicate over removed fallback', () => {
+  const models = [
+    {
+      localModelId: '01JREMOVED',
+      modelId: 'shared-model',
+      engine: 'localai',
+      status: 'removed',
+      endpoint: 'http://127.0.0.1:1234/v1',
+      capabilities: ['image'],
+    },
+    {
+      localModelId: '01JACTIVE',
+      modelId: 'shared-model',
+      engine: 'localai',
+      status: 'active',
+      endpoint: 'http://127.0.0.1:1234/v1',
+      capabilities: ['image'],
+    },
+  ];
+
+  const resolved = __internal.findGoRuntimeModel(models, {
+    modelId: 'shared-model',
+    engine: 'localai',
+  });
+
+  assert.equal(resolved.model?.localModelId, '01JACTIVE');
+  assert.equal(resolved.matchedBy, 'modelId+engine');
+});
+
 test('parseGoRuntimeModelEntry normalizes status and engine', () => {
   const parsed = __internal.parseGoRuntimeModelEntry({
     localModelId: '01JTEST',

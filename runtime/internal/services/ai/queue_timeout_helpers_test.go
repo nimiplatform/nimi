@@ -3,6 +3,8 @@ package ai
 import (
 	"testing"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
@@ -51,5 +53,47 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 				t.Fatalf("timeoutDuration(%d, %s) = %s, want %s", tt.timeoutMS, tt.defaultTimeout, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestScenarioJobTimeoutDurationAllowsLongerLocalImageJobs(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			TimeoutMs: int32((10 * time.Minute) / time.Millisecond),
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+	}
+
+	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
+	if got != 10*time.Minute {
+		t.Fatalf("scenarioJobTimeoutDuration(local image 10m) = %s, want %s", got, 10*time.Minute)
+	}
+}
+
+func TestScenarioJobTimeoutDurationClampsLocalImageJobsAtSixtyMinutes(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			TimeoutMs: int32((90 * time.Minute) / time.Millisecond),
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+	}
+
+	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
+	if got != maxLocalRuntimeImageJobTimeout {
+		t.Fatalf("scenarioJobTimeoutDuration(local image 90m) = %s, want %s", got, maxLocalRuntimeImageJobTimeout)
+	}
+}
+
+func TestScenarioJobTimeoutDurationKeepsRuntimeCapForRemoteImageJobs(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			TimeoutMs: int32((10 * time.Minute) / time.Millisecond),
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+	}
+
+	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, false)
+	if got != maxRuntimeRequestTimeout {
+		t.Fatalf("scenarioJobTimeoutDuration(remote image 10m) = %s, want %s", got, maxRuntimeRequestTimeout)
 	}
 }

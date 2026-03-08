@@ -127,6 +127,121 @@ test('mod runtime client uses injected runtime context without global host', asy
   assert.equal(textCalls[0]?.input, 'hello');
 });
 
+test('mod runtime client forwards media.jobs.submit through injected runtime context', async () => {
+  clearModSdkHost();
+
+  const submitCalls: Array<Record<string, unknown>> = [];
+  const runtimeHost = {
+    getRuntimeHookRuntime: () => ({}) as RuntimeHookRuntimeFacade,
+    route: {
+      listOptions: async () => ({
+        capability: 'image.generate' as const,
+        selected: {
+          source: 'local-runtime' as const,
+          connectorId: '',
+          model: 'localai/local-import/z_image_turbo-Q4_K',
+        },
+        localRuntime: { models: [] },
+        connectors: [],
+      }),
+      resolve: async () => ({
+        capability: 'image.generate' as const,
+        source: 'local-runtime' as const,
+        provider: 'localai',
+        model: 'localai/local-import/z_image_turbo-Q4_K',
+        connectorId: '',
+        localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
+        engine: 'localai',
+        endpoint: 'http://127.0.0.1:1234/v1',
+        localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+        localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+      }),
+      checkHealth: async () => ({
+        status: 'healthy' as const,
+        healthy: true,
+        provider: 'localai',
+        reasonCode: ReasonCode.RUNTIME_ROUTE_HEALTHY,
+        actionHint: 'none',
+      }),
+    },
+    localRuntime: {
+      listArtifacts: async () => [],
+    },
+    ai: {
+      text: {
+        generate: async () => ({ text: '', finishReason: 'stop', usage: {}, trace: {} }),
+        stream: async () => ({ stream: (async function* noop() {})() }),
+      },
+      embedding: {
+        generate: async () => ({ vectors: [], usage: {}, trace: {} }),
+      },
+    },
+    media: {
+      image: {
+        generate: async () => ({ job: {} as never, artifacts: [], trace: {} }),
+        stream: async () => (async function* noop() {})(),
+      },
+      video: {
+        generate: async () => ({ job: {} as never, artifacts: [], trace: {} }),
+        stream: async () => (async function* noop() {})(),
+      },
+      tts: {
+        synthesize: async () => ({ job: {} as never, artifacts: [], trace: {} }),
+        stream: async () => (async function* noop() {})(),
+        listVoices: async () => ({ voices: [], trace: {} }),
+      },
+      stt: {
+        transcribe: async () => ({ text: '', segments: [], usage: {}, trace: {} }),
+      },
+      jobs: {
+        submit: async (input: Record<string, unknown>) => {
+          submitCalls.push(input);
+          return {
+            jobId: 'job-image-submit',
+            status: 'submitted',
+          } as never;
+        },
+        get: async () => ({} as never),
+        cancel: async () => ({} as never),
+        subscribe: async () => (async function* noop() {})(),
+        getArtifacts: async () => ({ artifacts: [] }),
+      },
+    },
+    voice: {
+      getAsset: async () => ({} as never),
+      listAssets: async () => ({} as never),
+      deleteAsset: async () => ({} as never),
+      listPresetVoices: async () => ({} as never),
+    },
+    getModAiDependencySnapshot: async () => ({
+      modId: 'mod.context.test',
+      status: 'ready' as const,
+      routeSource: 'local-runtime' as const,
+      warnings: [],
+      dependencies: [],
+      repairActions: [],
+      updatedAt: new Date(0).toISOString(),
+    }),
+  };
+
+  const client = createModRuntimeClient('mod.context.test', {
+    runtimeHost: runtimeHost as never,
+    runtime: {} as RuntimeHookRuntimeFacade,
+  });
+
+  await client.media.jobs.submit({
+    modal: 'image',
+    input: {
+      prompt: 'orange cat astronaut',
+    },
+  });
+
+  assert.equal(submitCalls.length, 1);
+  assert.equal(submitCalls[0]?.modId, 'mod.context.test');
+  assert.equal((submitCalls[0]?.input as Record<string, unknown>)?.prompt, 'orange cat astronaut');
+  assert.equal(submitCalls[0]?.modal, 'image');
+});
+
 test('mod runtime client route health uses injected runtime context', async () => {
   clearModSdkHost();
 

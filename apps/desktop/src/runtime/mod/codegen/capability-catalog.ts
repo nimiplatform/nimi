@@ -18,6 +18,7 @@ export const CODEGEN_T0_CAPABILITY_PATTERNS = [
 export const CODEGEN_T1_CAPABILITY_PATTERNS = [
   'runtime.media.image.*',
   'runtime.media.video.*',
+  'runtime.media.jobs.*',
   'runtime.ai.embedding.generate',
   'runtime.media.tts.*',
   'runtime.media.stt.*',

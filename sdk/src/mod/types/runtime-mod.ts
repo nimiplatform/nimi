@@ -19,6 +19,7 @@ import type {
   ModRuntimeBoundVideoGenerateInput,
   ModRuntimeListPresetVoicesInput,
   ModRuntimeResolvedBinding,
+  ModRuntimeScenarioJobSubmitInput,
 } from '../runtime/types';
 import type {
   ArtifactChunk,
@@ -107,6 +108,7 @@ export type ModRuntimeHost = {
       transcribe: (input: ModRuntimeBoundSpeechTranscribeInput & { modId: string }) => Promise<SpeechTranscribeOutput>;
     };
     jobs: {
+      submit: (input: ModRuntimeScenarioJobSubmitInput & { modId: string }) => Promise<ScenarioJob>;
       get: (input: { modId: string; jobId: string }) => Promise<ScenarioJob>;
       cancel: (input: { modId: string; jobId: string; reason?: string }) => Promise<ScenarioJob>;
       subscribe: (input: { modId: string; jobId: string }) => Promise<AsyncIterable<ScenarioJobEvent>>;

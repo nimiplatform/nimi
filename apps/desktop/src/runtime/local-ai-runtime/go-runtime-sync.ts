@@ -160,7 +160,19 @@ export function findGoRuntimeModel(
   }
 
   const engine = normalizeEngine(target.engine);
-  const matched = models.find((model) => syncLookupKey(model.modelId, model.engine) === syncLookupKey(modelId, engine)) || null;
+  const matched = models
+    .filter((model) => syncLookupKey(model.modelId, model.engine) === syncLookupKey(modelId, engine))
+    .sort((left, right) => {
+      const leftRemoved = left.status === 'removed' ? 1 : 0;
+      const rightRemoved = right.status === 'removed' ? 1 : 0;
+      if (leftRemoved !== rightRemoved) {
+        return leftRemoved - rightRemoved;
+      }
+      return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
+    })[0] || null;
+  if (!matched || matched.status === 'removed') {
+    return { model: null };
+  }
   return matched
     ? { model: matched, matchedBy: 'modelId+engine' }
     : { model: null };

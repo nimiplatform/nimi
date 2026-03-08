@@ -9,6 +9,7 @@ import {
 test('catalog classifies T0/T1/T2 correctly', () => {
   assert.equal(classifyCodegenCapability('runtime.ai.text.generate'), 'T0');
   assert.equal(classifyCodegenCapability('runtime.media.image.generate'), 'T1');
+  assert.equal(classifyCodegenCapability('runtime.media.jobs.submit'), 'T1');
   assert.equal(classifyCodegenCapability('runtime.local.artifacts.list'), 'T1');
   assert.equal(classifyCodegenCapability('turn.register.pre-model'), 'T2');
 });

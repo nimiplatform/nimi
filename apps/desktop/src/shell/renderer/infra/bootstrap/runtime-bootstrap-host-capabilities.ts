@@ -1,6 +1,8 @@
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import {
   localAiRuntime,
+  listGoRuntimeModelsSnapshot,
+  reconcileModelsToGoRuntime,
   type LocalAiDependenciesDeclarationDescriptor,
   type LocalAiDependencyDescriptor,
   type LocalAiModelRecord,
@@ -42,7 +44,7 @@ import {
   type RuntimeModMediaCachePutResult,
 } from '@runtime/llm-adapter/tauri-bridge';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
-import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
+import { loadRuntimeRouteOptions, pickPreferredGoRuntimeModel } from './runtime-bootstrap-route-options';
 import type { WireModSdkHostInput } from './runtime-bootstrap-host';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -744,7 +746,7 @@ function hydrateTokenApiRouteBindingFromOptions(
   };
 }
 
-function hydrateLocalRuntimeRouteBindingFromOptions(
+export function hydrateLocalRuntimeRouteBindingFromOptions(
   binding: RuntimeRouteBinding,
   options: RuntimeRouteOptionsSnapshot,
 ): RuntimeRouteBinding {
@@ -776,6 +778,15 @@ function hydrateLocalRuntimeRouteBindingFromOptions(
   if (!localModel) {
     return binding;
   }
+  const bindingGoRuntimeStatus = String(binding.goRuntimeStatus || '').trim().toLowerCase();
+  const localModelGoRuntimeStatus = String(localModel.goRuntimeStatus || '').trim().toLowerCase();
+  const clearStaleBindingGoRuntime = bindingGoRuntimeStatus === 'removed' && !localModelGoRuntimeStatus;
+  const preferLocalModelGoRuntime = Boolean(localModelGoRuntimeStatus)
+    && (
+      !bindingGoRuntimeStatus
+      || bindingGoRuntimeStatus === 'removed'
+      || bindingGoRuntimeStatus !== localModelGoRuntimeStatus
+    );
   return {
     ...binding,
     model: String(binding.model || binding.modelId || localModel.modelId || localModel.model || '').trim(),
@@ -786,8 +797,102 @@ function hydrateLocalRuntimeRouteBindingFromOptions(
     adapter: String(binding.adapter || localModel.adapter || '').trim() || undefined,
     providerHints: binding.providerHints || localModel.providerHints,
     endpoint: String(binding.endpoint || localModel.endpoint || '').trim() || undefined,
-    goRuntimeLocalModelId: String(binding.goRuntimeLocalModelId || localModel.goRuntimeLocalModelId || '').trim() || undefined,
-    goRuntimeStatus: String(binding.goRuntimeStatus || localModel.goRuntimeStatus || '').trim() || undefined,
+    goRuntimeLocalModelId: String(
+      (clearStaleBindingGoRuntime
+        ? ''
+        : (preferLocalModelGoRuntime ? localModel.goRuntimeLocalModelId : binding.goRuntimeLocalModelId))
+      || localModel.goRuntimeLocalModelId
+      || (clearStaleBindingGoRuntime ? '' : binding.goRuntimeLocalModelId)
+      || '',
+    ).trim() || undefined,
+    goRuntimeStatus: String(
+      (clearStaleBindingGoRuntime
+        ? ''
+        : (preferLocalModelGoRuntime ? localModel.goRuntimeStatus : binding.goRuntimeStatus))
+      || localModel.goRuntimeStatus
+      || (clearStaleBindingGoRuntime ? '' : binding.goRuntimeStatus)
+      || '',
+    ).trim() || undefined,
+  };
+}
+
+function localModelStatusPriority(status: string): number {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (normalized === 'active') return 0;
+  if (normalized === 'unhealthy') return 1;
+  if (normalized === 'installed') return 2;
+  if (normalized === 'removed') return 3;
+  return 4;
+}
+
+function normalizeLocalRuntimeModelRoot(value: unknown): string {
+  const trimmed = String(value || '').trim();
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('localai/')) return trimmed.slice('localai/'.length).trim();
+  if (lower.startsWith('nexa/')) return trimmed.slice('nexa/'.length).trim();
+  if (lower.startsWith('local/')) return trimmed.slice('local/'.length).trim();
+  return trimmed;
+}
+
+function normalizeLocalRuntimeEngine(value: unknown): string {
+  return String(value || '').trim().toLowerCase() === 'nexa' ? 'nexa' : 'localai';
+}
+
+function pickDesktopLocalRuntimeModel(
+  models: LocalAiModelRecord[],
+  resolved: ModRuntimeResolvedBinding,
+): LocalAiModelRecord | null {
+  const targetLocalModelId = String(resolved.localModelId || '').trim();
+  const targetModelId = normalizeLocalRuntimeModelRoot(resolved.modelId || resolved.model);
+  const targetEngine = normalizeLocalRuntimeEngine(resolved.engine || resolved.provider || '');
+  const candidates = models
+    .filter((model) => model.status !== 'removed')
+    .filter((model) => (
+      (targetLocalModelId && String(model.localModelId || '').trim() === targetLocalModelId)
+      || (
+        normalizeLocalRuntimeModelRoot(model.modelId) === targetModelId
+        && normalizeLocalRuntimeEngine(model.engine) === targetEngine
+      )
+    ))
+    .sort((left, right) => {
+      const priorityDelta = localModelStatusPriority(left.status) - localModelStatusPriority(right.status);
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+      return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
+    });
+  return candidates[0] || null;
+}
+
+async function ensureResolvedLocalRuntimeModelAvailable(
+  resolved: ModRuntimeResolvedBinding,
+): Promise<ModRuntimeResolvedBinding> {
+  if (resolved.source !== 'local-runtime') {
+    return resolved;
+  }
+  const desktopModels = await localAiRuntime.list();
+  const desktopModel = pickDesktopLocalRuntimeModel(desktopModels, resolved);
+  if (!desktopModel) {
+    return resolved;
+  }
+
+  const goRuntimeStatus = String(resolved.goRuntimeStatus || '').trim().toLowerCase();
+  const needsRepair = !String(resolved.goRuntimeLocalModelId || '').trim() || goRuntimeStatus === 'removed';
+  if (!needsRepair) {
+    return resolved;
+  }
+
+  await reconcileModelsToGoRuntime([desktopModel]);
+  const goRuntimeModels = await listGoRuntimeModelsSnapshot();
+  const repaired = pickPreferredGoRuntimeModel(goRuntimeModels, desktopModel.modelId, desktopModel.engine);
+
+  return {
+    ...resolved,
+    localModelId: String(resolved.localModelId || desktopModel.localModelId || '').trim() || undefined,
+    endpoint: String(resolved.endpoint || desktopModel.endpoint || '').trim() || undefined,
+    localProviderEndpoint: String(resolved.localProviderEndpoint || desktopModel.endpoint || resolved.endpoint || '').trim() || undefined,
+    goRuntimeLocalModelId: String(repaired?.localModelId || '').trim() || undefined,
+    goRuntimeStatus: String(repaired?.status || '').trim() || undefined,
   };
 }
 
@@ -871,11 +976,13 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
   }): Promise<ModRuntimeResolvedBinding> => {
     let effectiveBinding = payload.binding;
     const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
+    const localGoRuntimeStatus = String(effectiveBinding?.goRuntimeStatus || '').trim().toLowerCase();
     const needsLocalRuntimeHydration = effectiveBinding?.source === 'local-runtime'
       && (
         !String(effectiveBinding.localModelId || '').trim()
         || !String(effectiveBinding.engine || '').trim()
         || !String(effectiveBinding.adapter || '').trim()
+        || localGoRuntimeStatus === 'removed'
       );
     const needsTokenApiHydration = effectiveBinding?.source === 'token-api'
       && (
@@ -1132,18 +1239,20 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'image.generate',
               binding,
             });
+            const preparedResolved = await ensureResolvedLocalRuntimeModelAvailable(resolved);
+            const model = requireModel(request.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED');
             return getRuntimeClient().media.image.generate({
               ...request,
-              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED'),
-              route: resolved.source,
+              model,
+              route: preparedResolved.source,
               fallback: 'deny',
-              connectorId: resolved.connectorId || undefined,
+              connectorId: preparedResolved.connectorId || undefined,
               metadata: {
                 ...(request.metadata || {}),
                 ...(await buildMetadata({
-                  source: resolved.source,
-                  connectorId: resolved.connectorId || undefined,
-                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                  source: preparedResolved.source,
+                  connectorId: preparedResolved.connectorId || undefined,
+                  endpoint: preparedResolved.localProviderEndpoint || preparedResolved.localOpenAiEndpoint || preparedResolved.endpoint,
                 })),
               },
             });
@@ -1159,18 +1268,20 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
               capability: 'image.generate',
               binding,
             });
+            const preparedResolved = await ensureResolvedLocalRuntimeModelAvailable(resolved);
+            const model = requireModel(request.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED');
             return getRuntimeClient().media.image.stream({
               ...request,
-              model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED'),
-              route: resolved.source,
+              model,
+              route: preparedResolved.source,
               fallback: 'deny',
-              connectorId: resolved.connectorId || undefined,
+              connectorId: preparedResolved.connectorId || undefined,
               metadata: {
                 ...(request.metadata || {}),
                 ...(await buildMetadata({
-                  source: resolved.source,
-                  connectorId: resolved.connectorId || undefined,
-                  endpoint: resolved.localProviderEndpoint || resolved.localOpenAiEndpoint || resolved.endpoint,
+                  source: preparedResolved.source,
+                  connectorId: preparedResolved.connectorId || undefined,
+                  endpoint: preparedResolved.localProviderEndpoint || preparedResolved.localOpenAiEndpoint || preparedResolved.endpoint,
                 })),
               },
             });
@@ -1352,6 +1463,87 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): WireMo
           },
         },
         jobs: {
+          submit: async ({ modId, ...payload }) => {
+            authorizeRuntimeCapability({
+              modId,
+              capabilityKey: 'runtime.media.jobs.submit',
+            });
+            const binding = payload.input.binding;
+            const capability = payload.modal === 'video'
+              ? 'video.generate'
+              : payload.modal === 'tts'
+                ? 'audio.synthesize'
+                : payload.modal === 'stt'
+                  ? 'audio.transcribe'
+                  : 'image.generate';
+            const resolved = await resolveRuntimeRoute({
+              modId,
+              capability,
+              binding,
+            });
+            const preparedResolved = payload.modal === 'image'
+              ? await ensureResolvedLocalRuntimeModelAvailable(resolved)
+              : resolved;
+            const metadata = {
+              ...(payload.input.metadata || {}),
+              ...(await buildMetadata({
+                source: preparedResolved.source,
+                connectorId: preparedResolved.connectorId || undefined,
+                endpoint: preparedResolved.localProviderEndpoint || preparedResolved.localOpenAiEndpoint || preparedResolved.endpoint,
+              })),
+            };
+            if (payload.modal === 'image') {
+              const model = requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED');
+              return getRuntimeClient().media.jobs.submit({
+                modal: 'image',
+                input: {
+                  ...payload.input,
+                  model,
+                  route: preparedResolved.source,
+                  fallback: 'deny',
+                  connectorId: preparedResolved.connectorId || undefined,
+                  metadata,
+                },
+              });
+            }
+            if (payload.modal === 'video') {
+              return getRuntimeClient().media.jobs.submit({
+                modal: 'video',
+                input: {
+                  ...payload.input,
+                  model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
+                  route: preparedResolved.source,
+                  fallback: 'deny',
+                  connectorId: preparedResolved.connectorId || undefined,
+                  metadata,
+                },
+              });
+            }
+            if (payload.modal === 'tts') {
+              return getRuntimeClient().media.jobs.submit({
+                modal: 'tts',
+                input: {
+                  ...payload.input,
+                  model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
+                  route: preparedResolved.source,
+                  fallback: 'deny',
+                  connectorId: preparedResolved.connectorId || undefined,
+                  metadata,
+                },
+              });
+            }
+            return getRuntimeClient().media.jobs.submit({
+              modal: 'stt',
+              input: {
+                ...payload.input,
+                model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_STT_MODEL_REQUIRED'),
+                route: preparedResolved.source,
+                fallback: 'deny',
+                connectorId: preparedResolved.connectorId || undefined,
+                metadata,
+              },
+            });
+          },
           get: async ({ modId, jobId }) => {
             authorizeRuntimeCapability({
               modId,

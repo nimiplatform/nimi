@@ -146,6 +146,44 @@ function modelSupportsCapability(capabilities: string[] | undefined, capability:
   return (capabilities || []).some((item) => normalizeCapabilityToken(item) === capability);
 }
 
+function rankGoRuntimeStatus(value: unknown): number {
+  const status = String(value || '').trim().toLowerCase();
+  if (status === 'active') return 0;
+  if (status === 'unhealthy') return 1;
+  if (status === 'installed') return 2;
+  if (status === 'removed') return 3;
+  return 4;
+}
+
+export function pickPreferredGoRuntimeModel(
+  goRuntimeModels: Array<{
+    localModelId?: string;
+    modelId?: string;
+    engine?: string;
+    status?: string;
+  }>,
+  modelId: string,
+  engine: string,
+): { localModelId?: string; status?: string } | null {
+  const matches = goRuntimeModels
+    .filter((goModel) => syncLookup(goModel.modelId || '', goModel.engine || '') === syncLookup(modelId, engine))
+    .filter((goModel) => String(goModel.status || '').trim().toLowerCase() !== 'removed')
+    .sort((left, right) => {
+      const rankDelta = rankGoRuntimeStatus(left.status) - rankGoRuntimeStatus(right.status);
+      if (rankDelta !== 0) {
+        return rankDelta;
+      }
+      return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
+    });
+  if (matches.length === 0) {
+    return null;
+  }
+  return {
+    localModelId: String(matches[0]?.localModelId || '').trim() || undefined,
+    status: String(matches[0]?.status || '').trim() || undefined,
+  };
+}
+
 function toLocalRuntimeBinding(option: RuntimeRouteLocalRuntimeOption): RuntimeRouteBinding {
   const modelId = String(option.modelId || option.model || '').trim();
   const engine = normalizeLocalEngine(option.engine);
@@ -351,28 +389,31 @@ export async function loadRuntimeRouteOptions(input: {
     localRuntimeModels = snapshot.models
       .filter((item) => item.status !== 'removed')
       .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
-      .map((item) => ({
-        localModelId: item.localModelId,
-        label: item.modelId,
-        engine: item.engine,
-        model: item.modelId,
-        modelId: item.modelId,
-        provider: normalizeLocalEngine(item.engine),
-        adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
-          || defaultLocalRuntimeAdapter(item.engine, input.capability),
-        providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
-        endpoint: item.endpoint,
-        status: item.status,
-        goRuntimeLocalModelId: goRuntimeModels.find((goModel) => (
-          syncLookup(goModel.modelId, goModel.engine) === syncLookup(item.modelId, item.engine)
-        ))?.localModelId,
-        goRuntimeStatus: goRuntimeModels.find((goModel) => (
-          syncLookup(goModel.modelId, goModel.engine) === syncLookup(item.modelId, item.engine)
-        ))?.status,
-        capabilities: item.capabilities
-          .map((capability) => normalizeCapabilityToken(capability))
-          .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),
-      }));
+      .map((item) => {
+        const preferredGoRuntimeModel = pickPreferredGoRuntimeModel(
+          goRuntimeModels,
+          item.modelId,
+          item.engine,
+        );
+        return {
+          localModelId: item.localModelId,
+          label: item.modelId,
+          engine: item.engine,
+          model: item.modelId,
+          modelId: item.modelId,
+          provider: normalizeLocalEngine(item.engine),
+          adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
+            || defaultLocalRuntimeAdapter(item.engine, input.capability),
+          providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
+          endpoint: item.endpoint,
+          status: item.status,
+          goRuntimeLocalModelId: preferredGoRuntimeModel?.localModelId,
+          goRuntimeStatus: preferredGoRuntimeModel?.status,
+          capabilities: item.capabilities
+            .map((capability) => normalizeCapabilityToken(capability))
+            .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),
+        };
+      });
   } catch (error) {
     const localRuntimeError = asNimiError(error, {
       reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,

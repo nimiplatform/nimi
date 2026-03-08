@@ -140,6 +140,7 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
           transcribe: async () => { throw notReady(); },
         },
         jobs: {
+          submit: async () => { throw notReady(); },
           get: async () => { throw notReady(); },
           cancel: async () => { throw notReady(); },
           subscribe: async () => { throw notReady(); },

@@ -13,6 +13,7 @@ import (
 )
 
 const maxRuntimeRequestTimeout = 5 * time.Minute
+const maxLocalRuntimeImageJobTimeout = 60 * time.Minute
 
 func (s *Service) attachQueueWaitUnary(ctx context.Context, result scheduler.AcquireResult) {
 	waitMs := s.attachQueueWait(ctx, result)
@@ -83,12 +84,50 @@ func timeoutDuration(timeoutMS int32, defaultTimeout time.Duration) time.Duratio
 	return clampTimeoutDuration(time.Duration(timeoutMS) * time.Millisecond)
 }
 
+func scenarioJobTimeoutDuration(
+	req *runtimev1.SubmitScenarioJobRequest,
+	defaultTimeout time.Duration,
+	localRoute bool,
+) time.Duration {
+	timeoutMS := int32(0)
+	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
+	if req != nil {
+		scenarioType = req.GetScenarioType()
+		if head := req.GetHead(); head != nil {
+			timeoutMS = head.GetTimeoutMs()
+		}
+	}
+	duration := defaultTimeout
+	if timeoutMS > 0 {
+		duration = time.Duration(timeoutMS) * time.Millisecond
+	}
+	return clampScenarioJobTimeoutDuration(duration, scenarioType, localRoute)
+}
+
 func clampTimeoutDuration(duration time.Duration) time.Duration {
 	if duration <= 0 {
 		return 0
 	}
 	if duration > maxRuntimeRequestTimeout {
 		return maxRuntimeRequestTimeout
+	}
+	return duration
+}
+
+func clampScenarioJobTimeoutDuration(
+	duration time.Duration,
+	scenarioType runtimev1.ScenarioType,
+	localRoute bool,
+) time.Duration {
+	if duration <= 0 {
+		return 0
+	}
+	maxDuration := maxRuntimeRequestTimeout
+	if localRoute && scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
+		maxDuration = maxLocalRuntimeImageJobTimeout
+	}
+	if duration > maxDuration {
+		return maxDuration
 	}
 	return duration
 }

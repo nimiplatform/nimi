@@ -124,6 +124,12 @@ export type ModRuntimeBoundSpeechListVoicesInput =
     binding?: RuntimeRouteBinding;
   };
 
+export type ModRuntimeScenarioJobSubmitInput =
+  | { modal: 'image'; input: ModRuntimeBoundImageGenerateInput }
+  | { modal: 'video'; input: ModRuntimeBoundVideoGenerateInput }
+  | { modal: 'tts'; input: ModRuntimeBoundSpeechSynthesizeInput }
+  | { modal: 'stt'; input: ModRuntimeBoundSpeechTranscribeInput };
+
 export type ModRuntimeListPresetVoicesInput =
   Omit<ListPresetVoicesRequest, 'modelId' | 'connectorId'>
   & {
@@ -208,6 +214,7 @@ export type ModRuntimeClient = {
       transcribe(input: ModRuntimeBoundSpeechTranscribeInput): Promise<SpeechTranscribeOutput>;
     };
     jobs: {
+      submit(input: ModRuntimeScenarioJobSubmitInput): Promise<ScenarioJob>;
       get(jobId: string): Promise<ScenarioJob>;
       cancel(input: { jobId: string; reason?: string }): Promise<ScenarioJob>;
       subscribe(jobId: string): Promise<AsyncIterable<ScenarioJobEvent>>;

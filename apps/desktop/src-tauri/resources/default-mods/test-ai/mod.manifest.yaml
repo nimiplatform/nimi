@@ -12,6 +12,11 @@ capabilities:
   - runtime.ai.text.generate
   - runtime.ai.text.embed
   - runtime.media.image.generate
+  - runtime.media.jobs.submit
+  - runtime.media.jobs.get
+  - runtime.media.jobs.cancel
+  - runtime.media.jobs.subscribe
+  - runtime.media.jobs.get.artifacts
   - runtime.media.video.generate
   - runtime.media.tts.list.voices
   - runtime.media.tts.synthesize

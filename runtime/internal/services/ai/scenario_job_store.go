@@ -342,7 +342,7 @@ func (s *Service) submitScenarioAsyncJob(
 
 	jobID := ulid.Make().String()
 	traceID := ulid.Make().String()
-	timeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultScenarioJobTimeout(req.GetScenarioType()))
+	timeout := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(req.GetScenarioType()), remoteTarget == nil)
 	jobCtx := context.Background()
 	var cancel context.CancelFunc
 	if timeout > 0 {
