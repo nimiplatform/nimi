@@ -1,6 +1,4 @@
 ﻿import { useState } from 'react';
-import type { GiftCatalogItemDto } from '@nimiplatform/sdk/realm';
-import { dataSync } from '@runtime/data-sync';
 
 // Mock data for gift feed
 const MOCK_GIFT_FEED = [
@@ -412,30 +410,6 @@ function GiftFeedCard({ gift }: { gift: typeof MOCK_GIFT_FEED[0] }) {
   );
 }
 
-// Skeleton loader
-function GiftFeedSkeleton() {
-  return (
-    <div className="rounded-[24px] border border-gray-100 bg-white p-5 animate-pulse">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-200" />
-          <div>
-            <div className="h-4 w-20 rounded bg-gray-200 mb-1" />
-            <div className="h-3 w-12 rounded bg-gray-100" />
-          </div>
-        </div>
-        <div className="h-6 w-16 rounded-full bg-gray-200" />
-      </div>
-      <div className="h-20 rounded-2xl bg-gray-100 mb-4" />
-      <div className="h-px bg-gray-100 mb-3" />
-      <div className="flex justify-end gap-4">
-        <div className="h-4 w-12 rounded bg-gray-100" />
-        <div className="h-4 w-12 rounded bg-gray-100" />
-      </div>
-    </div>
-  );
-}
-
 // Top Supporters Modal
 function TopSupportersModal({ 
   isOpen, 
@@ -477,7 +451,7 @@ function TopSupportersModal({
 
         {/* Supporters List */}
         <div className="max-h-[400px] overflow-y-auto">
-          {MOCK_TOP_SUPPORTERS.map((supporter, index) => (
+          {MOCK_TOP_SUPPORTERS.map((supporter) => (
             <div 
               key={supporter.id}
               className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
@@ -595,6 +569,5 @@ export function GiftsTab() {
     </div>
   );
 }
-
 
 

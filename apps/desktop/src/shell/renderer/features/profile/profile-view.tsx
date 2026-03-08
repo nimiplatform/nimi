@@ -177,7 +177,12 @@ export function ProfileView(props: ProfileViewProps) {
   const friendCount = profile.stats?.friendsCount ?? 0;
   const postCount = profile.stats?.postsCount ?? 0;
   const likesCount = profile.stats?.likesCount ?? 0;
-  const isFeedStyleTab = activeTab === 'Posts' || activeTab === 'Collections' || activeTab === 'Likes';
+  const isFeedStyleTab = (
+    activeTab === 'Posts'
+    || activeTab === 'Collections'
+    || activeTab === 'Likes'
+    || activeTab === 'Gifts'
+  );
   const agentPalette = getSemanticAgentPalette({
     category: profile.agentCategory,
     origin: profile.agentOrigin,
@@ -277,9 +282,6 @@ export function ProfileView(props: ProfileViewProps) {
                         fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#4ECCA3]'}
                       />
                     </div>
-                    {false && profile.isOnline ? (
-                      <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white bg-[#4ECCA3] shadow-sm" />
-                    ) : null}
                   </div>
 
                   <div className="min-w-0 flex-1 pt-14 xl:pt-10">

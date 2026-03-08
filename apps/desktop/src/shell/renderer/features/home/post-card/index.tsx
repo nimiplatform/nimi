@@ -7,6 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { CreatePostModal } from '@renderer/features/profile/components/create-post-modal.js';
+import type { EditablePostSeed } from '@renderer/features/profile/components/create-post-modal-helpers.js';
 import { dataSync } from '@runtime/data-sync';
 import { AddFriendModal } from './add-friend-modal';
 import { PostCardArticle } from './article';
@@ -74,7 +75,7 @@ export function PostCard(input: { post: PostDto; onDelete?: () => void; showAddF
   const firstMediaType = normalizeMediaType(firstMedia?.type);
   const firstMediaUrl = resolveMediaUrl(firstMedia);
   const videoSource = firstMediaType === PostMediaType.VIDEO ? resolveVideoPlaybackSource(firstMediaUrl) : null;
-  const editPostSeed = useMemo(() => {
+  const editPostSeed = useMemo<EditablePostSeed | null>(() => {
     if (!post.id) {
       return null;
     }

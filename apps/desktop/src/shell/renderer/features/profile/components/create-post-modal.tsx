@@ -2,6 +2,27 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import {
+  ACCEPTED_IMAGE_TYPES,
+  ACCEPTED_VIDEO_TYPES,
+  CATEGORIES_PER_PAGE,
+  type EditablePostSeed,
+  EMOJI_CATEGORIES,
+  extractExistingMediaId,
+  extractHashtags,
+  type Location,
+  mapWorldToLocation,
+  MAX_CAPTION_LENGTH,
+  MAX_FILE_SIZE,
+  type SelectedFile,
+  type SelectedMediaRef,
+  stripHashtags,
+} from './create-post-modal-helpers.js';
+import {
+  EmojiPickerPanel,
+  LocationPickerPanel,
+  TagPickerPanel,
+} from './create-post-modal-panels.js';
 
 type CreatePostModalProps = {
   open: boolean;
@@ -11,115 +32,6 @@ type CreatePostModalProps = {
   initialPost?: EditablePostSeed | null;
 };
 
-type SelectedFile = {
-  file: File;
-  previewUrl: string;
-  type: 'image' | 'video';
-};
-
-type EditablePostSeed = {
-  postId: string;
-  caption?: string | null;
-  tags?: string[] | null;
-  visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-  media?: {
-    id: string;
-    type: 'image' | 'video';
-    previewUrl?: string | null;
-  } | null;
-};
-
-type SelectedMediaRef = {
-  id: string;
-  type: 'image' | 'video';
-  previewUrl: string;
-};
-
-function extractExistingMediaId(input: EditablePostSeed['media']): string {
-  if (!input || typeof input !== 'object') {
-    return '';
-  }
-  const payload = input as Record<string, unknown>;
-  const candidates = [payload.id, payload.imageId, payload.videoId, payload.uid];
-  for (const candidate of candidates) {
-    const value = String(candidate || '').trim();
-    if (value) {
-      return value;
-    }
-  }
-  return '';
-}
-
-type Location = {
-  id: string;
-  name: string;
-  address: string;
-};
-
-const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime'];
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-const MAX_CAPTION_LENGTH = 2000;
-const MAX_TAGS = 5;
-const CATEGORIES_PER_PAGE = 4;
-
-// Common emojis grouped by category
-const EMOJI_CATEGORIES = [
-  {
-    name: 'Smileys',
-    emojis: ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
-  },
-  {
-    name: 'Gestures',
-    emojis: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '🦾', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🫀', '🫁', '🧠', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '🩸'],
-  },
-  {
-    name: 'Love',
-    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🈳', '🈂', '🛂', '🛃', '🛄', '🛅', '🛗', '🚹', '🚺', '🚼', '⚧', '🚻', '🚮', '🎦', '📶', '🈁', '✖️', '➕', '➖', '➗', '♾️', '💱', '💲', '™️', '©️', '®️', '👁️‍🗨️', '🔚', '🔙', '🔛', '🔝', '🔜', '〰️', '➰', '➿', '✔️', '🆒', '🆓', '🆕', '🆗', '🆙', '🆖', '🈁', '🈶', '🈚', '🈷️', '🈸', '🈴', '🈳', '㊗️', '㊙️', '🈺', '🈵', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'],
-  },
-  {
-    name: 'Nature',
-    emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿️', '🦔', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪️', '🌈', '☀️', '🌤️', '⛅️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄️', '🌬️', '💨', '💧', '💦', '☔️', '☂️', '🌊', '🌫️'],
-  },
-  {
-    name: 'Food',
-    emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🍍', '🥝', '🥑', '🍅', '🍆', '🥒', '🥕', '🌽', '🌶️', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🍡', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕️', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾', '🧊', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
-  },
-  {
-    name: 'Activities',
-    emojis: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '⛹️', '🤺', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹', '🎭', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩'],
-  },
-];
-
-function mapWorldToLocation(raw: unknown): Location | null {
-  if (!raw || typeof raw !== 'object') {
-    return null;
-  }
-  const record = raw as Record<string, unknown>;
-  const id = String(record.id || '').trim();
-  const name = String(record.name || '').trim();
-  if (!id || !name) {
-    return null;
-  }
-  const genre = String(record.genre || '').trim();
-  const era = String(record.era || '').trim();
-  const address = [genre, era].filter(Boolean).join(' · ') || 'Nimi World';
-  return {
-    id,
-    name,
-    address,
-  };
-}
-
-function extractHashtags(text: string): string[] {
-  const matches = text.match(/#[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+/g);
-  if (!matches) return [];
-  return [...new Set(matches.map((t) => t.slice(1).toLowerCase().slice(0, 24)))].slice(0, MAX_TAGS);
-}
-
-function stripHashtags(text: string): string {
-  return text.replace(/#[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+/g, '').replace(/\s+/g, ' ').trim();
-}
 
 export function CreatePostModal({ open, onClose, onComplete, onUploadStart, initialPost = null }: CreatePostModalProps) {
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
@@ -161,10 +73,6 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
 
   // Emoji pagination
   const totalCategoryPages = Math.ceil(EMOJI_CATEGORIES.length / CATEGORIES_PER_PAGE);
-  const activeCategory = EMOJI_CATEGORIES[activeEmojiCategory] ?? EMOJI_CATEGORIES[0] ?? {
-    name: 'Default',
-    emojis: [] as string[],
-  };
 
   // Get categories for current page
   const getCategoriesForPage = (page: number) => {
@@ -811,218 +719,39 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         </div>
       </div>
 
-      {/* Emoji Panel - Fixed position, rendered outside modal */}
-      {showEmojiPanel && emojiPanelPos && (
-        <div
-          className="emoji-panel fixed z-[100] w-[320px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden"
-          style={{ left: emojiPanelPos.left, top: emojiPanelPos.top }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Category tabs with pagination */}
-          <div className="relative border-b border-gray-100">
-            <div className="flex items-center gap-1 px-2 py-2">
-              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-                {getCategoriesForPage(emojiCategoryPage).map((category) => (
-                  <button
-                    key={category.name}
-                    type="button"
-                    onClick={() => setActiveEmojiCategory(category.originalIndex)}
-                    className={`flex-shrink-0 px-2.5 py-1.5 text-[11px] font-medium rounded-full transition-colors ${
-                      activeEmojiCategory === category.originalIndex
-                        ? 'bg-[#0066CC] text-white'
-                        : 'text-gray-500 hover:bg-gray-100'
-                    }`}
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-              {totalCategoryPages > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => setEmojiPage(emojiCategoryPage === 0 ? emojiCategoryPage + 1 : emojiCategoryPage - 1)}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                  aria-label={emojiCategoryPage === 0 ? 'Next page' : 'Previous page'}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    {emojiCategoryPage === 0 ? (
-                      <path d="M9 18l6-6-6-6" />
-                    ) : (
-                      <path d="M15 18l-6-6 6-6" />
-                    )}
-                  </svg>
-                </button>
-              ) : null}
-            </div>
-          </div>
-          {/* Emoji grid */}
-          <div className="p-3 max-h-[260px] overflow-y-auto">
-            <div className="grid grid-cols-8 gap-1">
-              {activeCategory.emojis.map((emoji, index) => (
-                <button
-                  key={`${emoji}-${index}`}
-                  type="button"
-                  onClick={() => insertEmoji(emoji)}
-                  className="flex items-center justify-center h-8 w-8 text-xl hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <EmojiPickerPanel
+        show={showEmojiPanel}
+        position={emojiPanelPos}
+        categories={getCategoriesForPage(emojiCategoryPage)}
+        activeEmojiCategory={activeEmojiCategory}
+        totalCategoryPages={totalCategoryPages}
+        emojiCategoryPage={emojiCategoryPage}
+        setActiveEmojiCategory={setActiveEmojiCategory}
+        setEmojiPage={setEmojiPage}
+        insertEmoji={insertEmoji}
+      />
 
-      {/* Location Panel - Fixed position, rendered outside modal */}
-      {showLocationPanel && locationPanelPos && (
-        <div
-          className="location-panel fixed z-[100] w-[320px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden"
-          style={{ left: locationPanelPos.left, top: locationPanelPos.top }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Search */}
-          <div className="border-b border-gray-100 p-3">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search location..."
-                value={locationSearch}
-                onChange={(e) => setLocationSearch(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
-              />
-            </div>
-          </div>
-          {/* Location list */}
-          <div className="max-h-48 overflow-y-auto py-2">
-            {loadingLocations ? (
-              <div className="px-3 py-4 text-center text-sm text-gray-500">
-                Loading locations...
-              </div>
-            ) : filteredLocations.length > 0 ? (
-              filteredLocations.map((location) => (
-                <button
-                  key={location.id}
-                  type="button"
-                  onClick={() => selectLocation(location)}
-                  className="flex w-full items-start gap-3 px-3 py-2.5 transition hover:bg-gray-50"
-                >
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-sm font-medium text-gray-900">{location.name}</p>
-                    <p className="truncate text-xs text-gray-500">{location.address}</p>
-                  </div>
-                  {selectedLocation?.id === location.id && (
-                    <svg className="mt-1 h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              ))
-            ) : (
-              <div className="px-3 py-4 text-center text-sm text-gray-500">
-                {availableLocations.length > 0 ? 'No locations found' : 'No worlds available'}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <LocationPickerPanel
+        show={showLocationPanel}
+        position={locationPanelPos}
+        loadingLocations={loadingLocations}
+        locationSearch={locationSearch}
+        setLocationSearch={setLocationSearch}
+        filteredLocations={filteredLocations}
+        availableLocations={availableLocations}
+        selectedLocation={selectedLocation}
+        selectLocation={selectLocation}
+      />
 
-      {/* Tag Panel - Fixed position, rendered outside modal */}
-      {showTagPanel && tagPanelPos && (
-        <div
-          className="tag-panel fixed z-[100] w-[280px] rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] overflow-hidden"
-          style={{ left: tagPanelPos.left, top: tagPanelPos.top }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Search */}
-          <div className="border-b border-gray-100 p-3">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search or create a tag..."
-                value={tagSearch}
-                onChange={(e) => setTagSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && tagSearch.trim()) {
-                    insertTag(tagSearch.trim());
-                  }
-                }}
-                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
-              />
-            </div>
-          </div>
-          {/* Tag list */}
-          <div className="max-h-48 overflow-y-auto py-2">
-            {/* Existing tags */}
-            {filteredTags.length > 0 && (
-              <div className="mb-1">
-                {filteredTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => insertTag(tag)}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-gray-50"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-                        <line x1="7" y1="7" x2="7.01" y2="7" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1 text-left">
-                      <p className="truncate text-sm font-medium text-gray-900">#{tag}</p>
-                    </div>
-                    {tags.includes(tag) && (
-                      <svg className="h-4 w-4 text-[#4ECCA3]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-            
-            {/* Create new tag option */}
-            {tagSearch.trim() && !tags.includes(tagSearch.trim()) && (
-              <button
-                type="button"
-                onClick={() => insertTag(tagSearch.trim())}
-                className="flex w-full items-center gap-3 px-3 py-2.5 transition hover:bg-[#4ECCA3]/10 border-t border-gray-100"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3]/10 text-[#4ECCA3]">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-sm font-medium text-[#4ECCA3]">Create tag &quot;{tagSearch.trim()}&quot;</p>
-                </div>
-              </button>
-            )}
-            
-            {/* Empty state */}
-            {!tagSearch.trim() && filteredTags.length === 0 && (
-              <div className="px-3 py-4 text-center text-sm text-gray-500">
-                Type to search or create a new tag
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <TagPickerPanel
+        show={showTagPanel}
+        position={tagPanelPos}
+        tagSearch={tagSearch}
+        setTagSearch={setTagSearch}
+        filteredTags={filteredTags}
+        tags={tags}
+        insertTag={insertTag}
+      />
     </div>
   );
 }
