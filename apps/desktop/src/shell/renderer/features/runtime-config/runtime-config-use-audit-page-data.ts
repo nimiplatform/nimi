@@ -6,7 +6,7 @@ import {
   summarizeAuditEventTypes,
   summarizeAuditSources,
   summarizeAuditModalities,
-} from '../../domain/diagnostics/audit-view-model.js';
+} from './runtime-config-audit-view-model.js';
 
 function toIsoTimeRangeValue(value: string): string | undefined {
   const normalized = String(value || '').trim();

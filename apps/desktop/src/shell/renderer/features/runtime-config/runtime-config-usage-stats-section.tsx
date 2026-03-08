@@ -1,7 +1,7 @@
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
 import { Tooltip } from '@renderer/components/tooltip.js';
-import { Button, Card } from '../../../runtime-config-primitives.js';
+import { Button, Card } from './runtime-config-primitives.js';
 import {
   formatTokenCount,
   formatComputeMs,
@@ -9,7 +9,7 @@ import {
   usageWindowLabel,
   timestampToIso,
   relativeTimeShort,
-} from '../../../domain/diagnostics/global-audit-view-model.js';
+} from './runtime-config-global-audit-view-model.js';
 
 // Icon Button Component
 function IconButton({

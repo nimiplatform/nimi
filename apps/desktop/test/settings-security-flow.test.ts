@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 const securityPageSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/settings/panels/privacy/security-page.tsx'),
+  path.join(import.meta.dirname, '../src/shell/renderer/features/settings/settings-security-page.tsx'),
   'utf8',
 );
 

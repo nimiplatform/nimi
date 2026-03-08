@@ -320,7 +320,7 @@ export async function loadRuntimeRouteOptions(input: {
 }): Promise<RuntimeRouteOptionsSnapshot> {
   const runtimeFields = useAppStore.getState().runtimeFields as RuntimeFields;
   const { sdkListConnectors, sdkListConnectorModelDescriptors } = await import(
-    '@renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service'
+    '@renderer/features/runtime-config/runtime-config-connector-sdk-service'
   );
 
   const connectorDescriptors = await sdkListConnectors();

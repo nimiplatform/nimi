@@ -13,7 +13,7 @@ import {
   fetchProviderHealth,
   startAuditExport,
   dateToTimestamp,
-} from '../../domain/diagnostics/audit-sdk-service.js';
+} from './runtime-config-audit-sdk-service.js';
 
 type AuditFilters = {
   domain: string;

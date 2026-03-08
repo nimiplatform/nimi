@@ -7,7 +7,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   sdkTestConnector,
   sdkListConnectorModelDescriptors,
-} from './connector-sdk-service';
+} from './runtime-config-connector-sdk-service';
 
 type HealthResult = {
   status: 'healthy' | 'degraded' | 'unreachable' | 'unsupported';

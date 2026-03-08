@@ -15,7 +15,7 @@ import {
   summarizeAuditSources,
   summarizeAuditModalities,
   buildAuditDiagnosticsText,
-} from '../src/shell/renderer/features/runtime-config/domain/diagnostics/audit-view-model';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-audit-view-model';
 
 type AuditEvent = Parameters<typeof resolveAuditSource>[0];
 

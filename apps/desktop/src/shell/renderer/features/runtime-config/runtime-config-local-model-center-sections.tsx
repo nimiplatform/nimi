@@ -10,9 +10,9 @@ import type {
   RuntimeConfigStateV11,
   RuntimeSetupPageIdV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
-import { RuntimeSelect } from '../../runtime-config-primitives';
-import { ModelCenterDependencySection } from './model-center-dependency-section';
+import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
+import { RuntimeSelect } from './runtime-config-primitives';
+import { ModelCenterDependencySection } from './runtime-config-model-center-dependency-section';
 import {
   CAPABILITY_OPTIONS,
   downloadStateLabel,
@@ -21,7 +21,7 @@ import {
   formatEta,
   formatSpeed,
   type CapabilityOption,
-} from './model-center-utils';
+} from './runtime-config-model-center-utils';
 import {
   artifactTaskStatusLabel,
   DownloadIcon,
@@ -33,7 +33,7 @@ import {
   StarIcon,
   SearchIcon,
   formatLastCheckedAgo,
-} from './local-runtime-model-center-helpers';
+} from './runtime-config-local-model-center-helpers';
 
 type ModModeViewProps = {
   state: RuntimeConfigStateV11;

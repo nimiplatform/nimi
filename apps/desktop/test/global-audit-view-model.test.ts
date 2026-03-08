@@ -15,7 +15,7 @@ import {
   relativeTimeShort,
   formatComputeMs,
   formatNumber,
-} from '../src/shell/renderer/features/runtime-config/domain/diagnostics/global-audit-view-model';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-global-audit-view-model';
 
 // ---------------------------------------------------------------------------
 // runtimeHealthStatusLabel

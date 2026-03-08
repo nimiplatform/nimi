@@ -6,10 +6,10 @@ import type {
 import {
   markSelectedConnectorTestFailedCommand,
   runSelectedConnectorTestCommand,
-} from './domain/provider-connectors/connector-test-command';
-import { runDiscoverLocalRuntimeModelsCommand } from './domain/provider-connectors/discover-command';
-import { runLocalRuntimeHealthCheckCommand } from './domain/provider-connectors/health-command';
-import { formatRuntimeConfigErrorBanner } from './domain/provider-connectors/error';
+} from './runtime-config-connector-test-command';
+import { runDiscoverLocalRuntimeModelsCommand } from './runtime-config-connector-discover-command';
+import { runLocalRuntimeHealthCheckCommand } from './runtime-config-connector-health-command';
+import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 
 export async function discoverLocalRuntimeModelsCommand(input: DiscoverProviderCommandContext) {
   if (!input.state || input.discovering) return;

@@ -16,7 +16,7 @@ import {
   pruneProgressSessions,
   sortProgressSessions,
   statusLabel,
-} from '../src/shell/renderer/features/runtime-config/panels/setup/model-center-utils';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
 
 // ---------------------------------------------------------------------------
 // statusLabel

@@ -1,7 +1,7 @@
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
-import type { RuntimeConfigStateUpdater } from '../../runtime-config-types';
-import { checkLocalRuntimeHealth } from './discovery';
+import type { RuntimeConfigStateUpdater } from './runtime-config-types';
+import { checkLocalRuntimeHealth } from './runtime-config-connector-discovery';
 
 export async function runLocalRuntimeHealthCheckCommand(input: {
   state: RuntimeConfigStateV11;

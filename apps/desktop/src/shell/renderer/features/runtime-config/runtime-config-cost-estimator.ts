@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
-import { fetchUsageStats } from './domain/diagnostics/audit-sdk-service.js';
+import { fetchUsageStats } from './runtime-config-audit-sdk-service.js';
 
 export type UsageEstimateBreakdownEntry = {
   label: string;

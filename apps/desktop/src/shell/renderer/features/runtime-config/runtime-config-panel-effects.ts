@@ -7,7 +7,7 @@ import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydrati
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
 import { useRuntimeConfigSetupAutodiscoverEffect } from './runtime-config-effect-setup-autodiscover';
-import { checkLocalRuntimeHealth } from './domain/provider-connectors/discovery';
+import { checkLocalRuntimeHealth } from './runtime-config-connector-discovery';
 
 const LOCAL_RUNTIME_SNAPSHOT_POLL_INTERVAL_MS = 30_000;
 const LOCAL_RUNTIME_HEALTH_POLL_INTERVAL_MS = 30_000;

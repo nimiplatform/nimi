@@ -3,7 +3,7 @@ import type {
   LocalAiVerifiedArtifactDescriptor,
   LocalAiVerifiedModelDescriptor,
 } from '@runtime/local-ai-runtime';
-import { parseTimestamp, type ProgressSessionState } from './model-center-utils';
+import { parseTimestamp, type ProgressSessionState } from './runtime-config-model-center-utils';
 
 export const ARTIFACT_KIND_OPTIONS = [
   'vae',

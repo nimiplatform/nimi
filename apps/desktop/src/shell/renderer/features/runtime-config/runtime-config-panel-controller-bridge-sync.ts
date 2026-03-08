@@ -53,10 +53,10 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
 
         if (!cancelled) {
           try {
-            const { sdkListConnectors } = await import('./domain/provider-connectors/connector-sdk-service');
+            const { sdkListConnectors } = await import('./runtime-config-connector-sdk-service');
             const connectors = await sdkListConnectors();
             if (!cancelled && connectors.length > 0) {
-              const { replaceConnectorsInState } = await import('./panels/provider-connectors/connector-actions');
+              const { replaceConnectorsInState } = await import('./runtime-config-connector-actions');
               setState((previous) => {
                 if (!previous) return previous;
                 return replaceConnectorsInState(previous, connectors);

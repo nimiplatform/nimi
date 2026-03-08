@@ -10,11 +10,11 @@ import {
   parseTimestamp,
   pruneProgressSessions,
   sortProgressSessions,
-} from './model-center-utils';
+} from './runtime-config-model-center-utils';
 import {
   cacheProgressSessions,
   getCachedProgressSessions,
-} from './local-runtime-model-center-helpers';
+} from './runtime-config-local-model-center-helpers';
 
 type DownloadCompleteHandler = (
   installSessionId: string,

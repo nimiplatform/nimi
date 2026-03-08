@@ -16,7 +16,7 @@ const facadeSource = fs.readFileSync(
   'utf8',
 );
 const walletPageSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/settings/panels/advanced-panel.tsx'),
+  path.join(import.meta.dirname, '../src/shell/renderer/features/settings/settings-advanced-panel.tsx'),
   'utf8',
 );
 

@@ -1,9 +1,9 @@
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
-import type { RuntimeConfigStateUpdater } from '../../runtime-config-types';
-import { discoverConnectorModelsAndHealth } from './discovery';
-import { formatRuntimeConfigErrorBanner, formatRuntimeConfigErrorDetail } from './error';
+import type { RuntimeConfigStateUpdater } from './runtime-config-types';
+import { discoverConnectorModelsAndHealth } from './runtime-config-connector-discovery';
+import { formatRuntimeConfigErrorBanner, formatRuntimeConfigErrorDetail } from './runtime-config-connector-error';
 
 export async function runSelectedConnectorTestCommand(input: {
   state: RuntimeConfigStateV11;

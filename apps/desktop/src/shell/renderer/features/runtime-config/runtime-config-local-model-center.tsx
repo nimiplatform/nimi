@@ -20,14 +20,14 @@ import {
   normalizeCapabilityOption,
   normalizeInstallEngine,
   parseTimestamp,
-} from './model-center-utils';
+} from './runtime-config-model-center-utils';
 import {
   isArtifactTaskTerminal,
   relatedArtifactsForModel,
   type ArtifactTaskState,
   type ArtifactTaskEntry,
-} from './local-runtime-model-center-helpers';
-import { LocalRuntimeModelCenterCatalogCard } from './local-runtime-model-center-catalog-card';
+} from './runtime-config-local-model-center-helpers';
+import { LocalRuntimeModelCenterCatalogCard } from './runtime-config-local-model-center-catalog-card';
 import {
   LocalRuntimeModelCenterActiveDownloadsSection,
   LocalRuntimeModelCenterArtifactTasksSection,
@@ -36,8 +36,8 @@ import {
   LocalRuntimeModelCenterQuickPicksSection,
   LocalRuntimeModelCenterToolbar,
   LocalRuntimeModelCenterVerifiedArtifactsSection,
-} from './local-runtime-model-center-sections';
-import { useLocalRuntimeModelCenterDownloads } from './use-local-runtime-model-center-downloads';
+} from './runtime-config-local-model-center-sections';
+import { useLocalRuntimeModelCenterDownloads } from './runtime-config-use-local-runtime-model-center-downloads';
 
 export function LocalRuntimeModelCenter(props: LocalRuntimeModelCenterProps) {
   const [installing, setInstalling] = useState(false);

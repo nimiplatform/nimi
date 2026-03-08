@@ -8,7 +8,7 @@ import type {
   OrphanModelFile,
 } from '@runtime/local-ai-runtime';
 import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { RuntimeSelect } from '../../runtime-config-primitives';
+import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
   INSTALL_ENGINE_OPTIONS,
@@ -16,7 +16,7 @@ import {
   type InstallEngineOption,
   formatBytes,
   normalizeInstallEngine,
-} from './model-center-utils';
+} from './runtime-config-model-center-utils';
 import {
   ARTIFACT_KIND_OPTIONS,
   DownloadIcon,
@@ -29,8 +29,8 @@ import {
   StarIcon,
   Toggle,
   TrashIcon,
-} from './local-runtime-model-center-helpers';
-import { ArtifactRequirementBadges } from './local-runtime-model-center-sections';
+} from './runtime-config-local-model-center-helpers';
+import { ArtifactRequirementBadges } from './runtime-config-local-model-center-sections';
 
 type CatalogCardProps = {
   searchQuery: string;

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { LocalRuntimeModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { localAiRuntime } from '@runtime/local-ai-runtime';
-import { StatusBadge } from '../../runtime-config-primitives';
-import { filterInstalledModels, statusLabel } from './model-center-utils';
+import { StatusBadge } from './runtime-config-primitives';
+import { filterInstalledModels, statusLabel } from './runtime-config-model-center-utils';
 
 // Icons
 function SearchIcon({ className = '' }: { className?: string }) {

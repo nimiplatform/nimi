@@ -6,7 +6,7 @@ import {
   sdkCreateConnector,
   providerToVendor,
   vendorToProvider,
-} from '../src/shell/renderer/features/runtime-config/domain/provider-connectors/connector-sdk-service';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import { initializePlatformClient } from '../src/runtime/platform-client';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 

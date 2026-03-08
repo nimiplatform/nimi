@@ -9,9 +9,9 @@ import {
   resolveAuditPolicyGate,
   resolveAuditReasonCode,
   resolveAuditSource,
-} from '../../../domain/diagnostics/audit-view-model.js';
-import { Button, RuntimeSelect } from '../../../runtime-config-primitives.js';
-import { useAuditPageData } from '../use-audit-page-data.js';
+} from './runtime-config-audit-view-model.js';
+import { Button, RuntimeSelect } from './runtime-config-primitives.js';
+import { useAuditPageData } from './runtime-config-use-audit-page-data.js';
 
 function auditEventTypeColor(eventType: string): string {
   if (eventType.endsWith('_failed')) return 'bg-red-50 text-red-700 border-red-200';

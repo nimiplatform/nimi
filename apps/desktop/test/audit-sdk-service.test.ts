@@ -3,7 +3,7 @@ import test, { describe } from 'node:test';
 
 import {
   dateToTimestamp,
-} from '../src/shell/renderer/features/runtime-config/domain/diagnostics/audit-sdk-service';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-audit-sdk-service';
 
 // ---------------------------------------------------------------------------
 // dateToTimestamp

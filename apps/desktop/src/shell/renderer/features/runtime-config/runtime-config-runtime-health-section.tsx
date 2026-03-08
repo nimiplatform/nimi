@@ -5,7 +5,7 @@ import type {
   AIProviderSubHealth,
 } from '@nimiplatform/sdk/runtime';
 import { Tooltip } from '@renderer/components/tooltip.js';
-import { Card } from '../../../runtime-config-primitives.js';
+import { Card } from './runtime-config-primitives.js';
 import {
   runtimeHealthStatusLabel,
   runtimeHealthStatusColor,
@@ -14,8 +14,8 @@ import {
   formatCpuMilli,
   timestampToIso,
   relativeTimeShort,
-} from '../../../domain/diagnostics/global-audit-view-model.js';
-import { useRuntimeHealthStream } from '../use-runtime-health-stream.js';
+} from './runtime-config-global-audit-view-model.js';
+import { useRuntimeHealthStream } from './runtime-config-use-runtime-health-stream.js';
 
 // Icon Button Component
 function IconButton({

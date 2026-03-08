@@ -7,7 +7,7 @@ import type {
   LocalAiInstallPayload,
   LocalAiInstallPlanDescriptor,
 } from '@runtime/local-ai-runtime';
-import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
+import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 export type LocalRuntimeModelCenterProps = {

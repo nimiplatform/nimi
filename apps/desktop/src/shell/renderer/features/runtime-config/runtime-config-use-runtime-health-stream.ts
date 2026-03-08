@@ -3,7 +3,7 @@ import type { RuntimeHealthEvent, AIProviderHealthEvent } from '@nimiplatform/sd
 import {
   subscribeRuntimeHealth,
   subscribeProviderHealth,
-} from '../../domain/diagnostics/audit-sdk-service.js';
+} from './runtime-config-audit-sdk-service.js';
 
 export function useRuntimeHealthStream(enabled: boolean): {
   latestHealth: RuntimeHealthEvent | null;

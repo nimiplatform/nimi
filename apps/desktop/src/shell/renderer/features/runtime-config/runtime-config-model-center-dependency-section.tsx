@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { LocalAiDependencyResolutionPlan } from '@runtime/local-ai-runtime';
-import type { RuntimeDependencyTargetDescriptor } from '../../runtime-config-panel-types';
-import { CAPABILITY_OPTIONS, type CapabilityOption } from './model-center-utils';
-import { RuntimeSelect } from '../../runtime-config-primitives';
+import type { RuntimeDependencyTargetDescriptor } from './runtime-config-panel-types';
+import { CAPABILITY_OPTIONS, type CapabilityOption } from './runtime-config-model-center-utils';
+import { RuntimeSelect } from './runtime-config-primitives';
 
 // Icons
 function RefreshIcon({ className = '' }: { className?: string }) {
